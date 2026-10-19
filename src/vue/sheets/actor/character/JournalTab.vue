@@ -295,7 +295,7 @@ function journalEntryFormatArgs(entry: JournalEntry) {
 
 	.description {
 		grid-column: 2 / span 1;
-		grid-row: 1 / span 2;
+		grid-row: 1 / span 1;
 		display: grid;
 		grid-template-rows: auto 1fr;
 		gap: 0.5em;
@@ -351,11 +351,11 @@ function journalEntryFormatArgs(entry: JournalEntry) {
 	}
 
 	.player-notes {
-		grid-column: 1 / span 1;
+		grid-column: 1 / span 2;
 		grid-row: 2 / span 1;
 		display: flex;
 		flex-direction: column;
-		min-height: 175px;
+		min-height: 100px;
 
 		.editor {
 			background: white;
