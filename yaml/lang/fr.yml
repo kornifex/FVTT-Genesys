@@ -8,10 +8,10 @@ TYPES:
 
   Item:
     # Character Creation Items
-    ability: Aptitude Speciale
+    ability: Aptitude spéciale
     archetype: Archétype
     career: Carrière
-    injury: Bléssure Critique
+    injury: Blessure critique
     skill: Compétence
     talent: Talent
 
@@ -20,9 +20,9 @@ TYPES:
     consumable: Consommable
     container: Conteneur
     gear: Equipement
-    quality: Attribut d'item
+    quality: Attribut d'objet
     weapon: Arme
-    vehicleWeapon: Arme sur véhicule
+    vehicleWeapon: Arme de véhicule
 
 # Genesys
 Genesys:
@@ -32,20 +32,20 @@ Genesys:
 
   # System Settings
   Settings:
-    SkillsCompendium: Compendium des Compétences
-    SkillsCompendiumHint: "Un compenduim d'item contenant l'ensemble des compétences qui peut être ajouter à un nouveau personnage. Changer cette valeur n'a pas d'effet rétroactif sur les anciens personnages."
-    DefaultDifficulty: Default Difficulty
+    SkillsCompendium: Compendium des compétences
+    SkillsCompendiumHint: "Un compendium d'objets contenant l'ensemble des compétences qui peuvent être ajoutées à un nouveau personnage. Changer cette valeur n'a pas d'effet rétroactif sur les anciens personnages"
+    DefaultDifficulty: Difficulté par défaut
     DefaultDifficultyHint: >-
       The default dice pool modifications that should be added to the dice pool when doing a check. This default might be ignored in cases were the difficulty is known.
       For an explanation of all the possible modifications and their glyph please check [[Dice-Pool-Modification-Glyphs|Dice Pool Modification Glyphs]].
     Money: Monnaie
-    MoneyHint: "Le nom de la monaie (comme l'or, les crédits, le Cash, les Doublons, etc) utiliser pour l'argent du système."
-    CareerSkillRanks: Nombre de Compétence de Carrière
-    CareerSkillRanksHint: Nombre de compétences que vous pouvez sélectionné dans la liste des compétences pendant la création du personnage
+    MoneyHint: "Le nom de la monnaie (comme l'or, les crédits, le cash, les doublons, etc.) utilisée pour l'argent du système"
+    CareerSkillRanks: Nombre de compétences de carrière
+    CareerSkillRanksHint: Nombre de compétences que vous pouvez sélectionner dans la liste des compétences de carrière pendant la création du personnage
     UncoupleSkillsAlternateRule: Désolidariser les compétences des caractéristiques
-    UncoupleSkillsAlternateRuleHint: "Autorise la sélection d'une caractéristique pour une compétence au moment du dialogue des dés, pour permettre la règle optionnelle 'Désolidariser compétence-caractéristique' (livre de base p 205)."
+    UncoupleSkillsAlternateRuleHint: "Autorise la sélection d'une caractéristique pour une compétence au moment de la boite de dialogue de lancement des dés, pour permettre la règle optionnelle 'Désolidariser les compétences des caractéristiques' (livre de base p 205)."
     ShowDamageOnFailure: "Montrer les dommages de l'attaque en cas d'échec"
-    ShowDamageOnFailureHint: "Afficher ou non les dégâts, les critiques et les qualités sur les cartes de discussion des jets d'attaque, même en cas d'échec."
+    ShowDamageOnFailureHint: "Afficher ou non les dégâts, les critiques et les attributs sur les cartes de discussion des jets d'attaque, même en cas d'échec."
     SkillForInjuries: Compétence du jet de Récupération
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
@@ -72,7 +72,7 @@ Genesys:
   # Tooltips
   Tooltips:
     NoDescription: Aucune description disponible
-    IsInitiative: Si la compétence est utilisée pour l'Initiative ou non. En mettant cette valeur à true, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
+    IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
     CycleInitiativeSkill: Cycle de la compétence d'initiative utilisée par le combattant.
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
 
@@ -86,14 +86,14 @@ Genesys:
       Characteristic: Jet de <strong>{characteristic}</strong>...
       Skill: 'Jet de <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>...'
       SkillWithoutCharacteristic: Jet direct <strong>{skill}</strong>...
-      AttackCharacteristic: Attaque de <strong>{name}</strong> en utilisant <strong>{characteristic}</strong>!
-      AttackSkill: 'Attaque de <strong>{name}</strong> en utilisant <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
-      AttackSkillWithoutCharacteristic: Attaque de <strong>{name}</strong> en utilisant <strong>{skill}</strong>!
+      AttackCharacteristic: Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{characteristic}</strong>!
+      AttackSkill: 'Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
+      AttackSkillWithoutCharacteristic: Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{skill}</strong>!
     Attack:
       Critical: Critique
-      Label: "Résultats de l'attaque"
+      Label: "Résultat de l'attaque"
       Damage: Dommage
-      Qualities: "Qualité de l'attaque"
+      Qualities: "Attributs de l'arme"
     Summary:
       Label: Résumé
       Successes: Succès
@@ -105,22 +105,22 @@ Genesys:
 
   # Career Skill Prompt
   CareerSkillPrompt:
-    Title: Compétence de Carrière
-    Hint: 'Choissisez une compétence de Carrière pour gagner un rang:'
-    RemainingChoices: Autres choix
-    Confirm: Réalisé
+    Title: Compétence de carrière
+    Hint: 'Choisissez une compétence de carrière pour gagner un rang :'
+    RemainingChoices: Choix restants
+    Confirm: Confirmer
 
   # Dice So Nice strings
   DiceCat:
     Normal: Dés Genesys
     MagicalGirl: Magical Girl par MilkMyth
-    Custom: Genesys Dés (Customisable)
+    Custom: Dés Genesys (customisable)
   DiceColors:
     Boost: Dé de fortune
     Ability: "Dé d'aptitude"
     Proficiency: Dé de maîtrise
-    Setback: "Dé d'Infortune"
-    Difficulty: Dés de difficulté
+    Setback: "Dé d'infortune"
+    Difficulty: Dé de difficulté
     Challenge: Dé de défi
 
   # Difficulty Ranks
@@ -139,50 +139,50 @@ Genesys:
       Consumable: Consommable
       Container: Containeur
       Gear: Equipement
-      Weapon: Armes
+      Weapon: Arme
 
   # ActiveEffects System Strings
   ActiveEffects:
-    Passive: Effets Passifs
-    Temporary: Effets Temporaires
-    Suppressed: Effets Désactivés
+    Passive: Effets passifs
+    Temporary: Effets temporaires
+    Suppressed: Effets désactivés
     Source: Source
     Duration: Durée
-    ChangeKey: Effect Target
+    ChangeKey: Cible
     ChangeMode: Option
-    ChangeValue: Effect Value
+    ChangeValue: Valeur
     Types:
-      ModifyCharacteristic: Caractérisitique à Modifier
-      ModifyStat: Statistique à Modifier
-      ModifySkill: Compétence à Modifier
+      ModifyCharacteristic: Caractéristique à modifier
+      ModifyStat: Statistique à modifier
+      ModifySkill: Compétence à modifier
       ModifyDicePool:
-        GroupLabel: Réserve de Dés à Modifier
+        GroupLabel: Réserve de dés à modifier
         Options:
-          Check: Any Check
-          Characteristic: Uses Characteristic
-          Skill: Uses Skill
+          Check: Tous les tests
+          Characteristic: Utilise la caractéristique
+          Skill: Utilise la compétence
 
   # Dice Prompt Labels
   DicePrompt:
-    Title: Réserve de Dés
-    Roll: Jet!
-    Hint: Utilisez la boîte à dés sur la droite pour ajouter, améliorer et rétrograder. Cliquez sur les dés dans la réserve pour les retirer!
+    Title: Réserve de dés
+    Roll: Lancer !
+    Hint: Utilisez la boîte à dés sur la droite pour ajouter, améliorer et rétrograder. Cliquez sur les dés dans la réserve pour les retirer
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     PoolModifications:
-      Title: Pool Modifications
-      DefaultDifficulty: Default Difficulty
-      ManualChanges: Manual Changes
-      SelfEffects: 'From Self: '
-      TargetEffects: 'From Target: '
-    ChanceToSucceed: 'Chance de réussite:'
+      Title: Modification de la réserve de dés
+      DefaultDifficulty: Difficulté par défaut
+      ManualChanges: Modifications manuelles
+      SelfEffects: 'Du personnage : '
+      TargetEffects: 'De la cible : '
+    ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
-    ChanceToSucceedBySimulationDisclaimer: La probabilité affiché est une approximation caculé à partir de la méthode de Monte Carlo.
+    ChanceToSucceedBySimulationDisclaimer: La probabilité affichée est une approximation calculée à partir de la méthode de Monte Carlo.
 
   # Rewards Prompt Labels
   RewardsPrompt:
-    Title: Rewards
+    Title: Récompense
     Amount: Valeur
-    Reason: Raison
+    Reason: Motif
 
   # Character Skill Prompt Labels
   CharacterSkillPrompt:
@@ -204,11 +204,11 @@ Genesys:
   # Experience Journal Labels
   XPJournal:
     Award: '<strong>XP attribué par le MJ</strong>: {reason}'
-    Starting: "<strong>XP de départ de l'Archétype</strong>"
-    Characteristic: Augmentation de la  <strong>{characteristic}</strong> à {rank}.
-    Skill: Augmente <strong>{name}</strong> à {rank}.
-    NewTalent: 'Talent acheté: <strong>{name}</strong> (Niveau {tier}).'
-    TalentRank: Augmentation de <strong>{name}</strong> au Rang {rank} (Niveau Effectif {tier}).
+    Starting: "<strong>XP de départ de l'archétype</strong>"
+    Characteristic: Augmente <strong>{characteristic}</strong> à {rank}.
+    Skill: Augmente <strong>{name}</strong> au rang {rank}.
+    NewTalent: 'Talent acheté : <strong>{name}</strong> (Catégorie {tier}).'
+    TalentRank: Augmente <strong>{name}</strong> au rang {rank} (Catégorie {tier}).
 
   # Notification Prompts
   Notifications:
@@ -226,7 +226,7 @@ Genesys:
     CannotDeleteNewTalent: Impossible de supprimer l'entrée du journal d'XP pour le nouveau talent '{name}' - Vous devez d'abord supprimer les augmentations de rang du talent !
     CannotDeleteExistingTalent: "Impossible de supprimer l'entrée du journal de XP pour l'augmentation du talent '{name}' au rang {rank} - Vous devez d'abord supprimer les augmentations de rang supérieur !"
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
-    CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de la catégorie {tier} - vous devez avoir au moins {minimum} talents à la catégorie {lowerTier} d'abord"
+    CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de catégorie {tier} - vous devez avoir au moins {minimum} talents de catégorie {lowerTier} d'abord"
     NotEnoughStoryPoints: Vous ne pouvez pas dépenser de Point Narratif que vous ne possédez pas!
     SelectOneTokenForAction: Vous devez selectionner un unique token pour réaliser cette action.
     SelectNoneOrOneTokenForAction: Vous devez selectionner aucun token, ou juste un, pour faire cette action.
@@ -240,8 +240,8 @@ Genesys:
   # Dialogs Prompts
   Dialogs:
     ConfirmDeleteItem:
-      Title: Confirm Removal
-      Content: This will remove the item. Do you want to proceed?
+      Title: Confirmer la suppression
+      Content: L'objet va être supprimé. Êtes-vous sûr ?
 
   # Migration Related Messages
   Migration:
@@ -260,21 +260,21 @@ Genesys:
 
   # Story Points
   StoryPoints:
-    Player: Points Narratifs des Joueurs
-    GM: Points Narratifs du MJ
-    Reset: Réinitialise les Points Narratifs
+    Player: Points de Destin
+    GM: Points de Fatalité
+    Reset: Réinitialise les points Narratifs
     Spend: Dépense de point
-    ChatMessageGmPool: Dépense un point Narratif!
-    ChatMessagePlayerPool: Dépense un point Narratif!
+    ChatMessageGmPool: Dépense un point de Fatalité !
+    ChatMessagePlayerPool: Dépense un point de Destin !
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:
-    Difficulty: 'Test de {skill} contre {difficulty} [{symbols}]'  # e.g. Average [♦♦] Coercion Check
-    Opposed: 'Opposed {skill1} versus {skill2} check'
+    Difficulty: 'Test de {skill} {difficulty} [{symbols}]'
+    Opposed: 'Test opposé de {skill1} contre {skill2}'
 
   # Combat Tracker
   CombatTracker:
-    RevokeInitiativeClaim: Revoquer l'initiative
+    RevokeInitiativeClaim: Réinitialiser le créneau d'initiative
 
   # Sheet Tab names
   Tabs:
@@ -297,19 +297,19 @@ Genesys:
   Characteristics:
     Brawn: Vigueur
     Agility: Agilité
-    Intellect: Intellect
+    Intellect: Intelligence
     Cunning: Ruse
     Willpower: Volonté
     Presence: Présence
 
   # Characteristic Abbreviations
   CharacteristicAbbr:
-    Brawn: Vig
-    Agility: Ag
-    Intellect: Int
-    Cunning: Rus
-    Willpower: Vol
-    Presence: Pr
+    Brawn: VIG
+    Agility: AGI
+    Intellect: INT
+    Cunning: RUS
+    Willpower: VOL
+    Presence: PRÉ
 
   # Skill Categories
   SkillCategory:
@@ -321,11 +321,11 @@ Genesys:
 
   # Archetype Data
   Archetype:
-    Abilities: Aptitudes d'Archétype
-    StartingWounds: Seuil de blessure initial
+    Abilities: Aptitudes
+    StartingWounds: Seuil de blessures initial
     StartingStrain: Seuil de stress initial
-    StartingXP: Expérience initiale
-    GrantedItems: Objet autorisé
+    StartingXP: Expérience de départ
+    GrantedItems: Objets ou talents
 
   # Adversary Labels
   Adversary:
@@ -334,17 +334,17 @@ Genesys:
     Talents: Talents
     Abilities: Aptitudes
     Equipment: Equipement
-    None: Rien.
+    None: Rien
     Base: Base
     Remaining: Reste
 
   # Career Data
   Career:
-    Skills: Compétences de Carrière
+    Skills: Compétences de carrière
 
   # Range Values
   Range:
-    Engaged: au contact
+    Engaged: Au contact
     Short: Courte
     Medium: Moyenne
     Long: Longue
@@ -363,7 +363,7 @@ Genesys:
   # Dialog Groups
   DialogGroups:
     Item:
-      CharacterCreation: Création de Personnage
+      CharacterCreation: Création de personnage
       Equipment: Equipement
       Other: Autre
     Actor:
@@ -374,119 +374,128 @@ Genesys:
   Equipment:
     DamageState:
       Undamaged: Bon état
-      Minor: Dommage Mineur
-      Moderate: Dommmage Modérée
-      Major: Dommage majeur
+      Minor: Dommages mineurs
+      Moderate: Dommages modérés
+      Major: Dommages majeurs
+    Dropdown:
+      Equip: Équiper
+      Unequip: Déséquiper
+      Drop: Laisser
+      PickUp: Ramasser
+      ToChat: Au chat
+      Edit: Éditer
+      Delete: Supprimer
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
     Name: Nom
-    CharacterName: Nom du Personnage
+    CharacterName: Nom du personnage
     SpeciesArchetype: Espèce/Archétype
     Career: Carrière
     Soak: Encaissement
-    SoakValue: Valeur d'Encaissement
+    SoakValue: Valeur d'encaissement
     Wounds: Blessures
-    WoundThreshold: Seuil de blessure
+    WoundThreshold: Seuil de blessures
     Strain: Stress
-    StrainThreshold: Seuil de Stress
+    StrainThreshold: Seuil de stress
     Defense: Défense
     Threshold: Seuil
     Current: Actuel
-    DefenseMelee: Mélée
-    MeleeDefense: Défense de mélée
+    DefenseMelee: Mêlée
+    MeleeDefense: Défense de mêlée
     DefenseRanged: Distance
     RangedDefense: Défense à distance
-    TotalXP: XP Total
+    TotalXP: XP total
     AvailableXP: XP disponible
     Characteristic: Caractéristique
-    IsMagicSkill: Est une Compétence Magique
+    IsMagicSkill: Est une compétence magique
     Source: Source
     GeneralSkills: Compétences générales
-    MagicSkills: Compétences Magiques
+    MagicSkills: Compétences magiques
     CombatSkills: Compétences de combat
-    SocialSkills: Compétences Sociales
-    KnowledgeSkills: Compétences de Connaissances
+    SocialSkills: Compétences sociales
+    KnowledgeSkills: Compétences de connaissances
     Category: Catégorie
     Skills: Compétences
     Delete: Suprimer
     Edit: Editer
     NoCareer: Aucune carrière sélectionnée - glissez en une !
     NoArchetype: Aucun archetype sélectionné - glissez en un !
-    MarkCareerSkill: Cochée comme une Compétence de Carrière
-    UnmarkCareerSkill: Non cochée comme une Compétence de Carrière
-    MarkSuperCharacteristic: Cochée comme une Super -Caractérisique
-    UnmarkSuperCharacteristic: Non Cochée comme une Super-Caracteristique
+    MarkCareerSkill: Coché comme compétence de carrière
+    UnmarkCareerSkill: Non coché comme compétence de carrière
+    MarkSuperCharacteristic: Coché comme Super-Caractéristique
+    UnmarkSuperCharacteristic: Non coché comme Super-Caractéristique
     Motivations: Motivations
-    Strength: Forces
+    Strength: Force
     Flaw: Défaut
-    Desire: Désire
+    Desire: Désir
     Fear: Peur
-    CharacterIllustration: Illustration du Personnage
-    CharacterDescription: Description du Personnage
+    CharacterIllustration: Illustration du personnage
+    CharacterDescription: Description du personnage
     Pronouns: Pronoms
     Age: Age
-    Height: Hauteur
+    Height: Taille
     Build: Carrure
     Hair: Cheveux
     Eyes: Yeux
-    NotableFeatures: Caractéristiques notables
-    Notes: Notes
+    NotableFeatures: Signes particuliers
+    Notes: Obligations
     XPJournal: Journal des XP
     Tier: Catégorie
     Activation: Activation
     Rank: Rang
     Ranked: A rang
+    EffectsScaleWithRank: Effet amélioré avec le rang
     Active: Actif
     Passive: Passif
     Yes: Oui
     No: Non
     Talents: Talents
-    SpecialAbilities: Aptitudes Speciales
+    SpecialAbilities: Aptitudes spéciales
     TierCount: Catégorie {tier}
-    DeletedItemData: 'ERR: Item Supprimé {name}'
+    DeletedItemData: 'ERR : objet supprimé {name}'
     Add: Ajouter
     Encumbrance: Encombrement
     Price: Prix
     Rarity: Rareté
-    Damage: Dommage
-    DamageCharacteristic: Dommage lié à la Caractérisitique
+    Damage: Dégâts
+    DamageCharacteristic: Dégâts liés à la caractéristique
     Critical: Critique
-    Range: Distance
+    Range: Portée
     Quantity: Quantité
-    EncumbranceThreshold: Seuil de charge
-    Encumbered: Ecombré!
-    RankUp: Rang Supérieur
-    RankDown: Rang Inférieur
-    FreeRankUp: Rang Supérieur (Gratuit)
-    FreeRankDown: Rang Inférieur (Gratuit)
-    IsRated: Est-il mesuré?
-    Qualities: Qualitées
+    EncumbranceThreshold: Seuil d'encombrement
+    Encumbered: Encombré !
+    RankUp: Rang supérieur
+    RankDown: Rang inférieur
+    FreeRankUp: Rang supérieur (gratuit)
+    FreeRankDown: Rang inférieur (gratuit)
+    IsRated: A niveau
+    Qualities: Attributs
     Severity: Sévérité
     Attacks: Attaques
     Armor: Armure
-    CriticalInjuries: Blessures Critiques
-    CriticalHits: Toucher Critiques
+    CriticalInjuries: Blessures critiques
+    CriticalHits: Coups critiques
     Injury: Blessure
     Hit: Touche
-    Skill: Compétences
+    Skill: Compétence
     Crit: Crit
     Special: Spécial
     GroupSize: Taille du groupe
     SkillNotFound: Compétence non trouvée
-    IsInitiative: Est une Compétence d'initiative?
+    IsInitiative: Est une compétence d'initiative ?
     Equipped: Equipé
     Carried: Porté
-    Dropped: Jetté
+    Dropped: Stocké/abandonné
     NotApplicable: N/A
-    EffectiveTier: Catégorie courante
-    Silhouette: Silhouette
+    EffectiveTier: Catégorie
+    Silhouette: Gabarit
     Speed: Vitesse
     Handling: Maniabilité
     HullTrauma: Dégâts de la coque
     HullTraumaThreshold: Seuil de dégâts de la coque
-    SystemStrain: Stress Mécanique
-    SystemStrainThreshold: Seuil de Stress Mécanique
+    SystemStrain: Stress mécanique
+    SystemStrainThreshold: Seuil de stress mécanique
     Illustration: Illustration
     Complement: Complément
     Consumables: Consommables
@@ -496,8 +505,13 @@ Genesys:
     Passengers: Passagers
     Role: Rôle
     Roles: Rôles
-    OverCapacity: Hors capacité!
-    RoleSkills: Compétences lié au rôle
+    OverCapacity: Hors capacité !
+    RoleSkills: Compétences liées au rôle
     FiringArc: Arc de tir
     Select: Sélection
     PerformCheck: Perform Check
+    GroupBy: Regrouper
+    Attack: Attaque
+    Item: Objet
+    Items: Objets
+    CloseContainer: Fermer le conteneur
