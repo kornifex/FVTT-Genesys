@@ -20,25 +20,25 @@ export default abstract class TalentDataModel extends BaseItemDataModel {
 	abstract rank: number;
 
 	/**
-	 * Tier increases with further rank purchases, plateauing at tier 5. With the flat talent rank cost house rule, the tier
-	 * never changes.
+	 * Tier increases with further rank purchases, plateauing at tier 5.
 	 */
 	get effectiveTier() {
-		return Math.min(5, this.tier + (CONFIG.genesys.settings.flatTalentRankCost ? 0 : this.rank - 1));
+		return Math.min(5, this.tier + this.rank - 1);
 	}
 
 	/**
 	 * Get the effective tier of the next tier.
 	 */
 	get effectiveNextTier() {
-		return Math.min(5, this.tier + (CONFIG.genesys.settings.flatTalentRankCost ? 0 : this.rank));
+		return Math.min(5, this.tier + this.rank);
 	}
 
 	/**
-	 * How much XP it costs to advance this talent to the next rank.
+	 * How much XP it costs to advance this talent to the next rank. House rule: every rank costs the talent's base tier, even
+	 * though it counts toward a higher tier of the talent pyramid.
 	 */
 	get advanceCost() {
-		return this.effectiveNextTier * 5;
+		return this.tier * 5;
 	}
 
 	static override defineSchema() {

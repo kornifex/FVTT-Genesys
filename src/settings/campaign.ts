@@ -62,11 +62,6 @@ export const KEY_SUPER_CHARACTERISTICS = 'useSuperCharacteristics';
 export const KEY_IGNORE_TALENT_PYRAMID = 'ignoreTalentPyramid';
 
 /**
- * Whether additional ranks of a ranked talent cost the talent's base tier instead of increasing in tier.
- */
-export const KEY_FLAT_TALENT_RANK_COST = 'flatTalentRankCost';
-
-/**
  * Register campaign settings.
  * @param namespace Namespace to register settings under.
  */
@@ -218,19 +213,6 @@ export function register(namespace: string) {
 		onChange: (value) => {
 			const valueAsBool = (value as unknown as boolean) ?? false;
 			CONFIG.genesys.settings.ignoreTalentPyramid = valueAsBool;
-		},
-	});
-
-	game.settings.register(namespace, KEY_FLAT_TALENT_RANK_COST, {
-		name: game.i18n.localize('Genesys.Settings.FlatTalentRankCost'),
-		hint: game.i18n.localize('Genesys.Settings.FlatTalentRankCostHint'),
-		scope: 'world',
-		config: true,
-		default: GENESYS_CONFIG.settings.flatTalentRankCost,
-		type: Boolean,
-		onChange: (value) => {
-			const valueAsBool = (value as unknown as boolean) ?? false;
-			CONFIG.genesys.settings.flatTalentRankCost = valueAsBool;
 		},
 	});
 }

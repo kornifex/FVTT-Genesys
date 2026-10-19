@@ -203,8 +203,8 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 			(accumulator, talent) => {
 				const { tier, rank, effectiveTier } = talent.systemData;
 
-				// Count every rank purchased once the talent reached its effective tier; ranked talents that are at tier 5, or that
-				// don't increase in tier due to the flat talent rank cost house rule, remain at that tier for any future purchases.
+				// Count every rank purchased once the talent reached its effective tier; ranked talents that are at tier 5 remain at
+				// that tier for any future purchases.
 				accumulator[effectiveTier] += rank - (effectiveTier - tier);
 
 				// Count the talent once for each lower tier it was considered as while it was being ranked up.
