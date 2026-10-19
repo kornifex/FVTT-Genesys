@@ -57,13 +57,12 @@ const passiveTalents = computed(() => {
 });
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
 
-const canUpgradeTalent = computed(() => [
-	system.value.availableXP >= 10 && talentTotals.value[1] > talentTotals.value[2] + 1,
-	system.value.availableXP >= 15 && talentTotals.value[2] > talentTotals.value[3] + 1,
-	system.value.availableXP >= 20 && talentTotals.value[3] > talentTotals.value[4] + 1,
-	system.value.availableXP >= 25 && talentTotals.value[4] > talentTotals.value[5] + 1,
-	system.value.availableXP >= 25 && talentTotals.value[4] > talentTotals.value[5] + 1,
-]);
+function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
+	const nextTier = talent.systemData.effectiveNextTier;
+	const respectsPyramid = CONFIG.genesys.settings.ignoreTalentPyramid || talentTotals.value[nextTier - 1] > talentTotals.value[nextTier] + 1;
+
+	return system.value.availableXP >= talent.systemData.advanceCost && respectsPyramid;
+}
 
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
 	if (talent.systemData.ranked === 'no') {
@@ -176,7 +175,7 @@ async function openItem(item: GenesysItem) {
 					:effective-tier="talent.systemData.effectiveTier"
 					:ranked="talent.systemData.ranked === 'yes'"
 					:rank="talent.systemData.rank"
-					:can-upgrade="canUpgradeTalent[talent.systemData.effectiveTier - 1]"
+					:can-upgrade="canUpgradeTalent(talent)"
 					@upgrade="upgradeTalent(talent)"
 					@open="openItem(talent)"
 				/>
@@ -195,7 +194,7 @@ async function openItem(item: GenesysItem) {
 						:effective-tier="talent.systemData.effectiveTier"
 						:ranked="talent.systemData.ranked === 'yes'"
 						:rank="talent.systemData.rank"
-						:can-upgrade="canUpgradeTalent[talent.systemData.effectiveTier - 1]"
+						:can-upgrade="canUpgradeTalent(talent)"
 						@upgrade="upgradeTalent(talent)"
 						@open="openItem(talent)"
 					/>
@@ -214,7 +213,7 @@ async function openItem(item: GenesysItem) {
 					:effective-tier="talent.systemData.effectiveTier"
 					:ranked="talent.systemData.ranked === 'yes'"
 					:rank="talent.systemData.rank"
-					:can-upgrade="canUpgradeTalent[talent.systemData.effectiveTier - 1]"
+					:can-upgrade="canUpgradeTalent(talent)"
 					@upgrade="upgradeTalent(talent)"
 					@open="openItem(talent)"
 				/>

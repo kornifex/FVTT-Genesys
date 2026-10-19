@@ -68,6 +68,10 @@ Genesys:
       Esta configuración se ignora si la probabilidad ya se está calculando de alguna otra manera.
     SuperCharacteristics: Supercaracterísticas
     SuperCharacteristicsHint: Permite marcar características como "super" durante la creación del personaje, según la regla opcional Supercaracterísticas (Libro básico, p.251).
+    IgnoreTalentPyramid: Ignorar la pirámide de talentos
+    IgnoreTalentPyramidHint: 'Regla de la casa: permite adquirir talentos de cualquier nivel sin tener suficientes talentos del nivel inferior.'
+    FlatTalentRankCost: Coste fijo de rangos de talento
+    FlatTalentRankCostHint: 'Regla de la casa: los rangos adicionales de un talento con rangos cuestan el nivel base del talento × 5 PX en lugar de aumentar de nivel con cada rango.'
 
   # Tooltips
   Tooltips:

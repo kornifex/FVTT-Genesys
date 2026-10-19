@@ -37,7 +37,7 @@ export default abstract class TalentDataModel extends BaseItemDataModel {
 	 * How much XP it costs to advance this talent to the next rank.
 	 */
 	get advanceCost() {
-		return this.effectiveNextTier * 5;
+		return (CONFIG.genesys.settings.flatTalentRankCost ? this.tier : this.effectiveNextTier) * 5;
 	}
 
 	static override defineSchema() {

@@ -139,7 +139,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 					const cost = targetTalent.systemData.advanceCost;
 					const talentPyramidTotals = this.actor.systemData.talentPyramidTotals;
 
-					if (talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
+					if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
 						ui.notifications.info(
 							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
 								tier: newEffectiveTier,
@@ -178,7 +178,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 					const cost = newEffectiveTier * 5;
 					const talentPyramidTotals = this.actor.systemData.talentPyramidTotals;
 
-					if (talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
+					if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
 						ui.notifications.info(
 							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
 								tier: newEffectiveTier,
