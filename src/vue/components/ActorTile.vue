@@ -156,16 +156,16 @@ async function openActorSheet() {
 	align-items: center;
 	column-gap: 0.5em;
 
-	background: transparentize(colors.$light-blue, 0.85);
-	border: 1px solid transparentize(colors.$light-blue, 0.7);
+	background: colors.alpha(colors.$light-blue, 0.15);
+	border: 1px solid colors.alpha(colors.$light-blue, 0.3);
 	border-radius: 0.25em;
 	padding: 2px;
 
 	margin-bottom: 0.25em;
 
 	&:hover {
-		background: transparentize(colors.$light-blue, 0.75);
-		border: 1px solid transparentize(colors.$light-blue, 0.5);
+		background: colors.alpha(colors.$light-blue, 0.25);
+		border: 1px solid colors.alpha(colors.$light-blue, 0.5);
 	}
 
 	img {
@@ -225,8 +225,8 @@ async function openActorSheet() {
 
 .actor-tile-normal {
 	&:hover {
-		background: transparentize(colors.$light-blue, 0.75);
-		border: 2px solid transparentize(colors.$light-blue, 0.5);
+		background: colors.alpha(colors.$light-blue, 0.25);
+		border: 2px solid colors.alpha(colors.$light-blue, 0.5);
 		border-radius: 1em;
 
 		img {
@@ -237,7 +237,7 @@ async function openActorSheet() {
 
 	img {
 		display: block;
-		background: transparentize(colors.$gold, 0.5);
+		background: colors.alpha(colors.$gold, 0.5);
 		border: 1px solid colors.$gold;
 		border-radius: 1em;
 	}
@@ -249,8 +249,8 @@ async function openActorSheet() {
 	transition: all 0.25s ease-in-out;
 
 	&.drag-source {
-		background: transparentize(colors.$light-blue, 0.6) !important;
-		border: 1px solid transparentize(colors.$light-blue, 0.4) !important;
+		background: colors.alpha(colors.$light-blue, 0.4) !important;
+		border: 1px solid colors.alpha(colors.$light-blue, 0.6) !important;
 	}
 
 	&.drag-dim {

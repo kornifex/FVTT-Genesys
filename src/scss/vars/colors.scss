@@ -1,15 +1,69 @@
-$red: #90231e;
+@use 'sass:color';
 
-$light-blue: #71c6ff;
-$blue: #2b4b73;
-$dark-blue: #384455;
+$-blue: #2b4b73;
+$-gold: #efaf61;
 
-$gold: #efaf61;
-$orange: #f36c21;
+// Default values of the system's palette. Each color is exposed as a `--genesys-<name>` CSS custom property on `:root`
+// (see `scss/theme.scss`) so the palette can be customized by overriding those properties.
+$defaults: (
+	'red': #90231e,
 
-$die-ability: #41ad49;
-$die-difficulty: #522380;
-$die-proficiency: #fff200;
-$die-challenge: #761213;
-$die-boost: #72cddc;
-$die-setback: #1e1e1e;
+	'light-blue': #71c6ff,
+	'blue': $-blue,
+	'blue-shade': color.adjust($-blue, $lightness: -10%),
+	'dark-blue': #384455,
+
+	'gold': $-gold,
+	'gold-shade': color.adjust($-gold, $lightness: -0.8%),
+	'orange': #f36c21,
+
+	'paper': #f1ede8,
+	'paper-pattern': #e7e3de,
+	'gray': #6d6e71,
+	'blue-gray': #6d6e7a,
+	'hint': #333,
+	'alert': #f63d3d,
+	'glow-core': #fff,
+	'glow': #e60073,
+	'skill-rank-proficiency': #ffe800,
+
+	'die-ability': #41ad49,
+	'die-difficulty': #522380,
+	'die-proficiency': #fff200,
+	'die-challenge': #761213,
+	'die-boost': #72cddc,
+	'die-setback': #1e1e1e,
+);
+
+$red: var(--genesys-red);
+
+$light-blue: var(--genesys-light-blue);
+$blue: var(--genesys-blue);
+$blue-shade: var(--genesys-blue-shade);
+$dark-blue: var(--genesys-dark-blue);
+
+$gold: var(--genesys-gold);
+$gold-shade: var(--genesys-gold-shade);
+$orange: var(--genesys-orange);
+
+$paper: var(--genesys-paper);
+$paper-pattern: var(--genesys-paper-pattern);
+$gray: var(--genesys-gray);
+$blue-gray: var(--genesys-blue-gray);
+$hint: var(--genesys-hint);
+$alert: var(--genesys-alert);
+$glow-core: var(--genesys-glow-core);
+$glow: var(--genesys-glow);
+$skill-rank-proficiency: var(--genesys-skill-rank-proficiency);
+
+$die-ability: var(--genesys-die-ability);
+$die-difficulty: var(--genesys-die-difficulty);
+$die-proficiency: var(--genesys-die-proficiency);
+$die-challenge: var(--genesys-die-challenge);
+$die-boost: var(--genesys-die-boost);
+$die-setback: var(--genesys-die-setback);
+
+// Same as `transparentize`, but also works with the colors above since they reference CSS custom properties.
+@function alpha($color, $opacity) {
+	@return color-mix(in srgb, $color $opacity * 100%, transparent);
+}

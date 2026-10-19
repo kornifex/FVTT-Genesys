@@ -1,0 +1,7 @@
+@use 'vars/colors';
+
+:root {
+	@each $name, $value in colors.$defaults {
+		--genesys-#{$name}: #{$value};
+	}
+}

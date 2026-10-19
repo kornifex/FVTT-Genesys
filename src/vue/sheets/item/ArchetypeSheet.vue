@@ -159,7 +159,7 @@ async function deleteGrantedItem(index: number) {
 	padding: 0.25em;
 
 	&:nth-of-type(2n) {
-		background: transparentize(colors.$blue, 0.8);
+		background: colors.alpha(colors.$blue, 0.2);
 	}
 
 	img {

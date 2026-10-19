@@ -10,7 +10,7 @@
 	}
 
 	> :not(:last-child):not(.active) {
-		border-bottom: 1px dashed transparentize(colors.$gold, 0.6);
+		border-bottom: 1px dashed colors.alpha(colors.$gold, 0.4);
 	}
 
 	.initiative-skill {

@@ -150,7 +150,7 @@
 		font-size: 1.05em;
 
 		.quality {
-			background: transparentize(colors.$gold, 0.9);
+			background: colors.alpha(colors.$gold, 0.1);
 			border: 1px dashed colors.$gold;
 			border-radius: 0.25em;
 			padding: 0.25em;

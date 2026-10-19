@@ -429,7 +429,7 @@ function dragLeave(event: DragEvent) {
 		}
 
 		&.over-capacity {
-			color: #f63d3d;
+			color: colors.$alert;
 		}
 	}
 

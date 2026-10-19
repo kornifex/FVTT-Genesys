@@ -157,7 +157,7 @@ async function sendToChat() {
 
 		.tier {
 			border: 1px dotted colors.$gold;
-			background: transparentize(colors.$gold, 0.5);
+			background: colors.alpha(colors.$gold, 0.5);
 			border-radius: 0.5em;
 			font-family: 'Bebas Neue', sans-serif;
 			padding: 2px;

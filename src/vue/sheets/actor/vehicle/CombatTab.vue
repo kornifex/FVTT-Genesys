@@ -321,7 +321,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 		gap: 0.25em;
 
 		.quality {
-			background: transparentize(colors.$gold, 0.7);
+			background: colors.alpha(colors.$gold, 0.3);
 			border: 1px dashed colors.$gold;
 			border-radius: 0.25em;
 			padding: 0.25em;
@@ -338,7 +338,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	}
 
 	.block {
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		padding: 0.5em;
 		border-radius: 0.5em;
 

@@ -97,7 +97,7 @@ async function deleteEffect(effect: GenesysEffect) {
 
 	.effects-category {
 		img {
-			background: darken(colors.$gold, 0.8);
+			background: colors.$gold-shade;
 			border: 1px solid colors.$gold;
 			border-radius: 0.25em;
 		}

@@ -77,11 +77,11 @@ function submitSelection(event: Event) {
 		align-items: center;
 		margin-bottom: 0.3rem;
 		padding: 0.3em;
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		border-radius: 0.5em;
 
 		&.selected-option {
-			background: transparentize(colors.$light-blue, 0.5);
+			background: colors.alpha(colors.$light-blue, 0.5);
 			transform: scale(1.01);
 			transition: all 0.3s ease-out;
 		}

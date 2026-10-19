@@ -73,7 +73,7 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 	padding: 0.5em;
 
 	section {
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		border-radius: 1em;
 		padding: 0.75em;
 

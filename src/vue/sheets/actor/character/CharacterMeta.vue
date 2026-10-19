@@ -131,7 +131,7 @@ onUpdated(updateArchetypeAndCareer);
 	// Actor's image
 	img {
 		border: 1px solid colors.$gold;
-		background: transparentize(colors.$gold, 0.5);
+		background: colors.alpha(colors.$gold, 0.5);
 		border-radius: 1em;
 	}
 
@@ -150,7 +150,7 @@ onUpdated(updateArchetypeAndCareer);
 		align-items: center;
 
 		// Style-match the original sheet's meta box.
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		border-bottom-left-radius: 1rem;
 		border-bottom-right-radius: 1rem;
 
@@ -161,7 +161,7 @@ onUpdated(updateArchetypeAndCareer);
 
 		.title {
 			grid-column: 1 / span 2;
-			color: #6d6e7a;
+			color: colors.$blue-gray;
 			text-transform: uppercase;
 		}
 

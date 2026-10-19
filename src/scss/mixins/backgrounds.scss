@@ -1,7 +1,8 @@
 @use 'sass:math';
+@use '../vars/colors';
 
 // Recreates the pattern of boxes with a cross pattern between them used in the Genesys books' backgrounds.
-@mixin crossboxes($bg-color: #f1ede8, $deco-color: #e7e3de, $size: 64px) {
+@mixin crossboxes($bg-color: colors.$paper, $deco-color: colors.$paper-pattern, $size: 64px) {
 	background-color: $bg-color;
 	background-position: (-1 * math.div($size, 3)) (-1 * math.div($size, 4));
 	background-size: $size ($size * 2);
