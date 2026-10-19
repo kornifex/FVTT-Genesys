@@ -460,9 +460,9 @@ onBeforeUpdate(updateEffects);
 									{{ item.name }}
 									(<span class="weapon-details">
 										<span>{{ skillForWeapon(item)[0] }}</span>
-										<span>Damage {{ damageForWeapon(item) }}</span>
-										<span>Critical {{ item.system.critical }}</span>
-										<span>Range [<Localized :label="`Genesys.Range.${item.system.range.capitalize()}`" />]</span>
+										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
+										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
+										<span><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${item.system.range.capitalize()}`" />]</span>
 										<span v-if="item.system.qualities.length > 0" class="weapon-qualities">
 											<span v-for="quality in item.system.qualities" :key="quality.name">{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : null }}</span>
 										</span> </span

@@ -2,7 +2,7 @@
 import { computed, inject, toRaw } from 'vue';
 
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import { EntryType as JournalEntryType, removeJournalEntry } from '@/actor/data/character/ExperienceJournal';
+import { Entry as JournalEntry, EntryType as JournalEntryType, removeJournalEntry } from '@/actor/data/character/ExperienceJournal';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
@@ -29,6 +29,17 @@ async function addXPJournalEntry() {
 			},
 		],
 	});
+}
+
+function journalEntryFormatArgs(entry: JournalEntry) {
+	if (entry.type !== JournalEntryType.Characteristic) {
+		return entry.data;
+	}
+
+	return {
+		...entry.data,
+		characteristic: game.i18n.localize(`Genesys.Characteristics.${entry.data.characteristic.capitalize()}`),
+	};
 }
 </script>
 
@@ -156,7 +167,7 @@ async function addXPJournalEntry() {
 
 			<div class="entries">
 				<div v-for="(entry, index) in system.experienceJournal.entries" :key="index" class="entry">
-					<div><Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="entry.data" enriched /></div>
+					<div><Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="journalEntryFormatArgs(entry)" enriched /></div>
 					<div class="value">{{ entry.amount }}</div>
 					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(toRaw(context.data.actor), index)"><i class="fas fa-trash"></i></a>
 				</div>
