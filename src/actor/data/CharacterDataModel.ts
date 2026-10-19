@@ -201,20 +201,15 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[];
 		return allTalents.reduce(
 			(accumulator, talent) => {
-				const talentEffectiveTier = talent.systemData.effectiveTier;
-				for (let k = talentEffectiveTier; k > 0; k--) {
-					if (k === 5 && talentEffectiveTier === 5) {
-						// If we want to count talents of tier 5 it requires that we consider the ranking of the talent if appropriate;
-						// ranked talents that are at tier 5 remain at that tier for any future purchases.
-						accumulator[k] += talent.systemData.rank - (talentEffectiveTier - talent.systemData.tier);
-					} else if (talent.systemData.tier === k) {
-						// Count the talent if it matches the desired tier.
-						accumulator[k]++;
-					} else if (talent.systemData.tier < k && talentEffectiveTier >= k) {
-						// Count the talent if it's from a lower tier but it has been purchased enough times that at some point it was
-						// considered as a talent of the desired tier.
-						accumulator[k]++;
-					}
+				const { tier, rank, effectiveTier } = talent.systemData;
+
+				// Count every rank purchased once the talent reached its effective tier; ranked talents that are at tier 5, or that
+				// don't increase in tier due to the flat talent rank cost house rule, remain at that tier for any future purchases.
+				accumulator[effectiveTier] += rank - (effectiveTier - tier);
+
+				// Count the talent once for each lower tier it was considered as while it was being ranked up.
+				for (let k = tier; k < effectiveTier; k++) {
+					accumulator[k]++;
 				}
 				return accumulator;
 			},

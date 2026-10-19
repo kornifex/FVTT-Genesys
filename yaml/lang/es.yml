@@ -71,7 +71,7 @@ Genesys:
     IgnoreTalentPyramid: Ignorar la pirámide de talentos
     IgnoreTalentPyramidHint: 'Regla de la casa: permite adquirir talentos de cualquier nivel sin tener suficientes talentos del nivel inferior.'
     FlatTalentRankCost: Coste fijo de rangos de talento
-    FlatTalentRankCostHint: 'Regla de la casa: los rangos adicionales de un talento con rangos cuestan el nivel base del talento × 5 PX en lugar de aumentar de nivel con cada rango.'
+    FlatTalentRankCostHint: 'Regla de la casa: los rangos adicionales de un talento con rangos cuestan el nivel base del talento × 5 PX y cuentan en ese nivel de la pirámide de talentos, en lugar de aumentar de nivel con cada rango.'
 
   # Tooltips
   Tooltips:

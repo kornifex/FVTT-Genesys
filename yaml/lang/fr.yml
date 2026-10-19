@@ -71,7 +71,7 @@ Genesys:
     IgnoreTalentPyramid: Ignorer la pyramide des talents
     IgnoreTalentPyramidHint: "Règle maison : permet d'acheter des talents de n'importe quelle catégorie sans avoir assez de talents de la catégorie inférieure."
     FlatTalentRankCost: Coût fixe des rangs de talent
-    FlatTalentRankCostHint: "Règle maison : les rangs supplémentaires d'un talent à rangs coûtent la catégorie de base du talent × 5 XP au lieu d'augmenter de catégorie à chaque rang."
+    FlatTalentRankCostHint: "Règle maison : les rangs supplémentaires d'un talent à rangs coûtent la catégorie de base du talent × 5 XP et comptent dans cette catégorie de la pyramide, au lieu d'augmenter de catégorie à chaque rang."
 
   # Tooltips
   Tooltips:
