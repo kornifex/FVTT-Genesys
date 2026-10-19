@@ -862,7 +862,7 @@ async function rollPool() {
 		grid-template-rows: /* Positive Dice */ 1fr /* Negative Dice */ 1fr;
 		gap: 0.5em;
 
-		background: linear-gradient(to bottom, black -40%, colors.$blue 20%, darken(colors.$blue, 10%) 70%, black 130%);
+		background: linear-gradient(to bottom, black -40%, colors.$blue 20%, colors.$blue-shade 70%, black 130%);
 		border-top: 1px solid black;
 		border-bottom: 1px solid black;
 		margin-left: -0.5rem;
@@ -974,13 +974,13 @@ async function rollPool() {
 
 			&:hover {
 				text-shadow:
-					0 0 0 #fff,
-					0 0 1px #fff,
-					0 0 2px #e60073,
-					0 0 3px #e60073,
-					0 0 4px #e60073,
-					0 0 5px #e60073,
-					0 0 6px #e60073;
+					0 0 0 colors.$glow-core,
+					0 0 1px colors.$glow-core,
+					0 0 2px colors.$glow,
+					0 0 3px colors.$glow,
+					0 0 4px colors.$glow,
+					0 0 5px colors.$glow,
+					0 0 6px colors.$glow;
 			}
 		}
 

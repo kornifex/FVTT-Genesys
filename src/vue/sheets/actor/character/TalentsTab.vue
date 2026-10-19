@@ -235,7 +235,7 @@ async function openItem(item: GenesysItem) {
 		display: flex;
 		flex-direction: column;
 		flex-wrap: nowrap;
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		border-bottom-left-radius: 1em;
 		border-bottom-right-radius: 1em;
 		padding: 0.5em 0.5em 1em 0.5em;
@@ -272,7 +272,7 @@ async function openItem(item: GenesysItem) {
 
 		.sub-category-header {
 			border-top: 1px solid colors.$blue;
-			background: transparentize(colors.$blue, 0.5);
+			background: colors.alpha(colors.$blue, 0.5);
 			font-size: 1em;
 		}
 
@@ -291,7 +291,7 @@ async function openItem(item: GenesysItem) {
 		justify-content: right;
 		border-top-left-radius: 1em;
 		border-top-right-radius: 1em;
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		font-family: 'Bebas Neue', sans-serif;
 		padding-right: 1em;
 		padding-top: 0.25em;

@@ -77,7 +77,7 @@ function confirm(event: Event) {
 
 	.career-skills-hint {
 		font-size: 0.9em;
-		color: #333;
+		color: colors.$hint;
 	}
 
 	.selections {

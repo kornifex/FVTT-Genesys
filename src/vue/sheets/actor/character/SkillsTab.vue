@@ -361,7 +361,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 		width: 100%;
 		break-inside: avoid-column;
 		white-space: nowrap;
-		background: transparentize(colors.$light-blue, 0.8);
+		background: colors.alpha(colors.$light-blue, 0.2);
 		padding: 8px;
 	}
 
@@ -377,7 +377,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 	.header {
 		font-family: 'Bebas Neue', sans-serif;
 		font-size: 1em;
-		color: #6d6e71;
+		color: colors.$gray;
 	}
 
 	.body {

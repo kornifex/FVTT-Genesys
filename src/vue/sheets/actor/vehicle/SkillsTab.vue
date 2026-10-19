@@ -243,7 +243,7 @@ async function openActorSheet(actor: GenesysActor) {
 			display: grid;
 			grid-template-rows: auto auto auto 1fr;
 			grid-template-columns: 3rem auto;
-			background: transparentize(colors.$light-blue, 0.8);
+			background: colors.alpha(colors.$light-blue, 0.2);
 			border-radius: 1em;
 			height: 100%;
 			gap: 0.5em;
@@ -284,7 +284,7 @@ async function openActorSheet(actor: GenesysActor) {
 					& > span {
 						font-family: 'Bebas Neue', sans-serif;
 						font-size: 1em;
-						color: #6d6e71;
+						color: colors.$gray;
 					}
 				}
 
@@ -349,7 +349,7 @@ async function openActorSheet(actor: GenesysActor) {
 		.skill-details {
 			display: grid;
 			grid-template-rows: auto auto;
-			background: transparentize(colors.$light-blue, 0.8);
+			background: colors.alpha(colors.$light-blue, 0.2);
 			border-radius: 1em;
 			height: 100%;
 			gap: 0.5em;

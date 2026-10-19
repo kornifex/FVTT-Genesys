@@ -118,7 +118,7 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 
 .role-section {
 	grid-column: auto / span 1;
-	background: transparentize(colors.$light-blue, 0.85);
+	background: colors.alpha(colors.$light-blue, 0.15);
 	border-radius: 1em;
 	padding: 0.75em;
 
@@ -223,7 +223,7 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 }
 
 .drop-target {
-	background: transparentize(colors.$light-blue, 0.75);
+	background: colors.alpha(colors.$light-blue, 0.25);
 
 	&.drop-hover {
 		background: colors.$light-blue;

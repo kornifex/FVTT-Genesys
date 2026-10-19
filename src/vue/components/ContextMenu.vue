@@ -99,7 +99,7 @@ function closeContextMenu(event: Event) {
 		margin: 0;
 		margin-left: -0.25em;
 		border-bottom: none;
-		border-color: transparentize(colors.$gold, 0.4);
+		border-color: colors.alpha(colors.$gold, 0.6);
 	}
 }
 </style>

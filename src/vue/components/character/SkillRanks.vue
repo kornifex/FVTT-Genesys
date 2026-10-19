@@ -14,6 +14,8 @@ defineProps<{
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/vars/colors.scss';
+
 .skill-ranks {
 	display: flex;
 	flex-direction: row-reverse;
@@ -35,11 +37,11 @@ defineProps<{
 		}
 
 		&.proficiency {
-			background: #ffe800;
+			background: colors.$skill-rank-proficiency;
 		}
 
 		&.ability {
-			background: #41ad49;
+			background: colors.$die-ability;
 		}
 	}
 }

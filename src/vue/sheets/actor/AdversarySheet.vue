@@ -662,7 +662,7 @@ onBeforeUpdate(updateEffects);
 
 		img {
 			border: 1px solid colors.$gold;
-			background: transparentize(colors.$gold, 0.5);
+			background: colors.alpha(colors.$gold, 0.5);
 			border-radius: 1em;
 			height: 2.5rem;
 		}

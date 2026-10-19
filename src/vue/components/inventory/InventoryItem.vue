@@ -577,8 +577,8 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 	align-items: center;
 	column-gap: 0.5em;
 
-	background: transparentize(colors.$light-blue, 0.85);
-	border: 1px solid transparentize(colors.$light-blue, 0.7);
+	background: colors.alpha(colors.$light-blue, 0.15);
+	border: 1px solid colors.alpha(colors.$light-blue, 0.3);
 	border-radius: 0.25em;
 	padding: 2px;
 
@@ -589,13 +589,13 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 	&:not(.mini) {
 		&.hover {
-			background: transparentize(colors.$light-blue, 0.4) !important;
-			border: 1px solid transparentize(colors.$light-blue, 0.2) !important;
+			background: colors.alpha(colors.$light-blue, 0.6) !important;
+			border: 1px solid colors.alpha(colors.$light-blue, 0.8) !important;
 		}
 
 		&.drag-source {
-			background: transparentize(colors.$light-blue, 0.6) !important;
-			border: 1px solid transparentize(colors.$light-blue, 0.4) !important;
+			background: colors.alpha(colors.$light-blue, 0.4) !important;
+			border: 1px solid colors.alpha(colors.$light-blue, 0.6) !important;
 		}
 
 		&.dropped {
@@ -629,12 +629,12 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		font-size: 0.8em;
 		margin-left: 1.5em;
 
-		background: transparentize(colors.$blue, 0.8);
-		border: 1px solid transparentize(colors.$blue, 0.5);
+		background: colors.alpha(colors.$blue, 0.2);
+		border: 1px solid colors.alpha(colors.$blue, 0.5);
 
 		&:hover {
-			background: transparentize(colors.$blue, 0.6);
-			border: 1px solid transparentize(colors.$blue, 0.5);
+			background: colors.alpha(colors.$blue, 0.4);
+			border: 1px solid colors.alpha(colors.$blue, 0.5);
 		}
 
 		.quantity,
@@ -644,8 +644,8 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 	}
 
 	&:hover {
-		background: transparentize(colors.$light-blue, 0.75);
-		border: 1px solid transparentize(colors.$light-blue, 0.5);
+		background: colors.alpha(colors.$light-blue, 0.25);
+		border: 1px solid colors.alpha(colors.$light-blue, 0.5);
 	}
 
 	img {
