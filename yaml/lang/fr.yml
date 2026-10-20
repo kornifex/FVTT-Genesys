@@ -70,6 +70,8 @@ Genesys:
     SuperCharacteristicsHint: Permet de marquer des caractéristiques comme étant "super" lors de la création du personnage, selon la règle optionnelle des super-caractéristiques (Core Rulebook, p.251).
     IgnoreTalentPyramid: Ignorer la pyramide des talents
     IgnoreTalentPyramidHint: "Règle maison : permet d'acheter des talents de n'importe quelle catégorie sans avoir assez de talents de la catégorie inférieure."
+    TalentTierVersions: Versions de talent par catégorie
+    TalentTierVersionsHint: "Règle maison : chaque catégorie d'un talent à rangs est un item distinct portant le même nom. Glisser l'une de ces versions sur un personnage qui possède déjà le talent achète un rang au prix de la catégorie de cette version × 5 XP, dans n'importe quel ordre, et le bouton d'augmentation de rang est masqué."
 
   # Tooltips
   Tooltips:

@@ -134,9 +134,10 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 						return false;
 					}
 
+					// With the talent tier versions house rule, dropping a version of a talent buys a rank at that version's tier, in any order.
 					const newRank = targetTalent.systemData.rank + 1;
-					const newEffectiveTier = targetTalent.systemData.effectiveNextTier;
-					const cost = targetTalent.systemData.advanceCost;
+					const newEffectiveTier = CONFIG.genesys.settings.talentTierVersions ? droppedTalent.systemData.tier : targetTalent.systemData.effectiveNextTier;
+					const cost = newEffectiveTier * 5;
 					const talentPyramidTotals = this.actor.systemData.talentPyramidTotals;
 
 					if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {

@@ -10,6 +10,7 @@ import {
 	KEY_CAREER_SKILL_RANKS,
 	KEY_DEFAULT_DIFFICULTY,
 	KEY_IGNORE_TALENT_PYRAMID,
+	KEY_TALENT_TIER_VERSIONS,
 	KEY_MONEY_NAME,
 	KEY_SHOW_DAMAGE_ON_FAILURE,
 	KEY_SKILLS_COMPENDIUM,
@@ -66,6 +67,9 @@ export const GENESYS_CONFIG = {
 		// Whether characters can purchase talents without respecting the talent pyramid.
 		ignoreTalentPyramid: false,
 
+		// Whether each tier of a ranked talent is a separate item, bought as a rank at that item's tier in any order.
+		talentTierVersions: false,
+
 		/** User Settings **/
 
 		// Whether to use the Magical Girl symbols where possible in the system.
@@ -115,6 +119,7 @@ export function ready() {
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SHOW_DAMAGE_ON_FAILURE}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SHOW_DAMAGE_ON_FAILURE));
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SUPER_CHARACTERISTICS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SUPER_CHARACTERISTICS));
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_IGNORE_TALENT_PYRAMID}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_IGNORE_TALENT_PYRAMID));
+	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_TALENT_TIER_VERSIONS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_TALENT_TIER_VERSIONS));
 
 	/** User Settings **/
 	CONFIG.genesys.settings.useMagicalGirlSymbols = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_USE_MAGICAL_GIRL_SYMBOLS) ?? false;

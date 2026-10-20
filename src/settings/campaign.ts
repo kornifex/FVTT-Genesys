@@ -62,6 +62,11 @@ export const KEY_SUPER_CHARACTERISTICS = 'useSuperCharacteristics';
 export const KEY_IGNORE_TALENT_PYRAMID = 'ignoreTalentPyramid';
 
 /**
+ * Whether each tier of a ranked talent is a separate item, bought as a rank at that item's tier in any order.
+ */
+export const KEY_TALENT_TIER_VERSIONS = 'talentTierVersions';
+
+/**
  * Register campaign settings.
  * @param namespace Namespace to register settings under.
  */
@@ -213,6 +218,19 @@ export function register(namespace: string) {
 		onChange: (value) => {
 			const valueAsBool = (value as unknown as boolean) ?? false;
 			CONFIG.genesys.settings.ignoreTalentPyramid = valueAsBool;
+		},
+	});
+
+	game.settings.register(namespace, KEY_TALENT_TIER_VERSIONS, {
+		name: game.i18n.localize('Genesys.Settings.TalentTierVersions'),
+		hint: game.i18n.localize('Genesys.Settings.TalentTierVersionsHint'),
+		scope: 'world',
+		config: true,
+		default: GENESYS_CONFIG.settings.talentTierVersions,
+		type: Boolean,
+		onChange: (value) => {
+			const valueAsBool = (value as unknown as boolean) ?? false;
+			CONFIG.genesys.settings.talentTierVersions = valueAsBool;
 		},
 	});
 }

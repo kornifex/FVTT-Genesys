@@ -58,6 +58,11 @@ const passiveTalents = computed(() => {
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
 
 function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
+	// With the talent tier versions house rule, ranks are bought by dropping the version of the desired tier instead.
+	if (CONFIG.genesys.settings.talentTierVersions) {
+		return false;
+	}
+
 	const nextTier = talent.systemData.effectiveNextTier;
 	const respectsPyramid = CONFIG.genesys.settings.ignoreTalentPyramid || talentTotals.value[nextTier - 1] > talentTotals.value[nextTier] + 1;
 
