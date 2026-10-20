@@ -84,7 +84,8 @@ const poolModifications = ref<DicePoolModifications>({
 	effects: [],
 });
 const availableSkills = ref<GenesysItem<SkillDataModel>[]>([]);
-// Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
+// Skills from the Skills Compendium that an adversary doesn't own; rolling one of these is an Unranked Skill Check.
+// Characters own every skill they can roll, so they don't get these.
 const unrankedSkills = ref<GenesysItem<SkillDataModel>[]>([]);
 const selectedSkill = ref<AlsoNone<GenesysItem<SkillDataModel>>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
@@ -106,7 +107,7 @@ onMounted(() => {
 	availableSkills.value = actor ? (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).sort(sortSkillsByName) : [];
 
 	const ownedSkillNames = new Set(availableSkills.value.map((skill) => skill.name.toLowerCase()));
-	unrankedSkills.value = actor ? CONFIG.genesys.skills.filter((skill) => !ownedSkillNames.has(skill.name.toLowerCase())).sort(sortSkillsByName) : [];
+	unrankedSkills.value = actor && ['minion', 'rival', 'nemesis'].includes(actor.type) ? CONFIG.genesys.skills.filter((skill) => !ownedSkillNames.has(skill.name.toLowerCase())).sort(sortSkillsByName) : [];
 
 	if (context.skillName) {
 		const skillName = context.skillName.toLowerCase();
