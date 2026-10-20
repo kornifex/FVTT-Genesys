@@ -34,11 +34,10 @@ export default abstract class TalentDataModel extends BaseItemDataModel {
 	}
 
 	/**
-	 * How much XP it costs to advance this talent to the next rank. House rule: every rank costs the talent's base tier, even
-	 * though it counts toward a higher tier of the talent pyramid.
+	 * How much XP it costs to advance this talent to the next rank.
 	 */
 	get advanceCost() {
-		return this.tier * 5;
+		return this.effectiveNextTier * 5;
 	}
 
 	static override defineSchema() {
