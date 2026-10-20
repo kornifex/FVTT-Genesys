@@ -68,6 +68,8 @@ Genesys:
       This setting is ignored if the chance is already being calculated some other way.
     SuperCharacteristics: Super-Characteristics
     SuperCharacteristicsHint: Allows marking characteristics as being 'super' during character creation, per the Super-Characteristics optional rule (Core Rulebook, p.251).
+    IgnoreTalentPyramid: Ignore Talent Pyramid
+    IgnoreTalentPyramidHint: 'House rule: allows purchasing talents of any tier without having enough talents of the tier below.'
 
   # Tooltips
   Tooltips:

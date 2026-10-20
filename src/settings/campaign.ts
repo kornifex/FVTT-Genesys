@@ -57,6 +57,11 @@ export const KEY_SHOW_DAMAGE_ON_FAILURE = 'showDamageOnFailure';
 export const KEY_SUPER_CHARACTERISTICS = 'useSuperCharacteristics';
 
 /**
+ * Whether characters can purchase talents without respecting the talent pyramid.
+ */
+export const KEY_IGNORE_TALENT_PYRAMID = 'ignoreTalentPyramid';
+
+/**
  * Register campaign settings.
  * @param namespace Namespace to register settings under.
  */
@@ -195,6 +200,19 @@ export function register(namespace: string) {
 		onChange: (value) => {
 			const valueAsBool = (value as unknown as boolean) ?? false;
 			CONFIG.genesys.settings.useSuperCharacteristics = valueAsBool;
+		},
+	});
+
+	game.settings.register(namespace, KEY_IGNORE_TALENT_PYRAMID, {
+		name: game.i18n.localize('Genesys.Settings.IgnoreTalentPyramid'),
+		hint: game.i18n.localize('Genesys.Settings.IgnoreTalentPyramidHint'),
+		scope: 'world',
+		config: true,
+		default: GENESYS_CONFIG.settings.ignoreTalentPyramid,
+		type: Boolean,
+		onChange: (value) => {
+			const valueAsBool = (value as unknown as boolean) ?? false;
+			CONFIG.genesys.settings.ignoreTalentPyramid = valueAsBool;
 		},
 	});
 }

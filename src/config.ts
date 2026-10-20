@@ -9,6 +9,7 @@ import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import {
 	KEY_CAREER_SKILL_RANKS,
 	KEY_DEFAULT_DIFFICULTY,
+	KEY_IGNORE_TALENT_PYRAMID,
 	KEY_MONEY_NAME,
 	KEY_SHOW_DAMAGE_ON_FAILURE,
 	KEY_SKILLS_COMPENDIUM,
@@ -62,6 +63,9 @@ export const GENESYS_CONFIG = {
 		// Whether to use the optional rule for super-characteristics.
 		useSuperCharacteristics: false,
 
+		// Whether characters can purchase talents without respecting the talent pyramid.
+		ignoreTalentPyramid: false,
+
 		/** User Settings **/
 
 		// Whether to use the Magical Girl symbols where possible in the system.
@@ -110,6 +114,7 @@ export function ready() {
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS));
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SHOW_DAMAGE_ON_FAILURE}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SHOW_DAMAGE_ON_FAILURE));
 	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SUPER_CHARACTERISTICS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SUPER_CHARACTERISTICS));
+	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_IGNORE_TALENT_PYRAMID}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_IGNORE_TALENT_PYRAMID));
 
 	/** User Settings **/
 	CONFIG.genesys.settings.useMagicalGirlSymbols = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_USE_MAGICAL_GIRL_SYMBOLS) ?? false;
