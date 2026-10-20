@@ -80,14 +80,14 @@ export default class GenesysRoller {
 		actor,
 		characteristic,
 		usesSuperCharacteristic,
-		skillId,
+		skillName,
 		formula,
 		symbols,
 	}: {
 		actor?: GenesysActor;
 		characteristic?: Characteristic;
 		usesSuperCharacteristic: boolean;
-		skillId: string;
+		skillName?: string;
 		formula: string;
 		symbols: Record<string, number>;
 	}) {
@@ -97,7 +97,7 @@ export default class GenesysRoller {
 
 		let description: string | undefined = undefined;
 
-		if (skillId === '-') {
+		if (!skillName) {
 			if (characteristic) {
 				description = game.i18n.format('Genesys.Rolls.Description.Characteristic', {
 					characteristic: game.i18n.localize(`Genesys.Characteristics.${characteristic.capitalize()}`),
@@ -110,13 +110,13 @@ export default class GenesysRoller {
 		} else if (actor) {
 			if (characteristic) {
 				description = game.i18n.format('Genesys.Rolls.Description.Skill', {
-					skill: actor.items.get(skillId)?.name ?? 'UNKNOWN',
+					skill: skillName,
 					characteristic: game.i18n.localize(`Genesys.CharacteristicAbbr.${characteristic.capitalize()}`),
 					superChar: usesSuperCharacteristic ? 'super-char' : 'hide-it',
 				});
 			} else {
 				description = game.i18n.format('Genesys.Rolls.Description.SkillWithoutCharacteristic', {
-					skill: actor.items.get(skillId)?.name ?? 'UNKNOWN',
+					skill: skillName,
 				});
 			}
 		}
@@ -140,7 +140,7 @@ export default class GenesysRoller {
 		actor,
 		characteristic,
 		usesSuperCharacteristic,
-		skillId,
+		skillName,
 		formula,
 		symbols,
 		weapon,
@@ -148,7 +148,7 @@ export default class GenesysRoller {
 		actor?: GenesysActor;
 		characteristic?: Characteristic;
 		usesSuperCharacteristic: boolean;
-		skillId: string;
+		skillName?: string;
 		formula: string;
 		symbols: Record<string, number>;
 		weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;
@@ -172,7 +172,7 @@ export default class GenesysRoller {
 			totalDamage += results.netSuccess;
 		}
 
-		if (skillId === '-') {
+		if (!skillName) {
 			if (characteristic) {
 				description = game.i18n.format('Genesys.Rolls.Description.AttackCharacteristic', {
 					name: weapon.name,
@@ -183,14 +183,14 @@ export default class GenesysRoller {
 			if (characteristic) {
 				description = game.i18n.format('Genesys.Rolls.Description.AttackSkill', {
 					name: weapon.name,
-					skill: actor.items.get(skillId)?.name ?? 'UNKNOWN',
+					skill: skillName,
 					characteristic: game.i18n.localize(`Genesys.CharacteristicAbbr.${characteristic.capitalize()}`),
 					superChar: usesSuperCharacteristic ? 'super-char' : 'hide-it',
 				});
 			} else {
 				description = game.i18n.format('Genesys.Rolls.Description.AttackSkillWithoutCharacteristic', {
 					name: weapon.name,
-					skill: actor.items.get(skillId)?.name ?? 'UNKNOWN',
+					skill: skillName,
 				});
 			}
 		}

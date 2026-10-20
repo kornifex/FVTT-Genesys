@@ -7,6 +7,7 @@ import GenesysItem from '@/item/GenesysItem';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
+import { vLocalize } from '@/vue/directives';
 import MinionDataModel from '@/actor/data/MinionDataModel';
 import { GenesysDice } from '@/dice';
 import { DieCategory } from '@/dice/types/GenesysDie';
@@ -83,6 +84,8 @@ const poolModifications = ref<DicePoolModifications>({
 	effects: [],
 });
 const availableSkills = ref<GenesysItem<SkillDataModel>[]>([]);
+// Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
+const unrankedSkills = ref<GenesysItem<SkillDataModel>[]>([]);
 const selectedSkill = ref<AlsoNone<GenesysItem<SkillDataModel>>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
 const probabilityOfSuccess = ref<AlsoNone<string>>();
@@ -100,19 +103,30 @@ onMounted(() => {
 	const actor = toRaw(context.actor);
 
 	poolModifications.value.baseDifficulty = context.difficulty.match(PoolModGlyphPattern)?.sort(sortPoolModifications) ?? [];
-	availableSkills.value = actor
-		? (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).sort((f, s) => {
-				const nameA = f.name.toLowerCase();
-				const nameB = s.name.toLowerCase();
-				return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-			})
-		: [];
-	selectedSkill.value = context.skillName ? (availableSkills.value.find((skill) => skill.name === context.skillName) as AlsoNone<GenesysItem<SkillDataModel>>) : undefined;
+	availableSkills.value = actor ? (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).sort(sortSkillsByName) : [];
+
+	const ownedSkillNames = new Set(availableSkills.value.map((skill) => skill.name.toLowerCase()));
+	unrankedSkills.value = actor ? CONFIG.genesys.skills.filter((skill) => !ownedSkillNames.has(skill.name.toLowerCase())).sort(sortSkillsByName) : [];
+
+	if (context.skillName) {
+		const skillName = context.skillName.toLowerCase();
+		selectedSkill.value = [...availableSkills.value, ...unrankedSkills.value].find((skill) => skill.name.toLowerCase() === skillName) as AlsoNone<GenesysItem<SkillDataModel>>;
+	}
 	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic ?? context.rollUnskilled;
 
 	calculatePoolModificationsForSkill();
 	buildDicePool();
 });
+
+function sortSkillsByName(first: GenesysItem<SkillDataModel>, second: GenesysItem<SkillDataModel>) {
+	const nameA = first.name.toLowerCase();
+	const nameB = second.name.toLowerCase();
+	return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+}
+
+function isSelectedSkillUnranked() {
+	return !!selectedSkill.value && unrankedSkills.value.includes(selectedSkill.value);
+}
 
 // Helper function for sorting dice pool modifications. These are sorted according to the steps used for modifying a
 // dice pool:
@@ -250,9 +264,10 @@ function buildDicePool() {
 	// Step 1: Applying Skills and Characteristics
 	if (actor) {
 		const characteristicValue = selectedCharacteristic.value ? actor.systemData.characteristics[selectedCharacteristic.value] : 0;
-		let skillValue = selectedSkill.value?.systemData.rank ?? 0;
+		const isUnranked = isSelectedSkillUnranked();
+		let skillValue = isUnranked ? 0 : selectedSkill.value?.systemData.rank ?? 0;
 
-		if (actor.type === 'minion' && selectedSkill.value) {
+		if (actor.type === 'minion' && selectedSkill.value && !isUnranked) {
 			skillValue = Math.clamp((actor.systemData as MinionDataModel).remainingMembers - 1, 0, 5);
 		}
 
@@ -397,7 +412,7 @@ async function approximateProbability() {
 
 function onSkillChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
-	selectedSkill.value = availableSkills.value.find((s) => s.id === selectedOption.value) as AlsoNone<GenesysItem<SkillDataModel>>;
+	selectedSkill.value = (availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value)) as AlsoNone<GenesysItem<SkillDataModel>>;
 	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic;
 
 	calculatePoolModificationsForSkill();
@@ -453,7 +468,7 @@ async function rollPool() {
 		actor: toRaw(context.actor),
 		characteristic: selectedCharacteristic.value,
 		usesSuperCharacteristic: currentDicePool.value.usesSuperCharacteristic,
-		skillId: selectedSkill.value?.id ?? '-',
+		skillName: selectedSkill.value?.name,
 		formula,
 		symbols,
 	};
@@ -567,6 +582,9 @@ async function rollPool() {
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
 				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
+				<optgroup v-if="unrankedSkills.length > 0" v-localize:label="'Genesys.DicePrompt.UnrankedSkills'">
+					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
+				</optgroup>
 			</select>
 		</div>
 

@@ -172,6 +172,7 @@ Genesys:
     Roll: Lancer !
     Hint: Utilisez la boîte à dés sur la droite pour ajouter, améliorer et rétrograder. Cliquez sur les dés dans la réserve pour les retirer
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
+    UnrankedSkills: Sans rang
     PoolModifications:
       Title: Modification de la réserve de dés
       DefaultDifficulty: Difficulté par défaut

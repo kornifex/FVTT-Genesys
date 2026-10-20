@@ -172,6 +172,7 @@ Genesys:
     Roll: Roll!
     Hint: Use the dice box on the right to add, upgrade, and downgrade. Click dice in the pool to remove them!
     UseSuperCharacteristic: Roll as a super-characteristic
+    UnrankedSkills: Unranked
     PoolModifications:
       Title: Pool Modifications
       DefaultDifficulty: Default Difficulty
