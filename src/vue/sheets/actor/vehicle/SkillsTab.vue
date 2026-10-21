@@ -132,6 +132,11 @@ function sortNames([left]: [string, any], [right]: [string, any]) {
 	}
 }
 
+// A minion group rolls with its group skill rank, unless the skill comes from the Skills Compendium because the group doesn't own it.
+function memberSkillRank(actor: { type: string; systemData: object }, skill: { pack: string | null; systemData: { rank: number } }) {
+	return actor.type === 'minion' && !skill.pack ? (actor.systemData as MinionDataModel).groupSkillRank : skill.systemData.rank;
+}
+
 async function rollSkillForActor(actor: GenesysActor, skill: GenesysItem<SkillDataModel>) {
 	if (actor.isOwner) {
 		const promptOptions = skill.pack ? { rollUnskilled: skill.systemData.characteristic } : {};
@@ -172,11 +177,8 @@ async function openActorSheet(actor: GenesysActor) {
 									<span>{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</span>
 								</a>
 
-								<span class="skill-rank">{{ skill.systemData.rank }}</span>
-								<SkillRanks
-									:skill-value="details.actor.type === 'minion' ? Math.max(0, (details.actor.systemData as MinionDataModel).remainingMembers - 1) : skill.systemData.rank"
-									:characteristic-value="(details.actor.systemData as NonVehicleDataModel).characteristics[skill.systemData.characteristic]"
-								/>
+								<span class="skill-rank">{{ memberSkillRank(details.actor, skill) }}</span>
+								<SkillRanks :skill-value="memberSkillRank(details.actor, skill)" :characteristic-value="(details.actor.systemData as NonVehicleDataModel).characteristics[skill.systemData.characteristic]" />
 							</div>
 						</div>
 					</div>
@@ -201,10 +203,10 @@ async function openActorSheet(actor: GenesysActor) {
 							<img class="skill-content-details-charImage" :src="actorRoleSkill.actor.img" :alt="actorRoleSkill.actor.name" draggable="false" />
 							<a class="skill-content-details-charName" @click="openActorSheet(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>)">{{ actorRoleSkill.actor.name }}</a>
 							<div>{{ actorRoleSkill.role }}</div>
-							<div class="skill-content-details-skillRank">{{ actorRoleSkill.skill.systemData.rank }}</div>
+							<div class="skill-content-details-skillRank">{{ memberSkillRank(actorRoleSkill.actor, actorRoleSkill.skill) }}</div>
 							<a @click="rollSkillForActor(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>, actorRoleSkill.skill as GenesysItem<SkillDataModel>)">
 								<SkillRanks
-									:skill-value="actorRoleSkill.actor.type === 'minion' ? Math.max(0, (actorRoleSkill.actor.systemData as MinionDataModel).remainingMembers - 1) : actorRoleSkill.skill.systemData.rank"
+									:skill-value="memberSkillRank(actorRoleSkill.actor, actorRoleSkill.skill)"
 									:characteristic-value="(actorRoleSkill.actor.systemData as NonVehicleDataModel).characteristics[actorRoleSkill.skill.systemData.characteristic]"
 								/>
 							</a>

@@ -49,6 +49,13 @@ export default abstract class MinionDataModel extends AdversaryDataModel impleme
 		return Math.max(0, this.groupSize - Math.floor((this.wounds.value - 1) / this.wounds.threshold));
 	}
 
+	/**
+	 * Rank of the group in each of its skills: one per remaining member beyond the first, up to 5.
+	 */
+	get groupSkillRank(): number {
+		return Math.clamp(this.remainingMembers - 1, 0, 5);
+	}
+
 	async preCreate(actor: GenesysActor<MinionDataModel>, _data: PreDocumentId<any>, _options: DocumentModificationContext<GenesysActor<MinionDataModel>>, _user: foundry.documents.BaseUser) {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },

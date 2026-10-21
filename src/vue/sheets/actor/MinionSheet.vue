@@ -100,7 +100,7 @@ async function deleteItem(item: GenesysItem) {
 
 					<a @click="rollSkill(skill)">
 						<span>{{ skill.name }}</span>
-						<SkillRanks :skill-value="Math.clamp(system.remainingMembers - 1, 0, 5)" :characteristic-value="system.characteristics[skill.systemData.characteristic]" />
+						<SkillRanks :skill-value="system.groupSkillRank" :characteristic-value="system.characteristics[skill.systemData.characteristic]" />
 					</a>
 				</ContextMenu>
 			</div>
