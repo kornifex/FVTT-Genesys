@@ -1,6 +1,8 @@
 @use '@scss/vars/colors.scss';
 
-#combat-tracker {
+// Foundry v12 tracker, then Foundry v13 tracker.
+#combat-tracker,
+#combat .combat-tracker {
 	.active {
 		border-color: colors.$gold;
 	}
@@ -32,5 +34,10 @@
 
 	.slot-npc {
 		background: colors.alpha(colors.$initiative-slot-npc, 0.3);
+	}
+
+	.claim-slot {
+		flex: none;
+		width: auto;
 	}
 }
