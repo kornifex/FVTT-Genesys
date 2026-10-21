@@ -39,13 +39,13 @@ export default class GenesysCombatTracker extends ExtendedClass {
 	}
 
 	static async #onCycleInitiativeSkill(_event: PointerEvent, target: HTMLElement) {
-		const { combatantId } = target.closest('[data-combatant-id]').dataset;
-		await this.viewed.cycleInitiativeSkill(combatantId);
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.cycleInitiativeSkill(slotId);
 	}
 
 	static async #onRollInitiative(_event: PointerEvent, target: HTMLElement) {
-		const { combatantId, activationId } = target.closest('[data-combatant-id]').dataset;
-		await this.viewed.rollSlotInitiative(combatantId, +activationId);
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.rollSlotInitiative(slotId);
 	}
 
 	override async _prepareCombatContext(context, options) {
@@ -87,7 +87,7 @@ export default class GenesysCombatTracker extends ExtendedClass {
 		// Reroll the initiative of the slot, which may be one of the combatant's extra slots.
 		const rerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
 		if (rerollEntry) {
-			rerollEntry.callback = (li: HTMLElement) => this.viewed.rollSlotInitiative(li.dataset.combatantId, +li.dataset.activationId);
+			rerollEntry.callback = (li: HTMLElement) => this.viewed.rollSlotInitiative(li.dataset.slotId);
 		}
 
 		// Allow GMs to revoke an initiative slot claim.

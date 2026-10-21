@@ -84,10 +84,11 @@ export default class GenesysCombat extends Combat {
 		return {
 			slotId: slot.id,
 			slotType: slot.side,
-			activationId: slot.activationId,
 			hasRolled: slot.initiative !== null,
 			...decodeInitiative(slot.initiative),
 			initiativeSkill: origin.initiativeSkill?.skillName ?? this.initiativeSkills[0].skillName,
+			// The slot's initiative is the origin's, whoever claimed it.
+			canRollInitiative: origin.isOwner,
 			claimed: view.showsAsClaimed,
 			canClaim: view.canClaim,
 		};
@@ -107,14 +108,24 @@ export default class GenesysCombat extends Combat {
 	}
 
 	/**
-	 * Roll the initiative of one Initiative Slot of a combatant, its own (activation -1) or one of its extra slots.
+	 * Roll the initiative of an Initiative Slot of the current round for the combatant whose initiative gave it: its own
+	 * slot or one of its extra slots, whoever claimed it.
 	 */
-	async rollSlotInitiative(combatantId: string, activationId: number) {
-		return this.rollInitiative([combatantId], {}, { prompt: true, extraSlotsRolls: activationId >= 0 ? [activationId] : [] });
+	async rollSlotInitiative(slotId: string) {
+		const slot = this.slots.find((candidate) => candidate.id === slotId);
+		if (!slot) {
+			return this;
+		}
+
+		return this.rollInitiative([slot.originId], {}, { prompt: true, extraSlotsRolls: slot.activationId >= 0 ? [slot.activationId] : [] });
 	}
 
-	async cycleInitiativeSkill(combatantId: string) {
-		const combatant = this.combatants.get(combatantId) as GenesysCombatant | undefined;
+	/**
+	 * Cycle the Initiative Skill of the combatant whose initiative gave an Initiative Slot of the current round.
+	 */
+	async cycleInitiativeSkill(slotId: string) {
+		const slot = this.slots.find((candidate) => candidate.id === slotId);
+		const combatant = slot ? (this.combatants.get(slot.originId) as GenesysCombatant | undefined) : undefined;
 		if (combatant?.isOwner) {
 			await combatant.cycleInitiativeSkill();
 		}

@@ -64,12 +64,12 @@
 	<ol id="combat-tracker" class="directory-list">
 		{{#each turns}}
 			{{#if claimed}}
-				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}} claimed" data-combatant-id="{{id}}" data-slot-id="{{slotId}}" data-activation-id="{{activationId}}">
+				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}} claimed" data-combatant-id="{{id}}" data-slot-id="{{slotId}}">
 					<img class="token-image" data-src="{{img}}" alt="{{name}}" />
 					<div class="token-name flexcol">
 						<h4>{{name}}</h4>
 						<div class="combatant-controls flexrow">
-							{{#if (and owner (not hasRolled))}}
+							{{#if (and canRollInitiative (not hasRolled))}}
 								<a class="combatant-control initiative-skill" data-tooltip="Genesys.Tooltips.CycleInitiativeSkill" data-control="cycleInitiativeSkill">{{initiativeSkill}}</a>
 							{{/if}}
 							{{#if ../user.isGM}}
@@ -98,13 +98,13 @@
 							<span class="initiative font-genesys-symbols">
 								{{#repeat successes}}s{{/repeat}}{{#repeat advantages}}a{{/repeat}}
 							</span>
-						{{else if owner}}
+						{{else if canRollInitiative}}
 							<a class="combatant-control roll" data-tooltip="COMBAT.InitiativeRoll" data-control="rollInitiative"></a>
 						{{/if}}
 					</div>
 				</li>
 			{{else}}
-				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}}" data-combatant-id="{{id}}" data-activation-id="{{activationId}}">
+				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}}" data-combatant-id="{{id}}" data-slot-id="{{slotId}}">
 					<div class="token-name flexcol">
 						{{#if (and canClaim active)}}
 							<a data-claim-slot="{{slotId}}">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</a>
@@ -118,7 +118,7 @@
 							<span class="initiative font-genesys-symbols">
 								{{#repeat successes}}s{{/repeat}}{{#repeat advantages}}a{{/repeat}}
 							</span>
-						{{else if owner}}
+						{{else if canRollInitiative}}
 							<a class="combatant-control roll" data-tooltip="COMBAT.InitiativeRoll" data-control="rollInitiative"></a>
 						{{/if}}
 					</div>
