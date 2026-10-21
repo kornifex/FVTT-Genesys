@@ -6,6 +6,8 @@
  * @file Root for Socket utilities
  */
 
+import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
+
 /**
  * Identifier used for Genesys-originated socket messages
  */
@@ -71,7 +73,7 @@ export type UpdateInitiativeForExtraSlotData = CombatSocketBaseData & {
 	/**
 	 * An array of updates to apply to the extra initiative slots.
 	 */
-	updates: { index: number; initiative: number }[];
+	updates: ExtraSlotInitiative[];
 
 	/**
 	 * If the combat turn should be updated after adding the new initiative values.

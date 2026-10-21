@@ -244,6 +244,7 @@ Genesys:
     TokenIsNotCombatant: El token seleccionado no participa en el combate actual.
     CannotClaimOppositeSlot: No puedes reclamar este puesto de iniciativa con {name} - ¡está en el lado equivocado!
     SlotAlreadyClaimed: Este puesto de iniciativa ya está reclamado.
+    NoGMForExtraSlot: Un DJ debe estar conectado para tirar la iniciativa de un puesto adicional.
     CombatantHasNoActivationLeft: "{name} no tiene más activaciones esta ronda."
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     InvalidTokenTypeForAction: El token seleccionado es de un tipo no válido para realizar esta acción.

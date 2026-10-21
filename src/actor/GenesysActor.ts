@@ -5,8 +5,7 @@
  * @author Mezryss
  * @file Base Genesys Actor
  */
-import GenesysCombat from '@/combat/GenesysCombat';
-import GenesysCombatant from '@/combat/GenesysCombatant';
+import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
 import IHasPreCreate from '@/data/IHasPreCreate';
 import IHasOnDelete from '@/data/IHasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
@@ -79,34 +78,14 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	}
 
 	/**
-	 * Override the rollInitiative method to include rolling for all extra slots tied to the actor.
+	 * Roll the Initiative Slots that this actor's combatants give this round: those without initiative, or all of them
+	 * when rerolling.
 	 * @inheritDoc
 	 */
 	override async rollInitiative({ createCombatants = false, rerollInitiative = false, initiativeOptions = {} }: { createCombatants?: boolean; rerollInitiative?: boolean; initiativeOptions?: object } | undefined = {}) {
-		const combat = (await super.rollInitiative({ createCombatants, rerollInitiative, initiativeOptions })) as GenesysCombat;
+		// Foundry leaves out the combatants that have rolled their own slot: hand them all over, the combat picks the slots.
+		const options: GenesysRollInitiativeOptions = { ...initiativeOptions, slotsOfCombatants: rerollInitiative ? 'all' : 'unrolled' };
 
-		const extraSlots = combat.extraSlotsForRound(combat.round);
-		const extraInitiativeRolls = extraSlots.reduce(
-			(accum, slot) => {
-				const combatant = combat.combatants.get(slot.activationSource) as GenesysCombatant | undefined;
-
-				if (
-					// Make sure the combatant is linked to this actor.
-					combatant &&
-					((this.isToken && combatant.token === this.token) || (!this.isToken && combatant.actor === this)) &&
-					// Only roll if the actor doesn't have an initiative value or if forcing a reroll.
-					(rerollInitiative || slot.initiative === null)
-				) {
-					accum.combatantsIds.push(combatant.id);
-					accum.activationIds.push(slot.index);
-				}
-
-				return accum;
-			},
-			{ combatantsIds: [], activationIds: [] } as { combatantsIds: string[]; activationIds: number[] },
-		);
-
-		await combat.rollInitiative(extraInitiativeRolls.combatantsIds, initiativeOptions, { extraSlotsRolls: extraInitiativeRolls.activationIds });
-		return combat;
+		return super.rollInitiative({ createCombatants, rerollInitiative: true, initiativeOptions: options });
 	}
 }

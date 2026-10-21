@@ -22,14 +22,35 @@ export type SlotCombatant = {
 };
 
 /**
- * An extra Initiative Slot a combatant gets from a round on, identified by its index among all of the combat's extra
- * slots.
+ * An extra Initiative Slot a combatant gets from a round on, as the combat stores it.
  */
-export type ExtraSlot = {
+export type StoredExtraSlot = {
 	activationSource: string;
 	initiative: number | null;
 	startingRound: number;
+};
+
+/**
+ * An extra Initiative Slot, identified by its index among all of the combat's stored extra slots.
+ */
+export type ExtraSlot = StoredExtraSlot & {
 	index: number;
+};
+
+/**
+ * The initiative written to an extra slot, by its index among all of the combat's stored extra slots.
+ */
+export type ExtraSlotInitiative = {
+	index: number;
+	initiative: number | null;
+};
+
+/**
+ * The initiatives that rolls write: to combatants for their own slots, and to extra slots.
+ */
+export type InitiativeWrites = {
+	combatants: { _id: string; initiative: number }[];
+	extraSlots: ExtraSlotInitiative[];
 };
 
 /**
@@ -99,6 +120,30 @@ export function decodeInitiative(initiative: number | null) {
 }
 
 /**
+ * The extra slots a combat has in a round, with their index among all of its stored extra slots. Those added for a later
+ * round, after going back a round, are left out.
+ */
+export function extraSlotsForRound(storedExtraSlots: StoredExtraSlot[], round: number): ExtraSlot[] {
+	return storedExtraSlots.flatMap((extraSlot, index) => (extraSlot.startingRound <= round ? [{ ...extraSlot, index }] : []));
+}
+
+/**
+ * The stored extra slots with some initiatives written, as a copy. Writes to an index the combat doesn't store are
+ * ignored.
+ */
+export function withExtraSlotInitiatives(storedExtraSlots: StoredExtraSlot[], writes: ExtraSlotInitiative[]): StoredExtraSlot[] {
+	const extraSlots = storedExtraSlots.map((extraSlot) => ({ ...extraSlot }));
+
+	for (const { index, initiative } of writes) {
+		if (extraSlots[index]) {
+			extraSlots[index].initiative = initiative;
+		}
+	}
+
+	return extraSlots;
+}
+
+/**
  * The Initiative Slots of a round in turn order: every combatant's own slot and the extra slots they have this round,
  * ordered by initiative, then disposition, then combatant id.
  */
@@ -136,6 +181,49 @@ function compareActivations(first: { combatant: SlotCombatant; initiative: numbe
 	}
 
 	return first.combatant.id > second.combatant.id ? 1 : -1;
+}
+
+/**
+ * The ids of the own Initiative Slots of some combatants.
+ */
+export function ownSlotIds(combatantIds: string[]) {
+	return combatantIds.map((combatantId) => slotId(combatantId, -1));
+}
+
+/**
+ * The ids of the Initiative Slots of the round that some combatants' initiative gives, in turn order: all of them, or
+ * only those without initiative yet.
+ */
+export function slotIdsOf(slots: InitiativeSlot[], combatantIds: string[], { unrolledOnly }: { unrolledOnly: boolean }) {
+	return slots.filter((slot) => combatantIds.includes(slot.originId) && (!unrolledOnly || slot.initiative === null)).map((slot) => slot.id);
+}
+
+/**
+ * The Initiative Slots of the round to roll for some slot ids, once each and in the order asked. Ids of slots the round
+ * doesn't have, such as an extra slot of a later round, are left out.
+ */
+export function slotsToRoll(slots: InitiativeSlot[], slotIds: string[]) {
+	const slotsById = new Map(slots.map((slot) => [slot.id, slot]));
+
+	return [...new Set(slotIds)].flatMap((id) => slotsById.get(id) ?? []);
+}
+
+/**
+ * Where the initiatives rolled for Initiative Slots are written: a combatant's own slot to the combatant, an extra slot to
+ * its index among the combat's stored extra slots.
+ */
+export function initiativeWrites(rolls: { slot: InitiativeSlot; initiative: number }[]): InitiativeWrites {
+	const writes: InitiativeWrites = { combatants: [], extraSlots: [] };
+
+	for (const { slot, initiative } of rolls) {
+		if (slot.activationId < 0) {
+			writes.combatants.push({ _id: slot.originId, initiative });
+		} else {
+			writes.extraSlots.push({ index: slot.activationId, initiative });
+		}
+	}
+
+	return writes;
 }
 
 /**
