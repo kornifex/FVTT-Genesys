@@ -20,6 +20,7 @@ vi.hoisted(() => {
 import { Characteristic } from '@/data/Characteristics';
 import {
 	decodeKey,
+	EditedChange,
 	encodeKey,
 	fromEditedChange,
 	isPoolModificationValue,
@@ -227,39 +228,52 @@ describe('poolModificationsForCheck', () => {
 	});
 });
 
+/**
+ * A change as Foundry stores it, with the extra fields the effect sheets edit.
+ */
+function editedChange(key: string, value: string, { mode = 0, char = undefined as string | undefined, skill = undefined as string | undefined } = {}) {
+	const change = { key, value, mode, priority: 0 } as EditedChange;
+	if (char !== undefined) {
+		change.char = char;
+	}
+	if (skill !== undefined) {
+		change.skill = skill;
+	}
+	return change;
+}
+
 describe('editing changes in the effect sheets', () => {
 	it('splits the subject of a Pool Modification off its key', () => {
-		const change = { key: 'genesys.pool.skill.target.Stealth', value: 'S', mode: 0, priority: null };
+		const change = editedChange('genesys.pool.skill.target.Stealth', 'S');
 
-		expect(toEditedChange(change)).toEqual({ ...change, key: 'genesys.pool.skill.target', skill: 'Stealth' });
-		expect(toEditedChange({ ...change, key: 'genesys.pool.char.self.brawn' })).toEqual({ ...change, key: 'genesys.pool.char.self', char: 'brawn' });
-		expect(toEditedChange({ ...change, key: 'genesys.pool.check.self.' })).toEqual({ ...change, key: 'genesys.pool.check.self' });
+		expect(toEditedChange(change)).toEqual(editedChange('genesys.pool.skill.target', 'S', { skill: 'Stealth' }));
+		expect(toEditedChange(editedChange('genesys.pool.char.self.brawn', 'S'))).toEqual(editedChange('genesys.pool.char.self', 'S', { char: 'brawn' }));
+		expect(toEditedChange(editedChange('genesys.pool.check.self.', 'S'))).toEqual(editedChange('genesys.pool.check.self', 'S'));
 		expect(change.key).toBe('genesys.pool.skill.target.Stealth');
 	});
 
 	it('leaves other changes as they are', () => {
-		const change = { key: 'system.soak', value: '1', mode: 2, priority: null };
-		expect(toEditedChange(change)).toEqual(change);
-		expect(fromEditedChange({ ...change, char: 'brawn' })).toEqual({ ...change, char: 'brawn' });
+		expect(toEditedChange(editedChange('system.soak', '1', { mode: 2 }))).toEqual(editedChange('system.soak', '1', { mode: 2 }));
+		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }))).toEqual(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }));
 	});
 
 	it('puts the subject back into the key of a Pool Modification', () => {
-		const edited = { key: 'genesys.pool.skill.target', value: 'S', mode: 2, priority: null, skill: 'Stealth', char: 'brawn' };
+		const subjects = { mode: 2, skill: 'Stealth', char: 'brawn' };
 
-		expect(fromEditedChange({ ...edited })).toEqual({ key: 'genesys.pool.skill.target.Stealth', value: 'S', mode: 0, priority: null });
-		expect(fromEditedChange({ ...edited, key: 'genesys.pool.char.self' }).key).toBe('genesys.pool.char.self.brawn');
-		expect(fromEditedChange({ ...edited, key: 'genesys.pool.check.self' }).key).toBe('genesys.pool.check.self.');
+		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects))).toEqual(editedChange('genesys.pool.skill.target.Stealth', 'S'));
+		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects)).key).toBe('genesys.pool.char.self.brawn');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects)).key).toBe('genesys.pool.check.self.');
 	});
 
 	it('round-trips every kind of key', () => {
 		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
-			expect(fromEditedChange(toEditedChange({ key, value: 'B', mode: 0, priority: null })).key).toBe(key);
+			expect(fromEditedChange(toEditedChange(editedChange(key, 'B'))).key).toBe(key);
 		}
 	});
 
 	it('empties the value of a Pool Modification unless it only holds glyphs', () => {
-		expect(fromEditedChange({ key: 'genesys.pool.check.self', value: '2', mode: 0, priority: null }).value).toBe('');
-		expect(fromEditedChange({ key: 'genesys.pool.check.self', value: 'BB', mode: 0, priority: null }).value).toBe('BB');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2')).value).toBe('');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB')).value).toBe('BB');
 	});
 
 	it('names the field that edits what a picked key applies to', () => {
