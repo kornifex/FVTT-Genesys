@@ -5,7 +5,6 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import GenesysItem from '@/item/GenesysItem';
 import GenesysActor from '@/actor/GenesysActor';
 import InjuryDataModel from '@/item/data/InjuryDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
 import DicePrompt, { RollType } from '@/app/DicePrompt';
 import VehicleDataModel from '@/actor/data/VehicleDataModel';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
@@ -16,6 +15,7 @@ import Enriched from '@/vue/components/Enriched.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
 import SelectCharacterSkillPrompt, { CharacterSkillOption } from '@/app/SelectCharacterSkillPrompt';
+import { skillNamesMatch, skillToRoll } from '@/data/Skills';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
@@ -56,27 +56,21 @@ async function deleteItem(item: GenesysItem) {
 async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
 	const potentialAttackers: CharacterSkillOption[] = [];
 	for (const role of actor.value.systemData.roles) {
-		if (!role.skills.some((skill) => weapon.systemData.skills.includes(skill))) {
+		const roleWeaponSkills = weapon.systemData.skills.filter((weaponSkill) => role.skills.some((skill) => skillNamesMatch(skill, weaponSkill)));
+		if (roleWeaponSkills.length === 0) {
 			continue;
 		}
 
-		const backupSkills = new Map(CONFIG.genesys.skills.filter((skill) => weapon.systemData.skills.includes(skill.name)).map((skill) => [skill.name, skill]));
 		for (const member of role.members) {
 			const currentActor = await fromUuid<GenesysActor>(member);
 			if (!currentActor) {
 				continue;
 			}
 
-			for (const weaponSkill of weapon.systemData.skills) {
-				if (!role.skills.includes(weaponSkill)) {
-					continue;
-				}
-
-				const potentialSkill = currentActor.items.find((item) => item.type === 'skill' && item.name === weaponSkill);
-				if (potentialSkill) {
-					potentialAttackers.push({ actor: currentActor, skill: potentialSkill as GenesysItem<SkillDataModel> });
-				} else if (backupSkills.has(weaponSkill)) {
-					potentialAttackers.push({ actor: currentActor, skill: backupSkills.get(weaponSkill)! });
+			for (const weaponSkill of roleWeaponSkills) {
+				const rolledSkill = skillToRoll(currentActor.skills, CONFIG.genesys.skills, weaponSkill);
+				if (rolledSkill) {
+					potentialAttackers.push({ actor: currentActor, skill: rolledSkill.skill });
 				}
 			}
 		}
@@ -100,25 +94,21 @@ async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataMo
 	await DicePrompt.promptForRoll(selectAttacker.actor, selectAttacker.skill.name, {
 		rollType: RollType.Attack,
 		rollData: { weapon },
-		...(selectAttacker.skill.pack && { characteristic: selectAttacker.skill.systemData.characteristic }),
 	});
 }
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	const skillNameForRepairing = CONFIG.genesys.settings.skillForRepairingHit;
-	const relevantRoles = actor.value.systemData.roles.filter((role) => role.skills.includes(skillNameForRepairing));
-	const backupSkill = CONFIG.genesys.skills.find((skill) => skill.name === skillNameForRepairing);
+	const relevantRoles = actor.value.systemData.roles.filter((role) => role.skills.some((skill) => skillNamesMatch(skill, skillNameForRepairing)));
 	const potentialRepairer: CharacterSkillOption[] = [];
 
 	for (const role of relevantRoles) {
 		for (const member of role.members) {
 			const currentActor = await fromUuid<GenesysActor>(member);
-			const potentialSkill = currentActor?.items.find((item) => item.type === 'skill' && item.name === skillNameForRepairing);
+			const rolledSkill = currentActor ? skillToRoll(currentActor.skills, CONFIG.genesys.skills, skillNameForRepairing) : undefined;
 
-			if (potentialSkill) {
-				potentialRepairer.push({ actor: currentActor!, skill: potentialSkill as GenesysItem<SkillDataModel> });
-			} else if (currentActor && backupSkill) {
-				potentialRepairer.push({ actor: currentActor, skill: backupSkill });
+			if (rolledSkill) {
+				potentialRepairer.push({ actor: currentActor!, skill: rolledSkill.skill });
 			}
 		}
 	}
@@ -140,7 +130,6 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 
 	await DicePrompt.promptForRoll(selectRepairer.actor, selectRepairer.skill.name, {
 		difficulty: SEVERITY_TO_DIFFICULTY[criticalHit.systemData.severity],
-		...(selectRepairer.skill.pack && { characteristic: selectRepairer.skill.systemData.characteristic }),
 	});
 }
 </script>

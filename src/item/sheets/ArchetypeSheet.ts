@@ -14,6 +14,7 @@ import GenesysItem from '@/item/GenesysItem';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
+import { skillNamesMatch } from '@/data/Skills';
 
 import './ArchetypeSheet.scss';
 
@@ -58,8 +59,9 @@ export default class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeD
 			return;
 		}
 
-		// Prevent adding a granted item that's already present.
-		if (this.item.systemData.grantedItems.find((i) => i.type === droppedItem.type && i.name === droppedItem.name)) {
+		// Prevent adding a granted item that's already present. Skill names match whatever their case.
+		const matchesName = (name: string) => (droppedItem.type === 'skill' ? skillNamesMatch(name, droppedItem.name) : name === droppedItem.name);
+		if (this.item.systemData.grantedItems.find((i) => i.type === droppedItem.type && matchesName(i.name))) {
 			return;
 		}
 

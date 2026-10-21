@@ -11,6 +11,7 @@ import { Defense } from '@/data/Actors';
 import { GenesysDice } from '@/dice';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
+import { skillNamesMatch } from '@/data/Skills';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, or checks of a skill.
@@ -187,13 +188,20 @@ export function poolModificationsForCheck(actor: PoolModificationActor | undefin
 }
 
 function effectModifications(actor: PoolModificationActor, source: PoolModificationSource, { characteristic, skillName }: CheckForPoolModifications) {
-	const keys = [encodeKey({ kind: 'check', source, subject: '' })];
-	if (characteristic) {
-		keys.push(encodeKey({ kind: 'char', source, subject: characteristic }));
-	}
-	if (skillName) {
-		keys.push(encodeKey({ kind: 'skill', source, subject: skillName }));
-	}
+	const appliesToCheck = (key: PoolModificationKey | undefined) => {
+		if (key?.source !== source) {
+			return false;
+		}
+
+		switch (key.kind) {
+			case 'check':
+				return key.subject === '';
+			case 'char':
+				return key.subject === characteristic;
+			case 'skill':
+				return !!skillName && skillNamesMatch(key.subject, skillName);
+		}
+	};
 
 	const modifications: ExternalPoolModification[] = [];
 
@@ -203,7 +211,7 @@ function effectModifications(actor: PoolModificationActor, source: PoolModificat
 		}
 
 		const item = sourceItem(effect);
-		const mods = effect.changes.filter((change) => keys.includes(change.key)).flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
+		const mods = effect.changes.filter((change) => appliesToCheck(decodeKey(change.key))).flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
 
 		if (mods.length > 0) {
 			modifications.push({ source, from: { effect: effect.name }, mods: mods.sort(sortPoolModifications) });
@@ -224,10 +232,12 @@ export type EditedChange = foundry.data.EffectChangeSource & {
 
 /**
  * The skills the effect sheets offer for Pool Modifications, by name: those of the Skills Compendium and those the
- * edited changes already apply to, so that saving the sheet keeps a skill that isn't in the compendium.
+ * edited changes already apply to, so that saving the sheet keeps a skill that isn't in the compendium. A compendium
+ * skill a change names with another case is offered with the change's case.
  */
 export function skillChoices(compendiumSkillNames: string[], changes: EditedChange[]): Record<string, string> {
-	const names = [...compendiumSkillNames, ...changes.flatMap((change) => (change.skill ? [change.skill] : []))];
+	const changeSkillNames = changes.flatMap((change) => (change.skill ? [change.skill] : []));
+	const names = [...compendiumSkillNames.map((name) => changeSkillNames.find((changeName) => skillNamesMatch(changeName, name)) ?? name), ...changeSkillNames];
 	return Object.fromEntries(names.map((name) => [name, name]));
 }
 

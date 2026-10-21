@@ -10,12 +10,11 @@ import GenesysActor from '@/actor/GenesysActor';
 import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import GenesysCombat, { InitiativeSkill } from '@/combat/GenesysCombat';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
 import MinionDataModel from '@/actor/data/MinionDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import GenesysRoller from '@/dice/GenesysRoller';
 import { Disposition, encodeInitiative, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
+import { skillNamesMatch, skillToRoll } from '@/data/Skills';
 
 export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
@@ -28,7 +27,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 			return undefined;
 		}
 
-		return (this.parent as GenesysCombat).initiativeSkills.find((s) => s.skillName.toLowerCase() === skillName.toLowerCase());
+		return (this.parent as GenesysCombat).initiativeSkills.find((s) => skillNamesMatch(s.skillName, skillName));
 	}
 
 	async setInitiativeSkill(skill: InitiativeSkill) {
@@ -45,8 +44,9 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		}
 
 		let skillIndex = 0;
-		if (this.initiativeSkill) {
-			skillIndex = initiativeSkills.findIndex((s) => s.skillName.toLowerCase() === this.initiativeSkill?.skillName.toLowerCase());
+		const currentSkill = this.initiativeSkill;
+		if (currentSkill) {
+			skillIndex = initiativeSkills.findIndex((s) => skillNamesMatch(s.skillName, currentSkill.skillName));
 		}
 
 		await this.setInitiativeSkill(initiativeSkills[(skillIndex + 1) % initiativeSkills.length]);
@@ -84,13 +84,13 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	}
 
 	override getInitiativeRoll(skillName?: string, charFallback: Characteristic = Characteristic.Brawn) {
-		const skill = skillName ? (this.actor.items.find((i) => i.type === 'skill' && i.name.toLowerCase() === skillName.toLowerCase()) as GenesysItem<SkillDataModel> | undefined) : undefined;
-		const characteristic = skill?.systemData?.characteristic ?? charFallback;
+		const rolledSkill = skillName ? skillToRoll(this.actor.skills, CONFIG.genesys.skills, skillName) : undefined;
+		const characteristic = rolledSkill?.skill.systemData.characteristic ?? charFallback;
 		const system = this.actor.systemData as CharacterDataModel | AdversaryDataModel;
 		const characteristicValue = system.characteristics[characteristic];
 
-		let skillValue = skill?.systemData?.rank ?? 0;
-		if (skill && this.actor.type === 'minion') {
+		let skillValue = !rolledSkill || rolledSkill.unranked ? 0 : rolledSkill.skill.systemData.rank;
+		if (rolledSkill && !rolledSkill.unranked && this.actor.type === 'minion') {
 			skillValue = (this.actor.systemData as MinionDataModel).groupSkillRank;
 		}
 

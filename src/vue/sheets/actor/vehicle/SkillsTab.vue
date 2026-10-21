@@ -12,13 +12,14 @@ import MinionDataModel from '@/actor/data/MinionDataModel';
 import DicePrompt from '@/app/DicePrompt';
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
+import { RolledSkill, skillNamesMatch, skillToRoll } from '@/data/Skills';
 
 type NonVehicleDataModel = CharacterDataModel | AdversaryDataModel;
 
 type GroupedByMemberData = {
 	actor: GenesysActor<NonVehicleDataModel>;
 	role: string;
-	skills: Map<string, GenesysItem<SkillDataModel>>;
+	skills: Map<string, RolledSkill<GenesysItem<SkillDataModel>>>;
 };
 
 type GroupedBySkillData = {
@@ -28,7 +29,7 @@ type GroupedBySkillData = {
 		string,
 		{
 			actor: GenesysActor<NonVehicleDataModel>;
-			skill: GenesysItem<SkillDataModel>;
+			skill: RolledSkill<GenesysItem<SkillDataModel>>;
 			role: string;
 		}
 	>;
@@ -62,16 +63,9 @@ watch(
 					const targetActorSkill = allActorSkills.get(member)!;
 
 					if (!targetActorSkill.skills.has(skill)) {
-						const skillItem = targetActorSkill.actor.items.find((item) => item.type === 'skill' && item.name === skill);
-						if (skillItem) {
-							targetActorSkill.skills.set(skill, skillItem as GenesysItem<SkillDataModel>);
-						} else {
-							const backupSkill = CONFIG.genesys.skills.find((aSkill) => aSkill.name === skill);
-							if (backupSkill) {
-								targetActorSkill.skills.set(skill, backupSkill);
-							} else {
-								continue;
-							}
+						const rolledSkill = skillToRoll(targetActorSkill.actor.skills, CONFIG.genesys.skills, skill);
+						if (rolledSkill) {
+							targetActorSkill.skills.set(skill, rolledSkill);
 						}
 					}
 				}
@@ -84,34 +78,24 @@ watch(
 			const groupedBySkillData = new Map<string, GroupedBySkillData>();
 			for (const role of actorData.roles) {
 				for (const skill of role.skills) {
-					if (!groupedBySkillData.has(skill)) {
-						const targetSkill = CONFIG.genesys.skills.find((skillItem) => skillItem.name === skill);
-						if (!targetSkill) {
-							continue;
-						}
-
-						groupedBySkillData.set(skill, {
-							skillName: skill,
-							skillImage: targetSkill.img,
-							actors: new Map(),
-						});
-					}
-					const skillUsers = groupedBySkillData.get(skill)!;
-
-					for (const member of role.members) {
+					const skillUsers = role.members.flatMap((member) => {
 						const actorSkills = allActorSkills.get(member);
-						if (!actorSkills) {
-							continue;
-						}
+						const desiredSkill = actorSkills?.skills.get(skill);
+						return actorSkills && desiredSkill ? [{ member, actor: actorSkills.actor, skill: desiredSkill }] : [];
+					});
 
-						const desiredSkill = actorSkills.skills.get(skill);
-						if (desiredSkill) {
-							skillUsers.actors.set(member, {
-								actor: actorSkills.actor,
-								skill: desiredSkill,
-								role: role.name,
-							});
-						}
+					// A role skill missing from the Skills Compendium is listed once a member owns it.
+					const skillImage = CONFIG.genesys.skills.find((skillItem) => skillNamesMatch(skillItem.name, skill))?.img ?? skillUsers[0]?.skill.skill.img;
+					if (!skillImage) {
+						continue;
+					}
+
+					if (!groupedBySkillData.has(skill)) {
+						groupedBySkillData.set(skill, { skillName: skill, skillImage, actors: new Map() });
+					}
+
+					for (const { member, actor, skill: desiredSkill } of skillUsers) {
+						groupedBySkillData.get(skill)!.actors.set(member, { actor, skill: desiredSkill, role: role.name });
 					}
 				}
 			}
@@ -132,15 +116,18 @@ function sortNames([left]: [string, any], [right]: [string, any]) {
 	}
 }
 
-// A minion group rolls with its group skill rank, unless the skill comes from the Skills Compendium because the group doesn't own it.
-function memberSkillRank(actor: { type: string; systemData: object }, skill: { pack: string | null; systemData: { rank: number } }) {
-	return actor.type === 'minion' && !skill.pack ? (actor.systemData as MinionDataModel).groupSkillRank : skill.systemData.rank;
+// A minion group rolls an owned skill with its group skill rank, and an Unranked Skill Check has no rank.
+function memberSkillRank(actor: { type: string; systemData: object }, { skill, unranked }: { skill: { systemData: { rank: number } }; unranked: boolean }) {
+	if (unranked) {
+		return 0;
+	}
+
+	return actor.type === 'minion' ? (actor.systemData as MinionDataModel).groupSkillRank : skill.systemData.rank;
 }
 
-async function rollSkillForActor(actor: GenesysActor, skill: GenesysItem<SkillDataModel>) {
+async function rollSkillForActor(actor: GenesysActor, skillName: string) {
 	if (actor.isOwner) {
-		const promptOptions = skill.pack ? { characteristic: skill.systemData.characteristic } : {};
-		await DicePrompt.promptForRoll(actor, skill.name, promptOptions);
+		await DicePrompt.promptForRoll(actor, skillName);
 	}
 }
 
@@ -171,14 +158,14 @@ async function openActorSheet(actor: GenesysActor) {
 						</div>
 
 						<div class="member-skills-container">
-							<div v-for="[skillName, skill] in details.skills" :key="skillName" class="member-skill">
-								<img :src="skill.img" :alt="skill.name" />
-								<a class="skill-name" @click="rollSkillForActor(details.actor as GenesysActor<NonVehicleDataModel>, skill as GenesysItem<SkillDataModel>)">
-									<span>{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</span>
+							<div v-for="[skillName, rolledSkill] in details.skills" :key="skillName" class="member-skill">
+								<img :src="rolledSkill.skill.img" :alt="rolledSkill.skill.name" />
+								<a class="skill-name" @click="rollSkillForActor(details.actor as GenesysActor<NonVehicleDataModel>, skillName)">
+									<span>{{ rolledSkill.skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${rolledSkill.skill.systemData.characteristic.capitalize()}`" />)</span>
 								</a>
 
-								<span class="skill-rank">{{ memberSkillRank(details.actor, skill) }}</span>
-								<SkillRanks :skill-value="memberSkillRank(details.actor, skill)" :characteristic-value="(details.actor.systemData as NonVehicleDataModel).characteristics[skill.systemData.characteristic]" />
+								<span class="skill-rank">{{ memberSkillRank(details.actor, rolledSkill) }}</span>
+								<SkillRanks :skill-value="memberSkillRank(details.actor, rolledSkill)" :characteristic-value="(details.actor.systemData as NonVehicleDataModel).characteristics[rolledSkill.skill.systemData.characteristic]" />
 							</div>
 						</div>
 					</div>
@@ -204,10 +191,10 @@ async function openActorSheet(actor: GenesysActor) {
 							<a class="skill-content-details-charName" @click="openActorSheet(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>)">{{ actorRoleSkill.actor.name }}</a>
 							<div>{{ actorRoleSkill.role }}</div>
 							<div class="skill-content-details-skillRank">{{ memberSkillRank(actorRoleSkill.actor, actorRoleSkill.skill) }}</div>
-							<a @click="rollSkillForActor(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>, actorRoleSkill.skill as GenesysItem<SkillDataModel>)">
+							<a @click="rollSkillForActor(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>, skillName)">
 								<SkillRanks
 									:skill-value="memberSkillRank(actorRoleSkill.actor, actorRoleSkill.skill)"
-									:characteristic-value="(actorRoleSkill.actor.systemData as NonVehicleDataModel).characteristics[actorRoleSkill.skill.systemData.characteristic]"
+									:characteristic-value="(actorRoleSkill.actor.systemData as NonVehicleDataModel).characteristics[actorRoleSkill.skill.skill.systemData.characteristic]"
 								/>
 							</a>
 						</div>

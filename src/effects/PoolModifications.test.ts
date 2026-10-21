@@ -163,6 +163,12 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, undefined, check)).toEqual([{ source: 'self', from: { effect: 'Talent' }, mods: ['B', 'A', '^'] }]);
 	});
 
+	it('collects the changes of a skill whatever the case of its name', () => {
+		const self = actor('character', [effect([{ key: 'genesys.pool.skill.self.Ranged (Light)', value: 'B' }], { name: 'Talent' })]);
+
+		expect(poolModificationsForCheck(self, undefined, { characteristic: Characteristic.Agility, skillName: 'Ranged (light)' })).toEqual([{ source: 'self', from: { effect: 'Talent' }, mods: ['B'] }]);
+	});
+
 	it('only collects the changes for every check without a characteristic or a skill', () => {
 		const self = actor('character', [
 			effect([
@@ -295,6 +301,12 @@ describe('editing changes in the effect sheets', () => {
 
 		expect(skillChoices(['Cool', 'Athletics'], changes)).toEqual({ Cool: 'Cool', Athletics: 'Athletics', 'Piloting (Space)': 'Piloting (Space)' });
 		expect(skillChoices([], changes)).toEqual({ 'Piloting (Space)': 'Piloting (Space)', Cool: 'Cool' });
+	});
+
+	it("offers a skill once, with the case the changes apply to, when it differs from the Skills Compendium's", () => {
+		const changes = [editedChange('genesys.pool.skill.self', 'B', { skill: 'ranged (light)' })];
+
+		expect(skillChoices(['Cool', 'Ranged (Light)'], changes)).toEqual({ Cool: 'Cool', 'ranged (light)': 'ranged (light)' });
 	});
 
 	it('names the field that edits what a picked key applies to', () => {

@@ -13,6 +13,7 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import VueSheet from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
+import { isCareerSkill } from '@/actor/data/character/Career';
 
 export default class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataModel>) {
 	static override get defaultOptions() {
@@ -46,7 +47,7 @@ export default class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataMod
 		}
 
 		// Prevent adding a skill that's already present.
-		if (this.item.systemData.careerSkills.find((i) => i.name.toLowerCase() === droppedItem.name.toLowerCase())) {
+		if (isCareerSkill(droppedItem.name, this.item.systemData.careerSkills)) {
 			return;
 		}
 

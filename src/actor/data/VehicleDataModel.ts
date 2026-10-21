@@ -6,6 +6,7 @@ import IHasPreCreate from '@/data/IHasPreCreate';
 import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
+import { skillNamesMatch } from '@/data/Skills';
 
 type ValueWithMax = {
 	value: number;
@@ -235,7 +236,7 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		const roles = [...this.roles];
 		const role = roles.find((role) => role.id === roleId);
 
-		if (role && !role.skills.includes(skillName)) {
+		if (role && !role.skills.some((skill) => skillNamesMatch(skill, skillName))) {
 			role.skills.push(skillName);
 			await actor.update({
 				'system.roles': roles,
@@ -250,7 +251,7 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		const role = roles.find((role) => role.id === roleId);
 
 		if (role) {
-			const skillIndex = role.skills.findIndex((skill) => skill === skillName);
+			const skillIndex = role.skills.findIndex((skill) => skillNamesMatch(skill, skillName));
 
 			if (skillIndex !== -1) {
 				role.skills.splice(skillIndex, 1);

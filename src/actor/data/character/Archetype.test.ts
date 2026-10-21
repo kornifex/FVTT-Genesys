@@ -107,6 +107,10 @@ describe('granted items', () => {
 		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, 1)).toEqual([{ skill: held[0], update: { 'system.rank': 2 } }]);
 		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, -1)).toEqual([{ skill: held[0], update: { 'system.rank': 0 } }]);
 	});
+
+	it('gives a rank of a granted skill the character names with another case', () => {
+		expect(grantedSkillRankUpdates(held, [{ name: 'brawl', type: 'skill' }], 1)).toEqual([{ skill: held[1], update: { 'system.rank': 3 } }]);
+	});
 });
 
 /**
