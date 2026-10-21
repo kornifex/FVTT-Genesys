@@ -3,6 +3,7 @@ import { computed, inject, ref, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import VehicleDataModel from '@/actor/data/VehicleDataModel';
 import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import { DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
@@ -12,10 +13,25 @@ import Localized from '@/vue/components/Localized.vue';
 import InventoryItem from '@/vue/components/inventory/InventoryItem.vue';
 import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 
+const props = defineProps<{
+	/**
+	 * Whether items can be dropped, which adds the `Dropped` section and the drop/pick up actions.
+	 */
+	allowDroppedState?: boolean;
+
+	/**
+	 * Whether the currency and encumbrance row goes above the item sections instead of below them.
+	 */
+	summaryOnTop?: boolean;
+}>();
+
 const CURRENCY_LABEL = CONFIG.genesys.settings.currencyName;
 
-const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
+const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
+
+// The actor's data model tells which item types belong to the inventory and which of them can be equipped.
+const dataModel = toRaw(context.data.actor).systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
 
 const isDraggable = ref(toRaw(context.data.actor).isOwner);
 const dragCounters = ref({
@@ -24,38 +40,60 @@ const dragCounters = ref({
 	[EquipmentState.Dropped]: 0,
 });
 
-const inventory = computed(() => toRaw(context.data.actor).items.filter((i) => CharacterDataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[]);
+const inventory = computed(() => toRaw(context.data.actor).items.filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[]);
 const equippedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Equipped).sort(sortItems));
 const carriedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Carried && i.systemData.container === '').sort(sortItems));
 const droppedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Dropped && i.systemData.container === '').sort(sortItems));
+
+type ItemSection = {
+	state: keyof typeof dragCounters.value;
+	label: string;
+	items: GenesysItem<EquipmentDataModel>[];
+};
+
+// The item sections in display order.
+const itemSections = computed(() => {
+	const sections: ItemSection[] = [
+		{ state: EquipmentState.Equipped, label: 'Genesys.Labels.Equipped', items: equippedItems.value },
+		{ state: EquipmentState.Carried, label: 'Genesys.Labels.Carried', items: carriedItems.value },
+	];
+
+	if (props.allowDroppedState) {
+		sections.push({ state: EquipmentState.Dropped, label: 'Genesys.Labels.Dropped', items: droppedItems.value });
+	}
+
+	return sections;
+});
+
+// The order of the tab's parts: the item sections and the currency and encumbrance row.
+const layout = computed(() => (props.summaryOnTop ? ['summary', 'items'] : ['items', 'summary']));
 
 function sortItems(left: GenesysItem, right: GenesysItem) {
 	return left.sort - right.sort;
 }
 
 function canTypeBeDropped(type: string) {
-	return CharacterDataModel.isRelevantTypeForContext('INVENTORY', type);
+	return dataModel.isRelevantTypeForContext('INVENTORY', type);
 }
 
 function canTypeBeInsideContainer(type: string) {
-	return type !== 'container' && CharacterDataModel.isRelevantTypeForContext('INVENTORY', type);
+	return type !== 'container' && dataModel.isRelevantTypeForContext('INVENTORY', type);
 }
 
 async function handleEffectsStatus(items: GenesysItem[], desiredState: EquipmentState) {
 	await system.value.handleEffectsStatus(items, { equipmentState: desiredState });
 }
 
-// Maintain consistent with the function with the same name on Vehicle -> InventoryTab.vue
 async function dropInventoryToSortSlot(event: DragEvent, sortCategory: EquipmentState, sortIndex: number) {
 	// Check that we have the UUID of whatever was dropped and that it's permitted to be dropped on this actor.
 	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as DragTransferData;
-	if (!dragData.uuid || (dragData.genesysType && !CharacterDataModel.isRelevantTypeForContext('INVENTORY', dragData.genesysType))) {
+	if (!dragData.uuid || (dragData.genesysType && !dataModel.isRelevantTypeForContext('INVENTORY', dragData.genesysType))) {
 		return;
 	}
 
 	// Make sure that the item in question exists and can be processed on this component.
 	let droppedItem = await fromUuid<GenesysItem<EquipmentDataModel>>(dragData.uuid);
-	if (!droppedItem || !CharacterDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
+	if (!droppedItem || !dataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 		return;
 	}
 	// We are handling the dropped item here so no need to let other components process it.
@@ -63,7 +101,7 @@ async function dropInventoryToSortSlot(event: DragEvent, sortCategory: Equipment
 
 	// The user must own the actor, and if it's being dropped to the `Equipped` equipment state it must be of the correct type.
 	const actor = toRaw(context.data.actor);
-	if (!actor.isOwner || (sortCategory === EquipmentState.Equipped && !CharacterDataModel.isRelevantTypeForContext('EQUIPABLE', droppedItem.type))) {
+	if (!actor.isOwner || (sortCategory === EquipmentState.Equipped && !dataModel.isRelevantTypeForContext('EQUIPABLE', droppedItem.type))) {
 		return;
 	}
 
@@ -147,10 +185,10 @@ function modifyDragCounters(event: DragEvent, direction: number) {
 		return;
 	}
 
-	if (CharacterDataModel.isRelevantTypeForContext('EQUIPABLE', dragDataFromType.genesysType)) {
+	if (dataModel.isRelevantTypeForContext('EQUIPABLE', dragDataFromType.genesysType)) {
 		dragCounters.value[EquipmentState.Equipped] += direction;
 	}
-	if (CharacterDataModel.isRelevantTypeForContext('INVENTORY', dragDataFromType.genesysType)) {
+	if (dataModel.isRelevantTypeForContext('INVENTORY', dragDataFromType.genesysType)) {
 		dragCounters.value[EquipmentState.Carried] += direction;
 		dragCounters.value[EquipmentState.Dropped] += direction;
 	}
@@ -167,84 +205,47 @@ function dragLeave(event: DragEvent) {
 
 <template>
 	<section class="tab-inventory" @drop.capture="resetDragCounters" @dragenter="dragEnter" @dragleave="dragLeave">
-		<div class="section-header">
-			<span><Localized label="Genesys.Labels.Equipped" /></span>
-		</div>
+		<template v-for="part in layout" :key="part">
+			<div v-if="part === 'summary'" class="encumbrance-currency-row">
+				<div class="currency-row">
+					<label><i class="fas fa-coins"></i> {{ CURRENCY_LABEL }}:</label>
+					<input type="text" name="system.currency" :value="system.currency" />
+				</div>
 
-		<SortSlot :active="dragCounters[EquipmentState.Equipped] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Equipped, -1)" />
-
-		<TransitionGroup name="inv">
-			<template v-for="(item, index) in equippedItems" :key="item.id">
-				<InventoryItem
-					:item="item"
-					:draggable="isDraggable"
-					:dragging="dragCounters[EquipmentState.Carried] > 0"
-					@equipment-state-change="handleEffectsStatus"
-					:can-type-be-dropped="canTypeBeDropped"
-					:can-type-be-inside-container="canTypeBeInsideContainer"
-					:can-type-be-transfered="canTypeBeDropped"
-				/>
-
-				<SortSlot :active="dragCounters[EquipmentState.Equipped] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Equipped, index)" />
-			</template>
-		</TransitionGroup>
-
-		<div class="section-header">
-			<span><Localized label="Genesys.Labels.Carried" /></span>
-		</div>
-
-		<SortSlot :active="dragCounters[EquipmentState.Carried] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Carried, -1)" />
-
-		<TransitionGroup name="inv">
-			<template v-for="(item, index) in carriedItems" :key="item.id">
-				<InventoryItem
-					:item="item"
-					:draggable="isDraggable"
-					:dragging="dragCounters[EquipmentState.Carried] > 0"
-					@equipment-state-change="handleEffectsStatus"
-					:can-type-be-dropped="canTypeBeDropped"
-					:can-type-be-inside-container="canTypeBeInsideContainer"
-					:can-type-be-transfered="canTypeBeDropped"
-				/>
-
-				<SortSlot :active="dragCounters[EquipmentState.Carried] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Carried, index)" />
-			</template>
-		</TransitionGroup>
-
-		<div class="section-header">
-			<span><Localized label="Genesys.Labels.Dropped" /></span>
-		</div>
-
-		<SortSlot :active="dragCounters[EquipmentState.Dropped] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Dropped, -1)" />
-
-		<TransitionGroup name="inv">
-			<template v-for="(item, index) in droppedItems" :key="item.id">
-				<InventoryItem
-					:item="item"
-					:draggable="isDraggable"
-					:dragging="dragCounters[EquipmentState.Carried] > 0"
-					@equipment-state-change="handleEffectsStatus"
-					:can-type-be-dropped="canTypeBeDropped"
-					:can-type-be-inside-container="canTypeBeInsideContainer"
-					:can-type-be-transfered="canTypeBeDropped"
-				/>
-
-				<SortSlot :active="dragCounters[EquipmentState.Dropped] > 0" @drop="dropInventoryToSortSlot($event, EquipmentState.Dropped, index)" />
-			</template>
-		</TransitionGroup>
-
-		<div class="encumbrance-currency-row">
-			<div class="currency-row">
-				<label><i class="fas fa-coins"></i> {{ CURRENCY_LABEL }}:</label>
-				<input type="text" name="system.currency" :value="system.currency" />
+				<div :class="`encumbrance-row ${system.isEncumbered ? 'encumbered' : ''}`">
+					<span v-if="system.isEncumbered"><Localized label="Genesys.Labels.Encumbered" /></span>
+					<span><i class="fas fa-weight-hanging"></i></span>
+					<span>{{ system.currentEncumbrance.value }}/{{ system.currentEncumbrance.threshold }}</span>
+				</div>
 			</div>
 
-			<div :class="`encumbrance-row ${system.isEncumbered ? 'encumbered' : ''}`">
-				<span v-if="system.isEncumbered"><Localized label="Genesys.Labels.Encumbered" /></span>
-				<span><i class="fas fa-weight-hanging"></i></span>
-				<span>{{ system.currentEncumbrance.value }}/{{ system.currentEncumbrance.threshold }}</span>
-			</div>
-		</div>
+			<template v-else>
+				<template v-for="section in itemSections" :key="section.state">
+					<div class="section-header">
+						<span><Localized :label="section.label" /></span>
+					</div>
+
+					<SortSlot :active="dragCounters[section.state] > 0" @drop="dropInventoryToSortSlot($event, section.state, -1)" />
+
+					<TransitionGroup name="inv">
+						<template v-for="(item, index) in section.items" :key="item.id">
+							<InventoryItem
+								:item="item"
+								:draggable="isDraggable"
+								:dragging="dragCounters[EquipmentState.Carried] > 0"
+								@equipment-state-change="handleEffectsStatus"
+								:can-type-be-dropped="canTypeBeDropped"
+								:can-type-be-inside-container="canTypeBeInsideContainer"
+								:can-type-be-transfered="canTypeBeDropped"
+								:allow-dropped-state="allowDroppedState"
+							/>
+
+							<SortSlot :active="dragCounters[section.state] > 0" @drop="dropInventoryToSortSlot($event, section.state, index)" />
+						</template>
+					</TransitionGroup>
+				</template>
+			</template>
+		</template>
 	</section>
 </template>
 

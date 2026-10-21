@@ -9,7 +9,7 @@ import Characteristic from '@/vue/components/character/Characteristic.vue';
 import SkillsTab from '@/vue/sheets/actor/vehicle/SkillsTab.vue';
 import CombatTab from '@/vue/sheets/actor/vehicle/CombatTab.vue';
 import CrewTab from '@/vue/sheets/actor/vehicle/CrewTab.vue';
-import InventoryTab from '@/vue/sheets/actor/vehicle/InventoryTab.vue';
+import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import DetailsTab from '@/vue/sheets/actor/vehicle/DetailsTab.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 
@@ -98,7 +98,7 @@ onBeforeUpdate(updateEffects);
 		<section class="sheet-body">
 			<div class="tab" data-tab="skills"><SkillsTab /></div>
 			<div class="tab" data-tab="combat"><CombatTab /></div>
-			<div class="tab" data-tab="inventory"><InventoryTab /></div>
+			<div class="tab" data-tab="inventory"><InventoryTab summary-on-top /></div>
 			<div class="tab" data-tab="crew"><CrewTab /></div>
 			<!-- <div class="tab" data-tab="attachments"></div> -->
 
