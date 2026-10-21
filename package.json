@@ -2,7 +2,7 @@
 	"name": "genesys",
 	"version": "1.0.0",
 	"description": "Unofficial implementation of the Genesys RPG for Foundry",
-	"repository": "https://github.com/Mezryss/FVTT-Genesys",
+	"repository": "https://github.com/kornifex/FVTT-Genesys",
 	"author": "Mezryss <mezryss@minalien.dev>",
 	"license": "MIT",
 	"type": "module",
