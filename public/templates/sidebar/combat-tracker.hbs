@@ -64,7 +64,7 @@
 	<ol id="combat-tracker" class="directory-list">
 		{{#each turns}}
 			{{#if claimed}}
-				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}} claimed" data-combatant-id="{{id}}" data-slot-index="{{slotIndex}}" data-activation-id="{{activationId}}">
+				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}} claimed" data-combatant-id="{{id}}" data-slot-id="{{slotId}}" data-activation-id="{{activationId}}">
 					<img class="token-image" data-src="{{img}}" alt="{{name}}" />
 					<div class="token-name flexcol">
 						<h4>{{name}}</h4>
@@ -96,7 +96,7 @@
 					<div class="token-initiative">
 						{{#if hasRolled}}
 							<span class="initiative font-genesys-symbols">
-								{{#repeat (floor initiative)}}s{{/repeat}}{{#repeat (mul 100 (toFixed (sub initiative (floor initiative)) 2))}}a{{/repeat}}
+								{{#repeat successes}}s{{/repeat}}{{#repeat advantages}}a{{/repeat}}
 							</span>
 						{{else if owner}}
 							<a class="combatant-control roll" data-tooltip="COMBAT.InitiativeRoll" data-control="rollInitiative"></a>
@@ -107,7 +107,7 @@
 				<li class="combatant actor directory-item flexrow {{css}} slot-{{slotType}}" data-combatant-id="{{id}}" data-activation-id="{{activationId}}">
 					<div class="token-name flexcol">
 						{{#if (and canClaim active)}}
-							<a data-claim-slot="{{slotIndex}}">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</a>
+							<a data-claim-slot="{{slotId}}">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</a>
 						{{else}}
 							<h4>{{localize (concat "Genesys.CombatTracker.InitiativeSlot." slotType)}}</h4>
 						{{/if}}
@@ -116,7 +116,7 @@
 					<div class="token-initiative">
 						{{#if hasRolled}}
 							<span class="initiative font-genesys-symbols">
-								{{#repeat (floor initiative)}}s{{/repeat}}{{#repeat (mul 100 (toFixed (sub initiative (floor initiative)) 2))}}a{{/repeat}}
+								{{#repeat successes}}s{{/repeat}}{{#repeat advantages}}a{{/repeat}}
 							</span>
 						{{else if owner}}
 							<a class="combatant-control roll" data-tooltip="COMBAT.InitiativeRoll" data-control="rollInitiative"></a>

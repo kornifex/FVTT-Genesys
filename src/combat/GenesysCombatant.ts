@@ -15,11 +15,7 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import MinionDataModel from '@/actor/data/MinionDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import GenesysRoller from '@/dice/GenesysRoller';
-
-/**
- * The side an Initiative Slot belongs to.
- */
-export type InitiativeSide = 'pc' | 'npc';
+import { Disposition, encodeInitiative, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
 
 export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
@@ -56,7 +52,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		await this.setInitiativeSkill(initiativeSkills[(skillIndex + 1) % initiativeSkills.length]);
 	}
 
-	get disposition() {
+	get disposition(): Disposition {
 		switch ((this.actor.token ?? (this.actor.prototypeToken as any)).disposition) {
 			case CONST.TOKEN_DISPOSITIONS.FRIENDLY:
 				return 'friendly';
@@ -76,7 +72,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	 * The side of the Initiative Slots this combatant gives and can claim: friendly tokens are PCs, any other is an NPC.
 	 */
 	get initiativeSide(): InitiativeSide {
-		return this.disposition === 'friendly' ? 'pc' : 'npc';
+		return sideOf(this.disposition);
 	}
 
 	override async rollInitiative(skillName?: string) {
@@ -84,7 +80,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		await roll.evaluate();
 		const results = GenesysRoller.parseRollResults(roll);
 
-		return this.update({ initiative: results.netSuccess + results.netAdvantage / 100 });
+		return this.update({ initiative: encodeInitiative(results.netSuccess, results.netAdvantage) });
 	}
 
 	override getInitiativeRoll(skillName?: string, charFallback: Characteristic = Characteristic.Brawn) {

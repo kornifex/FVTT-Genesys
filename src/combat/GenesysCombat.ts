@@ -11,25 +11,13 @@ import GenesysRoller from '@/dice/GenesysRoller';
 import DicePrompt from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import { ClaimInitiativeSlotData, emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload, CombatSocketBaseData, UpdateInitiativeForExtraSlotData } from '@/socket';
+import { buildSlots, claimRefusal, decodeInitiative, encodeInitiative, ExtraSlot, InitiativeSlot, RoundClaims, slotView } from '@/combat/InitiativeSlots';
 
-const FLAG_CLAIMANTS = 'claimants';
+// Claims are keyed by slot id. They replace the `claimants` flag, which keyed them by position in the turn order.
+const FLAG_CLAIMS = 'slotClaims';
 const FLAG_EXTRA_SLOTS = 'extraSlots';
 
-type ClaimantData = Record<number, Record<number, string | undefined>>;
-
-type ExtraCombatSlot = {
-	activationSource: string;
-	initiative: number | null;
-	startingRound: number;
-	index: number;
-};
-
-type CombatSlotInfo = {
-	slotOrigin: GenesysCombatant;
-	initiative: number | null;
-	disposition: 'friendly' | 'neutral' | 'hostile';
-	id: string;
-};
+type ClaimData = Record<number, RoundClaims>;
 
 export type GenesysRollInitiativeOptions = {
 	prompt?: boolean;
@@ -39,14 +27,6 @@ export type GenesysRollInitiativeOptions = {
 export type InitiativeSkill = {
 	skillName: string;
 	skillChar: Characteristic;
-};
-
-/**
- * The initiative of one Initiative Slot, and the extra slot it comes from (-1 for the combatant's own slot).
- */
-export type SlotInitiative = {
-	activationId: number;
-	initiative: number | null;
 };
 
 export default class GenesysCombat extends Combat {
@@ -64,76 +44,93 @@ export default class GenesysCombat extends Combat {
 		return initiativeSkills;
 	}
 
-	claimantForSlot(round: number, slot: number): string | undefined {
-		const claimants = this.getFlag('genesys', FLAG_CLAIMANTS) as ClaimantData | undefined;
-
-		if (!claimants) {
-			return undefined;
-		}
-
-		return claimants[round]?.[slot];
+	claimsForRound(round: number): RoundClaims {
+		return (this.getFlag('genesys', FLAG_CLAIMS) as ClaimData | undefined)?.[round] ?? {};
 	}
 
 	/**
-	 * The initiative of every Initiative Slot, in turn order. A combatant's highest initiative goes to its first slot.
+	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
-	get slotInitiatives(): SlotInitiative[] {
-		const initiatives = this.combatants.reduce(
-			(accumulator, combatant) => {
-				accumulator[combatant.id] = [{ activationId: -1, initiative: combatant.initiative }];
-				return accumulator;
-			},
-			{} as Record<string, SlotInitiative[]>,
-		);
+	slotsForRound(round: number): InitiativeSlot[] {
+		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({ id: combatant.id, initiative: combatant.initiative, disposition: combatant.disposition }));
 
-		this.extraSlotsForRound(this.round).forEach((slot) => {
-			if (initiatives[slot.activationSource]) {
-				initiatives[slot.activationSource].push({
-					activationId: slot.index,
-					initiative: slot.initiative,
-				});
-			}
+		return buildSlots(combatants, this.extraSlotsForRound(round), this.claimsForRound(round));
+	}
+
+	/**
+	 * The Initiative Slots of the current round, in the order of the combat's turns.
+	 */
+	get slots() {
+		return this.slotsForRound(this.round);
+	}
+
+	/**
+	 * What the current user sees of an Initiative Slot and may do with it.
+	 */
+	slotViewForUser(slot: InitiativeSlot) {
+		return slotView(slot, this.started, {
+			isGM: game.user.isGM,
+			isPlayerOf: (combatantId) => ((this.combatants.get(combatantId) as GenesysCombatant | undefined)?.players ?? []).includes(game.user),
 		});
+	}
 
-		// Sort each combatant's initiatives in ascending order, so that popping them follows the turn order.
-		Object.values(initiatives).forEach((slots) => slots.sort((first, second) => (first.initiative ?? -Infinity) - (second.initiative ?? -Infinity)));
+	/**
+	 * What the combat trackers show of an Initiative Slot, on top of the turn of the combatant it shows.
+	 */
+	slotTrackerContext(slot: InitiativeSlot) {
+		const view = this.slotViewForUser(slot);
+		const origin = this.combatants.get(slot.originId) as GenesysCombatant;
 
-		return this.turns.map((combatant) => initiatives[combatant.id].pop()!);
+		return {
+			slotId: slot.id,
+			slotType: slot.side,
+			activationId: slot.activationId,
+			hasRolled: slot.initiative !== null,
+			...decodeInitiative(slot.initiative),
+			initiativeSkill: origin.initiativeSkill?.skillName ?? this.initiativeSkills[0].skillName,
+			claimed: view.showsAsClaimed,
+			canClaim: view.canClaim,
+		};
+	}
+
+	/**
+	 * Whether the current user may end the current turn, as a player of the combatant that claimed its slot.
+	 */
+	get userControlsTurn() {
+		const slot = this.turn === null ? undefined : this.slots[this.turn];
+		return slot ? this.slotViewForUser(slot).controlsTurn : false;
+	}
+
+	canRevokeClaim(slotId: string) {
+		const slot = this.slots.find((candidate) => candidate.id === slotId);
+		return slot ? this.slotViewForUser(slot).canRevoke : false;
+	}
+
+	/**
+	 * Roll the initiative of one Initiative Slot of a combatant, its own (activation -1) or one of its extra slots.
+	 */
+	async rollSlotInitiative(combatantId: string, activationId: number) {
+		return this.rollInitiative([combatantId], {}, { prompt: true, extraSlotsRolls: activationId >= 0 ? [activationId] : [] });
+	}
+
+	async cycleInitiativeSkill(combatantId: string) {
+		const combatant = this.combatants.get(combatantId) as GenesysCombatant | undefined;
+		if (combatant?.isOwner) {
+			await combatant.cycleInitiativeSkill();
+		}
 	}
 
 	/**
 	 * Why a combatant can't claim an Initiative Slot, as a localization key, or undefined if it can.
 	 */
-	claimRefusal(round: number, slot: number, combatant: GenesysCombatant): string | undefined {
-		const slotCombatant = (this.turns as unknown as (GenesysCombatant | undefined)[])[slot];
-		if (!slotCombatant) {
-			return 'Genesys.Notifications.GenericError';
-		}
-
-		// A combatant may only claim a slot of its own side.
-		if (combatant.initiativeSide !== slotCombatant.initiativeSide) {
-			return 'Genesys.Notifications.CannotClaimOppositeSlot';
-		}
-
-		if (this.claimantForSlot(round, slot) !== undefined) {
-			return 'Genesys.Notifications.SlotAlreadyClaimed';
-		}
-
-		// A combatant acts once per round, plus once for each of its extra slots.
-		const claimants = (this.getFlag('genesys', FLAG_CLAIMANTS) as ClaimantData | undefined)?.[round] ?? {};
-		const claimCount = Object.values(claimants).filter((claimantId) => claimantId === combatant.id).length;
-		const activationCount = 1 + this.extraSlotsForRound(round).filter((extraSlot) => extraSlot.activationSource === combatant.id).length;
-		if (claimCount >= activationCount) {
-			return 'Genesys.Notifications.CombatantHasNoActivationLeft';
-		}
-
-		return undefined;
+	claimRefusal(round: number, slotId: string, combatant: GenesysCombatant): string | undefined {
+		return claimRefusal(this.slotsForRound(round), this.claimsForRound(round), slotId, { id: combatant.id, side: combatant.initiativeSide });
 	}
 
 	/**
 	 * Claim an Initiative Slot of the current round for the combatant of the single token the user controls.
 	 */
-	async claimSlotWithControlledToken(slot: number) {
+	async claimSlotWithControlledToken(slotId: string) {
 		// Ensure we have a single token selected to claim this slot.
 		if (canvas.tokens.controlled.length !== 1) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
@@ -148,64 +145,56 @@ export default class GenesysCombat extends Combat {
 			return;
 		}
 
-		const refusal = this.claimRefusal(this.round, slot, combatant);
+		const refusal = this.claimRefusal(this.round, slotId, combatant);
 		if (refusal) {
 			ui.notifications.warn(game.i18n.format(refusal, { name: combatant.name }));
 			return;
 		}
 
-		await this.claimSlot(this.round, slot, combatant.id);
+		await this.claimSlot(this.round, slotId, combatant.id);
 	}
 
-	async claimSlot(round: number, slot: number, combatantId: string) {
+	async claimSlot(round: number, slotId: string, combatantId: string) {
 		if (!game.user.isGM) {
 			socketEmit(SocketOperation.ClaimInitiativeSlot, {
 				combatId: this.id,
 				combatantId,
 				round,
-				slot,
+				slotId,
 			});
 			return;
 		}
 
 		// Check the claim again, in case another one reached the GM first.
 		const combatant = this.combatants.get(combatantId) as GenesysCombatant | undefined;
-		if (!combatant || this.claimRefusal(round, slot, combatant)) {
+		if (!combatant || this.claimRefusal(round, slotId, combatant)) {
 			return;
 		}
 
-		const claimants = { ...(this.getFlag('genesys', FLAG_CLAIMANTS) as ClaimantData | undefined) };
-
-		if (!claimants[round]) {
-			claimants[round] = {};
-		}
-
-		claimants[round][slot] = combatantId;
-
-		await this.setFlag('genesys', FLAG_CLAIMANTS, claimants);
+		await this.update({ [`flags.genesys.${FLAG_CLAIMS}.${round}.${slotId}`]: combatantId });
 	}
 
-	async revokeSlot(round: number, slot: number) {
-		if (!game.user.isGM) {
+	async revokeSlot(round: number, slotId: string) {
+		if (!game.user.isGM || !this.started) {
 			return;
 		}
 
-		await this.unsetFlag('genesys', `claimants.${round}.${slot}`);
+		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}`);
 	}
 
 	extraSlotsForRound(round: number) {
-		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraCombatSlot, 'index'>[];
+		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[];
 
 		return extraSlots.reduce((accum, slot, index) => {
 			if (slot.startingRound <= round) {
 				accum.push({ ...slot, index });
 			}
 			return accum;
-		}, [] as ExtraCombatSlot[]);
+		}, [] as ExtraSlot[]);
 	}
 
 	async addExtraSlot(combatantId: string, round: number) {
-		const extraSlots = [...((this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraCombatSlot, 'index'>[])];
+		const extraSlots = [...((this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[])];
 
 		extraSlots.push({
 			activationSource: combatantId,
@@ -216,8 +205,8 @@ export default class GenesysCombat extends Combat {
 		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, extraSlots);
 	}
 
-	async updateExtraSlotsInitiative(updates: Omit<ExtraCombatSlot, 'activationSource' | 'startingRound'>[]) {
-		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraCombatSlot, 'index'>[];
+	async updateExtraSlotsInitiative(updates: Omit<ExtraSlot, 'activationSource' | 'startingRound'>[]) {
+		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[];
 
 		for (const update of updates) {
 			extraSlots[update.index].initiative = update.initiative;
@@ -279,7 +268,7 @@ export default class GenesysCombat extends Combat {
 			await roll.evaluate();
 			const results = GenesysRoller.parseRollResults(roll);
 			const superCharClass = roll.formula.toLowerCase().includes('dpx') ? 'super-char' : 'hide-it';
-			const newInitiative = results.netSuccess + results.netAdvantage / 100;
+			const newInitiative = encodeInitiative(results.netSuccess, results.netAdvantage);
 
 			if (extraSlotsPerCombatant[combatant.id]) {
 				// Check if the combatant is tied to an extra initiative slot that we want to roll.
@@ -407,34 +396,19 @@ export default class GenesysCombat extends Combat {
 		return this.rollAll(options, true);
 	}
 
+	protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, userId: string) {
+		// Foundry only orders the turns again when combatants change, but extra slots add turns too. Order them before
+		// Foundry works out the current turn from them.
+		if (foundry.utils.hasProperty(changed, `flags.genesys.${FLAG_EXTRA_SLOTS}`)) {
+			this.setupTurns();
+		}
+
+		super._onUpdate(changed, options, userId);
+	}
+
 	override setupTurns() {
-		const combatants = this.combatants.map(
-			(combatant) =>
-				({
-					slotOrigin: combatant as GenesysCombatant,
-					initiative: combatant.initiative,
-					disposition: (combatant as GenesysCombatant).disposition,
-					id: combatant.id,
-				}) as CombatSlotInfo,
-		);
-
-		const extraActivations = this.extraSlotsForRound(this.round).reduce((accum, slot) => {
-			const combatant = this.combatants.get(slot.activationSource) as GenesysCombatant | undefined;
-			if (combatant) {
-				accum.push({
-					slotOrigin: combatant,
-					initiative: slot.initiative,
-					disposition: combatant.disposition,
-					id: combatant.id,
-				});
-			}
-			return accum;
-		}, [] as CombatSlotInfo[]);
-
-		const turns = combatants
-			.concat(extraActivations)
-			.sort(this._sortSlots)
-			.map((slotData) => slotData.slotOrigin);
+		// Each turn is an Initiative Slot, given by the combatant whose initiative it holds.
+		const turns = this.slots.map((slot) => this.combatants.get(slot.originId)!);
 
 		if (this.turn !== null) {
 			// @ts-ignore: This assignment is exactly the same as in the original method.
@@ -454,29 +428,6 @@ export default class GenesysCombat extends Combat {
 		}
 
 		return (this.turns = turns as any);
-	}
-
-	protected _sortSlots(firstSlot: CombatSlotInfo, secondSlot: CombatSlotInfo) {
-		const fsInitiative = firstSlot.initiative ?? -Infinity;
-		const ssInitiative = secondSlot.initiative ?? -Infinity;
-
-		// Sort by initiative value in descending order.
-		if (fsInitiative === ssInitiative) {
-			// Break initiative ties by using the combatants' disposition.
-			if (firstSlot.disposition === secondSlot.disposition) {
-				// Break ties in the combatants' disposition by using their id.
-				if (firstSlot.id === secondSlot.id) {
-					return 0;
-				} else {
-					return firstSlot.id > secondSlot.id ? 1 : -1;
-				}
-			} else {
-				const dispositions = ['hostile', 'neutral', 'friendly'];
-				return dispositions.indexOf(secondSlot.disposition) - dispositions.indexOf(firstSlot.disposition);
-			}
-		} else {
-			return ssInitiative - fsInitiative;
-		}
 	}
 
 	/**
@@ -517,7 +468,7 @@ export function register() {
 				}
 
 				const cisData = payload.data as ClaimInitiativeSlotData;
-				await combat.claimSlot(cisData.round, cisData.slot, cisData.combatantId);
+				await combat.claimSlot(cisData.round, cisData.slotId, cisData.combatantId);
 				break;
 
 			case SocketOperation.UpdateCombatTracker:

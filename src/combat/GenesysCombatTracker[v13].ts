@@ -34,32 +34,25 @@ export default class GenesysCombatTracker extends ExtendedClass {
 	};
 
 	static async #onClaimInitiativeSlot(_event: PointerEvent, target: HTMLElement) {
-		const { slotIndex } = target.closest('[data-slot-index]').dataset;
-		await this.viewed.claimSlotWithControlledToken(+slotIndex);
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.claimSlotWithControlledToken(slotId);
 	}
 
 	static async #onCycleInitiativeSkill(_event: PointerEvent, target: HTMLElement) {
 		const { combatantId } = target.closest('[data-combatant-id]').dataset;
-		const combatant = this.viewed.combatants.get(combatantId) as GenesysCombatant | undefined;
-		if (combatant?.isOwner) {
-			await combatant.cycleInitiativeSkill();
-		}
+		await this.viewed.cycleInitiativeSkill(combatantId);
 	}
 
 	static async #onRollInitiative(_event: PointerEvent, target: HTMLElement) {
 		const { combatantId, activationId } = target.closest('[data-combatant-id]').dataset;
-		const extraSlotsRolls = +activationId >= 0 ? [+activationId] : [];
-		await this.viewed.rollInitiative([combatantId], {}, { prompt: true, extraSlotsRolls });
+		await this.viewed.rollSlotInitiative(combatantId, +activationId);
 	}
 
 	override async _prepareCombatContext(context, options) {
 		await super._prepareCombatContext(context, options);
 
-		// Give the player that claims the current slot the ability to control the turn.
 		const combat: GenesysCombat | null = this.viewed;
-		const claimantId = combat?.claimantForSlot(combat.round, combat.turn);
-		const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant) : undefined;
-		context.control = claimant?.players?.includes(game.user) ?? false;
+		context.control = combat?.userControlsTurn ?? false;
 	}
 
 	override async _prepareTrackerContext(context, _options) {
@@ -68,32 +61,18 @@ export default class GenesysCombatTracker extends ExtendedClass {
 			return;
 		}
 
-		const slotInitiatives = combat.slotInitiatives;
 		const turns = (context.turns = []);
 
-		for (const [slotIndex, combatant] of combat.turns.entries()) {
+		for (const [index, slot] of combat.slots.entries()) {
+			const combatant = combat.combatants.get(slot.originId) as GenesysCombatant;
 			if (!combatant.visible) {
 				continue;
 			}
 
-			const claimantId = combat.claimantForSlot(combat.round, slotIndex);
-			const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant | undefined) : undefined;
-			const { activationId, initiative } = slotInitiatives[slotIndex];
-
 			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
-			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, slotIndex);
-			turns.push({
-				...turn,
-				claimed: combat.started ? claimant !== undefined : true,
-				canClaim: (combatant as GenesysCombatant).initiativeSide === 'pc' || game.user.isGM,
-				slotType: (combatant as GenesysCombatant).initiativeSide,
-				slotIndex,
-				activationId,
-				hasRolled: initiative !== null,
-				successes: Math.floor(initiative ?? 0),
-				advantages: Math.round(((initiative ?? 0) - Math.floor(initiative ?? 0)) * 100),
-				initiativeSkill: (combatant as GenesysCombatant).initiativeSkill?.skillName ?? combat.initiativeSkills[0].skillName,
-			});
+			const claimant = slot.claimantId ? (combat.combatants.get(slot.claimantId) as GenesysCombatant | undefined) : undefined;
+			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
+			turns.push({ ...turn, ...combat.slotTrackerContext(slot) });
 		}
 	}
 
@@ -108,23 +87,16 @@ export default class GenesysCombatTracker extends ExtendedClass {
 		// Reroll the initiative of the slot, which may be one of the combatant's extra slots.
 		const rerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
 		if (rerollEntry) {
-			rerollEntry.callback = (li: HTMLElement) => {
-				const activationId = +li.dataset.activationId;
-				const extraSlotsRolls = activationId >= 0 ? [activationId] : [];
-				return this.viewed.rollInitiative([li.dataset.combatantId], {}, { prompt: true, extraSlotsRolls });
-			};
+			rerollEntry.callback = (li: HTMLElement) => this.viewed.rollSlotInitiative(li.dataset.combatantId, +li.dataset.activationId);
 		}
 
 		// Allow GMs to revoke an initiative slot claim.
 		const revokeClaim = {
 			name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 			icon: '<i class="fas fa-broom"></i>',
-			condition: () => game.user.isGM && this.viewed?.started,
+			condition: (li: HTMLElement) => this.viewed?.canRevokeClaim(li.dataset.slotId) ?? false,
 			callback: async (li: HTMLElement) => {
-				const index = +li.dataset.slotIndex;
-				if (!isNaN(index)) {
-					await this.viewed.revokeSlot(this.viewed.round, index);
-				}
+				await this.viewed.revokeSlot(this.viewed.round, li.dataset.slotId);
 			},
 		};
 
