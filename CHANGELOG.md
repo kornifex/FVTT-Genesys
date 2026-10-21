@@ -1,10 +1,24 @@
+## Alpha 0.3.0
+This is the first release from [kornifex/FVTT-Genesys](https://github.com/kornifex/FVTT-Genesys), which now maintains the system: see the README for why. To switch an existing install, paste `https://github.com/kornifex/FVTT-Genesys/releases/latest/download/manifest.json` in **Game Systems → Install System**. Your worlds are untouched.
+
+### Changes
+- [FIX](https://github.com/kornifex/FVTT-Genesys/commit/fe01eb276620a711888ba5a2ac6a74c5f81742a4): Fix initiative skill selection in the combat tracker: the chosen skill is shared between the GM and players and survives reloads
+- [FEATURE](https://github.com/kornifex/FVTT-Genesys/commit/65a276460e66c596c7cab4ee1b57afa80aaf6deb): Roll skills an adversary has no ranks in (initiative, journal checks, weapons), listed as "Unranked" in the dice prompt
+- [FEATURE](https://github.com/kornifex/FVTT-Genesys/commit/eaba0ca2f3f24c8620d11baeb7db74f358fa0c24): Add an "Ignore Talent Pyramid" house rule setting
+- [FEATURE](https://github.com/kornifex/FVTT-Genesys/commit/0f89ed0ba9d91fa452cf7442dd945f36e8952d43): Add a "Talent Tier Versions" house rule setting, for talents with one item per tier
+- [STYLING](https://github.com/kornifex/FVTT-Genesys/commit/f5ec9d6060ff25d77c2026095d1f28483bb6eb92): Expose the color palette as CSS custom properties, so worlds and modules can restyle the system
+- [STYLING](https://github.com/kornifex/FVTT-Genesys/commit/7164d115542833e31dd829228cd78be1dd590d22): Give player notes the full width of the journal tab
+- [LOCALIZATION](https://github.com/kornifex/FVTT-Genesys/commit/1810142ae5d6f81ef7a25733e21abb88a9e96e44): Localize adversary weapon details and XP journal characteristics
+- [LOCALIZATION](https://github.com/kornifex/FVTT-Genesys/commit/adf860990bab9dc635c483172a5959d8900d2c18): Improve the French translation
+- [MISC](https://github.com/kornifex/FVTT-Genesys/pull/7): Point the manifest, README and welcome links to the fork
+
+<details>
+<summary>Previous Releases</summary>
+
 ## Alpha 0.2.19
 ### Changes
 - [FIX](https://github.com/Mezryss/FVTT-Genesys/pull/258): Apply roll mode to geneys dice rolls (thanks @KitCat420)
 - [STYLING](https://github.com/Mezryss/FVTT-Genesys/commit/920895a1d36372803c64ec54fa5b8a492020e0fb): Fix tooltips in FVTT13
-
-<details>
-<summary>Previous Releases</summary>
 
 ## Alpha 0.2.18
 ### Changes

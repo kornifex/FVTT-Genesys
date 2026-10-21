@@ -52,8 +52,15 @@ async function doAlphaNotice(lastAlpha: string) {
 	<div style="text-align: center">@symbol[satfhd]</div>
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Bug Fixes & Updates</h4>
 	<ul style="margin-top: 0">
-      <li><a href="https://github.com/Mezryss/FVTT-Genesys/pull/258">[FIX]</a>: Allow dice pools modifications to scale with talent rank (thanks @KitCat420)</li>
-      <li><a href="https://github.com/Mezryss/FVTT-Genesys/commit/920895a1d36372803c64ec54fa5b8a492020e0fb">[STYLING]</a>: Fix tooltips in FVTT13</li>
+      <li>The system is now maintained at <a href="https://github.com/kornifex/FVTT-Genesys">kornifex/FVTT-Genesys</a>.</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/fe01eb276620a711888ba5a2ac6a74c5f81742a4">[FIX]</a>: Fix initiative skill selection in the combat tracker: the chosen skill is shared between the GM and players and survives reloads</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/65a276460e66c596c7cab4ee1b57afa80aaf6deb">[FEATURE]</a>: Roll skills an adversary has no ranks in (initiative, journal checks, weapons), listed as "Unranked" in the dice prompt</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/eaba0ca2f3f24c8620d11baeb7db74f358fa0c24">[FEATURE]</a>: Add an "Ignore Talent Pyramid" house rule setting</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/0f89ed0ba9d91fa452cf7442dd945f36e8952d43">[FEATURE]</a>: Add a "Talent Tier Versions" house rule setting, for talents with one item per tier</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/f5ec9d6060ff25d77c2026095d1f28483bb6eb92">[STYLING]</a>: Expose the color palette as CSS custom properties, so worlds and modules can restyle the system</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/7164d115542833e31dd829228cd78be1dd590d22">[STYLING]</a>: Give player notes the full width of the journal tab</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/1810142ae5d6f81ef7a25733e21abb88a9e96e44">[LOCALIZATION]</a>: Localize adversary weapon details and XP journal characteristics</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/adf860990bab9dc635c483172a5959d8900d2c18">[LOCALIZATION]</a>: Improve the French translation</li>
 	</ul>
 	<div style="text-align: center">@dice[apbdcs]</div>
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Useful Links</h4>
