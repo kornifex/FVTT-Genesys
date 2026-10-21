@@ -242,6 +242,8 @@ Genesys:
     SelectNoneOrOneTokenForAction: You need to select no tokens, or a single token, to perform this action.
     TokenIsNotCombatant: The selected token is not participating on the current combat.
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
+    SlotAlreadyClaimed: This initiative slot is already claimed.
+    CombatantHasNoActivationLeft: "{name} has no activation left this round."
     CannotSelectActor: You do not have sufficient permission to select this Actor.
     InvalidTokenTypeForAction: The selected token is of an invalid type to perform this action.
     EffectsWereNotUpdatedAfterTransfer: There was an error updating the effects with the latest values for the transfered '{name}'.
@@ -285,6 +287,10 @@ Genesys:
   # Combat Tracker
   CombatTracker:
     RevokeInitiativeClaim: Revoke Initiative Claim
+    ClaimInitiativeSlot: Claim This Initiative Slot
+    InitiativeSlot:
+      pc: PC Slot
+      npc: NPC Slot
 
   # Sheet Tab names
   Tabs:

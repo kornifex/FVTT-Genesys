@@ -34,6 +34,23 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		await this.setFlag('genesys', 'initiativeSkill', skill.skillName);
 	}
 
+	/**
+	 * Switch to the combat's next initiative skill, back to the first one after the last.
+	 */
+	async cycleInitiativeSkill() {
+		const initiativeSkills = (this.parent as GenesysCombat).initiativeSkills;
+		if (initiativeSkills.length < 2) {
+			return;
+		}
+
+		let skillIndex = 0;
+		if (this.initiativeSkill) {
+			skillIndex = initiativeSkills.findIndex((s) => s.skillName.toLowerCase() === this.initiativeSkill?.skillName.toLowerCase());
+		}
+
+		await this.setInitiativeSkill(initiativeSkills[(skillIndex + 1) % initiativeSkills.length]);
+	}
+
 	get disposition() {
 		switch ((this.actor.token ?? (this.actor.prototypeToken as any)).disposition) {
 			case CONST.TOKEN_DISPOSITIONS.FRIENDLY:

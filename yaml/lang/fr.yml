@@ -241,6 +241,8 @@ Genesys:
     SelectNoneOrOneTokenForAction: Vous devez selectionner aucun token, ou juste un, pour faire cette action.
     TokenIsNotCombatant: Le token selectionné n'est pas dans le combat actuel.
     CannotClaimOppositeSlot: Vous ne pouvez par réclamer ce slot d'intiative avec {name} - il est du mauvais coté!
+    SlotAlreadyClaimed: Ce slot d'initiative est déjà réclamé.
+    CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.
     InvalidTokenTypeForAction: Le token selectionné est d'un type invalide pour réaliser cette action.
     EffectsWereNotUpdatedAfterTransfer: Une erreur s'est produite lors de la mise à jour des effets avec les dernières données disponibles durant le transfert de '{name}'.
@@ -284,6 +286,10 @@ Genesys:
   # Combat Tracker
   CombatTracker:
     RevokeInitiativeClaim: Réinitialiser le créneau d'initiative
+    ClaimInitiativeSlot: Réclamer ce slot d'initiative
+    InitiativeSlot:
+      pc: Slot PJ
+      npc: Slot PNJ
 
   # Sheet Tab names
   Tabs:

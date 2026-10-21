@@ -15,35 +15,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	}
 
 	async _onClaimInitiativeSlot(event: JQuery.ClickEvent) {
-		const slotIndex = +$(event.currentTarget).data('claim-slot');
-
-		const controlledTokenCount = canvas.tokens.controlled.length;
-
-		// Ensure we have a single token selected to claim this slot.
-		if (controlledTokenCount !== 1) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
-			return;
-		}
-
-		const userToken = canvas.tokens.controlled[0];
-		const combatant = userToken.combatant as GenesysCombatant;
-
-		// No claiming initiative slots if you aren't in the combat!
-		if (!combatant) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
-			return;
-		}
-
-		// Ensure the selected combatant matches the PC/NPC side of the slot.
-		if (
-			(combatant.disposition === 'friendly' && (this.viewed.turns[slotIndex] as GenesysCombatant).disposition !== 'friendly') ||
-			(combatant.disposition !== 'friendly' && (this.viewed.turns[slotIndex] as GenesysCombatant).disposition === 'friendly')
-		) {
-			ui.notifications.warn(game.i18n.format('Genesys.Notifications.CannotClaimOppositeSlot', { name: combatant.name }));
-			return;
-		}
-
-		await this.viewed.claimSlot(this.viewed.round, slotIndex, combatant.id);
+		await this.viewed.claimSlotWithControlledToken(+$(event.currentTarget).data('claim-slot'));
 	}
 
 	override activateListeners(html: JQuery) {
@@ -60,35 +32,21 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			return data;
 		}
 
-		// Compile a list of all the initiatives for all the combatants.
-		const initiatives = combat.combatants.reduce(
-			(accumulator, combatant) => {
-				accumulator[combatant.id] = [{ activationId: -1, initiative: combatant.initiative }];
-				return accumulator;
-			},
-			{} as Record<string, { activationId: number; initiative: number | null }[]>,
-		);
+		const slotInitiatives = combat.slotInitiatives;
 
-		combat.extraSlotsForRound(combat.round).forEach((slot) => {
-			if (initiatives[slot.activationSource]) {
-				initiatives[slot.activationSource].push({
-					activationId: slot.index,
-					initiative: slot.initiative,
-				});
-				initiatives[slot.activationSource].sort(this._sortByInitiative);
-			}
-		});
+		// The core tracker only lists the turns the user can see, but Initiative Slots are indexed on every turn.
+		const visibleSlotIndices = combat.turns.flatMap((combatant, index) => (combatant.visible ? [index] : []));
 
-		const turns = data.turns.map((t, index) => {
+		const turns = data.turns.map((t, visibleIndex) => {
+			const slotIndex = visibleSlotIndices[visibleIndex];
 			const combatant = combat.combatants.get(t.id) as GenesysCombatant;
-			const claimantId = combat.claimantForSlot(combat.round, index);
+			const claimantId = combat.claimantForSlot(combat.round, slotIndex);
 			const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant) : undefined;
 
 			const claimed = combat.started ? claimantId !== undefined : true;
 			const canClaim = combatant.disposition === 'friendly' || game.user.isGM;
 
-			// Get the highest possible initiative for this combatant.
-			const slotInitiative = initiatives[combatant.id].pop()!;
+			const slotInitiative = slotInitiatives[slotIndex];
 
 			let claimantOverride = {};
 
@@ -132,6 +90,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 				initiativeSkill: combatant.initiativeSkill?.skillName ?? combat.initiativeSkills[0].skillName,
 				claimed,
 				canClaim,
+				slotIndex,
 				activationId: slotInitiative.activationId,
 			};
 		});
@@ -145,11 +104,6 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			turns,
 			control: claimant?.players?.includes(game.user) ?? false,
 		};
-	}
-
-	protected _sortByInitiative(first: { initiative: number | null }, second: { initiative: number | null }) {
-		// Sort all the initiatives from a combatant in ascending order.
-		return (first.initiative ?? -Infinity) - (second.initiative ?? -Infinity);
 	}
 
 	protected override _contextMenu(html: JQuery<HTMLElement>) {
@@ -206,25 +160,8 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 
 			case 'cycleInitiativeSkill':
 				const combatant = this.viewed.combatants.get(li.dataset.combatantId as string) as GenesysCombatant | undefined;
-				const initiativeSkills = combat.initiativeSkills;
-				if (initiativeSkills.length < 2) {
-					return;
-				}
-
 				if (combatant?.isOwner) {
-					let skillIndex = 0;
-					if (combatant.initiativeSkill) {
-						skillIndex = initiativeSkills.findIndex((s) => s.skillName.toLowerCase() === combatant.initiativeSkill?.skillName.toLowerCase());
-					}
-
-					skillIndex += 1;
-
-					if (skillIndex >= initiativeSkills.length) {
-						skillIndex = 0;
-					}
-
-					btn.innerText = initiativeSkills[skillIndex].skillName;
-					await combatant.setInitiativeSkill(initiativeSkills[skillIndex]);
+					await combatant.cycleInitiativeSkill();
 				}
 				break;
 

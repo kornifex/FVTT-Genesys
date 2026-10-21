@@ -217,11 +217,10 @@ export default class GenesysRoller {
 		const chatData = {
 			user: game.user.id,
 			speaker: { actor: actor?.id },
-			rollMode: game.settings.get('core', 'rollMode'),
 			content: html,
 			rolls: [roll],
 		};
-		await ChatMessage.create(chatData);
+		await ChatMessage.create(chatData, { rollMode: game.settings.get('core', 'rollMode') });
 	}
 
 	static parseRollResults(roll: Roll): GenesysRollResults {
