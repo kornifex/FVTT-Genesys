@@ -9,6 +9,7 @@
 import GenesysActor from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
+import * as CharacterCreation from '@/actor/data/character/CharacterCreation';
 import IHasPreCreate from '@/data/IHasPreCreate';
 import GenesysItem from '@/item/GenesysItem';
 import ArmorDataModel from '@/item/data/ArmorDataModel';
@@ -228,6 +229,13 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 			willpower: this.characteristics.willpower < 5 && availableXP >= (this.characteristics.willpower + 1) * 10,
 			presence: this.characteristics.presence < 5 && availableXP >= (this.characteristics.presence + 1) * 10,
 		};
+	}
+
+	/**
+	 * The highest rank a skill can be bought to: 2 during character creation, 5 afterwards.
+	 */
+	get maxPurchasableSkillRank() {
+		return CharacterCreation.maxPurchasableSkillRank(this.experienceJournal.entries);
 	}
 
 	#additionalEncumbranceThreshold() {

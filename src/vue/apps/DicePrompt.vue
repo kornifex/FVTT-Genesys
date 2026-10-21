@@ -269,7 +269,7 @@ function buildDicePool() {
 		let skillValue = isUnranked ? 0 : selectedSkill.value?.systemData.rank ?? 0;
 
 		if (actor.type === 'minion' && selectedSkill.value && !isUnranked) {
-			skillValue = Math.clamp((actor.systemData as MinionDataModel).remainingMembers - 1, 0, 5);
+			skillValue = (actor.systemData as MinionDataModel).groupSkillRank;
 		}
 
 		proficiencyDice = Math.min(characteristicValue, skillValue);

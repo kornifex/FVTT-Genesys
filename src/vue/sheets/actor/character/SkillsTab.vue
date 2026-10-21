@@ -86,7 +86,7 @@ async function purchaseCharacteristic(characteristic: keyof typeof system.value.
 
 async function purchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
 	const cost = 5 * (skill.systemData.rank + 1) + (skill.systemData.career ? 0 : 5);
-	if (skill.systemData.rank >= 5 || system.value.availableXP < cost) {
+	if (skill.systemData.rank >= system.value.maxPurchasableSkillRank || system.value.availableXP < cost) {
 		return;
 	}
 
@@ -275,7 +275,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 
 									<a
 										v-if="
-											skill.systemData.rank < 5 &&
+											skill.systemData.rank < system.maxPurchasableSkillRank &&
 											((skill.systemData.career && system.availableXP >= 5 * (skill.systemData.rank + 1)) || (!skill.systemData.career && system.availableXP >= 5 * (skill.systemData.rank + 1) + 5))
 										"
 										@click="purchaseSkillRank(skill)"

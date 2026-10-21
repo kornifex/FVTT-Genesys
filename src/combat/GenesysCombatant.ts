@@ -83,7 +83,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 
 		let skillValue = skill?.systemData?.rank ?? 0;
 		if (skill && this.actor.type === 'minion') {
-			skillValue = Math.clamp((this.actor.systemData as MinionDataModel).remainingMembers - 1, 0, 5);
+			skillValue = (this.actor.systemData as MinionDataModel).groupSkillRank;
 		}
 
 		const yellow = Math.min(characteristicValue, skillValue);

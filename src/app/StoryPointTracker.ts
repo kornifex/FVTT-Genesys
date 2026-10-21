@@ -11,6 +11,7 @@ import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload } from '@/socket';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import VueSheet from '@/vue/VueSheet';
+import { isFoundryV13OrLater } from '@/foundryGeneration';
 
 export interface StoryPointTrackerContext {
 	/**
@@ -49,7 +50,7 @@ export default class StoryPointTracker extends VueSheet(Application) {
 	override async _renderInner(data: object, options: RenderOptions = {}) {
 		return super._renderInner(data, {
 			...options,
-			classes: options.classes ?? ['genesys', 'story-point-tracker', ...(game.version.startsWith('13') ? ['move-to-left'] : [])],
+			classes: options.classes ?? ['genesys', 'story-point-tracker', ...(isFoundryV13OrLater() ? ['move-to-left'] : [])],
 		});
 	}
 

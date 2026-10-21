@@ -39,7 +39,7 @@ _Avoid_: Unskilled check, raw roll
 ### Talents
 
 **Talent Pyramid**:
-The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached.
+The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached, and every rank bought at tier 5 counts at tier 5.
 
 ### Presentation
 
