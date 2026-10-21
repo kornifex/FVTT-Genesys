@@ -12,6 +12,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # pnpm/action-setup reads the version from packageManager in package.json.
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
