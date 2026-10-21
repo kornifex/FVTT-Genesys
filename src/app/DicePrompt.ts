@@ -13,6 +13,7 @@ import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
 import WeaponDataModel from '@/item/data/WeaponDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
+import type { CheckRoll } from '@/dice/GenesysRoller';
 
 export enum RollType {
 	Skill,
@@ -35,7 +36,7 @@ export type AttackRollData = {
 };
 
 export type InitiativeRollData = {
-	resolvePromise: (roll: { roll: Roll; skillName: string }) => void;
+	resolvePromise: (checkRoll: CheckRoll) => void;
 	rejectPromise: () => void;
 };
 
@@ -77,7 +78,7 @@ export default class DicePrompt extends VueSheet(Application) {
 	}
 
 	static async promptForInitiative(actor: GenesysActor, skillName: string, options: DicePromptOptions = {}) {
-		return new Promise<{ roll: Roll; skillName: string }>((resolve, reject) => {
+		return new Promise<CheckRoll>((resolve, reject) => {
 			const app = new DicePrompt(actor, skillName, {
 				...options,
 				rollType: RollType.Initiative,

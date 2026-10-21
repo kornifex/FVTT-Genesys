@@ -7,7 +7,8 @@
  */
 
 import GenesysCombatant from '@/combat/GenesysCombatant';
-import GenesysRoller from '@/dice/GenesysRoller';
+import GenesysRoller, { CheckRoll } from '@/dice/GenesysRoller';
+import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import DicePrompt from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import { ClaimInitiativeSlotData, emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload, CombatSocketBaseData, UpdateInitiativeForExtraSlotData } from '@/socket';
@@ -86,7 +87,7 @@ export default class GenesysCombat extends Combat {
 			slotType: slot.side,
 			hasRolled: slot.initiative !== null,
 			...decodeInitiative(slot.initiative),
-			initiativeSkill: origin.initiativeSkill?.skillName ?? this.initiativeSkills[0].skillName,
+			initiativeSkill: origin.initiativeSkillToRoll.skillName,
 			// The slot's initiative is the origin's, whoever claimed it.
 			canRollInitiative: origin.isOwner,
 			claimed: view.showsAsClaimed,
@@ -257,28 +258,24 @@ export default class GenesysCombat extends Combat {
 			}
 
 			// Initiative roll result
-			const initiativeSkill = combatant.initiativeSkill ?? this.initiativeSkills[0];
-			let skillName = initiativeSkill.skillName;
-			let roll: Roll | undefined;
+			const initiativeSkill = combatant.initiativeSkillToRoll;
+			let checkRoll: CheckRoll;
 
 			if (prompt) {
 				try {
-					const promptedRoll = await DicePrompt.promptForInitiative(combatant.actor, skillName, { difficulty: '', characteristic: initiativeSkill.skillChar });
-
-					roll = promptedRoll.roll;
-					skillName = promptedRoll.skillName;
+					checkRoll = await DicePrompt.promptForInitiative(combatant.actor, initiativeSkill.skillName, { difficulty: '', characteristic: initiativeSkill.skillChar });
 				} catch {
 					continue;
 				}
+			} else {
+				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
+				const check = resolveCheck(combatant.actor, { skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar }, worldCheckRules());
+				checkRoll = { check, dicePool: checkDicePool(check, { difficulty: '', isEnabled: () => CONFIG.genesys.settings.autoApplyPoolModifications }) };
 			}
 
-			if (!roll) {
-				roll = combatant.getInitiativeRoll(skillName, initiativeSkill.skillChar);
-			}
-
+			const roll = GenesysRoller.rollForPool(checkRoll.dicePool);
 			await roll.evaluate();
 			const results = GenesysRoller.parseRollResults(roll);
-			const superCharClass = roll.formula.toLowerCase().includes('dpx') ? 'super-char' : 'hide-it';
 			const newInitiative = encodeInitiative(results.netSuccess, results.netAdvantage);
 
 			if (extraSlotsPerCombatant[combatant.id]) {
@@ -294,16 +291,10 @@ export default class GenesysCombat extends Combat {
 				combatantsUpdates.push({ _id: combatant.id, initiative: newInitiative });
 			}
 
-			const rollData = {
-				description: game.i18n.format('Genesys.Rolls.Description.Initiative', { skill: skillName, superChar: superCharClass }),
-				results,
-			};
-			const html = await renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', rollData);
-
 			const chatData = {
 				user: game.user.id,
 				speaker: { actor: combatant.actorId },
-				content: html,
+				content: await GenesysRoller.checkMessageContent(checkDescription(checkRoll.check, { kind: 'initiative' }, game.i18n), results),
 				sound: i > 0 ? null : CONFIG.sounds.dice,
 				rolls: [roll],
 			};

@@ -5,7 +5,16 @@
  * @file Tests for counting the symbols of a roll.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The dice types extend Foundry's `Die` and the Dice So Nice! registration listens to `Hooks`; both are Foundry globals.
+vi.hoisted(() => {
+	Object.assign(globalThis, {
+		Die: class {},
+		Hooks: { once: () => {}, on: () => {} },
+	});
+});
+
 import GenesysRoller from '@/dice/GenesysRoller';
 
 /**

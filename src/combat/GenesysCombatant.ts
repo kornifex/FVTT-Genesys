@@ -7,14 +7,9 @@
  */
 
 import GenesysActor from '@/actor/GenesysActor';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import GenesysCombat, { InitiativeSkill } from '@/combat/GenesysCombat';
-import MinionDataModel from '@/actor/data/MinionDataModel';
-import { Characteristic } from '@/data/Characteristics';
-import GenesysRoller from '@/dice/GenesysRoller';
-import { Disposition, encodeInitiative, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
-import { skillNamesMatch, skillToRoll } from '@/data/Skills';
+import { Disposition, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
+import { skillNamesMatch } from '@/data/Skills';
 
 export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
@@ -28,6 +23,13 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		}
 
 		return (this.parent as GenesysCombat).initiativeSkills.find((s) => skillNamesMatch(s.skillName, skillName));
+	}
+
+	/**
+	 * The Initiative Skill this combatant rolls: the one chosen for it, or else the combat's first.
+	 */
+	get initiativeSkillToRoll(): InitiativeSkill {
+		return this.initiativeSkill ?? (this.parent as GenesysCombat).initiativeSkills[0];
 	}
 
 	async setInitiativeSkill(skill: InitiativeSkill) {
@@ -75,30 +77,11 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		return sideOf(this.disposition);
 	}
 
-	override async rollInitiative(skillName?: string) {
-		const roll = this.getInitiativeRoll(skillName);
-		await roll.evaluate();
-		const results = GenesysRoller.parseRollResults(roll);
-
-		return this.update({ initiative: encodeInitiative(results.netSuccess, results.netAdvantage) });
-	}
-
-	override getInitiativeRoll(skillName?: string, charFallback: Characteristic = Characteristic.Brawn) {
-		const rolledSkill = skillName ? skillToRoll(this.actor.skills, CONFIG.genesys.skills, skillName) : undefined;
-		const characteristic = rolledSkill?.skill.systemData.characteristic ?? charFallback;
-		const system = this.actor.systemData as CharacterDataModel | AdversaryDataModel;
-		const characteristicValue = system.characteristics[characteristic];
-
-		let skillValue = !rolledSkill || rolledSkill.unranked ? 0 : rolledSkill.skill.systemData.rank;
-		if (rolledSkill && !rolledSkill.unranked && this.actor.type === 'minion') {
-			skillValue = (this.actor.systemData as MinionDataModel).groupSkillRank;
-		}
-
-		const yellow = Math.min(characteristicValue, skillValue);
-		const green = Math.max(characteristicValue, skillValue) - yellow;
-
-		const useSuperCharacteristic = CONFIG.genesys.settings.useSuperCharacteristics && system.superCharacteristics.has(characteristic);
-
-		return new Roll(`${yellow}dP${useSuperCharacteristic ? 'X' : ''}+${green}dA`);
+	/**
+	 * Roll this combatant's initiative as the combat rolls it, with a chat message.
+	 */
+	override async rollInitiative() {
+		await (this.parent as GenesysCombat).rollInitiative([this.id]);
+		return this;
 	}
 }

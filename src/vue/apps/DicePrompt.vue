@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { inject, onMounted, ref, toRaw } from 'vue';
+import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData, CALCULATE_CHANCE_WORKER_NAME } from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import GenesysRoller from '@/dice/GenesysRoller';
@@ -8,36 +8,21 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { vLocalize } from '@/vue/directives';
-import MinionDataModel from '@/actor/data/MinionDataModel';
 import { GenesysDice } from '@/dice';
 import { DieCategory } from '@/dice/types/GenesysDie';
 import { GenesysSymbol } from '@/dice/types/GenesysSymbol';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import GenesysActor from '@/actor/GenesysActor';
 import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
 import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
-import { poolModificationsForCheck } from '@/effects/PoolModifications';
-import { promptSkills, skillToRoll } from '@/data/Skills';
-import {
-	type DicePool,
-	type DicePoolModifications,
-	type DieGradeOperationName,
-	type DieName,
-	type SymbolName,
-	buildDicePool as buildPoolFromInputs,
-	compileDiceFormula,
-	compileSymbolsData,
-	hasSameChanceToSucceed,
-	parsePoolModifications,
-	sortPoolModifications,
-} from '@/dice/DicePool';
+import { promptSkills } from '@/data/Skills';
+import { type Check, type CheckPoolModification, type CheckRequest, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
+import { type DicePool, type DieGradeOperationName, type DieName, type SymbolName, compileDiceFormula, compileSymbolsData, hasSameChanceToSucceed, parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
 
 type SimplePoolEntity = DieName | SymbolName;
 
-type NonVehicleActorDataModel = CharacterDataModel | AdversaryDataModel;
+type PromptSkill = GenesysItem<SkillDataModel>;
 
 const SORT_ORDER: Record<SimplePoolEntity, number> = {
 	Proficiency: 0,
@@ -70,15 +55,15 @@ const currentDicePool = ref<DicePool>({
 	symbols: {},
 	usesSuperCharacteristic: false,
 });
-const poolModifications = ref<DicePoolModifications>({
-	baseDifficulty: [],
-	manualChanges: [],
-	effects: [],
-});
-const availableSkills = ref<GenesysItem<SkillDataModel>[]>([]);
+const check = shallowRef<Check<PromptSkill>>();
+const baseDifficulty = parsePoolModifications(context.difficulty);
+const manualChanges = ref<string[]>([]);
+// The Pool Modifications of the check, each turned on or off by the roller.
+const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
+const availableSkills = ref<PromptSkill[]>([]);
 // Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
-const unrankedSkills = ref<GenesysItem<SkillDataModel>[]>([]);
-const selectedSkill = ref<AlsoNone<GenesysItem<SkillDataModel>>>();
+const unrankedSkills = ref<PromptSkill[]>([]);
+const selectedSkill = ref<AlsoNone<PromptSkill>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
 const probabilityOfSuccess = ref<AlsoNone<string>>();
 
@@ -94,71 +79,58 @@ let previousDicePool: DicePool = {
 onMounted(() => {
 	const actor = toRaw(context.actor);
 
-	poolModifications.value.baseDifficulty = parsePoolModifications(context.difficulty);
 	if (actor) {
-		const ownedSkills = actor.skills;
-		const skills = promptSkills(ownedSkills, CONFIG.genesys.skills);
+		const skills = promptSkills(actor.skills, CONFIG.genesys.skills);
 		availableSkills.value = skills.owned;
 		unrankedSkills.value = skills.unranked;
-
-		if (context.skillName) {
-			selectedSkill.value = skillToRoll(ownedSkills, CONFIG.genesys.skills, context.skillName)?.skill;
-		}
 	}
-	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic ?? context.characteristic;
 
-	calculatePoolModificationsForSkill();
-	buildDicePool();
+	resolve({ skillName: context.skillName, fallbackCharacteristic: context.characteristic });
 });
 
-function isSelectedSkillUnranked() {
-	return !!selectedSkill.value && unrankedSkills.value.includes(selectedSkill.value);
+/**
+ * Resolve the check again for the skill and characteristic asked for. The Pool Modifications still listed keep their
+ * state, new ones follow the world setting.
+ */
+function resolve(request: CheckRequest<PromptSkill>) {
+	const [target] = context.rollType !== RollType.Initiative && game.user.targets.size === 1 ? game.user.targets : [];
+	const resolved = resolveCheck(
+		toRaw(context.actor),
+		{
+			...request,
+			// Initiative never has a target.
+			target: (target?.actor as GenesysActor | null) ?? undefined,
+			attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
+			usesSuperCharacteristic: useSuperCharacteristic.value,
+		},
+		worldCheckRules(),
+	);
+
+	const enabledByKey = new Map(effects.value.map((effect) => [effect.key, effect.enabled]));
+	effects.value = resolved.poolModifications.map((modification) => ({
+		key: modification.key,
+		name: poolModificationName(modification),
+		enabled: enabledByKey.get(modification.key) ?? CONFIG.genesys.settings.autoApplyPoolModifications,
+		mods: modification.mods,
+	}));
+
+	check.value = resolved;
+	selectedSkill.value = resolved.skill;
+	selectedCharacteristic.value = resolved.characteristic;
+
+	buildDicePool();
 }
 
-function calculatePoolModificationsForSkill() {
-	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
-	const modifications = poolModificationsForCheck(toRaw(context.actor), (target?.actor as GenesysActor | null) ?? undefined, {
-		characteristic: selectedCharacteristic.value,
-		skillName: selectedSkill.value?.name,
-		attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
-	});
-
-	poolModifications.value.effects = modifications.map(({ source, from, mods }) => ({
-		name:
-			game.i18n.localize(source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects') +
-			('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`)),
-		enabled: CONFIG.genesys.settings.autoApplyPoolModifications,
-		mods,
-	}));
+function poolModificationName({ source, from }: CheckPoolModification) {
+	return (
+		game.i18n.localize(source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects') +
+		('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`))
+	);
 }
 
 function buildDicePool() {
-	const actor = context.actor as AlsoNone<GenesysActor<NonVehicleActorDataModel>>;
-	let characteristicValue = 0;
-	let skillValue = 0;
-	let usesSuperCharacteristic = USE_SUPER_CHARACTERISTICS;
-
-	// The characteristic and the skill feed Step 1 of building the dice pool.
-	if (actor) {
-		characteristicValue = selectedCharacteristic.value ? actor.systemData.characteristics[selectedCharacteristic.value] : 0;
-		const isUnranked = isSelectedSkillUnranked();
-		skillValue = isUnranked ? 0 : selectedSkill.value?.systemData.rank ?? 0;
-
-		if (actor.type === 'minion' && selectedSkill.value && !isUnranked) {
-			skillValue = (actor.systemData as MinionDataModel).groupSkillRank;
-		}
-
-		usesSuperCharacteristic &&= !!selectedCharacteristic.value && actor.systemData.superCharacteristics.has(selectedCharacteristic.value);
-	} else {
-		usesSuperCharacteristic &&= useSuperCharacteristic.value;
-	}
-
-	currentDicePool.value = buildPoolFromInputs({
-		characteristicValue,
-		skillRank: skillValue,
-		usesSuperCharacteristic,
-		modifications: poolModifications.value,
-	});
+	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
+	currentDicePool.value = checkDicePool(check.value!, { difficulty: context.difficulty, manualChanges: manualChanges.value, isEnabled: (modification) => enabledKeys.has(modification.key) });
 
 	approximateProbability();
 }
@@ -221,18 +193,15 @@ async function approximateProbability() {
 
 function onSkillChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
-	selectedSkill.value = (availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value)) as AlsoNone<GenesysItem<SkillDataModel>>;
-	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic;
+	const skill = availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value);
 
-	calculatePoolModificationsForSkill();
-	buildDicePool();
+	resolve({ skillName: skill?.name });
 }
 
 function onCharacteristicChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
-	selectedCharacteristic.value = selectedOption.value !== '-' ? (selectedOption.value as Characteristic) : undefined;
 
-	buildDicePool();
+	resolve({ skillName: selectedSkill.value?.name, characteristic: selectedOption.value !== '-' ? (selectedOption.value as Characteristic) : null });
 }
 
 function getOrderedDice(category: DieCategory) {
@@ -248,58 +217,45 @@ function getOrderedSymbols(category: DieCategory) {
 }
 
 function addDiceOperation(dieName: DieName, isRemoval: boolean = false) {
-	poolModifications.value.manualChanges.push(`${isRemoval ? '-' : ''}${GenesysDice[dieName].GLYPH}`);
-	poolModifications.value.manualChanges.sort(sortPoolModifications);
+	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysDice[dieName].GLYPH}`);
+	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function addSymbolOperation(symbolName: SymbolName, isRemoval: boolean = false) {
-	poolModifications.value.manualChanges.push(`${isRemoval ? '-' : ''}${GenesysSymbol[symbolName].GLYPH}`);
-	poolModifications.value.manualChanges.sort(sortPoolModifications);
+	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysSymbol[symbolName].GLYPH}`);
+	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function addPoolOperation(operationName: DieGradeOperationName) {
-	poolModifications.value.manualChanges.push(GenesysPoolGradeOperation[operationName].GLYPH);
-	poolModifications.value.manualChanges.sort(sortPoolModifications);
+	manualChanges.value.push(GenesysPoolGradeOperation[operationName].GLYPH);
+	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function removeManualChange(index: number) {
-	poolModifications.value.manualChanges.splice(index, 1);
+	manualChanges.value.splice(index, 1);
 	buildDicePool();
 }
 
 async function rollPool() {
-	const formula = compileDiceFormula(currentDicePool.value);
-	const symbols = compileSymbolsData(currentDicePool.value);
-	const baseRollData = {
-		actor: toRaw(context.actor),
-		characteristic: selectedCharacteristic.value,
-		usesSuperCharacteristic: currentDicePool.value.usesSuperCharacteristic,
-		skillName: selectedSkill.value?.name,
-		formula,
-		symbols,
-	};
+	const checkRoll = { check: check.value!, dicePool: toRaw(currentDicePool.value) };
 
 	switch (context.rollType) {
 		case RollType.Attack:
 			await GenesysRoller.attackRoll({
-				...baseRollData,
+				...checkRoll,
 				weapon: (context.rollData as AttackRollData).weapon,
 			});
 			break;
 
 		case RollType.Initiative:
-			(context.rollData as InitiativeRollData).resolvePromise({
-				roll: new Roll(formula, { symbols }),
-				// Without a skill, initiative is a Characteristic Check.
-				skillName: selectedSkill.value?.name ?? (selectedCharacteristic.value ? game.i18n.localize(`Genesys.Characteristics.${selectedCharacteristic.value.capitalize()}`) : ''),
-			});
+			(context.rollData as InitiativeRollData).resolvePromise(checkRoll);
 			break;
 
 		default:
-			await GenesysRoller.skillRoll(baseRollData);
+			await GenesysRoller.skillRoll(checkRoll);
 	}
 
 	await context.app.close();
@@ -395,7 +351,7 @@ async function rollPool() {
 		</div>
 
 		<div v-else-if="USE_SUPER_CHARACTERISTICS" class="super-characteristic-row">
-			<input type="checkbox" v-model="useSuperCharacteristic" @change="buildDicePool()" />
+			<input type="checkbox" v-model="useSuperCharacteristic" @change="resolve({})" />
 			<label><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
 		</div>
 
@@ -409,7 +365,7 @@ async function rollPool() {
 				<div>
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.DefaultDifficulty" /></span>
 					<div>
-						<a v-for="(modification, index) in poolModifications.baseDifficulty" :key="index" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
+						<a v-for="(modification, index) in baseDifficulty" :key="index" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
 							{{ GenesysPoolModifications[modification].icon.baseGlyph }}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
 						</a>
 					</div>
@@ -417,12 +373,12 @@ async function rollPool() {
 				<div class="pool-modifications-manual">
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
 					<div>
-						<a v-for="(modification, index) in poolModifications.manualChanges" :key="index" @click="removeManualChange(index)" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
+						<a v-for="(modification, index) in manualChanges" :key="index" @click="removeManualChange(index)" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
 							{{ GenesysPoolModifications[modification].icon.baseGlyph }}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
 						</a>
 					</div>
 				</div>
-				<div v-for="(effect, index) in poolModifications.effects" :key="index" class="pool-modifications-effects">
+				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
 					<span>
 						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
 						<label>{{ '\xa0' + effect.name }}</label>
