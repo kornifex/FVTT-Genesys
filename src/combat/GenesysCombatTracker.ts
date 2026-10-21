@@ -100,7 +100,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 		const rerollIndex = baseEntries.findIndex((e) => e.name === 'COMBAT.CombatantReroll');
 
 		if (rerollIndex >= 0) {
-			baseEntries[rerollIndex].callback = (li) => this.viewed.rollSlotInitiative(li[0].dataset.combatantId as string, +(li[0].dataset.activationId as string));
+			baseEntries[rerollIndex].callback = (li) => this.viewed.rollSlotInitiative(li[0].dataset.slotId as string);
 		}
 
 		// Allow GMs to revoke an initiative slot claim.
@@ -127,11 +127,11 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 		// Intercept use of the individual Roll Initiative buttons.
 		switch (btn.dataset.control) {
 			case 'rollInitiative':
-				await combat.rollSlotInitiative(li.dataset.combatantId as string, +(li.dataset.activationId as string));
+				await combat.rollSlotInitiative(li.dataset.slotId as string);
 				break;
 
 			case 'cycleInitiativeSkill':
-				await combat.cycleInitiativeSkill(li.dataset.combatantId as string);
+				await combat.cycleInitiativeSkill(li.dataset.slotId as string);
 				break;
 
 			default:
