@@ -7,13 +7,11 @@ import TalentDataModel from '@/item/data/TalentDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
 import AbilityDataModel from '@/item/data/AbilityDataModel';
-import { EntryType } from '@/actor/data/character/ExperienceJournal';
+import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
 import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
-
-const system = computed(() => context.data.actor.systemData);
 
 const activeAbilities = computed(
 	() =>
@@ -58,43 +56,14 @@ const passiveTalents = computed(() => {
 });
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
 
-function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
-	// With the talent tier versions house rule, ranks are bought by dropping the version of the desired tier instead.
-	if (CONFIG.genesys.settings.talentTierVersions) {
-		return false;
-	}
+const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
 
-	return system.value.availableXP >= talent.systemData.advanceCost && toRaw(context.data.actor).systemData.canAddTalentAtTier(talent.systemData.effectiveNextTier);
+function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
+	return isAllowed(buyTalentRank(advancement.value, talent.id));
 }
 
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
-	if (talent.systemData.ranked === 'no') {
-		ui.notifications.info(game.i18n.format('Genesys.Notifications.TalentNotRanked', { talentName: talent.name }));
-		return false;
-	}
-
-	const newEffectiveTier = talent.systemData.effectiveNextTier;
-	const cost = talent.systemData.advanceCost;
-
-	await toRaw(talent).update({
-		'system.rank': talent.systemData.rank + 1,
-	});
-
-	await toRaw(context.data.actor).update({
-		'system.experienceJournal.entries': [
-			...system.value.experienceJournal.entries,
-			{
-				amount: -cost,
-				type: EntryType.TalentRank,
-				data: {
-					name: talent.name,
-					id: talent.id,
-					tier: newEffectiveTier,
-					rank: talent.systemData.rank,
-				},
-			},
-		],
-	});
+	await advance(toRaw(context.data.actor), buyTalentRank(advancementCharacter(toRaw(context.data.actor)), talent.id));
 }
 
 async function openItem(item: GenesysItem) {

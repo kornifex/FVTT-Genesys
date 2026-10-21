@@ -10,7 +10,8 @@ import type CharacterDataModel from '@/actor/data/CharacterDataModel';
 import type ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import type GenesysItem from '@/item/GenesysItem';
 import type SkillDataModel from '@/item/data/SkillDataModel';
-import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
+import { Entry } from '@/actor/data/character/ExperienceJournal';
+import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 
 /**
@@ -63,17 +64,7 @@ export function archetypeActorUpdate(character: ArchetypeHolder, archetype: Arch
 	update['system.strain.max'] = character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower);
 
 	// Starting XP is always the first entry of the Experience Journal.
-	if (sign > 0) {
-		update['system.experienceJournal.entries'] = [
-			{
-				amount: archetype.startingXP,
-				type: EntryType.Starting,
-			},
-			...character.experienceJournal.entries,
-		];
-	} else {
-		update['system.experienceJournal.entries'] = character.experienceJournal.entries.slice(1);
-	}
+	update['system.experienceJournal.entries'] = sign > 0 ? withStartingXP(character.experienceJournal.entries, archetype.startingXP) : withoutStartingXP(character.experienceJournal.entries);
 
 	return update;
 }

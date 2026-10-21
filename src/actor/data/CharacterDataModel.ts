@@ -9,7 +9,7 @@
 import GenesysActor from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
-import * as CharacterCreation from '@/actor/data/character/CharacterCreation';
+import { availableXP } from '@/actor/data/character/Advancement';
 import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import IHasPreCreate from '@/data/IHasPreCreate';
@@ -146,7 +146,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	 * Amount of XP the character has available to spend right now.
 	 */
 	get availableXP() {
-		return this.experienceJournal.entries.reduce((total, entry) => total + entry.amount, 0);
+		return availableXP(this.experienceJournal.entries);
 	}
 
 	/**
@@ -190,40 +190,6 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	get talentPyramidTotals() {
 		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[];
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
-	}
-
-	/**
-	 * Whether the Talent Pyramid allows buying a talent (or a rank of one) at a tier.
-	 */
-	canAddTalentAtTier(tier: number) {
-		return CONFIG.genesys.settings.ignoreTalentPyramid || TalentPyramid.canAddTalentAtTier(this.talentPyramidTotals, tier);
-	}
-
-	/**
-	 * Whether the Talent Pyramid allows removing a talent (or a rank of one) counted at a tier.
-	 */
-	canRemoveTalentAtTier(tier: number) {
-		return CONFIG.genesys.settings.ignoreTalentPyramid || TalentPyramid.canRemoveTalentAtTier(this.talentPyramidTotals, tier);
-	}
-
-	get canPurchaseCharacteristicAdvance(): { brawn: boolean; agility: boolean; intellect: boolean; cunning: boolean; willpower: boolean; presence: boolean } {
-		const availableXP = this.availableStartingXP;
-
-		return {
-			brawn: this.characteristics.brawn < 5 && availableXP >= (this.characteristics.brawn + 1) * 10,
-			agility: this.characteristics.agility < 5 && availableXP >= (this.characteristics.agility + 1) * 10,
-			intellect: this.characteristics.intellect < 5 && availableXP >= (this.characteristics.intellect + 1) * 10,
-			cunning: this.characteristics.cunning < 5 && availableXP >= (this.characteristics.cunning + 1) * 10,
-			willpower: this.characteristics.willpower < 5 && availableXP >= (this.characteristics.willpower + 1) * 10,
-			presence: this.characteristics.presence < 5 && availableXP >= (this.characteristics.presence + 1) * 10,
-		};
-	}
-
-	/**
-	 * The highest rank a skill can be bought to: 2 during character creation, 5 afterwards.
-	 */
-	get maxPurchasableSkillRank() {
-		return CharacterCreation.maxPurchasableSkillRank(this.experienceJournal.entries);
 	}
 
 	#additionalEncumbranceThreshold() {

@@ -6,7 +6,7 @@
 import { computed, inject, toRaw } from 'vue';
 
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import { EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
+import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import SkillDataModel from '@/item/data/SkillDataModel';
@@ -19,10 +19,10 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import MasonryWall from '@yeger/vue-masonry-wall';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
-import { CombatPool } from '@/data/Actors';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 const system = computed(() => context.data.actor.systemData);
+const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
 
 const SKILL_CATEGORY_SORT_ORDER = {
 	general: 0,
@@ -53,61 +53,20 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
 }
 
-async function purchaseCharacteristic(characteristic: keyof typeof system.value.characteristics) {
-	if (!system.value.canPurchaseCharacteristicAdvance[characteristic]) {
-		return;
-	}
+async function purchaseCharacteristic(characteristic: CharacteristicType) {
+	await advance(toRaw(context.data.actor), raiseCharacteristic(advancementCharacter(toRaw(context.data.actor)), characteristic));
+}
 
-	const currentValue = system.value.characteristics[characteristic];
-
-	// This is only available during character creation XP spends, so we want to increase WT & ST.
-	const woundThreshold = (system.value._source.wounds as CombatPool).max + (characteristic === 'brawn' ? 1 : 0);
-	const strainThreshold = (system.value._source.strain as CombatPool).max + (characteristic === 'willpower' ? 1 : 0);
-
-	await toRaw(context.data.actor).update({
-		// Increase Characteristic, WT, and ST
-		[`system.characteristics.${characteristic}`]: currentValue + 1,
-		'system.wounds.max': woundThreshold,
-		'system.strain.max': strainThreshold,
-		// XP Journal Entry
-		'system.experienceJournal.entries': [
-			...system.value.experienceJournal.entries,
-			{
-				amount: -((currentValue + 1) * 10),
-				type: JournalEntryType.Characteristic,
-				data: {
-					characteristic,
-					rank: currentValue + 1,
-				},
-			},
-		],
-	});
+function canPurchaseCharacteristic(characteristic: CharacteristicType) {
+	return isAllowed(raiseCharacteristic(advancement.value, characteristic));
 }
 
 async function purchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
-	const cost = 5 * (skill.systemData.rank + 1) + (skill.systemData.career ? 0 : 5);
-	if (skill.systemData.rank >= system.value.maxPurchasableSkillRank || system.value.availableXP < cost) {
-		return;
-	}
+	await advance(toRaw(context.data.actor), buySkillRank(advancementCharacter(toRaw(context.data.actor)), skill.id));
+}
 
-	await toRaw(skill).update({
-		'system.rank': skill.systemData.rank + 1,
-	});
-
-	await toRaw(context.data.actor).update({
-		'system.experienceJournal.entries': [
-			...system.value.experienceJournal.entries,
-			{
-				amount: -cost,
-				type: JournalEntryType.Skill,
-				data: {
-					name: skill.name,
-					id: skill.id,
-					rank: skill.systemData.rank,
-				},
-			},
-		],
-	});
+function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
+	return isAllowed(buySkillRank(advancement.value, skill.id));
 }
 
 async function toggleCareerSkill(skill: GenesysItem<SkillDataModel>) {
@@ -149,8 +108,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Brawn"
 				:value="system.characteristics.brawn"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.brawn"
-				@upgrade="purchaseCharacteristic('brawn')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Brawn)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Brawn)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Brawn)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Brawn)"
@@ -161,8 +120,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Agility"
 				:value="system.characteristics.agility"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.agility"
-				@upgrade="purchaseCharacteristic('agility')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Agility)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Agility)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Agility)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Agility)"
@@ -173,8 +132,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Intellect"
 				:value="system.characteristics.intellect"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.intellect"
-				@upgrade="purchaseCharacteristic('intellect')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Intellect)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Intellect)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Intellect)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Intellect)"
@@ -185,8 +144,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Cunning"
 				:value="system.characteristics.cunning"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.cunning"
-				@upgrade="purchaseCharacteristic('cunning')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Cunning)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Cunning)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Cunning)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Cunning)"
@@ -197,8 +156,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Willpower"
 				:value="system.characteristics.willpower"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.willpower"
-				@upgrade="purchaseCharacteristic('willpower')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Willpower)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Willpower)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Willpower)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Willpower)"
@@ -209,8 +168,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 			<Characteristic
 				label="Genesys.Characteristics.Presence"
 				:value="system.characteristics.presence"
-				:can-upgrade="system.canPurchaseCharacteristicAdvance.presence"
-				@upgrade="purchaseCharacteristic('presence')"
+				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Presence)"
+				@upgrade="purchaseCharacteristic(CharacteristicType.Presence)"
 				can-roll-characteristic-check
 				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Presence)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Presence)"
@@ -273,13 +232,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 								<span class="rank-display">
 									{{ skill.system.rank }}
 
-									<a
-										v-if="
-											skill.systemData.rank < system.maxPurchasableSkillRank &&
-											((skill.systemData.career && system.availableXP >= 5 * (skill.systemData.rank + 1)) || (!skill.systemData.career && system.availableXP >= 5 * (skill.systemData.rank + 1) + 5))
-										"
-										@click="purchaseSkillRank(skill)"
-									>
+									<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
 										<i class="fas fa-arrow-circle-up" />
 									</a>
 								</span>
