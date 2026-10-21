@@ -396,6 +396,16 @@ export default class GenesysCombat extends Combat {
 		return this.rollAll(options, true);
 	}
 
+	protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, userId: string) {
+		// Foundry only orders the turns again when combatants change, but extra slots add turns too. Order them before
+		// Foundry works out the current turn from them.
+		if (foundry.utils.hasProperty(changed, `flags.genesys.${FLAG_EXTRA_SLOTS}`)) {
+			this.setupTurns();
+		}
+
+		super._onUpdate(changed, options, userId);
+	}
+
 	override setupTurns() {
 		// Each turn is an Initiative Slot, given by the combatant whose initiative it holds.
 		const turns = this.slots.map((slot) => this.combatants.get(slot.originId)!);

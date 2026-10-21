@@ -64,7 +64,7 @@ export default class GenesysCombatTracker extends ExtendedClass {
 		const turns = (context.turns = []);
 
 		for (const [index, slot] of combat.slots.entries()) {
-			const combatant = combat.turns[index] as GenesysCombatant;
+			const combatant = combat.combatants.get(slot.originId) as GenesysCombatant;
 			if (!combatant.visible) {
 				continue;
 			}
