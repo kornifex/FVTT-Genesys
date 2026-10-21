@@ -37,6 +37,7 @@ function awardXP(event: Event) {
 </template>
 
 <style lang="scss">
+@use 'sass:color';
 @use '@scss/mixins/backgrounds.scss';
 @use '@scss/mixins/reset.scss';
 
@@ -71,7 +72,7 @@ function awardXP(event: Event) {
 	@include reset.input;
 
 	input {
-		background: transparentize(white, 0.8);
+		background: color.adjust(white, $alpha: -0.8);
 		text-align: right;
 		font-size: 1.25em;
 	}

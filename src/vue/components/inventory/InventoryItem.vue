@@ -564,6 +564,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 </template>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@/scss/vars/colors.scss';
 
 .inventory-item {
@@ -595,24 +596,24 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		}
 
 		&.dropped {
-			background: transparentize(#333, 0.9);
-			border: 1px solid transparentize(#333, 0.85);
+			background: color.adjust(#333, $alpha: -0.9);
+			border: 1px solid color.adjust(#333, $alpha: -0.85);
 
 			& > :not(.actions) {
 				opacity: 65%;
 			}
 
 			&:hover {
-				background: transparentize(#333, 0.75);
-				border: 1px solid transparentize(#333, 0.5);
+				background: color.adjust(#333, $alpha: -0.75);
+				border: 1px solid color.adjust(#333, $alpha: -0.5);
 			}
 		}
 
 		&.drag-dim {
 			position: relative;
 
-			background: transparentize(#333, 0.85);
-			border: 1px solid transparentize(#333, 0.7);
+			background: color.adjust(#333, $alpha: -0.85);
+			border: 1px solid color.adjust(#333, $alpha: -0.7);
 
 			opacity: 65%;
 		}

@@ -39,7 +39,6 @@ const emit = defineEmits<{
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
 const expanded = ref(false);
-const talentRef = ref<HTMLElement | null>(null);
 
 async function sendToChat() {
 	const enrichedDescription = await TextEditor.enrichHTML(props.description, { async: true });
@@ -72,7 +71,7 @@ async function sendToChat() {
 <template>
 	<div class="talent">
 		<img :src="img" :alt="name" />
-		<span class="name" ref="talentRef">
+		<span class="name">
 			<a @click="expanded = !expanded">
 				{{ name }}
 				<template v-if="ranked">

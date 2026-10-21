@@ -114,6 +114,6 @@ export default function VueSheet<TBase extends Constructor, ContextType extends 
 		}
 
 		_activateEditor(_: JQuery | HTMLElement) {}
-		async saveEditor(name: string, _: { remove?: boolean } = {}) {}
+		async saveEditor(_name: string, _: { remove?: boolean } = {}) {}
 	};
 }

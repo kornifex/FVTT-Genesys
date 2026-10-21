@@ -28,7 +28,7 @@ export default class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataMod
 		};
 	}
 
-	protected override async _onDropItem(event: DragEvent, data: DropData): Promise<void> {
+	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
 		if (!this.isEditable || !data.uuid) {
 			return;
 		}

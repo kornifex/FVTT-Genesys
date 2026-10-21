@@ -422,6 +422,7 @@ async function rollPool() {
 </style>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
 @use '@scss/mixins/reset.scss';
@@ -670,7 +671,7 @@ async function rollPool() {
 		.dice-box {
 			grid-column: 2 / span 1;
 			grid-row: 1 / span all;
-			background: transparentize(black, 0.75);
+			background: color.adjust(black, $alpha: -0.75);
 			border-top-left-radius: 0.5rem;
 			border-bottom-left-radius: 0.5rem;
 			color: white;

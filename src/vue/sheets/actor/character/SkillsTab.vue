@@ -253,6 +253,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 </template>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@scss/vars/colors.scss';
 
 .tab-skills {
@@ -346,7 +347,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 	.row {
 		border-bottom: 1px dashed black;
 
-		& > * {
+		// The row is a ContextMenu's root: its open menu keeps its own padding.
+		& > :where(:not(.context-menu)) {
 			padding: 0.2em;
 		}
 
@@ -376,7 +378,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 		}
 
 		.rank-display {
-			background: transparentize(white, 0.5);
+			background: color.adjust(white, $alpha: -0.5);
 			border: 1px dashed black;
 			border-radius: 0.75rem;
 			text-align: center;

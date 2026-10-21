@@ -102,16 +102,15 @@ async function toggleEdit(which: 'gm' | 'player') {
 	bottom: 20px;
 	right: 320px;
 	color: var(--color-dark-1);
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
 
 	&.move-to-left {
 		bottom: 15px;
 		left: 250px;
 		right: auto;
 	}
-
-	display: flex;
-	flex-direction: column;
-	gap: 1em;
 
 	.tracker {
 		@include backgrounds.crossboxes;

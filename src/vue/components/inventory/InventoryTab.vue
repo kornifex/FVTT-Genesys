@@ -250,6 +250,7 @@ function dragLeave(event: DragEvent) {
 </template>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -309,7 +310,7 @@ function dragLeave(event: DragEvent) {
 
 		@include reset.input();
 		input {
-			background: transparentize(white, 0.8);
+			background: color.adjust(white, $alpha: -0.8);
 			padding: 3px;
 			text-align: right;
 			width: 100px;

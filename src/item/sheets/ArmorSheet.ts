@@ -20,7 +20,7 @@ export default class ArmorSheet extends VueSheet(GenesysItemSheet<ArmorDataModel
 		};
 	}
 
-	protected override async _onDropItem(event: DragEvent, data: DropData): Promise<void> {
+	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
 		if (!this.isEditable || !data.uuid) {
 			return;
 		}
