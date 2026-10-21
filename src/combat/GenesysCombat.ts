@@ -75,10 +75,10 @@ export default class GenesysCombat extends Combat {
 	/**
 	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
-	slotsForRound(round: number): InitiativeSlot[] {
+	slotsForRound(round: number, storedExtraSlots = this.storedExtraSlots): InitiativeSlot[] {
 		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({ id: combatant.id, initiative: combatant.initiative, disposition: combatant.disposition }));
 
-		return buildSlots(combatants, this.extraSlotsForRound(round), this.claimsForRound(round));
+		return buildSlots(combatants, extraSlotsForRound(storedExtraSlots, round), this.claimsForRound(round));
 	}
 
 	/**
@@ -228,12 +228,19 @@ export default class GenesysCombat extends Combat {
 		return (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as StoredExtraSlot[];
 	}
 
-	extraSlotsForRound(round: number) {
-		return extraSlotsForRound(this.storedExtraSlots, round);
-	}
-
 	async addExtraSlot(combatantId: string, round: number) {
-		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, [...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }]);
+		const extraSlots = [...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }];
+		const changes: Record<string, unknown> = { [`flags.genesys.${FLAG_EXTRA_SLOTS}`]: extraSlots };
+
+		// The new slot may sort before the current one. Keep the turn on its slot in the same update, so that Foundry sees no
+		// turn change and fires no turn events.
+		const currentSlotId = this.started ? this.currentSlotId : undefined;
+		const turn = currentSlotId ? this.slotsForRound(this.round, extraSlots).findIndex((slot) => slot.id === currentSlotId) : -1;
+		if (turn !== -1) {
+			changes.turn = turn;
+		}
+
+		await this.update(changes);
 	}
 
 	/**
