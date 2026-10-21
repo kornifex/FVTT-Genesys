@@ -8,6 +8,9 @@ compatibility:
   maximum: 13
 authors:
   - name: Mezryss
+  - name: Assembling Kings
+  - name: kornifex
+    url: https://github.com/kornifex
 scripts:
   - scripts/container-query-polyfill/container-query-polyfill.modern.js
 esmodules:
@@ -31,9 +34,9 @@ packs:
     path: ./packs/crb-skills.db
     type: Item
 socket: true
-url: https://github.com/Mezryss/FVTT-Genesys
-bugs: https://github.com/Mezryss/FVTT-Genesys/issues
-changelog: https://github.com/Mezryss/FVTT-Genesys/blob/release/CHANGELOG.md
-license: https://github.com/Mezryss/FVTT-Genesys/blob/main/LICENSE
-manifest: https://github.com/Mezryss/FVTT-Genesys/releases/latest/download/manifest.json
-download: https://github.com/Mezryss/FVTT-Genesys/releases/latest/download/genesys.zip
+url: https://github.com/kornifex/FVTT-Genesys
+bugs: https://github.com/kornifex/FVTT-Genesys/issues
+changelog: https://github.com/kornifex/FVTT-Genesys/blob/release/CHANGELOG.md
+license: https://github.com/kornifex/FVTT-Genesys/blob/main/LICENSE
+manifest: https://github.com/kornifex/FVTT-Genesys/releases/latest/download/manifest.json
+download: https://github.com/kornifex/FVTT-Genesys/releases/latest/download/genesys.zip
