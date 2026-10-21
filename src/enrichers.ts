@@ -5,6 +5,9 @@
  * @author Mezryss
  * @file TextEditor enrichment methods
  */
+import GenesysActor from '@/actor/GenesysActor';
+import DicePrompt from '@/app/DicePrompt';
+import { checkLinkActor } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
 
@@ -185,4 +188,34 @@ export function register() {
 			return container;
 		},
 	});
+
+	document.addEventListener('click', onCheckLinkClick);
+}
+
+/**
+ * Roll the check of a `@check` link, wherever the link is rendered.
+ */
+async function onCheckLinkClick(event: MouseEvent) {
+	const link = (event.target as HTMLElement | null)?.closest<HTMLElement>('a[data-skill-check]');
+	if (!link) {
+		return;
+	}
+
+	event.preventDefault();
+
+	const appId = link.closest<HTMLElement>('[data-appid]')?.dataset.appid;
+	const app = appId ? ui.windows[Number(appId)] : undefined;
+
+	const actor = checkLinkActor<GenesysActor>({
+		sheetActor: app instanceof ActorSheet ? (app.actor as GenesysActor) : undefined,
+		controlledActors: (canvas.tokens?.controlled ?? []).map((token) => (token.actor ?? undefined) as GenesysActor | undefined),
+		assignedCharacter: (game.user.character ?? undefined) as GenesysActor | undefined,
+	});
+
+	if (!actor) {
+		ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NoActorForCheck'));
+		return;
+	}
+
+	await DicePrompt.promptForRoll(actor, link.dataset.skillCheck ?? '', { difficulty: link.dataset.difficulty });
 }
