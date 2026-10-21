@@ -1,3 +1,12 @@
+## Alpha 0.3.1
+### Changes
+- [FIX](https://github.com/kornifex/FVTT-Genesys/commit/1824caef9f1a93d8d0b3acf8ca9f0cb9129db452): Count every term of a repeated die in roll results, so a hand-typed formula such as `2da + 1da` keeps the symbols of the second term
+- [FEATURE](https://github.com/kornifex/FVTT-Genesys/commit/ae497293602c9aa602ee8d3fcb9453e622a4134f): Add a "Style" world setting, with a Realms of Terrinoth color variant chosen by the GM for every user
+- [STYLING](https://github.com/kornifex/FVTT-Genesys/commit/dc0df416da4304262cb39b721fd9315b98eb0773): Use only FontAwesome Free icons: a few sheet icons change (injuries, inventory, weapons, careers)
+
+<details>
+<summary>Previous Releases</summary>
+
 ## Alpha 0.3.0
 This is the first release from [kornifex/FVTT-Genesys](https://github.com/kornifex/FVTT-Genesys), which now maintains the system: see the README for why. To switch an existing install, paste `https://github.com/kornifex/FVTT-Genesys/releases/latest/download/manifest.json` in **Game Systems → Install System**. Your worlds are untouched.
 
@@ -11,9 +20,6 @@ This is the first release from [kornifex/FVTT-Genesys](https://github.com/kornif
 - [LOCALIZATION](https://github.com/kornifex/FVTT-Genesys/commit/1810142ae5d6f81ef7a25733e21abb88a9e96e44): Localize adversary weapon details and XP journal characteristics
 - [LOCALIZATION](https://github.com/kornifex/FVTT-Genesys/commit/adf860990bab9dc635c483172a5959d8900d2c18): Improve the French translation
 - [MISC](https://github.com/kornifex/FVTT-Genesys/pull/7): Point the manifest, README and welcome links to the fork
-
-<details>
-<summary>Previous Releases</summary>
 
 ## Alpha 0.2.19
 ### Changes
