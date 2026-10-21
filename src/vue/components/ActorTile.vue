@@ -148,7 +148,7 @@ async function openActorSheet() {
 
 <style lang="scss" scoped>
 @use 'sass:color';
-@use '@/scss/vars/colors.scss';
+@use '@scss/vars/colors.scss';
 
 .actor-tile-mini {
 	display: grid;

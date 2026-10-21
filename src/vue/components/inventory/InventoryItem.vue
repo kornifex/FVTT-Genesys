@@ -565,7 +565,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 <style lang="scss" scoped>
 @use 'sass:color';
-@use '@/scss/vars/colors.scss';
+@use '@scss/vars/colors.scss';
 
 .inventory-item {
 	display: grid;

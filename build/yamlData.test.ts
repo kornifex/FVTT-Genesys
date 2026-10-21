@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { readYamlData } from './yamlData';
+import { readYamlData } from './yamlData.ts';
 
 describe('readYamlData', () => {
 	let dir: string;

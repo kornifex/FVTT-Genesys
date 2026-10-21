@@ -41,7 +41,7 @@ export default defineConfig({
 	publicDir: 'public',
 	build: {
 		outDir: 'dist',
-		// The oldest browsers Foundry v12 accepts; Vite's default target is newer.
+		// v12: the oldest browsers Foundry v12 accepts; Vite's default target is newer.
 		target: ['chrome105', 'firefox121', 'safari15.4'],
 		emptyOutDir: true,
 		sourcemap: true,
