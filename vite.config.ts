@@ -5,6 +5,8 @@ import pluginVue from '@vitejs/plugin-vue';
 import path from 'path';
 import process from 'process';
 
+import { yamlData } from './build/yamlData';
+
 const env = dotenv.config();
 dotenvExpand.expand(env);
 
@@ -28,10 +30,10 @@ export default defineConfig({
 		port: 30001,
 		open: false,
 		proxy: {
-			'^/assets': `http://${ PROXY_HOST }:${ PROXY_PORT }/systems/genesys/`,
-			'^(?!/systems/genesys)': `http://${ PROXY_HOST }:${ PROXY_PORT }/`,
+			'^/assets': `http://${PROXY_HOST}:${PROXY_PORT}/systems/genesys/`,
+			'^(?!/systems/genesys)': `http://${PROXY_HOST}:${PROXY_PORT}/`,
 			'/socket.io': {
-				target: `ws://${ PROXY_HOST }:${ PROXY_PORT }`,
+				target: `ws://${PROXY_HOST}:${PROXY_PORT}`,
 				ws: true,
 			},
 		},
@@ -50,7 +52,7 @@ export default defineConfig({
 			fileName: 'Genesys',
 		},
 	},
-	plugins: [pluginVue()],
+	plugins: [pluginVue(), yamlData('yaml')],
 	resolve: {
 		alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }, { find: '@scss', replacement: path.resolve(__dirname, 'src/scss') }, ...releaseOnlyAliases],
 	},
