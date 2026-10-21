@@ -26,7 +26,7 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 
 - PascalCase for classes and domain modules (`GenesysCombat.ts`, `InitiativeSlots.ts`); camelCase for technical wiring: registration, config, helpers (`handlebars.ts`, `foundryGeneration.ts`); `N-kebab-case.ts` for migrations. A folder's `index.ts` registers it.
 - Tests sit beside their source as `X.test.ts`, written with `describe`/`it` imported from `vitest`.
-- A file starts with its imports: authorship lives in git and `LICENSE`.
+- A file starts with its imports, or with a one-line `/** @file … */` when the module needs an introduction its name doesn't give. Authorship lives in git and `LICENSE`.
 
 ## Comments
 
