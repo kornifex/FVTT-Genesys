@@ -17,7 +17,22 @@ import { Characteristic } from '@/data/Characteristics';
 import GenesysRoller from '@/dice/GenesysRoller';
 
 export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
-	initiativeSkill?: InitiativeSkill;
+	/**
+	 * The initiative skill chosen for this combatant, if it's still one of the combat's initiative skills.
+	 */
+	get initiativeSkill(): InitiativeSkill | undefined {
+		const skillName = this.getFlag('genesys', 'initiativeSkill') as string | undefined;
+
+		if (!skillName) {
+			return undefined;
+		}
+
+		return (this.parent as GenesysCombat).initiativeSkills.find((s) => s.skillName.toLowerCase() === skillName.toLowerCase());
+	}
+
+	async setInitiativeSkill(skill: InitiativeSkill) {
+		await this.setFlag('genesys', 'initiativeSkill', skill.skillName);
+	}
 
 	get disposition() {
 		switch ((this.actor.token ?? (this.actor.prototypeToken as any)).disposition) {

@@ -6,33 +6,12 @@
  * @file
  */
 
-import GenesysCombat, { InitiativeSkill } from '@/combat/GenesysCombat';
+import GenesysCombat from '@/combat/GenesysCombat';
 import GenesysCombatant from '@/combat/GenesysCombatant';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import GenesysItem from '@/item/GenesysItem';
-import { Characteristic } from '@/data/Characteristics';
 
 export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	override get template(): string {
 		return 'systems/genesys/templates/sidebar/combat-tracker.hbs';
-	}
-
-	#initiativeSkills?: InitiativeSkill[];
-
-	async initiativeSkills() {
-		if (!this.#initiativeSkills || this.#initiativeSkills.length === 0) {
-			const compendium = game.packs.get(CONFIG.genesys.settings.skillsCompendium);
-
-			if (!compendium) {
-				return [{ skillName: 'Unskilled', skillChar: Characteristic.Brawn }];
-			}
-
-			this.#initiativeSkills = (await compendium.getDocuments())
-				.filter((i) => (i as Item).type === 'skill' && (i as GenesysItem<SkillDataModel>).systemData.initiative)
-				.map((s) => ({ skillName: s.name, skillChar: (s as GenesysItem<SkillDataModel>).systemData.characteristic }));
-		}
-
-		return this.#initiativeSkills;
 	}
 
 	async _onClaimInitiativeSlot(event: JQuery.ClickEvent) {
@@ -80,8 +59,6 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 		if (!combat) {
 			return data;
 		}
-
-		combat.initiativeSkills = await this.initiativeSkills();
 
 		// Compile a list of all the initiatives for all the combatants.
 		const initiatives = combat.combatants.reduce(
@@ -229,12 +206,12 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 
 			case 'cycleInitiativeSkill':
 				const combatant = this.viewed.combatants.get(li.dataset.combatantId as string) as GenesysCombatant | undefined;
-				const initiativeSkills = await this.initiativeSkills();
+				const initiativeSkills = combat.initiativeSkills;
 				if (initiativeSkills.length < 2) {
 					return;
 				}
 
-				if (combatant) {
+				if (combatant?.isOwner) {
 					let skillIndex = 0;
 					if (combatant.initiativeSkill) {
 						skillIndex = initiativeSkills.findIndex((s) => s.skillName.toLowerCase() === combatant.initiativeSkill?.skillName.toLowerCase());
@@ -246,8 +223,8 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 						skillIndex = 0;
 					}
 
-					combatant.initiativeSkill = initiativeSkills[skillIndex];
 					btn.innerText = initiativeSkills[skillIndex].skillName;
+					await combatant.setInitiativeSkill(initiativeSkills[skillIndex]);
 				}
 				break;
 

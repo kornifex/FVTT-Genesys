@@ -42,7 +42,18 @@ export type InitiativeSkill = {
 };
 
 export default class GenesysCombat extends Combat {
-	initiativeSkills: InitiativeSkill[] = [];
+	/**
+	 * Skills from the Skills Compendium that can be used for initiative.
+	 */
+	get initiativeSkills(): InitiativeSkill[] {
+		const initiativeSkills = CONFIG.genesys.skills.filter((skill) => skill.systemData.initiative).map((skill) => ({ skillName: skill.name, skillChar: skill.systemData.characteristic }));
+
+		if (initiativeSkills.length === 0) {
+			return [{ skillName: 'Unskilled', skillChar: Characteristic.Brawn }];
+		}
+
+		return initiativeSkills;
+	}
 
 	claimantForSlot(round: number, slot: number): string | undefined {
 		const claimants = this.getFlag('genesys', FLAG_CLAIMANTS) as ClaimantData | undefined;
