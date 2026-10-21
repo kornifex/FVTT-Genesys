@@ -12,7 +12,23 @@ import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '
 import DicePrompt from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import { ClaimInitiativeSlotData, emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload, CombatSocketBaseData, UpdateInitiativeForExtraSlotData } from '@/socket';
-import { buildSlots, claimRefusal, decodeInitiative, encodeInitiative, ExtraSlot, InitiativeSlot, RoundClaims, slotView } from '@/combat/InitiativeSlots';
+import {
+	buildSlots,
+	claimRefusal,
+	decodeInitiative,
+	encodeInitiative,
+	ExtraSlotInitiative,
+	extraSlotsForRound,
+	InitiativeSlot,
+	initiativeWrites,
+	ownSlotIds,
+	RoundClaims,
+	slotIdsOf,
+	slotsToRoll,
+	slotView,
+	StoredExtraSlot,
+	withExtraSlotInitiatives,
+} from '@/combat/InitiativeSlots';
 
 // Claims are keyed by slot id. They replace the `claimants` flag, which keyed them by position in the turn order.
 const FLAG_CLAIMS = 'slotClaims';
@@ -20,9 +36,16 @@ const FLAG_EXTRA_SLOTS = 'extraSlots';
 
 type ClaimData = Record<number, RoundClaims>;
 
-export type GenesysRollInitiativeOptions = {
+export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
+	/**
+	 * Roll the Initiative Slots that the combatants' initiative gives this round, all of them or only those without
+	 * initiative, rather than their own slots. {@link GenesysActor.rollInitiative} passes it.
+	 */
+	slotsOfCombatants?: 'all' | 'unrolled';
+};
+
+export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
 	prompt?: boolean;
-	extraSlotsRolls?: number[];
 };
 
 export type InitiativeSkill = {
@@ -63,6 +86,13 @@ export default class GenesysCombat extends Combat {
 	 */
 	get slots() {
 		return this.slotsForRound(this.round);
+	}
+
+	/**
+	 * The id of the Initiative Slot whose turn it is.
+	 */
+	get currentSlotId() {
+		return this.turn === null ? undefined : this.slots[this.turn]?.id;
 	}
 
 	/**
@@ -118,7 +148,7 @@ export default class GenesysCombat extends Combat {
 			return this;
 		}
 
-		return this.rollInitiative([slot.originId], {}, { prompt: true, extraSlotsRolls: slot.activationId >= 0 ? [slot.activationId] : [] });
+		return this.rollSlotsInitiative([slot.id], { prompt: true });
 	}
 
 	/**
@@ -194,68 +224,80 @@ export default class GenesysCombat extends Combat {
 		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}`);
 	}
 
-	extraSlotsForRound(round: number) {
-		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[];
+	get storedExtraSlots() {
+		return (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as StoredExtraSlot[];
+	}
 
-		return extraSlots.reduce((accum, slot, index) => {
-			if (slot.startingRound <= round) {
-				accum.push({ ...slot, index });
-			}
-			return accum;
-		}, [] as ExtraSlot[]);
+	extraSlotsForRound(round: number) {
+		return extraSlotsForRound(this.storedExtraSlots, round);
 	}
 
 	async addExtraSlot(combatantId: string, round: number) {
-		const extraSlots = [...((this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[])];
-
-		extraSlots.push({
-			activationSource: combatantId,
-			initiative: null,
-			startingRound: round,
-		});
-
-		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, extraSlots);
+		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, [...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }]);
 	}
 
-	async updateExtraSlotsInitiative(updates: Omit<ExtraSlot, 'activationSource' | 'startingRound'>[]) {
-		const extraSlots = (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as Omit<ExtraSlot, 'index'>[];
+	/**
+	 * Write the initiative of extra slots, then refresh the turns on every client. Only a GM may write them.
+	 */
+	async writeExtraSlotsInitiative(writes: ExtraSlotInitiative[]) {
+		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, withExtraSlotInitiatives(this.storedExtraSlots, writes));
+		this.refreshTurns();
+	}
 
-		for (const update of updates) {
-			extraSlots[update.index].initiative = update.initiative;
+	/**
+	 * Order the turns again and render the tracker on every client, for changes that Foundry doesn't order them for.
+	 */
+	refreshTurns() {
+		this.refreshLocalTurns();
+		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.id });
+	}
+
+	refreshLocalTurns() {
+		this.setupTurns();
+		this.debounceTrackerRender();
+	}
+
+	/**
+	 * Give the turn back to an Initiative Slot after the turn order changed.
+	 */
+	async restoreTurn(slotId: string | undefined) {
+		const turn = slotId ? this.slots.findIndex((slot) => slot.id === slotId) : -1;
+		if (turn !== -1) {
+			await this.update({ turn });
+		}
+	}
+
+	/**
+	 * Roll the initiative of combatants. Foundry names combatants: roll their own Initiative Slots, or the slots their
+	 * initiative gives this round when asked.
+	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	override async rollInitiative(ids: string | string[], { formula = null, slotsOfCombatants, ...options }: GenesysRollInitiativeOptions = {}) {
+		const combatantIds = typeof ids === 'string' ? [ids] : ids;
+		const slotIds = slotsOfCombatants ? slotIdsOf(this.slots, combatantIds, { unrolledOnly: slotsOfCombatants === 'unrolled' }) : ownSlotIds(combatantIds);
+
+		return this.rollSlotsInitiative(slotIds, options);
+	}
+
+	/**
+	 * Roll the initiative of Initiative Slots of the current round, for the combatant whose initiative gives each one.
+	 */
+	async rollSlotsInitiative(slotIds: string[], { prompt = false, updateTurn = true, messageOptions = {} }: RollSlotsOptions = {}) {
+		let slots = slotsToRoll(this.slots, slotIds).filter((slot) => this.combatants.get(slot.originId)?.isOwner);
+
+		// Only a GM may write an extra slot's initiative: a player's roll waits for one.
+		if (!game.user.isGM && !game.users.activeGM && slots.some((slot) => slot.activationId >= 0)) {
+			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NoGMForExtraSlot'));
+			slots = slots.filter((slot) => slot.activationId < 0);
 		}
 
-		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, extraSlots);
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	override async rollInitiative(ids: string | string[], { formula = null, updateTurn = true, messageOptions = {} }: RollInitiativeOptions = {}, { prompt = false, extraSlotsRolls = [] }: GenesysRollInitiativeOptions = {}) {
-		ids = typeof ids === 'string' ? [ids] : ids;
-		const currentId = this.combatant?.id;
+		const currentSlotId = this.currentSlotId;
 		const chatRollMode = game.settings.get('core', 'rollMode');
 
-		const remainingExtraSlotsRolls = [...extraSlotsRolls];
-		const extraSlotsPerCombatant = this.extraSlotsForRound(this.round).reduce(
-			(accum, slot, index) => {
-				if (accum[slot.activationSource]) {
-					accum[slot.activationSource].push(index);
-				} else {
-					accum[slot.activationSource] = [index];
-				}
-				return accum;
-			},
-			{} as Record<string, number[]>,
-		);
-
-		let ignoreUpdateTurn = false;
-		const extraSlotsUpdates: { index: number; initiative: number }[] = [];
-		const combatantsUpdates: { _id: string; initiative: number }[] = [];
+		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];
 		const messages: any[] = [];
-		for (const [i, id] of ids.entries()) {
-			// Combatant data
-			const combatant = this.combatants.get(id) as Embedded<GenesysCombatant> | undefined;
-			if (!combatant?.isOwner) {
-				continue;
-			}
+		for (const slot of slots) {
+			const combatant = this.combatants.get(slot.originId) as Embedded<GenesysCombatant>;
 
 			// Initiative roll result
 			const initiativeSkill = combatant.initiativeSkillToRoll;
@@ -276,26 +318,13 @@ export default class GenesysCombat extends Combat {
 			const roll = GenesysRoller.rollForPool(checkRoll.dicePool);
 			await roll.evaluate();
 			const results = GenesysRoller.parseRollResults(roll);
-			const newInitiative = encodeInitiative(results.netSuccess, results.netAdvantage);
-
-			if (extraSlotsPerCombatant[combatant.id]) {
-				// Check if the combatant is tied to an extra initiative slot that we want to roll.
-				const resrIndex = remainingExtraSlotsRolls.findIndex((slotId) => extraSlotsPerCombatant[combatant.id].includes(slotId));
-				if (resrIndex === -1) {
-					combatantsUpdates.push({ _id: combatant.id, initiative: newInitiative });
-				} else {
-					const extraSlotIndex = remainingExtraSlotsRolls.splice(resrIndex, 1)[0];
-					extraSlotsUpdates.push({ index: extraSlotIndex, initiative: newInitiative });
-				}
-			} else {
-				combatantsUpdates.push({ _id: combatant.id, initiative: newInitiative });
-			}
+			rolls.push({ slot, initiative: encodeInitiative(results.netSuccess, results.netAdvantage) });
 
 			const chatData = {
 				user: game.user.id,
 				speaker: { actor: combatant.actorId },
 				content: await GenesysRoller.checkMessageContent(checkDescription(checkRoll.check, { kind: 'initiative' }, game.i18n), results),
-				sound: i > 0 ? null : CONFIG.sounds.dice,
+				sound: messages.length > 0 ? null : CONFIG.sounds.dice,
 				rolls: [roll],
 			};
 			const rollMode = ('rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode) as RollMode;
@@ -308,32 +337,29 @@ export default class GenesysCombat extends Combat {
 			return this;
 		}
 
-		if (extraSlotsUpdates.length) {
-			if (game.user.isGM) {
-				this.updateExtraSlotsInitiative(extraSlotsUpdates);
+		const writes = initiativeWrites(rolls);
+		let restoreTurn = updateTurn;
 
-				// Force a re-calculation of turns and a re-render of the tracker if there are no updates that would do it for us.
-				if (!combatantsUpdates.length) {
-					this.setupTurns();
-					this.debounceTrackerRender();
-					socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.id });
-				}
+		if (writes.extraSlots.length) {
+			if (game.user.isGM) {
+				await this.writeExtraSlotsInitiative(writes.extraSlots);
 			} else {
-				ignoreUpdateTurn = true;
+				// The GM writes them and gives the turn back.
+				restoreTurn = false;
 				socketEmit(SocketOperation.UpdateInitiativeForExtraSlot, {
 					combatId: this.id,
-					updates: extraSlotsUpdates,
+					updates: writes.extraSlots,
 					updateTurn,
 				});
 			}
 		}
 
-		if (combatantsUpdates.length) {
-			await this.updateEmbeddedDocuments('Combatant', combatantsUpdates);
+		if (writes.combatants.length) {
+			await this.updateEmbeddedDocuments('Combatant', writes.combatants);
 		}
 
-		if (!ignoreUpdateTurn && updateTurn && currentId) {
-			await this.update({ turn: this.turns.findIndex((t) => t.id === currentId) });
+		if (restoreTurn) {
+			await this.restoreTurn(currentSlotId);
 		}
 
 		await ChatMessage.implementation.create(messages);
@@ -354,63 +380,62 @@ export default class GenesysCombat extends Combat {
 		}
 
 		await this.addExtraSlot(combatant.id, this.round);
-
-		// Force a re-calculation of turns and a re-render of the tracker
-		this.setupTurns();
-		this.debounceTrackerRender();
-		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.id });
+		this.refreshTurns();
 	}
 
-	override async resetAll() {
-		this.updateExtraSlotsInitiative(
-			this.extraSlotsForRound(this.round).map((slot) => ({
-				index: slot.index,
-				initiative: null,
-			})),
-		);
+	override async resetAll(...args: any[]) {
+		// Every extra slot is reset, whatever its starting round, before Foundry orders the turns again.
+		const extraSlots = this.storedExtraSlots;
+		if (extraSlots.some((slot) => slot.initiative !== null)) {
+			await this.writeExtraSlotsInitiative(extraSlots.map((_slot, index) => ({ index, initiative: null })));
+		}
 
-		return await super.resetAll();
+		// @ts-ignore: Foundry v13 takes options that v12 doesn't.
+		return await super.resetAll(...args);
 	}
 
 	override async rollAll(options?: RollInitiativeOptions | undefined, onlyNPCs: boolean = false) {
-		const combatantIds = this.combatants.reduce((accum, combatant) => {
-			if (combatant.isOwner && (!onlyNPCs || combatant.isNPC) && combatant.initiative === null) {
-				accum.push(combatant.id);
-			}
-			return accum;
-		}, [] as string[]);
+		const combatantIds = this.combatants.filter((combatant) => combatant.isOwner && (!onlyNPCs || combatant.isNPC)).map((combatant) => combatant.id);
 
-		const extraSlotsRolls = this.extraSlotsForRound(this.round).reduce((accum, slot) => {
-			if (slot.initiative === null) {
-				const combatant = this.combatants.get(slot.activationSource) as GenesysCombatant | undefined;
-				if (combatant && combatant.isOwner && (!onlyNPCs || combatant.isNPC)) {
-					combatantIds.push(combatant.id);
-					accum.push(slot.index);
-				}
-			}
-			return accum;
-		}, [] as number[]);
-
-		return this.rollInitiative(combatantIds, options, { extraSlotsRolls });
+		return this.rollSlotsInitiative(slotIdsOf(this.slots, combatantIds, { unrolledOnly: true }), options);
 	}
 
 	override async rollNPC(options?: RollInitiativeOptions | undefined) {
 		return this.rollAll(options, true);
 	}
 
+	protected override async _preUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, user: foundry.documents.BaseUser) {
+		// Foundry picks the last turn of a round from the turns of the round it leaves, but a round only has the extra slots
+		// added up to it.
+		if (typeof changed.round === 'number' && typeof changed.turn === 'number') {
+			changed.turn = Math.min(changed.turn, Math.max(this.slotsForRound(changed.round).length - 1, 0));
+		}
+
+		return super._preUpdate(changed, options, user);
+	}
+
 	protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, userId: string) {
-		// Foundry only orders the turns again when combatants change, but extra slots add turns too. Order them before
-		// Foundry works out the current turn from them.
+		// Foundry only orders the turns again when combatants change, but extra slots add turns too, and a round only has
+		// the extra slots added up to it. Order them before Foundry works out the current turn from them.
 		if (foundry.utils.hasProperty(changed, `flags.genesys.${FLAG_EXTRA_SLOTS}`)) {
 			this.setupTurns();
+		} else if ('round' in changed) {
+			// Leave the current turn to Foundry, which compares it with the new one for its turn events.
+			this.turns = this.slotTurns() as any;
 		}
 
 		super._onUpdate(changed, options, userId);
 	}
 
+	/**
+	 * The turns of the current round: each one is an Initiative Slot, given by the combatant whose initiative it holds.
+	 */
+	slotTurns() {
+		return this.slots.map((slot) => this.combatants.get(slot.originId)!);
+	}
+
 	override setupTurns() {
-		// Each turn is an Initiative Slot, given by the combatant whose initiative it holds.
-		const turns = this.slots.map((slot) => this.combatants.get(slot.originId)!);
+		const turns = this.slotTurns();
 
 		if (this.turn !== null) {
 			// @ts-ignore: This assignment is exactly the same as in the original method.
@@ -474,8 +499,7 @@ export function register() {
 				break;
 
 			case SocketOperation.UpdateCombatTracker:
-				combat.setupTurns();
-				combat.debounceTrackerRender();
+				combat.refreshLocalTurns();
 				break;
 
 			case SocketOperation.UpdateInitiativeForExtraSlot:
@@ -484,15 +508,12 @@ export function register() {
 				}
 
 				const uifesData = payload.data as UpdateInitiativeForExtraSlotData;
-				const currentCombatantId = combat.combatant?.id;
+				const currentSlotId = combat.currentSlotId;
 
-				await combat.updateExtraSlotsInitiative(uifesData.updates);
-				combat.setupTurns();
-				combat.debounceTrackerRender();
-				socketEmit(SocketOperation.UpdateCombatTracker, { combatId: uifesData.combatId });
+				await combat.writeExtraSlotsInitiative(uifesData.updates);
 
-				if (uifesData.updateTurn && currentCombatantId) {
-					await combat.update({ turn: combat.turns.findIndex((combatant) => combatant.id === currentCombatantId) });
+				if (uifesData.updateTurn) {
+					await combat.restoreTurn(currentSlotId);
 				}
 				break;
 

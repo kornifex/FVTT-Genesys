@@ -242,6 +242,7 @@ Genesys:
     TokenIsNotCombatant: Le token selectionné n'est pas dans le combat actuel.
     CannotClaimOppositeSlot: Vous ne pouvez par réclamer ce slot d'intiative avec {name} - il est du mauvais coté!
     SlotAlreadyClaimed: Ce slot d'initiative est déjà réclamé.
+    NoGMForExtraSlot: Un MJ doit être connecté pour lancer l'initiative d'un slot supplémentaire.
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.
     InvalidTokenTypeForAction: Le token selectionné est d'un type invalide pour réaliser cette action.
