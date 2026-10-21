@@ -8,6 +8,7 @@ import GenesysItem from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
 import AbilityDataModel from '@/item/data/AbilityDataModel';
 import { EntryType } from '@/actor/data/character/ExperienceJournal';
+import { tierLimit } from '@/actor/data/character/TalentPyramid';
 import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
@@ -63,10 +64,7 @@ function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
 		return false;
 	}
 
-	const nextTier = talent.systemData.effectiveNextTier;
-	const respectsPyramid = CONFIG.genesys.settings.ignoreTalentPyramid || talentTotals.value[nextTier - 1] > talentTotals.value[nextTier] + 1;
-
-	return system.value.availableXP >= talent.systemData.advanceCost && respectsPyramid;
+	return system.value.availableXP >= talent.systemData.advanceCost && toRaw(context.data.actor).systemData.canAddTalentAtTier(talent.systemData.effectiveNextTier);
 }
 
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
@@ -108,10 +106,10 @@ async function openItem(item: GenesysItem) {
 	<section class="tab-talents">
 		<div class="pyramid">
 			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 1 }" />: {{ talentTotals[1] }}/∞</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{ Math.max(0, talentTotals[1] - 1) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 3 }" />: {{ talentTotals[3] }}/{{ Math.max(0, talentTotals[2] - 1) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 4 }" />: {{ talentTotals[4] }}/{{ Math.max(0, talentTotals[3] - 1) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 5 }" />: {{ talentTotals[5] }}/{{ Math.max(0, talentTotals[4] - 1) }}</div>
+			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{ tierLimit(talentTotals, 2) }}</div>
+			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 3 }" />: {{ talentTotals[3] }}/{{ tierLimit(talentTotals, 3) }}</div>
+			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 4 }" />: {{ talentTotals[4] }}/{{ tierLimit(talentTotals, 4) }}</div>
+			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 5 }" />: {{ talentTotals[5] }}/{{ tierLimit(talentTotals, 5) }}</div>
 		</div>
 
 		<div class="block">

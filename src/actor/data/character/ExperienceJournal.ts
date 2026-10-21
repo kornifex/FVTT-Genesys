@@ -176,10 +176,8 @@ export async function removeJournalEntry(actor: GenesysActor<CharacterDataModel>
 				return;
 			}
 
-			const talentPyramidTotals = actor.systemData.talentPyramidTotals;
 			const talentEffectiveTier = talent.systemData.effectiveTier;
-			const totalNextTier = talentPyramidTotals[talentEffectiveTier + 1];
-			if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentEffectiveTier < 5 && totalNextTier > 0 && totalNextTier >= talentPyramidTotals[talentEffectiveTier] - 1) {
+			if (!actor.systemData.canRemoveTalentAtTier(talentEffectiveTier)) {
 				ui.notifications.info(game.i18n.format('Genesys.Notifications.CannotDeleteInvalidTalentPyramid', { rank: talentEffectiveTier }));
 				return;
 			}
@@ -202,10 +200,8 @@ export async function removeJournalEntry(actor: GenesysActor<CharacterDataModel>
 				return;
 			}
 
-			const talentPyramidTotals = actor.systemData.talentPyramidTotals;
 			const talentEffectiveTier = talent.systemData.effectiveTier;
-			const totalNextTier = talentPyramidTotals[talentEffectiveTier + 1];
-			if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentEffectiveTier < 5 && totalNextTier > 0 && totalNextTier >= talentPyramidTotals[talentEffectiveTier] - 1) {
+			if (!actor.systemData.canRemoveTalentAtTier(talentEffectiveTier)) {
 				ui.notifications.info(game.i18n.format('Genesys.Notifications.CannotDeleteInvalidTalentPyramid', { rank: talentEffectiveTier }));
 				return;
 			}

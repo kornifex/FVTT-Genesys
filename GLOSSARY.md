@@ -35,3 +35,8 @@ _Avoid_: Unskilled check
 **Characteristic Check**:
 A check that uses a characteristic alone, with no skill involved at all.
 _Avoid_: Unskilled check, raw roll
+
+### Talents
+
+**Talent Pyramid**:
+The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached.
