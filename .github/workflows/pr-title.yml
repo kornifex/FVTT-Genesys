@@ -1,0 +1,41 @@
+name: PR title
+
+# PRs are squash-merged, so the title becomes the commit on main: it must follow Conventional Commits.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            docs
+            test
+            build
+            ci
+            chore
+          scopes: |
+            combat
+            dice
+            actor
+            item
+            effects
+            vehicle
+            migration
+            i18n
+            ui
+          requireScope: false
+          subjectPattern: ^[a-z].+[^.]$
+          subjectPatternError: 'The summary "{subject}" starts with a lowercase letter and ends without a period, e.g. "fix(combat): keep the turn on its slot".'
