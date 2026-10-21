@@ -9,6 +9,16 @@ export type DropData = {
 };
 
 /**
+ * The item a drop on a sheet carries, of the data model the sheet expects.
+ */
+export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DropData) {
+	// The types we have lack the configured item class's own methods, read the drop data of a canvas, and return an item
+	// of any data model.
+	const itemClass = GenesysItem.implementation as typeof GenesysItem;
+	return (await itemClass.fromDropData(data as DropCanvasData<'Item'>)) as GenesysItem<ItemDataModel> | undefined;
+}
+
+/**
  * Basic functionality shared by all ItemSheets.
  */
 export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<GenesysItem<ItemDataModel>> {
@@ -55,13 +65,17 @@ export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = 
 
 		switch (data.type) {
 			case 'ActiveEffect':
-				return this._onDropActiveEffect(event, data);
+				void this._onDropActiveEffect(event, data);
+				break;
 			case 'Actor':
-				return this._onDropActor(event, data);
+				void this._onDropActor(event, data);
+				break;
 			case 'Item':
-				return this._onDropItem(event, data);
+				void this._onDropItem(event, data);
+				break;
 			case 'Folder':
-				return this._onDropFolder(event, data);
+				void this._onDropFolder(event, data);
+				break;
 		}
 	}
 

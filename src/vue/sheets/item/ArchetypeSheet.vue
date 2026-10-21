@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, inject, ref, watchEffect } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -16,9 +16,13 @@ const system = computed(() => context.data.item.systemData);
 
 const source = ref('');
 
-watchEffect(async () => {
-	source.value = await TextEditor.enrichHTML(system.value.source, { async: true });
-});
+watch(
+	() => system.value.source,
+	async (text) => {
+		source.value = await TextEditor.enrichHTML(text, { async: true });
+	},
+	{ immediate: true },
+);
 
 const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').split(' ');
 

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watchEffect } from 'vue';
+import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
+import GenesysEffect from '@/effects/GenesysEffect';
 
 import { vLocalize } from '@/vue/directives';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
@@ -22,15 +23,18 @@ defineProps<{
 const context = inject<ItemSheetContext>(RootContext)!;
 const system = computed(() => context.data.item.systemData);
 
-// We have to:
-//   1. Use an 'any' typing to skirt around TypeScript's complaints.
-//   2. Keep a local ref that gets updated in onBeforeUpdate in order to work around some struggles with Foundry.
-const effects = ref<any>([]);
+// A local ref, updated in onBeforeUpdate, works around some struggles with Foundry. The reactive type of a document
+// is too deep for TypeScript to unwrap.
+const effects = ref([]) as Ref<GenesysEffect[]>;
 const source = ref('');
 
-watchEffect(async () => {
-	source.value = await TextEditor.enrichHTML(system.value.source, { async: true });
-});
+watch(
+	() => system.value.source,
+	async (text) => {
+		source.value = await TextEditor.enrichHTML(text, { async: true });
+	},
+	{ immediate: true },
+);
 
 async function addEffect(category: string) {
 	await toRaw(context.sheet.item).createEmbeddedDocuments('ActiveEffect', [
@@ -44,7 +48,7 @@ async function addEffect(category: string) {
 }
 
 function updateEffects() {
-	effects.value = [...toRaw(context.data.item).effects];
+	effects.value = [...toRaw(context.data.item).effects] as GenesysEffect[];
 }
 
 onBeforeMount(updateEffects);

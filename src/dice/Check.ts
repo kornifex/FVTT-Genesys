@@ -16,7 +16,7 @@ import { ExternalPoolModification, PoolModificationActor, poolModificationsForCh
  * - `characteristic`: a Characteristic Check;
  * - `pool`: a bare dice pool, with neither skill nor characteristic.
  */
-export type CheckKind = 'skill' | 'unranked' | 'characteristic' | 'pool';
+type CheckKind = 'skill' | 'unranked' | 'characteristic' | 'pool';
 
 /**
  * What this module needs of a skill.
@@ -161,7 +161,7 @@ export type PoolChoices = {
 	 */
 	difficulty: string;
 	manualChanges?: string[];
-	isEnabled(modification: CheckPoolModification): boolean;
+	isEnabled: (modification: CheckPoolModification) => boolean;
 };
 
 /**

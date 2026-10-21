@@ -2,6 +2,7 @@ import GenesysCombatant from '@/combat/GenesysCombatant';
 import GenesysRoller, { CheckRoll } from '@/dice/GenesysRoller';
 import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import DicePrompt from '@/app/DicePrompt';
+import * as log from '@/log';
 import { Characteristic } from '@/data/Characteristics';
 import { ClaimInitiativeSlotData, emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload, CombatSocketBaseData, UpdateInitiativeForExtraSlotData } from '@/socket';
 import {
@@ -61,7 +62,7 @@ export default class GenesysCombat extends Combat {
 	}
 
 	claimsForRound(round: number): RoundClaims {
-		return (this.getFlag('genesys', FLAG_CLAIMS) as ClaimData | undefined)?.[round] ?? {};
+		return this.getFlag<ClaimData | undefined>('genesys', FLAG_CLAIMS)?.[round] ?? {};
 	}
 
 	/**
@@ -93,7 +94,7 @@ export default class GenesysCombat extends Combat {
 	slotViewForUser(slot: InitiativeSlot) {
 		return slotView(slot, this.started, {
 			isGM: game.user.isGM,
-			isPlayerOf: (combatantId) => ((this.combatants.get(combatantId) as GenesysCombatant | undefined)?.players ?? []).includes(game.user),
+			isPlayerOf: (combatantId) => (this.combatants.get<GenesysCombatant>(combatantId)?.players ?? []).includes(game.user),
 		});
 	}
 
@@ -148,7 +149,7 @@ export default class GenesysCombat extends Combat {
 	 */
 	async cycleInitiativeSkill(slotId: string) {
 		const slot = this.slots.find((candidate) => candidate.id === slotId);
-		const combatant = slot ? (this.combatants.get(slot.originId) as GenesysCombatant | undefined) : undefined;
+		const combatant = slot ? this.combatants.get<GenesysCombatant>(slot.originId) : undefined;
 		if (combatant?.isOwner) {
 			await combatant.cycleInitiativeSkill();
 		}
@@ -200,7 +201,7 @@ export default class GenesysCombat extends Combat {
 		}
 
 		// Check the claim again, in case another one reached the GM first.
-		const combatant = this.combatants.get(combatantId) as GenesysCombatant | undefined;
+		const combatant = this.combatants.get<GenesysCombatant>(combatantId);
 		if (!combatant || this.claimRefusal(round, slotId, combatant)) {
 			return;
 		}
@@ -217,7 +218,7 @@ export default class GenesysCombat extends Combat {
 	}
 
 	get storedExtraSlots() {
-		return (this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? []) as StoredExtraSlot[];
+		return this.getFlag<StoredExtraSlot[] | undefined>('genesys', FLAG_EXTRA_SLOTS) ?? [];
 	}
 
 	async addExtraSlot(combatantId: string, round: number) {
@@ -273,8 +274,7 @@ export default class GenesysCombat extends Combat {
 	 * Roll the initiative of combatants. Foundry names combatants: roll their own Initiative Slots, or the slots their
 	 * initiative gives this round when asked.
 	 */
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	override async rollInitiative(ids: string | string[], { formula = null, slotsOfCombatants, ...options }: GenesysRollInitiativeOptions = {}) {
+	override async rollInitiative(ids: string | string[], { formula: _formula = null, slotsOfCombatants, ...options }: GenesysRollInitiativeOptions = {}) {
 		const combatantIds = typeof ids === 'string' ? [ids] : ids;
 		const slotIds = slotsOfCombatants ? slotIdsOf(this.slots, combatantIds, { unrolledOnly: slotsOfCombatants === 'unrolled' }) : ownSlotIds(combatantIds);
 
@@ -297,7 +297,7 @@ export default class GenesysCombat extends Combat {
 		const chatRollMode = game.settings.get('core', 'rollMode');
 
 		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];
-		const messages: any[] = [];
+		const messages: object[] = [];
 		for (const slot of slots) {
 			const combatant = this.combatants.get(slot.originId) as Embedded<GenesysCombatant>;
 
@@ -330,6 +330,7 @@ export default class GenesysCombat extends Combat {
 				rolls: [roll],
 			};
 			const rollMode = ('rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode) as RollMode;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- Foundry's types take the data of a message to create for a whole ChatMessageSource.
 			ChatMessage.applyRollMode(chatData as any, rollMode);
 
 			messages.push(chatData);
@@ -346,7 +347,8 @@ export default class GenesysCombat extends Combat {
 		if (writes.combatants.length) {
 			// Without a turn, Foundry keeps it on the current combatant's first slot.
 			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { combatants: writes.combatants });
-			await this.updateEmbeddedDocuments('Combatant', writes.combatants, combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as any));
+			// The types we have lack Foundry's turn options.
+			await this.updateEmbeddedDocuments('Combatant', writes.combatants, combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as DocumentModificationContext<this>));
 		}
 
 		if (writes.extraSlots.length) {
@@ -383,24 +385,24 @@ export default class GenesysCombat extends Combat {
 		this.refreshTurns();
 	}
 
-	override async resetAll(...args: any[]) {
+	override async resetAll(...args: unknown[]) {
 		// Every extra slot is reset, whatever its starting round, before Foundry orders the turns again.
 		const extraSlots = this.storedExtraSlots;
 		if (extraSlots.some((slot) => slot.initiative !== null)) {
 			await this.writeExtraSlotsInitiative(extraSlots.map((_slot, index) => ({ index, initiative: null })));
 		}
 
-		// @ts-ignore: Foundry v13 takes options that v12 doesn't.
+		// @ts-expect-error: Foundry v13 takes options that v12 doesn't.
 		return await super.resetAll(...args);
 	}
 
-	override async rollAll(options?: RollInitiativeOptions | undefined, onlyNPCs: boolean = false) {
+	override async rollAll(options?: RollInitiativeOptions, onlyNPCs: boolean = false) {
 		const combatantIds = this.combatants.filter((combatant) => combatant.isOwner && (!onlyNPCs || combatant.isNPC)).map((combatant) => combatant.id);
 
 		return this.rollSlotsInitiative(slotIdsOf(this.slots, combatantIds, { unrolledOnly: true }), options);
 	}
 
-	override async rollNPC(options?: RollInitiativeOptions | undefined) {
+	override async rollNPC(options?: RollInitiativeOptions) {
 		return this.rollAll(options, true);
 	}
 
@@ -421,6 +423,7 @@ export default class GenesysCombat extends Combat {
 			this.setupTurns();
 		} else if ('round' in changed) {
 			// Leave the current turn to Foundry, which compares it with the new one for its turn events.
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment -- Foundry's types tie the turns to the polymorphic this, which no array of combatants matches.
 			this.turns = this.slotTurns() as any;
 		}
 
@@ -438,7 +441,7 @@ export default class GenesysCombat extends Combat {
 		const turns = this.slotTurns();
 
 		if (this.turn !== null) {
-			// @ts-ignore: This assignment is exactly the same as in the original method.
+			// @ts-expect-error -- The types we have make turn read-only, but Foundry's own setupTurns clamps it the same way.
 			this.turn = Math.clamp(this.turn, 0, turns.length - 1);
 		}
 
@@ -454,6 +457,7 @@ export default class GenesysCombat extends Combat {
 			this.previous = this.current;
 		}
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return -- Foundry's types tie the turns to the polymorphic this, which no array of combatants matches.
 		return (this.turns = turns as any);
 	}
 
@@ -463,7 +467,7 @@ export default class GenesysCombat extends Combat {
 	 */
 	debounceTrackerRender = foundry.utils.debounce(() => {
 		if (ui.combat.viewed === this) {
-			ui.combat.render();
+			void ui.combat.render();
 		}
 	}, 50);
 }
@@ -482,14 +486,14 @@ export function register() {
 			return;
 		}
 
-		const combat = game.combats.get(payload.data.combatId) as GenesysCombat | undefined;
+		const combat = game.combats.get<GenesysCombat>(payload.data.combatId);
 		if (!combat) {
-			console.error(`Socket received ${SocketOperation[payload.operation]} payload with invalid combat ID ${payload.data.combatId}`);
+			log.error(`Socket received ${SocketOperation[payload.operation]} payload with invalid combat ID ${payload.data.combatId}`);
 			return;
 		}
 
 		switch (payload.operation) {
-			case SocketOperation.ClaimInitiativeSlot:
+			case SocketOperation.ClaimInitiativeSlot: {
 				if (!isGmHub()) {
 					return;
 				}
@@ -497,12 +501,13 @@ export function register() {
 				const cisData = payload.data as ClaimInitiativeSlotData;
 				await combat.claimSlot(cisData.round, cisData.slotId, cisData.combatantId);
 				break;
+			}
 
 			case SocketOperation.UpdateCombatTracker:
 				combat.refreshLocalTurns();
 				break;
 
-			case SocketOperation.UpdateInitiativeForExtraSlot:
+			case SocketOperation.UpdateInitiativeForExtraSlot: {
 				if (!isGmHub()) {
 					return;
 				}
@@ -510,6 +515,7 @@ export function register() {
 				const uifesData = payload.data as UpdateInitiativeForExtraSlotData;
 				await combat.writeExtraSlotsInitiative(uifesData.updates, uifesData.updateTurn ? combat.currentSlotId : undefined);
 				break;
+			}
 
 			default:
 				return;

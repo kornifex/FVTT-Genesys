@@ -3,5 +3,5 @@
  */
 
 export default interface IHasPreCreate<DocumentType extends foundry.abstract.Document> {
-	preCreate?(document: DocumentType, data: PreDocumentId<any>, options: DocumentModificationContext<DocumentType>, user: foundry.documents.BaseUser): Promise<void>;
+	preCreate?(document: DocumentType, data: PreDocumentId<DocumentType['_source']>, options: DocumentModificationContext<DocumentType>, user: foundry.documents.BaseUser): Promise<void>;
 }

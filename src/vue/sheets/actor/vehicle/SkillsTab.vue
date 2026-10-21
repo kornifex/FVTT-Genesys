@@ -113,7 +113,7 @@ watch(
 	{ immediate: true },
 );
 
-function sortNames([left]: [string, any], [right]: [string, any]) {
+function sortNames([left]: [string, unknown], [right]: [string, unknown]) {
 	if (left > right) {
 		return 1;
 	} else if (left < right) {

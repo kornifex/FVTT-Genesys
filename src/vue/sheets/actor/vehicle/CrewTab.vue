@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw, ref, watchEffect } from 'vue';
+import { inject, computed, toRaw, ref, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -29,16 +29,20 @@ const passengersActors = ref<GenesysActor[]>([]);
 const sortedPassengers = computed(() => [...toRaw(context.data.actor).systemData.passengers.list].sort(sortPassenger));
 
 // Make sure to display only actors that exist.
-watchEffect(async () => {
-	const foundActors: GenesysActor[] = [];
-	for (const passenger of sortedPassengers.value) {
-		const actor = await fromUuid<GenesysActor>(passenger.uuid);
-		if (actor) {
-			foundActors.push(actor);
+watch(
+	sortedPassengers,
+	async (passengers) => {
+		const foundActors: GenesysActor[] = [];
+		for (const passenger of passengers) {
+			const actor = await fromUuid<GenesysActor>(passenger.uuid);
+			if (actor) {
+				foundActors.push(actor);
+			}
 		}
-	}
-	passengersActors.value = foundActors;
-});
+		passengersActors.value = foundActors;
+	},
+	{ immediate: true },
+);
 
 function sortPassenger(left: { sort: number }, right: { sort: number }) {
 	return left.sort - right.sort;
@@ -76,7 +80,7 @@ async function dropToPassengers(event: DragEvent, relativeToPassengerUuid: strin
 		sourceVehicle = aVehicle;
 	}
 
-	const updateMap = new Map<string, any>();
+	const updateMap = new Map<string, unknown>();
 	const passengers = [...sortedPassengers.value];
 
 	const crewUuid = dragData.uuid;
@@ -194,7 +198,7 @@ async function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorU
 		sourceVehicle = aVehicle;
 	}
 
-	const updateMap = new Map<string, any>();
+	const updateMap = new Map<string, unknown>();
 	const roles = [...system.value.roles];
 	const roleIndex = roles.findIndex((role) => role.id === roleId);
 

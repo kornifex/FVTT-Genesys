@@ -141,8 +141,6 @@ Genesys:
     Formidable: Formidable
     Impossible: Impossible
 
-  Inventory:
-
   # ActiveEffects System Strings
   ActiveEffects:
     Passive: Effets passifs
@@ -220,6 +218,7 @@ Genesys:
     MissingCompendium: "Impossible de charger le compendium de compétences '{name}'. Reconfigurez le compendium de compétences dans la 'configuration des options' -> Genesys."
     WrongCompendiumType: "Le compendium de compétences configuré '{name}' est un compendium de {type} Compendium, pas un Compendium d'objet ! Reconfigurez le recueil de compétences dans la 'configuration des options' -> Genesys."
     NoSkillsInCompendium: Le compendium de compétences configuré '{name}' ne contient aucune compétence. Reconfigurez le recueil de compétences dans la configuration des options -> Genesys.
+    CharacterWithNoSkills: Le personnage a été créé sans compétence initiale, car le compendium de compétences configuré n'en contient aucune.
     CannotDeleteCharacteristic: Impossible de supprimer l'entrée de journal XP pour la caractéristique '{characteristic}' - vous devez d'abord supprimer l'avancement au rang suppérieur !
     CannotDeleteSkill: Impossible de supprimer l'entrée du journal d'XP pour la compétence '{name}' - vous devez d'abord supprimer l'entrée du passage au rang suivant.!"
     CannotAffordTalent: "Impossible d'augmenter le talent '{name}' ({cost}xp)."
@@ -288,7 +287,6 @@ Genesys:
     Skills: Compétences
     Combat: Combat
     Talents: Talents
-    Magic: Magie
     Inventory: Inventaire
     Effects: Effets
     Journal: Journal
@@ -485,7 +483,6 @@ Genesys:
     Hit: Touche
     Skill: Compétence
     Crit: Crit
-    Special: Spécial
     GroupSize: Taille du groupe
     SkillNotFound: Compétence non trouvée
     IsInitiative: Est une compétence d'initiative ?

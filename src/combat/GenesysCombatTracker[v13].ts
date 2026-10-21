@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- The v13 Combat Tracker it extends has no types. */
 // @ts-nocheck -- The types we have are not v13 compatible
 
 /**
@@ -67,7 +68,7 @@ export default class GenesysCombatTracker extends ExtendedClass {
 			}
 
 			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
-			const claimant = slot.claimantId ? (combat.combatants.get(slot.claimantId) as GenesysCombatant | undefined) : undefined;
+			const claimant = slot.claimantId ? combat.combatants.get<GenesysCombatant>(slot.claimantId) : undefined;
 			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
 			turns.push({ ...turn, ...combat.slotTrackerContext(slot) });
 		}

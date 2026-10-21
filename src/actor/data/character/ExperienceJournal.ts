@@ -1,3 +1,5 @@
+import { Characteristic } from '@/data/Characteristics';
+
 /**
  * Different sources of Experience Journal entries.
  */
@@ -33,25 +35,25 @@ export enum EntryType {
 	TalentRank = 'TalentRank',
 }
 
+type CharacteristicData = { characteristic: Characteristic; rank: number };
+type SkillData = { name: string; id: string; rank: number };
+type TalentData = { name: string; id: string; tier: number; rank: number };
+
 /**
- * An individual entry representing an increase or decrease in experience points.
+ * An individual entry representing an increase or decrease in experience points. Its data depends on its type.
  */
-export type Entry<DataType = any> = {
+export type Entry = {
 	/**
 	 * How much experience was spent (negative value) or received (positive value).
 	 */
 	amount: number;
-
-	/**
-	 * Source of the XP award or spend.
-	 */
-	type: EntryType;
-
-	/**
-	 * Generic data container depending on the type of entry.
-	 */
-	data?: DataType;
-};
+} & (
+	| { type: EntryType.Starting; data?: object }
+	| { type: EntryType.Award; data?: { reason?: string } }
+	| { type: EntryType.Characteristic; data: CharacteristicData }
+	| { type: EntryType.Skill; data: SkillData }
+	| { type: EntryType.NewTalent | EntryType.TalentRank; data: TalentData }
+);
 
 /**
  * A list of journal entries.

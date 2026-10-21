@@ -6,7 +6,7 @@ export function register() {
 	Handlebars.registerHelper('toLowerCase', (value: string) => value.toLowerCase());
 	Handlebars.registerHelper('toUpperCase', (value: string) => value.toUpperCase());
 	if (isFoundryV12()) {
-		Handlebars.registerHelper('concat', (...values: any[]) => values.filter((v) => v && typeof v === 'string').join(''));
+		Handlebars.registerHelper('concat', (...values: unknown[]) => values.filter((v) => v && typeof v === 'string').join(''));
 	}
 	Handlebars.registerHelper('split', (value: string) => value.split(' '));
 	Handlebars.registerHelper('isSubstringOf', (substring: string, fullString: string) => fullString.includes(substring));

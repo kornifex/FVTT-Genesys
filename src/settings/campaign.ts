@@ -106,7 +106,7 @@ export function register(namespace: string) {
 			CONFIG.genesys.skills = skills;
 
 			// The combat tracker lists the initiative skills from the loaded skills.
-			ui.combat?.render();
+			void ui.combat?.render();
 		},
 	});
 
@@ -114,7 +114,7 @@ export function register(namespace: string) {
 	const reloadSkills = (item: unknown) => {
 		const targetItem = item as GenesysItem;
 		if (targetItem.pack === CONFIG.genesys.settings.skillsCompendium && targetItem.type === 'skill') {
-			game.settings.settings.get<string>(`${namespace}.${KEY_SKILLS_COMPENDIUM}`)?.onChange?.(game.settings.get(namespace, KEY_SKILLS_COMPENDIUM));
+			void game.settings.settings.get<string>(`${namespace}.${KEY_SKILLS_COMPENDIUM}`)?.onChange?.(game.settings.get(namespace, KEY_SKILLS_COMPENDIUM));
 		}
 	};
 	Hooks.on('createItem', reloadSkills);

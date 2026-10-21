@@ -13,7 +13,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	override activateListeners(html: JQuery) {
 		super.activateListeners(html);
 
-		html.find('a[data-claim-slot]').on('click', this._onClaimInitiativeSlot.bind(this));
+		html.find('a[data-claim-slot]').on('click', (event) => void this._onClaimInitiativeSlot(event));
 	}
 
 	override async getData(options: CombatTrackerOptions) {
@@ -31,7 +31,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 
 		const turns = data.turns.map((t, visibleIndex) => {
 			const slot = slots[visibleSlotIndices[visibleIndex]];
-			const claimant = slot.claimantId ? (combat.combatants.get(slot.claimantId) as GenesysCombatant | undefined) : undefined;
+			const claimant = slot.claimantId ? combat.combatants.get<GenesysCombatant>(slot.claimantId) : undefined;
 
 			let claimantOverride = {};
 
@@ -41,13 +41,15 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 				const effects = new Set();
 				if (claimant.token) {
 					claimant.token.effects.forEach((e) => effects.add(e));
-					if ((claimant.token as any).overlayEffect) {
-						effects.add((claimant.token as any).overlayEffect);
+					// The types we have lack the token's overlay effect.
+					const { overlayEffect } = claimant.token as { overlayEffect?: string };
+					if (overlayEffect) {
+						effects.add(overlayEffect);
 					}
 				}
 				if (claimant.actor) {
 					for (const e of claimant.actor.temporaryEffects) {
-						if ((e as any).getFlag('core', 'statusId') === CONFIG.specialStatusEffects.DEFEATED) {
+						if ((e as ActiveEffect).getFlag('core', 'statusId') === CONFIG.specialStatusEffects.DEFEATED) {
 							defeated = true;
 						} else if (e.img) {
 							effects.add(e.img);
@@ -92,7 +94,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 		const rerollIndex = baseEntries.findIndex((e) => e.name === 'COMBAT.CombatantReroll');
 
 		if (rerollIndex >= 0) {
-			baseEntries[rerollIndex].callback = (li) => this.viewed.rollSlotInitiative(li[0].dataset.slotId as string);
+			baseEntries[rerollIndex].callback = (li) => void this.viewed.rollSlotInitiative(li[0].dataset.slotId as string);
 		}
 
 		// Allow GMs to revoke an initiative slot claim.

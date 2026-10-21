@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watchEffect } from 'vue';
+import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
+import GenesysEffect from '@/effects/GenesysEffect';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -9,7 +10,7 @@ import Editor from '@/vue/components/Editor.vue';
 import GenesysItem from '@/item/GenesysItem';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import TalentDataModel from '@/item/data/TalentDataModel';
-import AbilityDataModel from '@/item/data/AbilityDataModel';
+import AbilityDataModel, { ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
 import EquipmentDataModel from '@/item/data/EquipmentDataModel';
 import ArmorDataModel from '@/item/data/ArmorDataModel';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -32,12 +33,17 @@ const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i
 const equipment = computed(() => toRaw(context.data.actor).items.filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[]);
 const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
-const effects = ref<any>([]);
+// The reactive type of a document is too deep for TypeScript to unwrap.
+const effects = ref([]) as Ref<GenesysEffect[]>;
 const source = ref('');
 
-watchEffect(async () => {
-	source.value = await TextEditor.enrichHTML(system.value.source, { async: true });
-});
+watch(
+	() => system.value.source,
+	async (text) => {
+		source.value = await TextEditor.enrichHTML(text, { async: true });
+	},
+	{ immediate: true },
+);
 
 const editLabel = game.i18n.localize('Genesys.Labels.Edit');
 const checkLabel = game.i18n.localize('Genesys.Labels.PerformCheck');
@@ -57,7 +63,7 @@ async function addEffect(category: string) {
 }
 
 function updateEffects() {
-	effects.value = [...toRaw(context.data.actor).effects];
+	effects.value = [...toRaw(context.data.actor).effects] as GenesysEffect[];
 }
 
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
@@ -78,7 +84,8 @@ async function rollAttack(weapon: GenesysItem) {
 		return;
 	}
 
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, { rollType: RollType.Attack, rollData: { weapon } });
+	// The type check above makes it a weapon.
+	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, { rollType: RollType.Attack, rollData: { weapon: weapon as GenesysItem<WeaponDataModel> } });
 }
 
 async function editItem(item: GenesysItem) {
@@ -135,7 +142,7 @@ async function sendTalentToChat(talent: GenesysItem<TalentDataModel | AbilityDat
 		name: talent.name,
 		description: enrichedDescription,
 		activation: {
-			type: talent.systemData.activation.type,
+			label: ACTIVATION_LABELS[talent.systemData.activation.type],
 			detail: talent.systemData.activation.detail,
 		},
 		...(talent.type === 'talent' && {

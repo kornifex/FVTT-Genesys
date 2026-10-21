@@ -132,7 +132,7 @@ function buildDicePool() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
 	currentDicePool.value = checkDicePool(check.value!, { difficulty: context.difficulty, manualChanges: manualChanges.value, isEnabled: (modification) => enabledKeys.has(modification.key) });
 
-	approximateProbability();
+	void approximateProbability();
 }
 
 async function approximateProbability() {
@@ -158,7 +158,7 @@ async function approximateProbability() {
 		return;
 	}
 
-	let chanceToSucceed = 0;
+	let chanceToSucceed: number;
 	if (USE_CHANCE_TO_SUCCEED_BY_PERMUTATION) {
 		const worker = game.workers.get(CALCULATE_CHANCE_WORKER_NAME);
 		if (!worker) {
@@ -178,7 +178,7 @@ async function approximateProbability() {
 		const formula = compileDiceFormula(currentDicePool.value);
 		const symbols = { symbols: compileSymbolsData(currentDicePool.value) };
 		const simulation = await Promise.all(
-			[...Array(CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS)].map(async () => {
+			Array.from({ length: CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS }, async () => {
 				const roll = new Roll(formula, symbols);
 				const result = await roll.evaluate();
 				return GenesysRoller.parseRollResults(result);

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw, ref, onBeforeMount, onBeforeUpdate } from 'vue';
+import { inject, computed, toRaw, ref, onBeforeMount, onBeforeUpdate, type Ref } from 'vue';
+import GenesysEffect from '@/effects/GenesysEffect';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
@@ -16,7 +17,8 @@ import EffectsView from '@/vue/views/EffectsView.vue';
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const effects = ref<any>([]);
+// The reactive type of a document is too deep for TypeScript to unwrap.
+const effects = ref([]) as Ref<GenesysEffect[]>;
 
 async function addEffect(category: string) {
 	await toRaw(context.sheet.actor).createEmbeddedDocuments('ActiveEffect', [
@@ -30,7 +32,7 @@ async function addEffect(category: string) {
 }
 
 function updateEffects() {
-	effects.value = [...toRaw(context.data.actor).effects];
+	effects.value = [...toRaw(context.data.actor).effects] as GenesysEffect[];
 }
 
 onBeforeMount(updateEffects);

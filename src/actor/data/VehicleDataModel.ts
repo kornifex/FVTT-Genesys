@@ -100,18 +100,17 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		},
 	};
 
-	static isRelevantTypeForContext(context: keyof typeof RELEVANT_TYPES, type: string) {
+	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
 		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 
 	static readonly _GAME_VEHICLES = new Set<GenesysActor<VehicleDataModel>>();
 
-	static override migrateData(source: any) {
-		const passengers: Array<ActorPointer & { id?: string }> | undefined = source.passengers?.list;
+	static override migrateData(source: { passengers?: { list?: (ActorPointer & { id?: string })[] } }) {
+		const passengers = source.passengers?.list;
 		if (passengers) {
 			for (const passenger of passengers) {
-				// eslint-disable-next-line no-prototype-builtins
-				if (!passenger.hasOwnProperty('id')) {
+				if (!Object.hasOwn(passenger, 'id')) {
 					break;
 				}
 				// We removed the `id` property and added `uuid`. We transfer the data from one to the other to allow the migration
@@ -121,10 +120,10 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 			}
 		}
 
-		return super.migrateData(source);
+		return super.migrateData(source) as typeof source;
 	}
 
-	constructor(...args: any[]) {
+	constructor(...args: ConstructorParameters<typeof foundry.abstract.DataModel>) {
 		super(...args);
 
 		const actor = this.parent as unknown as GenesysActor<this>;
@@ -313,7 +312,7 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 
 	async removeCrew(crewUuid: string) {
 		const actor = this.parent as unknown as GenesysActor<this>;
-		const updateMap = new Map<string, any>();
+		const updateMap = new Map<string, unknown>();
 
 		const passengers = [...this.passengers.list];
 		const passengerIndex = passengers.findIndex((passenger) => passenger.uuid === crewUuid);
@@ -345,14 +344,14 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		await updateEffectsStatus(this.parent as unknown as GenesysActor<VehicleDataModel>, VehicleDataModel.isRelevantTypeForContext, items, overrides);
 	}
 
-	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: PreDocumentId<any>, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _user: User) {
+	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: unknown, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _user: User) {
 		const prototypeToken = {
 			bar1: { attribute: 'trauma' },
 			bar2: { attribute: 'strain' },
 			actorLink: true,
 		};
 
-		await actor.updateSource({ prototypeToken });
+		actor.updateSource({ prototypeToken });
 	}
 
 	onDelete(actor: GenesysActor<VehicleDataModel>, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _userId: string) {
@@ -421,7 +420,7 @@ export function register() {
 		const genesysActorUuid = targetActor.uuid;
 		for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
 			if (vehicle.sheet.rendered && vehicle.systemData.hasCrew(genesysActorUuid)) {
-				vehicle.sheet.render(true);
+				void vehicle.sheet.render(true);
 			}
 		}
 	});
@@ -438,7 +437,7 @@ export function register() {
 			if (isGmHub) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-					vehicle.systemData.removeCrew(genesysActorUuid);
+					void vehicle.systemData.removeCrew(genesysActorUuid);
 				}
 			}
 		}

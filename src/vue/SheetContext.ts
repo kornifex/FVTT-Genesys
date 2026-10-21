@@ -8,7 +8,7 @@ import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import GenesysItemSheet from '@/item/GenesysItemSheet';
 import GenesysActorSheet from '@/actor/GenesysActorSheet';
 
-export type ContextBase = { [key: string]: any };
+export type ContextBase = object;
 
 /**
  * This symbol is used by Vue apps in the system to inject sheet data.
@@ -35,7 +35,7 @@ export interface BaseSheetContext<
 	data: SheetDataType;
 }
 
-export interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends ActorSheetData<GenesysActor<ActorDataModel>> {
+interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends ActorSheetData<GenesysActor<ActorDataModel>> {
 	actor: GenesysActor<ActorDataModel>;
 }
 

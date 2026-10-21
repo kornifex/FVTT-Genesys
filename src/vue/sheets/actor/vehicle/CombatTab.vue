@@ -7,7 +7,7 @@ import GenesysActor from '@/actor/GenesysActor';
 import InjuryDataModel from '@/item/data/InjuryDataModel';
 import DicePrompt, { RollType } from '@/app/DicePrompt';
 import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -20,7 +20,7 @@ import { skillNamesMatch, skillToRoll } from '@/data/Skills';
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
-const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'vehicleWeapon' && i.system.state === EquipmentState.Equipped) as GenesysItem<VehicleWeaponDataModel>[]);
+const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'vehicleWeapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<VehicleWeaponDataModel>[]);
 const criticalHits = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {

@@ -2,12 +2,13 @@
  * @file Mixin for empowering Applications with Sheets!
  */
 
-import { App, createApp, reactive, UnwrapNestedRefs } from 'vue';
+import { App, Component, createApp, reactive, UnwrapNestedRefs } from 'vue';
 import { ContextBase, RootContext } from '@/vue/SheetContext';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript only lets a class extend a constructor that takes any[].
 type Constructor = new (...args: any[]) => {
 	activateListeners(html: JQuery): void;
-	close(options?: {}): Promise<void>;
+	close(options?: object): Promise<void>;
 };
 
 function preventSubmit(event: SubmitEvent) {
@@ -32,8 +33,8 @@ export default function VueSheet<TBase extends Constructor, ContextType extends 
 		/**
 		 * This component must be implemented by children to define the Vue component to use for the sheet.
 		 */
-		get vueComponent(): any {
-			return null;
+		get vueComponent(): Component {
+			throw new Error(`${this.constructor.name} defines no Vue component`);
 		}
 
 		/**
@@ -43,14 +44,14 @@ export default function VueSheet<TBase extends Constructor, ContextType extends 
 			return undefined;
 		}
 
-		async _renderInner(_data: unknown, options: any) {
+		async _renderInner(_data: unknown, options: { classes?: string[]; preventSubmit?: boolean }) {
 			const vueContext = await this.getVueContext();
 
 			// Instantiate our form object.
 			if (!this.form) {
 				const form = document.createElement('form');
 
-				const cssClass = (vueContext as any)?.data?.cssClass ?? (options?.classes && (options?.classes as string[] | undefined))?.join(' ') ?? '';
+				const cssClass = (vueContext as { data?: { cssClass?: string } } | undefined)?.data?.cssClass ?? options?.classes?.join(' ') ?? '';
 
 				form.className = `${cssClass} vue-app`;
 				form.setAttribute('autocomplete', 'off');
@@ -72,9 +73,7 @@ export default function VueSheet<TBase extends Constructor, ContextType extends 
 				this.vueApp.mount(this.form);
 			} else if (this.vueContext && vueContext) {
 				// Update context & actor data injected into the existing Vue app
-				for (const key of Object.keys(vueContext)) {
-					this.vueContext[key] = vueContext[key];
-				}
+				Object.assign(this.vueContext, vueContext);
 			}
 
 			return $(<HTMLElement>this.form);

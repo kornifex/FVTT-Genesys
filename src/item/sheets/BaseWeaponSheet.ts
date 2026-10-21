@@ -1,6 +1,5 @@
-import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
+import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 
-import GenesysItem from '@/item/GenesysItem';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import ItemQualityDataModel from '@/item/data/ItemQualityDataModel';
 import VueSheet from '@/vue/VueSheet';
@@ -13,12 +12,12 @@ export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeapo
 			return;
 		}
 
-		const droppedItem: GenesysItem<SkillDataModel | ItemQualityDataModel> | undefined = await (<any>GenesysItem.implementation).fromDropData(data);
+		const droppedItem = await itemFromDrop<SkillDataModel | ItemQualityDataModel>(data);
 		if (!droppedItem) {
 			return;
 		}
 
-		const systemData = this.item.systemData as BaseWeaponDataModel;
+		const systemData = this.item.systemData;
 		switch (droppedItem.type) {
 			// Skill Drop
 			case 'skill':
@@ -36,7 +35,7 @@ export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeapo
 				return;
 
 			// Item Quality Drop
-			case 'quality':
+			case 'quality': {
 				const existingIndex = systemData.qualities.findIndex((i) => i.name.toLowerCase() === droppedItem.name.toLowerCase());
 				const qualities = systemData.qualities;
 
@@ -66,6 +65,7 @@ export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeapo
 				}
 
 				return;
+			}
 		}
 	}
 }

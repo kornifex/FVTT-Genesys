@@ -4,6 +4,7 @@ import ProficiencyDie from '@/dice/types/ProficiencyDie';
 import SetbackDie from '@/dice/types/SetbackDie';
 import DifficultyDie from '@/dice/types/DifficultyDie';
 import ChallengeDie from '@/dice/types/ChallengeDie';
+import * as log from '@/log';
 
 export {};
 
@@ -74,7 +75,7 @@ function makeCustomizableColorSet(name: string): ColorSet {
 }
 
 Hooks.once('diceSoNiceReady', (dice3d: Dice3d) => {
-	console.log('Genesys | Dice So Nice! Detected, initializing dice...');
+	log.info('Dice So Nice! Detected, initializing dice...');
 
 	dice3d.addSystem(
 		{
@@ -195,5 +196,5 @@ Hooks.once('diceSoNiceReady', (dice3d: Dice3d) => {
 		colorset: 'genesys-mg-challenge',
 	});
 
-	console.log('Genesys | Dice So Nice! initialization complete.');
+	log.info('Dice So Nice! initialization complete.');
 });

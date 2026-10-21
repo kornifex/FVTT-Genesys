@@ -38,7 +38,7 @@ function talent(rank: number, scalesWithRank: 'yes' | 'no' = 'no') {
 	return { documentName: 'Item', id: 'talentId', type: 'talent', system: { rank, scalesWithRank } };
 }
 
-function effect(changes: Change[], { name = 'Effect', isSuppressed = false, origin = null as string | null, parent = null as unknown } = {}): PoolModificationEffect {
+function effect(changes: Change[], { name = 'Effect', isSuppressed = false, origin = null, parent = null }: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown } = {}): PoolModificationEffect {
 	return { name, isSuppressed, origin, parent, changes };
 }
 

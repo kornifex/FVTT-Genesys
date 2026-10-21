@@ -1,9 +1,8 @@
-import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
+import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import ArmorDataModel from '@/item/data/ArmorDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import VueArmorSheet from '@/vue/sheets/item/ArmorSheet.vue';
-import GenesysItem from '@/item/GenesysItem';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import WeaponDataModel from '@/item/data/WeaponDataModel';
 import ItemQualityDataModel from '@/item/data/ItemQualityDataModel';
@@ -25,7 +24,7 @@ export default class ArmorSheet extends VueSheet(GenesysItemSheet<ArmorDataModel
 			return;
 		}
 
-		const droppedItem: GenesysItem<SkillDataModel | WeaponDataModel> | undefined = await (<any>GenesysItem.implementation).fromDropData(data);
+		const droppedItem = await itemFromDrop<SkillDataModel | WeaponDataModel>(data);
 		if (!droppedItem) {
 			return;
 		}

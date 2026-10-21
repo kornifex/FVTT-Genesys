@@ -141,8 +141,6 @@ Genesys:
     Formidable: Formidable
     Impossible: Imposible
 
-  Inventory:
-
   # ActiveEffects System Strings
   ActiveEffects:
     Passive: Efectos pasivos
@@ -289,7 +287,6 @@ Genesys:
     Skills: Habilidades
     Combat: Combate
     Talents: Talentos
-    Magic: Magia
     Inventory: Inventario
     Effects: Efectos
     Journal: Diario
@@ -477,7 +474,6 @@ Genesys:
     Hit: Daño
     Skill: Habilidad
     Crit: Crítico
-    Special: Especial
     GroupSize: Tamaño del grupo
     SkillNotFound: Habilidad no encontrada
     IsInitiative: ¿Habilidad de iniciativa?

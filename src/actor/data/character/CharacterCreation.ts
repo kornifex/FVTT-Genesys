@@ -7,12 +7,12 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 /**
  * The highest rank a skill can reach.
  */
-export const MAX_SKILL_RANK = 5;
+const MAX_SKILL_RANK = 5;
 
 /**
  * The highest rank a skill can be bought to during character creation.
  */
-export const MAX_CREATION_SKILL_RANK = 2;
+const MAX_CREATION_SKILL_RANK = 2;
 
 /**
  * Whether a character is still in character creation, i.e. their Experience Journal has no XP award yet.

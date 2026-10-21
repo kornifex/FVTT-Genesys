@@ -27,9 +27,10 @@ async function removeJournalEntry(index: number) {
 	await advance(toRaw(context.data.actor), undoEntry(advancementCharacter(toRaw(context.data.actor)), index));
 }
 
-function journalEntryFormatArgs(entry: JournalEntry) {
+function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | number> | undefined {
 	if (entry.type !== JournalEntryType.Characteristic) {
-		return entry.data;
+		// The fields of an entry's data are strings and numbers.
+		return entry.data as Record<string, string | number> | undefined;
 	}
 
 	return {

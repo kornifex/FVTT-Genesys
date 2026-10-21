@@ -13,11 +13,11 @@ type PoolModificationData = {
 // A pattern for glyphs that represent all the possible pool modifications.
 export const PoolModGlyphPattern = /(-?[BAPSDCasthfd]|[\^*_~])/g;
 
-export const GenesysPoolModifications: Record<string, PoolModificationData> = Object.fromEntries([
-	...Object.entries(GenesysDice).map(([dieName, dieType]) => [
+const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
+	...Object.entries(GenesysDice).map(([dieName, dieType]): [string, PoolModificationData] => [
 		dieType.GLYPH,
 		{
-			targetName: dieName,
+			targetName: dieName as PoolEntity,
 			icon: { baseType: 'dice', baseName: dieName, baseGlyph: dieType.GLYPH, operator: 'fa-plus' },
 			sort: 0,
 		},
@@ -54,28 +54,30 @@ export const GenesysPoolModifications: Record<string, PoolModificationData> = Ob
 			sort: 2,
 		},
 	],
-	...Object.entries(GenesysDice).map(([dieName, dieType]) => [
+	...Object.entries(GenesysDice).map(([dieName, dieType]): [string, PoolModificationData] => [
 		`-${dieType.GLYPH}`,
 		{
-			targetName: dieName,
+			targetName: dieName as PoolEntity,
 			icon: { baseType: 'dice', baseName: dieName, baseGlyph: dieType.GLYPH, operator: 'fa-minus' },
 			sort: 3,
 		},
 	]),
-	...Object.entries(GenesysSymbol).map(([symbolName, symbolType]) => [
+	...Object.entries(GenesysSymbol).map(([symbolName, symbolType]): [string, PoolModificationData] => [
 		symbolType.GLYPH,
 		{
-			targetName: symbolName,
+			targetName: symbolName as PoolEntity,
 			icon: { baseType: 'symbol', baseName: symbolName, baseGlyph: symbolType.GLYPH, operator: 'fa-plus' },
 			sort: 4,
 		},
 	]),
-	...Object.entries(GenesysSymbol).map(([symbolName, symbolType]) => [
+	...Object.entries(GenesysSymbol).map(([symbolName, symbolType]): [string, PoolModificationData] => [
 		`-${symbolType.GLYPH}`,
 		{
-			targetName: symbolName,
+			targetName: symbolName as PoolEntity,
 			icon: { baseType: 'symbol', baseName: symbolName, baseGlyph: symbolType.GLYPH, operator: 'fa-minus' },
 			sort: 5,
 		},
 	]),
-]);
+];
+
+export const GenesysPoolModifications: Record<string, PoolModificationData> = Object.fromEntries(POOL_MODIFICATIONS);

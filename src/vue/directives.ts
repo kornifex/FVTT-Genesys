@@ -1,17 +1,20 @@
-function doLocalize(el: HTMLInputElement, binding: any) {
+import type { DirectiveBinding } from 'vue';
+import * as log from '@/log';
+
+function doLocalize(el: HTMLInputElement, binding: DirectiveBinding<unknown, string>) {
 	if (typeof binding.arg !== 'string') {
-		console.warn(`Attempt to localize non-string attribute '${binding.arg}'`);
+		log.warn(`Attempt to localize non-string attribute '${binding.arg}'`);
 		return;
 	}
 
 	if (typeof binding.value !== 'string' || binding.value.trim().length === 0) {
-		console.warn(`Attempt to localize non-string or empty key '${binding.value}'`);
+		log.warn(`Attempt to localize non-string or empty key '${String(binding.value)}'`);
 		return;
 	}
 
-	const localized = game.i18n.localize(<string>binding.value);
+	const localized = game.i18n.localize(binding.value);
 
-	(<string>binding.arg).split(',').forEach((attribute) => {
+	binding.arg.split(',').forEach((attribute) => {
 		el.setAttribute(attribute, localized);
 	});
 }

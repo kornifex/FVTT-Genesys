@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { inject, onMounted, onUpdated, ref, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import * as log from '@/log';
 
 const props = withDefaults(
 	defineProps<{
@@ -40,11 +41,15 @@ const rootDiv = ref<HTMLDivElement | null>(null);
 const editorContainer = ref<HTMLDivElement | null>(null);
 
 /**
- * ProseMirror editor instance held by this component.
- *
- * Typing data for ProseMirror is extraordinarily bare-bones, so just using `any` for now.
+ * What this component uses of the ProseMirror editor that TextEditor.create returns, which the types we have describe
+ * as TinyMCE's.
  */
-let editorInstance: any | null = null;
+type ProseMirrorEditor = { view: { state: { doc: { content: Parameters<typeof ProseMirror.dom.serializeString>[0] } } }; destroy(): void };
+
+/**
+ * ProseMirror editor instance held by this component.
+ */
+let editorInstance: ProseMirrorEditor | null = null;
 
 /**
  * Because of the complicated nature of this (we're wrapping a non-Vue component), it's helpful to have a reference type to our base content.
@@ -80,16 +85,17 @@ onMounted(enrichContent);
 onUpdated(async () => {
 	// Name should be a path split by '.' - such as system.notes.value
 	const splitName = props.name.split('.');
-	let obj: any = rootContext.sheet.document;
-	for (let key of splitName) {
+	let obj: unknown = rootContext.sheet.document;
+	for (const key of splitName) {
 		// If we've still got a key to find, but it isn't present, something's messed up.
-		if (obj[key] === undefined) {
-			console.warn(`Attempting to update ${rootContext.sheet.document.name} editor field but '${props.name}' is undefined!`);
+		const value = (obj as Record<string, unknown>)[key];
+		if (value === undefined) {
+			log.warn(`Attempting to update ${rootContext.sheet.document.name} editor field but '${props.name}' is undefined!`);
 			obj = undefined;
 			break;
 		}
 
-		obj = obj[key];
+		obj = value;
 	}
 
 	// Update our base content tracking.
@@ -111,13 +117,13 @@ async function enrichContent() {
 async function activate() {
 	// This should never happen, unless someone is messing with this component.
 	if (!editorContainer.value) {
-		console.error('No container to insert into!');
+		log.error('No container to insert into!');
 		return;
 	}
 
 	// Again, this shouldn't happen - but just in case.
 	if (editing.value) {
-		console.error(`Attempted to activate an editor for ${props.name} in ${rootContext.sheet.document.name}, but the editor is already active!`);
+		log.error(`Attempted to activate an editor for ${props.name} in ${rootContext.sheet.document.name}, but the editor is already active!`);
 		return;
 	}
 
@@ -146,7 +152,8 @@ async function activate() {
 		initial: baseContent.value,
 	};
 
-	editorInstance = await TextEditor.create(options, baseContent.value);
+	const editor: unknown = await TextEditor.create(options, baseContent.value);
+	editorInstance = editor as ProseMirrorEditor;
 	editing.value = true;
 }
 
@@ -154,7 +161,7 @@ async function activate() {
  * Callback handling the ProseMirror editor's saving behavior.
  */
 async function save() {
-	if (!editorContainer.value) {
+	if (!editorContainer.value || !editorInstance) {
 		return;
 	}
 
@@ -168,7 +175,7 @@ async function save() {
 	await enrichContent();
 
 	// Destroy our existing editor instance and empty the containing div.
-	editorInstance?.destroy();
+	editorInstance.destroy();
 	editorInstance = null;
 	editorContainer.value.innerText = '';
 

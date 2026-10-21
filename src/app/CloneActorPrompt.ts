@@ -44,11 +44,11 @@ export default class CloneActorPrompt extends VueSheet(Application) {
 	override async getVueContext(): Promise<CloneActorPromptContext> {
 		return {
 			targetActor: this.targetActor,
-			resolvePromise: async (targetActor) => {
+			resolvePromise: (targetActor) => {
 				this.#resolvePromise?.(targetActor);
 				this.#resolvePromise = undefined;
 
-				await this.close();
+				void this.close();
 			},
 		};
 	}

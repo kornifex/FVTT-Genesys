@@ -156,7 +156,7 @@ Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _dat
 	}
 
 	const diceIcon = html.find('#chat-controls > .chat-control-icon');
-	diceIcon.on('click', async (_event) => {
+	diceIcon.on('click', () => {
 		const controlledTokens = canvas.tokens.controlled;
 
 		let targetActor;
@@ -172,7 +172,7 @@ Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _dat
 			}
 		}
 
-		await DicePrompt.promptForRoll(targetActor, '');
+		void DicePrompt.promptForRoll(targetActor, '');
 	});
 });
 
@@ -180,7 +180,7 @@ Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _dat
 Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
 	const commandR = /^\/gendr(?:oll)?/i;
 	if (message.match(commandR)) {
-		DicePrompt.promptForRoll(undefined, '');
+		void DicePrompt.promptForRoll(undefined, '');
 		return false;
 	}
 	return true;

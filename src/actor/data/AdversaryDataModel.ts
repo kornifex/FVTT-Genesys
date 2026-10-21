@@ -51,7 +51,7 @@ export default abstract class AdversaryDataModel extends foundry.abstract.DataMo
 		},
 	};
 
-	static isRelevantTypeForContext(context: keyof typeof RELEVANT_TYPES, type: string) {
+	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
 		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 

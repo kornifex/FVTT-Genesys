@@ -74,7 +74,7 @@ describe('raiseCharacteristic', () => {
 				'system.characteristics.agility': 3,
 				'system.experienceJournal.entries': [
 					{ amount: 100, type: EntryType.Starting },
-					{ amount: -30, type: EntryType.Characteristic, data: { characteristic: 'agility', rank: 3 } },
+					{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Agility, rank: 3 } },
 				],
 			},
 			itemCreates: [],
@@ -182,7 +182,7 @@ describe('buyDroppedTalent', () => {
 
 		expect(plan(result).itemCreates).toEqual([]);
 		expect(plan(result).itemUpdates).toEqual([{ _id: 'Dodge', 'system.rank': 2 }]);
-		expect(newEntries(result).at(-1)?.data.tier).toBe(2);
+		expect(newEntries(result).at(-1)).toMatchObject({ type: EntryType.TalentRank, data: { tier: 2 } });
 	});
 });
 
@@ -199,7 +199,7 @@ describe('undoEntry', () => {
 	it('lowers the characteristic, and the threshold it raised', () => {
 		const entries: Entry[] = [
 			{ amount: 100, type: EntryType.Starting },
-			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: 'brawn', rank: 3 } },
+			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } },
 		];
 		const result = undoEntry(character({ entries, woundThreshold: 13 }), 1);
 
@@ -208,8 +208,8 @@ describe('undoEntry', () => {
 
 	it('refuses to undo a characteristic or skill rank that a later rank builds on', () => {
 		const characteristics: Entry[] = [
-			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: 'agility', rank: 3 } },
-			{ amount: -40, type: EntryType.Characteristic, data: { characteristic: 'agility', rank: 4 } },
+			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Agility, rank: 3 } },
+			{ amount: -40, type: EntryType.Characteristic, data: { characteristic: Characteristic.Agility, rank: 4 } },
 		];
 		const skills: Entry[] = [
 			{ amount: -10, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 1 } },
