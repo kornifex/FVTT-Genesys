@@ -1,0 +1,158 @@
+/**
+ * FVTT-Genesys
+ * Unofficial implementation of the Genesys RPG for Foundry
+ *
+ * @file Adding and removing a character's Archetype.
+ */
+
+import type GenesysActor from '@/actor/GenesysActor';
+import type CharacterDataModel from '@/actor/data/CharacterDataModel';
+import type ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
+import type GenesysItem from '@/item/GenesysItem';
+import type SkillDataModel from '@/item/data/SkillDataModel';
+import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
+import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
+
+/**
+ * Whether the Archetype is being added to the character (+1) or removed from it (-1).
+ */
+export type ArchetypeSign = 1 | -1;
+
+/**
+ * What an Archetype grants, as the computations below read it.
+ */
+export type ArchetypeGrants = {
+	characteristics: CharacteristicsContainer;
+	woundThreshold: number;
+	strainThreshold: number;
+	startingXP: number;
+	grantedItems: { name: string; type: string }[];
+};
+
+/**
+ * What the computations below read from the character.
+ */
+export type ArchetypeHolder = {
+	characteristics: CharacteristicsContainer;
+	wounds: { max: number };
+	strain: { max: number };
+	experienceJournal: { entries: Entry[] };
+};
+
+/**
+ * What the computations below read from an item owned by the character.
+ */
+export type HeldItem = {
+	name: string;
+	type: string;
+	system: unknown;
+};
+
+/**
+ * The actor update for adding (sign +1) or removing (sign -1) an Archetype: characteristics, wound and strain
+ * thresholds, and the Starting XP entry at the head of the Experience Journal.
+ */
+export function archetypeActorUpdate(character: ArchetypeHolder, archetype: ArchetypeGrants, sign: ArchetypeSign): Record<string, unknown> {
+	const update: Record<string, unknown> = {};
+
+	for (const characteristic of Object.values(Characteristic)) {
+		update[`system.characteristics.${characteristic}`] = character.characteristics[characteristic] + sign * archetype.characteristics[characteristic];
+	}
+
+	update['system.wounds.max'] = character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn);
+	update['system.strain.max'] = character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower);
+
+	// Starting XP is always the first entry of the Experience Journal.
+	if (sign > 0) {
+		update['system.experienceJournal.entries'] = [
+			{
+				amount: archetype.startingXP,
+				type: EntryType.Starting,
+			},
+			...character.experienceJournal.entries,
+		];
+	} else {
+		update['system.experienceJournal.entries'] = character.experienceJournal.entries.slice(1);
+	}
+
+	return update;
+}
+
+/**
+ * Items granted by the Archetype that are added to the character as embedded items, i.e. everything but skills.
+ */
+export function grantedNonSkills<T extends ArchetypeGrants['grantedItems'][number]>(grantedItems: T[]) {
+	return grantedItems.filter((i) => i && i.type !== 'skill');
+}
+
+/**
+ * Names of the skills granted by the Archetype.
+ */
+function grantedSkillNames(grantedItems: ArchetypeGrants['grantedItems']) {
+	return grantedItems.filter((i) => i && i.type === 'skill').map((s) => s.name);
+}
+
+/**
+ * Items of the character that were granted by the Archetype as embedded items, and are deleted along with it.
+ */
+export function heldNonSkillsGrantedBy<T extends HeldItem>(items: T[], grantedItems: ArchetypeGrants['grantedItems']) {
+	const nonSkills = grantedNonSkills(grantedItems).map((a) => a.name);
+	return items.filter((i) => i.type !== 'skill' && nonSkills.includes(i.name));
+}
+
+/**
+ * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank.
+ */
+export function grantedSkillRankUpdates<T extends HeldItem>(items: T[], grantedItems: ArchetypeGrants['grantedItems'], sign: ArchetypeSign) {
+	const grantedSkills = grantedSkillNames(grantedItems);
+	return items
+		.filter((i) => i.type === 'skill' && grantedSkills.includes(i.name))
+		.map((skill) => ({
+			skill,
+			update: {
+				'system.rank': (<SkillDataModel>skill.system).rank + sign,
+			},
+		}));
+}
+
+/**
+ * The Archetype can only be changed while the Experience Journal holds nothing but its Starting XP.
+ */
+export function canRemoveArchetype(actor: GenesysActor<CharacterDataModel>) {
+	return actor.systemData.experienceJournal.entries.length <= 1;
+}
+
+/**
+ * Add an Archetype's characteristics, thresholds, granted items, skill ranks and Starting XP to the character.
+ * The Archetype item itself is not created.
+ */
+export async function applyArchetype(actor: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
+	const archetypeData = archetype.systemData;
+	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, 1);
+
+	// Non-skills get added as embedded items.
+	await actor.createEmbeddedDocuments('Item', grantedNonSkills(archetypeData.grantedItems));
+
+	// Skills gain a rank.
+	await Promise.all(grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, 1).map(async ({ skill, update }) => await skill.update(update)));
+
+	await actor.update(actorUpdate);
+}
+
+/**
+ * Remove everything an Archetype added to the character, then delete the Archetype item.
+ */
+export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
+	const archetypeData = archetype.systemData;
+	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, -1);
+
+	// Non-skills are embedded items & need to be deleted.
+	await Promise.all(heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems).map(async (i) => await i.delete()));
+
+	// Skills get reduced by 1 rank.
+	await Promise.all(grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(async ({ skill, update }) => await skill.update(update)));
+
+	await actor.update(actorUpdate);
+
+	await archetype.delete();
+}

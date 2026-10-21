@@ -14,6 +14,7 @@ import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import CareerDataModel from '@/item/data/CareerDataModel';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import { EntryType } from '@/actor/data/character/ExperienceJournal';
+import * as Archetype from '@/actor/data/character/Archetype';
 import CareerSkillPrompt from '@/app/CareerSkillPrompt';
 import TalentDataModel from '@/item/data/TalentDataModel';
 import VueSheet from '@/vue/VueSheet';
@@ -77,16 +78,16 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 			if (droppedItem.type === 'archetype') {
 				// If it's an archetype, delete the old one and apply the new one.
 
-				if (!this.canRemoveArchetype()) {
+				if (!Archetype.canRemoveArchetype(this.actor)) {
 					return false;
 				}
 
 				const existingArchetype = this.actor.items.find((i) => i.type === 'archetype');
 				if (existingArchetype) {
-					await this.removeArchetype(existingArchetype as GenesysItem<ArchetypeDataModel>);
+					await Archetype.removeArchetype(this.actor, existingArchetype as GenesysItem<ArchetypeDataModel>);
 				}
 
-				await this.applyArchetype(droppedItem as GenesysItem<ArchetypeDataModel>);
+				await Archetype.applyArchetype(this.actor, droppedItem as GenesysItem<ArchetypeDataModel>);
 
 				// Let `super` handle the rest and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
@@ -236,136 +237,13 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 		return clonedDroppedItem ?? false;
 	}
 
-	async #updateForArchetype(workingData: CharacterDataModel) {
-		await this.actor.update({
-			'system.characteristics.brawn': workingData.characteristics.brawn,
-			'system.characteristics.agility': workingData.characteristics.agility,
-			'system.characteristics.intellect': workingData.characteristics.intellect,
-			'system.characteristics.cunning': workingData.characteristics.cunning,
-			'system.characteristics.willpower': workingData.characteristics.willpower,
-			'system.characteristics.presence': workingData.characteristics.presence,
-
-			'system.wounds.max': workingData.wounds.max,
-			'system.strain.max': workingData.strain.max,
-
-			'system.experienceJournal.entries': workingData.experienceJournal.entries,
-		});
-	}
-
+	// The character sheet's Vue components remove the Archetype through the sheet.
 	canRemoveArchetype() {
-		return this.actor.systemData.experienceJournal.entries.length <= 1;
+		return Archetype.canRemoveArchetype(this.actor);
 	}
 
-	/**
-	 *
-	 * @param archetype
-	 */
-	async applyArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
-		const workingData = <CharacterDataModel>deepClone(this.actor.systemData);
-		const archetypeData = archetype.systemData;
-
-		// Characteristics
-		workingData.characteristics.brawn += archetypeData.characteristics.brawn;
-		workingData.characteristics.agility += archetypeData.characteristics.agility;
-		workingData.characteristics.intellect += archetypeData.characteristics.intellect;
-		workingData.characteristics.cunning += archetypeData.characteristics.cunning;
-		workingData.characteristics.willpower += archetypeData.characteristics.willpower;
-		workingData.characteristics.presence += archetypeData.characteristics.presence;
-
-		// Wound & Strain Thresholds
-		workingData.wounds.max += archetypeData.woundThreshold + archetypeData.characteristics.brawn;
-		workingData.strain.max += archetypeData.strainThreshold + archetypeData.characteristics.willpower;
-
-		// Granted Items
-		const items = archetypeData.grantedItems;
-
-		// Non-skills get added as embedded items.
-		const nonSkills = items.filter((i) => i && i.type !== 'skill');
-		await this.actor.createEmbeddedDocuments('Item', nonSkills);
-
-		// Skills gain a rank.
-		const grantedSkills = items.filter((i) => i && i.type === 'skill').map((s) => s.name);
-		await Promise.all(
-			this.actor.items
-				.filter((i) => i.type === 'skill')
-				.map(async (skill) => {
-					if (grantedSkills.includes(skill.name)) {
-						await skill.update({
-							'system.rank': (<SkillDataModel>skill.system).rank + 1,
-						});
-					}
-				}),
-		);
-
-		// Prepend starting XP to character's Experience Journal.
-		workingData.experienceJournal.entries = [
-			{
-				amount: archetypeData.startingXP,
-				type: EntryType.Starting,
-			},
-			...workingData.experienceJournal.entries,
-		];
-
-		await this.#updateForArchetype(workingData);
-	}
-
-	/**
-	 *
-	 * @param archetype
-	 */
 	async removeArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
-		const workingData = <CharacterDataModel>deepClone(this.actor.systemData);
-		const archetypeData = archetype.systemData;
-
-		// Reduce characteristics.
-		workingData.characteristics.brawn -= archetypeData.characteristics.brawn;
-		workingData.characteristics.agility -= archetypeData.characteristics.agility;
-		workingData.characteristics.intellect -= archetypeData.characteristics.intellect;
-		workingData.characteristics.cunning -= archetypeData.characteristics.cunning;
-		workingData.characteristics.willpower -= archetypeData.characteristics.willpower;
-		workingData.characteristics.presence -= archetypeData.characteristics.presence;
-
-		// Wound & Strain Thresholds
-		workingData.wounds.max -= archetypeData.woundThreshold + archetypeData.characteristics.brawn;
-		workingData.strain.max -= archetypeData.strainThreshold + archetypeData.characteristics.willpower;
-
-		// Remove starting XP from Experience Journal.
-		workingData.experienceJournal.entries = workingData.experienceJournal.entries.slice(1);
-
-		// Remove granted items.
-		const items = archetypeData.grantedItems;
-
-		// Non-skills are embedded items & need to be deleted.
-		const nonSkills = items.filter((i) => i && i.type !== 'skill').map((a) => a.name);
-		await Promise.all(
-			this.actor.items
-				.filter((i) => i.type !== 'skill')
-				.map(async (i) => {
-					if (nonSkills.includes(i.name)) {
-						await i.delete();
-					}
-				}),
-		);
-
-		// Skills get reduced by 1 rank.
-		const grantedSkills = items.filter((i) => i && i.type === 'skill').map((s) => s.name);
-		await Promise.all(
-			this.actor.items
-				.filter((i) => i.type === 'skill')
-				.map(async (i) => {
-					if (grantedSkills.includes(i.name)) {
-						await i.update({
-							'system.rank': (<SkillDataModel>i.system).rank - 1,
-						});
-					}
-				}),
-		);
-
-		// Update data.
-		await this.#updateForArchetype(workingData);
-
-		// Delete the archetype.
-		await archetype.delete();
+		await Archetype.removeArchetype(this.actor, archetype);
 	}
 
 	/**
