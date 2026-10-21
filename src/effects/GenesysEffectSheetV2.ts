@@ -1,11 +1,6 @@
 import { Characteristic } from '@/data/Characteristics';
 import GenesysEffect from './GenesysEffect';
-import { PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
-
-type EffectChangeExpanded = foundry.data.EffectChangeSource & {
-	skill?: string;
-	char?: string;
-};
+import { EditedChange, fromEditedChange, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 
 export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 	static DEFAULT_OPTIONS = {
@@ -24,22 +19,7 @@ export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffe
 			partContext.skills = Object.fromEntries(CONFIG.genesys.skills.map((skill) => [skill.name, skill.name]));
 			partContext.characteristics = Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]));
 
-			partContext.changes = partContext.source.changes.map((change: foundry.data.EffectChangeSource) => {
-				const thisChange = { ...change } as EffectChangeExpanded;
-				const extractDicePoolMod = thisChange.key.split(GenesysEffect.DICE_POOL_MOD_KEY_PATTERN);
-
-				if (extractDicePoolMod.length === 2) {
-					thisChange.key = extractDicePoolMod[0];
-
-					if (extractDicePoolMod[0].includes(GenesysEffect.DICE_POOL_MOD_CHAR_TYPE)) {
-						thisChange.char = extractDicePoolMod[1];
-					} else if (extractDicePoolMod[0].includes(GenesysEffect.DICE_POOL_MOD_SKILL_TYPE)) {
-						thisChange.skill = extractDicePoolMod[1];
-					}
-				}
-
-				return thisChange;
-			});
+			partContext.changes = partContext.source.changes.map(toEditedChange);
 		}
 
 		return partContext;
@@ -51,21 +31,7 @@ export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffe
 		const target = event.target as HTMLElement;
 		if (target?.matches('select[name^="changes."][name$=".key"]')) {
 			const targetSelect = target as HTMLSelectElement;
-			let targetOptionType: string;
-
-			if (GenesysEffect.DICE_POOL_MOD_KEY_PATTERN.test(targetSelect.value)) {
-				if (targetSelect.value.includes(GenesysEffect.DICE_POOL_MOD_CHECK_TYPE)) {
-					targetOptionType = 'check-selection';
-				} else if (targetSelect.value.includes(GenesysEffect.DICE_POOL_MOD_CHAR_TYPE)) {
-					targetOptionType = 'characteristic-selection';
-				} else if (targetSelect.value.includes(GenesysEffect.DICE_POOL_MOD_SKILL_TYPE)) {
-					targetOptionType = 'skill-selection';
-				} else {
-					targetOptionType = 'effect-mode';
-				}
-			} else {
-				targetOptionType = 'effect-mode';
-			}
+			const targetOptionType = subjectFieldForKey(targetSelect.value);
 
 			const children = targetSelect.closest('li')?.querySelector('.mode')?.children as HTMLCollection;
 			for (let k = 0; k < children.length; k++) {
@@ -79,30 +45,8 @@ export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffe
 	}
 
 	override _processFormData(event: Event, form: HTMLElement, formData: Record<string, unknown>) {
-		const formDataExpanded = super._processFormData(event, form, formData) as { changes: EffectChangeExpanded[] };
-
-		const dicePoolModificationPattern = new RegExp(`^${PoolModGlyphPattern.source}*$`);
-		formDataExpanded.changes = Object.values(formDataExpanded.changes || []).map((change: EffectChangeExpanded) => {
-			if (GenesysEffect.DICE_POOL_MOD_KEY_PATTERN.test(change.key)) {
-				if (change.key.includes(GenesysEffect.DICE_POOL_MOD_CHECK_TYPE)) {
-					change.key += '.';
-				} else if (change.key.includes(GenesysEffect.DICE_POOL_MOD_CHAR_TYPE)) {
-					change.key += `.${change.char}`;
-				} else if (change.key.includes(GenesysEffect.DICE_POOL_MOD_SKILL_TYPE)) {
-					change.key += `.${change.skill}`;
-				}
-
-				change.mode = CONST.ACTIVE_EFFECT_MODES.CUSTOM;
-				if (!dicePoolModificationPattern.test(change.value)) {
-					change.value = '';
-				}
-
-				delete change.char;
-				delete change.skill;
-			}
-
-			return change;
-		});
+		const formDataExpanded = super._processFormData(event, form, formData) as { changes: EditedChange[] };
+		formDataExpanded.changes = Object.values(formDataExpanded.changes || []).map(fromEditedChange);
 
 		return formDataExpanded;
 	}
