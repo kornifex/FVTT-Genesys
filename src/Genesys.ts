@@ -53,14 +53,9 @@ async function doAlphaNotice(lastAlpha: string) {
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Bug Fixes & Updates</h4>
 	<ul style="margin-top: 0">
       <li>The system is now maintained at <a href="https://github.com/kornifex/FVTT-Genesys">kornifex/FVTT-Genesys</a>.</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/fe01eb276620a711888ba5a2ac6a74c5f81742a4">[FIX]</a>: Fix initiative skill selection in the combat tracker: the chosen skill is shared between the GM and players and survives reloads</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/65a276460e66c596c7cab4ee1b57afa80aaf6deb">[FEATURE]</a>: Roll skills an adversary has no ranks in (initiative, journal checks, weapons), listed as "Unranked" in the dice prompt</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/eaba0ca2f3f24c8620d11baeb7db74f358fa0c24">[FEATURE]</a>: Add an "Ignore Talent Pyramid" house rule setting</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/0f89ed0ba9d91fa452cf7442dd945f36e8952d43">[FEATURE]</a>: Add a "Talent Tier Versions" house rule setting, for talents with one item per tier</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/f5ec9d6060ff25d77c2026095d1f28483bb6eb92">[STYLING]</a>: Expose the color palette as CSS custom properties, so worlds and modules can restyle the system</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/7164d115542833e31dd829228cd78be1dd590d22">[STYLING]</a>: Give player notes the full width of the journal tab</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/1810142ae5d6f81ef7a25733e21abb88a9e96e44">[LOCALIZATION]</a>: Localize adversary weapon details and XP journal characteristics</li>
-      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/adf860990bab9dc635c483172a5959d8900d2c18">[LOCALIZATION]</a>: Improve the French translation</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/1824caef9f1a93d8d0b3acf8ca9f0cb9129db452">[FIX]</a>: Count every term of a repeated die in roll results, so a hand-typed formula such as <code>2da + 1da</code> keeps the symbols of the second term</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/ae497293602c9aa602ee8d3fcb9453e622a4134f">[FEATURE]</a>: Add a "Style" world setting, with a Realms of Terrinoth color variant chosen by the GM for every user</li>
+      <li><a href="https://github.com/kornifex/FVTT-Genesys/commit/dc0df416da4304262cb39b721fd9315b98eb0773">[STYLING]</a>: Use only FontAwesome Free icons: a few sheet icons change (injuries, inventory, weapons, careers)</li>
 	</ul>
 	<div style="text-align: center">@dice[apbdcs]</div>
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Useful Links</h4>
