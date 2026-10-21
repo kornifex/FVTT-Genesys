@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Tests for the Pool Modifications that come from effects.
  */
 

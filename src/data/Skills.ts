@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Skills: how skill names match, and which skill an actor rolls for a name, for a weapon, and in the dice prompt.
  */
 

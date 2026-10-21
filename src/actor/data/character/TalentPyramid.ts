@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file The Talent Pyramid: a character must always have more talents of each tier than of the tier above it.
  */
 

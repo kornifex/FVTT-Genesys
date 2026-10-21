@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Tests for Advancement: spending XP and undoing it from the Experience Journal.
  */
 

@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Provides typing data for RootContext injected into Vue apps.
  */
 

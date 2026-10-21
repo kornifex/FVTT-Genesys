@@ -1,9 +1,5 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @file Pool Modifications that come from effects: how their changes are keyed, which ones apply to a check, and how
- * talent ranks scale them.
+ * @file Pool Modifications that come from effects: how their changes are keyed, which ones apply to a check, and how talent ranks scale them.
  */
 
 import { Characteristic } from '@/data/Characteristics';

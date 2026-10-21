@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file
- */
-
 import { isFoundryV12 } from '@/foundryGeneration';
 
 export function register() {

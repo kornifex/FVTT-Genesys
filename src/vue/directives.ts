@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Vue custom directives
- */
-
 function doLocalize(el: HTMLInputElement, binding: any) {
 	if (typeof binding.arg !== 'string') {
 		console.warn(`Attempt to localize non-string attribute '${binding.arg}'`);

@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file System Entry Point
  */
 
@@ -61,7 +57,7 @@ async function doAlphaNotice(lastAlpha: string) {
 	<div style="text-align: center">@dice[apbdcs]</div>
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Useful Links</h4>
 	<ul style="margin-top: 0">
-		<li><a href="https://github.com/Mezryss/FVTT-Genesys/wiki">Project Wiki</a></li>
+		<li><a href="https://github.com/kornifex/FVTT-Genesys#readme">Project Documentation</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys">Project Source Code</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys/issues">Report Bugs &amp; Suggest Features</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys/blob/main/LICENSE">Licensed under the MIT License</a></li>
@@ -203,6 +199,7 @@ Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement
 	}
 
 	if (note) {
+		// The upstream wiki still documents these pages; #73 moves them to the fork's documentation.
 		note.innerHTML = note.innerHTML.replaceAll(wikiLinkPattern, (_m, g1, _g2, g3) => {
 			return `<a href="https://github.com/Mezryss/FVTT-Genesys/wiki/${g1}" target="_blank">${g3 ? g3 : g1}</a>`;
 		});
@@ -213,7 +210,7 @@ Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement
 // hardcoded. However, we can cheat the system into using our own implementation by manually instanciating it and
 // patching the compendium. Also, because we want to apply this even to newly created compendia we run this on every
 // compendium directory bar rendering (it's triggered right after a new compendium is created). We went with this way
-// of cheating the system in order to maintain compatibility with FVTTv10+ and to capture newly created compendia.
+// of cheating the system in order to capture newly created compendia.
 // For context, we want to perform this patch to allow sheets with drop areas to properly highlight when something is
 // being dragged from a compendium.
 const COMPENDIUM_PATCHING = {

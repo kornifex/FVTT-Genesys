@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Armor equipment
- */
-
 import EquipmentDataModel from '@/item/data/EquipmentDataModel';
 import { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 

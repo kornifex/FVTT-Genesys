@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Base Genesys Item
- */
-
 import GenesysActor from '@/actor/GenesysActor';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import IHasPreCreate from '@/data/IHasPreCreate';

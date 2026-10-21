@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Base Genesys Actor
- */
 import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
 import IHasPreCreate from '@/data/IHasPreCreate';
 import IHasOnDelete from '@/data/IHasOnDelete';

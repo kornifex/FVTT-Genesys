@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Career ItemSheet
- */
-
 import CareerDataModel from '@/item/data/CareerDataModel';
 import VueCareerSheet from '@/vue/sheets/item/CareerSheet.vue';
 import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';

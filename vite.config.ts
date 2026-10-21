@@ -16,12 +16,8 @@ const PROXY_PORT = process.env.VITE_PROXY_PORT ?? 30000;
  */
 let releaseOnlyAliases: AliasOptions = [];
 
-let devOnlyAliases: AliasOptions = [];
-
 if (process.env.NODE_ENV === 'production') {
 	releaseOnlyAliases = [{ find: 'vue', replacement: path.resolve(__dirname, 'node_modules/vue/dist/vue.esm-browser.prod.js') }];
-} else {
-	devOnlyAliases = [];
 }
 
 // https://vitejs.dev/config/
@@ -56,6 +52,6 @@ export default defineConfig({
 	},
 	plugins: [pluginVue()],
 	resolve: {
-		alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }, { find: '@scss', replacement: path.resolve(__dirname, 'src/scss') }, ...devOnlyAliases, ...releaseOnlyAliases],
+		alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }, { find: '@scss', replacement: path.resolve(__dirname, 'src/scss') }, ...releaseOnlyAliases],
 	},
 });

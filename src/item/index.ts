@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Genesys Items Root.
- */
-
 import GenesysItem from '@/item/GenesysItem';
 import { register as registerSheets } from '@/item/sheets';
 

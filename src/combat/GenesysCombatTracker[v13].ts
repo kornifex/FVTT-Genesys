@@ -1,9 +1,6 @@
 // @ts-nocheck -- The types we have are not v13 compatible
 
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Combat Tracker for Foundry v13, which lists Initiative Slots instead of combatants.
  */
 

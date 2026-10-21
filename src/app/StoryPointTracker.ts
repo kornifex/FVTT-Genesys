@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Foundry application to track the current pools of story points.
  */
 

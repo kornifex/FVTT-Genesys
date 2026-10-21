@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Weapons
- */
-
 import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
 import { Characteristic } from '@/data/Characteristics';
 

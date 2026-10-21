@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Dice roll prompt app.
- */
-
 import GenesysActor from '@/actor/GenesysActor';
 import GenesysItem from '@/item/GenesysItem';
 import { ContextBase } from '@/vue/SheetContext';

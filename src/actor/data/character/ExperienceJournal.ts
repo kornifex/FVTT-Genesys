@@ -1,12 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Experience Journal
- */
-
-/**
  * Different sources of Experience Journal entries.
  */
 export enum EntryType {

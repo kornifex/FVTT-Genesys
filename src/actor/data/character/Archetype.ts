@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Adding and removing a character's Archetype.
  */
 

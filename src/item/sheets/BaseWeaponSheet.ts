@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Weapon ItemSheet
- */
-
 import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
 
 import GenesysItem from '@/item/GenesysItem';

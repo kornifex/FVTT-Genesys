@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Base data model for Equipment-type Items.
  */
 

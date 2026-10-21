@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Nemesis Adversaries
- */
 import GenesysActor from '@/actor/GenesysActor';
 import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import { CombatPool } from '@/data/Actors';

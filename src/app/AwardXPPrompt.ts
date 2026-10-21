@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file XP Award Prompt Application
- */
-
 import VueAwardXPPrompt from '@/vue/apps/AwardXPPrompt.vue';
 import { ContextBase } from '@/vue/SheetContext';
 import VueSheet from '@/vue/VueSheet';

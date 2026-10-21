@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Root type of all the custom Die types in the Genesys system.
  */
 

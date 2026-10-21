@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Player Character
- */
-
 import GenesysActor from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';

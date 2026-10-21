@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file ActiveEffects Customizations
- */
 import GenesysItem from '@/item/GenesysItem';
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 

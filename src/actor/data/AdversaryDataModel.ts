@@ -1,10 +1,7 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Base data shared by all Adversaries.
  */
+
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';

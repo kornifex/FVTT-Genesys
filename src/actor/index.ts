@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Genesys Actors root.
- */
-
 import { register as registerSheets } from '@/actor/sheets';
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import GenesysActor from '@/actor/GenesysActor';

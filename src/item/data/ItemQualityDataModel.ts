@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Item Qualities
- */
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 
 export default abstract class ItemQualityDataModel extends BaseItemDataModel {

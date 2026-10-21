@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file TextEditor enrichment methods
- */
 import GenesysActor from '@/actor/GenesysActor';
 import DicePrompt from '@/app/DicePrompt';
 import { checkLinkActor } from '@/app/CheckLinks';

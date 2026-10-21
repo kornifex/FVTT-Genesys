@@ -1,9 +1,5 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @file Actor migrations: one walk over every actor a world holds, planners that say what to change on each one, and the
- * chain that runs the migrations in order.
+ * @file Actor migrations: one walk over every actor a world holds, planners that say what to change on each one, and the chain that runs the migrations in order.
  */
 
 /**

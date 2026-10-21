@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Rival Sheet
- */
-
 import AdversarySheet from '@/actor/sheets/AdversarySheet';
 import VueRivalSheet from '@/vue/sheets/actor/RivalSheet.vue';
 

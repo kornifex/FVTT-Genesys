@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Root for Socket utilities
- */
-
 import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
 
 /**

@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Building a dice pool from a characteristic, a skill, a difficulty and pool modifications.
  */
 

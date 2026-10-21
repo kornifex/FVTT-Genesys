@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file ActiveEffect configuration sheet
- */
-
 import GenesysEffect from '@/effects/GenesysEffect';
 import { Characteristic } from '@/data/Characteristics';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
@@ -72,7 +64,7 @@ export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect
 		});
 
 		if (this.isEditable) {
-			// Foundry v10 and v11 bind this functionality differently so instead we override that behavior with our own.
+			// Bind our own image picker in place of Foundry's.
 			html.find('img[data-edit]').off('click');
 			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
 		}
@@ -99,9 +91,4 @@ export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect
 
 		return submitData;
 	}
-}
-
-// Helper function to escape special characters used by regular expressions in strings that we want to match exactly.
-export function escapeRegExp(raw: string) {
-	return raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
