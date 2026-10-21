@@ -40,3 +40,13 @@ _Avoid_: Unskilled check, raw roll
 
 **Talent Pyramid**:
 The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached.
+
+### Presentation
+
+**Palette**:
+The set of colors the system draws with, exposed as `--genesys-<name>` CSS custom properties that worlds and modules may override. Names describe the Genesys color they started from, not a role, and stay stable whatever the Style.
+_Avoid_: Theme, color scheme
+
+**Style**:
+The palette variant chosen by the GM in the world settings ("Genesys" by default, or "Realms of Terrinoth"). A Style only changes colors, never the sheets' layout.
+_Avoid_: Theme, skin
