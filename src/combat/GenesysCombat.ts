@@ -41,6 +41,14 @@ export type InitiativeSkill = {
 	skillChar: Characteristic;
 };
 
+/**
+ * The initiative of one Initiative Slot, and the extra slot it comes from (-1 for the combatant's own slot).
+ */
+export type SlotInitiative = {
+	activationId: number;
+	initiative: number | null;
+};
+
 export default class GenesysCombat extends Combat {
 	/**
 	 * Skills from the Skills Compendium that can be used for initiative.
@@ -65,6 +73,89 @@ export default class GenesysCombat extends Combat {
 		return claimants[round]?.[slot];
 	}
 
+	/**
+	 * The initiative of every Initiative Slot, in turn order. A combatant's highest initiative goes to its first slot.
+	 */
+	get slotInitiatives(): SlotInitiative[] {
+		const initiatives = this.combatants.reduce(
+			(accumulator, combatant) => {
+				accumulator[combatant.id] = [{ activationId: -1, initiative: combatant.initiative }];
+				return accumulator;
+			},
+			{} as Record<string, SlotInitiative[]>,
+		);
+
+		this.extraSlotsForRound(this.round).forEach((slot) => {
+			if (initiatives[slot.activationSource]) {
+				initiatives[slot.activationSource].push({
+					activationId: slot.index,
+					initiative: slot.initiative,
+				});
+			}
+		});
+
+		// Sort each combatant's initiatives in ascending order, so that popping them follows the turn order.
+		Object.values(initiatives).forEach((slots) => slots.sort((first, second) => (first.initiative ?? -Infinity) - (second.initiative ?? -Infinity)));
+
+		return this.turns.map((combatant) => initiatives[combatant.id].pop()!);
+	}
+
+	/**
+	 * Why a combatant can't claim an Initiative Slot, as a localization key, or undefined if it can.
+	 */
+	claimRefusal(round: number, slot: number, combatant: GenesysCombatant): string | undefined {
+		const slotCombatant = (this.turns as unknown as (GenesysCombatant | undefined)[])[slot];
+		if (!slotCombatant) {
+			return 'Genesys.Notifications.GenericError';
+		}
+
+		// A combatant may only claim a slot of its own side (PC or NPC).
+		if ((combatant.disposition === 'friendly') !== (slotCombatant.disposition === 'friendly')) {
+			return 'Genesys.Notifications.CannotClaimOppositeSlot';
+		}
+
+		if (this.claimantForSlot(round, slot) !== undefined) {
+			return 'Genesys.Notifications.SlotAlreadyClaimed';
+		}
+
+		// A combatant acts once per round, plus once for each of its extra slots.
+		const claimants = (this.getFlag('genesys', FLAG_CLAIMANTS) as ClaimantData | undefined)?.[round] ?? {};
+		const claimCount = Object.values(claimants).filter((claimantId) => claimantId === combatant.id).length;
+		const activationCount = 1 + this.extraSlotsForRound(round).filter((extraSlot) => extraSlot.activationSource === combatant.id).length;
+		if (claimCount >= activationCount) {
+			return 'Genesys.Notifications.CombatantHasNoActivationLeft';
+		}
+
+		return undefined;
+	}
+
+	/**
+	 * Claim an Initiative Slot of the current round for the combatant of the single token the user controls.
+	 */
+	async claimSlotWithControlledToken(slot: number) {
+		// Ensure we have a single token selected to claim this slot.
+		if (canvas.tokens.controlled.length !== 1) {
+			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
+			return;
+		}
+
+		const combatant = canvas.tokens.controlled[0].combatant as GenesysCombatant;
+
+		// No claiming initiative slots if you aren't in the combat!
+		if (!combatant || combatant.parent !== this) {
+			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
+			return;
+		}
+
+		const refusal = this.claimRefusal(this.round, slot, combatant);
+		if (refusal) {
+			ui.notifications.warn(game.i18n.format(refusal, { name: combatant.name }));
+			return;
+		}
+
+		await this.claimSlot(this.round, slot, combatant.id);
+	}
+
 	async claimSlot(round: number, slot: number, combatantId: string) {
 		if (!game.user.isGM) {
 			socketEmit(SocketOperation.ClaimInitiativeSlot, {
@@ -73,6 +164,12 @@ export default class GenesysCombat extends Combat {
 				round,
 				slot,
 			});
+			return;
+		}
+
+		// Check the claim again, in case another one reached the GM first.
+		const combatant = this.combatants.get(combatantId) as GenesysCombatant | undefined;
+		if (!combatant || this.claimRefusal(round, slot, combatant)) {
 			return;
 		}
 
