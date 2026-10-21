@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Archetype ItemSheet
- */
-
 import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 

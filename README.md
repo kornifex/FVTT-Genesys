@@ -76,16 +76,16 @@ Some components of this project are used under alternative licensing terms. Each
 > **License:** [Apache 2.0](types/foundry/LICENSE)
 
 #### Fonts: Bebas Neue, Roboto Serif, Roboto Slab, Roboto Mono
-> **License:** [Open Font License](assets/fonts/OFL.txt)
+> **License:** [Open Font License](public/assets/fonts/OFL.txt)
 
 #### Font: Roboto
-> **License:** [Apache 2.0](assets/fonts/Roboto/LICENSE.txt)
+> **License:** [Apache 2.0](public/assets/fonts/Roboto/LICENSE.txt)
 
 #### Font: Roboto Condensed
-> **License:** [Apache 2.0](assets/fonts/Roboto_Condensed/LICENSE.txt)
+> **License:** [Apache 2.0](public/assets/fonts/Roboto_Condensed/LICENSE.txt)
 
 #### Font: Genesys Glyphs & Dice
-> **License:** [MIT](assets/fonts/FFG-Genesys-Glyphs-and-Dice/LICENSE)
+> **License:** [MIT](public/assets/fonts/FFG-Genesys-Glyphs-and-Dice/LICENSE)
 >
 > https://github.com/themensch/FFG-Genesys-Glyphs-and-Dice
 

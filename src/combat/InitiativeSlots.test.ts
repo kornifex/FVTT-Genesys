@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Tests for Initiative Slots: turn order, Claims and what a user may do with them.
  */
 

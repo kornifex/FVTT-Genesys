@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Check links: which actor rolls the check of a `@check` link, wherever the link is rendered.
  */
 

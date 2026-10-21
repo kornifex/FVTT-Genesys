@@ -142,12 +142,6 @@ Genesys:
     Impossible: Impossible
 
   Inventory:
-    Sections:
-      Armor: Armor
-      Consumable: Consumables
-      Container: Containers
-      Gear: Gear
-      Weapon: Weapons
 
   # ActiveEffects System Strings
   ActiveEffects:
@@ -162,7 +156,6 @@ Genesys:
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
-      ModifySkill: Modify Skill
       ModifyDicePool:
         GroupLabel: Modify Dice Pool
         Options:
@@ -222,7 +215,6 @@ Genesys:
   # Notification Prompts
   Notifications:
     GenericError: Unable to perform the desired action.
-    AlreadyHaveSpecialAbility: Unable to add {abilityName}; Special Abilities are not ranked, and you already have it!
     TalentNotRanked: Unable to add {talentName}; It is not a ranked talent, and you already have it!
     NoSkillsCompendium: Skills compendium setting is empty! Attempting to use default skills compendium.
     MissingCompendium: Unable to load Skills Compendium '{name}'. Reconfigure the skills compendium in Genesys Settings.
@@ -233,7 +225,6 @@ Genesys:
     CannotDeleteSkill: Cannot delete XP Journal Entry for skill '{name}' - you must delete the advance to the next rank first!
     CannotAffordTalent: Cannot afford talent '{name}' ({cost}xp).
     CannotAffordRankedTalent: Cannot afford to increase talent '{name}' to rank {newRank} ({cost}xp).
-    CannotDeleteNewTalent: Cannot delete XP Journal Entry for new talent '{name}' - you must delete the talent's rank increases first!
     CannotDeleteExistingTalent: Cannot delete XP Journal Entry for increasing talent '{name}' to rank {rank} - you must delete the higher rank increases first!
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
     CannotPurchaseTalentTier: Cannot purchase talents at tier {tier} - you must have at least {minimum} talents at rank {lowerTier} first.
@@ -277,7 +268,6 @@ Genesys:
     Player: Player Story Points
     GM: GM Story Points
     Reset: Reset Story Points
-    Spend: Spend Point
     ChatMessageGmPool: Spending a GM Story Point!
     ChatMessagePlayerPool: Spending a Player Story Point!
 
@@ -309,7 +299,6 @@ Genesys:
     Duration: Duration
     Miscellaneous: Miscellaneous
     Crew: Crew
-    Attachments: Attachments
 
   # Characteristics
   Characteristics:
@@ -427,7 +416,6 @@ Genesys:
     TotalXP: Total XP
     AvailableXP: Available XP
     Characteristic: Characteristic
-    IsMagicSkill: Is Magic Skill
     Source: Source
     GeneralSkills: General Skills
     MagicSkills: Magic Skills
@@ -472,7 +460,6 @@ Genesys:
     Talents: Talents
     SpecialAbilities: Special Abilities
     TierCount: Tier {tier}
-    DeletedItemData: 'ERR: Deleted item {name}'
     Add: Add
     Encumbrance: Encumbrance
     Price: Price

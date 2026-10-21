@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Dice So Nice! Dice registration.
- */
-
 import BoostDie from '@/dice/types/BoostDie';
 import AbilityDie from '@/dice/types/AbilityDie';
 import ProficiencyDie from '@/dice/types/ProficiencyDie';

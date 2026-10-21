@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Archetypes
- */
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import GenesysItem from '@/item/GenesysItem';
 

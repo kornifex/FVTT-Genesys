@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Effect registration
- */
 import GenesysEffect from '@/effects/GenesysEffect';
 import GenesysEffectSheet from '@/effects/GenesysEffectSheet';
 import GenesysEffectSheetV2 from './GenesysEffectSheetV2';
@@ -16,7 +9,6 @@ export function register() {
 	if (isFoundryV13OrLater()) {
 		// @ts-expect-error
 		CONFIG.ActiveEffect.legacyTransferral = true;
-		// foundry.applications.sheets.ActiveEffectConfig = GenesysEffectSheetV2;
 	}
 
 	DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', ActiveEffectConfig);

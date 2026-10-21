@@ -81,7 +81,6 @@ onBeforeUpdate(updateEffects);
 			<a class="item" data-tab="skills"><Localized label="Genesys.Tabs.Skills" /></a>
 			<a class="item" data-tab="combat"><Localized label="Genesys.Tabs.Combat" /></a>
 			<a class="item" data-tab="talents"><Localized label="Genesys.Tabs.Talents" /></a>
-			<!--			<a class="item" data-tab="magic"><Localized label="Genesys.Tabs.Magic"/></a>-->
 			<a class="item" data-tab="inventory"><Localized label="Genesys.Tabs.Inventory" /></a>
 			<a class="item" data-tab="effects"><Localized label="Genesys.Tabs.Effects" /></a>
 			<a class="item" data-tab="journal"><Localized label="Genesys.Tabs.Journal" /></a>
@@ -95,8 +94,6 @@ onBeforeUpdate(updateEffects);
 			<div class="tab" data-tab="combat"><CombatTab /></div>
 
 			<div class="tab" data-tab="talents"><TalentsTab /></div>
-
-			<!--			<div class="tab" data-tab="magic">MAGIC</div>-->
 
 			<div class="tab" data-tab="inventory"><InventoryTab allow-dropped-state /></div>
 

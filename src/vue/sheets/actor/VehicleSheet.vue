@@ -88,7 +88,6 @@ onBeforeUpdate(updateEffects);
 			<a class="item" data-tab="combat"><Localized label="Genesys.Tabs.Combat" /></a>
 			<a class="item" data-tab="inventory"><Localized label="Genesys.Tabs.Inventory" /></a>
 			<a class="item" data-tab="crew"><Localized label="Genesys.Tabs.Crew" /></a>
-			<!-- <a class="item" data-tab="attachments"><Localized label="Genesys.Tabs.Attachments" /></a> -->
 			<a class="item" data-tab="effects"><Localized label="Genesys.Tabs.Effects" /></a>
 			<a class="item" data-tab="details"><Localized label="Genesys.Tabs.Details" /></a>
 
@@ -100,7 +99,6 @@ onBeforeUpdate(updateEffects);
 			<div class="tab" data-tab="combat"><CombatTab /></div>
 			<div class="tab" data-tab="inventory"><InventoryTab summary-on-top /></div>
 			<div class="tab" data-tab="crew"><CrewTab /></div>
-			<!-- <div class="tab" data-tab="attachments"></div> -->
 
 			<div class="tab" data-tab="effects">
 				<EffectsView :effects="[...effects]" @add-effect="addEffect" />

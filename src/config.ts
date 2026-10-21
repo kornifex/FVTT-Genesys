@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file
- */
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import {
 	KEY_CAREER_SKILL_RANKS,

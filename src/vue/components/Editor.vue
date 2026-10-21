@@ -125,7 +125,7 @@ async function activate() {
 	const editorDiv = document.createElement('div');
 	editorContainer.value.appendChild(editorDiv);
 
-	// Prose options. For the most part, these are identical to Foundry v10, except we change our save callback and only allow ProseMirror.
+	// Prose options. For the most part, these are Foundry's own, except we change our save callback and only allow ProseMirror.
 	const options = {
 		target: editorDiv,
 		fieldName: name,

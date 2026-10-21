@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Foundry generations: the system supports v12, and v13 and later, whose APIs differ in places.
  */
 

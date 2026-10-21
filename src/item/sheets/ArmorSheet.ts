@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file
- */
 import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
 import ArmorDataModel from '@/item/data/ArmorDataModel';
 import VueSheet from '@/vue/VueSheet';

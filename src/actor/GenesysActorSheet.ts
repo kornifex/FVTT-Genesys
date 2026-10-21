@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Basic Actor Sheet
- */
 import GenesysActor from '@/actor/GenesysActor';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import GenesysItem from '@/item/GenesysItem';
@@ -56,7 +49,7 @@ export default class GenesysActorSheet<ActorDataModel extends foundry.abstract.D
 		super.activateListeners(html);
 
 		if (this.isEditable) {
-			// Foundry v10 and v11 bind this functionality differently so instead we override that behavior with our own.
+			// Bind our own image picker in place of Foundry's.
 			html.find('img[data-edit]').off('click');
 			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
 		}

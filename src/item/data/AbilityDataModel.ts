@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Special Abilities
- */
-
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 
 interface AbilityActivation {

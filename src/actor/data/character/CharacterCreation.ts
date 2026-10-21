@@ -1,7 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
  * @file Character creation: it lasts until the character receives their first XP award, and limits the skill ranks they can buy.
  */
 

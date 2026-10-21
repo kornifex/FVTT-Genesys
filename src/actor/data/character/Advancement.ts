@@ -1,9 +1,5 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @file Advancement: spending XP on a characteristic, a skill rank, or a talent or a rank of one, and undoing it from
- * the Experience Journal. Every change to the Experience Journal goes through this module.
+ * @file Advancement: spending XP on a characteristic, a skill rank, or a talent or a rank of one, and undoing it from the Experience Journal. Every change to the Experience Journal goes through this module.
  */
 
 import type GenesysActor from '@/actor/GenesysActor';

@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file User-specific config options.
- */
-
 import { GENESYS_CONFIG } from '@/config';
 
 /**
@@ -74,7 +66,7 @@ export function register(namespace: string) {
 		name: game.i18n.localize('Genesys.Settings.DicePoolChanceToSucceedByPermutation'),
 		hint: game.i18n.localize('Genesys.Settings.DicePoolChanceToSucceedByPermutationHint'),
 		scope: 'client',
-		config: !!game.workers.get, // eslint-disable-line -- Only show setting for FVTT v11+
+		config: true,
 		default: GENESYS_CONFIG.settings.showChanceToSucceedFromPermutations,
 		type: Boolean,
 		requiresReload: true,

@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Item Sheet Registration
- */
-
 import AbilitySheet from '@/vue/sheets/item/AbilitySheet.vue';
 import ArmorSheet from '@/item/sheets/ArmorSheet';
 import EquipmentSheet from '@/vue/sheets/item/EquipmentSheet.vue';

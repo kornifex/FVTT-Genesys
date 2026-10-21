@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file
- */
-
 import GenesysActor from '@/actor/GenesysActor';
 import GenesysCombat, { InitiativeSkill } from '@/combat/GenesysCombat';
 import { Disposition, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';

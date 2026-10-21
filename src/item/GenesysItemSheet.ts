@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Basic Item Sheet
- */
-
 import GenesysItem from '@/item/GenesysItem';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 
@@ -49,7 +41,7 @@ export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = 
 		super.activateListeners(html);
 
 		if (this.isEditable) {
-			// Foundry v10 and v11 bind this functionality differently so instead we override that behavior with our own.
+			// Bind our own image picker in place of Foundry's.
 			html.find('img[data-edit]').off('click');
 			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
 		}

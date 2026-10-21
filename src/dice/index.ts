@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Custom dice type registration.
- */
-
 import AbilityDie from '@/dice/types/AbilityDie';
 import BoostDie from '@/dice/types/BoostDie';
 import ProficiencyDie from '@/dice/types/ProficiencyDie';

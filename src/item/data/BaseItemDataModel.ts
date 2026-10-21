@@ -1,12 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Basic data model
- */
-
-/**
  * Base data model shared by all Item documents.
  *
  * This class (and all subclasses) should be made abstract to deal with the way Foundry handles populating data for the schema.

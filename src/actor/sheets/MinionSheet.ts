@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Minion Sheet
- */
-
 import AdversarySheet from '@/actor/sheets/AdversarySheet';
 import VueMinionSheet from '@/vue/sheets/actor/MinionSheet.vue';
 import GenesysItem from '@/item/GenesysItem';

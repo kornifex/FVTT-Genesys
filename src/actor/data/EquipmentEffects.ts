@@ -1,9 +1,5 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @file Effects of equipment apply only while their item is in the right equipment state: equipped for equipable items, used
- * for consumables and carried for any other equipment.
+ * @file Effects of equipment apply only while their item is in the right equipment state: equipped for equipable items, used for consumables and carried for any other equipment.
  */
 
 import type GenesysActor from '@/actor/GenesysActor';

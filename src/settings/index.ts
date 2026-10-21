@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Central point of registration for all game settings.
- */
-
 import { register as registerCampaignSettings } from './campaign';
 import { register as registerStoryPoints } from './storyPoints';
 import { register as registerUser } from './user';

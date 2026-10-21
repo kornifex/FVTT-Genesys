@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Definition for the Difficulty die.
- */
-
 import GenesysDie from '@/dice/types/GenesysDie';
 import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
 

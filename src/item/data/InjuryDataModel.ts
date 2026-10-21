@@ -1,10 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Critical Injuries
- */
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 
 export default abstract class InjuryDataModel extends BaseItemDataModel {

@@ -1,8 +1,4 @@
 /**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
  * @file Utility interface to mark Document DataModel instances that have custom preCreate callbacks.
  */
 

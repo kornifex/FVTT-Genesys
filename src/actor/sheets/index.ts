@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file Actor Sheet Registration
- */
-
 import CharacterSheet from '@/actor/sheets/CharacterSheet';
 import MinionSheet from '@/actor/sheets/MinionSheet';
 import RivalSheet from '@/actor/sheets/RivalSheet';

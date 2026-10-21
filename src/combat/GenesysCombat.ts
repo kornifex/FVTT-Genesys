@@ -1,11 +1,3 @@
-/**
- * FVTT-Genesys
- * Unofficial implementation of the Genesys RPG for Foundry
- *
- * @author Mezryss
- * @file
- */
-
 import GenesysCombatant from '@/combat/GenesysCombatant';
 import GenesysRoller, { CheckRoll } from '@/dice/GenesysRoller';
 import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
