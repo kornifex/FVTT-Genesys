@@ -205,11 +205,12 @@ export default class GenesysCombat extends Combat {
 			const chatData = {
 				user: game.user.id,
 				speaker: { actor: combatant.actorId },
-				rollMode: 'rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode,
 				content: html,
 				sound: i > 0 ? null : CONFIG.sounds.dice,
 				rolls: [roll],
 			};
+			const rollMode = ('rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode) as RollMode;
+			ChatMessage.applyRollMode(chatData as any, rollMode);
 
 			messages.push(chatData);
 		}
