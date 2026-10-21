@@ -2,7 +2,8 @@
 import { computed, inject, toRaw } from 'vue';
 
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import { Entry as JournalEntry, EntryType as JournalEntryType, removeJournalEntry } from '@/actor/data/character/ExperienceJournal';
+import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
+import { advance, advancementCharacter, awardXP, undoEntry } from '@/actor/data/character/Advancement';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
@@ -19,16 +20,11 @@ async function addXPJournalEntry() {
 		return;
 	}
 
-	await toRaw(context.data.actor).update({
-		'system.experienceJournal.entries': [
-			...system.value.experienceJournal.entries,
-			{
-				amount: award.amount,
-				type: JournalEntryType.Award,
-				data: { reason: award.reason },
-			},
-		],
-	});
+	await advance(toRaw(context.data.actor), awardXP(advancementCharacter(toRaw(context.data.actor)), award.amount, award.reason));
+}
+
+async function removeJournalEntry(index: number) {
+	await advance(toRaw(context.data.actor), undoEntry(advancementCharacter(toRaw(context.data.actor)), index));
 }
 
 function journalEntryFormatArgs(entry: JournalEntry) {
@@ -169,7 +165,7 @@ function journalEntryFormatArgs(entry: JournalEntry) {
 				<div v-for="(entry, index) in system.experienceJournal.entries" :key="index" class="entry">
 					<div><Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="journalEntryFormatArgs(entry)" enriched /></div>
 					<div class="value">{{ entry.amount }}</div>
-					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(toRaw(context.data.actor), index)"><i class="fas fa-trash"></i></a>
+					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(index)"><i class="fas fa-trash"></i></a>
 				</div>
 			</div>
 		</section>

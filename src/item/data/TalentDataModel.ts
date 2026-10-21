@@ -33,13 +33,6 @@ export default abstract class TalentDataModel extends BaseItemDataModel {
 		return Math.min(5, this.tier + this.rank);
 	}
 
-	/**
-	 * How much XP it costs to advance this talent to the next rank.
-	 */
-	get advanceCost() {
-		return this.effectiveNextTier * 5;
-	}
-
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 

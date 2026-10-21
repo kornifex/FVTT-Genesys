@@ -13,7 +13,7 @@ import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import CareerDataModel from '@/item/data/CareerDataModel';
 import SkillDataModel from '@/item/data/SkillDataModel';
-import { EntryType } from '@/actor/data/character/ExperienceJournal';
+import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
 import CareerSkillPrompt from '@/app/CareerSkillPrompt';
 import TalentDataModel from '@/item/data/TalentDataModel';
@@ -94,7 +94,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 			} else if (droppedItem.type === 'career') {
 				// If it's a career, delete the old one and apply the new one.
 
-				if (this.actor.systemData.experienceJournal.entries.some((entry) => entry.type === EntryType.Skill)) {
+				if (!canReplaceCareer(this.actor.systemData.experienceJournal.entries)) {
 					return false;
 				}
 
@@ -127,91 +127,14 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 				clonedDroppedItem = await super._onDropItem(event, data);
 			} else if (droppedItem.type === 'talent') {
 				const droppedTalent = droppedItem as GenesysItem<TalentDataModel>;
-				let targetTalent = this.actor.items.find((i) => i.type === 'talent' && i.name === droppedTalent.name) as GenesysItem<TalentDataModel> | undefined;
-
-				if (targetTalent) {
-					if (targetTalent.systemData.ranked === 'no') {
-						ui.notifications.info(game.i18n.format('Genesys.Notifications.TalentNotRanked', { talentName: targetTalent.name }));
-						return false;
-					}
-
-					// With the talent tier versions house rule, dropping a version of a talent buys a rank at that version's tier, in any order.
-					const newRank = targetTalent.systemData.rank + 1;
-					const newEffectiveTier = CONFIG.genesys.settings.talentTierVersions ? droppedTalent.systemData.tier : targetTalent.systemData.effectiveNextTier;
-					const cost = newEffectiveTier * 5;
-
-					if (!this.actor.systemData.canAddTalentAtTier(newEffectiveTier)) {
-						ui.notifications.info(
-							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
-								tier: newEffectiveTier,
-								lowerTier: newEffectiveTier - 1,
-								minimum: this.actor.systemData.talentPyramidTotals[newEffectiveTier] + 2,
-							}),
-						);
-						return false;
-					} else if (this.actor.systemData.availableXP < cost) {
-						ui.notifications.info(game.i18n.format('Genesys.Notifications.CannotAffordRankedTalent', { name: droppedTalent.name, newRank, cost }));
-						return false;
-					}
-
-					await targetTalent.update({
-						'system.rank': newRank,
-					});
-
-					await this.actor.update({
-						'system.experienceJournal.entries': [
-							...this.actor.systemData.experienceJournal.entries,
-							{
-								amount: -cost,
-								type: EntryType.TalentRank,
-								data: {
-									name: targetTalent.name,
-									id: targetTalent.id,
-									tier: newEffectiveTier,
-									rank: newRank,
-								},
-							},
-						],
-					});
-				} else {
-					// New talent
-					const newEffectiveTier = droppedTalent.systemData.tier;
-					const cost = newEffectiveTier * 5;
-
-					if (!this.actor.systemData.canAddTalentAtTier(newEffectiveTier)) {
-						ui.notifications.info(
-							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
-								tier: newEffectiveTier,
-								lowerTier: newEffectiveTier - 1,
-								minimum: this.actor.systemData.talentPyramidTotals[newEffectiveTier] + 2,
-							}),
-						);
-						return false;
-					} else if (this.actor.systemData.availableXP < cost) {
-						ui.notifications.info(game.i18n.format('Genesys.Notifications.CannotAffordTalent', { name: droppedTalent.name, cost }));
-						return false;
-					}
-
-					[targetTalent] = (await this._onDropItemCreate(droppedTalent.toObject())) as GenesysItem<TalentDataModel>[];
-
-					await this.actor.update({
-						'system.experienceJournal.entries': [
-							...this.actor.systemData.experienceJournal.entries,
-							{
-								amount: -cost,
-								type: EntryType.NewTalent,
-								data: {
-									name: targetTalent.name,
-									id: targetTalent.id,
-									tier: targetTalent.systemData.tier,
-									rank: 1,
-								},
-							},
-						],
-					});
+				const newId = foundry.utils.randomID();
+				const bought = await advance(this.actor, buyDroppedTalent(advancementCharacter(this.actor), { name: droppedTalent.name, tier: droppedTalent.systemData.tier, source: droppedTalent.toObject() }, newId));
+				if (!bought) {
+					return false;
 				}
 
-				clonedDroppedItem = [targetTalent];
+				const targetTalent = this.actor.items.get(newId) ?? this.actor.items.find((i) => i.type === 'talent' && i.name === droppedTalent.name);
+				clonedDroppedItem = [targetTalent as GenesysItem<BaseItemDataModel>];
 			} else {
 				// Let `super` handle the drop and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
