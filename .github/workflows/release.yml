@@ -27,7 +27,7 @@ jobs:
 
       - name: Identify Version Number
         id: version
-        run: echo "::set-output name=version::$(node ./build/version.js)"
+        run: echo "version=$(node ./build/version.js)" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: actions/create-release@v1
