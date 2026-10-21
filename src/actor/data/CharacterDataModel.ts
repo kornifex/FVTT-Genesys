@@ -10,13 +10,14 @@ import GenesysActor from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import * as CharacterCreation from '@/actor/data/character/CharacterCreation';
+import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
+import { isRelevantType } from '@/actor/data/RelevantTypes';
 import IHasPreCreate from '@/data/IHasPreCreate';
 import GenesysItem from '@/item/GenesysItem';
 import ArmorDataModel from '@/item/data/ArmorDataModel';
 import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { CombatPool, Defense } from '@/data/Actors';
-import GenesysEffect from '@/effects/GenesysEffect';
 import TalentDataModel from '@/item/data/TalentDataModel';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
@@ -51,17 +52,26 @@ type CharacterActor = GenesysActor<CharacterDataModel>;
 type ArmorItem = GenesysItem<ArmorDataModel>;
 type EquipmentItem = GenesysItem<EquipmentDataModel>;
 
-// We can get rid of this type when Typescript finally allows getting the keys of private static variables, which will make it so
-// that the first argument type of `isRelevantTypeForContext` is replaced with `keyof typeof VehicleDataModel.#RELEVANT_TYPES`.
-type RelevantTypes = {
-	APTITUDE: string[];
-	SKILL: string[];
-	COMBAT: string[];
-	TALENT: string[];
-	ENCUMBRANCE: string[];
-	INVENTORY: string[];
-	EQUIPABLE: string[];
-	CONSUMABLE: string[];
+/**
+ * A list of Document types that a Character actor cares about for different reasons.
+ */
+const RELEVANT_TYPES = {
+	// Types of items that are used to build a character.
+	APTITUDE: ['archetype', 'career'],
+	// Types that are related to the Skills tab.
+	SKILL: ['skill'],
+	// Types that are related to the Combat tab.
+	COMBAT: ['injury'],
+	// Types that are related to the Talents tab.
+	TALENT: ['ability', 'talent'],
+	// Types that are used to calculate encumbrance values.
+	ENCUMBRANCE: ['weapon', 'armor', 'consumable', 'gear', 'container'],
+	// Types that are listed on the Inventory tab.
+	INVENTORY: ['weapon', 'armor', 'consumable', 'gear', 'container'],
+	// Types that can be equipped.
+	EQUIPABLE: ['weapon', 'armor'],
+	// Types that can be spent.
+	CONSUMABLE: ['consumable'],
 };
 
 export default abstract class CharacterDataModel extends foundry.abstract.DataModel implements IHasPreCreate<CharacterActor> {
@@ -78,28 +88,6 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	abstract currency: number;
 	abstract notes: string;
 	abstract superCharacteristics: Set<Characteristic>;
-
-	/**
-	 * A list of Document types that a Character actor cares about for different reasons.
-	 */
-	static readonly #RELEVANT_TYPES: RelevantTypes = {
-		// Types of items that are used to build a character.
-		APTITUDE: ['archetype', 'career'],
-		// Types that are related to the Skills tab.
-		SKILL: ['skill'],
-		// Types that are related to the Combat tab.
-		COMBAT: ['injury'],
-		// Types that are related to the Talents tab.
-		TALENT: ['ability', 'talent'],
-		// Types that are used to calculate encumbrance values.
-		ENCUMBRANCE: ['weapon', 'armor', 'consumable', 'gear', 'container'],
-		// Types that are listed on the Inventory tab.
-		INVENTORY: ['weapon', 'armor', 'consumable', 'gear', 'container'],
-		// Types that can be equipped.
-		EQUIPABLE: ['weapon', 'armor'],
-		// Types that can be spent.
-		CONSUMABLE: ['consumable'],
-	};
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
@@ -124,8 +112,8 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		},
 	};
 
-	static isRelevantTypeForContext(context: keyof RelevantTypes, type: string) {
-		return !!type && (CharacterDataModel.#RELEVANT_TYPES[context]?.includes(type) ?? false); // eslint-disable-line
+	static isRelevantTypeForContext(context: keyof typeof RELEVANT_TYPES, type: string) {
+		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 
 	/**
@@ -282,39 +270,8 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		return item.systemData.encumbrance * item.systemData.quantity;
 	}
 
-	// Maintain consistent with the function of the same name in `VehicleDataModel`.
 	async handleEffectsStatus(items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const allUpdates = [];
-		for (const item of items) {
-			let effectDisableStatus = false;
-
-			// If the item is equipment then enable its effects only if it's are on the proper equipment state.
-			if (CharacterDataModel.isRelevantTypeForContext('INVENTORY', item.type)) {
-				const itemEquipmentState = overrides?.equipmentState ? overrides.equipmentState : (item.systemData as EquipmentDataModel).state;
-				if (CharacterDataModel.isRelevantTypeForContext('EQUIPABLE', item.type)) {
-					effectDisableStatus = EquipmentState.Equipped !== itemEquipmentState;
-				} else if (CharacterDataModel.isRelevantTypeForContext('CONSUMABLE', item.type)) {
-					effectDisableStatus = EquipmentState.Used !== itemEquipmentState;
-				} else {
-					effectDisableStatus = EquipmentState.Carried !== itemEquipmentState;
-				}
-			}
-
-			allUpdates.push(
-				...actor.effects
-					.filter((effect) => (effect as GenesysEffect).originItem?.id === item.id && effect.disabled !== effectDisableStatus)
-					.map(
-						async (effect) =>
-							await effect.update({
-								disabled: effectDisableStatus,
-							}),
-					),
-			);
-		}
-
-		await Promise.all(allUpdates);
+		await updateEffectsStatus(this.parent as unknown as CharacterActor, CharacterDataModel.isRelevantTypeForContext, items, overrides);
 	}
 
 	async preCreate(actor: CharacterActor, _data: PreDocumentId<any>, _options: DocumentModificationContext<CharacterActor>, _user: User) {
