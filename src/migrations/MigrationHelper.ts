@@ -1,26 +1,55 @@
 import { NAMESPACE } from '@/settings';
 import { KEY_MIGRATION_VERSION } from '@/settings/alpha';
-import { migrate_UseUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
-import { migrate_ActorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
+import { ActorPlanner, ActorWorld, migrateActors, runMigrationChain, WalkedActor } from '@/migrations/ActorMigration';
+import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
+import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 
-export const enum MigrationStatus {
-	SUCCESS,
-	FAILURE,
+function walkedActor(actor: Actor): WalkedActor {
+	return { uuid: actor.uuid, source: actor.toObject() as any, update: (changes) => actor.update(changes) };
 }
 
-const migrationScripts: Array<(migrationId: number) => Promise<MigrationStatus>> = [migrate_UseUuidForVehicles, migrate_ActorOnlyOnceInCrew];
+/**
+ * The actors of the running world: its actors, the synthetic actors of the unlinked tokens of its scenes, and the actors
+ * of its own actor compendiums. Module and system compendiums are left alone.
+ */
+const foundryActorWorld: ActorWorld = {
+	worldActors: () => game.actors.map(walkedActor),
+	tokenActors: () => game.scenes.contents.flatMap((scene) => scene.tokens.contents.flatMap((token) => (!token.actorLink && token.actor ? [walkedActor(token.actor)] : []))),
+	actorPacks: () =>
+		game.packs
+			.filter((pack) => pack.metadata.type === 'Actor' && pack.metadata.packageType === 'world')
+			.map((pack) => ({
+				locked: pack.locked,
+				setLocked: (locked) => pack.configure({ locked }),
+				actors: async () => ((await pack.getDocuments()) as Actor[]).map(walkedActor),
+			})),
+};
+
+/**
+ * Migrate every actor with a planner. It fails if any actor couldn't be migrated.
+ */
+async function migrateEveryActor(plan: ActorPlanner) {
+	const failures = await migrateActors(foundryActorWorld, plan);
+	if (failures.length > 0) {
+		console.error('Genesys | Unable to migrate these actors:', failures);
+	}
+
+	return failures.length === 0;
+}
+
+const migrations: (() => Promise<boolean>)[] = [() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)), () => migrateEveryActor(actorOnlyOnceInCrew)];
 
 export async function performMigrations(lastAlpha: string) {
-	const totalMigrationScripts = migrationScripts.length;
+	const totalMigrationScripts = migrations.length;
 	if (lastAlpha === '0.0.0') {
 		await game.settings.set(NAMESPACE, KEY_MIGRATION_VERSION, totalMigrationScripts);
-		migrationScripts.length = 0;
+		migrations.length = 0;
 		return;
 	}
 
 	const currentMigrationVersion = game.settings.get<number>(NAMESPACE, KEY_MIGRATION_VERSION) ?? 0;
 	if (currentMigrationVersion === totalMigrationScripts) {
-		migrationScripts.length = 0;
+		migrations.length = 0;
 		return;
 	}
 
@@ -30,28 +59,13 @@ export async function performMigrations(lastAlpha: string) {
 		return;
 	}
 
-	let lastMigrationRun = currentMigrationVersion;
-	ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingMigration', { amount: totalMigrationScripts - lastMigrationRun }), { permanent: true });
+	ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingMigration', { amount: totalMigrationScripts - currentMigrationVersion }), { permanent: true });
 
-	for (; lastMigrationRun < totalMigrationScripts; lastMigrationRun++) {
-		const migrationId = lastMigrationRun + 1;
-		ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingScriptMigration', { id: migrationId }), { permanent: true });
-
-		let migrationScriptResponse: MigrationStatus;
-		try {
-			migrationScriptResponse = await migrationScripts[lastMigrationRun](migrationId);
-		} catch (error) {
-			migrationScriptResponse = MigrationStatus.FAILURE;
-			console.error(error);
-		}
-
-		if (migrationScriptResponse === MigrationStatus.FAILURE) {
-			ui.notifications.error(game.i18n.format('Genesys.Migration.StoppedScriptMigration', { id: migrationId }), { permanent: true });
-			break;
-		}
-
-		ui.notifications.warn(game.i18n.format('Genesys.Migration.CompletedScriptMigration', { id: migrationId }), { permanent: true });
-	}
+	const lastMigrationRun = await runMigrationChain(migrations, currentMigrationVersion, {
+		starting: (id) => ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingScriptMigration', { id }), { permanent: true }),
+		completed: (id) => ui.notifications.warn(game.i18n.format('Genesys.Migration.CompletedScriptMigration', { id }), { permanent: true }),
+		stopped: (id) => ui.notifications.error(game.i18n.format('Genesys.Migration.StoppedScriptMigration', { id }), { permanent: true }),
+	});
 
 	const runAmountMigrations = lastMigrationRun - currentMigrationVersion;
 	if (runAmountMigrations > 0) {
@@ -66,5 +80,5 @@ export async function performMigrations(lastAlpha: string) {
 		ui.notifications.info('Genesys.Migration.CompletedMigration', { localize: true, permanent: true });
 	}
 
-	migrationScripts.length = 0;
+	migrations.length = 0;
 }
