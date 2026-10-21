@@ -58,6 +58,13 @@ export default abstract class AdversaryDataModel extends foundry.abstract.DataMo
 		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 
+	/**
+	 * Total value for Defense. An adversary's stat block already counts their armor.
+	 */
+	get totalDefense(): Defense {
+		return this.defense;
+	}
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 

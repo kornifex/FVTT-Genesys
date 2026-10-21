@@ -60,6 +60,14 @@ declare global {
 		applyActiveEffects(): void;
 
 		/**
+		 * Get all ActiveEffects that may apply to this Actor.
+		 * If CONFIG.ActiveEffect.legacyTransferral is true, this is equivalent to actor.effects.contents.
+		 * If CONFIG.ActiveEffect.legacyTransferral is false, this will also return all the transferred ActiveEffects on any
+		 * of the Actor's owned Items.
+		 */
+		allApplicableEffects(): Generator<ActiveEffect, void, void>;
+
+		/**
          * Retrieve an Array of active tokens which represent this Actor in the current canvas Scene.
          * If the canvas is not currently active, or there are no linked actors, the returned Array will be empty.
          * If the Actor is a synthetic token actor, only the exact Token which it represents will be returned.

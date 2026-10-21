@@ -17,7 +17,7 @@ import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import GenesysActor from '@/actor/GenesysActor';
 import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
 import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
-import GenesysEffect from '@/effects/GenesysEffect';
+import { poolModificationsForCheck } from '@/effects/PoolModifications';
 import {
 	type DicePool,
 	type DicePoolModifications,
@@ -38,7 +38,6 @@ type SimplePoolEntity = DieName | SymbolName;
 
 type NonVehicleActorDataModel = CharacterDataModel | AdversaryDataModel;
 
-const VALID_ACTOR_TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis'];
 const SORT_ORDER: Record<SimplePoolEntity, number> = {
 	Proficiency: 0,
 	Ability: 1,
@@ -121,79 +120,21 @@ function isSelectedSkillUnranked() {
 	return !!selectedSkill.value && unrankedSkills.value.includes(selectedSkill.value);
 }
 
-function aggregatePoolModifications(effects: foundry.abstract.EmbeddedCollection<GenesysEffect>, changeKeys: string[], namePrefix: string) {
-	return effects.reduce<DicePoolModifications['effects']>((modifications, effect) => {
-		if (!effect.isSuppressed) {
-			let effectRank = effect.originItem?.system?.scalesWithRank === 'yes' ? effect.originItem?.system?.rank ?? 1 : 1;
-
-			// Find all the changes inside this effect related to the passed criteria.
-			const relevantChanges = effect.changes.reduce((accum, change) => {
-				if (changeKeys.includes(change.key)) {
-					let value = change.value.repeat(effectRank);
-
-					accum.push(...parsePoolModifications(value));
-				}
-				return accum;
-			}, [] as string[]);
-
-			if (relevantChanges.length > 0) {
-				modifications.push({
-					name: namePrefix + effect.name,
-					enabled: CONFIG.genesys.settings.autoApplyPoolModifications,
-					mods: relevantChanges.sort(sortPoolModifications),
-				});
-			}
-		}
-		return modifications;
-	}, []);
-}
-
 function calculatePoolModificationsForSkill() {
-	const actor = toRaw(context.actor);
-	let relevantModifications: DicePoolModifications['effects'] = [];
+	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+	const modifications = poolModificationsForCheck(toRaw(context.actor), (target?.actor as GenesysActor | null) ?? undefined, {
+		characteristic: selectedCharacteristic.value,
+		skillName: selectedSkill.value?.name,
+		attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
+	});
 
-	if (actor) {
-		const selfChangeKeys = [`${GenesysEffect.DICE_POOL_MOD_KEY_PREFIX}${GenesysEffect.DICE_POOL_MOD_CHECK_TYPE}${GenesysEffect.DICE_POOL_MOD_SELF_SOURCE}.`];
-		const targetChangeKeys = [`${GenesysEffect.DICE_POOL_MOD_KEY_PREFIX}${GenesysEffect.DICE_POOL_MOD_CHECK_TYPE}${GenesysEffect.DICE_POOL_MOD_TARGET_SOURCE}.`];
-
-		if (selectedCharacteristic.value) {
-			const charPoolModKey = `${GenesysEffect.DICE_POOL_MOD_KEY_PREFIX}${GenesysEffect.DICE_POOL_MOD_CHAR_TYPE}`;
-			selfChangeKeys.push(`${charPoolModKey}${GenesysEffect.DICE_POOL_MOD_SELF_SOURCE}.${selectedCharacteristic.value}`);
-			targetChangeKeys.push(`${charPoolModKey}${GenesysEffect.DICE_POOL_MOD_TARGET_SOURCE}.${selectedCharacteristic.value}`);
-		}
-		if (selectedSkill.value) {
-			const skillPoolModKey = `${GenesysEffect.DICE_POOL_MOD_KEY_PREFIX}${GenesysEffect.DICE_POOL_MOD_SKILL_TYPE}`;
-			selfChangeKeys.push(`${skillPoolModKey}${GenesysEffect.DICE_POOL_MOD_SELF_SOURCE}.${selectedSkill.value.name}`);
-			targetChangeKeys.push(`${skillPoolModKey}${GenesysEffect.DICE_POOL_MOD_TARGET_SOURCE}.${selectedSkill.value.name}`);
-		}
-
-		relevantModifications.push(...aggregatePoolModifications(actor.effects as foundry.abstract.EmbeddedCollection<GenesysEffect>, selfChangeKeys, game.i18n.localize('Genesys.DicePrompt.PoolModifications.SelfEffects')));
-
-		if (game.user.targets.size === 1) {
-			const [chosenTarget] = game.user.targets;
-			if (VALID_ACTOR_TARGET_TYPES.includes(chosenTarget.actor?.type ?? '')) {
-				relevantModifications.push(
-					...aggregatePoolModifications((chosenTarget.actor?.effects ?? []) as foundry.abstract.EmbeddedCollection<GenesysEffect>, targetChangeKeys, game.i18n.localize('Genesys.DicePrompt.PoolModifications.TargetEffects')),
-				);
-
-				if (context.rollType === RollType.Attack) {
-					const defenseType = (context.rollData as AttackRollData).weapon.systemData.range === 'engaged' ? 'melee' : 'ranged';
-					const totalDefense =
-						chosenTarget.actor!.type === 'character'
-							? (chosenTarget.actor as GenesysActor<CharacterDataModel>).systemData.totalDefense[defenseType]
-							: (chosenTarget.actor as GenesysActor<NonVehicleActorDataModel>).systemData.defense[defenseType];
-
-					relevantModifications.push({
-						name: game.i18n.localize('Genesys.DicePrompt.PoolModifications.TargetEffects') + game.i18n.localize(`Genesys.Labels.${defenseType.capitalize()}Defense`),
-						enabled: CONFIG.genesys.settings.autoApplyPoolModifications,
-						mods: Array(totalDefense).fill(GenesysDice.Setback.GLYPH),
-					});
-				}
-			}
-		}
-	}
-
-	poolModifications.value.effects = relevantModifications;
+	poolModifications.value.effects = modifications.map(({ source, from, mods }) => ({
+		name:
+			game.i18n.localize(source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects') +
+			('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`)),
+		enabled: CONFIG.genesys.settings.autoApplyPoolModifications,
+		mods,
+	}));
 }
 
 function buildDicePool() {
