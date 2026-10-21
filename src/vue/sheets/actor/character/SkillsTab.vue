@@ -239,7 +239,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 							>
 								<template v-slot:menu-items>
 									<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
-										<template v-slot:icon><i :class="`${skill.systemData.career ? 'fat' : 'fas'} fa-stars`"></i></template>
+										<template v-slot:icon><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i></template>
 										{{ skill.systemData.career ? unmarkCareerLabel : markCareerLabel }}
 									</MenuItem>
 
@@ -267,7 +267,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 								<img :src="skill.img" :alt="skill.name" />
 								<a class="name" @click="rollSkill(skill)">
 									<span>{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.system.characteristic.capitalize()}`" />)</span>
-									<i v-if="skill.system.career" class="fas fa-stars"></i>
+									<i v-if="skill.system.career" class="fas fa-star"></i>
 								</a>
 
 								<span class="rank-display">

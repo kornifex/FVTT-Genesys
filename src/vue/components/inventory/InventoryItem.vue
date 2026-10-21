@@ -484,7 +484,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 		<a v-if="item.type !== 'container'" class="quantity" @click="changeItemQuantity($event, item, +1)" @contextmenu="changeItemQuantity($event, item, -1)" data-tooltip="Genesys.Labels.Quantity">
 			{{ item.systemData.quantity }}
-			<i class="fas fa-backpack"></i>
+			<i class="fas fa-suitcase"></i>
 		</a>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i></div>
@@ -496,7 +496,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)" @click="setItemState(EquipmentState.Equipped)">
-					<template v-slot:icon><i class="fas fa-sword"></i></template>
+					<template v-slot:icon><i class="fas fa-hand-fist"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.Equip" />
 				</MenuItem>
 
@@ -506,17 +506,17 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				</MenuItem>
 
 				<MenuItem v-if="allowEquippedState && canUnequipItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-backpack"></i></template>
+					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.Unequip" />
 				</MenuItem>
 
 				<MenuItem v-if="allowDroppedState && canDropItem(item)" @click="setItemState(EquipmentState.Dropped)">
-					<template v-slot:icon><i class="fas fa-shelves"></i></template>
+					<template v-slot:icon><i class="fas fa-box-archive"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.Drop" />
 				</MenuItem>
 
 				<MenuItem v-if="allowDroppedState && canPickupItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-backpack"></i></template>
+					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.PickUp" />
 				</MenuItem>
 

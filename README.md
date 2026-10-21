@@ -49,7 +49,7 @@ The [original project's wiki](https://github.com/Mezryss/FVTT-Genesys/wiki) stil
 Bug reports and feature requests are welcome in the [issue tracker](https://github.com/kornifex/FVTT-Genesys/issues), and so are pull requests, with no guarantee on response time.
 
 All pull requests and forks must adhere to the following:
-- Respect the FontAwesome licensing. If you don't have a seat on a FontAwesome license, do not use FontAwesome Pro icons in your contributions.
+- Respect the FontAwesome licensing: only use FontAwesome Free icons in your contributions.
 - If adapting code from other sources, you must update the "Further Licenses" section below to indicate its licensing and include an appropriately-placed license file where applicable.
 - All contributions to this project, unless otherwise noted through licenses as mentioned above, fall under the project's MIT License.
 - AI-assisted contributions are accepted, as long as you say so in the pull request, and you have reviewed and tested the changes yourself.
@@ -61,17 +61,14 @@ Code for this system is licensed under the [MIT License](https://mit-license.org
 ### Further Licenses
 Some components of this project are used under alternative licensing terms. Each of these components will be accompanied by its own nearby LICENSE file, and is noted below:
 
-#### ⚠️ FontAwesome ⚠️
-> **License:** [Proprietary](https://fontawesome.com/license)
+#### FontAwesome
+> **License:** [Font Awesome Free License](https://fontawesome.com/license/free)
 >
-> There are a couple of important nuances to use of FontAwesome in this project.
->
-> 1) The official FoundryVTT has a license to use and distribute FontAwesome Pro icons within their software. Based on information shared in the [FoundryVTT Discord Server](https://discord.gg/foundryvtt), this ***does not*** include systems developed for Foundry by third-party creators.
-> 2) This system makes use of the FontAwesome Pro icons packaged with Foundry VTT. The original author held a FontAwesome Pro license; this fork does not currently hold one. Resolving this, either by replacing the Pro icons or by acquiring a license, is an open issue.
+> This system uses the FontAwesome icons packaged with Foundry VTT, and only icons from the FontAwesome Free set. Foundry's license to use and distribute FontAwesome Pro icons covers Foundry itself. Based on information shared in the [FoundryVTT Discord Server](https://discord.gg/foundryvtt), it ***does not*** include systems developed for Foundry by third-party creators, and this project holds no Pro license of its own.
 >
 > This means:
-> 1) Contributors should not make use of FontAwesome Pro icons in the code they contribute to the project (because FontAwesome licenses are based on individual seats) unless they have a seat on a FontAwesome Pro license.
-> 2) If you fork this project, you are responsible for either removing all uses of FontAwesome Pro icons, or purchasing an appropriate license.
+> 1) Contributions must only use FontAwesome Free icons, even though Foundry also displays Pro ones.
+> 2) If you fork this project and want to use FontAwesome Pro icons, you are responsible for purchasing an appropriate license.
 
 #### Foundry Type Data
 > Foundry type data was initially pulled from the [Pathfinder 2E System](https://github.com/foundryvtt/pf2e), and has been modified in multiple places to suit the needs of this project.
