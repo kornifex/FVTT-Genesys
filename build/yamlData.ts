@@ -33,23 +33,25 @@ export function yamlData(dir: string): Plugin {
 
 		configureServer(server) {
 			const prefix = `${server.config.base.replace(/\/$/, '')}/`;
+			let data = readYamlData(dir);
 
 			server.middlewares.use((req, res, next) => {
-				const file = req.url?.startsWith(prefix) ? readYamlData(dir).get(req.url.slice(prefix.length).split('?')[0]) : undefined;
-				if (file === undefined) {
+				const source = req.url?.startsWith(prefix) ? data.get(req.url.slice(prefix.length).split('?')[0]) : undefined;
+				if (source === undefined) {
 					next();
 					return;
 				}
 
 				res.setHeader('Content-Type', 'application/json');
-				res.end(file);
+				res.end(source);
 			});
 
 			// Foundry reads the languages once, when the page loads: a changed file needs a full reload.
 			const root = path.resolve(dir);
 			server.watcher.add(root);
-			server.watcher.on('change', (file) => {
-				if (path.resolve(file).startsWith(root + path.sep) && file.endsWith('.yml')) {
+			server.watcher.on('all', (event, file) => {
+				if (['add', 'change', 'unlink'].includes(event) && path.resolve(file).startsWith(root + path.sep) && file.endsWith('.yml')) {
+					data = readYamlData(dir);
 					server.ws.send({ type: 'full-reload' });
 				}
 			});
