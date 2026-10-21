@@ -36,6 +36,24 @@ _Avoid_: Unskilled check
 A check that uses a characteristic alone, with no skill involved at all.
 _Avoid_: Unskilled check, raw roll
 
+**Pool Modification**:
+A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand.
+_Avoid_: Dice modifier, pool mod
+
+### Advancement
+
+**Advancement**:
+Spending XP to raise a characteristic, to buy a rank of a skill, or to buy a talent or a rank of one. Every Advancement is recorded in the character's Experience Journal, and can be undone from it.
+_Avoid_: Purchase, upgrade, level-up
+
+**Experience Journal**:
+The ordered record of a character's XP awards and Advancements.
+_Avoid_: XP log, history
+
+**Character Creation**:
+The period before a character receives their first XP award. Characteristics can only be raised during Character Creation, and a skill rank bought during it can't go above 2.
+_Avoid_: Creation phase, chargen
+
 ### Talents
 
 **Talent Pyramid**:
