@@ -49,8 +49,8 @@ async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
 }
 
-async function rollUnskilled(characteristic: CharacteristicType) {
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), '', { rollUnskilled: characteristic });
+async function rollCharacteristicCheck(characteristic: CharacteristicType) {
+	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
 }
 
 async function purchaseCharacteristic(characteristic: keyof typeof system.value.characteristics) {
@@ -151,8 +151,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.brawn"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.brawn"
 				@upgrade="purchaseCharacteristic('brawn')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Brawn)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Brawn)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Brawn)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Brawn)"
@@ -163,8 +163,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.agility"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.agility"
 				@upgrade="purchaseCharacteristic('agility')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Agility)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Agility)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Agility)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Agility)"
@@ -175,8 +175,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.intellect"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.intellect"
 				@upgrade="purchaseCharacteristic('intellect')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Intellect)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Intellect)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Intellect)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Intellect)"
@@ -187,8 +187,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.cunning"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.cunning"
 				@upgrade="purchaseCharacteristic('cunning')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Cunning)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Cunning)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Cunning)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Cunning)"
@@ -199,8 +199,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.willpower"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.willpower"
 				@upgrade="purchaseCharacteristic('willpower')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Willpower)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Willpower)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Willpower)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Willpower)"
@@ -211,8 +211,8 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:value="system.characteristics.presence"
 				:can-upgrade="system.canPurchaseCharacteristicAdvance.presence"
 				@upgrade="purchaseCharacteristic('presence')"
-				can-roll-unskilled
-				@rollUnskilled="rollUnskilled(CharacteristicType.Presence)"
+				can-roll-characteristic-check
+				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Presence)"
 				:is-super="system.superCharacteristics.has(CharacteristicType.Presence)"
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(CharacteristicType.Presence)"

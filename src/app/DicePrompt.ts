@@ -15,7 +15,6 @@ import VueSheet from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 
 export enum RollType {
-	Simple,
 	Skill,
 	Attack,
 	Initiative,
@@ -26,7 +25,7 @@ export interface DicePromptContext extends ContextBase {
 	skillName?: string;
 	rollType: RollType;
 	difficulty: string;
-	rollUnskilled?: Characteristic;
+	characteristic?: Characteristic;
 	rollData: any;
 	app: DicePrompt;
 }
@@ -43,7 +42,11 @@ export type InitiativeRollData = {
 type DicePromptOptions = {
 	rollType?: RollType;
 	difficulty?: string;
-	rollUnskilled?: Characteristic;
+	/**
+	 * Characteristic rolled when no skill is selected: the characteristic of a Characteristic Check, or of a skill the
+	 * actor can't roll.
+	 */
+	characteristic?: Characteristic;
 	rollData?: { [key: string]: any };
 };
 
@@ -69,6 +72,10 @@ export default class DicePrompt extends VueSheet(Application) {
 		await app.render(true);
 	}
 
+	static async promptForCharacteristicCheck(actor: GenesysActor, characteristic: Characteristic) {
+		await DicePrompt.promptForRoll(actor, '', { characteristic });
+	}
+
 	static async promptForInitiative(actor: GenesysActor, skillName: string, options: DicePromptOptions = {}) {
 		return new Promise<{ roll: Roll; skillName: string }>((resolve, reject) => {
 			const app = new DicePrompt(actor, skillName, {
@@ -85,17 +92,17 @@ export default class DicePrompt extends VueSheet(Application) {
 	skillName?: string;
 	rollType: RollType;
 	difficulty: string;
-	rollUnskilled?: Characteristic;
+	characteristic?: Characteristic;
 	rollData?: { [key: string]: any };
 
-	constructor(actor?: GenesysActor, skillName?: string, { rollType, difficulty, rollUnskilled, rollData }: DicePromptOptions = {}) {
+	constructor(actor?: GenesysActor, skillName?: string, { rollType, difficulty, characteristic, rollData }: DicePromptOptions = {}) {
 		super();
 
 		this.actor = actor;
 		this.skillName = skillName;
 		this.rollType = rollType ?? RollType.Skill;
 		this.difficulty = difficulty ?? CONFIG.genesys.settings.defaultDifficulty;
-		this.rollUnskilled = rollUnskilled;
+		this.characteristic = characteristic;
 		this.rollData = rollData;
 	}
 
@@ -113,7 +120,7 @@ export default class DicePrompt extends VueSheet(Application) {
 			skillName: this.skillName,
 			rollType: this.rollType,
 			difficulty: this.difficulty,
-			rollUnskilled: this.rollUnskilled,
+			characteristic: this.characteristic,
 			rollData: this.rollData,
 			app: this,
 		};

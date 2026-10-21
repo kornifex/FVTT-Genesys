@@ -63,8 +63,8 @@ async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
 }
 
-async function rollUnskilled(characteristic: CharacteristicType) {
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), '', { rollUnskilled: characteristic });
+async function rollCharacteristicCheck(characteristic: CharacteristicType) {
+	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
 }
 
 async function rollAttack(weapon: GenesysItem) {
@@ -98,7 +98,7 @@ async function adjustTalentOrSkillRank(item: GenesysItem<TalentDataModel> | Gene
 
 function skillForWeapon(weapon: GenesysItem): [name: string, id: string] {
 	if ((weapon.systemData as WeaponDataModel).skills.length === 0) {
-		return ['Unskilled', '-'];
+		return ['', '-'];
 	}
 
 	const validSkillNames = (weapon.systemData as WeaponDataModel).skills.map((s) => s.toLowerCase());
@@ -260,8 +260,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.brawn"
 								name="system.characteristics.brawn"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Brawn)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Brawn)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Brawn)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Brawn)"
@@ -271,8 +271,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.agility"
 								name="system.characteristics.agility"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Agility)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Agility)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Agility)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Agility)"
@@ -282,8 +282,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.intellect"
 								name="system.characteristics.intellect"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Intellect)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Intellect)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Intellect)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Intellect)"
@@ -293,8 +293,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.cunning"
 								name="system.characteristics.cunning"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Cunning)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Cunning)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Cunning)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Cunning)"
@@ -304,8 +304,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.willpower"
 								name="system.characteristics.willpower"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Willpower)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Willpower)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Willpower)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Willpower)"
@@ -315,8 +315,8 @@ onBeforeUpdate(updateEffects);
 								:value="system.characteristics.presence"
 								name="system.characteristics.presence"
 								can-edit
-								can-roll-unskilled
-								@rollUnskilled="rollUnskilled(CharacteristicType.Presence)"
+								can-roll-characteristic-check
+								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Presence)"
 								:is-super="system.superCharacteristics.has(CharacteristicType.Presence)"
 								can-mark-super
 								@toggle-super="toggleSuper(CharacteristicType.Presence)"
@@ -452,7 +452,8 @@ onBeforeUpdate(updateEffects);
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
-										<span>{{ skillForWeapon(item)[0] }}</span>
+										<span v-if="skillForWeapon(item)[0]">{{ skillForWeapon(item)[0] }}</span>
+										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
 										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
 										<span><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${item.system.range.capitalize()}`" />]</span>

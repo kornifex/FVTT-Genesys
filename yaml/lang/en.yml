@@ -404,6 +404,7 @@ Genesys:
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
+    NoSkill: No skill
     Name: Name
     CharacterName: Character Name
     SpeciesArchetype: Species/Archetype

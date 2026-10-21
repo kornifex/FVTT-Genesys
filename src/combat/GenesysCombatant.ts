@@ -16,6 +16,11 @@ import MinionDataModel from '@/actor/data/MinionDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import GenesysRoller from '@/dice/GenesysRoller';
 
+/**
+ * The side an Initiative Slot belongs to.
+ */
+export type InitiativeSide = 'pc' | 'npc';
+
 export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
 	 * The initiative skill chosen for this combatant, if it's still one of the combat's initiative skills.
@@ -67,16 +72,23 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 		}
 	}
 
-	override async rollInitiative(formula: string) {
-		const roll = this.getInitiativeRoll(formula);
+	/**
+	 * The side of the Initiative Slots this combatant gives and can claim: friendly tokens are PCs, any other is an NPC.
+	 */
+	get initiativeSide(): InitiativeSide {
+		return this.disposition === 'friendly' ? 'pc' : 'npc';
+	}
+
+	override async rollInitiative(skillName?: string) {
+		const roll = this.getInitiativeRoll(skillName);
 		await roll.evaluate();
 		const results = GenesysRoller.parseRollResults(roll);
 
 		return this.update({ initiative: results.netSuccess + results.netAdvantage / 100 });
 	}
 
-	override getInitiativeRoll(skillName: string = 'Unskilled', charFallback: Characteristic = Characteristic.Brawn) {
-		const skill = this.actor.items.find((i) => i.type === 'skill' && i.name.toLowerCase() === skillName.toLowerCase()) as GenesysItem<SkillDataModel> | undefined;
+	override getInitiativeRoll(skillName?: string, charFallback: Characteristic = Characteristic.Brawn) {
+		const skill = skillName ? (this.actor.items.find((i) => i.type === 'skill' && i.name.toLowerCase() === skillName.toLowerCase()) as GenesysItem<SkillDataModel> | undefined) : undefined;
 		const characteristic = skill?.systemData?.characteristic ?? charFallback;
 		const system = this.actor.systemData as CharacterDataModel | AdversaryDataModel;
 		const characteristicValue = system.characteristics[characteristic];

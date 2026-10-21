@@ -21,9 +21,9 @@ withDefaults(
 		canEdit?: boolean;
 
 		/**
-		 * Can the characteristic be used to directly to roll an unskilled check?
+		 * Can the characteristic be used to directly roll a Characteristic Check?
 		 */
-		canRollUnskilled?: boolean;
+		canRollCharacteristicCheck?: boolean;
 
 		/**
 		 * Can the characteristic be marked as a super-characteristic?
@@ -48,7 +48,7 @@ withDefaults(
 	{
 		canUpgrade: false,
 		canEdit: false,
-		canRollUnskilled: false,
+		canRollCharacteristicCheck: false,
 		canMarkSuper: false,
 		isSuper: false,
 	},
@@ -56,7 +56,7 @@ withDefaults(
 
 const emit = defineEmits<{
 	(e: 'upgrade'): void;
-	(e: 'rollUnskilled'): void;
+	(e: 'rollCharacteristicCheck'): void;
 	(e: 'toggleSuper'): void;
 }>();
 
@@ -80,7 +80,7 @@ const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.Unmark
 			</template>
 
 			<label>
-				<a v-if="canUpgrade || canRollUnskilled" @click="canUpgrade ? emit('upgrade') : emit('rollUnskilled')">
+				<a v-if="canUpgrade || canRollCharacteristicCheck" @click="canUpgrade ? emit('upgrade') : emit('rollCharacteristicCheck')">
 					<Localized :label="label" />
 					<i v-if="canUpgrade" class="fas fa-arrow-circle-up"></i>
 				</a>

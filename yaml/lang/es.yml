@@ -396,6 +396,7 @@ Genesys:
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
+    NoSkill: Sin habilidad
     Name: Nombre
     CharacterName: Nombre del personaje
     SpeciesArchetype: Arquetipo/Especie

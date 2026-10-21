@@ -56,8 +56,9 @@ export default class GenesysCombat extends Combat {
 	get initiativeSkills(): InitiativeSkill[] {
 		const initiativeSkills = CONFIG.genesys.skills.filter((skill) => skill.systemData.initiative).map((skill) => ({ skillName: skill.name, skillChar: skill.systemData.characteristic }));
 
+		// Without any, initiative is a Characteristic Check on Brawn.
 		if (initiativeSkills.length === 0) {
-			return [{ skillName: 'Unskilled', skillChar: Characteristic.Brawn }];
+			return [{ skillName: game.i18n.localize('Genesys.Characteristics.Brawn'), skillChar: Characteristic.Brawn }];
 		}
 
 		return initiativeSkills;
@@ -109,8 +110,8 @@ export default class GenesysCombat extends Combat {
 			return 'Genesys.Notifications.GenericError';
 		}
 
-		// A combatant may only claim a slot of its own side (PC or NPC).
-		if ((combatant.disposition === 'friendly') !== (slotCombatant.disposition === 'friendly')) {
+		// A combatant may only claim a slot of its own side.
+		if (combatant.initiativeSide !== slotCombatant.initiativeSide) {
 			return 'Genesys.Notifications.CannotClaimOppositeSlot';
 		}
 
@@ -256,12 +257,13 @@ export default class GenesysCombat extends Combat {
 			}
 
 			// Initiative roll result
-			let skillName = combatant.initiativeSkill?.skillName ?? this.initiativeSkills[0]?.skillName ?? 'Unskilled';
+			const initiativeSkill = combatant.initiativeSkill ?? this.initiativeSkills[0];
+			let skillName = initiativeSkill.skillName;
 			let roll: Roll | undefined;
 
 			if (prompt) {
 				try {
-					const promptedRoll = await DicePrompt.promptForInitiative(combatant.actor, skillName, { difficulty: '' });
+					const promptedRoll = await DicePrompt.promptForInitiative(combatant.actor, skillName, { difficulty: '', characteristic: initiativeSkill.skillChar });
 
 					roll = promptedRoll.roll;
 					skillName = promptedRoll.skillName;
@@ -271,8 +273,7 @@ export default class GenesysCombat extends Combat {
 			}
 
 			if (!roll) {
-				const charFallback = combatant.initiativeSkill?.skillChar ?? this.initiativeSkills[0]?.skillChar;
-				roll = combatant.getInitiativeRoll(skillName, charFallback);
+				roll = combatant.getInitiativeRoll(skillName, initiativeSkill.skillChar);
 			}
 
 			await roll.evaluate();
