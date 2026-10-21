@@ -201,6 +201,7 @@ async function openActorSheet(actor: GenesysActor) {
 </template>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@scss/vars/colors.scss';
 
 .tab-skills {
@@ -309,7 +310,7 @@ async function openActorSheet(actor: GenesysActor) {
 						}
 
 						.skill-rank {
-							background: transparentize(white, 0.5);
+							background: color.adjust(white, $alpha: -0.5);
 							border: 1px dashed black;
 							border-radius: 0.75rem;
 							text-align: center;
@@ -406,7 +407,7 @@ async function openActorSheet(actor: GenesysActor) {
 					}
 
 					.skill-content-details-skillRank {
-						background: transparentize(white, 0.5);
+						background: color.adjust(white, $alpha: -0.5);
 						border: 1px dashed black;
 						border-radius: 0.75rem;
 						text-align: center;

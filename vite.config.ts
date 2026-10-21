@@ -5,7 +5,7 @@ import pluginVue from '@vitejs/plugin-vue';
 import path from 'path';
 import process from 'process';
 
-import { yamlData } from './build/yamlData';
+import { yamlData } from './build/yamlData.ts';
 
 const env = dotenv.config();
 dotenvExpand.expand(env);
@@ -19,7 +19,7 @@ const PROXY_PORT = process.env.VITE_PROXY_PORT ?? 30000;
 let releaseOnlyAliases: AliasOptions = [];
 
 if (process.env.NODE_ENV === 'production') {
-	releaseOnlyAliases = [{ find: 'vue', replacement: path.resolve(__dirname, 'node_modules/vue/dist/vue.esm-browser.prod.js') }];
+	releaseOnlyAliases = [{ find: 'vue', replacement: path.resolve(import.meta.dirname, 'node_modules/vue/dist/vue.esm-browser.prod.js') }];
 }
 
 // https://vitejs.dev/config/
@@ -41,6 +41,8 @@ export default defineConfig({
 	publicDir: 'public',
 	build: {
 		outDir: 'dist',
+		// v12: the oldest browsers Foundry v12 accepts; Vite's default target is newer.
+		target: ['chrome105', 'firefox121', 'safari15.4'],
 		emptyOutDir: true,
 		sourcemap: true,
 		// Avoiding minification is important, because we don't want names of globals/etc. to be mangled.
@@ -50,10 +52,12 @@ export default defineConfig({
 			entry: 'src/Genesys.ts',
 			formats: ['es'], // ES Modules
 			fileName: 'Genesys',
+			// system.yml loads the styles from style.css, the name Vite gave the CSS of a library before Vite 6.
+			cssFileName: 'style',
 		},
 	},
 	plugins: [pluginVue(), yamlData('yaml')],
 	resolve: {
-		alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }, { find: '@scss', replacement: path.resolve(__dirname, 'src/scss') }, ...releaseOnlyAliases],
+		alias: [{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') }, { find: '@scss', replacement: path.resolve(import.meta.dirname, 'src/scss') }, ...releaseOnlyAliases],
 	},
 });

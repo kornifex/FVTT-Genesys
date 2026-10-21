@@ -147,7 +147,8 @@ async function openActorSheet() {
 </template>
 
 <style lang="scss" scoped>
-@use '@/scss/vars/colors.scss';
+@use 'sass:color';
+@use '@scss/vars/colors.scss';
 
 .actor-tile-mini {
 	display: grid;
@@ -256,8 +257,8 @@ async function openActorSheet() {
 	&.drag-dim {
 		position: relative;
 
-		background: transparentize(#333, 0.85);
-		border: 1px solid transparentize(#333, 0.7);
+		background: color.adjust(#333, $alpha: -0.85);
+		border: 1px solid color.adjust(#333, $alpha: -0.7);
 
 		opacity: 65%;
 	}

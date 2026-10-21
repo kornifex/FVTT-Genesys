@@ -67,6 +67,7 @@ function submitSelection(event: Event) {
 </style>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '@scss/vars/colors.scss';
 
 .select-character-skill-prompt {
@@ -97,7 +98,7 @@ function submitSelection(event: Event) {
 
 		.skill-rank {
 			font-family: 'Roboto', sans-serif;
-			background: transparentize(white, 0.5);
+			background: color.adjust(white, $alpha: -0.5);
 			border: 1px dashed black;
 			border-radius: 0.75rem;
 			text-align: center;

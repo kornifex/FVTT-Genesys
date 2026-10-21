@@ -1,4 +1,4 @@
 # pnpm runs a dependency's install script only when it is listed here.
 allowBuilds:
-  # Checks that the platform binary from esbuild's optional dependencies is installed.
-  esbuild: true
+  # Its script compiles from source only on request; the prebuilt binaries come from its optional dependencies.
+  '@parcel/watcher': false

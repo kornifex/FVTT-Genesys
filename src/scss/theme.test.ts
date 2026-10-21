@@ -81,9 +81,10 @@ describe('Palette', () => {
 		const fallback = css.indexOf('@supports not (color: hsl(from red h s l))');
 		expect(fallback).toBeGreaterThan(css.indexOf(`${DEFAULTS} {`));
 
+		// Sass keeps the fractional channels of an adjusted color: these are #1d334e and #efad5d, to the nearest unit.
 		expect(declarations(DEFAULTS, fallback)).toEqual({
-			'--genesys-blue-shade': '#1d334e',
-			'--genesys-gold-shade': '#efad5d',
+			'--genesys-blue-shade': 'rgb(11.4197071234%, 19.9180938198%, 30.5410771904%)',
+			'--genesys-gold-shade': 'rgb(93.5783637593%, 67.8918187965%, 36.5863421231%)',
 		});
 	});
 

@@ -177,7 +177,7 @@ Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _dat
 });
 
 // Allow to open the DicePrompt on chat command /gendr (for GENesys Dice Roller), thus allowing to open it from a macro
-Hooks.on('chatMessage', (chatLog: ChatLog, message: string, _chatData: any) => {
+Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
 	const commandR = /^\/gendr(?:oll)?/i;
 	if (message.match(commandR)) {
 		DicePrompt.promptForRoll(undefined, '');
