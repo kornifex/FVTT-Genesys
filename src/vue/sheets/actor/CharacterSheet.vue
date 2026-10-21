@@ -10,7 +10,7 @@ import EffectsView from '@/vue/views/EffectsView.vue';
 import JournalTab from '@/vue/sheets/actor/character/JournalTab.vue';
 import SkillsTab from '@/vue/sheets/actor/character/SkillsTab.vue';
 import TalentsTab from '@/vue/sheets/actor/character/TalentsTab.vue';
-import InventoryTab from '@/vue/sheets/actor/character/InventoryTab.vue';
+import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
@@ -98,7 +98,7 @@ onBeforeUpdate(updateEffects);
 
 			<!--			<div class="tab" data-tab="magic">MAGIC</div>-->
 
-			<div class="tab" data-tab="inventory"><InventoryTab /></div>
+			<div class="tab" data-tab="inventory"><InventoryTab allow-dropped-state /></div>
 
 			<div class="tab" data-tab="effects">
 				<EffectsView :effects="[...effects]" @add-effect="addEffect" />

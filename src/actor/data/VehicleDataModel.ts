@@ -1,7 +1,8 @@
 import GenesysActor from '@/actor/GenesysActor';
+import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
+import { isRelevantType } from '@/actor/data/RelevantTypes';
 import IHasOnDelete from '@/data/IHasOnDelete';
 import IHasPreCreate from '@/data/IHasPreCreate';
-import GenesysEffect from '@/effects/GenesysEffect';
 import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
@@ -35,16 +36,24 @@ type RoleData = {
 	members: string[];
 };
 
-// We can get rid of this type when Typescript finally allows getting the keys of private static variables, which will make it so
-// that the first argument type of `isRelevantTypeForContext` is replaced with `keyof typeof VehicleDataModel.#RELEVANT_TYPES`.
-type RelevantTypes = {
-	COMBAT: string[];
-	ROLE: string[];
-	PASSENGER: string[];
-	ENCUMBRANCE: string[];
-	INVENTORY: string[];
-	EQUIPABLE: string[];
-	CONSUMABLE: string[];
+/**
+ * A list of Document types that a Vehicle actor cares about for different reasons.
+ */
+const RELEVANT_TYPES = {
+	// Types that are related to the Combat tab.
+	COMBAT: ['injury'],
+	// Types that are allowed to be dropped on a role.
+	ROLE: ['character', 'minion', 'rival', 'nemesis', 'skill'],
+	// Types that are allowed to be a added as passengers.
+	PASSENGER: ['character', 'minion', 'rival', 'nemesis'],
+	// Types that are used to calculate encumbrance values.
+	ENCUMBRANCE: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
+	// Types that are listed on the Inventory tab.
+	INVENTORY: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
+	// Types that can be equipped.
+	EQUIPABLE: ['vehicleWeapon'],
+	// Types that can be spent.
+	CONSUMABLE: ['consumable'],
 };
 
 export default abstract class VehicleDataModel extends foundry.abstract.DataModel implements IHasPreCreate<GenesysActor<VehicleDataModel>>, IHasOnDelete<GenesysActor<VehicleDataModel>> {
@@ -66,26 +75,6 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 	abstract passengers: ValueWithThreshold & { list: ActorPointer[] };
 	abstract encumbrance: ValueWithThreshold;
 	abstract roles: RoleData[];
-
-	/**
-	 * A list of Document types that a Vehicle actor cares about for different reasons.
-	 */
-	static readonly #RELEVANT_TYPES: RelevantTypes = {
-		// Types that are related to the Combat tab.
-		COMBAT: ['injury'],
-		// Types that are allowed to be dropped on a role.
-		ROLE: ['character', 'minion', 'rival', 'nemesis', 'skill'],
-		// Types that are allowed to be a added as passengers.
-		PASSENGER: ['character', 'minion', 'rival', 'nemesis'],
-		// Types that are used to calculate encumbrance values.
-		ENCUMBRANCE: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
-		// Types that are listed on the Inventory tab.
-		INVENTORY: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
-		// Types that can be equipped.
-		EQUIPABLE: ['vehicleWeapon'],
-		// Types that can be spent.
-		CONSUMABLE: ['consumable'],
-	};
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		trauma: {
@@ -110,8 +99,8 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		},
 	};
 
-	static isRelevantTypeForContext(context: keyof RelevantTypes, type: string) {
-		return !!type && (VehicleDataModel.#RELEVANT_TYPES[context]?.includes(type) ?? false); // eslint-disable-line
+	static isRelevantTypeForContext(context: keyof typeof RELEVANT_TYPES, type: string) {
+		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 
 	static readonly _GAME_VEHICLES = new Set<GenesysActor<VehicleDataModel>>();
@@ -351,39 +340,8 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		}
 	}
 
-	// Maintain consistent with the function of the same name in `CharacterDataModel`.
 	async handleEffectsStatus(items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const allUpdates = [];
-		for (const item of items) {
-			let effectDisableStatus = false;
-
-			// If the item is equipment then enable its effects only if it's are on the proper equipment state.
-			if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', item.type)) {
-				const itemEquipmentState = overrides?.equipmentState ? overrides.equipmentState : (item.systemData as EquipmentDataModel).state;
-				if (VehicleDataModel.isRelevantTypeForContext('EQUIPABLE', item.type)) {
-					effectDisableStatus = EquipmentState.Equipped !== itemEquipmentState;
-				} else if (VehicleDataModel.isRelevantTypeForContext('CONSUMABLE', item.type)) {
-					effectDisableStatus = EquipmentState.Used !== itemEquipmentState;
-				} else {
-					effectDisableStatus = EquipmentState.Carried !== itemEquipmentState;
-				}
-			}
-
-			allUpdates.push(
-				...actor.effects
-					.filter((effect) => (effect as GenesysEffect).originItem?.id === item.id && effect.disabled !== effectDisableStatus)
-					.map(
-						async (effect) =>
-							await effect.update({
-								disabled: effectDisableStatus,
-							}),
-					),
-			);
-		}
-
-		await Promise.all(allUpdates);
+		await updateEffectsStatus(this.parent as unknown as GenesysActor<VehicleDataModel>, VehicleDataModel.isRelevantTypeForContext, items, overrides);
 	}
 
 	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: PreDocumentId<any>, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _user: User) {
