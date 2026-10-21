@@ -59,10 +59,9 @@ async function doAlphaNotice(lastAlpha: string) {
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Useful Links</h4>
 	<ul style="margin-top: 0">
 		<li><a href="https://github.com/Mezryss/FVTT-Genesys/wiki">Project Wiki</a></li>
-		<li><a href="https://github.com/Mezryss/FVTT-Genesys">Project Source Code</a></li>
-		<li><a href="https://github.com/Mezryss/FVTT-Genesys/discussions">Discuss The System</a></li>
-		<li><a href="https://github.com/Mezryss/FVTT-Genesys/issues">Report Bugs &amp; Suggest Features</a></li>
-		<li><a href="https://github.com/Mezryss/FVTT-Genesys/blob/main/LICENSE">Licensed under the MIT License</a></li>
+		<li><a href="https://github.com/kornifex/FVTT-Genesys">Project Source Code</a></li>
+		<li><a href="https://github.com/kornifex/FVTT-Genesys/issues">Report Bugs &amp; Suggest Features</a></li>
+		<li><a href="https://github.com/kornifex/FVTT-Genesys/blob/main/LICENSE">Licensed under the MIT License</a></li>
 	</ul>
 	`,
 		{ async: true },
