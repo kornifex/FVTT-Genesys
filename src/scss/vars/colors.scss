@@ -3,18 +3,19 @@
 $-blue: #2b4b73;
 $-gold: #efaf61;
 
-// Default values of the system's palette. Each color is exposed as a `--genesys-<name>` CSS custom property on `:root`
-// (see `scss/theme.scss`) so the palette can be customized by overriding those properties.
+// Default values of the system's Palette. Each color is exposed as a `--genesys-<name>` CSS custom property on `:root`
+// (see `scss/theme.scss`) so the Palette can be customized by overriding those properties.
 $defaults: (
 	'red': #90231e,
 
 	'light-blue': #71c6ff,
 	'blue': $-blue,
-	'blue-shade': color.adjust($-blue, $lightness: -10%),
+	// Derived in the browser, so that the shades follow the blue and gold of any Style or override.
+	'blue-shade': hsl(from var(--genesys-blue) h s calc(l - 10)),
 	'dark-blue': #384455,
 
 	'gold': $-gold,
-	'gold-shade': color.adjust($-gold, $lightness: -0.8%),
+	'gold-shade': hsl(from var(--genesys-gold) h s calc(l - 0.8)),
 	'orange': #f36c21,
 
 	'paper': #f1ede8,
@@ -26,6 +27,8 @@ $defaults: (
 	'glow-core': #fff,
 	'glow': #e60073,
 	'skill-rank-proficiency': #ffe800,
+	'initiative-slot-pc': #155786,
+	'initiative-slot-npc': #923414,
 
 	'die-ability': #41ad49,
 	'die-difficulty': #522380,
@@ -33,6 +36,26 @@ $defaults: (
 	'die-challenge': #761213,
 	'die-boost': #72cddc,
 	'die-setback': #1e1e1e,
+);
+
+// Default shades for browsers that cannot derive them (CSS relative colors), whatever the Style.
+$fallbacks: (
+	'blue-shade': color.adjust($-blue, $lightness: -10%),
+	'gold-shade': color.adjust($-gold, $lightness: -0.8%),
+);
+
+// Styles the GM can choose in the world settings, each overriding some colors of the Palette. The Palette keeps its
+// names whatever the Style, since worlds and modules rely on them.
+$styles: (
+	'terrinoth': (
+		'red': #56391b,
+		'light-blue': #d9c38b,
+		'blue': #bc572f,
+		'dark-blue': #57391b,
+		'gold': #9f9080,
+		'initiative-slot-pc': var(--genesys-blue),
+		'initiative-slot-npc': var(--genesys-red),
+	),
 );
 
 $red: var(--genesys-red);
@@ -55,6 +78,8 @@ $alert: var(--genesys-alert);
 $glow-core: var(--genesys-glow-core);
 $glow: var(--genesys-glow);
 $skill-rank-proficiency: var(--genesys-skill-rank-proficiency);
+$initiative-slot-pc: var(--genesys-initiative-slot-pc);
+$initiative-slot-npc: var(--genesys-initiative-slot-npc);
 
 $die-ability: var(--genesys-die-ability);
 $die-difficulty: var(--genesys-die-difficulty);

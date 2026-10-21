@@ -1,7 +1,24 @@
 @use 'vars/colors';
 
-:root {
+// Zero specificity, so that worlds and modules can override any color on `:root`, whatever the Style.
+:where(:root) {
 	@each $name, $value in colors.$defaults {
 		--genesys-#{$name}: #{$value};
+	}
+}
+
+@supports not (color: hsl(from red h s l)) {
+	:where(:root) {
+		@each $name, $value in colors.$fallbacks {
+			--genesys-#{$name}: #{$value};
+		}
+	}
+}
+
+@each $style, $palette in colors.$styles {
+	:where(:root[data-genesys-style='#{$style}']) {
+		@each $name, $value in $palette {
+			--genesys-#{$name}: #{$value};
+		}
 	}
 }
