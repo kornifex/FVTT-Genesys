@@ -10,10 +10,13 @@ import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
 
 export type DieCategory = 'positive' | 'negative';
 
+// @ts-expect-error -- The vendored typings predate the namespaced dice terms (the `Die` global is gone in v14).
+const BaseDie: typeof Die = foundry.dice.terms.Die;
+
 /**
  * Base type of all custom Genesys dice.
  */
-export default abstract class GenesysDie extends Die {
+export default abstract class GenesysDie extends BaseDie {
 	/**
 	 * The text glyph used to symbolize this die.
 	 */

@@ -262,7 +262,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 	 * @param archetype
 	 */
 	async applyArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
-		const workingData = <CharacterDataModel>deepClone(this.actor.systemData);
+		const workingData = <CharacterDataModel>foundry.utils.deepClone(this.actor.systemData);
 		const archetypeData = archetype.systemData;
 
 		// Characteristics
@@ -315,7 +315,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 	 * @param archetype
 	 */
 	async removeArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
-		const workingData = <CharacterDataModel>deepClone(this.actor.systemData);
+		const workingData = <CharacterDataModel>foundry.utils.deepClone(this.actor.systemData);
 		const archetypeData = archetype.systemData;
 
 		// Reduce characteristics.

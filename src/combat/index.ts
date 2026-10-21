@@ -15,7 +15,7 @@ export function register() {
 	CONFIG.Combat.documentClass = GenesysCombat;
 	CONFIG.Combatant.documentClass = GenesysCombatant;
 
-	if (game.version.startsWith('13')) {
+	if (game.release.generation >= 13) {
 		// @ts-expect-error
 		CONFIG.ui.combat = GenesysCombatTrackerV13;
 	} else {

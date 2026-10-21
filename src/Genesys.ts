@@ -149,7 +149,7 @@ Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: obj
 
 // Makes the dice icon at the bottom of the chat to function as a shortcut to call the dice prompt.
 Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _data: object) => {
-	if (game.version.startsWith('13')) {
+	if (game.release.generation >= 13) {
 		return;
 	}
 
@@ -188,7 +188,7 @@ Hooks.on('chatMessage', (chatLog: ChatLog, message: string, _chatData: any) => {
 // directly add links as any HTML is escaped.
 const wikiLinkPattern = /\[\[([^|\]]+)(\|([^\]]+))?\]\]/g;
 Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
-	const theHtml = game.version.startsWith('13') ? (html as unknown as HTMLElement) : html[0];
+	const theHtml = game.release.generation >= 13 ? (html as unknown as HTMLElement) : html[0];
 
 	let note = theHtml.querySelector(`[data-setting-id='genesys.${KEY_DEFAULT_DIFFICULTY}'] > .notes`);
 	if (!note) {

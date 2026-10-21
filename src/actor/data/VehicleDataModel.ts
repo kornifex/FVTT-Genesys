@@ -194,7 +194,7 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 	async addRole() {
 		const actor = this.parent as unknown as GenesysActor<this>;
 
-		const roleId = randomID();
+		const roleId = foundry.utils.randomID();
 		const roles = [
 			...this.roles,
 			{
