@@ -90,7 +90,7 @@ export function register() {
 			container.style.fontWeight = 'bold';
 
 			container.innerHTML =
-				'<i class="far fa-dice-d10"></i> ' +
+				'<i class="fas fa-dice-d20"></i> ' +
 				game.i18n.format('Genesys.Enrichers.Opposed', {
 					skill1: skill1,
 					skill2: skill2,
@@ -148,7 +148,7 @@ export function register() {
 			container.dataset.difficulty = 'C'.repeat(upgrades) + 'D'.repeat(difficulty - upgrades);
 
 			container.innerHTML =
-				'<i class="far fa-dice-d10"></i> ' +
+				'<i class="fas fa-dice-d20"></i> ' +
 				game.i18n.format('Genesys.Enrichers.Difficulty', {
 					difficulty: difficultyName,
 					symbols: difficultyIcons || '—',

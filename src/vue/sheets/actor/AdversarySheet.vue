@@ -438,7 +438,7 @@ onBeforeUpdate(updateEffects);
 									</MenuItem>
 
 									<MenuItem @click="rollAttack(item)">
-										<template v-slot:icon><i class="far fa-dice-d10"></i></template>
+										<template v-slot:icon><i class="fas fa-dice-d20"></i></template>
 										{{ checkLabel }}
 									</MenuItem>
 
@@ -449,7 +449,7 @@ onBeforeUpdate(updateEffects);
 								</template>
 
 								<a @click="rollAttack(item)" draggable="true" @dragstart="dragStart($event, item)">
-									<i class="far fa-dice-d10"></i>
+									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
 										<span>{{ skillForWeapon(item)[0] }}</span>
