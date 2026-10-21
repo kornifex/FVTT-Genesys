@@ -18,6 +18,7 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import DicePrompt, { RollType } from '@/app/DicePrompt';
+import { weaponSkillName } from '@/data/Skills';
 
 const props = withDefaults(
 	defineProps<{
@@ -81,7 +82,11 @@ const weaponDamage = computed(() => {
 });
 
 async function rollAttack() {
-	const [skillName] = skillForWeapon();
+	const skillName = skillForWeapon();
+	if (!skillName) {
+		return;
+	}
+
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skillName, {
 		rollType: RollType.Attack,
 		rollData: {
@@ -179,17 +184,8 @@ async function setItemState(state: EquipmentState) {
 	});
 }
 
-function skillForWeapon(): [name: string, id: string] {
-	const validSkillNames = weaponData.value.baseWeapon.skills.map((s) => s.toLowerCase());
-
-	// Does the Adversary have one of these skills?
-	const possessedSkill = toRaw(context.data.actor).items.find((i) => i.type === 'skill' && validSkillNames.includes(i.name.toLowerCase()));
-
-	if (possessedSkill) {
-		return [possessedSkill.name, possessedSkill.id];
-	} else {
-		return [weaponData.value.baseWeapon.skills[0], '-'];
-	}
+function skillForWeapon() {
+	return weaponSkillName(toRaw(context.data.actor).skills, weaponData.value.baseWeapon.skills);
 }
 
 function getFiringArcLabels(weapon: VehicleWeaponDataModel) {
@@ -412,7 +408,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<div v-else class="details" @dragenter="dragEnter" @dragleave="dragLeave">
 			<span class="name">
 				<a @click="openItem">{{ item.name }}</a>
-				<button class="attack" v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped" @click="rollAttack">
+				<button class="attack" v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()" @click="rollAttack">
 					<Localized label="Genesys.Labels.Attack" />
 				</button>
 			</span>

@@ -21,6 +21,7 @@ import WeaponDataModel from '@/item/data/WeaponDataModel';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
 import InjuryDataModel from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
+import { weaponSkillName } from '@/data/Skills';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -72,7 +73,10 @@ async function rollAttack(weapon: GenesysItem) {
 		return;
 	}
 
-	const [attackSkillName] = skillForWeapon(weapon);
+	const attackSkillName = skillForWeapon(weapon);
+	if (!attackSkillName) {
+		return;
+	}
 
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, { rollType: RollType.Attack, rollData: { weapon } });
 }
@@ -96,21 +100,8 @@ async function adjustTalentOrSkillRank(item: GenesysItem<TalentDataModel> | Gene
 	}
 }
 
-function skillForWeapon(weapon: GenesysItem): [name: string, id: string] {
-	if ((weapon.systemData as WeaponDataModel).skills.length === 0) {
-		return ['', '-'];
-	}
-
-	const validSkillNames = (weapon.systemData as WeaponDataModel).skills.map((s) => s.toLowerCase());
-
-	// Does the Adversary have one of these skills?
-	const possessedSkill = toRaw(context.data.actor).items.find((i) => i.type === 'skill' && validSkillNames.includes(i.name.toLowerCase()));
-
-	if (possessedSkill) {
-		return [possessedSkill.name, possessedSkill.id];
-	} else {
-		return [(weapon.systemData as WeaponDataModel).skills[0], '-'];
-	}
+function skillForWeapon(weapon: GenesysItem) {
+	return weaponSkillName(toRaw(context.data.actor).skills, (weapon.systemData as WeaponDataModel).skills);
 }
 
 function damageForWeapon(weapon: GenesysItem): number {
@@ -437,7 +428,7 @@ onBeforeUpdate(updateEffects);
 										{{ editLabel }}
 									</MenuItem>
 
-									<MenuItem @click="rollAttack(item)">
+									<MenuItem v-if="skillForWeapon(item)" @click="rollAttack(item)">
 										<template v-slot:icon><i class="fas fa-dice-d20"></i></template>
 										{{ checkLabel }}
 									</MenuItem>
@@ -452,7 +443,7 @@ onBeforeUpdate(updateEffects);
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
-										<span v-if="skillForWeapon(item)[0]">{{ skillForWeapon(item)[0] }}</span>
+										<span v-if="skillForWeapon(item)">{{ skillForWeapon(item) }}</span>
 										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
 										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>

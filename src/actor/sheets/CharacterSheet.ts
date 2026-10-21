@@ -16,6 +16,7 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { isCareerSkill } from '@/actor/data/character/Career';
+import { ownedSkill } from '@/data/Skills';
 import CareerSkillPrompt from '@/app/CareerSkillPrompt';
 import TalentDataModel from '@/item/data/TalentDataModel';
 import VueSheet from '@/vue/VueSheet';
@@ -113,7 +114,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 			}
 		} else if (CharacterDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
 			// Prevent adding the same skill multiple times.
-			if (droppedItem.type === 'skill' && this.actor.items.find((item) => item.type === 'skill' && item.name === droppedItem.name)) {
+			if (droppedItem.type === 'skill' && ownedSkill(this.actor.skills, droppedItem.name)) {
 				return false;
 			}
 

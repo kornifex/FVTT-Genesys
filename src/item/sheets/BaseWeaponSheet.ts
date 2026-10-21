@@ -13,6 +13,7 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import ItemQualityDataModel from '@/item/data/ItemQualityDataModel';
 import VueSheet from '@/vue/VueSheet';
 import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
+import { skillNamesMatch } from '@/data/Skills';
 
 export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeaponDataModel>) {
 	override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
@@ -30,7 +31,7 @@ export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeapo
 			// Skill Drop
 			case 'skill':
 				// Don't allow duplicates of the same skill.
-				if (systemData.skills.find((s) => s.toLowerCase() === droppedItem.name.toLowerCase())) {
+				if (systemData.skills.some((s) => skillNamesMatch(s, droppedItem.name))) {
 					return;
 				}
 

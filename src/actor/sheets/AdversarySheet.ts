@@ -11,10 +11,10 @@ import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import GenesysItem from '@/item/GenesysItem';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import TalentDataModel from '@/item/data/TalentDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { ActorSheetContext } from '@/vue/SheetContext';
 import { DragTransferData } from '@/data/DragTransferData';
+import { ownedSkill } from '@/data/Skills';
 
 /**
  * Actor sheet used for Player Characters
@@ -64,7 +64,7 @@ export default class AdversarySheet extends VueSheet(GenesysActorSheet<Adversary
 
 		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
 		if (AdversaryDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
-			const existingItem = this.actor.items.find((item) => item.type === droppedItem.type && item.name === droppedItem.name) as GenesysItem<SkillDataModel> | undefined;
+			const existingItem = ownedSkill(this.actor.skills, droppedItem.name);
 
 			if (existingItem) {
 				// If the skill already exists just rank it.

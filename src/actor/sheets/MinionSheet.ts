@@ -12,6 +12,7 @@ import GenesysItem from '@/item/GenesysItem';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
 import { DragTransferData } from '@/data/DragTransferData';
+import { ownedSkill } from '@/data/Skills';
 
 /**
  * Actor sheet used for Player Characters
@@ -44,7 +45,7 @@ export default class MinionSheet extends AdversarySheet {
 
 		// If the dropped item is a skill make sure we don't have it already.
 		if (AdversaryDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
-			if (this.actor.items.find((item) => item.type === droppedItem.type && item.name === droppedItem.name)) {
+			if (ownedSkill(this.actor.skills, droppedItem.name)) {
 				return false;
 			}
 		}

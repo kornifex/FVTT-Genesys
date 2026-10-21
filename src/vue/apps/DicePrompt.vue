@@ -18,6 +18,7 @@ import GenesysActor from '@/actor/GenesysActor';
 import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
 import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
 import { poolModificationsForCheck } from '@/effects/PoolModifications';
+import { promptSkills, skillToRoll } from '@/data/Skills';
 import {
 	type DicePool,
 	type DicePoolModifications,
@@ -75,8 +76,7 @@ const poolModifications = ref<DicePoolModifications>({
 	effects: [],
 });
 const availableSkills = ref<GenesysItem<SkillDataModel>[]>([]);
-// Skills from the Skills Compendium that an adversary doesn't own; rolling one of these is an Unranked Skill Check.
-// Characters own every skill they can roll, so they don't get these.
+// Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
 const unrankedSkills = ref<GenesysItem<SkillDataModel>[]>([]);
 const selectedSkill = ref<AlsoNone<GenesysItem<SkillDataModel>>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
@@ -95,26 +95,21 @@ onMounted(() => {
 	const actor = toRaw(context.actor);
 
 	poolModifications.value.baseDifficulty = parsePoolModifications(context.difficulty);
-	availableSkills.value = actor ? (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).sort(sortSkillsByName) : [];
+	if (actor) {
+		const ownedSkills = actor.skills;
+		const skills = promptSkills(ownedSkills, CONFIG.genesys.skills);
+		availableSkills.value = skills.owned;
+		unrankedSkills.value = skills.unranked;
 
-	const ownedSkillNames = new Set(availableSkills.value.map((skill) => skill.name.toLowerCase()));
-	unrankedSkills.value = actor && ['minion', 'rival', 'nemesis'].includes(actor.type) ? CONFIG.genesys.skills.filter((skill) => !ownedSkillNames.has(skill.name.toLowerCase())).sort(sortSkillsByName) : [];
-
-	if (context.skillName) {
-		const skillName = context.skillName.toLowerCase();
-		selectedSkill.value = [...availableSkills.value, ...unrankedSkills.value].find((skill) => skill.name.toLowerCase() === skillName) as AlsoNone<GenesysItem<SkillDataModel>>;
+		if (context.skillName) {
+			selectedSkill.value = skillToRoll(ownedSkills, CONFIG.genesys.skills, context.skillName)?.skill;
+		}
 	}
 	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic ?? context.characteristic;
 
 	calculatePoolModificationsForSkill();
 	buildDicePool();
 });
-
-function sortSkillsByName(first: GenesysItem<SkillDataModel>, second: GenesysItem<SkillDataModel>) {
-	const nameA = first.name.toLowerCase();
-	const nameB = second.name.toLowerCase();
-	return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-}
 
 function isSelectedSkillUnranked() {
 	return !!selectedSkill.value && unrankedSkills.value.includes(selectedSkill.value);

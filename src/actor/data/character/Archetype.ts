@@ -13,6 +13,7 @@ import type SkillDataModel from '@/item/data/SkillDataModel';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
+import { ownedSkill } from '@/data/Skills';
 
 /**
  * Whether the Archetype is being added to the character (+1) or removed from it (-1).
@@ -93,17 +94,18 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(items: T[], grantedIt
 
 /**
  * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank.
+ * Each granted skill is the one the character rolls for its name.
  */
 export function grantedSkillRankUpdates<T extends HeldItem>(items: T[], grantedItems: ArchetypeGrants['grantedItems'], sign: ArchetypeSign) {
-	const grantedSkills = grantedSkillNames(grantedItems);
-	return items
-		.filter((i) => i.type === 'skill' && grantedSkills.includes(i.name))
-		.map((skill) => ({
-			skill,
-			update: {
-				'system.rank': (<SkillDataModel>skill.system).rank + sign,
-			},
-		}));
+	const skills = items.filter((i) => i.type === 'skill') as (T & { system: SkillDataModel })[];
+	const grantedSkills = new Set(grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []));
+
+	return [...grantedSkills].map((skill) => ({
+		skill,
+		update: {
+			'system.rank': skill.system.rank + sign,
+		},
+	}));
 }
 
 /**

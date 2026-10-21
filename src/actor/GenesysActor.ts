@@ -10,6 +10,8 @@ import GenesysCombatant from '@/combat/GenesysCombatant';
 import IHasPreCreate from '@/data/IHasPreCreate';
 import IHasOnDelete from '@/data/IHasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
+import type GenesysItem from '@/item/GenesysItem';
+import type SkillDataModel from '@/item/data/SkillDataModel';
 
 export default class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
 	/**
@@ -17,6 +19,13 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	 */
 	get systemData(): ActorDataModel {
 		return <ActorDataModel>this.system;
+	}
+
+	/**
+	 * The skills the actor owns, in item order.
+	 */
+	get skills(): GenesysItem<SkillDataModel>[] {
+		return this.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[];
 	}
 
 	/**

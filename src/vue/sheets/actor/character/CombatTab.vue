@@ -12,6 +12,7 @@ import SkillDataModel from '@/item/data/SkillDataModel';
 import DicePrompt, { RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
+import { skillToRoll, weaponSkillName } from '@/data/Skills';
 
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
@@ -39,7 +40,12 @@ async function deleteItem(item: GenesysItem) {
 }
 
 async function rollAttack(weapon: GenesysItem<WeaponDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(rootContext.data.actor), skillForWeapon(weapon)?.name ?? '', {
+	const skillName = weaponSkillName(actor.value.skills, weapon.systemData.skills);
+	if (!skillName) {
+		return;
+	}
+
+	await DicePrompt.promptForRoll(actor.value, skillName, {
 		rollType: RollType.Attack,
 		rollData: {
 			weapon,
@@ -53,10 +59,14 @@ async function healInjury(injury: GenesysItem<InjuryDataModel>) {
 	});
 }
 
-function skillForWeapon(weapon: GenesysItem<WeaponDataModel>): GenesysItem<SkillDataModel> | undefined {
-	const weaponSkills = weapon.systemData.skills.map((s) => s.toLowerCase());
+/**
+ * The skill the character rolls the weapon with, and its rank: none for an Unranked Skill Check.
+ */
+function skillForWeapon(weapon: GenesysItem<WeaponDataModel>): { skill: GenesysItem<SkillDataModel>; rank: number } | undefined {
+	const skillName = weaponSkillName(actor.value.skills, weapon.systemData.skills);
+	const rolledSkill = skillName ? skillToRoll(actor.value.skills, CONFIG.genesys.skills, skillName) : undefined;
 
-	return toRaw(rootContext.data.actor).items.find((i) => i.type === 'skill' && weaponSkills.includes(i.name.toLowerCase())) as GenesysItem<SkillDataModel> | undefined;
+	return rolledSkill && { skill: rolledSkill.skill, rank: rolledSkill.unranked ? 0 : rolledSkill.skill.systemData.rank };
 }
 
 function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
@@ -84,12 +94,13 @@ function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
 					<img :src="weapon.img" :alt="weapon.name" />
 					<div class="name">
-						<a @click="rollAttack(weapon)">{{ weapon.name }}</a>
+						<a v-if="weapon.systemData.skills.length > 0" @click="rollAttack(weapon)">{{ weapon.name }}</a>
+						<span v-else>{{ weapon.name }}</span>
 					</div>
-					<div class="skill" v-for="skill in [skillForWeapon(weapon)]" :key="skill?.id ?? 'skill'">
-						<template v-if="skill">
-							{{ skill.name }}
-							<SkillRanks :skill-value="skill.systemData.rank" :characteristic-value="actor.systemData.characteristics[skill.systemData.characteristic]" />
+					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.skill.id ?? 'skill'">
+						<template v-if="weaponSkill">
+							{{ weaponSkill.skill.name }}
+							<SkillRanks :skill-value="weaponSkill.rank" :characteristic-value="actor.systemData.characteristics[weaponSkill.skill.systemData.characteristic]" />
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
