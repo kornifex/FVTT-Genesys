@@ -11,23 +11,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # pnpm/action-setup reads the version from packageManager in package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: yarn
+          node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: yarn lint
+        run: pnpm lint
 
       - name: Check Formatting
-        run: yarn format:check
+        run: pnpm format:check
 
       - name: Test
-        run: yarn test
+        run: pnpm test
 
       - name: Build Project
-        run: yarn build
+        run: pnpm build

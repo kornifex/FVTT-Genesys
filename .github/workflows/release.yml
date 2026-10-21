@@ -10,20 +10,23 @@ jobs:
     permissions: write-all
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      # pnpm/action-setup reads the version from packageManager in package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Install Dependencies
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: pnpm install --frozen-lockfile
 
       - name: Build Project
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: release
+        run: pnpm release
 
       - name: Identify Version Number
         id: version

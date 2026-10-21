@@ -7,21 +7,25 @@
 	"license": "MIT",
 	"type": "module",
 	"private": true,
+	"packageManager": "pnpm@12.6.0",
+	"engines": {
+		"node": "^24"
+	},
 	"scripts": {
 		"build:data": "gulp",
-		"build": "vue-tsc --noEmit && yarn build:data && vite build",
+		"build": "vue-tsc --noEmit && pnpm build:data && vite build",
 		"dev": "concurrently \"gulp watch\" \"vite\"",
 		"watch:data": "gulp watch",
 		"lint": "eslint src --ext .vue,.js,.ts",
 		"format": "prettier --write src/ types/",
 		"format:check": "prettier --check src/ types/",
 		"test": "vitest run",
-		"release": "yarn build && gulp zip"
+		"release": "pnpm build && gulp zip"
 	},
 	"devDependencies": {
 		"@rushstack/eslint-patch": "^1.7.2",
 		"@types/jquery": "^3.5.29",
-		"@types/node": "^18.11.18",
+		"@types/node": "^24.19.2",
 		"@vitejs/plugin-vue": "^4.0.0",
 		"@vue/eslint-config-prettier": "^9.0.0",
 		"@vue/eslint-config-typescript": "^12.0.0",

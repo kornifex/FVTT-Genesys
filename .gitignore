@@ -8,7 +8,7 @@
 
 # Node
 /node_modules
-yarn-*.log
+pnpm-debug.log*
 
 # IDEs
 .idea/
