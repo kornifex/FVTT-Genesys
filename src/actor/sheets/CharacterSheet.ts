@@ -138,14 +138,13 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 					const newRank = targetTalent.systemData.rank + 1;
 					const newEffectiveTier = CONFIG.genesys.settings.talentTierVersions ? droppedTalent.systemData.tier : targetTalent.systemData.effectiveNextTier;
 					const cost = newEffectiveTier * 5;
-					const talentPyramidTotals = this.actor.systemData.talentPyramidTotals;
 
-					if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
+					if (!this.actor.systemData.canAddTalentAtTier(newEffectiveTier)) {
 						ui.notifications.info(
 							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
 								tier: newEffectiveTier,
 								lowerTier: newEffectiveTier - 1,
-								minimum: talentPyramidTotals[newEffectiveTier] + 2,
+								minimum: this.actor.systemData.talentPyramidTotals[newEffectiveTier] + 2,
 							}),
 						);
 						return false;
@@ -177,14 +176,13 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 					// New talent
 					const newEffectiveTier = droppedTalent.systemData.tier;
 					const cost = newEffectiveTier * 5;
-					const talentPyramidTotals = this.actor.systemData.talentPyramidTotals;
 
-					if (!CONFIG.genesys.settings.ignoreTalentPyramid && talentPyramidTotals[newEffectiveTier - 1] <= talentPyramidTotals[newEffectiveTier] + 1) {
+					if (!this.actor.systemData.canAddTalentAtTier(newEffectiveTier)) {
 						ui.notifications.info(
 							game.i18n.format('Genesys.Notifications.CannotPurchaseTalentTier', {
 								tier: newEffectiveTier,
 								lowerTier: newEffectiveTier - 1,
-								minimum: talentPyramidTotals[newEffectiveTier] + 2,
+								minimum: this.actor.systemData.talentPyramidTotals[newEffectiveTier] + 2,
 							}),
 						);
 						return false;
