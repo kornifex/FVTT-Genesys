@@ -15,7 +15,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	}
 
 	async _onClaimInitiativeSlot(event: JQuery.ClickEvent) {
-		await this.viewed.claimSlotWithControlledToken(+$(event.currentTarget).data('claim-slot'));
+		await this.viewed.claimSlotWithControlledToken((event.currentTarget as HTMLElement).dataset.claimSlot as string);
 	}
 
 	override activateListeners(html: JQuery) {
@@ -32,24 +32,18 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			return data;
 		}
 
-		const slotInitiatives = combat.slotInitiatives;
+		const slots = combat.slots;
 
 		// The core tracker only lists the turns the user can see, but Initiative Slots are indexed on every turn.
 		const visibleSlotIndices = combat.turns.flatMap((combatant, index) => (combatant.visible ? [index] : []));
 
 		const turns = data.turns.map((t, visibleIndex) => {
-			const slotIndex = visibleSlotIndices[visibleIndex];
-			const combatant = combat.combatants.get(t.id) as GenesysCombatant;
-			const claimantId = combat.claimantForSlot(combat.round, slotIndex);
-			const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant) : undefined;
-
-			const claimed = combat.started ? claimantId !== undefined : true;
-			const canClaim = combatant.initiativeSide === 'pc' || game.user.isGM;
-
-			const slotInitiative = slotInitiatives[slotIndex];
+			const slot = slots[visibleSlotIndices[visibleIndex]];
+			const claimant = slot.claimantId ? (combat.combatants.get(slot.claimantId) as GenesysCombatant | undefined) : undefined;
 
 			let claimantOverride = {};
 
+			// Once the combat started, a slot shows the combatant that claimed it.
 			if (combat.started && claimant) {
 				let defeated = claimant.isDefeated;
 				const effects = new Set();
@@ -84,25 +78,14 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			return {
 				...t,
 				...claimantOverride,
-				slotType: combatant.initiativeSide,
-				initiative: slotInitiative.initiative,
-				hasRolled: slotInitiative.initiative !== null,
-				initiativeSkill: combatant.initiativeSkill?.skillName ?? combat.initiativeSkills[0].skillName,
-				claimed,
-				canClaim,
-				slotIndex,
-				activationId: slotInitiative.activationId,
+				...combat.slotTrackerContext(slot),
 			};
 		});
-
-		// Give the player that claims the current slot the ability to control the turn.
-		const claimantId = combat.claimantForSlot(combat.round, combat.turn);
-		const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant) : undefined;
 
 		return {
 			...data,
 			turns,
-			control: claimant?.players?.includes(game.user) ?? false,
+			control: combat.userControlsTurn,
 		};
 	}
 
@@ -113,29 +96,20 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	protected override _getEntryContextOptions(): EntryContextOption[] {
 		const baseEntries = super._getEntryContextOptions();
 
-		// Update the Reroll Initiative behavior.
+		// Reroll the initiative of the slot, which may be one of the combatant's extra slots.
 		const rerollIndex = baseEntries.findIndex((e) => e.name === 'COMBAT.CombatantReroll');
 
 		if (rerollIndex >= 0) {
-			baseEntries[rerollIndex].callback = (li) => {
-				const combatant = this.viewed.combatants.get(li.data('combatant-id'));
-				const activationId = +li.data('activation-id');
-				const extraSlotsRolls = activationId >= 0 ? [activationId] : [];
-				if (combatant) {
-					return this.viewed.rollInitiative([combatant.id], {}, { prompt: true, extraSlotsRolls });
-				}
-			};
+			baseEntries[rerollIndex].callback = (li) => this.viewed.rollSlotInitiative(li[0].dataset.combatantId as string, +(li[0].dataset.activationId as string));
 		}
 
 		// Allow GMs to revoke an initiative slot claim.
 		const revokeClaim = {
 			name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 			icon: '<i class="fas fa-broom"></i>',
+			condition: (li: JQuery<HTMLElement>) => this.viewed.canRevokeClaim(li[0].dataset.slotId as string),
 			callback: async (li: JQuery<HTMLElement>) => {
-				const index = +li.data('slot-index');
-				if (!isNaN(index)) {
-					await this.viewed.revokeSlot(this.viewed.round, index);
-				}
+				await this.viewed.revokeSlot(this.viewed.round, li[0].dataset.slotId as string);
 			},
 		};
 
@@ -153,16 +127,11 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 		// Intercept use of the individual Roll Initiative buttons.
 		switch (btn.dataset.control) {
 			case 'rollInitiative':
-				const activationId = +(li.dataset.activationId as string);
-				const extraSlotsRolls = activationId >= 0 ? [activationId] : [];
-				await combat.rollInitiative([li.dataset.combatantId as string], {}, { prompt: true, extraSlotsRolls });
+				await combat.rollSlotInitiative(li.dataset.combatantId as string, +(li.dataset.activationId as string));
 				break;
 
 			case 'cycleInitiativeSkill':
-				const combatant = this.viewed.combatants.get(li.dataset.combatantId as string) as GenesysCombatant | undefined;
-				if (combatant?.isOwner) {
-					await combatant.cycleInitiativeSkill();
-				}
+				await combat.cycleInitiativeSkill(li.dataset.combatantId as string);
 				break;
 
 			default:

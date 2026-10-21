@@ -11,7 +11,7 @@
 <ol class="combat-tracker plain">
 	{{#each turns}}
 		{{#if claimed}}
-			<li class="combatant claimed slot-{{slotType}} {{css}}" data-combatant-id="{{id}}" data-slot-index="{{slotIndex}}" data-activation-id="{{activationId}}" data-action="activateCombatant">
+			<li class="combatant claimed slot-{{slotType}} {{css}}" data-combatant-id="{{id}}" data-slot-id="{{slotId}}" data-activation-id="{{activationId}}" data-action="activateCombatant">
 				<img class="token-image" src="{{img}}" alt="{{name}}" loading="lazy">
 
 				<div class="token-name">
@@ -47,7 +47,7 @@
 				{{> initiative}}
 			</li>
 		{{else}}
-			<li class="combatant initiative-slot slot-{{slotType}} {{css}}" data-combatant-id="{{id}}" data-slot-index="{{slotIndex}}" data-activation-id="{{activationId}}">
+			<li class="combatant initiative-slot slot-{{slotType}} {{css}}" data-combatant-id="{{id}}" data-slot-id="{{slotId}}" data-activation-id="{{activationId}}">
 				<div class="token-name">
 					{{#if (and canClaim active)}}
 						<button type="button" class="claim-slot" data-action="claimInitiativeSlot">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</button>

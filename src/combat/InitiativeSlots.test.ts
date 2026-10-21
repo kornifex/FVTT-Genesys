@@ -1,0 +1,137 @@
+/**
+ * FVTT-Genesys
+ * Unofficial implementation of the Genesys RPG for Foundry
+ *
+ * @file Tests for Initiative Slots: turn order, Claims and what a user may do with them.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { buildSlots, claimRefusal, decodeInitiative, Disposition, encodeInitiative, ExtraSlot, InitiativeSlot, slotView, SlotViewer } from '@/combat/InitiativeSlots';
+
+function combatant(id: string, initiative: number | null, disposition: Disposition = 'friendly') {
+	return { id, initiative, disposition };
+}
+
+function extraSlot(activationSource: string, index: number, initiative: number | null): ExtraSlot {
+	return { activationSource, index, initiative, startingRound: 1 };
+}
+
+function order(slots: InitiativeSlot[]) {
+	return slots.map((slot) => slot.id);
+}
+
+const player: SlotViewer = { isGM: false, isPlayerOf: (combatantId) => combatantId === 'hero' };
+const gm: SlotViewer = { isGM: true, isPlayerOf: () => false };
+
+describe('buildSlots', () => {
+	it('orders the slots by initiative, highest first, and slots without initiative last', () => {
+		const slots = buildSlots([combatant('a', 1), combatant('b', null), combatant('c', 3.02), combatant('d', 3.01)], []);
+
+		expect(order(slots)).toEqual(['c:-1', 'd:-1', 'a:-1', 'b:-1']);
+	});
+
+	it('breaks initiative ties by disposition, friendly first, then by combatant id', () => {
+		const slots = buildSlots([combatant('h', 2, 'hostile'), combatant('n', 2, 'neutral'), combatant('f2', 2), combatant('f1', 2)], []);
+
+		expect(order(slots)).toEqual(['f1:-1', 'f2:-1', 'n:-1', 'h:-1']);
+	});
+
+	it('gives each extra slot its own initiative, and drops the extra slots of combatants that left', () => {
+		const slots = buildSlots([combatant('boss', 1, 'hostile'), combatant('hero', 2)], [extraSlot('boss', 0, 3), extraSlot('gone', 1, 5), extraSlot('boss', 2, null)]);
+
+		expect(slots.map(({ id, originId, activationId, initiative }) => ({ id, originId, activationId, initiative }))).toEqual([
+			{ id: 'boss:0', originId: 'boss', activationId: 0, initiative: 3 },
+			{ id: 'hero:-1', originId: 'hero', activationId: -1, initiative: 2 },
+			{ id: 'boss:-1', originId: 'boss', activationId: -1, initiative: 1 },
+			{ id: 'boss:2', originId: 'boss', activationId: 2, initiative: null },
+		]);
+	});
+
+	it('gives friendly combatants PC slots and every other combatant NPC slots', () => {
+		const slots = buildSlots([combatant('f', 3), combatant('n', 2, 'neutral'), combatant('h', 1, 'hostile')], []);
+
+		expect(slots.map((slot) => slot.side)).toEqual(['pc', 'npc', 'npc']);
+	});
+
+	it('keeps a Claim on its slot when a reroll changes the turn order', () => {
+		const claims = { 'b:-1': 'hero' };
+		const before = buildSlots([combatant('a', 3), combatant('b', 1)], [], claims);
+		const after = buildSlots([combatant('a', 0), combatant('b', 1)], [], claims);
+
+		expect(before.map((slot) => slot.claimantId)).toEqual([undefined, 'hero']);
+		expect(after.map((slot) => slot.claimantId)).toEqual(['hero', undefined]);
+	});
+});
+
+describe('claimRefusal', () => {
+	const slots = buildSlots([combatant('hero', 3), combatant('ally', 2), combatant('boss', 1, 'hostile')], [extraSlot('ally', 0, 1.5)]);
+
+	it('lets a combatant claim an unclaimed slot of its side', () => {
+		expect(claimRefusal(slots, {}, 'ally:-1', { id: 'hero', side: 'pc' })).toBeUndefined();
+	});
+
+	it('refuses a slot that does not exist', () => {
+		expect(claimRefusal(slots, {}, 'nobody:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.GenericError');
+	});
+
+	it('refuses a slot of the other side', () => {
+		expect(claimRefusal(slots, {}, 'boss:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.CannotClaimOppositeSlot');
+	});
+
+	it('refuses a slot that is already claimed', () => {
+		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.SlotAlreadyClaimed');
+	});
+
+	it('refuses a combatant that claimed as many slots as its initiative gives', () => {
+		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'ally:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.CombatantHasNoActivationLeft');
+	});
+
+	it('lets a combatant with extra slots claim once more for each of them', () => {
+		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'ally:-1', { id: 'ally', side: 'pc' })).toBeUndefined();
+		expect(claimRefusal(slots, { 'hero:-1': 'ally', 'ally:-1': 'ally' }, 'ally:0', { id: 'ally', side: 'pc' })).toBe('Genesys.Notifications.CombatantHasNoActivationLeft');
+	});
+});
+
+describe('slotView', () => {
+	const [unclaimed] = buildSlots([combatant('hero', 1)], []);
+	const claimed = { ...unclaimed, claimantId: 'hero' };
+	const npcSlot = { ...unclaimed, side: 'npc' as const };
+
+	it('shows every slot as claimed before the combat starts, then only the claimed ones', () => {
+		expect(slotView(unclaimed, false, player).showsAsClaimed).toBe(true);
+		expect(slotView(unclaimed, true, player).showsAsClaimed).toBe(false);
+		expect(slotView(claimed, true, player).showsAsClaimed).toBe(true);
+	});
+
+	it('lets players claim PC slots, and the GM any slot', () => {
+		expect(slotView(unclaimed, true, player).canClaim).toBe(true);
+		expect(slotView(npcSlot, true, player).canClaim).toBe(false);
+		expect(slotView(npcSlot, true, gm).canClaim).toBe(true);
+	});
+
+	it('lets the GM revoke a Claim once the combat started', () => {
+		expect(slotView(claimed, true, gm).canRevoke).toBe(true);
+		expect(slotView(claimed, false, gm).canRevoke).toBe(false);
+		expect(slotView(unclaimed, true, gm).canRevoke).toBe(false);
+		expect(slotView(claimed, true, player).canRevoke).toBe(false);
+	});
+
+	it("gives the claimant's players control of the turn", () => {
+		expect(slotView(claimed, true, player).controlsTurn).toBe(true);
+		expect(slotView({ ...claimed, claimantId: 'ally' }, true, player).controlsTurn).toBe(false);
+		expect(slotView(unclaimed, true, player).controlsTurn).toBe(false);
+	});
+});
+
+describe('initiative', () => {
+	it('stores net successes with net advantages as hundredths', () => {
+		expect(encodeInitiative(2, 3)).toBe(2.03);
+		expect(decodeInitiative(encodeInitiative(2, 3))).toEqual({ successes: 2, advantages: 3 });
+		expect(decodeInitiative(encodeInitiative(1, 0))).toEqual({ successes: 1, advantages: 0 });
+		expect(decodeInitiative(encodeInitiative(0, 12))).toEqual({ successes: 0, advantages: 12 });
+	});
+
+	it('decodes no initiative as nothing', () => {
+		expect(decodeInitiative(null)).toEqual({ successes: 0, advantages: 0 });
+	});
+});

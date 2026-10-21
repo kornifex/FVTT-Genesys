@@ -62,9 +62,9 @@ export type ClaimInitiativeSlotData = CombatSocketBaseData & {
 	round: number;
 
 	/**
-	 * Slot to claim.
+	 * Id of the Initiative Slot to claim.
 	 */
-	slot: number;
+	slotId: string;
 };
 
 export type UpdateInitiativeForExtraSlotData = CombatSocketBaseData & {
