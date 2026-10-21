@@ -10,6 +10,7 @@ import GenesysActor from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
+import { rootContainer } from '@/actor/data/character/Encumbrance';
 import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import IHasPreCreate from '@/data/IHasPreCreate';
@@ -215,21 +216,12 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 			}
 		}
 
-		// If it's contained, we need to cycle through to the root container to determine if the container is dropped.
+		// If it's contained, it doesn't contribute when its root container is dropped.
 		if (item.systemData.container !== '') {
-			let container = <EquipmentItem>(<CharacterActor>(<unknown>this.parent)).items.get(item.systemData.container);
-			while (container) {
-				if (container.systemData.container === '') {
-					// If the root container is dropped, this item doesn't contribute.
-					if (container.systemData.state === 'dropped') {
-						return 0;
-					}
-
-					// Otherwise return to the regular path.
-					break;
-				}
-
-				container = <EquipmentItem>(<CharacterActor>(<unknown>this.parent)).items.get(item.systemData.container);
+			const items = (<CharacterActor>(<unknown>this.parent)).items;
+			const root = rootContainer(item.systemData.container, (id) => (<EquipmentItem | undefined>items.get(id))?.systemData);
+			if (root?.state === 'dropped') {
+				return 0;
 			}
 		}
 

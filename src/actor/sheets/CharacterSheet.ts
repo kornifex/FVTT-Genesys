@@ -15,6 +15,7 @@ import CareerDataModel from '@/item/data/CareerDataModel';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
+import { isCareerSkill } from '@/actor/data/character/Career';
 import CareerSkillPrompt from '@/app/CareerSkillPrompt';
 import TalentDataModel from '@/item/data/TalentDataModel';
 import VueSheet from '@/vue/VueSheet';
@@ -175,9 +176,7 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 	 */
 	async applyCareer(droppedCareer: GenesysItem<CareerDataModel>) {
 		const [career] = await this._onDropItemCreate(droppedCareer.toObject());
-		const careerSkillNames = droppedCareer.systemData.careerSkills.map((s) => s.name.toLowerCase());
-
-		const commonSkills = <GenesysItem<SkillDataModel>[]>this.actor.items.filter((i) => i.type === 'skill' && careerSkillNames.includes(i.name.toLowerCase()));
+		const commonSkills = <GenesysItem<SkillDataModel>[]>this.actor.items.filter((i) => i.type === 'skill' && isCareerSkill(i.name, droppedCareer.systemData.careerSkills));
 		const selectedSkills = await CareerSkillPrompt.promptForSkills(commonSkills);
 
 		await career.update({
@@ -205,13 +204,12 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 		const careerData = career.systemData;
 
 		// Unmark Career Skills
-		const careerSkillNames = careerData.careerSkills.map((s) => s.name);
 		const skills = <GenesysItem<SkillDataModel>[]>this.actor.items.filter((i) => i.type === 'skill');
 
 		await Promise.all(
 			skills.map(async (skill) => {
 				// Only un-mark career skills from the Career
-				if (careerSkillNames.includes(skill.name)) {
+				if (isCareerSkill(skill.name, careerData.careerSkills)) {
 					// Reduce the skill's rank if it was one of the selected skills.
 					const rank = skill.systemData.rank - (careerData.selectedSkillIDs.includes(skill.id) ? 1 : 0);
 
