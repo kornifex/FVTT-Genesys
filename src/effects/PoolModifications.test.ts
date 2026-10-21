@@ -28,6 +28,7 @@ import {
 	PoolModificationEffect,
 	poolModificationsForCheck,
 	scaledChangeValue,
+	skillChoices,
 	SourceItem,
 	sourceItem,
 	subjectFieldForKey,
@@ -215,8 +216,16 @@ describe('poolModificationsForCheck', () => {
 
 		expect(poolModificationsForCheck(self, character, { attackRange: 'engaged' })).toEqual([{ source: 'target', from: { defense: 'melee' }, mods: ['S'] }]);
 		expect(poolModificationsForCheck(self, character, { attackRange: 'long' })).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
-		expect(poolModificationsForCheck(self, adversary, { attackRange: 'engaged' })).toEqual([{ source: 'target', from: { defense: 'melee' }, mods: [] }]);
+		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] }]);
 		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
+	});
+
+	it("leaves out the target's defense when it is 0 against the range of the attack", () => {
+		const self = actor('character', []);
+		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
+
+		expect(poolModificationsForCheck(self, adversary, { attackRange: 'engaged' })).toEqual([]);
+		expect(poolModificationsForCheck(self, actor('rival', []), { attackRange: 'medium' })).toEqual([]);
 	});
 
 	it("ignores targets that aren't characters or adversaries, and everything without an actor", () => {
@@ -274,6 +283,18 @@ describe('editing changes in the effect sheets', () => {
 	it('empties the value of a Pool Modification unless it only holds glyphs', () => {
 		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2')).value).toBe('');
 		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB')).value).toBe('BB');
+	});
+
+	it('offers the skills of the Skills Compendium and those the changes apply to', () => {
+		const changes = [
+			editedChange('genesys.pool.skill.self', 'B', { skill: 'Piloting (Space)' }),
+			editedChange('genesys.pool.skill.target', 'S', { skill: 'Cool' }),
+			editedChange('genesys.pool.char.self', 'B', { char: 'brawn' }),
+			editedChange('genesys.pool.skill.self', 'B', { skill: '' }),
+		];
+
+		expect(skillChoices(['Cool', 'Athletics'], changes)).toEqual({ Cool: 'Cool', Athletics: 'Athletics', 'Piloting (Space)': 'Piloting (Space)' });
+		expect(skillChoices([], changes)).toEqual({ 'Piloting (Space)': 'Piloting (Space)', Cool: 'Cool' });
 	});
 
 	it('names the field that edits what a picked key applies to', () => {
