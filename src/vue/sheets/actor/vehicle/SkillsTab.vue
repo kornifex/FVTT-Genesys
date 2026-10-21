@@ -139,7 +139,7 @@ function memberSkillRank(actor: { type: string; systemData: object }, skill: { p
 
 async function rollSkillForActor(actor: GenesysActor, skill: GenesysItem<SkillDataModel>) {
 	if (actor.isOwner) {
-		const promptOptions = skill.pack ? { rollUnskilled: skill.systemData.characteristic } : {};
+		const promptOptions = skill.pack ? { characteristic: skill.systemData.characteristic } : {};
 		await DicePrompt.promptForRoll(actor, skill.name, promptOptions);
 	}
 }

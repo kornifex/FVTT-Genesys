@@ -403,6 +403,7 @@ Genesys:
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
+    NoSkill: Aucune compétence
     Name: Nom
     CharacterName: Nom du personnage
     SpeciesArchetype: Espèce/Archétype

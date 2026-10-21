@@ -100,7 +100,7 @@ async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataMo
 	await DicePrompt.promptForRoll(selectAttacker.actor, selectAttacker.skill.name, {
 		rollType: RollType.Attack,
 		rollData: { weapon },
-		...(selectAttacker.skill.pack && { rollUnskilled: selectAttacker.skill.systemData.characteristic }),
+		...(selectAttacker.skill.pack && { characteristic: selectAttacker.skill.systemData.characteristic }),
 	});
 }
 
@@ -140,7 +140,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 
 	await DicePrompt.promptForRoll(selectRepairer.actor, selectRepairer.skill.name, {
 		difficulty: SEVERITY_TO_DIFFICULTY[criticalHit.systemData.severity],
-		...(selectRepairer.skill.pack && { rollUnskilled: selectRepairer.skill.systemData.characteristic }),
+		...(selectRepairer.skill.pack && { characteristic: selectRepairer.skill.systemData.characteristic }),
 	});
 }
 </script>

@@ -44,7 +44,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			const claimant = claimantId ? (combat.combatants.get(claimantId) as GenesysCombatant) : undefined;
 
 			const claimed = combat.started ? claimantId !== undefined : true;
-			const canClaim = combatant.disposition === 'friendly' || game.user.isGM;
+			const canClaim = combatant.initiativeSide === 'pc' || game.user.isGM;
 
 			const slotInitiative = slotInitiatives[slotIndex];
 
@@ -84,7 +84,7 @@ export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 			return {
 				...t,
 				...claimantOverride,
-				slotType: combatant.disposition === 'friendly' ? 'pc' : 'npc',
+				slotType: combatant.initiativeSide,
 				initiative: slotInitiative.initiative,
 				hasRolled: slotInitiative.initiative !== null,
 				initiativeSkill: combatant.initiativeSkill?.skillName ?? combat.initiativeSkills[0].skillName,

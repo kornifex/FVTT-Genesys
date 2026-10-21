@@ -113,7 +113,7 @@ onMounted(() => {
 		const skillName = context.skillName.toLowerCase();
 		selectedSkill.value = [...availableSkills.value, ...unrankedSkills.value].find((skill) => skill.name.toLowerCase() === skillName) as AlsoNone<GenesysItem<SkillDataModel>>;
 	}
-	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic ?? context.rollUnskilled;
+	selectedCharacteristic.value = selectedSkill.value?.systemData.characteristic ?? context.characteristic;
 
 	calculatePoolModificationsForSkill();
 	buildDicePool();
@@ -475,10 +475,6 @@ async function rollPool() {
 	};
 
 	switch (context.rollType) {
-		case RollType.Simple:
-			await GenesysRoller.skillRoll(baseRollData);
-			break;
-
 		case RollType.Attack:
 			await GenesysRoller.attackRoll({
 				...baseRollData,
@@ -489,7 +485,8 @@ async function rollPool() {
 		case RollType.Initiative:
 			(context.rollData as InitiativeRollData).resolvePromise({
 				roll: new Roll(formula, { symbols }),
-				skillName: selectedSkill.value?.name ?? 'Unskilled',
+				// Without a skill, initiative is a Characteristic Check.
+				skillName: selectedSkill.value?.name ?? (selectedCharacteristic.value ? game.i18n.localize(`Genesys.Characteristics.${selectedCharacteristic.value.capitalize()}`) : ''),
 			});
 			break;
 

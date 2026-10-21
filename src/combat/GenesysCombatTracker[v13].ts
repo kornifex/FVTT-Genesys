@@ -85,8 +85,8 @@ export default class GenesysCombatTracker extends ExtendedClass {
 			turns.push({
 				...turn,
 				claimed: combat.started ? claimant !== undefined : true,
-				canClaim: combatant.disposition === 'friendly' || game.user.isGM,
-				slotType: combatant.disposition === 'friendly' ? 'pc' : 'npc',
+				canClaim: (combatant as GenesysCombatant).initiativeSide === 'pc' || game.user.isGM,
+				slotType: (combatant as GenesysCombatant).initiativeSide,
 				slotIndex,
 				activationId,
 				hasRolled: initiative !== null,
