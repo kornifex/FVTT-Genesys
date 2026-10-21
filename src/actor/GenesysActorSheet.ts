@@ -10,7 +10,6 @@ import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import GenesysItem from '@/item/GenesysItem';
 
 import './GenesysActorSheet.scss';
-import DicePrompt from '@/app/DicePrompt';
 
 export default class GenesysActorSheet<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel, ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ActorSheet<
 	GenesysActor<ActorDataModel>,
@@ -61,18 +60,5 @@ export default class GenesysActorSheet<ActorDataModel extends foundry.abstract.D
 			html.find('img[data-edit]').off('click');
 			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
 		}
-
-		setTimeout(() => {
-			html.find('[data-skill-check]').off('click');
-			html.find('[data-skill-check]').on('click', async (event) => {
-				const target = $(event.delegateTarget);
-
-				// Grab the skill name & difficulty
-				const skillName: string = target.data('skill-check');
-				const difficulty: string = target.data('difficulty');
-
-				await DicePrompt.promptForRoll(this.actor, skillName, { difficulty });
-			});
-		}, 250);
 	}
 }

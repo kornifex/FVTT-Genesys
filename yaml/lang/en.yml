@@ -240,6 +240,7 @@ Genesys:
     NotEnoughStoryPoints: You can't spend Story Points you don't have!
     SelectOneTokenForAction: You need to selected a single token to perform this action.
     SelectNoneOrOneTokenForAction: You need to select no tokens, or a single token, to perform this action.
+    NoActorForCheck: Select a single token or assign yourself a character to roll this check.
     TokenIsNotCombatant: The selected token is not participating on the current combat.
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
     SlotAlreadyClaimed: This initiative slot is already claimed.
