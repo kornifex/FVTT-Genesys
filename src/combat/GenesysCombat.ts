@@ -67,10 +67,10 @@ export default class GenesysCombat extends Combat {
 	/**
 	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
-	slotsForRound(round: number, storedExtraSlots = this.storedExtraSlots): InitiativeSlot[] {
+	slotsForRound(round: number): InitiativeSlot[] {
 		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({ id: combatant.id, initiative: combatant.initiative, disposition: combatant.disposition }));
 
-		return buildSlots(combatants, extraSlotsForRound(storedExtraSlots, round), this.claimsForRound(round));
+		return buildSlots(combatants, extraSlotsForRound(this.storedExtraSlots, round), this.claimsForRound(round));
 	}
 
 	/**
@@ -221,26 +221,39 @@ export default class GenesysCombat extends Combat {
 	}
 
 	async addExtraSlot(combatantId: string, round: number) {
-		const extraSlots = [...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }];
-		const changes: Record<string, unknown> = { [`flags.genesys.${FLAG_EXTRA_SLOTS}`]: extraSlots };
-
-		// The new slot may sort before the current one. Keep the turn on its slot in the same update, so that Foundry sees no
-		// turn change and fires no turn events.
-		const currentSlotId = this.started ? this.currentSlotId : undefined;
-		const turn = currentSlotId ? this.slotsForRound(this.round, extraSlots).findIndex((slot) => slot.id === currentSlotId) : -1;
-		if (turn !== -1) {
-			changes.turn = turn;
-		}
-
-		await this.update(changes);
+		// The new slot may sort before the current one.
+		await this.updateExtraSlots([...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }], this.currentSlotId);
 	}
 
 	/**
 	 * Write the initiative of extra slots, then refresh the turns on every client. Only a GM may write them.
 	 */
-	async writeExtraSlotsInitiative(writes: ExtraSlotInitiative[]) {
-		await this.setFlag('genesys', FLAG_EXTRA_SLOTS, withExtraSlotInitiatives(this.storedExtraSlots, writes));
+	async writeExtraSlotsInitiative(writes: ExtraSlotInitiative[], keepTurnOn?: string) {
+		await this.updateExtraSlots(withExtraSlotInitiatives(this.storedExtraSlots, writes), keepTurnOn);
 		this.refreshTurns();
+	}
+
+	async updateExtraSlots(extraSlots: StoredExtraSlot[], keepTurnOn: string | undefined) {
+		const changes = { flags: { genesys: { [FLAG_EXTRA_SLOTS]: extraSlots } } };
+		const turn = this.turnOfSlotAfter(keepTurnOn, changes);
+
+		await this.update(turn === undefined ? changes : { ...changes, turn });
+	}
+
+	/**
+	 * The turn of an Initiative Slot of the current round once changes to the combat are made. Written with them, it keeps
+	 * the turn on that slot: Foundry then sees no turn change and fires no turn events.
+	 */
+	turnOfSlotAfter(slotId: string | undefined, changes: object) {
+		if (!slotId || !this.started) {
+			return undefined;
+		}
+
+		const combat = this.clone() as GenesysCombat;
+		combat.updateSource(changes);
+		const turn = combat.slots.findIndex((slot) => slot.id === slotId);
+
+		return turn === -1 ? undefined : turn;
 	}
 
 	/**
@@ -254,16 +267,6 @@ export default class GenesysCombat extends Combat {
 	refreshLocalTurns() {
 		this.setupTurns();
 		this.debounceTrackerRender();
-	}
-
-	/**
-	 * Give the turn back to an Initiative Slot after the turn order changed.
-	 */
-	async restoreTurn(slotId: string | undefined) {
-		const turn = slotId ? this.slots.findIndex((slot) => slot.id === slotId) : -1;
-		if (turn !== -1) {
-			await this.update({ turn });
-		}
 	}
 
 	/**
@@ -337,28 +340,26 @@ export default class GenesysCombat extends Combat {
 		}
 
 		const writes = initiativeWrites(rolls);
-		let restoreTurn = updateTurn;
+		// Each write keeps the turn on its slot.
+		const keepTurnOn = updateTurn ? currentSlotId : undefined;
+
+		if (writes.combatants.length) {
+			// Without a turn, Foundry keeps it on the current combatant's first slot.
+			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { combatants: writes.combatants });
+			await this.updateEmbeddedDocuments('Combatant', writes.combatants, combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as any));
+		}
 
 		if (writes.extraSlots.length) {
 			if (game.user.isGM) {
-				await this.writeExtraSlotsInitiative(writes.extraSlots);
+				await this.writeExtraSlotsInitiative(writes.extraSlots, keepTurnOn);
 			} else {
-				// The GM writes them and gives the turn back.
-				restoreTurn = false;
+				// The GM writes them and keeps the turn, once the combatants' initiative is written.
 				socketEmit(SocketOperation.UpdateInitiativeForExtraSlot, {
 					combatId: this.id,
 					updates: writes.extraSlots,
 					updateTurn,
 				});
 			}
-		}
-
-		if (writes.combatants.length) {
-			await this.updateEmbeddedDocuments('Combatant', writes.combatants);
-		}
-
-		if (restoreTurn) {
-			await this.restoreTurn(currentSlotId);
 		}
 
 		await ChatMessage.implementation.create(messages);
@@ -507,13 +508,7 @@ export function register() {
 				}
 
 				const uifesData = payload.data as UpdateInitiativeForExtraSlotData;
-				const currentSlotId = combat.currentSlotId;
-
-				await combat.writeExtraSlotsInitiative(uifesData.updates);
-
-				if (uifesData.updateTurn) {
-					await combat.restoreTurn(currentSlotId);
-				}
+				await combat.writeExtraSlotsInitiative(uifesData.updates, uifesData.updateTurn ? combat.currentSlotId : undefined);
 				break;
 
 			default:
