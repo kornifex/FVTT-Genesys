@@ -8,7 +8,8 @@
 
 import GenesysActor from '@/actor/GenesysActor';
 import GenesysDie from '@/dice/types/GenesysDie';
-import { Characteristic } from '@/data/Characteristics';
+import { Check, checkDescription } from '@/dice/Check';
+import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import GenesysItem from '@/item/GenesysItem';
 import WeaponDataModel from '@/item/data/WeaponDataModel';
 import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
@@ -75,89 +76,48 @@ export type GenesysRollResults = {
 	extraSymbols: Record<string, number>;
 };
 
+/**
+ * The roll of a check's dice pool, as the roller makes it.
+ */
+export type CheckRoll = {
+	check: Check;
+	dicePool: DicePool;
+};
+
 export default class GenesysRoller {
-	static async skillRoll({
-		actor,
-		characteristic,
-		usesSuperCharacteristic,
-		skillName,
-		formula,
-		symbols,
-	}: {
-		actor?: GenesysActor;
-		characteristic?: Characteristic;
-		usesSuperCharacteristic: boolean;
-		skillName?: string;
-		formula: string;
-		symbols: Record<string, number>;
-	}) {
-		const roll = new Roll(formula, { symbols });
+	/**
+	 * The roll of a dice pool.
+	 */
+	static rollForPool(dicePool: DicePool) {
+		return new Roll(compileDiceFormula(dicePool), { symbols: compileSymbolsData(dicePool) });
+	}
+
+	/**
+	 * The content of the chat message of a check, from its description and the results of its roll.
+	 */
+	static async checkMessageContent(description: string | undefined, results: GenesysRollResults) {
+		return await renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', { description, results });
+	}
+
+	static async skillRoll({ check, dicePool }: CheckRoll) {
+		const roll = this.rollForPool(dicePool);
 		await roll.evaluate();
 		const results = this.parseRollResults(roll);
 
-		let description: string | undefined = undefined;
-
-		if (!skillName) {
-			if (characteristic) {
-				description = game.i18n.format('Genesys.Rolls.Description.Characteristic', {
-					characteristic: game.i18n.localize(`Genesys.Characteristics.${characteristic.capitalize()}`),
-				});
-			} else if (!actor) {
-				description = game.i18n.format('Genesys.Rolls.Description.Simple', {
-					superChar: usesSuperCharacteristic ? 'super-char' : 'hide-it',
-				});
-			}
-		} else if (actor) {
-			if (characteristic) {
-				description = game.i18n.format('Genesys.Rolls.Description.Skill', {
-					skill: skillName,
-					characteristic: game.i18n.localize(`Genesys.CharacteristicAbbr.${characteristic.capitalize()}`),
-					superChar: usesSuperCharacteristic ? 'super-char' : 'hide-it',
-				});
-			} else {
-				description = game.i18n.format('Genesys.Rolls.Description.SkillWithoutCharacteristic', {
-					skill: skillName,
-				});
-			}
-		}
-
-		const rollData = {
-			description: description,
-			results,
-		};
-		const html = await renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', rollData);
-
 		const chatData = {
 			user: game.user.id,
-			speaker: { actor: actor?.id },
-			content: html,
+			speaker: { actor: (check.actor as GenesysActor | undefined)?.id },
+			content: await this.checkMessageContent(checkDescription(check, { kind: 'check' }, game.i18n), results),
 			rolls: [roll],
 		};
 		await ChatMessage.create(chatData, { rollMode: game.settings.get('core', 'rollMode') });
 	}
 
-	static async attackRoll({
-		actor,
-		characteristic,
-		usesSuperCharacteristic,
-		skillName,
-		formula,
-		symbols,
-		weapon,
-	}: {
-		actor?: GenesysActor;
-		characteristic?: Characteristic;
-		usesSuperCharacteristic: boolean;
-		skillName?: string;
-		formula: string;
-		symbols: Record<string, number>;
-		weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;
-	}) {
-		const roll = new Roll(formula, { symbols });
+	static async attackRoll({ check, dicePool, weapon }: CheckRoll & { weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel> }) {
+		const actor = check.actor as GenesysActor | undefined;
+		const roll = this.rollForPool(dicePool);
 		await roll.evaluate();
 		const results = this.parseRollResults(roll);
-
-		let description: string | undefined = undefined;
 
 		let totalDamage = weapon.systemData.baseDamage;
 		let damageFormula = weapon.systemData.baseDamage.toString();
@@ -172,29 +132,6 @@ export default class GenesysRoller {
 			totalDamage += results.netSuccess;
 		}
 
-		if (!skillName) {
-			if (characteristic) {
-				description = game.i18n.format('Genesys.Rolls.Description.AttackCharacteristic', {
-					name: weapon.name,
-					characteristic: game.i18n.localize(`Genesys.Characteristics.${characteristic.capitalize()}`),
-				});
-			}
-		} else if (actor) {
-			if (characteristic) {
-				description = game.i18n.format('Genesys.Rolls.Description.AttackSkill', {
-					name: weapon.name,
-					skill: skillName,
-					characteristic: game.i18n.localize(`Genesys.CharacteristicAbbr.${characteristic.capitalize()}`),
-					superChar: usesSuperCharacteristic ? 'super-char' : 'hide-it',
-				});
-			} else {
-				description = game.i18n.format('Genesys.Rolls.Description.AttackSkillWithoutCharacteristic', {
-					name: weapon.name,
-					skill: skillName,
-				});
-			}
-		}
-
 		const attackQualities = weapon.systemData.qualities;
 		await Promise.all(
 			attackQualities.map(async (quality) => {
@@ -203,7 +140,7 @@ export default class GenesysRoller {
 		);
 
 		const rollData = {
-			description: description,
+			description: checkDescription(check, { kind: 'attack', weaponName: weapon.name }, game.i18n),
 			results,
 			totalDamage,
 			damageFormula,
