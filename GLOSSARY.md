@@ -14,6 +14,10 @@ _Avoid_: Participant, token
 A position in the turn order belonging to a side (PC or NPC), not to a specific combatant.
 _Avoid_: Turn, initiative entry
 
+**Extra Slot**:
+An Initiative Slot added for a combatant from a given round on, on top of its own. Its initiative is rolled by its combatant, and it belongs to that combatant's side.
+_Avoid_: Extra activation, additional turn
+
 **Claim**:
 The act of a combatant taking an unoccupied Initiative Slot of its own side for the current round.
 _Avoid_: Take, assign
@@ -29,7 +33,7 @@ The compendium, chosen in the world settings, that defines the list of skills av
 _Avoid_: Skill pack, skill list
 
 **Unranked Skill Check**:
-A check of a skill in which the actor has no ranks: the dice pool comes from the skill's linked characteristic alone, but it remains a check of that skill. Adversaries only list skills they have ranks in, so any other skill they roll is an Unranked Skill Check.
+A check of a skill the actor doesn't have, though the Skills Compendium defines it: the dice pool comes from the skill's linked characteristic alone, but it remains a check of that skill, and Pool Modifications for that skill apply. Any actor can make one; adversaries make them most, since they only list skills they have ranks in. Skill names match whatever their case.
 _Avoid_: Unskilled check
 
 **Characteristic Check**:
@@ -53,6 +57,26 @@ _Avoid_: XP log, history
 **Character Creation**:
 The period before a character receives their first XP award. Characteristics can only be raised during Character Creation, and a skill rank bought during it can't go above 2.
 _Avoid_: Creation phase, chargen
+
+### Equipment
+
+**Equipment State**:
+Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dropped or Used. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped, of a consumable only while it's Used, and of any other equipment only while it's Carried. Adversaries and minions have no Equipment State: the effects of their equipment always apply.
+_Avoid_: Inventory category, equipment status
+
+**Container**:
+A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. A container can't hold another container.
+_Avoid_: Bag, pack
+
+### Vehicles
+
+**Crew**:
+The actors aboard a vehicle: its passengers and the members of its roles. An actor is at most once in a vehicle's crew, but may be in the crew of several vehicles.
+_Avoid_: Occupants
+
+**Role**:
+A post in a vehicle's crew (pilot, gunner…) with the skills its members roll for the vehicle.
+_Avoid_: Station, position
 
 ### Talents
 
