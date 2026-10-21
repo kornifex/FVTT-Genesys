@@ -26,11 +26,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Project
-        run: pnpm release
+        run: pnpm build
 
       - name: Identify Version Number
         id: version
-        run: echo "version=$(node ./build/version.js)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./dist/system.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Zip System
+        working-directory: dist
+        run: zip -r "../genesys-${{ steps.version.outputs.version }}.zip" .
 
       - name: Create Release
         uses: actions/create-release@v1

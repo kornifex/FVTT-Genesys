@@ -12,15 +12,12 @@
 		"node": "^24"
 	},
 	"scripts": {
-		"build:data": "gulp",
-		"build": "vue-tsc --noEmit && pnpm build:data && vite build",
-		"dev": "concurrently \"gulp watch\" \"vite\"",
-		"watch:data": "gulp watch",
+		"build": "vue-tsc --noEmit && vite build",
+		"dev": "vite",
 		"lint": "eslint src --ext .vue,.js,.ts",
 		"format": "prettier --write src/ types/",
 		"format:check": "prettier --check src/ types/",
-		"test": "vitest run",
-		"release": "pnpm build && gulp zip"
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@rushstack/eslint-patch": "^1.7.2",
@@ -30,16 +27,12 @@
 		"@vue/eslint-config-prettier": "^9.0.0",
 		"@vue/eslint-config-typescript": "^12.0.0",
 		"@yeger/vue-masonry-wall": "^5.0.6",
-		"concurrently": "^7.6.0",
 		"dotenv": "^16.0.3",
 		"dotenv-expand": "^10.0.0",
 		"eslint": "^8.56.0",
 		"eslint-plugin-vue": "^9.21.0",
-		"gulp": "^4.0.2",
-		"gulp-clean": "^0.4.0",
-		"gulp-yaml": "^2.0.4",
-		"gulp-zip": "^5.1.0",
 		"handlebars": "^4.7.7",
+		"js-yaml": "^5.5.0",
 		"prettier": "^3.2.4",
 		"sass": "^1.70.0",
 		"socket.io": "^4.6.0",
