@@ -6,7 +6,7 @@ This repository continues the Genesys system created by [Mezryss](https://github
 
 In [September 2026](https://github.com/Mezryss/FVTT-Genesys/issues/263#issuecomment-5642736832), Assembling Kings announced that the original system would likely not receive further updates, and that they are focusing on [a new implementation written from scratch](https://git.gay/assembling.kings/genesys). That new system is still in progress and not yet recommended for running games. It uses a different system id (`ak-genesys`), so worlds don't carry over between the two.
 
-This fork keeps the existing system going for tables with ongoing campaigns: support for newer Foundry versions, bug fixes, and optional house rules. It keeps the original system id (`genesys`), so your existing worlds, actors and settings work as they are, with no migration.
+This fork keeps the existing system going for tables with ongoing campaigns: support for newer Foundry versions, bug fixes, and optional house rules. It keeps the original system id (`genesys`), so your existing worlds, actors and settings work as they are, with no migration. The reasoning is recorded in [ADR 0002](docs/adr/0002-publish-fork-under-genesys-id.md).
 
 ## AI assistance
 Development on this fork, after release 0.2.19, is done with the assistance of Claude (Anthropic), through Claude Code. Every change is reviewed, tested in play and owned by the maintainer. Code inherited from the original project, up to and including release 0.2.19, predates the fork and is not covered by this note.
