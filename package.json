@@ -14,6 +14,8 @@
 		"watch:data": "gulp watch",
 		"lint": "eslint src --ext .vue,.js,.ts",
 		"format": "prettier --write src/ types/",
+		"format:check": "prettier --check src/ types/",
+		"test": "vitest run",
 		"release": "yarn build && gulp zip"
 	},
 	"devDependencies": {
@@ -42,6 +44,7 @@
 		"socket.io": "^4.6.0",
 		"typescript": "^5.3.3",
 		"vite": "^5.0.12",
+		"vitest": "3.2.4",
 		"vue": "^3.4.15",
 		"vue-tsc": "^1.8.27"
 	}

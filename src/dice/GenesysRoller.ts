@@ -230,7 +230,7 @@ export default class GenesysRoller {
 			if (faces[genDie.denomination] === undefined) {
 				faces[genDie.denomination] = die.results.map((r) => genDie.getResultLabel(r));
 			} else {
-				faces[genDie.denomination].concat(die.results.map((r) => genDie.getResultLabel(r)));
+				faces[genDie.denomination].push(...die.results.map((r) => genDie.getResultLabel(r)));
 			}
 
 			return faces;
