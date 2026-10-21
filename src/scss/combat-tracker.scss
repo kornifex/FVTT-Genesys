@@ -27,10 +27,10 @@
 	}
 
 	.slot-pc {
-		background: transparentize(#155786, 0.7);
+		background: colors.alpha(colors.$initiative-slot-pc, 0.3);
 	}
 
 	.slot-npc {
-		background: transparentize(#923414, 0.7);
+		background: colors.alpha(colors.$initiative-slot-npc, 0.3);
 	}
 }

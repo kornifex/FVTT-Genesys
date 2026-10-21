@@ -16,6 +16,7 @@ import {
 	KEY_SKILLS_COMPENDIUM,
 	KEY_SKILL_FOR_INJURIES,
 	KEY_SKILL_FOR_REPAIRING_VEHICLE_HITS,
+	KEY_STYLE,
 	KEY_SUPER_CHARACTERISTICS,
 	KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS,
 } from '@/settings/campaign';
@@ -102,6 +103,13 @@ export const GENESYS_CONFIG = {
  */
 export function register() {
 	CONFIG.genesys = GENESYS_CONFIG;
+}
+
+/**
+ * Called on 'setup' to apply the settings that must take effect before the user interface first renders.
+ */
+export function setup() {
+	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_STYLE}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_STYLE));
 }
 
 /**

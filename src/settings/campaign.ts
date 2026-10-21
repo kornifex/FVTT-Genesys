@@ -67,6 +67,11 @@ export const KEY_IGNORE_TALENT_PYRAMID = 'ignoreTalentPyramid';
 export const KEY_TALENT_TIER_VERSIONS = 'talentTierVersions';
 
 /**
+ * The Style of the system's colors, chosen by the GM for every user.
+ */
+export const KEY_STYLE = 'style';
+
+/**
  * Register campaign settings.
  * @param namespace Namespace to register settings under.
  */
@@ -245,6 +250,23 @@ export function register(namespace: string) {
 		onChange: (value) => {
 			const valueAsBool = (value as unknown as boolean) ?? false;
 			CONFIG.genesys.settings.talentTierVersions = valueAsBool;
+		},
+	});
+
+	game.settings.register(namespace, KEY_STYLE, {
+		name: game.i18n.localize('Genesys.Settings.Style'),
+		hint: game.i18n.localize('Genesys.Settings.StyleHint'),
+		scope: 'world',
+		config: true,
+		default: 'genesys',
+		type: String,
+		choices: {
+			genesys: game.i18n.localize('Genesys.Settings.StyleGenesys'),
+			terrinoth: game.i18n.localize('Genesys.Settings.StyleTerrinoth'),
+		},
+		onChange: (value) => {
+			// The theme stylesheet overrides the Palette of the document root that carries this attribute.
+			document.documentElement.dataset.genesysStyle = value ?? 'genesys';
 		},
 	});
 }

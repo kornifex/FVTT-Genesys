@@ -6,7 +6,7 @@
  * @file System Entry Point
  */
 
-import { register as registerConfig, ready as readyConfigs } from '@/config';
+import { register as registerConfig, setup as setupConfigs, ready as readyConfigs } from '@/config';
 import { register as registerCombat } from '@/combat';
 import { register as registerSidebars } from '@/sidebar';
 import { register as registerDice } from '@/dice';
@@ -99,6 +99,10 @@ Hooks.once('init', async () => {
 	registerHandlebarsHelpers();
 	registerSettings();
 	registerConfig();
+});
+
+Hooks.once('setup', () => {
+	setupConfigs();
 });
 
 Hooks.once('ready', async () => {

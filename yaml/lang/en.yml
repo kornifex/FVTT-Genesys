@@ -72,6 +72,10 @@ Genesys:
     IgnoreTalentPyramidHint: 'House rule: allows purchasing talents of any tier without having enough talents of the tier below.'
     TalentTierVersions: Talent Tiers as Separate Versions
     TalentTierVersionsHint: "House rule: each tier of a ranked talent is a separate item with the same name. Dropping one on a character who already has the talent buys a rank at that item's tier × 5 XP, in any order, and the rank upgrade button is hidden."
+    Style: Style
+    StyleHint: 'The colors of the sheets and windows, for every user. Only colors change, never the layout.'
+    StyleGenesys: Genesys
+    StyleTerrinoth: Realms of Terrinoth
 
   # Tooltips
   Tooltips:
