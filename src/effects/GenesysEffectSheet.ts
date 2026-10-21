@@ -8,7 +8,7 @@
 
 import GenesysEffect from '@/effects/GenesysEffect';
 import { Characteristic } from '@/data/Characteristics';
-import { EditedChange, fromEditedChange, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
+import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import './GenesysEffectSheet.scss';
 
 type IncompleteSheetSubmitData = { changes: EditedChange[] };
@@ -45,7 +45,10 @@ export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect
 
 		return foundry.utils.mergeObject(data, {
 			changes,
-			skills: Object.fromEntries(CONFIG.genesys.skills.map((skill) => [skill.name, skill.name])),
+			skills: skillChoices(
+				CONFIG.genesys.skills.map((skill) => skill.name),
+				changes,
+			),
 			characteristics: Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName])),
 		});
 	}

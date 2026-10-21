@@ -168,15 +168,18 @@ export function poolModificationsForCheck(actor: PoolModificationActor | undefin
 	if (target && TARGET_TYPES.includes(target.type)) {
 		modifications.push(...effectModifications(target, 'target', check));
 
+		// The target's defense against the range of an attack adds one Setback per point.
 		if (check.attackRange) {
 			const defense = check.attackRange === 'engaged' ? 'melee' : 'ranged';
 			const totalDefense = (target.systemData as { totalDefense: Defense }).totalDefense;
 
-			modifications.push({
-				source: 'target',
-				from: { defense },
-				mods: Array(totalDefense[defense]).fill(GenesysDice.Setback.GLYPH),
-			});
+			if (totalDefense[defense] > 0) {
+				modifications.push({
+					source: 'target',
+					from: { defense },
+					mods: Array(totalDefense[defense]).fill(GenesysDice.Setback.GLYPH),
+				});
+			}
 		}
 	}
 
@@ -218,6 +221,15 @@ export type EditedChange = foundry.data.EffectChangeSource & {
 	char?: string;
 	skill?: string;
 };
+
+/**
+ * The skills the effect sheets offer for Pool Modifications, by name: those of the Skills Compendium and those the
+ * edited changes already apply to, so that saving the sheet keeps a skill that isn't in the compendium.
+ */
+export function skillChoices(compendiumSkillNames: string[], changes: EditedChange[]): Record<string, string> {
+	const names = [...compendiumSkillNames, ...changes.flatMap((change) => (change.skill ? [change.skill] : []))];
+	return Object.fromEntries(names.map((name) => [name, name]));
+}
 
 /**
  * Which field of the effect sheets edits what a change applies to, given the key picked for it.

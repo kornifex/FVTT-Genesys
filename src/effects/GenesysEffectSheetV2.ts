@@ -1,6 +1,6 @@
 import { Characteristic } from '@/data/Characteristics';
 import GenesysEffect from './GenesysEffect';
-import { EditedChange, fromEditedChange, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
+import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 
 export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 	static DEFAULT_OPTIONS = {
@@ -16,10 +16,14 @@ export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffe
 		const partContext = (await super._preparePartContext(partId, context)) as Record<string, unknown> & { source: GenesysEffect };
 
 		if (partId === 'changes') {
-			partContext.skills = Object.fromEntries(CONFIG.genesys.skills.map((skill) => [skill.name, skill.name]));
-			partContext.characteristics = Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]));
+			const changes = partContext.source.changes.map(toEditedChange);
 
-			partContext.changes = partContext.source.changes.map(toEditedChange);
+			partContext.changes = changes;
+			partContext.skills = skillChoices(
+				CONFIG.genesys.skills.map((skill) => skill.name),
+				changes,
+			);
+			partContext.characteristics = Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]));
 		}
 
 		return partContext;
