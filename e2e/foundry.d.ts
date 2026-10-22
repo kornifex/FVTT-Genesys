@@ -7,6 +7,8 @@ declare const Hooks: any;
 declare const CONFIG: any;
 declare const CONST: any;
 declare const Actor: any;
+declare const Item: any;
 declare const Combat: any;
 declare const Scene: any;
 declare const User: any;
+declare function fromUuidSync(uuid: string): any;

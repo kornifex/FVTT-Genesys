@@ -5,7 +5,7 @@ import { HasPreCreate } from '@/data/HasPreCreate';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import { skillNamesMatch } from '@/data/Skills';
+import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
 
 type ValueWithMax = {
 	value: number;
@@ -15,25 +15,6 @@ type ValueWithMax = {
 type ValueWithThreshold = {
 	value: number;
 	threshold: number;
-};
-
-type ActorPointer = {
-	uuid: string;
-	sort: number;
-};
-
-/**
- * This type represents a role that can be hold on the vehicle.
- */
-type RoleData = {
-	// An unique id to identify the role.
-	id: string;
-	// The name of the role.
-	name: string;
-	// The list of skills that hold significance for this role.
-	skills: string[];
-	// The actors that are able to perform this role.
-	members: string[];
 };
 
 /**
@@ -75,9 +56,9 @@ export abstract class VehicleDataModel
 	abstract price: number;
 	abstract rarity: number;
 	abstract currency: number;
-	abstract passengers: ValueWithThreshold & { list: ActorPointer[] };
+	abstract passengers: ValueWithThreshold & { list: Passenger[] };
 	abstract encumbrance: ValueWithThreshold;
-	abstract roles: RoleData[];
+	abstract roles: Role[];
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		trauma: {
@@ -108,7 +89,7 @@ export abstract class VehicleDataModel
 
 	static readonly _GAME_VEHICLES = new Set<GenesysActor<VehicleDataModel>>();
 
-	static override migrateData(source: { passengers?: { list?: (ActorPointer & { id?: string })[] } }) {
+	static override migrateData(source: { passengers?: { list?: (Passenger & { id?: string })[] } }) {
 		const passengers = source.passengers?.list;
 		if (passengers) {
 			for (const passenger of passengers) {
@@ -185,167 +166,30 @@ export abstract class VehicleDataModel
 		return currentPassengers.value > currentPassengers.threshold;
 	}
 
-	async addRole() {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roleId = randomID();
-		const roles = [
-			...this.roles,
-			{
-				id: roleId,
-				name: '',
-				skills: [],
-				members: [],
-			},
-		];
-
-		await actor.update({
-			'system.roles': roles,
-		});
-
-		return roleId;
+	/**
+	 * The vehicle's Crew: its passengers and Roles.
+	 */
+	get crew(): Crew {
+		return { passengers: this.passengers.list, roles: this.roles };
 	}
 
-	async deleteRole(roleId: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roles = [...this.roles];
-		const roleIndex = roles.findIndex((role) => role.id === roleId);
-
-		if (roleIndex !== -1) {
-			roles.splice(roleIndex, 1);
-			await actor.update({
-				'system.roles': roles,
-			});
-		}
+	hasCrew(actorUuid: string) {
+		return hasActor(this.crew, actorUuid);
 	}
 
-	async updateRoleName(roleId: string, newName: string) {
+	/**
+	 * Write the Crew an operation of the CrewRoster module returns, unless it returns nothing to change. Returns whether
+	 * it wrote one.
+	 */
+	async updateCrew(change: (crew: Crew) => Crew | undefined) {
+		const crew = change(this.crew);
+		if (!crew) {
+			return false;
+		}
+
 		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roles = [...this.roles];
-		const roleIndex = roles.findIndex((role) => role.id === roleId);
-
-		if (roleIndex !== -1) {
-			roles[roleIndex].name = newName;
-			await actor.update({
-				'system.roles': roles,
-			});
-		}
-	}
-
-	async addSkillToRole(roleId: string, skillName: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roles = [...this.roles];
-		const role = roles.find((role) => role.id === roleId);
-
-		if (role && !role.skills.some((skill) => skillNamesMatch(skill, skillName))) {
-			role.skills.push(skillName);
-			await actor.update({
-				'system.roles': roles,
-			});
-		}
-	}
-
-	async removeSkillFromRole(roleId: string, skillName: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roles = [...this.roles];
-		const role = roles.find((role) => role.id === roleId);
-
-		if (role) {
-			const skillIndex = role.skills.findIndex((skill) => skillNamesMatch(skill, skillName));
-
-			if (skillIndex !== -1) {
-				role.skills.splice(skillIndex, 1);
-				await actor.update({
-					'system.roles': roles,
-				});
-			}
-		}
-	}
-
-	async removeMemberFromRole(roleId: string, memberUuid: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const roles = [...this.roles];
-		const role = roles.find((role) => role.id === roleId);
-
-		if (role) {
-			const memberIndex = role.members.findIndex((member) => member === memberUuid);
-
-			if (memberIndex !== -1) {
-				role.members.splice(memberIndex, 1);
-				await actor.update({
-					'system.roles': roles,
-				});
-			}
-		}
-	}
-
-	async addPassenger(passengerUuid: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const passengers = [...this.passengers.list];
-
-		if (!passengers.some((passenger) => passenger.uuid === passengerUuid)) {
-			const lastPassengerSort = passengers[passengers.length - 1]?.sort ?? 0;
-			passengers.push({ uuid: passengerUuid, sort: lastPassengerSort + CONST.SORT_INTEGER_DENSITY });
-			await actor.update({
-				'system.passengers.list': passengers,
-			});
-		}
-	}
-
-	async removePassenger(passengerUuid: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-
-		const passengers = [...this.passengers.list];
-		const passengerIndex = passengers.findIndex((passenger) => passenger.uuid === passengerUuid);
-		if (passengerIndex !== -1) {
-			passengers.splice(passengerIndex, 1);
-			await actor.update({
-				'system.passengers.list': passengers,
-			});
-		}
-	}
-
-	hasCrew(crewUuid: string) {
-		return (
-			this.passengers.list.some((passenger) => passenger.uuid === crewUuid) ||
-			this.roles.some((role) => role.members.includes(crewUuid))
-		);
-	}
-
-	async removeCrew(crewUuid: string) {
-		const actor = this.parent as unknown as GenesysActor<this>;
-		const updateMap = new Map<string, unknown>();
-
-		const passengers = [...this.passengers.list];
-		const passengerIndex = passengers.findIndex((passenger) => passenger.uuid === crewUuid);
-		if (passengerIndex !== -1) {
-			passengers.splice(passengerIndex, 1);
-			updateMap.set('system.passengers.list', passengers);
-		}
-
-		const roles = [...this.roles];
-		let hasRoleUpdates = false;
-		for (const role of roles) {
-			const memberIndex = role.members.findIndex((member) => member === crewUuid);
-			if (memberIndex !== -1) {
-				role.members.splice(memberIndex, 1);
-				hasRoleUpdates = true;
-			}
-		}
-
-		if (hasRoleUpdates) {
-			updateMap.set('system.roles', roles);
-		}
-
-		if (updateMap.size > 0) {
-			await actor.update(Object.fromEntries(updateMap));
-		}
+		await actor.update({ 'system.passengers.list': crew.passengers, 'system.roles': crew.roles });
+		return true;
 	}
 
 	async preCreate(
@@ -450,7 +294,7 @@ export function register() {
 			if (isGmHub) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-					void vehicle.systemData.removeCrew(genesysActorUuid);
+					void vehicle.systemData.updateCrew((crew) => removeActor(crew, genesysActorUuid));
 				}
 			}
 		}

@@ -9,18 +9,9 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
-import {
-	CrewDragTransferData,
-	CrewExtraDragTransferData,
-	DragTransferData,
-	extractDataFromDragTransferTypes,
-} from '@/data/DragTransferData';
-import { CloneActorPrompt } from '@/app/CloneActorPrompt';
-
-type FromUuidSimpleReturnData = null | {
-	name: string;
-	type: string;
-};
+import { CrewDragTransferData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
+import { receiveCrewEvent } from '@/operations/CrewDrop';
 
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -53,246 +44,16 @@ function sortPassenger(left: { sort: number }, right: { sort: number }) {
 	return left.sort - right.sort;
 }
 
-async function dropToPassengers(event: DragEvent, relativeToPassengerUuid: string) {
-	// Check that we have the UUID of whatever was dropped and that it can be processed by this method.
-	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as CrewDragTransferData;
-	if (!dragData.uuid || (dragData.genesysType && !VehicleDataModel.isRelevantTypeForContext('PASSENGER', dragData.genesysType))) {
-		return;
-	}
-
-	// Make sure that the entity in question exists and can be processed by this method.
-	const droppedEntity = fromUuidSync(dragData.uuid) as FromUuidSimpleReturnData;
-	if (!droppedEntity || !VehicleDataModel.isRelevantTypeForContext('PASSENGER', droppedEntity.type)) {
-		return;
-	}
-	// We are handling the dropped passenger here so no need to let other components process it.
-	event.stopPropagation();
-
-	// The user must own the actor, and end early if we are simply sorting a passenger to a position that won't change its order.
-	const actor = toRaw(context.data.actor);
-	if (!actor.isOwner || dragData.uuid === relativeToPassengerUuid) {
-		return;
-	}
-
-	// If the passenger was dropped from another actor then we get a reference to the other actor.
-	const isDropFromAnotherActor = dragData.sourceVehicleUuid && dragData.sourceVehicleUuid !== actor.uuid;
-	let sourceVehicle = actor;
-	if (isDropFromAnotherActor) {
-		const aVehicle = await fromUuid<GenesysActor<VehicleDataModel>>(dragData.sourceVehicleUuid!);
-		if (!aVehicle || aVehicle.type !== 'vehicle' || !aVehicle.isOwner) {
-			return;
-		}
-		sourceVehicle = aVehicle;
-	}
-
-	const updateMap = new Map<string, unknown>();
-	const passengers = [...sortedPassengers.value];
-
-	const crewUuid = dragData.uuid;
-	let droppedCrew: { uuid: string; sort: number };
-
-	if (isDropFromAnotherActor) {
-		// If the passenger was dropped from another actor then add it if it's not already on the vehicle.
-		if (actor.systemData.hasCrew(crewUuid)) {
-			return;
-		}
-		droppedCrew = { uuid: crewUuid, sort: 0 };
-		passengers.push(droppedCrew);
-	} else if (!dragData.sourceVehicleUuid) {
-		// If the passenger was dropped from a folder or compendium then add it if it's not already on the vehicle.
-		if (actor.systemData.hasCrew(crewUuid)) {
-			return;
-		}
-
-		droppedCrew = { uuid: crewUuid, sort: 0 };
-
-		// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to make a
-		// clone and save a reference of it instead.
-		if (
-			!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
-			(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
-		) {
-			const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
-
-			if (actorToAdd) {
-				droppedCrew = { uuid: actorToAdd.uuid, sort: 0 };
-			} else {
-				// The prompt was closed so cancel the drop.
-				return;
-			}
-		}
-
-		passengers.push(droppedCrew);
-	} else {
-		const targetCrew = passengers.find((passenger) => passenger.uuid === crewUuid);
-		if (targetCrew) {
-			// If the dropped passenger is already on the list of passengers then get a reference to it for sorting.
-			droppedCrew = targetCrew;
-		} else {
-			// If the dropped passenger is not on the passengers list then it must come from one of the roles, so move it between both
-			// lists.
-			droppedCrew = { uuid: crewUuid, sort: 0 };
-			passengers.push(droppedCrew);
-
-			const roles = [...system.value.roles];
-			roles.forEach((role) => {
-				const memberIndex = role.members.findIndex((member) => member === crewUuid);
-				if (memberIndex >= 0) {
-					role.members.splice(memberIndex, 1);
-				}
-			});
-
-			updateMap.set('system.roles', roles);
-		}
-	}
-
-	// Move the dropped passenger to the proper sort order.
-	const passengerIndex = relativeToPassengerUuid ? passengers.findIndex((passenger) => passenger.uuid !== relativeToPassengerUuid) : -1;
-	const sortUpdates = SortingHelpers.performIntegerSort(droppedCrew, {
-		target: passengers[passengerIndex < 0 ? 0 : passengerIndex],
-		siblings: passengers.filter((passenger) => passenger !== droppedCrew),
-		sortBefore: passengerIndex < 0,
-	});
-
-	sortUpdates.forEach((change) => {
-		change.target.sort = change.update.sort;
-	});
-
-	updateMap.set('system.passengers.list', passengers);
-
-	await actor.update(Object.fromEntries(updateMap));
-
-	// Make sure to remove the passenger from the other actor if that was its source.
-	if (isDropFromAnotherActor) {
-		await sourceVehicle.systemData.removeCrew(crewUuid);
-	}
+function addNewRole() {
+	void system.value.updateCrew((crew) => addRole(crew, foundry.utils.randomID()));
 }
 
-async function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | TokenDocumentUUID) {
-	// Check that we have the UUID of whatever was dropped and that it can be processed by this method.
-	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as CrewDragTransferData;
-	if (!dragData.uuid || (dragData.genesysType && !VehicleDataModel.isRelevantTypeForContext('ROLE', dragData.genesysType))) {
-		return;
-	}
+function dropToPassengers(event: DragEvent, place: CrewPlace) {
+	void receiveCrewEvent(toRaw(context.data.actor), event, place);
+}
 
-	// Make sure that the entity in question exists and can be processed by this method.
-	const droppedEntity = fromUuidSync(dragData.uuid) as FromUuidSimpleReturnData;
-	if (!droppedEntity || !VehicleDataModel.isRelevantTypeForContext('ROLE', droppedEntity.type)) {
-		return;
-	}
-	// We are handling the dropped entity here so no need to let other components process it.
-	event.stopPropagation();
-
-	// Make sure the user owns the actor.
-	const actor = toRaw(context.data.actor);
-	if (!actor.isOwner) {
-		return;
-	}
-
-	// If the dropped entity is a skill then add it to the role and end early.
-	if (droppedEntity.type === 'skill') {
-		await actor.systemData.addSkillToRole(roleId, droppedEntity.name);
-		return;
-	}
-
-	// If the crew member was dropped from another actor then we get a reference to the other actor.
-	const isDropFromAnotherActor = dragData.sourceVehicleUuid && dragData.sourceVehicleUuid !== actor.uuid;
-	let sourceVehicle = actor;
-	if (isDropFromAnotherActor) {
-		const aVehicle = await fromUuid<GenesysActor<VehicleDataModel>>(dragData.sourceVehicleUuid!);
-		if (!aVehicle || aVehicle.type !== 'vehicle' || !aVehicle.isOwner) {
-			return;
-		}
-		sourceVehicle = aVehicle;
-	}
-
-	const updateMap = new Map<string, unknown>();
-	const roles = [...system.value.roles];
-	const roleIndex = roles.findIndex((role) => role.id === roleId);
-
-	// Make sure we find the proper role.
-	if (roleIndex === -1) {
-		return;
-	}
-
-	let crewUuid = dragData.uuid;
-	if (isDropFromAnotherActor) {
-		// If the crew member was dropped from another actor then simply check that it's not already in the vehicle.
-		if (actor.systemData.hasCrew(crewUuid)) {
-			return;
-		}
-	} else if (!dragData.sourceVehicleUuid) {
-		// If the crew member was dropped from a folder or compendium check that it's not already in the vehicle.
-		if (actor.systemData.hasCrew(crewUuid)) {
-			return;
-		}
-
-		// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to make a
-		// clone and save a reference of it instead.
-		if (
-			!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
-			(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
-		) {
-			const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
-
-			if (actorToAdd) {
-				crewUuid = actorToAdd.uuid;
-			} else {
-				// The prompt was closed so cancel the drop.
-				return;
-			}
-		}
-	} else {
-		if (dragData.origin === 'passenger') {
-			// If the crew member is currently a passenger then remove it from the list.
-			const passengers = [...sortedPassengers.value];
-			const passengerIndex = passengers.findIndex((passenger) => passenger.uuid === crewUuid);
-			if (passengerIndex < 0) {
-				return;
-			}
-
-			passengers.splice(passengerIndex, 1);
-			updateMap.set('system.passengers.list', passengers);
-		} else if (dragData.origin === 'role') {
-			const crewIndex = roles[roleIndex].members.findIndex((member) => member === crewUuid);
-			if (crewIndex === -1) {
-				// If the crew member is currently on another role then remove it from it.
-				const originRoleIndex = roles.findIndex((role) => role.id === dragData.roleId);
-				if (originRoleIndex === -1) {
-					return;
-				}
-				const memberIndex = roles[originRoleIndex].members.findIndex((member) => member === crewUuid);
-				if (memberIndex === -1) {
-					return;
-				}
-
-				roles[originRoleIndex].members.splice(memberIndex, 1);
-			} else if (memberUnder && memberUnder !== crewUuid) {
-				// If the crew member is on this role but we drop it on top of another crew member then we
-				// want to change its position.
-				roles[roleIndex].members.splice(crewIndex, 1);
-			} else {
-				// If the crew member is already on this role but we are not sorting it then exit.
-				return;
-			}
-		} else {
-			return;
-		}
-	}
-
-	// Add the crew member to the role.
-	const positionIndex = memberUnder
-		? roles[roleIndex].members.findIndex((member) => member === memberUnder)
-		: roles[roleIndex].members.length;
-	roles[roleIndex].members.splice(positionIndex, 0, crewUuid);
-	updateMap.set('system.roles', roles);
-
-	await actor.update(Object.fromEntries(updateMap));
-
-	// Make sure to remove the crew member from the other actor if that was its source.
-	if (isDropFromAnotherActor) {
-		await sourceVehicle.systemData.removeCrew(crewUuid);
-	}
+function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | TokenDocumentUUID) {
+	void receiveCrewEvent(toRaw(context.data.actor), event, { kind: 'role', roleId, before: memberUnder });
 }
 
 async function resetDragCounters(_event: DragEvent) {
@@ -314,15 +75,14 @@ function modifyDragCounters(event: DragEvent, direction: number) {
 	}
 }
 
-function dragStart(event: DragEvent, extraData: CrewExtraDragTransferData) {
+function dragStart(event: DragEvent) {
 	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as DragTransferData;
-	const dragDataWithExtra: CrewDragTransferData = {
+	const crewDragData: CrewDragTransferData = {
 		...dragData,
-		...extraData,
 		sourceVehicleUuid: context.data.actor.uuid,
 	};
 
-	event.dataTransfer?.setData('text/plain', JSON.stringify(dragDataWithExtra));
+	event.dataTransfer?.setData('text/plain', JSON.stringify(crewDragData));
 }
 
 function dragEnter(event: DragEvent) {
@@ -338,7 +98,7 @@ function dragLeave(event: DragEvent) {
 	<section class="tab-crew" @drop.capture="resetDragCounters" @dragenter="dragEnter" @dragleave="dragLeave">
 		<div class="section-header">
 			<span><Localized label="Genesys.Labels.Roles" /></span>
-			<a @click="system.addRole()"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
+			<a @click="addNewRole"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
 		</div>
 
 		<section class="roles">
@@ -350,11 +110,11 @@ function dragLeave(event: DragEvent) {
 						:skills="role.skills"
 						:members="role.members"
 						:dragging="dragCounters.role > 0"
-						@delete="system.deleteRole(role.id)"
-						@update-name="(newName) => system.updateRoleName(role.id, newName)"
-						@remove-skill="(skillName) => system.removeSkillFromRole(role.id, skillName)"
-						@remove-member="(memberId) => system.removeMemberFromRole(role.id, memberId)"
-						@actor-drag-start="dragStart($event, { origin: 'role', roleId: role.id })"
+						@delete="system.updateCrew((crew) => removeRole(crew, role.id))"
+						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
+						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
+						@remove-member="(memberId) => system.updateCrew((crew) => removeActor(crew, memberId))"
+						@actor-drag-start="dragStart"
 						@entity-drop="(event, memberUnder) => dropToRole(event, role.id, memberUnder)"
 					/>
 				</template>
@@ -376,7 +136,7 @@ function dragLeave(event: DragEvent) {
 		</div>
 
 		<section class="passengers">
-			<SortSlot :active="dragCounters.passenger > 0" @drop="dropToPassengers($event, '')" />
+			<SortSlot :active="dragCounters.passenger > 0" @drop="dropToPassengers($event, { kind: 'passengers', position: 'first' })" />
 
 			<TransitionGroup name="crew-trans">
 				<template v-for="passenger in passengersActors" :key="passenger.uuid">
@@ -385,11 +145,14 @@ function dragLeave(event: DragEvent) {
 						:mini="true"
 						:dragging="dragCounters.passenger > 0"
 						draggable="true"
-						@remove-member="system.removePassenger(passenger.uuid)"
-						@dragstart="dragStart($event, { origin: 'passenger' })"
+						@remove-member="system.updateCrew((crew) => removeActor(crew, passenger.uuid))"
+						@dragstart="dragStart"
 					/>
 
-					<SortSlot :active="dragCounters.passenger > 0" @drop="dropToPassengers($event, passenger.uuid)" />
+					<SortSlot
+						:active="dragCounters.passenger > 0"
+						@drop="dropToPassengers($event, { kind: 'passengers', position: 'after', passenger: passenger.uuid })"
+					/>
 				</template>
 			</TransitionGroup>
 		</section>
