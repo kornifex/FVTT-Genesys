@@ -11,7 +11,8 @@ import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
-import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
+import { containerContents } from '@/actor/data/Inventory';
+import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 
 import Localized from '@/vue/components/Localized.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
@@ -27,18 +28,14 @@ const props = withDefaults(
 		mini?: boolean;
 		allowEquippedState?: boolean;
 		allowDroppedState?: boolean;
-		canTypeBeDropped?: (type: string) => boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
-		canTypeBeTransfered?: (type: string) => boolean;
 	}>(),
 	{
 		dragging: false,
 		mini: false,
 		allowEquippedState: true,
 		allowDroppedState: true,
-		canTypeBeDropped: () => false,
 		canTypeBeInsideContainer: () => false,
-		canTypeBeTransfered: () => false,
 	},
 );
 
@@ -73,11 +70,8 @@ const weaponData = computed(() => ({
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
 const displayContainerContents = ref(false);
-const containedItems = computed(
-	() =>
-		toRaw(context.data.actor).items.filter(
-			(i) => (i as GenesysItem<EquipmentDataModel>).systemData.container === props.item.id,
-		) as GenesysItem<EquipmentDataModel>[],
+const containedItems = computed(() =>
+	containerContents(toRaw(context.data.actor).items.contents as GenesysItem<EquipmentDataModel>[], props.item.id),
 );
 
 const weaponDamage = computed(() => {
@@ -113,17 +107,7 @@ async function openItem() {
 }
 
 async function deleteItem() {
-	const itemId = props.item.id;
-
-	if (props.item.type === 'container') {
-		// Delete all items in the container.
-		await Promise.all(
-			toRaw(context.data.actor)
-				.items.filter((i) => (i as GenesysItem<EquipmentDataModel>).systemData.container === itemId)
-				.map((i) => i.delete()),
-		);
-	}
-
+	// A Container's contents are deleted with it.
 	await toRaw(props.item).delete();
 }
 
@@ -183,14 +167,7 @@ async function sendItemToChat() {
 }
 
 async function setItemState(state: EquipmentState) {
-	await Promise.all(
-		containedItems.value.map((i) =>
-			i.update({
-				'system.state': state,
-			}),
-		),
-	);
-
+	// A Container's contents take its new state with it.
 	await props.item.update({
 		'system.state': state,
 	});
@@ -343,51 +320,10 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 async function dropInventoryIntoContainer(event: DragEvent) {
 	dragCounter.value = 0;
 
-	// Make sure we have the UUID from the dropped entity, and if possible check if they can be processed on this component.
-	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as DragTransferData;
-	if (!dragData.uuid || (dragData.genesysType && !props.canTypeBeDropped(dragData.genesysType))) {
-		return;
+	// Only a Container receives drops: those on other items go on to the sheet.
+	if (props.item.type === 'container') {
+		await receiveInventoryEvent(toRaw(context.data.actor), event, { kind: 'container', id: props.item.id });
 	}
-
-	// Make sure that the item in question exists and can be processed on this component.
-	let droppedItem = await fromUuid<GenesysItem<EquipmentDataModel>>(dragData.uuid);
-	if (!droppedItem || !props.canTypeBeDropped(droppedItem.type)) {
-		return;
-	}
-	// We are handling the dropped item here so no need to let other components process it.
-	event.stopPropagation();
-
-	// The user must own the actor, the current item must be a container, and the dropped item can be inside the container.
-	const actor = toRaw(context.data.actor);
-	if (!actor.isOwner || props.item.type !== 'container' || !props.canTypeBeInsideContainer(droppedItem.type)) {
-		return;
-	}
-
-	// If the item was dropped from another actor then we try transfering it and save a reference to it.
-	const sourceActor = droppedItem.actor;
-	const isDropFromAnotherActor = sourceActor && sourceActor.uuid !== actor.uuid;
-	if (isDropFromAnotherActor) {
-		const clonedItem = await transferInventoryBetweenActors(dragData, actor, props.canTypeBeTransfered);
-		droppedItem = clonedItem?.[0] ?? null;
-
-		if (!droppedItem) {
-			return;
-		}
-	} else if (!sourceActor) {
-		[droppedItem] = (await actor.createEmbeddedDocuments('Item', [droppedItem.toObject()])) as GenesysItem<EquipmentDataModel>[];
-	}
-
-	// Mark the items as being inside the dropped container.
-	const updateMap = new Map<string, unknown>();
-	updateMap.set('system.container', props.item.id);
-
-	// Update the item equipment state to match the state of the container.
-	const mustUpdateEquipmentState = props.item.systemData.state !== droppedItem.systemData.state;
-	if (mustUpdateEquipmentState) {
-		updateMap.set('system.state', props.item.systemData.state);
-	}
-
-	await droppedItem.update(Object.fromEntries(updateMap));
 }
 </script>
 

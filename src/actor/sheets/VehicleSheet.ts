@@ -5,7 +5,7 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { CrewDragTransferData, DragTransferData } from '@/data/DragTransferData';
-import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
+import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
 export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
@@ -40,15 +40,7 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 
 		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
 		if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			if (droppedItem.actor) {
-				// If the item was dropped from another actor then we try transfering it and save a reference to it.
-				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) =>
-					VehicleDataModel.isRelevantTypeForContext('INVENTORY', type),
-				);
-			} else {
-				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super._onDropItem(event, data);
-			}
+			clonedDroppedItem = await receiveInventoryDrop(this.actor, data);
 		} else if (VehicleDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
 			// Let `super` handle the drop and save a reference to it.
 			clonedDroppedItem = await super._onDropItem(event, data);

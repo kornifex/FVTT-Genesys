@@ -13,7 +13,7 @@ import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { DragTransferData } from '@/data/DragTransferData';
-import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
+import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 
 /**
  * Actor sheet used for Player Characters
@@ -126,15 +126,7 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 				clonedDroppedItem = await super._onDropItem(event, data);
 			}
 		} else if (CharacterDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			if (droppedItem.actor) {
-				// If the item was dropped from another actor then we try transfering it and save a reference to it.
-				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) =>
-					CharacterDataModel.isRelevantTypeForContext('INVENTORY', type),
-				);
-			} else {
-				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super._onDropItem(event, data);
-			}
+			clonedDroppedItem = await receiveInventoryDrop(this.actor, data);
 		} else {
 			// If the dropped item is not of a type that we have a default behavior then end early.
 			return false;
