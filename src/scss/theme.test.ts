@@ -14,10 +14,10 @@ const scssAlias = {
 const css = compile(path.resolve(__dirname, 'theme.scss'), { importers: [scssAlias] }).css;
 
 /**
- * Custom properties declared by the first rule with exactly this selector, from the given position of the stylesheet.
+ * Custom properties declared by the first rule with exactly this selector.
  */
-function declarations(selector: string, from = 0): Record<string, string> {
-	const start = css.indexOf(`${selector} {`, from);
+function declarations(selector: string): Record<string, string> {
+	const start = css.indexOf(`${selector} {`);
 	expect(start, `rule ${selector}`).toBeGreaterThanOrEqual(0);
 
 	const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start));
@@ -76,21 +76,16 @@ describe('Palette', () => {
 	});
 
 	it('derives the shades from the current blue and gold', () => {
+		// Mixed with black, these are #1d334e and #ecad60 for the default blue and gold.
 		expect(declarations(DEFAULTS)).toMatchObject({
-			'--genesys-blue-shade': 'hsl(from var(--genesys-blue) h s calc(l - 10))',
-			'--genesys-gold-shade': 'hsl(from var(--genesys-gold) h s calc(l - 0.8))',
+			'--genesys-blue-shade': 'color-mix(in srgb, var(--genesys-blue), black 32%)',
+			'--genesys-gold-shade': 'color-mix(in srgb, var(--genesys-gold), black 1.2%)',
 		});
 	});
 
-	it('falls back to the default shades in browsers without relative colors', () => {
-		const fallback = css.indexOf('@supports not (color: hsl(from red h s l))');
-		expect(fallback).toBeGreaterThan(css.indexOf(`${DEFAULTS} {`));
-
-		// Sass keeps the fractional channels of an adjusted color: these are #1d334e and #efad5d, to the nearest unit.
-		expect(declarations(DEFAULTS, fallback)).toEqual({
-			'--genesys-blue-shade': 'rgb(11.4197071234%, 19.9180938198%, 30.5410771904%)',
-			'--genesys-gold-shade': 'rgb(93.5783637593%, 67.8918187965%, 36.5863421231%)',
-		});
+	// Chromium 122 (the Foundry v12 desktop app) reads relative colors with the older spec, where they come out black.
+	it('uses no relative color syntax', () => {
+		expect(css).not.toMatch(/\(\s*from\s/);
 	});
 
 	it('colors the PC and NPC Initiative Slots', () => {

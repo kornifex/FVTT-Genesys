@@ -1,5 +1,3 @@
-@use 'sass:color';
-
 $-blue: #2b4b73;
 $-gold: #efaf61;
 
@@ -10,12 +8,13 @@ $defaults: (
 
 	'light-blue': #71c6ff,
 	'blue': $-blue,
-	// Derived in the browser, so that the shades follow the blue and gold of any Style or override.
-	'blue-shade': hsl(from var(--genesys-blue) h s calc(l - 10)),
+	// Derived in the browser, so that the shades follow the blue and gold of any Style or override. Mixed with black
+	// rather than through relative colors, which Chromium 122 (the Foundry v12 desktop app) computes as black.
+	'blue-shade': color-mix(in srgb, var(--genesys-blue), black 32%),
 	'dark-blue': #384455,
 
 	'gold': $-gold,
-	'gold-shade': hsl(from var(--genesys-gold) h s calc(l - 0.8)),
+	'gold-shade': color-mix(in srgb, var(--genesys-gold), black 1.2%),
 	'orange': #f36c21,
 
 	'paper': #f1ede8,
@@ -36,12 +35,6 @@ $defaults: (
 	'die-challenge': #761213,
 	'die-boost': #72cddc,
 	'die-setback': #1e1e1e,
-);
-
-// Default shades for browsers that cannot derive them (CSS relative colors), whatever the Style.
-$fallbacks: (
-	'blue-shade': color.adjust($-blue, $lightness: -10%),
-	'gold-shade': color.adjust($-gold, $lightness: -0.8%),
 );
 
 // Styles the GM can choose in the world settings, each overriding some colors of the Palette. The Palette keeps its
