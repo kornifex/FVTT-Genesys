@@ -14,7 +14,9 @@ export function useDocumentEffects(sheetDocument: () => GenesysActor | GenesysIt
 	const effects = ref([]) as Ref<GenesysEffect[]>;
 
 	function updateEffects() {
-		effects.value = [...toRaw(sheetDocument()).effects] as GenesysEffect[];
+		const document = toRaw(sheetDocument());
+		// An actor's effects are those that apply to it: its own, and those its items transfer to it.
+		effects.value = [...(document instanceof GenesysActor ? document.allApplicableEffects() : document.effects)] as GenesysEffect[];
 	}
 
 	onBeforeMount(updateEffects);

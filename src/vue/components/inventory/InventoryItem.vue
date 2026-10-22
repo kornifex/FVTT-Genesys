@@ -45,7 +45,6 @@ const props = withDefaults(
 const emit = defineEmits<{
 	(e: 'dragstart', event: DragEvent): void;
 	(e: 'dragend', event: DragEvent): void;
-	(e: 'equipmentStateChange', items: GenesysItem[], desiredState: EquipmentState): void;
 }>();
 
 const damageStateToIcon = new Map([
@@ -184,10 +183,6 @@ async function sendItemToChat() {
 }
 
 async function setItemState(state: EquipmentState) {
-	// The 'emit' must happen before the state is updated, otherwise the component will be unmounted and the callback set by the
-	// parent won't fire.
-	emit('equipmentStateChange', [...containedItems.value, props.item], state);
-
 	await Promise.all(
 		containedItems.value.map((i) =>
 			i.update({
@@ -390,12 +385,6 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 	const mustUpdateEquipmentState = props.item.systemData.state !== droppedItem.systemData.state;
 	if (mustUpdateEquipmentState) {
 		updateMap.set('system.state', props.item.systemData.state);
-	}
-
-	// Notify the parent that the drropped item has changed equipment state either because it's new or because it was moved to a container
-	// with a different equipment state.
-	if (mustUpdateEquipmentState || isDropFromAnotherActor) {
-		emit('equipmentStateChange', [droppedItem], props.item.systemData.state);
 	}
 
 	await droppedItem.update(Object.fromEntries(updateMap));

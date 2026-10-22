@@ -1,12 +1,35 @@
 import { NAMESPACE } from '@/settings';
 import { KEY_MIGRATION_VERSION } from '@/settings/alpha';
-import { ActorPlanner, ActorSource, ActorWorld, migrateActors, runMigrationChain, WalkedActor } from '@/migrations/ActorMigration';
+import {
+	ActorChanges,
+	ActorPlanner,
+	ActorSource,
+	ActorWorld,
+	migrateActors,
+	runMigrationChain,
+	WalkedActor,
+} from '@/migrations/ActorMigration';
 import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
 import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
+import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
 import * as log from '@/log';
 
+async function applyChanges(actor: Actor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+	if (update) {
+		await actor.update(update);
+	}
+
+	for (const [itemId, updates] of Object.entries(itemEffects)) {
+		await actor.items.get(itemId)?.updateEmbeddedDocuments('ActiveEffect', updates);
+	}
+
+	if (deletedEffects.length > 0) {
+		await actor.deleteEmbeddedDocuments('ActiveEffect', deletedEffects);
+	}
+}
+
 function walkedActor(actor: Actor): WalkedActor {
-	return { uuid: actor.uuid, source: actor.toObject() as ActorSource, update: (changes) => actor.update(changes) };
+	return { uuid: actor.uuid, source: actor.toObject() as ActorSource, apply: (changes) => applyChanges(actor, changes) };
 }
 
 /**
@@ -44,6 +67,7 @@ async function migrateEveryActor(plan: ActorPlanner) {
 const migrations: (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)),
 	() => migrateEveryActor(actorOnlyOnceInCrew),
+	() => migrateEveryActor(effectsStayOnItemsWithNotifications),
 ];
 
 export async function performMigrations(lastAlpha: string) {

@@ -8,6 +8,7 @@ import { GenesysDice } from '@/dice';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
+import { originItemId } from '@/effects/EffectOrigin';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, or checks of a skill.
@@ -121,11 +122,12 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
 		return parent as unknown as Item;
 	}
 
-	if (parent?.documentName !== 'Actor' || !effect.origin || !effect.origin.includes('.Item.')) {
+	const itemId = originItemId(effect.origin);
+	if (parent?.documentName !== 'Actor' || !itemId) {
 		return undefined;
 	}
 
-	return parent.items?.get(effect.origin.split('.Item.')[1]);
+	return parent.items?.get(itemId);
 }
 
 /**

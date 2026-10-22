@@ -1,22 +1,35 @@
 /**
- * @file Effects of equipment apply only while their item is in the right equipment state: equipped for equipable items, used for consumables and carried for any other equipment.
+ * @file Effects of equipment apply only while their item is in the right Equipment State: equipped for equipable items, used for consumables and carried for any other equipment.
  */
 
-import type { GenesysActor } from '@/actor/GenesysActor';
-import type { GenesysEffect } from '@/effects/GenesysEffect';
-import type { GenesysItem } from '@/item/GenesysItem';
-import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 /**
  * The relevant-types check of an actor type, limited to the contexts this rule needs.
  */
-export type IsEquipmentType = (context: 'INVENTORY' | 'EQUIPABLE' | 'CONSUMABLE', type: string) => boolean;
+type IsEquipmentType = (context: 'INVENTORY' | 'EQUIPABLE' | 'CONSUMABLE', type: string) => boolean;
+
+/**
+ * What this rule reads of an item: its type and, for equipment, its Equipment State.
+ */
+type HeldItem = {
+	type: string;
+	system: { state?: EquipmentState };
+};
+
+// The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries and minions have
+// none: the effects of their equipment always apply.
+const EQUIPMENT_TYPES_BY_ACTOR_TYPE: Partial<Record<string, IsEquipmentType>> = {
+	character: CharacterDataModel.isRelevantTypeForContext,
+	vehicle: VehicleDataModel.isRelevantTypeForContext,
+};
 
 /**
  * Whether the effects of an item must be disabled. Effects of an item that isn't equipment for the actor are always enabled.
  */
-export function areEffectsDisabled(isEquipmentType: IsEquipmentType, itemType: string, equipmentState: EquipmentState) {
+function areEffectsDisabled(isEquipmentType: IsEquipmentType, itemType: string, equipmentState: EquipmentState | undefined) {
 	if (!isEquipmentType('INVENTORY', itemType)) {
 		return false;
 	}
@@ -31,31 +44,16 @@ export function areEffectsDisabled(isEquipmentType: IsEquipmentType, itemType: s
 }
 
 /**
- * Enable or disable the effects the items gave to the actor, according to the equipment state of each item, or to the
- * overriding state if there's one.
+ * Whether an item of this type is equipment with an Equipment State on an actor of this type.
  */
-export async function updateEffectsStatus(
-	actor: GenesysActor,
-	isEquipmentType: IsEquipmentType,
-	items: GenesysItem[],
-	overrides?: { equipmentState: EquipmentState },
-) {
-	const allUpdates = [];
-	for (const item of items) {
-		const itemEquipmentState = overrides?.equipmentState ? overrides.equipmentState : (item.systemData as EquipmentDataModel).state;
-		const effectDisableStatus = areEffectsDisabled(isEquipmentType, item.type, itemEquipmentState);
+export function hasEquipmentState(actorType: string, itemType: string) {
+	return EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType]?.('INVENTORY', itemType) ?? false;
+}
 
-		allUpdates.push(
-			...actor.effects
-				.filter((effect) => (effect as GenesysEffect).originItem?.id === item.id && effect.disabled !== effectDisableStatus)
-				.map(
-					async (effect) =>
-						await effect.update({
-							disabled: effectDisableStatus,
-						}),
-				),
-		);
-	}
-
-	await Promise.all(allUpdates);
+/**
+ * Whether the Equipment State of an item keeps its effects from applying to the actor that holds it.
+ */
+export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) {
+	const isEquipmentType = EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType];
+	return !!isEquipmentType && areEffectsDisabled(isEquipmentType, item.type, item.system.state);
 }

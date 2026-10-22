@@ -1,49 +1,63 @@
 /**
- * @file Tests for the equipment states in which the effects of equipment apply.
+ * @file Tests for the Equipment States in which the effects of equipment apply.
  */
 
 import { describe, expect, it, vi } from 'vitest';
 
-// `EquipmentState` lives next to a data model, which extends a Foundry class.
+// `EquipmentState` and the relevant types live in data models, which extend a Foundry class.
 vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });
 
-import { areEffectsDisabled, IsEquipmentType } from '@/actor/data/EquipmentEffects';
-import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
-
-const isEquipmentType: IsEquipmentType = (context, type) =>
-	isRelevantType(
-		{
-			INVENTORY: ['weapon', 'consumable', 'gear'],
-			EQUIPABLE: ['weapon'],
-			CONSUMABLE: ['consumable'],
-		},
-		context,
-		type,
-	);
 
 const ALL_STATES = [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped, EquipmentState.Used];
 
-function enabledStates(itemType: string) {
-	return ALL_STATES.filter((state) => !areEffectsDisabled(isEquipmentType, itemType, state));
+// The states in which an item's effects apply to an actor.
+function applyingStates(actorType: string, itemType: string) {
+	return ALL_STATES.filter((state) => !isSuppressedByEquipmentState(actorType, { type: itemType, system: { state } }));
 }
 
-describe('areEffectsDisabled', () => {
-	it('enables the effects of an equipable item only while it is equipped', () => {
-		expect(enabledStates('weapon')).toEqual([EquipmentState.Equipped]);
+describe('isSuppressedByEquipmentState', () => {
+	it("applies a character's weapons and armor only while they are equipped", () => {
+		expect(applyingStates('character', 'weapon')).toEqual([EquipmentState.Equipped]);
+		expect(applyingStates('character', 'armor')).toEqual([EquipmentState.Equipped]);
 	});
 
-	it('enables the effects of a consumable only while it is used', () => {
-		expect(enabledStates('consumable')).toEqual([EquipmentState.Used]);
+	it("applies a character's consumables only while they are used", () => {
+		expect(applyingStates('character', 'consumable')).toEqual([EquipmentState.Used]);
 	});
 
-	it('enables the effects of other equipment only while it is carried', () => {
-		expect(enabledStates('gear')).toEqual([EquipmentState.Carried]);
+	it("applies a character's other equipment only while it is carried", () => {
+		expect(applyingStates('character', 'gear')).toEqual([EquipmentState.Carried]);
+		expect(applyingStates('character', 'container')).toEqual([EquipmentState.Carried]);
 	});
 
-	it('always enables the effects of an item that is not equipment', () => {
-		expect(enabledStates('talent')).toEqual(ALL_STATES);
+	it("applies a vehicle's vehicle weapons only while they are equipped", () => {
+		expect(applyingStates('vehicle', 'vehicleWeapon')).toEqual([EquipmentState.Equipped]);
+	});
+
+	it("applies a vehicle's consumables only while they are used", () => {
+		expect(applyingStates('vehicle', 'consumable')).toEqual([EquipmentState.Used]);
+	});
+
+	it("applies a vehicle's other equipment, weapons and armor included, only while it is carried", () => {
+		expect(applyingStates('vehicle', 'weapon')).toEqual([EquipmentState.Carried]);
+		expect(applyingStates('vehicle', 'armor')).toEqual([EquipmentState.Carried]);
+		expect(applyingStates('vehicle', 'gear')).toEqual([EquipmentState.Carried]);
+	});
+
+	it('always applies the equipment of adversaries and minions', () => {
+		for (const actorType of ['minion', 'rival', 'nemesis']) {
+			for (const itemType of ['weapon', 'armor', 'consumable', 'gear', 'container']) {
+				expect(applyingStates(actorType, itemType)).toEqual(ALL_STATES);
+			}
+		}
+	});
+
+	it('always applies the effects of items that are not equipment', () => {
+		expect(isSuppressedByEquipmentState('character', { type: 'talent', system: {} })).toBe(false);
+		expect(isSuppressedByEquipmentState('vehicle', { type: 'injury', system: {} })).toBe(false);
 	});
 });

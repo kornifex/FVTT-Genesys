@@ -6,7 +6,6 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { CrewDragTransferData, DragTransferData } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
 export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
@@ -49,11 +48,6 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 			} else {
 				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
-			}
-
-			// If we sucessfully cloned the dropped inventory item then update the state for any associated effect.
-			if (Array.isArray(clonedDroppedItem)) {
-				await this.actor.systemData.handleEffectsStatus(clonedDroppedItem, { equipmentState: EquipmentState.Carried });
 			}
 		} else if (VehicleDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
 			// Let `super` handle the drop and save a reference to it.

@@ -1,9 +1,8 @@
 import { GenesysActor } from '@/actor/GenesysActor';
-import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { HasPreCreate } from '@/data/HasPreCreate';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { skillNamesMatch } from '@/data/Skills';
@@ -347,15 +346,6 @@ export abstract class VehicleDataModel
 		if (updateMap.size > 0) {
 			await actor.update(Object.fromEntries(updateMap));
 		}
-	}
-
-	async handleEffectsStatus(items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
-		await updateEffectsStatus(
-			this.parent as unknown as GenesysActor<VehicleDataModel>,
-			VehicleDataModel.isRelevantTypeForContext,
-			items,
-			overrides,
-		);
 	}
 
 	async preCreate(

@@ -6,14 +6,15 @@ import { describe, expect, it } from 'vitest';
 import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
 import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 
+function actor(type: string, system: Record<string, unknown>) {
+	return { name: 'Actor', type, system, items: [], effects: [] };
+}
+
 function vehicle(roles: string[][], passengers: string[] = []) {
-	return {
-		type: 'vehicle',
-		system: {
-			roles: roles.map((members, index) => ({ id: `role${index}`, name: `Role ${index}`, skills: [], members })),
-			passengers: { value: 0, threshold: 0, list: passengers.map((uuid, index) => ({ uuid, sort: index })) },
-		},
-	};
+	return actor('vehicle', {
+		roles: roles.map((members, index) => ({ id: `role${index}`, name: `Role ${index}`, skills: [], members })),
+		passengers: { value: 0, threshold: 0, list: passengers.map((uuid, index) => ({ uuid, sort: index })) },
+	});
 }
 
 describe('useUuidForVehicles', () => {
@@ -22,11 +23,13 @@ describe('useUuidForVehicles', () => {
 
 	it('turns the ids of world actors into their uuids, and drops the ids that name none', () => {
 		expect(plan(vehicle([['hero', 'gone'], []], ['ally']))).toEqual({
-			'system.passengers.list': [{ uuid: 'Actor.ally', sort: 0 }],
-			'system.roles': [
-				{ id: 'role0', name: 'Role 0', skills: [], members: ['Actor.hero'] },
-				{ id: 'role1', name: 'Role 1', skills: [], members: [] },
-			],
+			update: {
+				'system.passengers.list': [{ uuid: 'Actor.ally', sort: 0 }],
+				'system.roles': [
+					{ id: 'role0', name: 'Role 0', skills: [], members: ['Actor.hero'] },
+					{ id: 'role1', name: 'Role 1', skills: [], members: [] },
+				],
+			},
 		});
 	});
 
@@ -35,11 +38,13 @@ describe('useUuidForVehicles', () => {
 	});
 
 	it('only changes the list that holds ids', () => {
-		expect(plan(vehicle([['Actor.hero']], ['ally']))).toEqual({ 'system.passengers.list': [{ uuid: 'Actor.ally', sort: 0 }] });
+		expect(plan(vehicle([['Actor.hero']], ['ally']))).toEqual({
+			update: { 'system.passengers.list': [{ uuid: 'Actor.ally', sort: 0 }] },
+		});
 	});
 
 	it('leaves other actors alone', () => {
-		expect(plan({ type: 'character', system: {} })).toBeUndefined();
+		expect(plan(actor('character', {}))).toBeUndefined();
 	});
 });
 
@@ -56,18 +61,22 @@ describe('actorOnlyOnceInCrew', () => {
 				),
 			),
 		).toEqual({
-			'system.roles': [
-				{ id: 'role0', name: 'Role 0', skills: [], members: ['a', 'b'] },
-				{ id: 'role1', name: 'Role 1', skills: [], members: ['c'] },
-			],
-			'system.passengers.list': [{ uuid: 'd', sort: 1 }],
+			update: {
+				'system.roles': [
+					{ id: 'role0', name: 'Role 0', skills: [], members: ['a', 'b'] },
+					{ id: 'role1', name: 'Role 1', skills: [], members: ['c'] },
+				],
+				'system.passengers.list': [{ uuid: 'd', sort: 1 }],
+			},
 		});
 	});
 
 	it('keeps the last of the entries repeated within a role or the passengers', () => {
 		expect(actorOnlyOnceInCrew(vehicle([['a', 'b', 'a']], ['c', 'c']))).toEqual({
-			'system.roles': [{ id: 'role0', name: 'Role 0', skills: [], members: ['b', 'a'] }],
-			'system.passengers.list': [{ uuid: 'c', sort: 1 }],
+			update: {
+				'system.roles': [{ id: 'role0', name: 'Role 0', skills: [], members: ['b', 'a'] }],
+				'system.passengers.list': [{ uuid: 'c', sort: 1 }],
+			},
 		});
 	});
 
@@ -76,6 +85,6 @@ describe('actorOnlyOnceInCrew', () => {
 	});
 
 	it('leaves other actors alone', () => {
-		expect(actorOnlyOnceInCrew({ type: 'character', system: {} })).toBeUndefined();
+		expect(actorOnlyOnceInCrew(actor('character', {}))).toBeUndefined();
 	});
 });
