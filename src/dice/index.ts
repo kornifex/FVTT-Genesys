@@ -5,7 +5,7 @@ import { SetbackDie } from '@/dice/dice/SetbackDie';
 import { DifficultyDie } from '@/dice/dice/DifficultyDie';
 import { ChallengeDie } from '@/dice/dice/ChallengeDie';
 
-import './diceSoNice';
+import '@/dice/diceSoNice';
 
 /**
  * An object used to get general details of each dice type.

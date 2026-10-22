@@ -26,7 +26,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysCompendium } from '@/sidebar/GenesysCompendium';
 import { performMigrations } from '@/migrations/MigrationHelper';
 
-import './scss/index.scss';
+import '@scss/index.scss';
 
 async function doAlphaNotice(lastAlpha: string) {
 	if (!game.user.isGM) {

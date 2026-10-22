@@ -1,8 +1,8 @@
-import { register as registerCampaignSettings } from './campaign';
-import { register as registerStoryPoints } from './storyPoints';
-import { register as registerUser } from './user';
+import { register as registerCampaignSettings } from '@/settings/campaign';
+import { register as registerStoryPoints } from '@/settings/storyPoints';
+import { register as registerUser } from '@/settings/user';
 
-import { register as registerAlpha } from './alpha';
+import { register as registerAlpha } from '@/settings/alpha';
 
 /**
  * Namespace used to access system settings from {@link Game.settings}.

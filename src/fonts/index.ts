@@ -1,4 +1,4 @@
-import './scss/all.scss';
+import '@/fonts/scss/all.scss';
 
 /**
  * Build a shared font definition structure.

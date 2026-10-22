@@ -7,7 +7,7 @@ import { VueSheet } from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { skillNamesMatch } from '@/data/Skills';
 
-import './ArchetypeSheet.scss';
+import '@/item/sheets/ArchetypeSheet.scss';
 
 /**
  * List of item types that are not allowed to be granted by an archetype.

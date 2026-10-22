@@ -40,7 +40,7 @@ function drop(event: DragEvent) {
 
 <style lang="scss" scoped>
 @use 'sass:math';
-@use '@/scss/vars/colors.scss';
+@use '@scss/vars/colors.scss';
 
 $height: 0.75em;
 

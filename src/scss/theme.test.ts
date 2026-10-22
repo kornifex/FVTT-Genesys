@@ -3,10 +3,15 @@
  */
 
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { compile } from 'sass';
 import { describe, expect, it } from 'vitest';
 
-const css = compile(path.resolve(__dirname, 'theme.scss')).css;
+// Resolves the `@scss/` alias that Vite gives the stylesheets.
+const scssAlias = {
+	findFileUrl: (url: string) => (url.startsWith('@scss/') ? pathToFileURL(path.resolve(__dirname, url.slice('@scss/'.length))) : null),
+};
+const css = compile(path.resolve(__dirname, 'theme.scss'), { importers: [scssAlias] }).css;
 
 /**
  * Custom properties declared by the first rule with exactly this selector, from the given position of the stylesheet.

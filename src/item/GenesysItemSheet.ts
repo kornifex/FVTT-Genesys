@@ -1,7 +1,7 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
-import './GenesysItemSheet.scss';
+import '@/item/GenesysItemSheet.scss';
 
 export type DropData = {
 	type: 'ActiveEffect' | 'Actor' | 'Item' | 'Folder';
