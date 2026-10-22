@@ -15,11 +15,7 @@ export default defineConfig(
 	{
 		languageOptions: {
 			parserOptions: {
-				projectService: {
-					// The build config files belong to tsconfig.node.json, which the project service does not look up by itself.
-					allowDefaultProject: ['*.config.ts', 'build/*.ts'],
-					defaultProject: 'tsconfig.node.json',
-				},
+				projectService: true,
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.vue'],
 			},
@@ -34,6 +30,11 @@ export default defineConfig(
 			'vue/no-unused-vars': ['error', { ignorePattern: '^_' }],
 			'vue/multi-word-component-names': 'off',
 		},
+	},
+	{
+		// The build files belong to tsconfig.node.json, which the project service does not look up by itself.
+		files: ['*.config.ts', 'build/**/*.ts'],
+		languageOptions: { parserOptions: { projectService: false, project: 'tsconfig.node.json' } },
 	},
 	{
 		files: ['src/**'],

@@ -1,16 +1,52 @@
-name: GitHub Release
+name: Release
 
+# release-please keeps a release PR up to date on main: the changelog and the version, from the Conventional Commits.
+# Merging it creates the tag and a draft release, which the publish job checks, builds, fills and publishes.
 on:
   push:
-    branches: [release]
+    branches: [main]
+  # Publishes a draft release made by hand, such as a pre-release: gh release create <tag> --draft --prerelease --target <sha>
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the draft release to publish
+        required: true
+
+concurrency:
+  group: release
 
 jobs:
-  build:
+  release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          # A PR opened with the GITHUB_TOKEN runs no workflow, and main requires the CI checks.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+
+  publish:
+    needs: release-please
+    # always(): on workflow_dispatch, release-please is skipped.
+    if: always() && (needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       # pnpm/action-setup reads the version from packageManager in package.json.
       - name: Setup pnpm
@@ -25,45 +61,36 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check
+        run: |
+          pnpm lint
+          pnpm knip
+          pnpm i18n
+          pnpm format:check
+          pnpm typecheck
+          pnpm test
+
       - name: Build Project
         run: pnpm build
 
-      - name: Identify Version Number
-        id: version
-        run: echo "version=$(node -p "require('./dist/system.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Pin the Manifest to this Release
+        run: node build/pinRelease.ts "$GITHUB_REPOSITORY" "$TAG"
 
       - name: Zip System
         working-directory: dist
-        run: zip -r "../genesys-${{ steps.version.outputs.version }}.zip" .
+        run: zip -r ../genesys.zip .
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          draft: false
-          prerelease: false
-          release_name: ${{ steps.version.outputs.version }}
-          tag_name: release-${{ steps.version.outputs.version }}
-          body_path: CHANGELOG.md
+      # The manifest and download URLs of yaml/system.yml point to these names in the latest release.
+      - name: Attach the System
+        run: |
+          cp dist/system.json manifest.json
+          gh release upload "$TAG" manifest.json genesys.zip --clobber
 
-      - name: Upload manifest.json
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/system.json
-          asset_name: manifest.json
-          asset_content_type: application/json
-
-      - name: Upload System Archive
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./genesys-${{ steps.version.outputs.version }}.zip
-          asset_name: genesys.zip
-          asset_content_type: application/zip
+      # A pre-release stays out of releases/latest, which Foundry reads for updates.
+      - name: Publish the Release
+        run: |
+          if [ "$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)" = true ]; then
+            gh release edit "$TAG" --draft=false
+          else
+            gh release edit "$TAG" --draft=false --latest
+          fi

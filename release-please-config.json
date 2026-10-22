@@ -1,0 +1,17 @@
+{
+	"$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+	"bootstrap-sha": "5eb801478e9435c8281879320faf33bd9da78d87",
+	"pull-request-title-pattern": "chore: release ${version}",
+	"packages": {
+		".": {
+			"release-type": "node",
+			"package-name": "genesys",
+			"include-component-in-tag": false,
+			"bump-minor-pre-major": true,
+			"bump-patch-for-minor-pre-major": false,
+			"draft": true,
+			"force-tag-creation": true,
+			"extra-files": [{ "type": "generic", "path": "yaml/system.yml" }]
+		}
+	}
+}
