@@ -3,8 +3,6 @@ import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
 import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { VueSheet } from '@/vue/VueSheet';
-import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { skillNamesMatch } from '@/data/Skills';
 
 import '@/item/sheets/ArchetypeSheet.scss';
@@ -14,25 +12,14 @@ import '@/item/sheets/ArchetypeSheet.scss';
  */
 const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
 
-export class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeDataModel>) {
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'sheet', 'item', 'archetype'],
-			width: 720,
-			height: 780,
-		};
-	}
+export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
+	static override DEFAULT_OPTIONS = {
+		classes: ['archetype'],
+		position: { width: 720, height: 780 },
+	};
 
 	override get vueComponent() {
 		return VueArchetypeSheet;
-	}
-
-	override async getVueContext(): Promise<ItemSheetContext | undefined> {
-		return {
-			sheet: this,
-			data: (await this.getData()) as GenesysItemSheetData<ArchetypeDataModel>,
-		};
 	}
 
 	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {

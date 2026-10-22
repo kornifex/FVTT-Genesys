@@ -7,34 +7,19 @@ import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { VueSheet } from '@/vue/VueSheet';
-import { ActorSheetContext } from '@/vue/SheetContext';
 import { DragTransferData } from '@/data/DragTransferData';
 import { ownedSkill } from '@/data/Skills';
 
 /**
- * Actor sheet used for Player Characters
+ * Actor sheet shared by the adversaries: minions, rivals and nemeses.
  */
-export class AdversarySheet extends VueSheet(GenesysActorSheet<AdversaryDataModel>) {
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			tabs: [
-				{
-					navSelector: '.sheet-tabs',
-					contentSelector: '.sheet-body',
-					initial: 'stats',
-				},
-			],
-			width: 480,
-		};
-	}
+export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
+	static override DEFAULT_OPTIONS = {
+		position: { width: 480 },
+	};
 
-	override async getVueContext(): Promise<ActorSheetContext<AdversaryDataModel>> {
-		return {
-			sheet: this,
-			data: await this.getData(),
-		};
+	override get initialTab() {
+		return 'stats';
 	}
 
 	protected override async _onDropItem(event: DragEvent, data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>) {

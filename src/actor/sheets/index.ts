@@ -3,31 +3,40 @@ import { MinionSheet } from '@/actor/sheets/MinionSheet';
 import { RivalSheet } from '@/actor/sheets/RivalSheet';
 import { NemesisSheet } from '@/actor/sheets/NemesisSheet';
 import { VehicleSheet } from '@/actor/sheets/VehicleSheet';
+import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
+
+/**
+ * Registers an actor sheet of the system. The Foundry types we have only register AppV1 sheets, though v12 and v13 both take
+ * ApplicationV2 ones (ADR 0005).
+ */
+function registerSheet(sheetClass: ConstructorOf<GenesysActorSheet>, options: RegisterSheetOptions) {
+	Actors.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ActorSheet>, options);
+}
 
 export function register() {
 	Actors.unregisterSheet('core', ActorSheet);
 
-	Actors.registerSheet('genesys', CharacterSheet, {
+	registerSheet(CharacterSheet, {
 		types: ['character'],
 		makeDefault: true,
 	});
 
-	Actors.registerSheet('genesys', MinionSheet, {
+	registerSheet(MinionSheet, {
 		types: ['minion'],
 		makeDefault: true,
 	});
 
-	Actors.registerSheet('genesys', RivalSheet, {
+	registerSheet(RivalSheet, {
 		types: ['rival'],
 		makeDefault: true,
 	});
 
-	Actors.registerSheet('genesys', NemesisSheet, {
+	registerSheet(NemesisSheet, {
 		types: ['nemesis'],
 		makeDefault: true,
 	});
 
-	Actors.registerSheet('genesys', VehicleSheet, {
+	registerSheet(VehicleSheet, {
 		types: ['vehicle'],
 		makeDefault: true,
 	});

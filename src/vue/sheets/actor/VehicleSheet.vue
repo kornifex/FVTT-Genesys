@@ -135,8 +135,8 @@ onBeforeUpdate(updateEffects);
 			height: 2.5rem;
 		}
 
-		@include reset.input;
-		input {
+		@include reset.input("input[type='text']");
+		input[type='text'] {
 			width: 100%;
 			font-family: 'Bebas Neue', sans-serif;
 			font-size: 2rem;

@@ -1,22 +1,13 @@
 import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
-import { VueSheet } from '@/vue/VueSheet';
-import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import VueArmorSheet from '@/vue/sheets/item/ArmorSheet.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 
-export class ArmorSheet extends VueSheet(GenesysItemSheet<ArmorDataModel>) {
+export class ArmorSheet extends GenesysItemSheet<ArmorDataModel> {
 	override get vueComponent() {
 		return VueArmorSheet;
-	}
-
-	override async getVueContext(): Promise<ItemSheetContext | undefined> {
-		return {
-			sheet: this,
-			data: (await this.getData()) as GenesysItemSheetData<ArmorDataModel>,
-		};
 	}
 
 	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {

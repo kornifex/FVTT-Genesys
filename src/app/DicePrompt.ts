@@ -52,19 +52,16 @@ type DicePromptOptions = {
 /**
  * Dice pool prompt.
  */
-export class DicePrompt extends VueSheet(Application) {
+export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {
 		return VueDicePrompt;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['app-dice-prompt'],
-			width: 500,
-			title: game.i18n.localize('Genesys.DicePrompt.Title'),
-		};
-	}
+	static override DEFAULT_OPTIONS = {
+		classes: ['app-dice-prompt'],
+		position: { width: 500 },
+		window: { title: 'Genesys.DicePrompt.Title' },
+	};
 
 	static async promptForRoll(actor: GenesysActor | undefined, skillName: string, options: DicePromptOptions = {}) {
 		const app = new DicePrompt(actor, skillName, options);
@@ -105,12 +102,12 @@ export class DicePrompt extends VueSheet(Application) {
 		this.rollData = rollData;
 	}
 
-	override async close(options = {}) {
+	protected override async _preClose(options: object) {
 		if (this.rollType === RollType.Initiative) {
 			(this.rollData as InitiativeRollData).rejectPromise();
 		}
 
-		await super.close(options);
+		await super._preClose(options);
 	}
 
 	override async getVueContext(): Promise<DicePromptContext> {

@@ -9,19 +9,16 @@ export interface CareerSkillPromptContext extends ContextBase {
 	resolvePromise: (skillIDs: string[]) => void;
 }
 
-export class CareerSkillPrompt extends VueSheet(Application) {
+export class CareerSkillPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {
 		return VueCareerSkillPrompt;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['app-career-skill-prompt'],
-			width: 400,
-			title: game.i18n.localize('Genesys.CareerSkillPrompt.Title'),
-		};
-	}
+	static override DEFAULT_OPTIONS = {
+		classes: ['app-career-skill-prompt'],
+		position: { width: 400 },
+		window: { title: 'Genesys.CareerSkillPrompt.Title' },
+	};
 
 	static async promptForSkills(skills: GenesysItem<SkillDataModel>[]): Promise<string[]> {
 		const sheet = new CareerSkillPrompt(skills);
@@ -53,8 +50,8 @@ export class CareerSkillPrompt extends VueSheet(Application) {
 		};
 	}
 
-	override async close(options = {}) {
+	protected override async _preClose(options: object) {
 		this.#resolvePromise?.([]);
-		await super.close(options);
+		await super._preClose(options);
 	}
 }

@@ -11,9 +11,7 @@ import { isCareerSkill } from '@/actor/data/character/Career';
 import { ownedSkill } from '@/data/Skills';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { VueSheet } from '@/vue/VueSheet';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
-import { ActorSheetContext } from '@/vue/SheetContext';
 import { DragTransferData } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
@@ -21,29 +19,13 @@ import { EquipmentState } from '@/item/data/EquipmentDataModel';
 /**
  * Actor sheet used for Player Characters
  */
-export class CharacterSheet extends VueSheet(GenesysActorSheet<CharacterDataModel>) {
+export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 	override get vueComponent() {
 		return VueCharacterSheet;
 	}
 
-	override async getVueContext(): Promise<ActorSheetContext<CharacterDataModel>> {
-		return {
-			sheet: this,
-			data: await this.getData(),
-		};
-	}
-
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			tabs: [
-				{
-					navSelector: '.sheet-tabs',
-					contentSelector: '.sheet-body',
-					initial: 'skills',
-				},
-			],
-		};
+	override get initialTab() {
+		return 'skills';
 	}
 
 	protected override async _onDropItem(

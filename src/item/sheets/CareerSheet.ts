@@ -2,29 +2,16 @@ import { CareerDataModel } from '@/item/data/CareerDataModel';
 import VueCareerSheet from '@/vue/sheets/item/CareerSheet.vue';
 import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
-import { VueSheet } from '@/vue/VueSheet';
-import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { isCareerSkill } from '@/actor/data/character/Career';
 
-export class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataModel>) {
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'sheet', 'item', 'career'],
-			width: 500,
-			height: 400,
-		};
-	}
+export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
+	static override DEFAULT_OPTIONS = {
+		classes: ['career'],
+		position: { width: 500, height: 400 },
+	};
 
 	override get vueComponent() {
 		return VueCareerSheet;
-	}
-
-	override async getVueContext(): Promise<ItemSheetContext | undefined> {
-		return {
-			sheet: this,
-			data: (await this.getData()) as GenesysItemSheetData<CareerDataModel>,
-		};
 	}
 
 	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
