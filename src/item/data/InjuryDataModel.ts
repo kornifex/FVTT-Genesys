@@ -1,10 +1,11 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { SEVERITIES, Severity } from '@/item/data/Injuries';
 
 export abstract class InjuryDataModel extends BaseItemDataModel {
 	/**
 	 * Severity level of the injury, which aligns with Difficulty levels to heal it.
 	 */
-	abstract severity: '-' | 'easy' | 'average' | 'hard' | 'daunting' | 'formidable';
+	abstract severity: Severity;
 
 	static override defineSchema() {
 		const fields = foundry.data.fields;
@@ -13,7 +14,7 @@ export abstract class InjuryDataModel extends BaseItemDataModel {
 			...super.defineSchema(),
 			severity: new fields.StringField({
 				initial: 'average',
-				choices: ['-', 'easy', 'average', 'hard', 'daunting', 'formidable'],
+				choices: [...SEVERITIES],
 			}),
 		};
 	}

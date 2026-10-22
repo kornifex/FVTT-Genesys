@@ -26,6 +26,10 @@ _Avoid_: Take, assign
 A skill flagged as usable for rolling initiative (Cool and Vigilance by default). Each combatant rolls with one chosen Initiative Skill; when none is chosen, the first Initiative Skill of the Skills Compendium is used.
 _Avoid_: Initiative type, initiative stat
 
+**Critical Injury**:
+A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle.
+_Avoid_: Crit, wound
+
 ### Skills
 
 **Skills Compendium**:

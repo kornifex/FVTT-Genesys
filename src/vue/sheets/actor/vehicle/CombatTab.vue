@@ -5,6 +5,7 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { severityDifficulty } from '@/item/data/Injuries';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
@@ -29,15 +30,6 @@ const weapons = computed(
 const criticalHits = computed(
 	() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[],
 );
-
-const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {
-	'-': 'D'.repeat(0),
-	easy: 'D'.repeat(1),
-	average: 'D'.repeat(2),
-	hard: 'D'.repeat(3),
-	daunting: 'D'.repeat(4),
-	formidable: 'D'.repeat(5),
-};
 
 function getFiringArcLabels(weapon: GenesysItem<VehicleWeaponDataModel>) {
 	const possibleDirections = Object.entries(weapon.systemData.firingArc);
@@ -140,7 +132,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	}
 
 	await DicePrompt.promptForRoll(selectRepairer.actor, selectRepairer.skill.name, {
-		difficulty: SEVERITY_TO_DIFFICULTY[criticalHit.systemData.severity],
+		difficulty: severityDifficulty(criticalHit.systemData.severity),
 	});
 }
 </script>
@@ -202,12 +194,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 
 				<div v-for="criticalHit in criticalHits" :key="criticalHit.id" class="critical-hit">
 					<div class="severity">
-						<a @click="repairHit(criticalHit)">
-							<template v-if="criticalHit.systemData.severity === 'easy'">D</template>
-							<template v-if="criticalHit.systemData.severity === 'average'">DD</template>
-							<template v-if="criticalHit.systemData.severity === 'hard'">DDD</template>
-							<template v-if="criticalHit.systemData.severity === 'daunting'">DDDD</template>
-						</a>
+						<a @click="repairHit(criticalHit)">{{ severityDifficulty(criticalHit.systemData.severity) }}</a>
 					</div>
 					<div class="name">
 						<a @click="openItem(criticalHit)">{{ criticalHit.name }}</a>
