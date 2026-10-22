@@ -3,6 +3,7 @@ import { DicePrompt } from '@/app/DicePrompt';
 import { checkLinkActor } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { isPoolModificationValue } from '@/effects/PoolModifications';
 
 const DICE_COLOR_TO_GLYPH = Object.fromEntries(
 	Object.values(GenesysDice).map((die) => {
@@ -162,7 +163,14 @@ export function register() {
 	CONFIG.TextEditor.enrichers.push({
 		pattern: new RegExp(`@pool(-mod(ifications?)?)?\\[(?<mods>${PoolModGlyphPattern.source}+)]`, 'gim'),
 		enricher: async (match, _) => {
-			const mods: string[] = match.groups?.['mods']?.match(PoolModGlyphPattern) ?? [];
+			// The `i` flag keeps the prefix case-insensitive but lets the glyphs match in any case, while their case carries
+			// meaning (`A` is an Ability die, `a` an Advantage). Returning null leaves a wrong-case glyph's text as it is.
+			const glyphs = match.groups?.['mods'] ?? '';
+			if (!isPoolModificationValue(glyphs)) {
+				return null;
+			}
+
+			const mods: string[] = glyphs.match(PoolModGlyphPattern) ?? [];
 
 			const container = document.createElement('span');
 			container.className = 'font-genesys-symbols pool-modifications';
