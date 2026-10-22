@@ -5,8 +5,8 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { CrewDragTransferData, DragTransferData } from '@/data/DragTransferData';
+import { isPassengerDrop, receiveCrewDrop } from '@/operations/CrewDrop';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
-import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
 export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 	override get vueComponent() {
@@ -59,65 +59,12 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 		// Regardless of what was dropped this is the last spot to process it.
 		event.stopPropagation();
 
-		// Check that we have the UUID of the passenger that was dropped and that it can be processed by this method.
+		// Actors moved within the Crew are received by the Crew tab; anywhere else on the sheet, they stay where they are.
 		const dragData = data as CrewDragTransferData;
-		if (!dragData.uuid || (dragData.genesysType && !VehicleDataModel.isRelevantTypeForContext('PASSENGER', dragData.genesysType))) {
+		if (!isPassengerDrop(dragData) || dragData.sourceVehicleUuid === this.actor.uuid || !this.isEditable) {
 			return false;
 		}
 
-		// Make sure that the passenger in question exists and can be processed by this method.
-		let crewUuid = dragData.uuid;
-		const droppedEntity = fromUuidSync(crewUuid) as { type: string } | null;
-		if (!droppedEntity || !VehicleDataModel.isRelevantTypeForContext('PASSENGER', droppedEntity.type)) {
-			return false;
-		}
-
-		// We must be able to edit the actor to proceed.
-		if (!this.isEditable) {
-			return false;
-		}
-
-		const isDropFromAnotherActor = dragData.sourceVehicleUuid && dragData.sourceVehicleUuid !== this.actor.uuid;
-		if (isDropFromAnotherActor) {
-			// If the passenger was dropped from another actor then check it's not already on our list and then remove it from the source.
-			if (this.actor.systemData.hasCrew(crewUuid)) {
-				return false;
-			}
-
-			const aVehicle = await fromUuid<GenesysActor<VehicleDataModel>>(dragData.sourceVehicleUuid!);
-			if (!aVehicle || aVehicle.type !== 'vehicle' || !aVehicle.isOwner) {
-				return false;
-			}
-
-			await aVehicle.systemData.removeCrew(crewUuid);
-		} else if (!dragData.sourceVehicleUuid) {
-			// If the item comes from a folder or compendium then check it's not already on our list.
-			if (this.actor.systemData.hasCrew(crewUuid)) {
-				return false;
-			}
-
-			// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to
-			// make a clone and save a reference of it instead.
-			if (
-				!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
-				(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
-			) {
-				const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
-
-				if (actorToAdd) {
-					crewUuid = actorToAdd.uuid;
-				} else {
-					// The prompt was closed so cancel the drop.
-					return false;
-				}
-			}
-		} else {
-			// Ignore dropped passengers if they are already on this actor; they should be handled by specific components on the sheet.
-			return false;
-		}
-
-		await this.actor.systemData.addPassenger(crewUuid);
-
-		return;
+		await receiveCrewDrop(this.actor, dragData, { kind: 'passengers', position: 'last' });
 	}
 }

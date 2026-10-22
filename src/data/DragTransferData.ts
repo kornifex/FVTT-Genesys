@@ -4,21 +4,9 @@ export type DragTransferData = {
 	genesysType?: string;
 };
 
-type PassengerExtraDragTransferData = {
-	origin: 'passenger';
+export type CrewDragTransferData = DragTransferData & {
+	sourceVehicleUuid?: string;
 };
-
-type RoleMemberExtraDragTransferData = {
-	origin: 'role';
-	roleId: string;
-};
-
-export type CrewExtraDragTransferData = PassengerExtraDragTransferData | RoleMemberExtraDragTransferData;
-
-export type CrewDragTransferData = DragTransferData &
-	Partial<CrewExtraDragTransferData> & {
-		sourceVehicleUuid?: string;
-	};
 
 const GENESYS_DRAG_TYPE_PREFIX = 'genesys';
 const UPPER_CASE_PATTERN = /([A-Z]+)/g;
