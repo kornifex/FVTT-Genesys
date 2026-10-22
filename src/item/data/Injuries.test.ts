@@ -10,7 +10,7 @@ describe('severityDifficulty', () => {
 		['hard', 'DDD'],
 		['daunting', 'DDDD'],
 		['formidable', 'DDDDD'],
-	] as const)('gives a %s injury the difficulty %j', (severity, difficulty) => {
+	] as const)('gives the severity %j the difficulty %j', (severity, difficulty) => {
 		expect(severityDifficulty(severity)).toBe(difficulty);
 	});
 });
