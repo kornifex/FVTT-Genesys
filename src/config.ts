@@ -12,6 +12,7 @@ import {
 	KEY_STYLE,
 	KEY_SUPER_CHARACTERISTICS,
 	KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS,
+	loadSkills,
 } from '@/settings/campaign';
 import {
 	KEY_AUTO_APPLY_POOL_MODIFICATIONS,
@@ -123,7 +124,7 @@ export function setup() {
  */
 export function ready() {
 	/** World Settings **/
-	applySetting<string>(KEY_SKILLS_COMPENDIUM);
+	void loadSkills(game.settings.get<string>(SETTINGS_NAMESPACE, KEY_SKILLS_COMPENDIUM));
 	applySetting<string>(KEY_DEFAULT_DIFFICULTY);
 	applySetting<string>(KEY_SKILL_FOR_INJURIES);
 	applySetting<string>(KEY_SKILL_FOR_REPAIRING_VEHICLE_HITS);

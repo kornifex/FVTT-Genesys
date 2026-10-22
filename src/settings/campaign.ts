@@ -68,6 +68,40 @@ export const KEY_TALENT_TIER_VERSIONS = 'talentTierVersions';
 export const KEY_STYLE = 'style';
 
 /**
+ * Load the skills of a Skills Compendium into `CONFIG.genesys.skills`, falling back to the default compendium when the
+ * name is empty, and report a compendium that can't provide skills.
+ * @param compendiumName The value of the Skills Compendium setting.
+ */
+export async function loadSkills(compendiumName: string | undefined) {
+	// We always want a Skills Compendium, so fall back to the default one if the setting is ever emptied.
+	if (!compendiumName) {
+		ui.notifications.warn('Genesys.Notifications.NoSkillsCompendium', { localize: true });
+	}
+	const skillsCompendiumName = compendiumName || DEFAULT_SKILLS_COMPENDIUM;
+	CONFIG.genesys.settings.skillsCompendium = skillsCompendiumName;
+
+	let skills: GenesysItem<SkillDataModel>[] = [];
+
+	const pack = game.packs.get(skillsCompendiumName);
+	if (!pack) {
+		ui.notifications.error(game.i18n.format('Genesys.Notifications.MissingCompendium', { name: skillsCompendiumName }));
+	} else if (pack.metadata.type !== 'Item') {
+		ui.notifications.error(
+			game.i18n.format('Genesys.Notifications.WrongCompendiumType', { name: skillsCompendiumName, type: pack.metadata.type }),
+		);
+	} else if (!pack.index.some((item) => item.type === 'skill')) {
+		ui.notifications.warn(game.i18n.format('Genesys.Notifications.NoSkillsInCompendium', { name: skillsCompendiumName }));
+	} else {
+		skills = (await pack.getDocuments()).filter((item) => (item as GenesysItem).type === 'skill') as GenesysItem<SkillDataModel>[];
+	}
+
+	CONFIG.genesys.skills = skills;
+
+	// The combat tracker lists the initiative skills from the loaded skills.
+	void ui.combat?.render();
+}
+
+/**
  * Register campaign settings.
  * @param namespace Namespace to register settings under.
  */
@@ -79,48 +113,14 @@ export function register(namespace: string) {
 		config: true,
 		default: GENESYS_CONFIG.settings.skillsCompendium,
 		type: String,
-		onChange: async (value) => {
-			// We always want a skill compendium so fallback to the default value if it's ever removed.
-			let skillsCompendiumName = DEFAULT_SKILLS_COMPENDIUM;
-			if (!value) {
-				ui.notifications.warn('Genesys.Notifications.NoSkillsCompendium', { localize: true });
-				CONFIG.genesys.settings.skillsCompendium = skillsCompendiumName;
-			} else {
-				CONFIG.genesys.settings.skillsCompendium = skillsCompendiumName = value;
-			}
-
-			let skills: GenesysItem<SkillDataModel>[] = [];
-
-			// Attempt to load the pack.
-			const pack = game.packs.get(skillsCompendiumName);
-			if (!pack) {
-				ui.notifications.error(game.i18n.format('Genesys.Notifications.MissingCompendium', { name: skillsCompendiumName }));
-			} else if (pack.metadata.type !== 'Item') {
-				ui.notifications.error(
-					game.i18n.format('Genesys.Notifications.WrongCompendiumType', { name: skillsCompendiumName, type: pack.metadata.type }),
-				);
-			} else if (!pack.index.some((item) => item.type === 'skill')) {
-				ui.notifications.warn(game.i18n.format('Genesys.Notifications.NoSkillsInCompendium', { name: skillsCompendiumName }));
-			} else {
-				skills = (await pack.getDocuments()).filter(
-					(item) => (item as GenesysItem).type === 'skill',
-				) as GenesysItem<SkillDataModel>[];
-			}
-
-			CONFIG.genesys.skills = skills;
-
-			// The combat tracker lists the initiative skills from the loaded skills.
-			void ui.combat?.render();
-		},
+		onChange: loadSkills,
 	});
 
 	// Reload the skills whenever the content of the Skills Compendium changes.
 	const reloadSkills = (item: unknown) => {
 		const targetItem = item as GenesysItem;
 		if (targetItem.pack === CONFIG.genesys.settings.skillsCompendium && targetItem.type === 'skill') {
-			void game.settings.settings
-				.get<string>(`${namespace}.${KEY_SKILLS_COMPENDIUM}`)
-				?.onChange?.(game.settings.get(namespace, KEY_SKILLS_COMPENDIUM));
+			void loadSkills(game.settings.get<string>(namespace, KEY_SKILLS_COMPENDIUM));
 		}
 	};
 	Hooks.on('createItem', reloadSkills);
