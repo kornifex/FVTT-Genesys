@@ -55,8 +55,12 @@ The ordered record of a character's XP awards and Advancements.
 _Avoid_: XP log, history
 
 **Character Creation**:
-The period before a character receives their first XP award. Characteristics can only be raised during Character Creation, and a skill rank bought during it can't go above 2.
+The period before a character receives their first XP award. Characteristics can only be raised, and super-characteristics only marked or unmarked, during Character Creation, and a skill rank bought during it can't go above 2.
 _Avoid_: Creation phase, chargen
+
+**Free Rank**:
+A skill rank gained or lost without spending XP: granted by the archetype or the career, or given or taken by hand, for instance for a talent or by the GM. A Free Rank is not an Advancement and is not recorded in the Experience Journal; a skill's rank never goes below 0.
+_Avoid_: Bonus rank, manual rank
 
 ### Equipment
 
