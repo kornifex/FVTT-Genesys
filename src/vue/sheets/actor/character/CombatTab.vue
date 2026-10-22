@@ -9,6 +9,7 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import Enriched from '@/vue/components/Enriched.vue';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { severityDifficulty } from '@/item/data/Injuries';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -32,15 +33,6 @@ const armors = computed(
 		) as GenesysItem<ArmorDataModel>[],
 );
 const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
-
-const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {
-	'-': 'D'.repeat(0),
-	easy: 'D'.repeat(1),
-	average: 'D'.repeat(2),
-	hard: 'D'.repeat(3),
-	daunting: 'D'.repeat(4),
-	formidable: 'D'.repeat(5),
-};
 
 async function openItem(item: GenesysItem) {
 	await item.sheet?.render(true);
@@ -66,7 +58,7 @@ async function rollAttack(weapon: GenesysItem<WeaponDataModel>) {
 
 async function healInjury(injury: GenesysItem<InjuryDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(rootContext.data.actor), CONFIG.genesys.settings.skillForHealingInjury, {
-		difficulty: SEVERITY_TO_DIFFICULTY[injury.systemData.severity],
+		difficulty: severityDifficulty(injury.systemData.severity),
 	});
 }
 
@@ -170,12 +162,7 @@ function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
 
 				<div v-for="injury in injuries" :key="injury.id" class="injury">
 					<div class="severity">
-						<a @click="healInjury(injury)">
-							<template v-if="injury.systemData.severity === 'easy'">D</template>
-							<template v-if="injury.systemData.severity === 'average'">DD</template>
-							<template v-if="injury.systemData.severity === 'hard'">DDD</template>
-							<template v-if="injury.systemData.severity === 'daunting'">DDDD</template>
-						</a>
+						<a @click="healInjury(injury)">{{ severityDifficulty(injury.systemData.severity) }}</a>
 					</div>
 					<div class="name">
 						<a @click="openItem(injury)">{{ injury.name }}</a>
