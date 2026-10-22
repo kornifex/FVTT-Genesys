@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Characteristic } from '@/data/Characteristics';
-import { chatCard, ItemCard } from '@/item/ChatCards';
+import { chatCard, enrichedQualities, ItemCard } from '@/item/ChatCards';
 
 const i18n = { localize: (key: string) => key.split('.').pop()! };
 
@@ -168,5 +168,23 @@ describe('chatCard', () => {
 			system: { description: '<p>Long.</p>' },
 			description: '<p>Long.</p>',
 		});
+	});
+});
+
+describe('enrichedQualities', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('enriches copies of the qualities, leaving the qualities as they are saved', async () => {
+		vi.stubGlobal('TextEditor', {
+			enrichHTML: (html: string) => Promise.resolve(html.replace('@UUID[Item.abc]{Pierce}', '<a>Pierce</a>')),
+		});
+		const qualities = [{ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }];
+
+		expect(await enrichedQualities(qualities)).toEqual([
+			{ name: 'Pierce', description: '<p><a>Pierce</a></p>', isRated: true, rating: 2 },
+		]);
+		expect(qualities).toEqual([{ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }]);
 	});
 });

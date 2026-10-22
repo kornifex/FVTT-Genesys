@@ -8,6 +8,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import type { Characteristic } from '@/data/Characteristics';
 
 /**
  * The label of each activation type of an ability or a talent.
@@ -15,6 +16,28 @@ import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 const ACTIVATION_LABELS: Record<AbilityDataModel['activation']['type'], string> = {
 	passive: 'Genesys.Labels.Passive',
 	active: 'Genesys.Labels.Active',
+};
+
+/**
+ * The abbreviation of each characteristic a weapon adds to its damage.
+ */
+const CHARACTERISTIC_ABBREVIATIONS: Record<Characteristic, string> = {
+	brawn: 'Genesys.CharacteristicAbbr.Brawn',
+	agility: 'Genesys.CharacteristicAbbr.Agility',
+	intellect: 'Genesys.CharacteristicAbbr.Intellect',
+	cunning: 'Genesys.CharacteristicAbbr.Cunning',
+	willpower: 'Genesys.CharacteristicAbbr.Willpower',
+	presence: 'Genesys.CharacteristicAbbr.Presence',
+};
+
+/**
+ * The label of each arc a vehicle weapon can fire in.
+ */
+const FIRING_ARC_LABELS: Record<keyof VehicleWeaponDataModel['firingArc'], string> = {
+	fore: 'Genesys.FiringArc.Fore',
+	aft: 'Genesys.FiringArc.Aft',
+	port: 'Genesys.FiringArc.Port',
+	starboard: 'Genesys.FiringArc.Starboard',
 };
 
 type Source<Type extends string, SystemData> = { type: Type; img: string | null; name: string; systemData: SystemData };
@@ -141,9 +164,7 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 			skill: skills[0] ?? '-',
 			damage:
 				damageText(baseDamage) +
-				(damageCharacteristic !== '-'
-					? ' + ' + i18n.localize(`Genesys.CharacteristicAbbr.${capitalize(damageCharacteristic)}`)
-					: ''),
+				(damageCharacteristic !== '-' ? ' + ' + i18n.localize(CHARACTERISTIC_ABBREVIATIONS[damageCharacteristic]) : ''),
 		};
 	} else if (item.type === 'vehicleWeapon') {
 		const { skills, baseDamage, firingArc } = item.systemData;
@@ -166,23 +187,19 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
  * The localized labels of a vehicle weapon's firing arc: all, none, or each arc it fires in.
  */
 export function firingArcLabels(firingArc: VehicleWeaponDataModel['firingArc'], i18n: Localizer) {
-	const possibleDirections = Object.entries(firingArc);
-	const arcs = possibleDirections.filter(([_arc, canFire]) => canFire);
+	const allArcs = Object.keys(FIRING_ARC_LABELS) as (keyof typeof FIRING_ARC_LABELS)[];
+	const arcs = allArcs.filter((arc) => firingArc[arc]);
 
-	if (possibleDirections.length === arcs.length) {
+	if (arcs.length === allArcs.length) {
 		return [i18n.localize('Genesys.FiringArc.All')];
 	} else if (arcs.length === 0) {
 		return [i18n.localize('Genesys.FiringArc.None')];
 	} else {
-		return arcs.map(([arc, _canFire]) => i18n.localize(`Genesys.FiringArc.${capitalize(arc)}`));
+		return arcs.map((arc) => i18n.localize(FIRING_ARC_LABELS[arc]));
 	}
 }
 
 function damageText(baseDamage: number | null) {
 	// The weapon sheets save an emptied damage field as null.
 	return (baseDamage ?? 0).toString();
-}
-
-function capitalize(text: string) {
-	return text.charAt(0).toUpperCase() + text.slice(1);
 }
