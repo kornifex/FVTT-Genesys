@@ -267,9 +267,9 @@ export abstract class VehicleDataModel
 }
 
 /**
- * Re-render the open sheets of the vehicles an actor is on, whose Skills tab shows the actor's skills.
+ * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills.
  */
-function renderVehiclesOf(actor: GenesysActor) {
+function renderVehiclesCrewedBy(actor: GenesysActor) {
 	if (actor.type === 'vehicle') {
 		return;
 	}
@@ -282,17 +282,18 @@ function renderVehiclesOf(actor: GenesysActor) {
 }
 
 export function register() {
-	Hooks.on('updateActor', (actor) => renderVehiclesOf(actor as GenesysActor));
+	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
 
 	// A skill rank can change without its actor being updated, like a free rank or an adversary's rank.
-	for (const hook of ['createItem', 'updateItem', 'deleteItem'] as const) {
-		Hooks.on(hook, (item) => {
-			const actor = (item as GenesysItem).parent;
-			if (actor) {
-				renderVehiclesOf(actor);
-			}
-		});
-	}
+	const renderVehiclesCrewedByParent = (item: unknown) => {
+		const actor = (item as GenesysItem).parent;
+		if (actor) {
+			renderVehiclesCrewedBy(actor);
+		}
+	};
+	Hooks.on('createItem', renderVehiclesCrewedByParent);
+	Hooks.on('updateItem', renderVehiclesCrewedByParent);
+	Hooks.on('deleteItem', renderVehiclesCrewedByParent);
 
 	Hooks.on('deleteActor', (actor) => {
 		const targetActor = actor as GenesysActor;
