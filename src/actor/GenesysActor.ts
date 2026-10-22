@@ -4,6 +4,8 @@ import { HasOnDelete } from '@/data/HasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
+import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
+import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
 
 export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
 	/**
@@ -27,7 +29,22 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 	protected override async _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext<this>, user: User) {
 		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
 
+		// An actor created with legacy copies of its items' effects, for instance imported from an older module compendium,
+		// loses them as the world's actors did in migration 3.
+		const changes = effectsStayOnItemsWithNotifications(this.toObject() as ActorSource);
+		if (changes) {
+			this.#applyToSource(changes);
+		}
+
 		return super._preCreate(data, options, user);
+	}
+
+	#applyToSource({ itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+		this.updateSource({ items: Object.entries(itemEffects).map(([_id, effects]) => ({ _id, effects })) });
+
+		// A non-recursive update replaces the effects with those listed.
+		const keptEffects = this.toObject().effects.filter((effect) => !deletedEffects.includes(effect._id));
+		this.updateSource({ effects: keptEffects }, { recursive: false });
 	}
 
 	/**

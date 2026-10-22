@@ -5,17 +5,35 @@
 import * as log from '@/log';
 
 /**
+ * The source data of an embedded document, as a planner reads it: its id, and the fields the planner declares.
+ */
+type EmbeddedSource = { _id: string };
+
+/**
+ * An update of an embedded document.
+ */
+export type EmbeddedUpdate = { _id: string } & Record<string, unknown>;
+
+/**
  * What a planner reads of an actor: its source data.
  */
 export type ActorSource = {
+	name: string;
 	type: string;
 	system: Record<string, unknown>;
+	items: EmbeddedSource[];
+	effects: EmbeddedSource[];
 };
 
 /**
- * The changes to make to an actor, as an update.
+ * The changes to make to an actor: an update of the actor itself, updates of the effects of its items by item id, and
+ * the ids of its own effects to delete.
  */
-export type ActorChanges = Record<string, unknown>;
+export type ActorChanges = {
+	update?: Record<string, unknown>;
+	itemEffects?: Record<string, EmbeddedUpdate[]>;
+	deletedEffects?: string[];
+};
 
 /**
  * A migration, planned actor by actor: from one actor's source data, the changes to make to it, or none. A planner is
@@ -29,7 +47,7 @@ export type ActorPlanner = (source: ActorSource) => ActorChanges | undefined;
 export type WalkedActor = {
 	uuid: string;
 	source: ActorSource;
-	update(changes: ActorChanges): Promise<unknown>;
+	apply(changes: ActorChanges): Promise<unknown>;
 };
 
 /**
@@ -92,7 +110,7 @@ export async function migrateActors(world: ActorWorld, plan: ActorPlanner) {
 		try {
 			const changes = plan(actor.source);
 			if (changes) {
-				await actor.update(changes);
+				await actor.apply(changes);
 			}
 		} catch (error) {
 			log.error(error);

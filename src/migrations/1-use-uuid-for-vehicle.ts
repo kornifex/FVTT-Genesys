@@ -38,6 +38,6 @@ export function useUuidForVehicles(worldActorUuid: (id: string) => string | unde
 			changes['system.roles'] = migratedRoles;
 		}
 
-		return Object.keys(changes).length > 0 ? changes : undefined;
+		return Object.keys(changes).length > 0 ? { update: changes } : undefined;
 	};
 }

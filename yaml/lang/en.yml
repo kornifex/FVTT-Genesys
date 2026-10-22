@@ -147,6 +147,7 @@ Genesys:
     Temporary: Temporary Effects
     Suppressed: Inactive Effects
     Source: Source
+    SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
     ChangeKey: Effect Target
     ChangeMode: Option
@@ -237,7 +238,6 @@ Genesys:
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     CannotSelectActor: You do not have sufficient permission to select this Actor.
     InvalidTokenTypeForAction: The selected token is of an invalid type to perform this action.
-    EffectsWereNotUpdatedAfterTransfer: There was an error updating the effects with the latest values for the transfered '{name}'.
     NoRoleMembersWithAppropriateSkills: There are no role members that have the appropriate skills to perform this action.
 
   # Dialogs Prompts
@@ -260,6 +260,9 @@ Genesys:
       MIGRATION STOPPED: The migration has stopped due to some errors; consult the console log for what these errors are.
       There are still {amount} migration(s) that haven't been performed.
     CompletedMigration: 'MIGRATION FINISHED: All migrations done; thanks for your patience.'
+    UnpairedEffectCopies: >-
+      {actor}: the effects of '{item}' don't match their copies on the actor. The copies were deleted, but the edits made to
+      them from the actor's Effects tab weren't kept on the item.
 
   # Story Points
   StoryPoints:
@@ -489,6 +492,7 @@ Genesys:
     Equipped: Equipped
     Carried: Carried
     Dropped: Dropped
+    Used: Used
     NotApplicable: N/A
     EffectiveTier: Effective Tier
     Silhouette: Silhouette

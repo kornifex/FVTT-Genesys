@@ -1,14 +1,14 @@
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { GenesysEffectSheet as GenesysEffectSheetV12 } from '@/effects/GenesysEffectSheet.v12';
 import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
-import { isFoundryV12, isFoundryV13OrLater } from '@/foundryGeneration';
+import { isFoundryV12 } from '@/foundryGeneration';
 
 export function register() {
 	CONFIG.ActiveEffect.documentClass = GenesysEffect;
 
-	if (isFoundryV13OrLater()) {
-		CONFIG.ActiveEffect.legacyTransferral = true;
-	}
+	// v12: legacy transferral is on by default. Item effects stay on their item and apply to its actor from there, as on
+	// later versions (ADR 0001).
+	CONFIG.ActiveEffect.legacyTransferral = false;
 
 	DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', ActiveEffectConfig);
 	if (isFoundryV12()) {

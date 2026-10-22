@@ -14,7 +14,6 @@ import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { DragTransferData } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 /**
  * Actor sheet used for Player Characters
@@ -135,11 +134,6 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 			} else {
 				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
-			}
-
-			// If we sucessfully cloned the dropped inventory item then update the state for any associated effect.
-			if (Array.isArray(clonedDroppedItem)) {
-				await this.actor.systemData.handleEffectsStatus(clonedDroppedItem, { equipmentState: EquipmentState.Carried });
 			}
 		} else {
 			// If the dropped item is not of a type that we have a default behavior then end early.

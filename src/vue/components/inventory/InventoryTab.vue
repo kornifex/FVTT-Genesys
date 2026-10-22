@@ -89,10 +89,6 @@ function canTypeBeInsideContainer(type: string) {
 	return type !== 'container' && dataModel.isRelevantTypeForContext('INVENTORY', type);
 }
 
-async function handleEffectsStatus(items: GenesysItem[], desiredState: EquipmentState) {
-	await system.value.handleEffectsStatus(items, { equipmentState: desiredState });
-}
-
 async function dropInventoryToSortSlot(event: DragEvent, sortCategory: EquipmentState, sortIndex: number) {
 	// Check that we have the UUID of whatever was dropped and that it's permitted to be dropped on this actor.
 	const dragData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as DragTransferData;
@@ -177,12 +173,6 @@ async function dropInventoryToSortSlot(event: DragEvent, sortCategory: Equipment
 	}
 
 	await droppedItem.update(Object.fromEntries(updateMap));
-
-	// Potentially update the effects tied to the dropped item if it changed inventory category of if it was transfered from
-	// another actor.
-	if (mustUpdateEquipmentState || isDropFromAnotherActor) {
-		await actor.systemData.handleEffectsStatus([droppedItem], { equipmentState: sortCategory });
-	}
 }
 
 async function resetDragCounters(_event: DragEvent) {
@@ -245,7 +235,6 @@ function dragLeave(event: DragEvent) {
 								:item="item"
 								:draggable="isDraggable"
 								:dragging="dragCounters[EquipmentState.Carried] > 0"
-								@equipment-state-change="handleEffectsStatus"
 								:can-type-be-dropped="canTypeBeDropped"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
 								:can-type-be-transfered="canTypeBeDropped"

@@ -45,7 +45,9 @@ export const actorOnlyOnceInCrew: ActorPlanner = (source) => {
 	}
 
 	return {
-		...(updateRoles && { 'system.roles': migratedRoles }),
-		...(updatePassengers && { 'system.passengers.list': migratedPassengers }),
+		update: {
+			...(updateRoles && { 'system.roles': migratedRoles }),
+			...(updatePassengers && { 'system.passengers.list': migratedPassengers }),
+		},
 	};
 };

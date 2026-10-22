@@ -147,6 +147,7 @@ Genesys:
     Temporary: Efectos temporales
     Suppressed: Efectos inactivos
     Source: Origen
+    SuppressedByEquipmentState: Inactivo mientras el estado de {item} sea «{state}».
     Duration: Duración
     ChangeKey: Objetivo del efecto
     ChangeMode: Opción
@@ -237,7 +238,6 @@ Genesys:
     CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     InvalidTokenTypeForAction: El token seleccionado es de un tipo no válido para realizar esta acción.
-    EffectsWereNotUpdatedAfterTransfer: Se ha producido un error al actualizar los efectos con los últimos valores del "{nombre}" transferido.
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.
 
   # Dialogs Prompts
@@ -260,6 +260,9 @@ Genesys:
       MIGRATION STOPPED: The migration has stopped due to some errors; consult the console log for what these errors are.
       There are still {amount} migration(s) that haven't been performed.
     CompletedMigration: 'MIGRATION FINISHED: All migrations done; thanks for your patience.'
+    UnpairedEffectCopies: >-
+      {actor}: los efectos de «{item}» no coinciden con sus copias en el actor. Las copias se han eliminado, pero los cambios
+      que se les hicieron desde la pestaña Efectos del actor no se han conservado en el objeto.
 
   # Story Points
   StoryPoints:
@@ -480,6 +483,7 @@ Genesys:
     Equipped: Equipado
     Carried: Transportado
     Dropped: En el suelo
+    Used: Usado
     NotApplicable: N/A
     EffectiveTier: Nivel efectivo
     Silhouette: Silueta

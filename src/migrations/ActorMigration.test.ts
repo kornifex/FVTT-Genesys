@@ -17,9 +17,9 @@ function fakeActor(uuid: string, log: string[]): WalkedActor & { updates: ActorC
 	const updates: ActorChanges[] = [];
 	return {
 		uuid,
-		source: { type: 'vehicle', system: { name: uuid } },
+		source: { name: uuid, type: 'vehicle', system: { name: uuid }, items: [], effects: [] },
 		updates,
-		update: async (changes) => {
+		apply: async (changes) => {
 			log.push(`update ${uuid}`);
 			updates.push(changes);
 		},
@@ -99,13 +99,13 @@ describe('migrateActors', () => {
 		const { actorWorld, world, token, packed } = fakeWorld(log);
 
 		const failures = await migrateActors(actorWorld, (source) =>
-			source.system.name === 'Actor.world' ? undefined : { 'system.migrated': true },
+			source.system.name === 'Actor.world' ? undefined : { update: { 'system.migrated': true } },
 		);
 
 		expect(failures).toEqual([]);
 		expect(world.updates).toEqual([]);
-		expect(token.updates).toEqual([{ 'system.migrated': true }]);
-		expect(packed.updates).toEqual([{ 'system.migrated': true }]);
+		expect(token.updates).toEqual([{ update: { 'system.migrated': true } }]);
+		expect(packed.updates).toEqual([{ update: { 'system.migrated': true } }]);
 	});
 
 	it('reports the actors it could not migrate, migrates the others, and locks the pack again', async () => {
@@ -115,11 +115,11 @@ describe('migrateActors', () => {
 
 		const failures = await migrateActors(actorWorld, (source) => {
 			if (source.system.name !== 'Scene.s.Token.t.Actor.world') throw new Error('boom');
-			return { 'system.migrated': true };
+			return { update: { 'system.migrated': true } };
 		});
 
 		expect(failures).toEqual(['Actor.world', 'Compendium.world.vehicles.Actor.packed']);
-		expect(token.updates).toEqual([{ 'system.migrated': true }]);
+		expect(token.updates).toEqual([{ update: { 'system.migrated': true } }]);
 		expect(pack.locked).toBe(true);
 	});
 });

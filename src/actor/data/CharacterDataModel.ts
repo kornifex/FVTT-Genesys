@@ -3,7 +3,6 @@ import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJ
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
 import { rootContainer } from '@/actor/data/character/Encumbrance';
-import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -233,10 +232,6 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 		}
 
 		return item.systemData.encumbrance * item.systemData.quantity;
-	}
-
-	async handleEffectsStatus(items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
-		await updateEffectsStatus(this.parent as unknown as CharacterActor, CharacterDataModel.isRelevantTypeForContext, items, overrides);
 	}
 
 	async preCreate(actor: CharacterActor, _data: unknown, _options: DocumentModificationContext<CharacterActor>, _user: User) {

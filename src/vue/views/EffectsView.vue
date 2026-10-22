@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory } from '@/effects/NewEffect';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import { inject, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
@@ -27,11 +28,38 @@ const sections: EffectSection[] = [
 	{ category: 'suppressed', label: 'Genesys.ActiveEffects.Suppressed', filter: (e) => e.isSuppressed },
 ];
 
+// The label of each Equipment State, for the tooltip of an effect its item's state suppresses.
+const STATE_LABELS: Record<EquipmentState, string> = {
+	[EquipmentState.Equipped]: 'Genesys.Labels.Equipped',
+	[EquipmentState.Carried]: 'Genesys.Labels.Carried',
+	[EquipmentState.Dropped]: 'Genesys.Labels.Dropped',
+	[EquipmentState.Used]: 'Genesys.Labels.Used',
+};
+
+// An actor's tab also lists the effects of its items, which live on the item.
+function livesOnSheetDocument(effect: GenesysEffect) {
+	return toRaw(effect).parent === toRaw(rootContext.sheet).document;
+}
+
+function sourceName(effect: GenesysEffect) {
+	return livesOnSheetDocument(effect) ? effect.sourceName : toRaw(effect).parent?.name ?? effect.sourceName;
+}
+
+function suppressionReason(effect: GenesysEffect) {
+	const item = toRaw(effect).originItem;
+	if (!item || !effect.isSuppressedByEquipmentState) {
+		return undefined;
+	}
+
+	const state = game.i18n.localize(STATE_LABELS[(item.systemData as EquipmentDataModel).state]);
+	return game.i18n.format('Genesys.ActiveEffects.SuppressedByEquipmentState', { item: item.name, state });
+}
+
 async function openEffect(effect: GenesysEffect) {
 	await toRaw(effect).sheet.render(true);
 }
 
-async function suppressEffect(effect: GenesysEffect) {
+async function toggleDisabled(effect: GenesysEffect) {
 	await toRaw(effect).update({
 		disabled: !effect.disabled,
 	});
@@ -55,17 +83,17 @@ async function deleteEffect(effect: GenesysEffect) {
 			</div>
 
 			<section class="effects-category">
-				<div v-for="effect in effects.filter(filter)" :key="effect.id" class="effect">
+				<div v-for="effect in effects.filter(filter)" :key="effect.uuid" class="effect" :data-tooltip="suppressionReason(effect)">
 					<img :src="effect.img" :alt="effect.name" />
 					<div class="name">{{ effect.name }}</div>
-					<div class="source">{{ effect.sourceName }}</div>
+					<div class="source">{{ sourceName(effect) }}</div>
 					<div class="duration">{{ effect.duration.label }}</div>
 					<div v-if="rootContext.data.editable" class="buttons">
-						<a @click="suppressEffect(effect)" :style="effect.isSuppressed ? 'opacity: 25%' : undefined"
+						<a @click="toggleDisabled(effect)" :style="effect.disabled ? 'opacity: 25%' : undefined"
 							><i class="fas fa-power-off"></i
 						></a>
 						<a @click="openEffect(effect)"><i class="fas fa-edit"></i></a>
-						<a v-if="!effect.origin" @click="deleteEffect(effect)"><i class="fas fa-trash"></i></a>
+						<a v-if="livesOnSheetDocument(effect)" @click="deleteEffect(effect)"><i class="fas fa-trash"></i></a>
 					</div>
 				</div>
 			</section>
