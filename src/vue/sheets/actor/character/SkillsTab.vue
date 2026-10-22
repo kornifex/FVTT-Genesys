@@ -48,7 +48,7 @@ const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 const system = computed(() => context.data.actor.systemData);
 const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
 
-const skillCategories = computed(() => skillsByCategory(toRaw(context.data.actor).skills));
+const skillCategories = computed(() => skillsByCategory(toRaw(context.data.actor).skills, game.i18n.lang));
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 

@@ -3,7 +3,16 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { freeRank, ownedSkill, promptSkills, skillNamesMatch, skillsByCategory, skillToRoll, weaponSkillName } from '@/data/Skills';
+import {
+	freeRank,
+	ownedSkill,
+	promptSkills,
+	SkillCategory,
+	skillNamesMatch,
+	skillsByCategory,
+	skillToRoll,
+	weaponSkillName,
+} from '@/data/Skills';
 
 function skill(name: string, rank = 0) {
 	return { name, system: { rank } };
@@ -103,7 +112,7 @@ describe('freeRank', () => {
 });
 
 describe('skillsByCategory', () => {
-	function categorized(name: string, category: 'general' | 'magic' | 'combat' | 'social' | 'knowledge') {
+	function categorized(name: string, category: SkillCategory) {
 		return { name, system: { category } };
 	}
 
@@ -120,7 +129,7 @@ describe('skillsByCategory', () => {
 			categorized('Cool', 'general'),
 		];
 
-		expect(names(skillsByCategory(skills))).toEqual([
+		expect(names(skillsByCategory(skills, 'en'))).toEqual([
 			['general', ['Cool']],
 			['magic', ['Arcana']],
 			['combat', ['Melee']],
@@ -130,34 +139,34 @@ describe('skillsByCategory', () => {
 	});
 
 	it('leaves out the categories with no skill', () => {
-		expect(names(skillsByCategory([categorized('Melee', 'combat'), categorized('Cool', 'general')]))).toEqual([
+		expect(names(skillsByCategory([categorized('Melee', 'combat'), categorized('Cool', 'general')], 'en'))).toEqual([
 			['general', ['Cool']],
 			['combat', ['Melee']],
 		]);
-		expect(skillsByCategory([])).toEqual([]);
+		expect(skillsByCategory([], 'en')).toEqual([]);
 	});
 
 	it('sorts each category by name, an accented first letter with its unaccented one', () => {
 		const skills = [categorized('Vigilance', 'general'), categorized('Équitation', 'general'), categorized('Discrétion', 'general')];
 
-		expect(names(skillsByCategory(skills))).toEqual([['general', ['Discrétion', 'Équitation', 'Vigilance']]]);
+		expect(names(skillsByCategory(skills, 'en'))).toEqual([['general', ['Discrétion', 'Équitation', 'Vigilance']]]);
 	});
 
 	it('sorts names whatever their case', () => {
 		const skills = [categorized('Brawl', 'combat'), categorized('athletics', 'combat'), categorized('Cool', 'combat')];
 
-		expect(names(skillsByCategory(skills))).toEqual([['combat', ['athletics', 'Brawl', 'Cool']]]);
+		expect(names(skillsByCategory(skills, 'en'))).toEqual([['combat', ['athletics', 'Brawl', 'Cool']]]);
 	});
 
 	it('keeps names differing only by case next to each other', () => {
 		const skills = [categorized('Discipline', 'general'), categorized('Cool', 'general'), categorized('cool', 'general')];
 
-		expect(names(skillsByCategory(skills))).toEqual([['general', ['cool', 'Cool', 'Discipline']]]);
+		expect(names(skillsByCategory(skills, 'en'))).toEqual([['general', ['cool', 'Cool', 'Discipline']]]);
 	});
 
 	it('keeps the skills it is given', () => {
 		const cool = categorized('Cool', 'general');
 
-		expect(skillsByCategory([cool])[0].skills[0]).toBe(cool);
+		expect(skillsByCategory([cool], 'en')[0].skills[0]).toBe(cool);
 	});
 });

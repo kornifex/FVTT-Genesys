@@ -11,11 +11,12 @@ export type Skill = {
 	system: { rank: number };
 };
 
-/**
- * The categories a skill belongs to, in the order a character's skills are listed.
- */
+// The order a character's skills are listed in.
 const SKILL_CATEGORIES = ['general', 'magic', 'combat', 'social', 'knowledge'] as const;
 
+/**
+ * The category a skill belongs to.
+ */
 export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
 
 /**
@@ -100,13 +101,15 @@ export function freeRank(rank: number, step: 1 | -1) {
 }
 
 /**
- * A character's skills, grouped by category in the categories' order and sorted by name within each. A category with
- * no skill is left out.
+ * A character's skills, grouped by category in the categories' order and sorted by name within each, in the given
+ * locale. A category with no skill is left out.
  */
-export function skillsByCategory<S extends { name: string; system: { category: SkillCategory } }>(skills: S[]) {
+export function skillsByCategory<S extends { name: string; system: { category: SkillCategory } }>(skills: S[], locale: string) {
 	return SKILL_CATEGORIES.map((category) => ({
 		category,
-		skills: skills.filter((skill) => skill.system.category === category).sort((left, right) => left.name.localeCompare(right.name)),
+		skills: skills
+			.filter((skill) => skill.system.category === category)
+			.sort((left, right) => left.name.localeCompare(right.name, locale)),
 	})).filter((group) => group.skills.length > 0);
 }
 
