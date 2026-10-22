@@ -69,6 +69,8 @@ const passiveTalents = computed(() => {
 			return a.name.localeCompare(b.name);
 		});
 });
+// Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
+const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
 
 const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
@@ -88,7 +90,7 @@ async function openItem(item: GenesysItem) {
 
 <template>
 	<section class="tab-talents">
-		<div class="pyramid">
+		<div v-if="SHOW_PYRAMID_SUMMARY" class="pyramid">
 			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 1 }" />: {{ talentTotals[1] }}/∞</div>
 			<div>
 				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{
@@ -243,6 +245,12 @@ async function openItem(item: GenesysItem) {
 		border-bottom-right-radius: 1em;
 		padding: 0.5em 0.5em 1em 0.5em;
 		gap: 0.25em;
+
+		// Without the pyramid above it, the block is the top of the tab.
+		&:first-child {
+			border-top-left-radius: 1em;
+			border-top-right-radius: 1em;
+		}
 
 		.header {
 			font-family: 'Bebas Neue', sans-serif;
