@@ -480,6 +480,7 @@ async function rollPool() {
 <style lang="scss" scoped>
 @use 'sass:color';
 @use '@scss/vars/colors.scss';
+@use '@scss/vars/appv1.scss';
 @use '@scss/vars/sheet.scss';
 @use '@scss/mixins/reset.scss';
 
@@ -500,6 +501,8 @@ async function rollPool() {
 		.hint {
 			font-family: 'Roboto', serif;
 			font-size: 1rem;
+			// Foundry's colour for the hints of a form, which v13 only gives AppV1 windows.
+			color: appv1.$text-secondary;
 		}
 	}
 

@@ -18,26 +18,21 @@ export const RootContext = Symbol('Vue Root Context');
 /**
  * Typing for context data injected into Vue sheets.
  */
-export interface BaseSheetContext<
-	DocumentType extends foundry.abstract.Document = foundry.abstract.Document,
-	SheetOptionsType extends DocumentSheetOptions = DocumentSheetOptions,
-	SheetType extends DocumentSheet<DocumentType, SheetOptionsType> = DocumentSheet<DocumentType, SheetOptionsType>,
-	SheetDataType extends DocumentSheetData<DocumentType> = DocumentSheetData<DocumentType>,
-> extends ContextBase {
+export interface BaseSheetContext extends ContextBase {
 	/**
 	 * A reference to the Sheet instance the vue app is rendering.
 	 */
-	sheet: SheetType;
+	sheet: foundry.applications.api.DocumentSheetV2;
 
 	/**
-	 * Rendering context data retrieved from `getData()`.
+	 * Rendering data of the sheet.
 	 */
-	data: SheetDataType;
-}
-
-interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel>
-	extends ActorSheetData<GenesysActor<ActorDataModel>> {
-	actor: GenesysActor<ActorDataModel>;
+	data: {
+		/**
+		 * Whether the user can edit the sheet's document.
+		 */
+		editable: boolean;
+	};
 }
 
 /**
@@ -46,22 +41,12 @@ interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataMode
 export interface ActorSheetContext<
 	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
 	SheetType extends GenesysActorSheet<ActorDataModel> = GenesysActorSheet<ActorDataModel>,
-	SheetDataType extends GenesysActorSheetData<ActorDataModel> = GenesysActorSheetData<ActorDataModel>,
-> extends ContextBase {
-	/**
-	 * A reference to the Sheet instance the vue app is rendering.
-	 */
+> extends BaseSheetContext {
 	sheet: SheetType;
 
-	/**
-	 * Rendering context data retrieved from `getData()`.
-	 */
-	data: SheetDataType;
-}
-
-export interface GenesysItemSheetData<ItemDataModel extends BaseItemDataModel = BaseItemDataModel>
-	extends ItemSheetData<GenesysItem<ItemDataModel>> {
-	item: GenesysItem<ItemDataModel>;
+	data: BaseSheetContext['data'] & {
+		actor: GenesysActor<ActorDataModel>;
+	};
 }
 
 /**
@@ -70,15 +55,10 @@ export interface GenesysItemSheetData<ItemDataModel extends BaseItemDataModel = 
 export interface ItemSheetContext<
 	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
 	SheetType extends GenesysItemSheet<ItemDataModel> = GenesysItemSheet<ItemDataModel>,
-	SheetDataType extends GenesysItemSheetData<ItemDataModel> = GenesysItemSheetData<ItemDataModel>,
-> extends ContextBase {
-	/**
-	 * A reference to the Sheet instance the vue app is rendering.
-	 */
+> extends BaseSheetContext {
 	sheet: SheetType;
 
-	/**
-	 * Rendering context data retrieved from `getData()`.
-	 */
-	data: SheetDataType;
+	data: BaseSheetContext['data'] & {
+		item: GenesysItem<ItemDataModel>;
+	};
 }

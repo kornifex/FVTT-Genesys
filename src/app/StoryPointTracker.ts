@@ -24,31 +24,18 @@ export interface StoryPointTrackerContext {
 /**
  * Singleton application used to track the current pools of Story Points.
  */
-export class StoryPointTracker extends VueSheet(Application) {
+export class StoryPointTracker extends VueSheet(foundry.applications.api.ApplicationV2) {
 	static #instance?: StoryPointTracker;
 
 	static get instance(): StoryPointTracker | undefined {
 		return StoryPointTracker.#instance;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'story-point-tracker'],
-			id: 'story-point-tracker',
-			popOut: false,
-			resizable: false,
-			width: 'auto',
-			preventSubmit: true,
-		};
-	}
-
-	override async _renderInner(data: object, options: RenderOptions = {}) {
-		return super._renderInner(data, {
-			...options,
-			classes: options.classes ?? ['genesys', 'story-point-tracker', ...(isFoundryV13OrLater() ? ['move-to-left'] : [])],
-		});
-	}
+	static override DEFAULT_OPTIONS = {
+		id: 'story-point-tracker',
+		classes: ['genesys', 'story-point-tracker'],
+		window: { frame: false, positioned: false },
+	};
 
 	override get vueComponent() {
 		return VueStoryPointTracker;
@@ -67,12 +54,13 @@ export class StoryPointTracker extends VueSheet(Application) {
 		};
 	}
 
-	constructor(options = {}) {
+	constructor() {
 		if (StoryPointTracker.#instance) {
 			throw new Error('Attempted to create multiple instances of the StoryPointTracker singleton.');
 		}
 
-		super(options);
+		// v12: Foundry v13 lays out its interface differently, which leaves room for the tracker on the left.
+		super({ classes: isFoundryV13OrLater() ? ['move-to-left'] : [] });
 
 		StoryPointTracker.#instance = this;
 	}

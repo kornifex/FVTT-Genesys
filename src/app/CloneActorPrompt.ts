@@ -9,19 +9,16 @@ export interface CloneActorPromptContext extends ContextBase {
 	resolvePromise: (targetActor?: GenesysActor) => void;
 }
 
-export class CloneActorPrompt extends VueSheet(Application) {
+export class CloneActorPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {
 		return VueCloneActorPrompt;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['app-clone-actor-prompt'],
-			width: 100,
-			title: game.i18n.localize('Genesys.CloneActorPrompt.Title'),
-		};
-	}
+	static override DEFAULT_OPTIONS = {
+		classes: ['app-clone-actor-prompt'],
+		position: { width: 100 },
+		window: { title: 'Genesys.CloneActorPrompt.Title' },
+	};
 
 	static async promptForInstantiation(targetActor: GenesysActor) {
 		const sheet = new CloneActorPrompt(targetActor);
@@ -53,8 +50,8 @@ export class CloneActorPrompt extends VueSheet(Application) {
 		};
 	}
 
-	override async close(options = {}) {
+	protected override async _preClose(options: object) {
 		this.#resolvePromise?.();
-		await super.close(options);
+		await super._preClose(options);
 	}
 }

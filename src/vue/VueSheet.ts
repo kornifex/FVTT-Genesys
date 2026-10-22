@@ -1,24 +1,31 @@
 /**
- * @file Mixin for empowering Applications with Sheets!
+ * @file Mixin for rendering an ApplicationV2 with a Vue component.
  */
 
-import { App, Component, createApp, reactive, UnwrapNestedRefs } from 'vue';
+import { App, Component, createApp, markRaw, nextTick, reactive, UnwrapNestedRefs } from 'vue';
 import { ContextBase, RootContext } from '@/vue/SheetContext';
 
+import '@/vue/VueSheet.scss';
+
+type ApplicationV2 = foundry.applications.api.ApplicationV2;
+
+/**
+ * The constructor of an ApplicationV2 class the mixins extend.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript only lets a class extend a constructor that takes any[].
-type Constructor = new (...args: any[]) => {
-	activateListeners(html: JQuery): void;
-	close(options?: object): Promise<void>;
-};
+export type ApplicationConstructor<T extends ApplicationV2 = ApplicationV2> = new (...args: any[]) => T;
 
-function preventSubmit(event: SubmitEvent) {
-	event.preventDefault();
-}
+type RenderContext = foundry.applications.ApplicationRenderContext;
+type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
-export function VueSheet<TBase extends Constructor, ContextType extends ContextBase | undefined = ContextBase>(base: TBase) {
+export function VueSheet<TBase extends ApplicationConstructor, ContextType extends ContextBase | undefined = ContextBase>(base: TBase) {
 	return class extends base {
-		form?: HTMLFormElement;
-		preventSubmit?: boolean;
+		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which v13 gives AppV1
+		// windows while ApplicationV2 ones follow the interface's theme.
+		static DEFAULT_OPTIONS: DeepPartial<foundry.applications.ApplicationConfiguration> = {
+			tag: 'form',
+			classes: ['themed', 'theme-light'],
+		};
 
 		/**
 		 * Handle for the active Vue app.
@@ -31,6 +38,16 @@ export function VueSheet<TBase extends Constructor, ContextType extends ContextB
 		vueContext?: UnwrapNestedRefs<ContextType>;
 
 		/**
+		 * Tab controller, kept for the application's lifetime so that a reopened application shows the tab it was closed on.
+		 */
+		#tabs?: Tabs;
+
+		/**
+		 * The element the tab controller is bound to: closing the application discards its element.
+		 */
+		#tabsElement?: HTMLElement;
+
+		/**
 		 * This component must be implemented by children to define the Vue component to use for the sheet.
 		 */
 		get vueComponent(): Component {
@@ -38,82 +55,73 @@ export function VueSheet<TBase extends Constructor, ContextType extends ContextB
 		}
 
 		/**
-		 * Similar in purpose to {@link Application.getData}, but with some potentially Vue-specific context data.
+		 * The context data injected into the Vue component, which it renders instead of Foundry's render context.
 		 */
 		async getVueContext(): Promise<ContextType | undefined> {
 			return undefined;
 		}
 
-		async _renderInner(_data: unknown, options: { classes?: string[]; preventSubmit?: boolean }) {
-			const vueContext = await this.getVueContext();
+		/**
+		 * The tab shown first, when the Vue component lays out tabs: a `.sheet-tabs` nav switching the tabs of a `.sheet-body`.
+		 */
+		get initialTab(): string | undefined {
+			return undefined;
+		}
 
-			// Instantiate our form object.
-			if (!this.form) {
-				const form = document.createElement('form');
+		protected override async _renderHTML(_context: RenderContext, _options: RenderOptions) {
+			return this.getVueContext();
+		}
 
-				const cssClass =
-					(vueContext as { data?: { cssClass?: string } } | undefined)?.data?.cssClass ?? options?.classes?.join(' ') ?? '';
+		protected override _replaceHTML(result: unknown, content: HTMLElement, _options: RenderOptions) {
+			const vueContext = result as ContextType | undefined;
 
-				form.className = `${cssClass} vue-app`;
-				form.setAttribute('autocomplete', 'off');
-
-				this.form = form;
-				this.preventSubmit = !!options?.preventSubmit;
-			}
-
-			// Verify our reactive context is set up
-			if (!this.vueContext && vueContext) {
-				this.vueContext = reactive(vueContext);
-			}
-
-			// Initialize the vue app if necessary
 			if (!this.vueApp) {
+				// Vue's reactive proxies can't read the application's private fields, so the context references it as it is.
+				markRaw(this);
+				this.vueContext = vueContext && reactive(vueContext);
+
+				const mountPoint = document.createElement('div');
+				mountPoint.className = 'vue-app';
+				content.replaceChildren(mountPoint);
+
 				this.vueApp = createApp(this.vueComponent);
 				this.vueApp.provide(RootContext, this.vueContext);
-
-				this.vueApp.mount(this.form);
+				this.vueApp.mount(mountPoint);
 			} else if (this.vueContext && vueContext) {
-				// Update context & actor data injected into the existing Vue app
+				// Update the context injected into the existing Vue app, which re-renders what changed.
 				Object.assign(this.vueContext, vueContext);
 			}
+		}
 
-			return $(<HTMLElement>this.form);
+		protected override async _onRender(context: RenderContext, options: RenderOptions) {
+			await super._onRender(context, options);
+
+			// Vue patches the DOM on its next tick, which may add tabs.
+			await nextTick();
+
+			const initial = this.initialTab;
+			if (!initial) {
+				return;
+			}
+
+			this.#tabs ??= new Tabs({ navSelector: '.sheet-tabs', contentSelector: '.sheet-body', initial });
+			if (this.#tabsElement === this.element) {
+				this.#tabs.activate(this.#tabs.active);
+			} else {
+				this.#tabs.bind(this.element);
+				this.#tabsElement = this.element;
+			}
 		}
 
 		/**
-		 * Unmount and destroy the sfc app for this sheet on close.
+		 * Unmount and destroy the Vue app on close.
 		 */
-		override async close(options = {}) {
+		protected override _onClose(options: object) {
 			this.vueApp?.unmount();
 			this.vueApp = undefined;
 			this.vueContext = undefined;
 
-			await super.close(options);
+			super._onClose(options);
 		}
-
-		/**
-		 * Deactivate JQuery event listeners to prevent them triggering multiple times.
-		 */
-		deactivateListeners(html: JQuery) {
-			html.find('img[data-edit]').off('click');
-			html.find('input,select,textarea').off('change');
-			html.find('button.file-picker').off('click');
-			if (this.preventSubmit) {
-				this.form?.removeEventListener('submit', preventSubmit);
-			}
-		}
-
-		override activateListeners(html: JQuery) {
-			this.deactivateListeners(html);
-
-			super.activateListeners(html);
-
-			if (this.preventSubmit) {
-				this.form?.addEventListener('submit', preventSubmit);
-			}
-		}
-
-		_activateEditor(_: JQuery | HTMLElement) {}
-		async saveEditor(_name: string, _: { remove?: boolean } = {}) {}
 	};
 }

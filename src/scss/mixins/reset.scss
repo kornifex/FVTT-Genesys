@@ -1,5 +1,6 @@
-@mixin input {
-	input {
+// The selector can weigh more than `input`, to outweigh the field styles of ApplicationV2 windows (`src/vue/VueSheet.scss`).
+@mixin input($selector: input) {
+	#{$selector} {
 		border: none;
 		background: none;
 		border-radius: 0;

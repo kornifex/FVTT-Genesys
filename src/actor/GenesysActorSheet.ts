@@ -1,23 +1,106 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
+import { itemFromDrop } from '@/item/GenesysItemSheet';
+import { GenesysEffect } from '@/effects/GenesysEffect';
+import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
+import { ActorSheetContext } from '@/vue/SheetContext';
 
 import '@/actor/GenesysActorSheet.scss';
 
+/**
+ * Basic functionality shared by all actor sheets, which render a Vue component.
+ */
 export class GenesysActorSheet<
 	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
 	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
-> extends ActorSheet<GenesysActor<ActorDataModel>, GenesysItem<ItemDataModel>> {
-	static override get defaultOptions() {
+> extends VueDocumentSheet(foundry.applications.sheets.ActorSheetV2)<GenesysActor<ActorDataModel>> {
+	static override DEFAULT_OPTIONS: DeepPartial<foundry.applications.ApplicationConfiguration> = {
+		classes: ['genesys', 'sheet', 'actor'],
+		position: { width: 720, height: 640 },
+	};
+
+	override async getVueContext(): Promise<ActorSheetContext<ActorDataModel>> {
 		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'sheet', 'actor'],
-			width: 720,
-			height: 640,
+			sheet: this,
+			data: { actor: this.actor, editable: this.isEditable },
 		};
 	}
 
-	protected override async _onDropFolder(event: DragEvent, data: DropCanvasData<'Folder'>) {
+	/**
+	 * Handle data dropped on the sheet. v12's ActorSheetV2 handles no drop, and v13's hands the dropped document to its
+	 * handlers where the system's take the drop data, so this replaces v13's own.
+	 */
+	protected override async _onDrop(event: DragEvent) {
+		if (!this.isEditable) {
+			return;
+		}
+
+		const data = TextEditor.getDragEventData(event as ElementDragEvent) as DropCanvasData;
+		if (Hooks.call('dropActorSheetData', this.actor, this, data) === false) {
+			return;
+		}
+
+		switch (data.type) {
+			case 'ActiveEffect':
+				await this._onDropActiveEffect(event, data as DropCanvasData<'ActiveEffect', GenesysEffect>);
+				break;
+			case 'Actor':
+				await this._onDropActor(event, data as DropCanvasData<'Actor', GenesysActor<ActorDataModel>>);
+				break;
+			case 'Item':
+				await this._onDropItem(event, data as DropCanvasData<'Item', GenesysItem<ItemDataModel>>);
+				break;
+			case 'Folder':
+				await this._onDropFolder(event, data as DropCanvasData<'Folder', Folder>);
+				break;
+		}
+	}
+
+	/**
+	 * Called when an ActiveEffect is dropped on the sheet: the actor gets a copy of it.
+	 */
+	protected async _onDropActiveEffect(_event: DragEvent, data: DropCanvasData<'ActiveEffect', GenesysEffect>) {
+		const effect = await GenesysEffect.fromDropData(data);
+		// The types we have lack `target`, the document an effect applies to.
+		if (!this.actor.isOwner || !effect || (effect as { target?: unknown }).target === this.actor) {
+			return false;
+		}
+
+		return GenesysEffect.create(effect.toObject(), { parent: this.actor });
+	}
+
+	/**
+	 * Called when an Actor is dropped on the sheet.
+	 */
+	protected async _onDropActor(_event: DragEvent, _data: DropCanvasData<'Actor', GenesysActor<ActorDataModel>>): Promise<false | void> {
+		return false;
+	}
+
+	/**
+	 * Called when an Item is dropped on the sheet: the actor gets a copy of it. An item the actor already owns stays as it
+	 * is, since the sheets' Vue components sort their own items.
+	 */
+	protected async _onDropItem(
+		_event: DragEvent,
+		data: DropCanvasData<'Item', GenesysItem<ItemDataModel>>,
+	): Promise<GenesysItem<ItemDataModel>[] | boolean> {
+		if (!this.actor.isOwner) {
+			return false;
+		}
+
+		const item = await itemFromDrop<ItemDataModel>(data);
+		if (!item || item.parent?.uuid === this.actor.uuid) {
+			return false;
+		}
+
+		return this._onDropItemCreate(item.toObject());
+	}
+
+	/**
+	 * Called when a Folder is dropped on the sheet: the actor gets a copy of each of its items.
+	 */
+	protected async _onDropFolder(event: DragEvent, data: DropCanvasData<'Folder', Folder>) {
 		if (!this.actor.isOwner) return [];
 		const folder = await Folder.fromDropData(data);
 		if (!folder) return [];
@@ -45,13 +128,13 @@ export class GenesysActorSheet<
 		return createdItems;
 	}
 
-	override activateListeners(html: JQuery) {
-		super.activateListeners(html);
-
-		if (this.isEditable) {
-			// Bind our own image picker in place of Foundry's.
-			html.find('img[data-edit]').off('click');
-			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
-		}
+	/**
+	 * Create dropped items on the actor.
+	 */
+	protected async _onDropItemCreate(itemData: GenesysItem<ItemDataModel>['_source'] | GenesysItem<ItemDataModel>['_source'][]) {
+		return (await this.actor.createEmbeddedDocuments(
+			'Item',
+			Array.isArray(itemData) ? itemData : [itemData],
+		)) as GenesysItem<ItemDataModel>[];
 	}
 }

@@ -200,11 +200,11 @@ async function onCheckLinkClick(event: MouseEvent) {
 
 	event.preventDefault();
 
-	const appId = link.closest<HTMLElement>('[data-appid]')?.dataset.appid;
-	const app = appId ? ui.windows[Number(appId)] : undefined;
+	const appId = link.closest<HTMLElement>('.application')?.id;
+	const app = appId ? foundry.applications.instances.get(appId) : undefined;
 
 	const actor = checkLinkActor<GenesysActor>({
-		sheetActor: app instanceof ActorSheet ? (app.actor as GenesysActor) : undefined,
+		sheetActor: app instanceof foundry.applications.sheets.ActorSheetV2 ? (app.actor as GenesysActor) : undefined,
 		controlledActors: (canvas.tokens?.controlled ?? []).map((token) => (token.actor ?? undefined) as GenesysActor | undefined),
 		assignedCharacter: game.user.character ?? undefined,
 	});

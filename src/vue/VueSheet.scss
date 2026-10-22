@@ -1,0 +1,59 @@
+@use '@scss/vars/appv1.scss';
+@use '@scss/vars/sheet.scss';
+
+// ApplicationV2 lays out its window content unlike AppV1's windows, whose layout the Vue components are written for.
+.application > .window-content:has(> .vue-app) {
+	justify-content: flex-start;
+	padding: sheet.$padding;
+	overflow-x: hidden;
+	overflow-y: auto;
+	color: appv1.$text;
+	line-height: normal;
+
+	> .vue-app {
+		flex: 1;
+	}
+}
+
+// ApplicationV2 styles text fields itself, and v12 does it outside a cascade layer, with selectors that outweigh many of the
+// components' own. These restore AppV1's fields, which the components are written over, with as much weight.
+.vue-app
+	:is(
+		input[type='text'],
+		input[type='number'],
+		input[type='password'],
+		input[type='date'],
+		input[type='time'],
+		input[type='search'],
+		input[type='file']
+	) {
+	width: calc(100% - 2px);
+	height: 26px;
+	line-height: inherit;
+	padding: 1px 3px;
+	background: appv1.$field-background;
+	border: 1px solid appv1.$field-border;
+	border-radius: 3px;
+	outline: revert;
+	box-shadow: none;
+	color: appv1.$text;
+	font-size: inherit;
+}
+
+.vue-app select {
+	height: 27px;
+	padding: 0 3px;
+	background: appv1.$field-background;
+	border: 1px solid appv1.$field-border;
+	border-radius: 3px;
+	outline: revert;
+	color: revert;
+}
+
+.vue-app textarea {
+	padding: 5px;
+	border-radius: 3px;
+	outline: revert;
+	color: revert;
+	font-size: revert;
+}

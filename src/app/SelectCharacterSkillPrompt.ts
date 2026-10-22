@@ -16,19 +16,16 @@ export interface SelectCharacterSkillPromptContext extends ContextBase {
 	resolvePromise: (selectedOption: CharacterSkillOption) => void;
 }
 
-export class SelectCharacterSkillPrompt extends VueSheet(Application) {
+export class SelectCharacterSkillPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {
 		return VueSelectCharacterSkillPrompt;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['app-select-character-skill-prompt'],
-			width: 100,
-			title: game.i18n.localize('Genesys.CharacterSkillPrompt.Title'),
-		};
-	}
+	static override DEFAULT_OPTIONS = {
+		classes: ['app-select-character-skill-prompt'],
+		position: { width: 100 },
+		window: { title: 'Genesys.CharacterSkillPrompt.Title' },
+	};
 
 	static async promptFromCharactersList(characterSkillOptions: CharacterSkillOption[]) {
 		const sheet = new SelectCharacterSkillPrompt(characterSkillOptions);
@@ -60,8 +57,8 @@ export class SelectCharacterSkillPrompt extends VueSheet(Application) {
 		};
 	}
 
-	override async close(options = {}) {
+	protected override async _preClose(options: object) {
 		this.#resolvePromise?.();
-		await super.close(options);
+		await super._preClose(options);
 	}
 }

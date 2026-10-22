@@ -1,8 +1,6 @@
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
-import { VueSheet } from '@/vue/VueSheet';
 import VueVehicleSheet from '@/vue/sheets/actor/VehicleSheet.vue';
-import { ActorSheetContext } from '@/vue/SheetContext';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -11,29 +9,13 @@ import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActo
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
-export class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleDataModel>) {
+export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 	override get vueComponent() {
 		return VueVehicleSheet;
 	}
 
-	override async getVueContext(): Promise<ActorSheetContext<VehicleDataModel>> {
-		return {
-			sheet: this,
-			data: await this.getData(),
-		};
-	}
-
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			tabs: [
-				{
-					navSelector: '.sheet-tabs',
-					contentSelector: '.sheet-body',
-					initial: 'skills',
-				},
-			],
-		};
+	override get initialTab() {
+		return 'skills';
 	}
 
 	protected override async _onDropItem(event: DragEvent, data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>) {

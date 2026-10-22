@@ -194,9 +194,36 @@ async function save() {
 </template>
 
 <style lang="scss">
+// Unscoped: ProseMirror renders the editor's content, which Vue doesn't scope. Foundry's editor styles are repeated here, since
+// v13 only gives them to AppV1 windows.
 .vue-editor {
+	position: relative;
+	max-width: 100%;
+	max-height: 100%;
+	overflow: auto;
 	width: 100%;
 	height: 100%;
+
+	.editor-content * {
+		user-select: text;
+	}
+
+	.editor-edit {
+		display: none;
+		position: absolute;
+		top: 5px;
+		right: 5px;
+		padding: 1px 2px;
+		font-size: 1.25em;
+		background: rgba(187, 187, 187, 0.75);
+		border: 1px solid #111;
+		border-radius: 4px;
+		box-shadow: 0 0 1px #000;
+	}
+
+	&:hover .editor-edit {
+		display: block;
+	}
 
 	.editor-content {
 		width: 100%;

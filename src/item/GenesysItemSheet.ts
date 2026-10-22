@@ -1,5 +1,7 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
+import { ItemSheetContext } from '@/vue/SheetContext';
 
 import '@/item/GenesysItemSheet.scss';
 
@@ -11,7 +13,7 @@ export type DropData = {
 /**
  * The item a drop on a sheet carries, of the data model the sheet expects.
  */
-export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DropData) {
+export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DropData | DropCanvasData) {
 	// The types we have lack the configured item class's own methods, read the drop data of a canvas, and return an item
 	// of any data model.
 	const itemClass = GenesysItem.implementation as typeof GenesysItem;
@@ -19,62 +21,49 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
 }
 
 /**
- * Basic functionality shared by all ItemSheets.
+ * Basic functionality shared by all item sheets, which render a Vue component.
  */
-export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<GenesysItem<ItemDataModel>> {
-	static override get defaultOptions() {
+export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends VueDocumentSheet(
+	foundry.applications.sheets.ItemSheetV2,
+)<GenesysItem<ItemDataModel>> {
+	static override DEFAULT_OPTIONS: DeepPartial<foundry.applications.ApplicationConfiguration> = {
+		classes: ['genesys', 'sheet', 'item'],
+		position: { width: 480, height: 300 },
+	};
+
+	override get initialTab() {
+		return 'description';
+	}
+
+	override async getVueContext(): Promise<ItemSheetContext<ItemDataModel>> {
 		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'sheet', 'item'],
-			width: 480,
-			height: 300,
-			dragDrop: [
-				{
-					dragSelector: '.item-list .item',
-				},
-			],
-			tabs: [
-				{
-					navSelector: '.sheet-tabs',
-					contentSelector: '.sheet-body',
-					initial: 'description',
-				},
-			],
+			sheet: this,
+			data: { item: this.item, editable: this.isEditable },
 		};
-	}
-
-	protected override _canDragDrop(_selector: string): boolean {
-		return this.isEditable;
-	}
-
-	override activateListeners(html: JQuery<HTMLElement>): void {
-		super.activateListeners(html);
-
-		if (this.isEditable) {
-			// Bind our own image picker in place of Foundry's.
-			html.find('img[data-edit]').off('click');
-			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
-		}
 	}
 
 	/**
 	 * Add support for drop data on Item sheets.
 	 */
-	protected override _onDrop(event: DragEvent) {
+	protected override async _onDrop(event: DragEvent) {
+		if (!this.isEditable) {
+			return;
+		}
+
 		const data: DropData = <DropData>TextEditor.getDragEventData(event as ElementDragEvent);
 
 		switch (data.type) {
 			case 'ActiveEffect':
-				void this._onDropActiveEffect(event, data);
+				await this._onDropActiveEffect(event, data);
 				break;
 			case 'Actor':
-				void this._onDropActor(event, data);
+				await this._onDropActor(event, data);
 				break;
 			case 'Item':
-				void this._onDropItem(event, data);
+				await this._onDropItem(event, data);
 				break;
 			case 'Folder':
-				void this._onDropFolder(event, data);
+				await this._onDropFolder(event, data);
 				break;
 		}
 	}

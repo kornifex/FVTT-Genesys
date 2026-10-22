@@ -10,36 +10,29 @@ import WeaponSheet from '@/vue/sheets/item/WeaponSheet.vue';
 import VehicleWeaponSheet from '@/vue/sheets/item/VehicleWeaponSheet.vue';
 import { ArchetypeSheet } from '@/item/sheets/ArchetypeSheet';
 import { CareerSheet } from '@/item/sheets/CareerSheet';
-import { VueSheet } from '@/vue/VueSheet';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
-import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import type { Component } from 'vue';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript only lets a class extend a constructor that takes any[].
-type VueSheetConstructor = new (...args: any[]) => {
-	get vueComponent(): Component;
-	getVueContext(): Promise<ItemSheetContext | undefined>;
-};
 
 /**
  * Constructs a vue-based ItemSheet subclass with little extra processing.
  * @param vueComponent Vue component to use for the sheet.
  * @param sheetType Base class to use for the sheet.
  */
-function basicSheet(vueComponent: Component, sheetType: VueSheetConstructor = VueSheet(GenesysItemSheet)) {
+function basicSheet(vueComponent: Component, sheetType: typeof GenesysItemSheet<BaseItemDataModel> = GenesysItemSheet) {
 	return class extends sheetType {
 		override get vueComponent() {
 			return vueComponent;
 		}
+	};
+}
 
-		override async getVueContext(): Promise<ItemSheetContext | undefined> {
-			const thisAsSheet = this as unknown as GenesysItemSheet;
-			return {
-				sheet: thisAsSheet,
-				data: (await thisAsSheet.getData()) as GenesysItemSheetData,
-			};
-		}
-	} as unknown as ConstructorOf<GenesysItemSheet>;
+/**
+ * Registers an item sheet of the system. The Foundry types we have only register AppV1 sheets, though v12 and v13 both take
+ * ApplicationV2 ones (ADR 0005).
+ */
+function registerSheet(sheetClass: ConstructorOf<GenesysItemSheet>, options: RegisterSheetOptions) {
+	Items.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ItemSheet>, options);
 }
 
 /**
@@ -48,57 +41,57 @@ function basicSheet(vueComponent: Component, sheetType: VueSheetConstructor = Vu
 export function register() {
 	Items.unregisterSheet('core', ItemSheet);
 
-	Items.registerSheet('genesys', basicSheet(AbilitySheet), {
+	registerSheet(basicSheet(AbilitySheet), {
 		types: ['ability'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', ArmorSheet, {
+	registerSheet(ArmorSheet, {
 		types: ['armor'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(EquipmentSheet), {
+	registerSheet(basicSheet(EquipmentSheet), {
 		types: ['consumable', 'container', 'gear'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(InjurySheet), {
+	registerSheet(basicSheet(InjurySheet), {
 		types: ['injury'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(ItemQualitySheet), {
+	registerSheet(basicSheet(ItemQualitySheet), {
 		types: ['quality'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(SkillSheet), {
+	registerSheet(basicSheet(SkillSheet), {
 		types: ['skill'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(TalentSheet), {
+	registerSheet(basicSheet(TalentSheet), {
 		types: ['talent'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(WeaponSheet, BaseWeaponSheet as VueSheetConstructor), {
+	registerSheet(basicSheet(WeaponSheet, BaseWeaponSheet), {
 		types: ['weapon'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', basicSheet(VehicleWeaponSheet, BaseWeaponSheet as VueSheetConstructor), {
+	registerSheet(basicSheet(VehicleWeaponSheet, BaseWeaponSheet), {
 		types: ['vehicleWeapon'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', ArchetypeSheet, {
+	registerSheet(ArchetypeSheet, {
 		types: ['archetype'],
 		makeDefault: true,
 	});
 
-	Items.registerSheet('genesys', CareerSheet, {
+	registerSheet(CareerSheet, {
 		types: ['career'],
 		makeDefault: true,
 	});

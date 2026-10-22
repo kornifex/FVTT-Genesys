@@ -21,19 +21,16 @@ export interface AwardXPContext extends ContextBase {
 /**
  * Prompt the user for an XP Award.
  */
-export class AwardXPPrompt extends VueSheet(Application) {
+export class AwardXPPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {
 		return VueAwardXPPrompt;
 	}
 
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['app-award-xp-prompt'],
-			width: 400,
-			title: game.i18n.localize('Genesys.RewardsPrompt.Title'),
-		};
-	}
+	static override DEFAULT_OPTIONS = {
+		classes: ['app-award-xp-prompt'],
+		position: { width: 400 },
+		window: { title: 'Genesys.RewardsPrompt.Title' },
+	};
 
 	static async promptForXPAward(): Promise<AwardData | undefined> {
 		const sheet = new AwardXPPrompt();
@@ -57,8 +54,8 @@ export class AwardXPPrompt extends VueSheet(Application) {
 		};
 	}
 
-	override async close(options = {}) {
+	protected override async _preClose(options: object) {
 		this.#resolvePromise?.(undefined);
-		await super.close(options);
+		await super._preClose(options);
 	}
 }
