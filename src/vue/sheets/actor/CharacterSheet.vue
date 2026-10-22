@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, type Ref } from 'vue';
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Localized from '@/vue/components/Localized.vue';

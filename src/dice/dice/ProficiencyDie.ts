@@ -1,10 +1,10 @@
-import GenesysDie from '@/dice/dice/GenesysDie';
+import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
  * Proficiency (yellow) Die
  */
-export default class ProficiencyDie extends GenesysDie {
+export class ProficiencyDie extends GenesysDie {
 	static override DENOMINATION = 'p';
 	static override GLYPH = 'P';
 	static override FORMULA = 'dp' as const;

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { inject, computed, toRaw, ref, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
@@ -8,14 +8,14 @@ import Role from '@/vue/components/vehicle/Role.vue';
 import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 import {
 	CrewDragTransferData,
 	CrewExtraDragTransferData,
 	DragTransferData,
 	extractDataFromDragTransferTypes,
 } from '@/data/DragTransferData';
-import CloneActorPrompt from '@/app/CloneActorPrompt';
+import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
 type FromUuidSimpleReturnData = null | {
 	name: string;

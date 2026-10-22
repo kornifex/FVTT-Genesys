@@ -1,4 +1,4 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
 interface AbilityActivation {
 	type: 'passive' | 'active';
@@ -13,7 +13,7 @@ export const ACTIVATION_LABELS: Record<AbilityActivation['type'], string> = {
 	active: 'Genesys.Labels.Active',
 };
 
-export default abstract class AbilityDataModel extends BaseItemDataModel {
+export abstract class AbilityDataModel extends BaseItemDataModel {
 	/**
 	 * Details on what is required to activate the Special Ability.
 	 */

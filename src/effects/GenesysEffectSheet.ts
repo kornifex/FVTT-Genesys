@@ -1,10 +1,10 @@
 import { Characteristic } from '@/data/Characteristics';
-import GenesysEffect from './GenesysEffect';
+import { GenesysEffect } from './GenesysEffect';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import './GenesysEffectSheet.scss';
 
 // The class keeps its name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
-export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
+export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 	static DEFAULT_OPTIONS = {
 		classes: ['effect-sheet-v2'],
 	};

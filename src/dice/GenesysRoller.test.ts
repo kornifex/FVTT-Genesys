@@ -12,7 +12,7 @@ vi.hoisted(() => {
 	});
 });
 
-import GenesysRoller from '@/dice/GenesysRoller';
+import { GenesysRoller } from '@/dice/GenesysRoller';
 
 /**
  * A dice term as `parseRollResults` reads it: a denomination and the labels of the rolled faces.

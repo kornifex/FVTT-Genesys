@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { inject, toRaw, ref, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysItem } from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 
-import DicePrompt from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import { skillNamesMatch } from '@/data/Skills';

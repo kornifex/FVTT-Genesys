@@ -1,26 +1,26 @@
 <script lang="ts" setup>
 import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import TalentDataModel from '@/item/data/TalentDataModel';
-import AbilityDataModel, { ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
-import EquipmentDataModel from '@/item/data/EquipmentDataModel';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { AbilityDataModel, ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
-import DicePrompt, { RollType } from '@/app/DicePrompt';
+import { DicePrompt, RollType } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
-import InjuryDataModel from '@/item/data/InjuryDataModel';
+import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 import { weaponSkillName } from '@/data/Skills';
 

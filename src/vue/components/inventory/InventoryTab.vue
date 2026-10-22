@@ -2,10 +2,10 @@
 import { computed, inject, ref, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import { DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
 

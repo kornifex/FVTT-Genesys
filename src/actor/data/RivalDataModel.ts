@@ -1,9 +1,9 @@
-import GenesysActor from '@/actor/GenesysActor';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
-import IHasPreCreate from '@/data/IHasPreCreate';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
-export default abstract class RivalDataModel extends AdversaryDataModel implements IHasPreCreate<GenesysActor<RivalDataModel>> {
+export abstract class RivalDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<RivalDataModel>> {
 	abstract wounds: {
 		value: number;
 		max: number;

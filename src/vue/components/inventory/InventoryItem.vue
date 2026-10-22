@@ -2,14 +2,14 @@
 import { computed, inject, ref, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
-import GenesysItem from '@/item/GenesysItem';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
-import EquipmentDataModel, { EquipmentDamageState, EquipmentState } from '@/item/data/EquipmentDataModel';
-import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
-import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import { EquipmentDataModel, EquipmentDamageState, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
 
@@ -17,7 +17,7 @@ import Localized from '@/vue/components/Localized.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import DicePrompt, { RollType } from '@/app/DicePrompt';
+import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { weaponSkillName } from '@/data/Skills';
 
 const props = withDefaults(

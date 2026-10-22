@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { inject, ref } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';

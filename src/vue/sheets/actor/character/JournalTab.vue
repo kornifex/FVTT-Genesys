@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
 
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, advancementCharacter, awardXP, undoEntry } from '@/actor/data/character/Advancement';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
-import AwardXPPrompt from '@/app/AwardXPPrompt';
+import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;

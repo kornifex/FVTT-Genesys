@@ -19,11 +19,11 @@ import { register as registerToken } from '@/token';
 import { register as registerEffects } from '@/effects';
 import { register as registerItems, CharacterCreationItemTypes, EquipmentItemTypes } from '@/item';
 import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
-import DicePrompt, { registerWorker } from '@/app/DicePrompt';
+import { DicePrompt, registerWorker } from '@/app/DicePrompt';
 import { isFoundryV13OrLater } from '@/foundryGeneration';
 
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysCompendium from '@/sidebar/GenesysCompendium';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysCompendium } from '@/sidebar/GenesysCompendium';
 import { performMigrations } from '@/migrations/MigrationHelper';
 
 import './scss/index.scss';

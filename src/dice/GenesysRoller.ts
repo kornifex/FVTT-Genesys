@@ -1,11 +1,11 @@
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysDie from '@/dice/dice/GenesysDie';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
-import GenesysItem from '@/item/GenesysItem';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CharacteristicsContainer } from '@/data/Characteristics';
-import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
+import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 export type GenesysRollResults = {
 	/**
@@ -77,7 +77,7 @@ export type CheckRoll = {
 	dicePool: DicePool;
 };
 
-export default class GenesysRoller {
+export class GenesysRoller {
 	/**
 	 * The roll of a dice pool.
 	 */

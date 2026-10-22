@@ -1,12 +1,12 @@
-import CareerDataModel from '@/item/data/CareerDataModel';
+import { CareerDataModel } from '@/item/data/CareerDataModel';
 import VueCareerSheet from '@/vue/sheets/item/CareerSheet.vue';
-import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import VueSheet from '@/vue/VueSheet';
+import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { VueSheet } from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { isCareerSkill } from '@/actor/data/character/Career';
 
-export default class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataModel>) {
+export class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataModel>) {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

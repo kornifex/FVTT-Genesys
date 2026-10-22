@@ -1,6 +1,6 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
-export default abstract class InjuryDataModel extends BaseItemDataModel {
+export abstract class InjuryDataModel extends BaseItemDataModel {
 	/**
 	 * Severity level of the injury, which aligns with Difficulty levels to heal it.
 	 */

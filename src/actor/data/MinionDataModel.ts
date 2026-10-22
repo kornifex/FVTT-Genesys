@@ -1,9 +1,9 @@
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
-import GenesysActor from '@/actor/GenesysActor';
-import IHasPreCreate from '@/data/IHasPreCreate';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
-export default abstract class MinionDataModel extends AdversaryDataModel implements IHasPreCreate<GenesysActor<MinionDataModel>> {
+export abstract class MinionDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<MinionDataModel>> {
 	abstract groupSize: number;
 	abstract wounds: {
 		value: number;

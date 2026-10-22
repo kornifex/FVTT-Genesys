@@ -1,7 +1,7 @@
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysItem } from '@/item/GenesysItem';
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 
-export default class GenesysEffect extends ActiveEffect {
+export class GenesysEffect extends ActiveEffect {
 	override get isSuppressed() {
 		return this.disabled;
 	}

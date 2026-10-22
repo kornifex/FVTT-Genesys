@@ -1,7 +1,7 @@
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 
-export default class GenesysActorDirectory extends ActorDirectory<GenesysActor> {
+export class GenesysActorDirectory extends ActorDirectory<GenesysActor> {
 	protected override _onDragStart(event: ElementDragEvent): void {
 		super._onDragStart(event);
 

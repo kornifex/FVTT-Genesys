@@ -2,10 +2,10 @@
  * @file Combat Tracker for Foundry v12, which lists Initiative Slots instead of combatants.
  */
 
-import GenesysCombat from '@/combat/GenesysCombat';
-import GenesysCombatant from '@/combat/GenesysCombatant';
+import { GenesysCombat } from '@/combat/GenesysCombat';
+import { GenesysCombatant } from '@/combat/GenesysCombatant';
 
-export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
+export class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
 	override get template(): string {
 		return 'systems/genesys/templates/sidebar/combat-tracker.v12.hbs';
 	}

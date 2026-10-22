@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { inject, ref, toRaw, onUpdated } from 'vue';
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { constructDragTransferTypeFromData, DragTransferData } from '@/data/DragTransferData';
 
 import Localized from '@/vue/components/Localized.vue';

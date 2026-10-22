@@ -9,7 +9,7 @@ export type DieCategory = 'positive' | 'negative';
 /**
  * Base type of all custom Genesys dice.
  */
-export default abstract class GenesysDie extends Die {
+export abstract class GenesysDie extends Die {
 	/**
 	 * The text glyph used to symbolize this die.
 	 */

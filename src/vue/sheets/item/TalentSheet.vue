@@ -4,7 +4,7 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import TalentDataModel from '@/item/data/TalentDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
 
 const context = inject<ItemSheetContext<TalentDataModel>>(RootContext)!;
 

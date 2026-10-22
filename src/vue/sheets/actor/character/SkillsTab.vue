@@ -5,16 +5,16 @@
 
 import { computed, inject, toRaw } from 'vue';
 
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Localized from '@/vue/components/Localized.vue';
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysItem } from '@/item/GenesysItem';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
-import DicePrompt from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import MasonryWall from '@yeger/vue-masonry-wall';

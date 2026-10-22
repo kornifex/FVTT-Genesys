@@ -1,5 +1,5 @@
-import GenesysActor from '@/actor/GenesysActor';
-import DicePrompt from '@/app/DicePrompt';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { DicePrompt } from '@/app/DicePrompt';
 import { checkLinkActor } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';

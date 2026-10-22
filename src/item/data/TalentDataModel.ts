@@ -1,11 +1,11 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
 interface AbilityActivation {
 	type: 'passive' | 'active';
 	detail: string;
 }
 
-export default abstract class TalentDataModel extends BaseItemDataModel {
+export abstract class TalentDataModel extends BaseItemDataModel {
 	abstract tier: number;
 	abstract activation: AbilityActivation;
 	abstract ranked: 'yes' | 'no';

@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
-import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import Localized from '@/vue/components/Localized.vue';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import Enriched from '@/vue/components/Enriched.vue';
-import InjuryDataModel from '@/item/data/InjuryDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import DicePrompt, { RollType } from '@/app/DicePrompt';
+import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { DicePrompt, RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 import { skillToRoll, weaponSkillName } from '@/data/Skills';

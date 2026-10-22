@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { inject, computed, toRaw, ref, onBeforeMount, onBeforeUpdate, type Ref } from 'vue';
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';

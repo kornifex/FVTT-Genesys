@@ -1,6 +1,6 @@
 import VueAwardXPPrompt from '@/vue/apps/AwardXPPrompt.vue';
 import { ContextBase } from '@/vue/SheetContext';
-import VueSheet from '@/vue/VueSheet';
+import { VueSheet } from '@/vue/VueSheet';
 
 type AwardData = {
 	/**
@@ -21,7 +21,7 @@ export interface AwardXPContext extends ContextBase {
 /**
  * Prompt the user for an XP Award.
  */
-export default class AwardXPPrompt extends VueSheet(Application) {
+export class AwardXPPrompt extends VueSheet(Application) {
 	override get vueComponent() {
 		return VueAwardXPPrompt;
 	}

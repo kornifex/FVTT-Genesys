@@ -1,4 +1,4 @@
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 export type TokenAttributeDetails =
 	| {
@@ -21,7 +21,7 @@ type TrackedAttributes = TokenAttributes & {
 	source?: Record<string, TokenAttributeDetails>;
 };
 
-export default class GenesysTokenDocument extends TokenDocument<GenesysActor> {
+export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 	override getBarAttribute(barName: string, options: { alternative?: string } = {}) {
 		// The types we have lack the token's bars.
 		const attribute =

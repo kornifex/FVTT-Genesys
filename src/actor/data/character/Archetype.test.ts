@@ -3,10 +3,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type GenesysActor from '@/actor/GenesysActor';
-import type CharacterDataModel from '@/actor/data/CharacterDataModel';
-import type ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
-import type GenesysItem from '@/item/GenesysItem';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import type { GenesysItem } from '@/item/GenesysItem';
 import {
 	applyArchetype,
 	archetypeActorUpdate,

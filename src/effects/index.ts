@@ -1,6 +1,6 @@
-import GenesysEffect from '@/effects/GenesysEffect';
-import GenesysEffectSheetV12 from '@/effects/GenesysEffectSheet.v12';
-import GenesysEffectSheet from '@/effects/GenesysEffectSheet';
+import { GenesysEffect } from '@/effects/GenesysEffect';
+import { GenesysEffectSheet as GenesysEffectSheetV12 } from '@/effects/GenesysEffectSheet.v12';
+import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
 import { isFoundryV12, isFoundryV13OrLater } from '@/foundryGeneration';
 
 export function register() {
@@ -18,7 +18,7 @@ export function register() {
 			makeDefault: true,
 		});
 	} else {
-		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheet, {
+		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {
 			makeDefault: true,
 		});
 	}

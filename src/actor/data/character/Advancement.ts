@@ -2,16 +2,16 @@
  * @file Advancement: spending XP on a characteristic, a skill rank, or a talent or a rank of one, and undoing it from the Experience Journal. Every change to the Experience Journal goes through this module.
  */
 
-import type GenesysActor from '@/actor/GenesysActor';
-import type CharacterDataModel from '@/actor/data/CharacterDataModel';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import type { CombatPool } from '@/data/Actors';
-import type GenesysItem from '@/item/GenesysItem';
-import type SkillDataModel from '@/item/data/SkillDataModel';
-import type TalentDataModel from '@/item/data/TalentDataModel';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { SkillDataModel } from '@/item/data/SkillDataModel';
+import type { TalentDataModel } from '@/item/data/TalentDataModel';
 
 /**
  * The highest value a characteristic can be raised to.

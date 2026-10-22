@@ -1,15 +1,15 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
-import TalentDataModel from '@/item/data/TalentDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
-import AbilityDataModel from '@/item/data/AbilityDataModel';
+import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
-import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
+import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 

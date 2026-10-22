@@ -3,7 +3,7 @@ import AdversarySheet from '@/vue/sheets/actor/AdversarySheet.vue';
 import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
-import RivalDataModel from '@/actor/data/RivalDataModel';
+import { RivalDataModel } from '@/actor/data/RivalDataModel';
 
 const context = inject<ActorSheetContext<RivalDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);

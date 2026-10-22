@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 
 import { vLocalize } from '@/vue/directives';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';

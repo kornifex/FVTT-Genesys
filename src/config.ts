@@ -20,8 +20,8 @@ import {
 	KEY_COLLAPSE_POOL_MODIFICATIONS,
 	KEY_USE_MAGICAL_GIRL_SYMBOLS,
 } from '@/settings/user';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 
 /**
  * Default skills compendium to use if the setting is misconfigured.

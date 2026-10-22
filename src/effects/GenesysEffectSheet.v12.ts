@@ -2,13 +2,13 @@
  * @file Active Effect sheet for Foundry v12, whose ActiveEffectConfig is no ApplicationV2.
  */
 
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { Characteristic } from '@/data/Characteristics';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 
 type IncompleteSheetSubmitData = { changes: EditedChange[] };
 
-export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect> {
+export class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect> {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

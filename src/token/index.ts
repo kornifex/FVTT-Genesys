@@ -1,4 +1,4 @@
-import GenesysTokenDocument from '@/token/GenesysTokenDocument';
+import { GenesysTokenDocument } from '@/token/GenesysTokenDocument';
 
 export function register() {
 	CONFIG.Token.documentClass = GenesysTokenDocument;

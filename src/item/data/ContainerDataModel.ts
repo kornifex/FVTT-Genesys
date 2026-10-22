@@ -2,9 +2,9 @@
  * @file Base data model for Container-type Items.
  */
 
-import EquipmentDataModel from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
-export default abstract class ContainerDataModel extends EquipmentDataModel {
+export abstract class ContainerDataModel extends EquipmentDataModel {
 	/**
 	 * Whether the container is open or not.
 	 */

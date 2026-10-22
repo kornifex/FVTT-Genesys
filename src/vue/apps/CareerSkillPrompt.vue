@@ -4,8 +4,8 @@ import { computed, inject, ref } from 'vue';
 import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 
 const context = inject<CareerSkillPromptContext>(RootContext)!;
 

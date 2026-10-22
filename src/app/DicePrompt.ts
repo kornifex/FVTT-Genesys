@@ -1,10 +1,10 @@
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysItem } from '@/item/GenesysItem';
 import { ContextBase } from '@/vue/SheetContext';
 import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
-import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
-import VueSheet from '@/vue/VueSheet';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
+import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/GenesysRoller';
 
@@ -52,7 +52,7 @@ type DicePromptOptions = {
 /**
  * Dice pool prompt.
  */
-export default class DicePrompt extends VueSheet(Application) {
+export class DicePrompt extends VueSheet(Application) {
 	override get vueComponent() {
 		return VueDicePrompt;
 	}

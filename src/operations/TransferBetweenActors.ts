@@ -1,9 +1,9 @@
-import type GenesysActor from '@/actor/GenesysActor';
+import type { GenesysActor } from '@/actor/GenesysActor';
 import { DragTransferData } from '@/data/DragTransferData';
-import type GenesysEffect from '@/effects/GenesysEffect';
-import type EquipmentDataModel from '@/item/data/EquipmentDataModel';
+import type { GenesysEffect } from '@/effects/GenesysEffect';
+import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
-import type GenesysItem from '@/item/GenesysItem';
+import type { GenesysItem } from '@/item/GenesysItem';
 
 async function cloneInventoryItemForAnotherActor(
 	sourceItem: GenesysItem<EquipmentDataModel>,

@@ -2,7 +2,7 @@
 import { computed, inject, nextTick, Ref, ref } from 'vue';
 import { vLocalize } from '@/vue/directives';
 import { RootContext } from '@/vue/SheetContext';
-import StoryPointTracker, { StoryPointTrackerContext } from '@/app/StoryPointTracker';
+import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
 import Localized from '@/vue/components/Localized.vue';
 
 const isGM = game.user.isGM;

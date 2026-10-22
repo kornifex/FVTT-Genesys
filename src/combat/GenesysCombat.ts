@@ -1,7 +1,7 @@
-import GenesysCombatant from '@/combat/GenesysCombatant';
-import GenesysRoller, { CheckRoll } from '@/dice/GenesysRoller';
+import { GenesysCombatant } from '@/combat/GenesysCombatant';
+import { GenesysRoller, CheckRoll } from '@/dice/GenesysRoller';
 import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
-import DicePrompt from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 import { Characteristic } from '@/data/Characteristics';
 import {
@@ -54,7 +54,7 @@ export type InitiativeSkill = {
 	skillChar: Characteristic;
 };
 
-export default class GenesysCombat extends Combat {
+export class GenesysCombat extends Combat {
 	/**
 	 * Skills from the Skills Compendium that can be used for initiative.
 	 */

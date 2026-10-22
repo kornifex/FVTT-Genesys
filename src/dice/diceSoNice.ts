@@ -1,9 +1,9 @@
-import BoostDie from '@/dice/dice/BoostDie';
-import AbilityDie from '@/dice/dice/AbilityDie';
-import ProficiencyDie from '@/dice/dice/ProficiencyDie';
-import SetbackDie from '@/dice/dice/SetbackDie';
-import DifficultyDie from '@/dice/dice/DifficultyDie';
-import ChallengeDie from '@/dice/dice/ChallengeDie';
+import { BoostDie } from '@/dice/dice/BoostDie';
+import { AbilityDie } from '@/dice/dice/AbilityDie';
+import { ProficiencyDie } from '@/dice/dice/ProficiencyDie';
+import { SetbackDie } from '@/dice/dice/SetbackDie';
+import { DifficultyDie } from '@/dice/dice/DifficultyDie';
+import { ChallengeDie } from '@/dice/dice/ChallengeDie';
 import * as log from '@/log';
 
 export {};

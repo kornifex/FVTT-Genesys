@@ -5,13 +5,13 @@
  * @file Combat Tracker for Foundry v13 and later, which lists Initiative Slots instead of combatants.
  */
 
-import GenesysCombat from '@/combat/GenesysCombat';
-import GenesysCombatant from '@/combat/GenesysCombatant';
+import { GenesysCombat } from '@/combat/GenesysCombat';
+import { GenesysCombatant } from '@/combat/GenesysCombatant';
 
 // v12: Foundry v12 loads this module too, but has no ApplicationV2 Combat Tracker to extend.
 const ExtendedClass = foundry?.applications?.sidebar?.tabs?.CombatTracker ?? CombatTracker<GenesysCombat>;
 
-export default class GenesysCombatTracker extends ExtendedClass {
+export class GenesysCombatTracker extends ExtendedClass {
 	static DEFAULT_OPTIONS = {
 		actions: {
 			claimInitiativeSlot: GenesysCombatTracker.#onClaimInitiativeSlot,
