@@ -294,6 +294,10 @@ export function register() {
 			if (isGmHub) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
+					// A vehicle deleted in the same operation, after the actor, has already left the world but not this set.
+					if (!vehicle.isToken && !game.actors.has(vehicle.id)) {
+						continue;
+					}
 					void vehicle.systemData.updateCrew((crew) => removeActor(crew, genesysActorUuid));
 				}
 			}
