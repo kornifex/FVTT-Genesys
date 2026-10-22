@@ -5,7 +5,8 @@ name: Release
 on:
   push:
     branches: [main]
-  # Publishes a draft release made by hand, such as a pre-release: gh release create <tag> --draft --prerelease --target <sha>
+  # Publishes a draft release made by hand, such as a pre-release. A draft gets no tag until published, so push the tag first:
+  # git push origin <sha>:refs/tags/<tag>, then gh release create <tag> --verify-tag --draft --prerelease
   workflow_dispatch:
     inputs:
       tag:
