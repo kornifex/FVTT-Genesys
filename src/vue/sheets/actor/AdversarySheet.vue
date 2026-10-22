@@ -8,11 +8,10 @@ import { useDocumentEffects } from '@/vue/useDocumentEffects';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import SkillRanks from '@/vue/components/character/SkillRanks.vue';
+import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -21,13 +20,14 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
-import { freeRank, weaponSkillName } from '@/data/Skills';
+import { weaponSkillName } from '@/data/Skills';
+import { talentRankChange } from '@/actor/data/AdversaryItems';
+import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const skills = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'skill') as GenesysItem<SkillDataModel>[]);
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
 const equipment = computed(
@@ -45,10 +45,6 @@ const checkLabel = game.i18n.localize('Genesys.Labels.PerformCheck');
 const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
 const rankUpLabel = game.i18n.localize('Genesys.Labels.RankUp');
 const rankDownLabel = game.i18n.localize('Genesys.Labels.RankDown');
-
-async function rollSkill(skill: GenesysItem<SkillDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
-}
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
@@ -79,20 +75,26 @@ async function deleteItem(item: GenesysItem) {
 	await toRaw(item).delete();
 }
 
-async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
-	await toRaw(skill).update({
-		'system.rank': freeRank(skill.systemData.rank, step),
-	});
+// A non-ranked talent offers no rank change, as on characters.
+function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
+	return talentRankChange(toRaw(talent), 1).action !== 'refuse';
 }
 
-async function adjustTalentRank(talent: GenesysItem<TalentDataModel>, adjustment: number) {
-	// Talents should be deleted if rank is reduced to 0.
-	if (talent.systemData.rank + adjustment === 0) {
-		await toRaw(talent).delete();
-	} else {
-		await toRaw(talent).update({
-			'system.rank': Math.max(0, talent.systemData.rank + adjustment),
-		});
+async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | -1) {
+	const actor = toRaw(context.data.actor);
+	const change = talentRankChange(toRaw(talent), step);
+	switch (change.action) {
+		case 'update':
+			await actor.updateEmbeddedDocuments('Item', [change.update]);
+			break;
+		case 'delete':
+			await actor.deleteEmbeddedDocuments('Item', [change.id]);
+			break;
+		case 'refuse':
+			if (change.refusal) {
+				notify(change.refusal);
+			}
+			break;
 	}
 }
 
@@ -244,41 +246,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 
 					<div class="adversary-items">
 						<slot name="skills">
-							<span class="header"><Localized label="Genesys.Adversary.Skills" />:</span>
-							<div class="container">
-								<Localized v-if="skills.length === 0" label="Genesys.Adversary.None" />
-								<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
-									<template v-slot:menu-items>
-										<MenuItem @click="freeSkillRank(skill, 1)">
-											<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-											{{ rankUpLabel }}
-										</MenuItem>
-
-										<MenuItem @click="freeSkillRank(skill, -1)">
-											<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-											{{ rankDownLabel }}
-										</MenuItem>
-
-										<MenuItem @click="editItem(skill)">
-											<template v-slot:icon><i class="fas fa-edit"></i></template>
-											{{ editLabel }}
-										</MenuItem>
-
-										<MenuItem @click="deleteItem(skill)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
-									</template>
-
-									<a @click="rollSkill(skill)">
-										<span>{{ skill.name }} {{ skill.systemData.rank }}</span>
-										<SkillRanks
-											:skill-value="skill.systemData.rank"
-											:characteristic-value="system.characteristics[skill.systemData.characteristic]"
-										/>
-									</a>
-								</ContextMenu>
-							</div>
+							<AdversarySkills label="Genesys.Adversary.Skills" />
 						</slot>
 					</div>
 
@@ -289,15 +257,17 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="talent in talents" :key="talent.id" class="talent">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="adjustTalentRank(talent, 1)">
-											<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-											{{ rankUpLabel }}
-										</MenuItem>
+										<template v-if="canChangeTalentRank(talent)">
+											<MenuItem @click="changeTalentRank(talent, 1)">
+												<template v-slot:icon><i class="fas fa-circle-up"></i></template>
+												{{ rankUpLabel }}
+											</MenuItem>
 
-										<MenuItem @click="adjustTalentRank(talent, -1)">
-											<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-											{{ rankDownLabel }}
-										</MenuItem>
+											<MenuItem @click="changeTalentRank(talent, -1)">
+												<template v-slot:icon><i class="fas fa-circle-down"></i></template>
+												{{ rankDownLabel }}
+											</MenuItem>
+										</template>
 
 										<MenuItem @click="editItem(talent)">
 											<template v-slot:icon><i class="fas fa-edit"></i></template>
