@@ -12,6 +12,7 @@ import type { CombatPool } from '@/data/Actors';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { TalentDataModel } from '@/item/data/TalentDataModel';
+import { Notification, notify } from '@/notifications';
 
 /**
  * The highest value a characteristic can be raised to.
@@ -59,14 +60,6 @@ type AdvancementPlan = {
 	itemCreates: Record<string, unknown>[];
 	itemUpdates: ({ _id: string } & Record<string, unknown>)[];
 	itemDeletes: string[];
-};
-
-/**
- * A notification to show the user, as a localization key and its format arguments.
- */
-type Notification = {
-	key: string;
-	data?: Record<string, unknown>;
 };
 
 /**
@@ -380,7 +373,7 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
 export async function advance(actor: GenesysActor<CharacterDataModel>, result: AdvancementResult) {
 	if (!('plan' in result)) {
 		if (result.refusal) {
-			ui.notifications.info(game.i18n.format(result.refusal.key, result.refusal.data as Record<string, string>));
+			notify(result.refusal);
 		}
 		return false;
 	}

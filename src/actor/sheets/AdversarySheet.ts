@@ -6,9 +6,9 @@ import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { DragTransferData } from '@/data/DragTransferData';
-import { ownedSkill } from '@/data/Skills';
+import { decideAdversaryDrop } from '@/actor/data/AdversaryItems';
+import { notify } from '@/notifications';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 
 /**
@@ -44,59 +44,36 @@ export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
 			return false;
 		}
 
-		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
-		if (AdversaryDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
-			const existingItem = ownedSkill(this.actor.skills, droppedItem.name);
-
-			if (existingItem) {
-				// If the skill already exists just rank it.
-				await existingItem.update({
-					'system.rank': existingItem.systemData.rank + 1,
-				});
-			} else if (this.actor.type !== 'minion') {
-				// If the skill is not on this adversary then add it with 1 rank.
-				clonedDroppedItem = await this._onDropItemCreate(droppedItem.toObject());
-
-				await clonedDroppedItem[0].update({ 'system.rank': 1 });
-			} else {
-				// Let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super._onDropItem(event, data);
-			}
-		} else if (AdversaryDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
-			// Let `super` handle the drop and save a reference to it.
-			clonedDroppedItem = await super._onDropItem(event, data);
-		} else if (AdversaryDataModel.isRelevantTypeForContext('TALENT', droppedItem.type)) {
-			const existingItem = this.actor.items.find((item) => item.type === droppedItem.type && item.name === droppedItem.name);
-
-			if (droppedItem.type === 'ability') {
-				// If the dropped item is an ability, verify we don't already have it on the sheet.
-				if (existingItem) {
-					return false;
-				} else {
-					// Let `super` handle the drop and save a reference to it.
-					clonedDroppedItem = await super._onDropItem(event, data);
-				}
-			} else if (droppedItem.type === 'talent') {
-				if (existingItem) {
-					// If the talent already exists just rank it.
-					await existingItem.update({
-						'system.rank': (existingItem as GenesysItem<TalentDataModel>).systemData.rank + 1,
-					});
-				} else {
-					// Let `super` handle the drop and save a reference to it.
-					clonedDroppedItem = await super._onDropItem(event, data);
-				}
-			} else {
-				// Let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super._onDropItem(event, data);
-			}
-		} else if (AdversaryDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			clonedDroppedItem = await receiveInventoryDrop(this.actor, data);
-		} else {
-			// If the dropped item is not of a type that we have a default behavior then end early.
-			return false;
+		if (AdversaryDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
+			return receiveInventoryDrop(this.actor, data);
 		}
 
-		return clonedDroppedItem ?? false;
+		const items = this.actor.items.contents;
+		const decision = decideAdversaryDrop(
+			{
+				type: this.actor.type,
+				skills: this.actor.skills,
+				talents: items.filter((item) => item.type === 'talent'),
+				abilities: items.filter((item) => item.type === 'ability'),
+			},
+			droppedItem,
+		);
+
+		switch (decision.action) {
+			case 'create': {
+				const source = droppedItem.toObject();
+				return this._onDropItemCreate(
+					decision.rank === undefined ? source : foundry.utils.mergeObject(source, { system: { rank: decision.rank } }),
+				);
+			}
+			case 'update':
+				await this.actor.updateEmbeddedDocuments('Item', [decision.update]);
+				return false;
+			case 'refuse':
+				if (decision.refusal) {
+					notify(decision.refusal);
+				}
+				return false;
+		}
 	}
 }
