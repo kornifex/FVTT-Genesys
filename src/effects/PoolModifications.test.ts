@@ -100,6 +100,12 @@ describe('isPoolModificationValue', () => {
 		expect(isPoolModificationValue('2')).toBe(false);
 		expect(isPoolModificationValue('B x')).toBe(false);
 	});
+
+	it('refuses a glyph in the wrong case', () => {
+		expect(isPoolModificationValue('p')).toBe(false);
+		expect(isPoolModificationValue('T')).toBe(false);
+		expect(isPoolModificationValue('Pp')).toBe(false);
+	});
 });
 
 describe('sourceItem', () => {
