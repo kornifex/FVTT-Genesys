@@ -37,6 +37,17 @@ export default defineConfig(
 		languageOptions: { parserOptions: { projectService: false, project: 'tsconfig.node.json' } },
 	},
 	{
+		// The functions the e2e harness runs in the page use Foundry's globals untyped (e2e/foundry.d.ts).
+		files: ['e2e/page.ts', 'e2e/scenario.ts', 'e2e/scenarios/**/*.ts'],
+		rules: {
+			'@typescript-eslint/no-unsafe-argument': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
+			'@typescript-eslint/no-unsafe-call': 'off',
+			'@typescript-eslint/no-unsafe-member-access': 'off',
+			'@typescript-eslint/no-unsafe-return': 'off',
+		},
+	},
+	{
 		files: ['src/**'],
 		ignores: ['src/log.ts'],
 		// src/log.ts prefixes the system's messages.

@@ -1,0 +1,22 @@
+{
+	// Node runs the harness from its TypeScript source, so only erasable syntax and explicit type imports work.
+	"compilerOptions": {
+		"target": "ES2023",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"types": ["node"],
+
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+
+		"skipLibCheck": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"erasableSyntaxOnly": true,
+		"verbatimModuleSyntax": true,
+	},
+	"include": ["**/*.ts"],
+}

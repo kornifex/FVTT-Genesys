@@ -14,13 +14,14 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite",
-		"lint": "eslint --max-warnings=0 src build *.config.ts",
+		"e2e": "node e2e/run.ts",
+		"lint": "eslint --max-warnings=0 src build e2e *.config.ts",
 		"knip": "knip",
 		"i18n": "node build/checkI18n.ts",
-		"format": "prettier --write src/ types/ build/ yaml/ *.config.ts",
-		"format:check": "prettier --check src/ types/ build/ yaml/ *.config.ts",
+		"format": "prettier --write src/ types/ build/ \"e2e/**/*.ts\" yaml/ *.config.ts",
+		"format:check": "prettier --check src/ types/ build/ \"e2e/**/*.ts\" yaml/ *.config.ts",
 		"test": "vitest run",
-		"typecheck": "vue-tsc --noEmit && tsc -p tsconfig.node.json"
+		"typecheck": "vue-tsc --noEmit && tsc -p tsconfig.node.json && tsc -p e2e/tsconfig.json"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -36,6 +37,7 @@
 		"handlebars": "^4.7.7",
 		"js-yaml": "^5.5.0",
 		"knip": "^6.42.1",
+		"playwright-core": "^1.64.1",
 		"prettier": "^3.2.4",
 		"sass": "1.105.2",
 		"socket.io": "^4.6.0",
