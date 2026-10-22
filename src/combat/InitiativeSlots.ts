@@ -98,7 +98,7 @@ export function sideOf(disposition: Disposition): InitiativeSide {
 	return disposition === 'friendly' ? 'pc' : 'npc';
 }
 
-export function slotId(originId: string, activationId: number) {
+function slotId(originId: string, activationId: number) {
 	return `${originId}:${activationId}`;
 }
 

@@ -1,11 +1,12 @@
 import { NAMESPACE } from '@/settings';
 import { KEY_MIGRATION_VERSION } from '@/settings/alpha';
-import { ActorPlanner, ActorWorld, migrateActors, runMigrationChain, WalkedActor } from '@/migrations/ActorMigration';
+import { ActorPlanner, ActorSource, ActorWorld, migrateActors, runMigrationChain, WalkedActor } from '@/migrations/ActorMigration';
 import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
 import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
+import * as log from '@/log';
 
 function walkedActor(actor: Actor): WalkedActor {
-	return { uuid: actor.uuid, source: actor.toObject() as any, update: (changes) => actor.update(changes) };
+	return { uuid: actor.uuid, source: actor.toObject() as ActorSource, update: (changes) => actor.update(changes) };
 }
 
 /**
@@ -31,7 +32,7 @@ const foundryActorWorld: ActorWorld = {
 async function migrateEveryActor(plan: ActorPlanner) {
 	const failures = await migrateActors(foundryActorWorld, plan);
 	if (failures.length > 0) {
-		console.error('Genesys | Unable to migrate these actors:', failures);
+		log.error('Unable to migrate these actors:', failures);
 	}
 
 	return failures.length === 0;

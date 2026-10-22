@@ -1,8 +1,7 @@
 import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
-import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
-import GenesysItem from '@/item/GenesysItem';
+import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import BaseItemDataModel from '@/item/data/BaseItemDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
@@ -41,7 +40,7 @@ export default class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeD
 			return;
 		}
 
-		const droppedItem: GenesysItem<BaseItemDataModel> | undefined = await (<any>GenesysItem.implementation).fromDropData(data);
+		const droppedItem = await itemFromDrop<BaseItemDataModel>(data);
 		if (!droppedItem) {
 			return;
 		}

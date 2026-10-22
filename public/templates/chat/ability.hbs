@@ -8,7 +8,7 @@
 
     <div class="details-grid abilityActivation">
         <label class="activation">{{localize 'Genesys.Labels.Activation'}}</label>
-        <span class="activation">{{localize (concat 'Genesys.Labels.' (capitalize activation.type))}} {{#if activation.detail}}({{ activation.detail }}){{/if}}</span>
+        <span class="activation">{{localize activation.label}} {{#if activation.detail}}({{ activation.detail }}){{/if}}</span>
     </div>
 
 	{{!-- Talent: Effective Tier, Rank --}}

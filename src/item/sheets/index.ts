@@ -13,9 +13,11 @@ import CareerSheet from '@/item/sheets/CareerSheet';
 import VueSheet from '@/vue/VueSheet';
 import GenesysItemSheet from '@/item/GenesysItemSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
+import type { Component } from 'vue';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript only lets a class extend a constructor that takes any[].
 type VueSheetConstructor = new (...args: any[]) => {
-	get vueComponent(): any;
+	get vueComponent(): Component;
 	getVueContext(): Promise<ItemSheetContext | undefined>;
 };
 
@@ -24,7 +26,7 @@ type VueSheetConstructor = new (...args: any[]) => {
  * @param vueComponent Vue component to use for the sheet.
  * @param sheetType Base class to use for the sheet.
  */
-function basicSheet(vueComponent: any, sheetType: VueSheetConstructor = VueSheet(GenesysItemSheet)) {
+function basicSheet(vueComponent: Component, sheetType: VueSheetConstructor = VueSheet(GenesysItemSheet)) {
 	return class extends sheetType {
 		override get vueComponent() {
 			return vueComponent;

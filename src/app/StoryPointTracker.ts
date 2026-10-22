@@ -78,7 +78,7 @@ export default class StoryPointTracker extends VueSheet(Application) {
 	}
 
 	static forceRender() {
-		StoryPointTracker.#instance?.render(true);
+		void StoryPointTracker.#instance?.render(true);
 	}
 
 	static async resetStoryPoints({ player, gm }: { player?: number; gm?: number } = {}) {
@@ -158,7 +158,7 @@ export function register() {
 	new StoryPointTracker();
 	StoryPointTracker.forceRender();
 
-	game.socket.on(SOCKET_NAME, async (payload: SocketPayload<any>) => {
+	game.socket.on(SOCKET_NAME, async (payload: SocketPayload<Record<string, unknown>>) => {
 		if (!StoryPointTracker.instance) {
 			return;
 		}
@@ -167,14 +167,14 @@ export function register() {
 			/**
 			 * Player has spent a story point.
 			 */
-			case SocketOperation.PlayerSpendStoryPoint:
+			case SocketOperation.PlayerSpendStoryPoint: {
 				// Only GM clients should process the operation.
 				if (!game.user.isGM) {
 					return;
 				}
 
 				// 1. Update the story point settings.
-				const storyPoints = StoryPointTracker.instance!.storyPoints;
+				const storyPoints = StoryPointTracker.instance.storyPoints;
 
 				// Do nothing if there are no player points to actually spend.
 				if (storyPoints.player === 0) {
@@ -191,6 +191,7 @@ export function register() {
 				socketEmit(SocketOperation.UpdateStoryPointTracker);
 
 				break;
+			}
 
 			/**
 			 * Forcibly update the Story Point Tracker's values.

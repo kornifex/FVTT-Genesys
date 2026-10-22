@@ -1,5 +1,8 @@
 import { ActorPlanner } from '@/migrations/ActorMigration';
 
+/** What this migration reads of a vehicle, as it was stored before it. */
+type VehicleSource = { passengers?: { list?: { uuid: string }[] }; roles?: { members: string[] }[] };
+
 /**
  * Previously we allowed for an actor to be part of more than one role. This planner removes any actor that is already
  * part of a role from any other role on the vehicle, and from its passengers. Within a role or the passengers, the last
@@ -10,6 +13,7 @@ export const actorOnlyOnceInCrew: ActorPlanner = (source) => {
 		return undefined;
 	}
 
+	const system = source.system as VehicleSource;
 	const crewUuids = new Set<string>();
 
 	// Keep the last of the entries of a list that repeat an actor already seen, from the end of the list.
@@ -26,12 +30,12 @@ export const actorOnlyOnceInCrew: ActorPlanner = (source) => {
 	};
 
 	// Check all the roles first and remove any actor that appears more than once from subsequent roles.
-	const roles: { members: string[] }[] = source.system.roles ?? [];
+	const roles = system.roles ?? [];
 	const migratedRoles = roles.map((role) => ({ ...role, members: keepUnseen(role.members, (member) => member) }));
 	const updateRoles = migratedRoles.some((role, index) => role.members.length !== roles[index].members.length);
 
 	// Check the passengers and make sure all of them are not in any role.
-	const passengers: { uuid: string }[] = source.system.passengers?.list ?? [];
+	const passengers = system.passengers?.list ?? [];
 	const migratedPassengers = keepUnseen(passengers, (passenger) => passenger.uuid);
 	const updatePassengers = migratedPassengers.length !== passengers.length;
 

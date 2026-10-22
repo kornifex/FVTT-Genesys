@@ -7,7 +7,7 @@ export function register() {
 	CONFIG.ActiveEffect.documentClass = GenesysEffect;
 
 	if (isFoundryV13OrLater()) {
-		// @ts-expect-error
+		// @ts-expect-error -- The types we have lack the legacyTransferral setting.
 		CONFIG.ActiveEffect.legacyTransferral = true;
 	}
 

@@ -3,6 +3,7 @@ import GenesysItem from '@/item/GenesysItem';
 import { ContextBase } from '@/vue/SheetContext';
 import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
 import WeaponDataModel from '@/item/data/WeaponDataModel';
+import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
 import VueSheet from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/GenesysRoller';
@@ -19,18 +20,23 @@ export interface DicePromptContext extends ContextBase {
 	rollType: RollType;
 	difficulty: string;
 	characteristic?: Characteristic;
-	rollData: any;
+	rollData?: RollData;
 	app: DicePrompt;
 }
 
 export type AttackRollData = {
-	weapon: GenesysItem<WeaponDataModel>;
+	weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;
 };
 
 export type InitiativeRollData = {
 	resolvePromise: (checkRoll: CheckRoll) => void;
 	rejectPromise: () => void;
 };
+
+/**
+ * What a roll type needs on top of the dice pool.
+ */
+type RollData = AttackRollData | InitiativeRollData;
 
 type DicePromptOptions = {
 	rollType?: RollType;
@@ -40,7 +46,7 @@ type DicePromptOptions = {
 	 * actor can't roll.
 	 */
 	characteristic?: Characteristic;
-	rollData?: { [key: string]: any };
+	rollData?: RollData;
 };
 
 /**
@@ -77,7 +83,7 @@ export default class DicePrompt extends VueSheet(Application) {
 				rollData: { resolvePromise: resolve, rejectPromise: reject },
 			});
 
-			app.render(true);
+			void app.render(true);
 		});
 	}
 
@@ -86,7 +92,7 @@ export default class DicePrompt extends VueSheet(Application) {
 	rollType: RollType;
 	difficulty: string;
 	characteristic?: Characteristic;
-	rollData?: { [key: string]: any };
+	rollData?: RollData;
 
 	constructor(actor?: GenesysActor, skillName?: string, { rollType, difficulty, characteristic, rollData }: DicePromptOptions = {}) {
 		super();
@@ -99,7 +105,7 @@ export default class DicePrompt extends VueSheet(Application) {
 		this.rollData = rollData;
 	}
 
-	override async close(options: {} = {}) {
+	override async close(options = {}) {
 		if (this.rollType === RollType.Initiative) {
 			(this.rollData as InitiativeRollData).rejectPromise();
 		}

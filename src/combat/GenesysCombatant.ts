@@ -8,20 +8,20 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	 * The initiative skill chosen for this combatant, if it's still one of the combat's initiative skills.
 	 */
 	get initiativeSkill(): InitiativeSkill | undefined {
-		const skillName = this.getFlag('genesys', 'initiativeSkill') as string | undefined;
+		const skillName = this.getFlag<string | undefined>('genesys', 'initiativeSkill');
 
 		if (!skillName) {
 			return undefined;
 		}
 
-		return (this.parent as GenesysCombat).initiativeSkills.find((s) => skillNamesMatch(s.skillName, skillName));
+		return this.parent.initiativeSkills.find((s) => skillNamesMatch(s.skillName, skillName));
 	}
 
 	/**
 	 * The Initiative Skill this combatant rolls: the one chosen for it, or else the combat's first.
 	 */
 	get initiativeSkillToRoll(): InitiativeSkill {
-		return this.initiativeSkill ?? (this.parent as GenesysCombat).initiativeSkills[0];
+		return this.initiativeSkill ?? this.parent.initiativeSkills[0];
 	}
 
 	async setInitiativeSkill(skill: InitiativeSkill) {
@@ -32,7 +32,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	 * Switch to the combat's next initiative skill, back to the first one after the last.
 	 */
 	async cycleInitiativeSkill() {
-		const initiativeSkills = (this.parent as GenesysCombat).initiativeSkills;
+		const initiativeSkills = this.parent.initiativeSkills;
 		if (initiativeSkills.length < 2) {
 			return;
 		}
@@ -47,7 +47,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	}
 
 	get disposition(): Disposition {
-		switch ((this.actor.token ?? (this.actor.prototypeToken as any)).disposition) {
+		switch ((this.actor.token ?? this.actor.prototypeToken).disposition) {
 			case CONST.TOKEN_DISPOSITIONS.FRIENDLY:
 				return 'friendly';
 
@@ -73,7 +73,7 @@ export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysAc
 	 * Roll this combatant's initiative as the combat rolls it, with a chat message.
 	 */
 	override async rollInitiative() {
-		await (this.parent as GenesysCombat).rollInitiative([this.id]);
+		await this.parent.rollInitiative([this.id]);
 		return this;
 	}
 }

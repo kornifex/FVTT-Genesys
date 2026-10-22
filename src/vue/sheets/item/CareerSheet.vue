@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import { computed, inject, ref, watchEffect } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import CareerDataModel from '@/item/data/CareerDataModel';
 import Editor from '@/vue/components/Editor.vue';
@@ -11,9 +11,13 @@ const system = computed(() => context.data.item.systemData);
 
 const source = ref('');
 
-watchEffect(async () => {
-	source.value = await TextEditor.enrichHTML(system.value.source, { async: true });
-});
+watch(
+	() => system.value.source,
+	async (text) => {
+		source.value = await TextEditor.enrichHTML(text, { async: true });
+	},
+	{ immediate: true },
+);
 
 const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 

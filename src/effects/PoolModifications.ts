@@ -12,7 +12,7 @@ import { skillNamesMatch } from '@/data/Skills';
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, or checks of a skill.
  */
-export type PoolModificationKind = 'check' | 'char' | 'skill';
+type PoolModificationKind = 'check' | 'char' | 'skill';
 
 /**
  * Whose checks a Pool Modification change applies to: the checks of the effect's actor, or the checks that target it.
@@ -174,7 +174,7 @@ export function poolModificationsForCheck(actor: PoolModificationActor | undefin
 				modifications.push({
 					source: 'target',
 					from: { defense },
-					mods: Array(totalDefense[defense]).fill(GenesysDice.Setback.GLYPH),
+					mods: Array<string>(totalDefense[defense]).fill(GenesysDice.Setback.GLYPH),
 				});
 			}
 		}
@@ -193,7 +193,7 @@ function effectModifications(actor: PoolModificationActor, source: PoolModificat
 			case 'check':
 				return key.subject === '';
 			case 'char':
-				return key.subject === characteristic;
+				return key.subject === (characteristic as string | undefined);
 			case 'skill':
 				return !!skillName && skillNamesMatch(key.subject, skillName);
 		}

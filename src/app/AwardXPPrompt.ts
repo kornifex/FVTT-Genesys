@@ -48,11 +48,11 @@ export default class AwardXPPrompt extends VueSheet(Application) {
 
 	override async getVueContext(): Promise<AwardXPContext> {
 		return {
-			resolvePromise: async (data) => {
+			resolvePromise: (data) => {
 				this.#resolvePromise?.(data);
 				this.#resolvePromise = undefined;
 
-				await this.close();
+				void this.close();
 			},
 		};
 	}

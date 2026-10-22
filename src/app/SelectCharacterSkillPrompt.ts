@@ -51,11 +51,11 @@ export default class SelectCharacterSkillPrompt extends VueSheet(Application) {
 	override async getVueContext(): Promise<SelectCharacterSkillPromptContext> {
 		return {
 			characterSkillOptions: this.characterSkillOptions,
-			resolvePromise: async (selectedOption) => {
+			resolvePromise: (selectedOption) => {
 				this.#resolvePromise?.(selectedOption);
 				this.#resolvePromise = undefined;
 
-				await this.close();
+				void this.close();
 			},
 		};
 	}

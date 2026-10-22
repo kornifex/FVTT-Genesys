@@ -47,7 +47,7 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 
 ## Logs and errors
 
-- Logs go through `src/log.ts`, which prefixes `Genesys |` (until #65 adds it, write the prefix by hand).
+- Logs go through `src/log.ts`, which prefixes `Genesys |`.
 - An error the player must act on goes to `ui.notifications` with a localization key.
 - A `catch` logs the error, or its comment says why the error is expected.
 

@@ -27,6 +27,12 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Find Unused Code
+        run: pnpm knip
+
+      - name: Check Localization Keys
+        run: pnpm i18n
+
       - name: Check Formatting
         run: pnpm format:check
 

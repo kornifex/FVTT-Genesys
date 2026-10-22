@@ -20,12 +20,12 @@ export default abstract class RivalDataModel extends AdversaryDataModel implemen
 		...AdversaryDataModel.tokenAttributes,
 	};
 
-	async preCreate(actor: GenesysActor<RivalDataModel>, _data: PreDocumentId<any>, _options: DocumentModificationContext<GenesysActor<RivalDataModel>>, _user: foundry.documents.BaseUser) {
+	async preCreate(actor: GenesysActor<RivalDataModel>, _data: unknown, _options: DocumentModificationContext<GenesysActor<RivalDataModel>>, _user: foundry.documents.BaseUser) {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 		};
 
-		await actor.updateSource({ prototypeToken });
+		actor.updateSource({ prototypeToken });
 	}
 
 	static override defineSchema() {

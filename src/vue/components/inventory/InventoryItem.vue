@@ -90,7 +90,8 @@ async function rollAttack() {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skillName, {
 		rollType: RollType.Attack,
 		rollData: {
-			weapon: props.item,
+			// An item with a skill to attack with is a weapon.
+			weapon: props.item as GenesysItem<WeaponDataModel | VehicleWeaponDataModel>,
 		},
 	});
 }
@@ -363,7 +364,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 	}
 
 	// Mark the items as being inside the dropped container.
-	const updateMap = new Map<string, any>();
+	const updateMap = new Map<string, unknown>();
 	updateMap.set('system.container', props.item.id);
 
 	// Update the item equipment state to match the state of the container.

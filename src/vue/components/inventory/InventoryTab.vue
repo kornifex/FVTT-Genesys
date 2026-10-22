@@ -141,7 +141,7 @@ async function dropInventoryToSortSlot(event: DragEvent, sortCategory: Equipment
 	// Calculate the new sort values and update them.
 	const sortUpdates = SortingHelpers.performIntegerSort(droppedItem, {
 		target: sortedInventory.value[sortIndex < 0 ? 0 : sortIndex],
-		siblings: sortedInventory.value.filter((sortedItem) => sortedItem.id !== droppedItem!.id),
+		siblings: sortedInventory.value.filter((sortedItem) => sortedItem.id !== droppedItem.id),
 		sortBefore: sortIndex < 0,
 	});
 
@@ -155,7 +155,7 @@ async function dropInventoryToSortSlot(event: DragEvent, sortCategory: Equipment
 	);
 
 	// If the item was moved from the contents of a container make sure we remove it from it.
-	const updateMap = new Map<string, any>();
+	const updateMap = new Map<string, unknown>();
 	updateMap.set('system.container', '');
 
 	// Update the inventory category for which the dropped item now belongs.

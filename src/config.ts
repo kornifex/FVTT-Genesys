@@ -99,10 +99,17 @@ export function register() {
 }
 
 /**
+ * Apply the current value of a setting, as its onChange does when the value changes.
+ */
+function applySetting<S>(key: string) {
+	void game.settings.settings.get<S>(`${SETTINGS_NAMESPACE}.${key}`)?.onChange?.(game.settings.get<S>(SETTINGS_NAMESPACE, key));
+}
+
+/**
  * Called on 'setup' to apply the settings that must take effect before the user interface first renders.
  */
 export function setup() {
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_STYLE}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_STYLE));
+	applySetting<string>(KEY_STYLE);
 }
 
 /**
@@ -110,22 +117,22 @@ export function setup() {
  */
 export function ready() {
 	/** World Settings **/
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_SKILLS_COMPENDIUM}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SKILLS_COMPENDIUM));
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_DEFAULT_DIFFICULTY}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_DEFAULT_DIFFICULTY));
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_SKILL_FOR_INJURIES}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SKILL_FOR_INJURIES));
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_SKILL_FOR_REPAIRING_VEHICLE_HITS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SKILL_FOR_REPAIRING_VEHICLE_HITS));
-	game.settings.settings.get<string>(`${SETTINGS_NAMESPACE}.${KEY_MONEY_NAME}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_MONEY_NAME));
-	game.settings.settings.get<number>(`${SETTINGS_NAMESPACE}.${KEY_CAREER_SKILL_RANKS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_CAREER_SKILL_RANKS));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SHOW_DAMAGE_ON_FAILURE}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SHOW_DAMAGE_ON_FAILURE));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_SUPER_CHARACTERISTICS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_SUPER_CHARACTERISTICS));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_IGNORE_TALENT_PYRAMID}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_IGNORE_TALENT_PYRAMID));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_TALENT_TIER_VERSIONS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_TALENT_TIER_VERSIONS));
+	applySetting<string>(KEY_SKILLS_COMPENDIUM);
+	applySetting<string>(KEY_DEFAULT_DIFFICULTY);
+	applySetting<string>(KEY_SKILL_FOR_INJURIES);
+	applySetting<string>(KEY_SKILL_FOR_REPAIRING_VEHICLE_HITS);
+	applySetting<string>(KEY_MONEY_NAME);
+	applySetting<number>(KEY_CAREER_SKILL_RANKS);
+	applySetting<boolean>(KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS);
+	applySetting<boolean>(KEY_SHOW_DAMAGE_ON_FAILURE);
+	applySetting<boolean>(KEY_SUPER_CHARACTERISTICS);
+	applySetting<boolean>(KEY_IGNORE_TALENT_PYRAMID);
+	applySetting<boolean>(KEY_TALENT_TIER_VERSIONS);
 
 	/** User Settings **/
 	CONFIG.genesys.settings.useMagicalGirlSymbols = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_USE_MAGICAL_GIRL_SYMBOLS) ?? false;
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_COLLAPSE_POOL_MODIFICATIONS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_COLLAPSE_POOL_MODIFICATIONS));
-	game.settings.settings.get<boolean>(`${SETTINGS_NAMESPACE}.${KEY_AUTO_APPLY_POOL_MODIFICATIONS}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_AUTO_APPLY_POOL_MODIFICATIONS));
+	applySetting<boolean>(KEY_COLLAPSE_POOL_MODIFICATIONS);
+	applySetting<boolean>(KEY_AUTO_APPLY_POOL_MODIFICATIONS);
 	CONFIG.genesys.settings.showChanceToSucceedFromPermutations = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_CHANCE_TO_SUCCEED_BY_PERMUTATION) ?? false;
-	game.settings.settings.get<number>(`${SETTINGS_NAMESPACE}.${KEY_CHANCE_TO_SUCCEED_BY_SIMULATION}`)?.onChange?.(game.settings.get(SETTINGS_NAMESPACE, KEY_CHANCE_TO_SUCCEED_BY_SIMULATION));
+	applySetting<number>(KEY_CHANCE_TO_SUCCEED_BY_SIMULATION);
 }

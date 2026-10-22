@@ -11,7 +11,7 @@ const props = withDefaults(
 		/**
 		 * String formatting args.
 		 */
-		formatArgs?: { [key: string]: any };
+		formatArgs?: Record<string, string | number | boolean | null>;
 
 		/**
 		 * Whether to handle HTML formatting in the localized value.

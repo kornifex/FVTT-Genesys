@@ -1,8 +1,7 @@
 import CareerDataModel from '@/item/data/CareerDataModel';
 import VueCareerSheet from '@/vue/sheets/item/CareerSheet.vue';
-import GenesysItemSheet, { DropData } from '@/item/GenesysItemSheet';
+import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import SkillDataModel from '@/item/data/SkillDataModel';
-import GenesysItem from '@/item/GenesysItem';
 import VueSheet from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { isCareerSkill } from '@/actor/data/character/Career';
@@ -33,7 +32,7 @@ export default class CareerSheet extends VueSheet(GenesysItemSheet<CareerDataMod
 			return;
 		}
 
-		const droppedItem: GenesysItem<SkillDataModel> | undefined = await (<any>GenesysItem.implementation).fromDropData(data);
+		const droppedItem = await itemFromDrop<SkillDataModel>(data);
 		if (!droppedItem || droppedItem.type !== 'skill') {
 			return;
 		}

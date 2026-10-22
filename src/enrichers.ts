@@ -182,7 +182,7 @@ export function register() {
 		},
 	});
 
-	document.addEventListener('click', onCheckLinkClick);
+	document.addEventListener('click', (event) => void onCheckLinkClick(event));
 }
 
 /**
@@ -202,7 +202,7 @@ async function onCheckLinkClick(event: MouseEvent) {
 	const actor = checkLinkActor<GenesysActor>({
 		sheetActor: app instanceof ActorSheet ? (app.actor as GenesysActor) : undefined,
 		controlledActors: (canvas.tokens?.controlled ?? []).map((token) => (token.actor ?? undefined) as GenesysActor | undefined),
-		assignedCharacter: (game.user.character ?? undefined) as GenesysActor | undefined,
+		assignedCharacter: game.user.character ?? undefined,
 	});
 
 	if (!actor) {

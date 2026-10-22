@@ -66,23 +66,24 @@ export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect
 		if (this.isEditable) {
 			// Bind our own image picker in place of Foundry's.
 			html.find('img[data-edit]').off('click');
-			html.find('img[data-edit]').on('click', this._onEditImage.bind(this));
+			html.find('img[data-edit]').on('click', (event) => void this._onEditImage(event));
 		}
 	}
 
-	protected async _onEditImage(event: Event) {
+	protected async _onEditImage(event: JQuery.ClickEvent) {
 		const fp = new FilePicker({
 			type: 'image',
 			current: this.object.img,
 			callback: async (path: string) => {
 				(<HTMLImageElement>event.currentTarget).src = path;
-				await this._onSubmit(event, { preventClose: true });
+				// _onSubmit only prevents the event's default, which a jQuery event does too.
+				await this._onSubmit(event as unknown as Event, { preventClose: true });
 			},
 			top: (this.position.top ?? 0) + 40,
 			left: (this.position.left ?? 0) + 10,
 		});
 
-		return await fp.browse();
+		await fp.browse();
 	}
 
 	protected override _getSubmitData(updateData?: Record<string, unknown>) {

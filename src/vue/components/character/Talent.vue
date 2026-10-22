@@ -4,6 +4,7 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import { ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
 
 const props = withDefaults(
 	defineProps<{
@@ -48,7 +49,7 @@ async function sendToChat() {
 		name: props.name,
 		description: enrichedDescription,
 		activation: {
-			type: props.activation.type,
+			label: ACTIVATION_LABELS[props.activation.type],
 			detail: props.activation.detail,
 		},
 		effectiveTier: props.effectiveTier,

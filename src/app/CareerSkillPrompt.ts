@@ -43,11 +43,11 @@ export default class CareerSkillPrompt extends VueSheet(Application) {
 
 	override async getVueContext(): Promise<CareerSkillPromptContext> {
 		return {
-			resolvePromise: async (skillIDs) => {
+			resolvePromise: (skillIDs) => {
 				this.#resolvePromise?.(skillIDs);
 				this.#resolvePromise = undefined;
 
-				await this.close();
+				void this.close();
 			},
 			skills: this.#skills,
 		};

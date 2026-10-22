@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watchEffect } from 'vue';
+import { ref, watch } from 'vue';
 
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -36,16 +36,20 @@ const dragCounter = ref(0);
 const actorsInRole = ref<GenesysActor[]>([]);
 
 // Make sure to display only actors that exist.
-watchEffect(async () => {
-	const foundActors: GenesysActor[] = [];
-	for (const member of props.members) {
-		const actor = await fromUuid<GenesysActor>(member);
-		if (actor) {
-			foundActors.push(actor);
+watch(
+	() => props.members,
+	async (members) => {
+		const foundActors: GenesysActor[] = [];
+		for (const member of members) {
+			const actor = await fromUuid<GenesysActor>(member);
+			if (actor) {
+				foundActors.push(actor);
+			}
 		}
-	}
-	actorsInRole.value = foundActors;
-});
+		actorsInRole.value = foundActors;
+	},
+	{ immediate: true, deep: true },
+);
 
 const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
 

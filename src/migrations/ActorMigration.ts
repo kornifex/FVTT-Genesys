@@ -2,12 +2,14 @@
  * @file Actor migrations: one walk over every actor a world holds, planners that say what to change on each one, and the chain that runs the migrations in order.
  */
 
+import * as log from '@/log';
+
 /**
  * What a planner reads of an actor: its source data.
  */
 export type ActorSource = {
 	type: string;
-	system: any;
+	system: Record<string, unknown>;
 };
 
 /**
@@ -93,7 +95,7 @@ export async function migrateActors(world: ActorWorld, plan: ActorPlanner) {
 				await actor.update(changes);
 			}
 		} catch (error) {
-			console.error(error);
+			log.error(error);
 			failures.push(actor.uuid);
 		}
 	});
@@ -125,7 +127,7 @@ export async function runMigrationChain(migrations: (() => Promise<boolean>)[], 
 		try {
 			succeeded = await migrations[version]();
 		} catch (error) {
-			console.error(error);
+			log.error(error);
 			succeeded = false;
 		}
 

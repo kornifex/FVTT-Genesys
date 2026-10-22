@@ -4,6 +4,7 @@ import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import GenesysItem from '@/item/GenesysItem';
 import WeaponDataModel from '@/item/data/WeaponDataModel';
+import { CharacteristicsContainer } from '@/data/Characteristics';
 import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
 
 export type GenesysRollResults = {
@@ -116,7 +117,7 @@ export default class GenesysRoller {
 
 		const withDamageCharacteristic = (weapon.systemData as WeaponDataModel).damageCharacteristic;
 		if (actor && withDamageCharacteristic && withDamageCharacteristic !== '-') {
-			totalDamage += (actor.system as any).characteristics[withDamageCharacteristic] as number;
+			totalDamage += (actor.system as { characteristics: CharacteristicsContainer }).characteristics[withDamageCharacteristic];
 			damageFormula = game.i18n.localize(`Genesys.CharacteristicAbbr.${withDamageCharacteristic.capitalize()}`) + ` + ${damageFormula}`;
 		}
 

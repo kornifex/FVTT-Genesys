@@ -105,7 +105,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		},
 	};
 
-	static isRelevantTypeForContext(context: keyof typeof RELEVANT_TYPES, type: string) {
+	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
 		return isRelevantType(RELEVANT_TYPES, context, type);
 	}
 
@@ -114,7 +114,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	 */
 	get totalSoak(): number {
 		const armorSoak = (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === 'equipped')
+			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
 			.map((i) => (<ArmorItem>i).systemData.soak)
 			.reduce((total, s) => total + s, 0);
 		return this.soak + this.characteristics.brawn + armorSoak;
@@ -125,7 +125,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	 */
 	get totalDefense(): Defense {
 		const armorDefense = (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === 'equipped')
+			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
 			.map((i) => (<ArmorItem>i).systemData.defense)
 			.reduce((total, d) => total + d, 0);
 
@@ -197,13 +197,13 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		}
 
 		// Negative encumbrance increases Encumbrance Threshold.
-		if (item.systemData.encumbrance < 0 || item.systemData.state === 'dropped') {
+		if (item.systemData.encumbrance < 0 || item.systemData.state === EquipmentState.Dropped) {
 			return 0;
 		}
 
 		// When armor is worn, its encumbrance rating is reduced by three (to a minimum of 0).
 		if (item.type === 'armor') {
-			if (item.systemData.state === 'equipped') {
+			if (item.systemData.state === EquipmentState.Equipped) {
 				return Math.max(0, item.systemData.encumbrance - 3) + Math.max(0, item.systemData.encumbrance * (item.systemData.quantity - 1));
 			}
 		}
@@ -212,7 +212,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		if (item.systemData.container !== '') {
 			const items = (<CharacterActor>(<unknown>this.parent)).items;
 			const root = rootContainer(item.systemData.container, (id) => (<EquipmentItem | undefined>items.get(id))?.systemData);
-			if (root?.state === 'dropped') {
+			if (root?.state === EquipmentState.Dropped) {
 				return 0;
 			}
 		}
@@ -224,7 +224,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		await updateEffectsStatus(this.parent as unknown as CharacterActor, CharacterDataModel.isRelevantTypeForContext, items, overrides);
 	}
 
-	async preCreate(actor: CharacterActor, _data: PreDocumentId<any>, _options: DocumentModificationContext<CharacterActor>, _user: User) {
+	async preCreate(actor: CharacterActor, _data: unknown, _options: DocumentModificationContext<CharacterActor>, _user: User) {
 		// Player character tokens should default to being Friendly.
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
@@ -232,7 +232,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 			disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY,
 			actorLink: true,
 		};
-		await actor.updateSource({ prototypeToken });
+		actor.updateSource({ prototypeToken });
 
 		// Already have skills data, so we have no reason to add new ones.
 		if (actor.items.find((i) => i.type === 'skill')) {
@@ -247,7 +247,7 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		}
 
 		const skillItems = skills.map((i) => i.toObject());
-		await actor.updateSource({ items: skillItems });
+		actor.updateSource({ items: skillItems });
 	}
 
 	static override defineSchema() {

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
+import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import CharacterDataModel from '@/actor/data/CharacterDataModel';
 import GenesysItem from '@/item/GenesysItem';
@@ -18,8 +19,8 @@ const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
 
-const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'weapon' && i.system.state === 'equipped') as GenesysItem<WeaponDataModel>[]);
-const armors = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'armor' && i.system.state === 'equipped') as GenesysItem<ArmorDataModel>[]);
+const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<WeaponDataModel>[]);
+const armors = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'armor' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<ArmorDataModel>[]);
 const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {

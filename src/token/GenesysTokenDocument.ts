@@ -15,7 +15,7 @@ export type TokenAttributeDetails =
 			valuePath: string;
 	  };
 
-export type DataModelWithTokenAttributes = Function & { tokenAttributes?: Record<string, TokenAttributeDetails> };
+export type DataModelWithTokenAttributes = { tokenAttributes?: Record<string, TokenAttributeDetails> };
 
 type TrackedAttributes = TokenAttributes & {
 	source?: Record<string, TokenAttributeDetails>;
@@ -23,7 +23,8 @@ type TrackedAttributes = TokenAttributes & {
 
 export default class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 	override getBarAttribute(barName: string, options: { alternative?: string } = {}) {
-		const attribute: string | undefined = options.alternative || (this as Record<string, any>)[barName]?.attribute;
+		// The types we have lack the token's bars.
+		const attribute = options.alternative || (this as unknown as Record<string, { attribute?: string } | undefined>)[barName]?.attribute;
 		if (!this.actor || !attribute) {
 			return null;
 		}
