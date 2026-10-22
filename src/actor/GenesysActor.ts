@@ -1,11 +1,11 @@
 import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
-import IHasPreCreate from '@/data/IHasPreCreate';
-import IHasOnDelete from '@/data/IHasOnDelete';
+import { HasPreCreate } from '@/data/HasPreCreate';
+import { HasOnDelete } from '@/data/HasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import type GenesysItem from '@/item/GenesysItem';
-import type SkillDataModel from '@/item/data/SkillDataModel';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { SkillDataModel } from '@/item/data/SkillDataModel';
 
-export default class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
+export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
 	/**
 	 * Specialized property for accessing `actor.system` in a typed manner.
 	 */
@@ -25,7 +25,7 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	 * @inheritDoc
 	 */
 	protected override async _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext<this>, user: User) {
-		await (<IHasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
+		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
 
 		return super._preCreate(data, options, user);
 	}
@@ -35,7 +35,7 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	 * @inheritDoc
 	 */
 	protected override _onDelete(options: DocumentModificationContext<this>, userId: string) {
-		(<IHasOnDelete<this>>this.systemData).onDelete?.(this, options, userId);
+		(<HasOnDelete<this>>this.systemData).onDelete?.(this, options, userId);
 
 		super._onDelete(options, userId);
 	}

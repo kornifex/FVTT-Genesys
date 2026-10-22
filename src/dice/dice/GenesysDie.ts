@@ -2,14 +2,14 @@
  * @file Root type of all the custom Die types in the Genesys system.
  */
 
-import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
+import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 export type DieCategory = 'positive' | 'negative';
 
 /**
  * Base type of all custom Genesys dice.
  */
-export default abstract class GenesysDie extends Die {
+export abstract class GenesysDie extends Die {
 	/**
 	 * The text glyph used to symbolize this die.
 	 */

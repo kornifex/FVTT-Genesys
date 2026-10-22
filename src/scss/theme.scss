@@ -1,4 +1,4 @@
-@use 'vars/colors';
+@use '@scss/vars/colors.scss';
 
 // Zero specificity, so that worlds and modules can override any color on `:root`, whatever the Style.
 :where(:root) {

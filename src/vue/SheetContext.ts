@@ -2,11 +2,11 @@
  * @file Provides typing data for RootContext injected into Vue apps.
  */
 
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import GenesysItemSheet from '@/item/GenesysItemSheet';
-import GenesysActorSheet from '@/actor/GenesysActorSheet';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItemSheet } from '@/item/GenesysItemSheet';
+import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 
 export type ContextBase = object;
 

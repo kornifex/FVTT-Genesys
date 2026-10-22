@@ -1,10 +1,10 @@
-import GenesysDie from '@/dice/types/GenesysDie';
-import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
+import { GenesysDie } from '@/dice/dice/GenesysDie';
+import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
  * Challenge (red) Die
  */
-export default class ChallengeDie extends GenesysDie {
+export class ChallengeDie extends GenesysDie {
 	static override DENOMINATION = 'c';
 	static override GLYPH = 'C';
 	static override FORMULA = 'dc' as const;

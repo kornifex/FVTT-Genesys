@@ -1,5 +1,5 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 
 type CharacteristicsContainer = {
 	brawn: number;
@@ -10,7 +10,7 @@ type CharacteristicsContainer = {
 	presence: number;
 };
 
-export default abstract class ArchetypeDataModel extends BaseItemDataModel {
+export abstract class ArchetypeDataModel extends BaseItemDataModel {
 	/**
 	 * Characteristics values granted by the Archetype.
 	 */

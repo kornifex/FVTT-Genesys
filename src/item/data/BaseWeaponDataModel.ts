@@ -1,4 +1,4 @@
-import EquipmentDataModel from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
 export type ContainedItemQuality = {
 	/**
@@ -22,7 +22,7 @@ export type ContainedItemQuality = {
 	rating: number;
 };
 
-export default abstract class BaseWeaponDataModel extends EquipmentDataModel {
+export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 	/**
 	 * Base damage for the weapon.
 	 */

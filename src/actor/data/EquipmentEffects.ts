@@ -2,10 +2,10 @@
  * @file Effects of equipment apply only while their item is in the right equipment state: equipped for equipable items, used for consumables and carried for any other equipment.
  */
 
-import type GenesysActor from '@/actor/GenesysActor';
-import type GenesysEffect from '@/effects/GenesysEffect';
-import type GenesysItem from '@/item/GenesysItem';
-import type EquipmentDataModel from '@/item/data/EquipmentDataModel';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { GenesysEffect } from '@/effects/GenesysEffect';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 /**

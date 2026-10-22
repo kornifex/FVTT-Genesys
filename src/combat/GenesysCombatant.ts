@@ -1,9 +1,9 @@
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysCombat, { InitiativeSkill } from '@/combat/GenesysCombat';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysCombat, InitiativeSkill } from '@/combat/GenesysCombat';
 import { Disposition, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
 import { skillNamesMatch } from '@/data/Skills';
 
-export default class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
+export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
 	 * The initiative skill chosen for this combatant, if it's still one of the combat's initiative skills.
 	 */

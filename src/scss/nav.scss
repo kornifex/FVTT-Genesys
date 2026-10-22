@@ -1,5 +1,5 @@
-@use 'vars/colors';
-@use 'vars/sheet';
+@use '@scss/vars/colors.scss';
+@use '@scss/vars/sheet.scss';
 
 .sheet.genesys {
 	nav.sheet-tabs {

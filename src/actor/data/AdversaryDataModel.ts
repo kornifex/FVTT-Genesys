@@ -33,7 +33,7 @@ const RELEVANT_TYPES = {
 	INVENTORY: ['weapon', 'armor', 'consumable', 'gear', 'container'],
 };
 
-export default abstract class AdversaryDataModel extends foundry.abstract.DataModel {
+export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;

@@ -1,4 +1,4 @@
-import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
+import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 
 type FiringArc = {
 	fore: boolean;
@@ -7,7 +7,7 @@ type FiringArc = {
 	starboard: boolean;
 };
 
-export default abstract class VehicleWeaponDataModel extends BaseWeaponDataModel {
+export abstract class VehicleWeaponDataModel extends BaseWeaponDataModel {
 	/**
 	 * Directions a weapon can be fired, based on its mounting.
 	 */

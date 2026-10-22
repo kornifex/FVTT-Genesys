@@ -19,14 +19,14 @@ import { register as registerToken } from '@/token';
 import { register as registerEffects } from '@/effects';
 import { register as registerItems, CharacterCreationItemTypes, EquipmentItemTypes } from '@/item';
 import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
-import DicePrompt, { registerWorker } from '@/app/DicePrompt';
+import { DicePrompt, registerWorker } from '@/app/DicePrompt';
 import { isFoundryV13OrLater } from '@/foundryGeneration';
 
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysCompendium from '@/sidebar/GenesysCompendium';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysCompendium } from '@/sidebar/GenesysCompendium';
 import { performMigrations } from '@/migrations/MigrationHelper';
 
-import './scss/index.scss';
+import '@scss/index.scss';
 
 async function doAlphaNotice(lastAlpha: string) {
 	if (!game.user.isGM) {
@@ -154,6 +154,7 @@ Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: obj
 
 // Makes the dice icon at the bottom of the chat to function as a shortcut to call the dice prompt.
 Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _data: object) => {
+	// v12: Foundry v13's chat log has no dice icon.
 	if (isFoundryV13OrLater()) {
 		return;
 	}
@@ -193,11 +194,12 @@ Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown)
 // directly add links as any HTML is escaped.
 const wikiLinkPattern = /\[\[([^|\]]+)(\|([^\]]+))?\]\]/g;
 Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
+	// v12: the hook receives jQuery; v13 passes the element.
 	const theHtml = isFoundryV13OrLater() ? (html as unknown as HTMLElement) : html[0];
 
 	let note = theHtml.querySelector(`[data-setting-id='genesys.${KEY_DEFAULT_DIFFICULTY}'] > .notes`);
 	if (!note) {
-		// FVTT v13 has a different way for structuring their settings.
+		// v12: Foundry v13 lays out the settings differently.
 		note = theHtml.querySelector(`.form-fields:has(input[name='genesys.${KEY_DEFAULT_DIFFICULTY}']) + p.hint`);
 	}
 

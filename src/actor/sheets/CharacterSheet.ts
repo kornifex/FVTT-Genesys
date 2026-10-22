@@ -1,18 +1,18 @@
 import VueCharacterSheet from '@/vue/sheets/actor/CharacterSheet.vue';
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
-import CareerDataModel from '@/item/data/CareerDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { CareerDataModel } from '@/item/data/CareerDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { isCareerSkill } from '@/actor/data/character/Career';
 import { ownedSkill } from '@/data/Skills';
-import CareerSkillPrompt from '@/app/CareerSkillPrompt';
-import TalentDataModel from '@/item/data/TalentDataModel';
-import VueSheet from '@/vue/VueSheet';
-import GenesysActorSheet from '@/actor/GenesysActorSheet';
+import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { VueSheet } from '@/vue/VueSheet';
+import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { ActorSheetContext } from '@/vue/SheetContext';
 import { DragTransferData } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
@@ -21,7 +21,7 @@ import { EquipmentState } from '@/item/data/EquipmentDataModel';
 /**
  * Actor sheet used for Player Characters
  */
-export default class CharacterSheet extends VueSheet(GenesysActorSheet<CharacterDataModel>) {
+export class CharacterSheet extends VueSheet(GenesysActorSheet<CharacterDataModel>) {
 	override get vueComponent() {
 		return VueCharacterSheet;
 	}

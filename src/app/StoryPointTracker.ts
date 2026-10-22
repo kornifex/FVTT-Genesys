@@ -6,7 +6,7 @@ import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload } from '@/socket';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
-import VueSheet from '@/vue/VueSheet';
+import { VueSheet } from '@/vue/VueSheet';
 import { isFoundryV13OrLater } from '@/foundryGeneration';
 
 export interface StoryPointTrackerContext {
@@ -24,7 +24,7 @@ export interface StoryPointTrackerContext {
 /**
  * Singleton application used to track the current pools of Story Points.
  */
-export default class StoryPointTracker extends VueSheet(Application) {
+export class StoryPointTracker extends VueSheet(Application) {
 	static #instance?: StoryPointTracker;
 
 	static get instance(): StoryPointTracker | undefined {

@@ -2,18 +2,18 @@
 import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData, CALCULATE_CHANCE_WORKER_NAME } from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
-import GenesysRoller from '@/dice/GenesysRoller';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { GenesysRoller } from '@/dice/GenesysRoller';
+import { GenesysItem } from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { vLocalize } from '@/vue/directives';
 import { GenesysDice } from '@/dice';
-import { DieCategory } from '@/dice/types/GenesysDie';
-import { GenesysSymbol } from '@/dice/types/GenesysSymbol';
-import GenesysActor from '@/actor/GenesysActor';
-import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
-import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
+import { DieCategory } from '@/dice/dice/GenesysDie';
+import { GenesysSymbol } from '@/dice/GenesysSymbol';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
+import { GenesysPoolModifications } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import { type Check, type CheckPoolModification, type CheckRequest, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import {

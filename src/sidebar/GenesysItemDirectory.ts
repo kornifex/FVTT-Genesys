@@ -1,7 +1,7 @@
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysItem } from '@/item/GenesysItem';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 
-export default class GenesysItemDirectory extends ItemDirectory<GenesysItem> {
+export class GenesysItemDirectory extends ItemDirectory<GenesysItem> {
 	protected override _onDragStart(event: ElementDragEvent): void {
 		super._onDragStart(event);
 

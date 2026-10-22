@@ -2,15 +2,16 @@
  * @file Provides overridden, system-specific type data for Foundry's CONFIG global.
  */
 
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysEffect from '@/effects/GenesysEffect';
-import GenesysItem from '@/item/GenesysItem';
-import GenesysCombat from '@/combat/GenesysCombat';
-import GenesysCombatant from '@/combat/GenesysCombatant';
-import GenesysCombatTracker from '@/combat/GenesysCombatTracker';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysEffect } from '@/effects/GenesysEffect';
+import { GenesysItem } from '@/item/GenesysItem';
+import { GenesysCombat } from '@/combat/GenesysCombat';
+import { GenesysCombatant } from '@/combat/GenesysCombatant';
+// v12: the Foundry types we have are v12's, so `ui.combat` has the v12 Combat Tracker's type.
+import { GenesysCombatTrackerV12 } from '@/combat/GenesysCombatTracker.v12';
 import { GENESYS_CONFIG } from '@/config';
-import GenesysActorDirectory from '@/sidebar/GenesysActorDirectory';
-import GenesysItemDirectory from '@/sidebar/GenesysItemDirectory';
+import { GenesysActorDirectory } from '@/sidebar/GenesysActorDirectory';
+import { GenesysItemDirectory } from '@/sidebar/GenesysItemDirectory';
 
 declare global {
 	const ui: FoundryUI<
@@ -21,7 +22,7 @@ declare global {
 		ChatMessage<GenesysActor>,
 		ChatLog<ChatMessage<GenesysActor>>,
 		CompendiumDirectory,
-		GenesysCombatTracker<GenesysCombat>
+		GenesysCombatTrackerV12<GenesysCombat>
 	>;
 	const canvas: Canvas;
 
@@ -35,7 +36,7 @@ declare global {
 			ChatMessage,
 			GenesysCombat,
 			GenesysCombatant,
-			GenesysCombatTracker,
+			GenesysCombatTrackerV12,
 			CompendiumDirectory,
 			Hotbar,
 			GenesysItem,

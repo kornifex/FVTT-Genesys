@@ -41,5 +41,13 @@ export default defineConfig(
 		// src/log.ts prefixes the system's messages.
 		rules: { 'no-console': 'error' },
 	},
+	{
+		// A Vue component is its file's default export, which sfc.d.ts declares.
+		files: ['src/**/*.ts'],
+		ignores: ['src/vue/sfc.d.ts'],
+		rules: {
+			'no-restricted-syntax': ['error', { selector: 'ExportDefaultDeclaration', message: 'Use a named export.' }],
+		},
+	},
 	prettier,
 );

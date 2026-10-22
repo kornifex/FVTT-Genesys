@@ -1,59 +1,47 @@
-import GenesysEffect from '@/effects/GenesysEffect';
 import { Characteristic } from '@/data/Characteristics';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
-import './GenesysEffectSheet.scss';
+import '@/effects/GenesysEffectSheet.scss';
 
-type IncompleteSheetSubmitData = { changes: EditedChange[] };
+// The class keeps its name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
+export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
+	static DEFAULT_OPTIONS = {
+		classes: ['effect-sheet-v2'],
+	};
 
-export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect> {
-	static override get defaultOptions() {
-		return {
-			...super.defaultOptions,
-			classes: ['genesys', 'sheet'],
-			width: 500,
-			height: 400,
-			tabs: [
-				{
-					navSelector: '.sheet-tabs',
-					contentSelector: '.sheet-body',
-					initial: 'description',
-				},
-			],
-		};
-	}
+	static override PARTS = {
+		...super.PARTS,
+		changes: { template: 'systems/genesys/templates/sheets/effect-changes-tab.hbs' },
+	};
 
-	override get template(): string {
-		return 'systems/genesys/templates/sheets/effect-config.hbs';
-	}
+	override async _preparePartContext(partId: string, context: Record<string, unknown>): Promise<Record<string, unknown>> {
+		const partContext = (await super._preparePartContext(partId, context)) as Record<string, unknown> & { source: GenesysEffect };
 
-	override async getData(options?: DocumentSheetOptions) {
-		const data = await super.getData(options);
+		if (partId === 'changes') {
+			const changes = partContext.source.changes.map(toEditedChange);
 
-		// The 'Custom' mode is not explicitly used.
-		delete data.modes[CONST.ACTIVE_EFFECT_MODES.CUSTOM];
-
-		// Edit copies of the changes, because opening the sheet must not modify the effect itself.
-		const changes = data.data.changes.map(toEditedChange);
-
-		return foundry.utils.mergeObject(data, {
-			changes,
-			skills: skillChoices(
+			partContext.changes = changes;
+			partContext.skills = skillChoices(
 				CONFIG.genesys.skills.map((skill) => skill.name),
 				changes,
-			),
-			characteristics: Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName])),
-		});
+			);
+			partContext.characteristics = Object.fromEntries(
+				Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]),
+			);
+		}
+
+		return partContext;
 	}
 
-	override activateListeners(html: JQuery) {
-		super.activateListeners(html);
+	override _onChangeForm(formConfig: Record<string, unknown>, event: Event) {
+		super._onChangeForm(formConfig, event);
 
-		// Make sure we show/hide the proper `select` elements when picking a dice pool modification.
-		html.find('.effect-change > select:first-child').on('change', (event) => {
-			const targetSelect = event.currentTarget as HTMLSelectElement;
+		const target = event.target as HTMLElement;
+		if (target?.matches('select[name^="changes."][name$=".key"]')) {
+			const targetSelect = target as HTMLSelectElement;
 			const targetOptionType = subjectFieldForKey(targetSelect.value);
 
-			const children = targetSelect.nextElementSibling?.children ?? [];
+			const children = targetSelect.closest('li')?.querySelector('.mode')?.children as HTMLCollection;
 			for (let k = 0; k < children.length; k++) {
 				if (children[k].classList.contains(targetOptionType)) {
 					children[k].classList.add('show-it');
@@ -61,35 +49,13 @@ export default class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect
 					children[k].classList.remove('show-it');
 				}
 			}
-		});
-
-		if (this.isEditable) {
-			// Bind our own image picker in place of Foundry's.
-			html.find('img[data-edit]').off('click');
-			html.find('img[data-edit]').on('click', (event) => void this._onEditImage(event));
 		}
 	}
 
-	protected async _onEditImage(event: JQuery.ClickEvent) {
-		const fp = new FilePicker({
-			type: 'image',
-			current: this.object.img,
-			callback: async (path: string) => {
-				(<HTMLImageElement>event.currentTarget).src = path;
-				// _onSubmit only prevents the event's default, which a jQuery event does too.
-				await this._onSubmit(event as unknown as Event, { preventClose: true });
-			},
-			top: (this.position.top ?? 0) + 40,
-			left: (this.position.left ?? 0) + 10,
-		});
+	override _processFormData(event: Event, form: HTMLElement, formData: Record<string, unknown>) {
+		const formDataExpanded = super._processFormData(event, form, formData) as { changes: EditedChange[] };
+		formDataExpanded.changes = Object.values(formDataExpanded.changes || []).map(fromEditedChange);
 
-		await fp.browse();
-	}
-
-	protected override _getSubmitData(updateData?: Record<string, unknown>) {
-		const submitData = super._getSubmitData(updateData) as IncompleteSheetSubmitData;
-		submitData.changes.forEach(fromEditedChange);
-
-		return submitData;
+		return formDataExpanded;
 	}
 }

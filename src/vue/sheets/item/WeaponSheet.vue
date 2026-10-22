@@ -4,7 +4,7 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { Characteristic } from '@/data/Characteristics';
 
 const context = inject<ItemSheetContext<WeaponDataModel>>(RootContext)!;

@@ -2,8 +2,8 @@
  * @file Checks: what an actor rolls for a skill or a characteristic. A check is resolved into its kind, its characteristic, its rank, whether it uses a super characteristic and its Pool Modifications, then into its dice pool and its chat description.
  */
 
-import type GenesysItem from '@/item/GenesysItem';
-import type SkillDataModel from '@/item/data/SkillDataModel';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import { Skill, skillToRoll } from '@/data/Skills';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';

@@ -1,10 +1,10 @@
-import GenesysActor from '@/actor/GenesysActor';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { CombatPool } from '@/data/Actors';
-import IHasPreCreate from '@/data/IHasPreCreate';
+import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
-export default abstract class NemesisDataModel extends AdversaryDataModel implements IHasPreCreate<GenesysActor<NemesisDataModel>> {
+export abstract class NemesisDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<NemesisDataModel>> {
 	abstract wounds: CombatPool;
 	abstract strain: CombatPool;
 

@@ -1,10 +1,10 @@
 import { ContextBase } from '@/vue/SheetContext';
-import VueSheet from '@/vue/VueSheet';
+import { VueSheet } from '@/vue/VueSheet';
 import VueSelectCharacterSkillPrompt from '@/vue/apps/SelectCharacterSkillPrompt.vue';
 
-import GenesysActor from '@/actor/GenesysActor';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysItem } from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 
 export type CharacterSkillOption = {
 	actor: GenesysActor;
@@ -16,7 +16,7 @@ export interface SelectCharacterSkillPromptContext extends ContextBase {
 	resolvePromise: (selectedOption: CharacterSkillOption) => void;
 }
 
-export default class SelectCharacterSkillPrompt extends VueSheet(Application) {
+export class SelectCharacterSkillPrompt extends VueSheet(Application) {
 	override get vueComponent() {
 		return VueSelectCharacterSkillPrompt;
 	}

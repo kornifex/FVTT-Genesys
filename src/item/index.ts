@@ -1,18 +1,18 @@
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysItem } from '@/item/GenesysItem';
 import { register as registerSheets } from '@/item/sheets';
 
-import AbilityDataModel from '@/item/data/AbilityDataModel';
-import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
-import CareerDataModel from '@/item/data/CareerDataModel';
-import ContainerDataModel from '@/item/data/ContainerDataModel';
-import EquipmentDataModel from '@/item/data/EquipmentDataModel';
-import InjuryDataModel from '@/item/data/InjuryDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import TalentDataModel from '@/item/data/TalentDataModel';
-import ItemQualityDataModel from '@/item/data/ItemQualityDataModel';
-import WeaponDataModel from '@/item/data/WeaponDataModel';
-import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
+import { AbilityDataModel } from '@/item/data/AbilityDataModel';
+import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import { CareerDataModel } from '@/item/data/CareerDataModel';
+import { ContainerDataModel } from '@/item/data/ContainerDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
+import { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 export function register() {
 	CONFIG.Item.documentClass = GenesysItem;

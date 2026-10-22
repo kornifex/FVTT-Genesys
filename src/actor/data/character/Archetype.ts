@@ -2,11 +2,11 @@
  * @file Adding and removing a character's Archetype.
  */
 
-import type GenesysActor from '@/actor/GenesysActor';
-import type CharacterDataModel from '@/actor/data/CharacterDataModel';
-import type ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
-import type GenesysItem from '@/item/GenesysItem';
-import type SkillDataModel from '@/item/data/SkillDataModel';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';

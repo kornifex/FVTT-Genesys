@@ -4,7 +4,7 @@ import { computed, inject, toRaw } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
+import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 
 const context = inject<ItemSheetContext<BaseWeaponDataModel>>(RootContext)!;
 const system = computed(() => context.data.item.systemData);

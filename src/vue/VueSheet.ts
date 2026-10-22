@@ -15,7 +15,7 @@ function preventSubmit(event: SubmitEvent) {
 	event.preventDefault();
 }
 
-export default function VueSheet<TBase extends Constructor, ContextType extends ContextBase | undefined = ContextBase>(base: TBase) {
+export function VueSheet<TBase extends Constructor, ContextType extends ContextBase | undefined = ContextBase>(base: TBase) {
 	return class extends base {
 		form?: HTMLFormElement;
 		preventSubmit?: boolean;

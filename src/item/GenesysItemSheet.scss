@@ -1,5 +1,5 @@
-@use '@scss/mixins/backgrounds';
-@use '@scss/vars/sheet';
+@use '@scss/mixins/backgrounds.scss';
+@use '@scss/vars/sheet.scss';
 
 // Restrict the minimum size for the sheet window.
 .window-app.sheet.item {

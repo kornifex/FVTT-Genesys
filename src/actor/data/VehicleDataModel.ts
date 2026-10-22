@@ -1,10 +1,10 @@
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
-import IHasOnDelete from '@/data/IHasOnDelete';
-import IHasPreCreate from '@/data/IHasPreCreate';
-import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { HasOnDelete } from '@/data/HasOnDelete';
+import { HasPreCreate } from '@/data/HasPreCreate';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { skillNamesMatch } from '@/data/Skills';
 
@@ -57,9 +57,9 @@ const RELEVANT_TYPES = {
 	CONSUMABLE: ['consumable'],
 };
 
-export default abstract class VehicleDataModel
+export abstract class VehicleDataModel
 	extends foundry.abstract.DataModel
-	implements IHasPreCreate<GenesysActor<VehicleDataModel>>, IHasOnDelete<GenesysActor<VehicleDataModel>>
+	implements HasPreCreate<GenesysActor<VehicleDataModel>>, HasOnDelete<GenesysActor<VehicleDataModel>>
 {
 	abstract silhouette: number;
 	abstract speed: number;

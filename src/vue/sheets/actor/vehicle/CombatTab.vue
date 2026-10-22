@@ -2,19 +2,19 @@
 import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
-import GenesysItem from '@/item/GenesysItem';
-import GenesysActor from '@/actor/GenesysActor';
-import InjuryDataModel from '@/item/data/InjuryDataModel';
-import DicePrompt, { RollType } from '@/app/DicePrompt';
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
-import VehicleWeaponDataModel from '@/item/data/VehicleWeaponDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { DicePrompt, RollType } from '@/app/DicePrompt';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-import SelectCharacterSkillPrompt, { CharacterSkillOption } from '@/app/SelectCharacterSkillPrompt';
+import { SelectCharacterSkillPrompt, CharacterSkillOption } from '@/app/SelectCharacterSkillPrompt';
 import { skillNamesMatch, skillToRoll } from '@/data/Skills';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import GenesysEffect from '@/effects/GenesysEffect';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { inject, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';

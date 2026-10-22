@@ -2,12 +2,12 @@
  * @file Shared functionality between the Minion, Rival, and Nemesis Sheets.
  */
 
-import GenesysActorSheet from '@/actor/GenesysActorSheet';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import TalentDataModel from '@/item/data/TalentDataModel';
-import VueSheet from '@/vue/VueSheet';
+import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { VueSheet } from '@/vue/VueSheet';
 import { ActorSheetContext } from '@/vue/SheetContext';
 import { DragTransferData } from '@/data/DragTransferData';
 import { ownedSkill } from '@/data/Skills';
@@ -15,7 +15,7 @@ import { ownedSkill } from '@/data/Skills';
 /**
  * Actor sheet used for Player Characters
  */
-export default class AdversarySheet extends VueSheet(GenesysActorSheet<AdversaryDataModel>) {
+export class AdversarySheet extends VueSheet(GenesysActorSheet<AdversaryDataModel>) {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

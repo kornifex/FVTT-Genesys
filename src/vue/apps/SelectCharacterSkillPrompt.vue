@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { inject, ref, toRaw } from 'vue';
 
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { SelectCharacterSkillPromptContext } from '@/app/SelectCharacterSkillPrompt';
 import { RootContext } from '@/vue/SheetContext';
 

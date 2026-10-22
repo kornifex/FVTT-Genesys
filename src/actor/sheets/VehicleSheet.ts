@@ -1,17 +1,17 @@
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
-import GenesysActorSheet from '@/actor/GenesysActorSheet';
-import VueSheet from '@/vue/VueSheet';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
+import { VueSheet } from '@/vue/VueSheet';
 import VueVehicleSheet from '@/vue/sheets/actor/VehicleSheet.vue';
 import { ActorSheetContext } from '@/vue/SheetContext';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import GenesysItem from '@/item/GenesysItem';
-import GenesysActor from '@/actor/GenesysActor';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CrewDragTransferData, DragTransferData } from '@/data/DragTransferData';
 import { transferInventoryBetweenActors } from '@/operations/TransferBetweenActors';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
-import CloneActorPrompt from '@/app/CloneActorPrompt';
+import { CloneActorPrompt } from '@/app/CloneActorPrompt';
 
-export default class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleDataModel>) {
+export class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleDataModel>) {
 	override get vueComponent() {
 		return VueVehicleSheet;
 	}

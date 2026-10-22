@@ -1,5 +1,5 @@
 @use 'sass:math';
-@use '../vars/colors';
+@use '@scss/vars/colors.scss';
 
 // Recreates the pattern of boxes with a cross pattern between them used in the Genesys books' backgrounds.
 @mixin crossboxes($bg-color: colors.$paper, $deco-color: colors.$paper-pattern, $size: 64px) {

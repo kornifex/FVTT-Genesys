@@ -1,6 +1,6 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
-export default abstract class ItemQualityDataModel extends BaseItemDataModel {
+export abstract class ItemQualityDataModel extends BaseItemDataModel {
 	/**
 	 * Whether the quality is passively applied or requires spending advantage.
 	 */

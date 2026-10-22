@@ -1,6 +1,6 @@
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 
-export default class GenesysCompendium extends Compendium {
+export class GenesysCompendium extends Compendium {
 	protected override _onDragStart(event: ElementDragEvent): void {
 		super._onDragStart(event);
 

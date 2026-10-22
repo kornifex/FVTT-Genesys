@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import AdversarySheet from '@/vue/sheets/actor/AdversarySheet.vue';
 import { computed, inject, toRaw } from 'vue';
-import GenesysItem from '@/item/GenesysItem';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
-import DicePrompt from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
-import MinionDataModel from '@/actor/data/MinionDataModel';
+import { MinionDataModel } from '@/actor/data/MinionDataModel';
 
 const context = inject<ActorSheetContext<MinionDataModel>>(RootContext)!;
 const actor = computed(() => toRaw(context.data.actor));

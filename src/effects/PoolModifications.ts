@@ -6,7 +6,7 @@ import { Characteristic } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { GenesysDice } from '@/dice';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
-import { PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
+import { PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
 
 /**

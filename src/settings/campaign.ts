@@ -4,8 +4,8 @@
 
 import { DEFAULT_DIFFICULTY, DEFAULT_SKILLS_COMPENDIUM, GENESYS_CONFIG } from '@/config';
 import { isPoolModificationValue } from '@/effects/PoolModifications';
-import SkillDataModel from '@/item/data/SkillDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 
 /**
  * The Skills Compendium to use for default skill data.

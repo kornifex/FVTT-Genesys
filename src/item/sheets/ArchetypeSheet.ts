@@ -1,20 +1,20 @@
-import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
+import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
-import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import VueSheet from '@/vue/VueSheet';
+import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { VueSheet } from '@/vue/VueSheet';
 import { GenesysItemSheetData, ItemSheetContext } from '@/vue/SheetContext';
 import { skillNamesMatch } from '@/data/Skills';
 
-import './ArchetypeSheet.scss';
+import '@/item/sheets/ArchetypeSheet.scss';
 
 /**
  * List of item types that are not allowed to be granted by an archetype.
  */
 const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
 
-export default class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeDataModel>) {
+export class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeDataModel>) {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

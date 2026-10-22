@@ -3,7 +3,7 @@ import { inject, ref, toRaw } from 'vue';
 import { CloneActorPromptContext } from '@/app/CloneActorPrompt';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 type InstantiationMethod = 'Original' | 'Clone';
 

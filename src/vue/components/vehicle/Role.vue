@@ -5,7 +5,7 @@ import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 type MemberUUID = ActorUUID | TokenDocumentUUID;
 

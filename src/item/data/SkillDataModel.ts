@@ -1,7 +1,7 @@
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
 
-export default abstract class SkillDataModel extends BaseItemDataModel {
+export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
 	 * Characteristic tied to the skill.
 	 */

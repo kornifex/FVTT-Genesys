@@ -101,8 +101,8 @@ const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.Unmark
 </template>
 
 <style lang="scss" scoped>
-@use '@/scss/mixins/reset.scss';
-@use '@/scss/vars/colors.scss';
+@use '@scss/mixins/reset.scss';
+@use '@scss/vars/colors.scss';
 
 .characteristic-field {
 	$row-size: 1.5rem;

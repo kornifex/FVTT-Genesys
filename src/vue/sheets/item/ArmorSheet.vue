@@ -4,7 +4,7 @@ import { computed, inject, toRaw } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const context = inject<ItemSheetContext<ArmorDataModel>>(RootContext)!;
 

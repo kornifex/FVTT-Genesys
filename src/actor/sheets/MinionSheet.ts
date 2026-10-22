@@ -1,15 +1,15 @@
-import AdversarySheet from '@/actor/sheets/AdversarySheet';
+import { AdversarySheet } from '@/actor/sheets/AdversarySheet';
 import VueMinionSheet from '@/vue/sheets/actor/MinionSheet.vue';
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import AdversaryDataModel from '@/actor/data/AdversaryDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { DragTransferData } from '@/data/DragTransferData';
 import { ownedSkill } from '@/data/Skills';
 
 /**
  * Actor sheet used for Player Characters
  */
-export default class MinionSheet extends AdversarySheet {
+export class MinionSheet extends AdversarySheet {
 	override get vueComponent() {
 		return VueMinionSheet;
 	}

@@ -1,10 +1,10 @@
 import { register as registerSheets } from '@/actor/sheets';
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
-import GenesysActor from '@/actor/GenesysActor';
-import MinionDataModel from '@/actor/data/MinionDataModel';
-import RivalDataModel from '@/actor/data/RivalDataModel';
-import NemesisDataModel from '@/actor/data/NemesisDataModel';
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { MinionDataModel } from '@/actor/data/MinionDataModel';
+import { RivalDataModel } from '@/actor/data/RivalDataModel';
+import { NemesisDataModel } from '@/actor/data/NemesisDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 
 export function register() {
 	CONFIG.Actor.documentClass = GenesysActor;

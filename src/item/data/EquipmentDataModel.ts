@@ -2,7 +2,7 @@
  * @file Base data model for Equipment-type Items.
  */
 
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
 export enum EquipmentState {
 	Carried = 'carried',
@@ -18,7 +18,7 @@ export enum EquipmentDamageState {
 	Major = 'major',
 }
 
-export default abstract class EquipmentDataModel extends BaseItemDataModel {
+export abstract class EquipmentDataModel extends BaseItemDataModel {
 	/**
 	 * Rarity value for the item.
 	 */

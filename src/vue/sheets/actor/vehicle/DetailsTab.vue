@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import VehicleDataModel from '@/actor/data/VehicleDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { inject, computed, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';

@@ -1,17 +1,17 @@
-import GenesysActor from '@/actor/GenesysActor';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
 import { rootContainer } from '@/actor/data/character/Encumbrance';
 import { updateEffectsStatus } from '@/actor/data/EquipmentEffects';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
-import IHasPreCreate from '@/data/IHasPreCreate';
-import GenesysItem from '@/item/GenesysItem';
-import ArmorDataModel from '@/item/data/ArmorDataModel';
-import EquipmentDataModel, { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { HasPreCreate } from '@/data/HasPreCreate';
+import { GenesysItem } from '@/item/GenesysItem';
+import { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { CombatPool, Defense } from '@/data/Actors';
-import TalentDataModel from '@/item/data/TalentDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
 type Motivation = {
@@ -67,7 +67,7 @@ const RELEVANT_TYPES = {
 	CONSUMABLE: ['consumable'],
 };
 
-export default abstract class CharacterDataModel extends foundry.abstract.DataModel implements IHasPreCreate<CharacterActor> {
+export abstract class CharacterDataModel extends foundry.abstract.DataModel implements HasPreCreate<CharacterActor> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;

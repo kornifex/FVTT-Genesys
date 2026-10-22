@@ -1,7 +1,7 @@
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
-import './GenesysItemSheet.scss';
+import '@/item/GenesysItemSheet.scss';
 
 export type DropData = {
 	type: 'ActiveEffect' | 'Actor' | 'Item' | 'Folder';
@@ -21,9 +21,7 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
 /**
  * Basic functionality shared by all ItemSheets.
  */
-export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<
-	GenesysItem<ItemDataModel>
-> {
+export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<GenesysItem<ItemDataModel>> {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

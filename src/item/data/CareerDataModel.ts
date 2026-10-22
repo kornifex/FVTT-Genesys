@@ -1,8 +1,8 @@
-import GenesysItem from '@/item/GenesysItem';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import SkillDataModel from '@/item/data/SkillDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
 
-export default abstract class CareerDataModel extends BaseItemDataModel {
+export abstract class CareerDataModel extends BaseItemDataModel {
 	/**
 	 * Career skills offered by the Career.
 	 */

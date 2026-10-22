@@ -1,10 +1,10 @@
-import GenesysActor from '@/actor/GenesysActor';
-import BaseItemDataModel from '@/item/data/BaseItemDataModel';
-import GenesysItem from '@/item/GenesysItem';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 
-import './GenesysActorSheet.scss';
+import '@/actor/GenesysActorSheet.scss';
 
-export default class GenesysActorSheet<
+export class GenesysActorSheet<
 	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
 	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
 > extends ActorSheet<GenesysActor<ActorDataModel>, GenesysItem<ItemDataModel>> {

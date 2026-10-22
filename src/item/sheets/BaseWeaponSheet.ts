@@ -1,12 +1,12 @@
-import GenesysItemSheet, { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
+import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 
-import SkillDataModel from '@/item/data/SkillDataModel';
-import ItemQualityDataModel from '@/item/data/ItemQualityDataModel';
-import VueSheet from '@/vue/VueSheet';
-import BaseWeaponDataModel from '@/item/data/BaseWeaponDataModel';
+import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
+import { VueSheet } from '@/vue/VueSheet';
+import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 
-export default class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeaponDataModel>) {
+export class BaseWeaponSheet extends VueSheet(GenesysItemSheet<BaseWeaponDataModel>) {
 	override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
 		if (!this.isEditable || !data.uuid) {
 			return;

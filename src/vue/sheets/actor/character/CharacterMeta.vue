@@ -1,14 +1,14 @@
 <script lang="ts" setup>
 import { inject, onBeforeMount, onUpdated, ref, toRaw } from 'vue';
 
-import CharacterDataModel from '@/actor/data/CharacterDataModel';
+import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { vLocalize } from '@/vue/directives';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
-import ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
-import GenesysItem from '@/item/GenesysItem';
-import CareerDataModel from '@/item/data/CareerDataModel';
-import CharacterSheet from '@/actor/sheets/CharacterSheet';
+import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { CareerDataModel } from '@/item/data/CareerDataModel';
+import { CharacterSheet } from '@/actor/sheets/CharacterSheet';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
