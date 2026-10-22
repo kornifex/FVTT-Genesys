@@ -6,6 +6,6 @@ export default {
 	// Foundry loads the scripts of public/ itself, and types/ holds Foundry's types.
 	ignore: ['public/**', 'types/**'],
 	// The local type roots of tsconfig.json.
-	ignoreUnresolved: ['foundry', 'dice-so-nice'],
+	ignoreUnresolved: ['foundry', 'foundry-v13', 'dice-so-nice'],
 	paths: { '@scss/*': ['src/scss/*'] },
 } satisfies KnipConfig;

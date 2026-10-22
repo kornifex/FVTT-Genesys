@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- The v13 Combat Tracker it extends has no types. */
-// @ts-nocheck -- The types we have are not v13 compatible
-
 /**
  * @file Combat Tracker for Foundry v13 and later, which lists Initiative Slots instead of combatants.
  */
@@ -8,11 +5,22 @@
 import { GenesysCombat } from '@/combat/GenesysCombat';
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
 
-// v12: Foundry v12 loads this module too, but has no ApplicationV2 Combat Tracker to extend.
-const ExtendedClass = foundry?.applications?.sidebar?.tabs?.CombatTracker ?? CombatTracker<GenesysCombat>;
+type RenderContext = foundry.applications.ApplicationRenderContext;
+type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
-export class GenesysCombatTracker extends ExtendedClass {
-	static DEFAULT_OPTIONS = {
+// v12: Foundry v12 loads this module too, but has no ApplicationV2 Combat Tracker to extend. It only registers the v12 one, so
+// the class is never built on top of this stand-in.
+const ExtendedClass =
+	foundry.applications.sidebar?.tabs.CombatTracker ??
+	(CombatTracker as unknown as typeof foundry.applications.sidebar.tabs.CombatTracker);
+
+/** The id of the Initiative Slot whose row holds the element. */
+function slotIdOf(element: HTMLElement) {
+	return element.closest<HTMLElement>('[data-slot-id]')?.dataset.slotId;
+}
+
+export class GenesysCombatTracker extends ExtendedClass<GenesysCombat> {
+	static override DEFAULT_OPTIONS = {
 		actions: {
 			claimInitiativeSlot: GenesysCombatTracker.#onClaimInitiativeSlot,
 			cycleInitiativeSkill: GenesysCombatTracker.#onCycleInitiativeSkill,
@@ -20,7 +28,7 @@ export class GenesysCombatTracker extends ExtendedClass {
 		},
 	};
 
-	static PARTS = {
+	static override PARTS = {
 		...ExtendedClass.PARTS,
 		header: {
 			template: 'systems/genesys/templates/sidebar/combat/header.hbs',
@@ -31,35 +39,41 @@ export class GenesysCombatTracker extends ExtendedClass {
 		},
 	};
 
-	static async #onClaimInitiativeSlot(_event: PointerEvent, target: HTMLElement) {
-		const { slotId } = target.closest('[data-slot-id]').dataset;
-		await this.viewed.claimSlotWithControlledToken(slotId);
+	static async #onClaimInitiativeSlot(this: GenesysCombatTracker, _event: PointerEvent, target: HTMLElement) {
+		const slotId = slotIdOf(target);
+		if (slotId) {
+			await this.viewed?.claimSlotWithControlledToken(slotId);
+		}
 	}
 
-	static async #onCycleInitiativeSkill(_event: PointerEvent, target: HTMLElement) {
-		const { slotId } = target.closest('[data-slot-id]').dataset;
-		await this.viewed.cycleInitiativeSkill(slotId);
+	static async #onCycleInitiativeSkill(this: GenesysCombatTracker, _event: PointerEvent, target: HTMLElement) {
+		const slotId = slotIdOf(target);
+		if (slotId) {
+			await this.viewed?.cycleInitiativeSkill(slotId);
+		}
 	}
 
-	static async #onRollInitiative(_event: PointerEvent, target: HTMLElement) {
-		const { slotId } = target.closest('[data-slot-id]').dataset;
-		await this.viewed.rollSlotInitiative(slotId);
+	static async #onRollInitiative(this: GenesysCombatTracker, _event: PointerEvent, target: HTMLElement) {
+		const slotId = slotIdOf(target);
+		if (slotId) {
+			await this.viewed?.rollSlotInitiative(slotId);
+		}
 	}
 
-	override async _prepareCombatContext(context, options) {
+	override async _prepareCombatContext(context: RenderContext, options: RenderOptions) {
 		await super._prepareCombatContext(context, options);
 
-		const combat: GenesysCombat | null = this.viewed;
-		context.control = combat?.userControlsTurn ?? false;
+		context.control = this.viewed?.userControlsTurn ?? false;
 	}
 
-	override async _prepareTrackerContext(context, _options) {
-		const combat: GenesysCombat | null = this.viewed;
+	override async _prepareTrackerContext(context: RenderContext, _options: RenderOptions) {
+		const combat = this.viewed;
 		if (!combat) {
 			return;
 		}
 
-		const turns = (context.turns = []);
+		const turns: Record<string, unknown>[] = [];
+		context.turns = turns;
 
 		for (const [index, slot] of combat.slots.entries()) {
 			const combatant = combat.combatants.get(slot.originId) as GenesysCombatant;
@@ -74,7 +88,11 @@ export class GenesysCombatTracker extends ExtendedClass {
 		}
 	}
 
-	override _createContextMenu(handler, selector, options) {
+	override _createContextMenu(
+		handler: () => foundry.applications.ContextMenuEntry[],
+		selector: string,
+		options?: foundry.applications.ContextMenuOptions,
+	) {
 		// Only claimed slots show a combatant to act on.
 		return super._createContextMenu(handler, selector === '.combatant' ? '.combatant.claimed' : selector, options);
 	}
@@ -82,19 +100,31 @@ export class GenesysCombatTracker extends ExtendedClass {
 	override _getEntryContextOptions() {
 		const baseEntries = super._getEntryContextOptions();
 
-		// Reroll the initiative of the slot, which may be one of the combatant's extra slots.
+		// Reroll the initiative of the slot, which may be one of the combatant's Extra Slots.
 		const rerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
 		if (rerollEntry) {
-			rerollEntry.callback = (li: HTMLElement) => this.viewed.rollSlotInitiative(li.dataset.slotId);
+			rerollEntry.callback = async (li: HTMLElement) => {
+				const slotId = slotIdOf(li);
+				if (slotId) {
+					await this.viewed?.rollSlotInitiative(slotId);
+				}
+			};
 		}
 
 		// Allow GMs to revoke an initiative slot claim.
 		const revokeClaim = {
 			name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 			icon: '<i class="fas fa-broom"></i>',
-			condition: (li: HTMLElement) => this.viewed?.canRevokeClaim(li.dataset.slotId) ?? false,
+			condition: (li: HTMLElement) => {
+				const slotId = slotIdOf(li);
+				return slotId ? this.viewed?.canRevokeClaim(slotId) ?? false : false;
+			},
 			callback: async (li: HTMLElement) => {
-				await this.viewed.revokeSlot(this.viewed.round, li.dataset.slotId);
+				const slotId = slotIdOf(li);
+				const combat = this.viewed;
+				if (slotId && combat) {
+					await combat.revokeSlot(combat.round, slotId);
+				}
 			},
 		};
 
@@ -102,7 +132,7 @@ export class GenesysCombatTracker extends ExtendedClass {
 	}
 
 	override _onCombatantHoverIn(event: PointerEvent) {
-		if (!event.target.closest('.combatant')?.classList.contains('claimed')) {
+		if (!(event.target instanceof Element) || !event.target.closest('.combatant')?.classList.contains('claimed')) {
 			return;
 		}
 
