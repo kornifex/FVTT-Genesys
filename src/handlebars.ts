@@ -5,6 +5,7 @@ export function register() {
 	Handlebars.registerHelper('capitalize', (value: string) => value.capitalize());
 	Handlebars.registerHelper('toLowerCase', (value: string) => value.toLowerCase());
 	Handlebars.registerHelper('toUpperCase', (value: string) => value.toUpperCase());
+	// v12: Foundry v13 registers its own `concat` helper.
 	if (isFoundryV12()) {
 		Handlebars.registerHelper('concat', (...values: unknown[]) => values.filter((v) => v && typeof v === 'string').join(''));
 	}

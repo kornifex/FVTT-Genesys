@@ -1,155 +1,119 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- The v13 Combat Tracker it extends has no types. */
+// @ts-nocheck -- The types we have are not v13 compatible
+
+/**
+ * @file Combat Tracker for Foundry v13 and later, which lists Initiative Slots instead of combatants.
+ */
+
 import GenesysCombat from '@/combat/GenesysCombat';
 import GenesysCombatant from '@/combat/GenesysCombatant';
 
-export default class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
-	override get template(): string {
-		return 'systems/genesys/templates/sidebar/combat-tracker.hbs';
+// v12: Foundry v12 loads this module too, but has no ApplicationV2 Combat Tracker to extend.
+const ExtendedClass = foundry?.applications?.sidebar?.tabs?.CombatTracker ?? CombatTracker<GenesysCombat>;
+
+export default class GenesysCombatTracker extends ExtendedClass {
+	static DEFAULT_OPTIONS = {
+		actions: {
+			claimInitiativeSlot: GenesysCombatTracker.#onClaimInitiativeSlot,
+			cycleInitiativeSkill: GenesysCombatTracker.#onCycleInitiativeSkill,
+			rollInitiative: GenesysCombatTracker.#onRollInitiative,
+		},
+	};
+
+	static PARTS = {
+		...ExtendedClass.PARTS,
+		header: {
+			template: 'systems/genesys/templates/sidebar/combat/header.hbs',
+		},
+		tracker: {
+			template: 'systems/genesys/templates/sidebar/combat/tracker.hbs',
+			scrollable: [''],
+		},
+	};
+
+	static async #onClaimInitiativeSlot(_event: PointerEvent, target: HTMLElement) {
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.claimSlotWithControlledToken(slotId);
 	}
 
-	async _onClaimInitiativeSlot(event: JQuery.ClickEvent) {
-		await this.viewed.claimSlotWithControlledToken((event.currentTarget as HTMLElement).dataset.claimSlot as string);
+	static async #onCycleInitiativeSkill(_event: PointerEvent, target: HTMLElement) {
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.cycleInitiativeSkill(slotId);
 	}
 
-	override activateListeners(html: JQuery) {
-		super.activateListeners(html);
-
-		html.find('a[data-claim-slot]').on('click', (event) => void this._onClaimInitiativeSlot(event));
+	static async #onRollInitiative(_event: PointerEvent, target: HTMLElement) {
+		const { slotId } = target.closest('[data-slot-id]').dataset;
+		await this.viewed.rollSlotInitiative(slotId);
 	}
 
-	override async getData(options: CombatTrackerOptions) {
-		const data = await super.getData(options);
-		const combat = this.viewed;
+	override async _prepareCombatContext(context, options) {
+		await super._prepareCombatContext(context, options);
 
+		const combat: GenesysCombat | null = this.viewed;
+		context.control = combat?.userControlsTurn ?? false;
+	}
+
+	override async _prepareTrackerContext(context, _options) {
+		const combat: GenesysCombat | null = this.viewed;
 		if (!combat) {
-			return data;
+			return;
 		}
 
-		const slots = combat.slots;
+		const turns = (context.turns = []);
 
-		// The core tracker only lists the turns the user can see, but Initiative Slots are indexed on every turn.
-		const visibleSlotIndices = combat.turns.flatMap((combatant, index) => (combatant.visible ? [index] : []));
-
-		const turns = data.turns.map((t, visibleIndex) => {
-			const slot = slots[visibleSlotIndices[visibleIndex]];
-			const claimant = slot.claimantId ? combat.combatants.get<GenesysCombatant>(slot.claimantId) : undefined;
-
-			let claimantOverride = {};
-
-			// Once the combat started, a slot shows the combatant that claimed it.
-			if (combat.started && claimant) {
-				let defeated = claimant.isDefeated;
-				const effects = new Set();
-				if (claimant.token) {
-					claimant.token.effects.forEach((e) => effects.add(e));
-					// The types we have lack the token's overlay effect.
-					const { overlayEffect } = claimant.token as { overlayEffect?: string };
-					if (overlayEffect) {
-						effects.add(overlayEffect);
-					}
-				}
-				if (claimant.actor) {
-					for (const e of claimant.actor.temporaryEffects) {
-						if ((e as ActiveEffect).getFlag('core', 'statusId') === CONFIG.specialStatusEffects.DEFEATED) {
-							defeated = true;
-						} else if (e.img) {
-							effects.add(e.img);
-						}
-					}
-				}
-
-				claimantOverride = {
-					id: claimant.id,
-					name: claimant.name,
-					img: claimant.img ?? CONST.DEFAULT_TOKEN,
-					owner: claimant.isOwner,
-					defeated,
-					hidden: claimant.hidden,
-					canPing: claimant.sceneId === canvas.scene?.id && game.user.hasPermission('PING_CANVAS'),
-					effects,
-				};
+		for (const [index, slot] of combat.slots.entries()) {
+			const combatant = combat.combatants.get(slot.originId) as GenesysCombatant;
+			if (!combatant.visible) {
+				continue;
 			}
 
-			return {
-				...t,
-				...claimantOverride,
-				...combat.slotTrackerContext(slot),
-			};
-		});
-
-		return {
-			...data,
-			turns,
-			control: combat.userControlsTurn,
-		};
+			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
+			const claimant = slot.claimantId ? combat.combatants.get<GenesysCombatant>(slot.claimantId) : undefined;
+			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
+			turns.push({ ...turn, ...combat.slotTrackerContext(slot) });
+		}
 	}
 
-	protected override _contextMenu(html: JQuery<HTMLElement>) {
-		ContextMenu.create(this, html, '.directory-item.claimed', this._getEntryContextOptions());
+	override _createContextMenu(handler, selector, options) {
+		// Only claimed slots show a combatant to act on.
+		return super._createContextMenu(handler, selector === '.combatant' ? '.combatant.claimed' : selector, options);
 	}
 
-	protected override _getEntryContextOptions(): EntryContextOption[] {
+	override _getEntryContextOptions() {
 		const baseEntries = super._getEntryContextOptions();
 
 		// Reroll the initiative of the slot, which may be one of the combatant's extra slots.
-		const rerollIndex = baseEntries.findIndex((e) => e.name === 'COMBAT.CombatantReroll');
-
-		if (rerollIndex >= 0) {
-			baseEntries[rerollIndex].callback = (li) => void this.viewed.rollSlotInitiative(li[0].dataset.slotId as string);
+		const rerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
+		if (rerollEntry) {
+			rerollEntry.callback = (li: HTMLElement) => this.viewed.rollSlotInitiative(li.dataset.slotId);
 		}
 
 		// Allow GMs to revoke an initiative slot claim.
 		const revokeClaim = {
 			name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 			icon: '<i class="fas fa-broom"></i>',
-			condition: (li: JQuery<HTMLElement>) => this.viewed.canRevokeClaim(li[0].dataset.slotId as string),
-			callback: async (li: JQuery<HTMLElement>) => {
-				await this.viewed.revokeSlot(this.viewed.round, li[0].dataset.slotId as string);
+			condition: (li: HTMLElement) => this.viewed?.canRevokeClaim(li.dataset.slotId) ?? false,
+			callback: async (li: HTMLElement) => {
+				await this.viewed.revokeSlot(this.viewed.round, li.dataset.slotId);
 			},
 		};
 
 		return [...baseEntries, revokeClaim];
 	}
 
-	protected override async _onCombatantControl(event: JQuery.ClickEvent<HTMLElement, HTMLElement, HTMLElement>) {
-		event.preventDefault();
-		event.stopPropagation();
-
-		const btn = event.currentTarget;
-		const li = btn.closest('.combatant') as HTMLElement;
-		const combat = this.viewed;
-
-		// Intercept use of the individual Roll Initiative buttons.
-		switch (btn.dataset.control) {
-			case 'rollInitiative':
-				await combat.rollSlotInitiative(li.dataset.slotId as string);
-				break;
-
-			case 'cycleInitiativeSkill':
-				await combat.cycleInitiativeSkill(li.dataset.slotId as string);
-				break;
-
-			default:
-				await super._onCombatantControl(event);
-		}
-	}
-
-	protected override async _onCombatantHoverIn(event: MouseEvent) {
-		event.preventDefault();
-
-		if (!(event.currentTarget as HTMLElement).classList.contains('claimed')) {
+	override _onCombatantHoverIn(event: PointerEvent) {
+		if (!event.target.closest('.combatant')?.classList.contains('claimed')) {
 			return;
 		}
 
 		return super._onCombatantHoverIn(event);
 	}
 
-	protected override async _onCombatantMouseDown(event: MouseEvent) {
-		event.preventDefault();
-
-		if (!(event.currentTarget as HTMLElement).classList.contains('claimed')) {
+	override _onCombatantMouseDown(event: PointerEvent, target: HTMLElement) {
+		if (!target?.classList.contains('claimed')) {
 			return;
 		}
 
-		return super._onCombatantMouseDown(event);
+		return super._onCombatantMouseDown(event, target);
 	}
 }

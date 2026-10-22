@@ -7,7 +7,8 @@ import GenesysEffect from '@/effects/GenesysEffect';
 import GenesysItem from '@/item/GenesysItem';
 import GenesysCombat from '@/combat/GenesysCombat';
 import GenesysCombatant from '@/combat/GenesysCombatant';
-import GenesysCombatTracker from '@/combat/GenesysCombatTracker';
+// v12: the Foundry types we have are v12's, so `ui.combat` has the v12 Combat Tracker's type.
+import GenesysCombatTracker from '@/combat/GenesysCombatTracker.v12';
 import { GENESYS_CONFIG } from '@/config';
 import GenesysActorDirectory from '@/sidebar/GenesysActorDirectory';
 import GenesysItemDirectory from '@/sidebar/GenesysItemDirectory';

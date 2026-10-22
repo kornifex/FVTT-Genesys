@@ -1,6 +1,6 @@
 import GenesysEffect from '@/effects/GenesysEffect';
+import GenesysEffectSheetV12 from '@/effects/GenesysEffectSheet.v12';
 import GenesysEffectSheet from '@/effects/GenesysEffectSheet';
-import GenesysEffectSheetV2 from './GenesysEffectSheetV2';
 import { isFoundryV12, isFoundryV13OrLater } from '@/foundryGeneration';
 
 export function register() {
@@ -13,11 +13,12 @@ export function register() {
 
 	DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', ActiveEffectConfig);
 	if (isFoundryV12()) {
-		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheet, {
+		// v12: the effect sheet is a FormApplication.
+		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV12, {
 			makeDefault: true,
 		});
 	} else {
-		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {
+		DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheet, {
 			makeDefault: true,
 		});
 	}
