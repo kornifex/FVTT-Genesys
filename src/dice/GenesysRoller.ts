@@ -3,6 +3,7 @@ import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import { GenesysItem } from '@/item/GenesysItem';
+import { enrichedQualities } from '@/item/ChatCards';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CharacteristicsContainer } from '@/data/Characteristics';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -126,12 +127,7 @@ export class GenesysRoller {
 			totalDamage += results.netSuccess;
 		}
 
-		const attackQualities = weapon.systemData.qualities;
-		await Promise.all(
-			attackQualities.map(async (quality) => {
-				quality.description = await TextEditor.enrichHTML(quality.description, { async: true });
-			}),
-		);
+		const attackQualities = await enrichedQualities(weapon.systemData.qualities);
 
 		const rollData = {
 			description: checkDescription(check, { kind: 'attack', weaponName: weapon.name }, game.i18n),

@@ -20,6 +20,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { weaponSkillName } from '@/data/Skills';
+import { firingArcLabels, postChatCard } from '@/item/ChatCards';
 
 const props = withDefaults(
 	defineProps<{
@@ -112,58 +113,7 @@ async function deleteItem() {
 }
 
 async function sendItemToChat() {
-	const enrichedDescription = await TextEditor.enrichHTML(system.value.description, { async: true });
-
-	let qualities = undefined;
-
-	if (['armor', 'weapon', 'vehicleWeapon'].includes(props.item.type)) {
-		const itemQualities = (system.value as WeaponDataModel | ArmorDataModel).qualities;
-
-		await Promise.all(
-			itemQualities.map(async (quality) => {
-				quality.description = await TextEditor.enrichHTML(quality.description, { async: true });
-			}),
-		);
-
-		qualities = itemQualities;
-	}
-
-	let weapon = undefined;
-	if (props.item.type === 'weapon') {
-		weapon = {
-			skill: weaponData.value.charWeapon.skills[0] ?? '-',
-			damage:
-				(weaponData.value.charWeapon.baseDamage ?? 0).toString() +
-				(weaponData.value.charWeapon.damageCharacteristic !== '-'
-					? ' + ' +
-						game.i18n.localize(`Genesys.CharacteristicAbbr.${weaponData.value.charWeapon.damageCharacteristic.capitalize()}`)
-					: ''),
-		};
-	} else if (props.item.type === 'vehicleWeapon') {
-		weapon = {
-			skill: weaponData.value.vehWeapon.skills[0] ?? '-',
-			damage: (weaponData.value.vehWeapon.baseDamage ?? 0).toString(),
-			firingArc: getFiringArcLabels(weaponData.value.vehWeapon).join(', '),
-		};
-	}
-
-	const chatTemplate = await renderTemplate('systems/genesys/templates/chat/item.hbs', {
-		img: props.item.img,
-		name: props.item.name,
-		type: props.item.type,
-		system: system.value,
-		description: enrichedDescription,
-		weapon,
-		qualities,
-	});
-	await ChatMessage.create({
-		user: game.user.id,
-		speaker: {
-			actor: game.user.character?.id,
-		},
-		content: chatTemplate,
-		style: CONST.CHAT_MESSAGE_STYLES.IC,
-	});
+	await postChatCard(toRaw(props.item), toRaw(context.data.actor));
 }
 
 async function setItemState(state: EquipmentState) {
@@ -178,16 +128,7 @@ function skillForWeapon() {
 }
 
 function getFiringArcLabels(weapon: VehicleWeaponDataModel) {
-	const possibleDirections = Object.entries(weapon.firingArc);
-	const firingArc = possibleDirections.filter(([_arc, canFire]) => canFire);
-
-	if (possibleDirections.length == firingArc.length) {
-		return [game.i18n.localize('Genesys.FiringArc.All')];
-	} else if (firingArc.length === 0) {
-		return [game.i18n.localize('Genesys.FiringArc.None')];
-	} else {
-		return firingArc.map(([arc, _canFire]) => game.i18n.localize(`Genesys.FiringArc.${arc.capitalize()}`));
-	}
+	return firingArcLabels(weapon.firingArc, game.i18n);
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
