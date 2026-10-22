@@ -24,7 +24,8 @@ type TrackedAttributes = TokenAttributes & {
 export default class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 	override getBarAttribute(barName: string, options: { alternative?: string } = {}) {
 		// The types we have lack the token's bars.
-		const attribute = options.alternative || (this as unknown as Record<string, { attribute?: string } | undefined>)[barName]?.attribute;
+		const attribute =
+			options.alternative || (this as unknown as Record<string, { attribute?: string } | undefined>)[barName]?.attribute;
 		if (!this.actor || !attribute) {
 			return null;
 		}

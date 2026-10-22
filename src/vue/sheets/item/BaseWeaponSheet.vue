@@ -109,7 +109,9 @@ async function updateQualityRating(index: number, event: Event) {
 						<div v-for="(quality, index) in system.qualities" :key="index" class="data-rated">
 							<div>{{ quality.name }}</div>
 							<div>
-								<span v-if="quality.isRated"><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)" /></span>
+								<span v-if="quality.isRated"
+									><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)"
+								/></span>
 							</div>
 							<a @click="deleteQuality(index)"><i class="fas fa-trash"></i></a>
 						</div>

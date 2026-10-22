@@ -1,6 +1,7 @@
 declare namespace foundry {
 	module data {
-		interface PrototypeTokenSource extends Omit<TokenSource, '_id' | 'actorId' | 'actorData' | 'x' | 'y' | 'elevation' | 'effects' | 'overlayEffect' | 'hidden'> {
+		interface PrototypeTokenSource
+			extends Omit<TokenSource, '_id' | 'actorId' | 'actorData' | 'x' | 'y' | 'elevation' | 'effects' | 'overlayEffect' | 'hidden'> {
 			name: string;
 			randomImg: boolean;
 		}

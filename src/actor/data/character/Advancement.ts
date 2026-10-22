@@ -78,7 +78,10 @@ function refuse(key?: string, data?: Record<string, unknown>): AdvancementResult
 	return { refusal: key ? { key, data } : undefined };
 }
 
-function planFor(entries: Entry[], { actorUpdate = {}, itemCreates = [], itemUpdates = [], itemDeletes = [] }: Partial<AdvancementPlan> = {}): AdvancementResult {
+function planFor(
+	entries: Entry[],
+	{ actorUpdate = {}, itemCreates = [], itemUpdates = [], itemDeletes = [] }: Partial<AdvancementPlan> = {},
+): AdvancementResult {
 	return {
 		plan: {
 			actorUpdate: { ...actorUpdate, 'system.experienceJournal.entries': entries },
@@ -133,7 +136,9 @@ export function raiseCharacteristic(character: AdvancementCharacter, characteris
 		actorUpdate['system.strain.max'] = character.strainThreshold + 1;
 	}
 
-	return planFor([...character.entries, { amount: -cost, type: EntryType.Characteristic, data: { characteristic, rank: value + 1 } }], { actorUpdate });
+	return planFor([...character.entries, { amount: -cost, type: EntryType.Characteristic, data: { characteristic, rank: value + 1 } }], {
+		actorUpdate,
+	});
 }
 
 function skillRankCost(skill: Pick<AdvancementSkill, 'rank' | 'career'>) {
@@ -154,9 +159,12 @@ export function buySkillRank(character: AdvancementCharacter, skillId: string): 
 		return refuse();
 	}
 
-	return planFor([...character.entries, { amount: -cost, type: EntryType.Skill, data: { name: skill.name, id: skill.id, rank: skill.rank + 1 } }], {
-		itemUpdates: [{ _id: skill.id, 'system.rank': skill.rank + 1 }],
-	});
+	return planFor(
+		[...character.entries, { amount: -cost, type: EntryType.Skill, data: { name: skill.name, id: skill.id, rank: skill.rank + 1 } }],
+		{
+			itemUpdates: [{ _id: skill.id, 'system.rank': skill.rank + 1 }],
+		},
+	);
 }
 
 /**
@@ -206,16 +214,23 @@ export function buyTalentRank(character: AdvancementCharacter, talentId: string,
 		return refuse('Genesys.Notifications.CannotAffordRankedTalent', { name: talent.name, newRank: rank, cost });
 	}
 
-	return planFor([...character.entries, { amount: -cost, type: EntryType.TalentRank, data: { name: talent.name, id: talent.id, tier, rank } }], {
-		itemUpdates: [{ _id: talent.id, 'system.rank': rank }],
-	});
+	return planFor(
+		[...character.entries, { amount: -cost, type: EntryType.TalentRank, data: { name: talent.name, id: talent.id, tier, rank } }],
+		{
+			itemUpdates: [{ _id: talent.id, 'system.rank': rank }],
+		},
+	);
 }
 
 /**
  * Buy a talent dropped on the character: a rank of the talent of the same name if the character has it, the talent
  * itself otherwise, created with the given id.
  */
-export function buyDroppedTalent(character: AdvancementCharacter, droppedTalent: { name: string; tier: number; source: object }, newId: string): AdvancementResult {
+export function buyDroppedTalent(
+	character: AdvancementCharacter,
+	droppedTalent: { name: string; tier: number; source: object },
+	newId: string,
+): AdvancementResult {
 	const heldTalent = character.talents.find((candidate) => candidate.name === droppedTalent.name);
 	if (heldTalent) {
 		return buyTalentRank(character, heldTalent.id, droppedTalent.tier);
@@ -233,9 +248,12 @@ export function buyDroppedTalent(character: AdvancementCharacter, droppedTalent:
 		return refuse('Genesys.Notifications.CannotAffordTalent', { name: droppedTalent.name, cost });
 	}
 
-	return planFor([...character.entries, { amount: -cost, type: EntryType.NewTalent, data: { name: droppedTalent.name, id: newId, tier, rank: 1 } }], {
-		itemCreates: [{ ...droppedTalent.source, _id: newId }],
-	});
+	return planFor(
+		[...character.entries, { amount: -cost, type: EntryType.NewTalent, data: { name: droppedTalent.name, id: newId, tier, rank: 1 } }],
+		{
+			itemCreates: [{ ...droppedTalent.source, _id: newId }],
+		},
+	);
 }
 
 export function awardXP(character: AdvancementCharacter, amount: number, reason: string): AdvancementResult {
@@ -258,7 +276,14 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 		case EntryType.Characteristic: {
 			const characteristic = entry.data.characteristic;
 
-			if (entries.some((other) => other.type === EntryType.Characteristic && other.data.characteristic === characteristic && other.data.rank > entry.data.rank)) {
+			if (
+				entries.some(
+					(other) =>
+						other.type === EntryType.Characteristic &&
+						other.data.characteristic === characteristic &&
+						other.data.rank > entry.data.rank,
+				)
+			) {
 				return refuse('Genesys.Notifications.CannotDeleteCharacteristic', entry.data);
 			}
 
@@ -278,7 +303,9 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 				return planFor(entries);
 			}
 
-			if (entries.some((other) => other.type === EntryType.Skill && other.data.id === skill.id && other.data.rank > entry.data.rank)) {
+			if (
+				entries.some((other) => other.type === EntryType.Skill && other.data.id === skill.id && other.data.rank > entry.data.rank)
+			) {
 				return refuse('Genesys.Notifications.CannotDeleteSkill', entry.data);
 			}
 

@@ -30,7 +30,12 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 const skills = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'skill') as GenesysItem<SkillDataModel>[]);
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
-const equipment = computed(() => toRaw(context.data.actor).items.filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[]);
+const equipment = computed(
+	() =>
+		toRaw(context.data.actor).items.filter((i) =>
+			AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type),
+		) as GenesysItem<EquipmentDataModel>[],
+);
 const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 // The reactive type of a document is too deep for TypeScript to unwrap.
@@ -85,7 +90,10 @@ async function rollAttack(weapon: GenesysItem) {
 	}
 
 	// The type check above makes it a weapon.
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, { rollType: RollType.Attack, rollData: { weapon: weapon as GenesysItem<WeaponDataModel> } });
+	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, {
+		rollType: RollType.Attack,
+		rollData: { weapon: weapon as GenesysItem<WeaponDataModel> },
+	});
 }
 
 async function editItem(item: GenesysItem) {
@@ -185,7 +193,11 @@ async function sendItemToChat(item: GenesysItem<EquipmentDataModel>) {
 		const charWeapon = item.systemData as WeaponDataModel;
 		weapon = {
 			skill: charWeapon.skills[0] ?? '-',
-			damage: (charWeapon.baseDamage ?? 0).toString() + (charWeapon.damageCharacteristic !== '-' ? ' + ' + game.i18n.localize(`Genesys.CharacteristicAbbr.${charWeapon.damageCharacteristic.capitalize()}`) : ''),
+			damage:
+				(charWeapon.baseDamage ?? 0).toString() +
+				(charWeapon.damageCharacteristic !== '-'
+					? ' + ' + game.i18n.localize(`Genesys.CharacteristicAbbr.${charWeapon.damageCharacteristic.capitalize()}`)
+					: ''),
 		};
 	}
 
@@ -356,7 +368,10 @@ onBeforeUpdate(updateEffects);
 
 									<a @click="rollSkill(skill)">
 										<span>{{ skill.name }} {{ skill.systemData.rank }}</span>
-										<SkillRanks :skill-value="skill.systemData.rank" :characteristic-value="system.characteristics[skill.systemData.characteristic]" />
+										<SkillRanks
+											:skill-value="skill.systemData.rank"
+											:characteristic-value="system.characteristics[skill.systemData.characteristic]"
+										/>
 									</a>
 								</ContextMenu>
 							</div>
@@ -392,7 +407,9 @@ onBeforeUpdate(updateEffects);
 									</template>
 
 									<label>
-										<a @click="editItem(talent)">{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a>
+										<a @click="editItem(talent)"
+											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
+										>
 										<a class="send-to-chat-link" @click="sendTalentToChat(talent)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
@@ -419,7 +436,11 @@ onBeforeUpdate(updateEffects);
 										<a class="send-to-chat-link" @click="sendTalentToChat(ability)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
-								<Enriched class="description" v-if="ability.systemData.description" :value="ability.systemData.description" />
+								<Enriched
+									class="description"
+									v-if="ability.systemData.description"
+									:value="ability.systemData.description"
+								/>
 							</div>
 						</div>
 					</div>
@@ -454,15 +475,26 @@ onBeforeUpdate(updateEffects);
 										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
 										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
-										<span><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${item.system.range.capitalize()}`" />]</span>
+										<span
+											><Localized label="Genesys.Labels.Range" /> [<Localized
+												:label="`Genesys.Range.${item.system.range.capitalize()}`"
+											/>]</span
+										>
 										<span v-if="item.system.qualities.length > 0" class="weapon-qualities">
-											<span v-for="quality in item.system.qualities" :key="quality.name">{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : null }}</span>
+											<span v-for="quality in item.system.qualities" :key="quality.name"
+												>{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : null }}</span
+											>
 										</span> </span
 									>)
 								</a>
 								<a class="send-to-chat-link" @click="sendItemToChat(item)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
-							<ContextMenu v-for="item in equipment.filter((i) => i.type !== 'weapon')" :key="item.id" class="inventory-item" :disable-menu="!context.data.editable">
+							<ContextMenu
+								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
+								:key="item.id"
+								class="inventory-item"
+								:disable-menu="!context.data.editable"
+							>
 								<template v-slot:menu-items>
 									<MenuItem @click="editItem(item)">
 										<template v-slot:icon><i class="fas fa-edit"></i></template>
@@ -478,7 +510,9 @@ onBeforeUpdate(updateEffects);
 								<a @click="editItem(item)" draggable="true" @dragstart="dragStart($event, item)">
 									{{ item.name }}
 
-									<span v-if="item.type === 'armor'" style="padding-right: 0.2em"> (+{{ item.system.soak }} <Localized label="Genesys.Labels.Soak" />) </span>
+									<span v-if="item.type === 'armor'" style="padding-right: 0.2em">
+										(+{{ item.system.soak }} <Localized label="Genesys.Labels.Soak" />)
+									</span>
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 								</a>
@@ -523,7 +557,11 @@ onBeforeUpdate(updateEffects);
 							</div>
 
 							<div class="body">
-								<Editor name="system.motivations.strength.description" :content="system.motivations.strength.description" button />
+								<Editor
+									name="system.motivations.strength.description"
+									:content="system.motivations.strength.description"
+									button
+								/>
 							</div>
 						</div>
 
@@ -547,7 +585,11 @@ onBeforeUpdate(updateEffects);
 							</div>
 
 							<div class="body">
-								<Editor name="system.motivations.desire.description" :content="system.motivations.desire.description" button />
+								<Editor
+									name="system.motivations.desire.description"
+									:content="system.motivations.desire.description"
+									button
+								/>
 							</div>
 						</div>
 

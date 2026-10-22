@@ -63,7 +63,15 @@ declare global {
 		 */
 		evaluate({ minimize, maximize, async }?: { minimize?: boolean; maximize?: boolean; async?: false }): Evaluated<this>;
 		evaluate({ minimize, maximize, async }: { minimize?: boolean; maximize?: boolean; async: true }): Promise<Evaluated<this>>;
-		evaluate({ minimize, maximize, async }?: { minimize?: boolean; maximize?: boolean; async?: boolean }): Evaluated<this> | Promise<Evaluated<this>>;
+		evaluate({
+			minimize,
+			maximize,
+			async,
+		}?: {
+			minimize?: boolean;
+			maximize?: boolean;
+			async?: boolean;
+		}): Evaluated<this> | Promise<Evaluated<this>>;
 
 		/**
 		 * Evaluate the term.

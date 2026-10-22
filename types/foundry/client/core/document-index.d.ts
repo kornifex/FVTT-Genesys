@@ -68,7 +68,12 @@ declare global {
 		 * @param [options] Additional options for the search.
 		 * @param [options.limit=10] The maximum number of entries to retrieve before stopping.
 		 */
-		protected _breadthFirstSearch(node: WordTreeNode, entries: WordTreeEntry[], queue: WordTreeNode[], options?: { limit?: number }): void;
+		protected _breadthFirstSearch(
+			node: WordTreeNode,
+			entries: WordTreeEntry[],
+			queue: WordTreeNode[],
+			options?: { limit?: number },
+		): void;
 	}
 
 	/**

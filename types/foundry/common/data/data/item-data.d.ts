@@ -30,14 +30,18 @@ declare module foundry {
 			flags: ItemFlags;
 		}
 
-		class ItemData<TDocument extends documents.BaseItem, TActiveEffect extends documents.BaseActiveEffect> extends abstract.DocumentData<TDocument> {
+		class ItemData<
+			TDocument extends documents.BaseItem,
+			TActiveEffect extends documents.BaseActiveEffect,
+		> extends abstract.DocumentData<TDocument> {
 			protected override _initializeSource(data: this['_source']): this['_source'];
 
 			/** A collection of ActiveEffect embedded Documents */
 			effects: abstract.EmbeddedCollection<TActiveEffect>;
 		}
 
-		interface ItemData<TDocument extends documents.BaseItem, TActiveEffect extends documents.BaseActiveEffect> extends Omit<ItemSource, 'effects'> {
+		interface ItemData<TDocument extends documents.BaseItem, TActiveEffect extends documents.BaseActiveEffect>
+			extends Omit<ItemSource, 'effects'> {
 			readonly _source: ItemSource;
 
 			get schema(): ReturnType<(typeof ItemData)['defineSchema']>;

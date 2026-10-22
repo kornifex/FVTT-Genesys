@@ -42,7 +42,11 @@ function closeContextMenu(event: Event) {
 </script>
 
 <template>
-	<div class="menu-container" @contextmenu="!usePrimaryClick && showContextMenu($event)" @click="usePrimaryClick && showContextMenu($event)">
+	<div
+		class="menu-container"
+		@contextmenu="!usePrimaryClick && showContextMenu($event)"
+		@click="usePrimaryClick && showContextMenu($event)"
+	>
 		<div
 			v-if="showMenu"
 			:class="{

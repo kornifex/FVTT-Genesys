@@ -51,7 +51,8 @@ export default class ArchetypeSheet extends VueSheet(GenesysItemSheet<ArchetypeD
 		}
 
 		// Prevent adding a granted item that's already present. Skill names match whatever their case.
-		const matchesName = (name: string) => (droppedItem.type === 'skill' ? skillNamesMatch(name, droppedItem.name) : name === droppedItem.name);
+		const matchesName = (name: string) =>
+			droppedItem.type === 'skill' ? skillNamesMatch(name, droppedItem.name) : name === droppedItem.name;
 		if (this.item.systemData.grantedItems.find((i) => i.type === droppedItem.type && matchesName(i.name))) {
 			return;
 		}

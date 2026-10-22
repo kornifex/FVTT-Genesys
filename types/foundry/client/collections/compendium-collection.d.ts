@@ -38,7 +38,10 @@ declare global {
 		 * @param metadata The compendium metadata used to create the new pack
 		 * @param options  Additional options which modify the Compendium creation request
 		 */
-		static createCompendium<T extends CompendiumDocument>(metadata: CompendiumMetadata<T>, options?: Record<string, unknown>): Promise<CompendiumCollection<T>>;
+		static createCompendium<T extends CompendiumDocument>(
+			metadata: CompendiumMetadata<T>,
+			options?: Record<string, unknown>,
+		): Promise<CompendiumCollection<T>>;
 
 		/** The canonical Compendium name - comprised of the originating package and the pack name */
 		get collection(): string;
@@ -95,7 +98,15 @@ declare global {
 		 * @param [options]    Additional options forwarded to Document.createDocuments
 		 * @return The imported Documents, now existing within the World
 		 */
-		importAll({ folderId, folderName, options }?: { folderId?: string | null; folderName?: string; options?: Record<string, unknown> }): Promise<TDocument[]>;
+		importAll({
+			folderId,
+			folderName,
+			options,
+		}?: {
+			folderId?: string | null;
+			folderName?: string;
+			options?: Record<string, unknown>;
+		}): Promise<TDocument[]>;
 
 		/**
 		 * Add a Document to the index, capturing it's relevant index attributes
@@ -128,11 +139,26 @@ declare global {
 		/** Request that a Compendium pack be migrated to the latest System data template */
 		migrate(options?: Record<string, unknown>): Promise<this>;
 
-		protected override _onCreateDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+		protected override _onCreateDocuments(
+			documents: TDocument[],
+			result: TDocument['_source'][],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onUpdateDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+		protected override _onUpdateDocuments(
+			documents: TDocument[],
+			result: TDocument['_source'][],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onDeleteDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+		protected override _onDeleteDocuments(
+			documents: TDocument[],
+			result: TDocument['_source'][],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
 		/** Follow-up actions taken when Documents within this Compendium pack are modified */
 		protected _onModifyContents(documents: TDocument[], options: DocumentModificationContext, userId: string): void;
@@ -154,7 +180,10 @@ declare global {
 	 * @throws If the uuid resolves to a Document that cannot be retrieved synchronously.
 	 */
 	function fromUuidSync(uuid: WorldDocumentUUID, relative?: ClientDocument | CompendiumIndexData | null): ClientDocument | null;
-	function fromUuidSync(uuid: string, relative?: ClientDocument | CompendiumIndexData | null): ClientDocument | CompendiumIndexData | null;
+	function fromUuidSync(
+		uuid: string,
+		relative?: ClientDocument | CompendiumIndexData | null,
+	): ClientDocument | CompendiumIndexData | null;
 
 	interface CompendiumMetadata<T extends CompendiumDocument = CompendiumDocument> {
 		readonly type: T['documentName'];

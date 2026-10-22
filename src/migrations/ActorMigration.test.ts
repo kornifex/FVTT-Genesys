@@ -3,7 +3,15 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { ActorChanges, ActorPack, ActorWorld, migrateActors, runMigrationChain, walkActors, WalkedActor } from '@/migrations/ActorMigration';
+import {
+	ActorChanges,
+	ActorPack,
+	ActorWorld,
+	migrateActors,
+	runMigrationChain,
+	walkActors,
+	WalkedActor,
+} from '@/migrations/ActorMigration';
 
 function fakeActor(uuid: string, log: string[]): WalkedActor & { updates: ActorChanges[] } {
 	const updates: ActorChanges[] = [];
@@ -52,7 +60,14 @@ describe('walkActors', () => {
 			log.push(`visit ${actor.uuid}`);
 		});
 
-		expect(log).toEqual(['visit Actor.world', 'visit Scene.s.Token.t.Actor.world', 'unlock', 'open pack (locked: false)', 'visit Compendium.world.vehicles.Actor.packed', 'lock']);
+		expect(log).toEqual([
+			'visit Actor.world',
+			'visit Scene.s.Token.t.Actor.world',
+			'unlock',
+			'open pack (locked: false)',
+			'visit Compendium.world.vehicles.Actor.packed',
+			'lock',
+		]);
 		expect(pack.locked).toBe(true);
 	});
 
@@ -83,7 +98,9 @@ describe('migrateActors', () => {
 		const log: string[] = [];
 		const { actorWorld, world, token, packed } = fakeWorld(log);
 
-		const failures = await migrateActors(actorWorld, (source) => (source.system.name === 'Actor.world' ? undefined : { 'system.migrated': true }));
+		const failures = await migrateActors(actorWorld, (source) =>
+			source.system.name === 'Actor.world' ? undefined : { 'system.migrated': true },
+		);
 
 		expect(failures).toEqual([]);
 		expect(world.updates).toEqual([]);
@@ -109,7 +126,11 @@ describe('migrateActors', () => {
 
 describe('runMigrationChain', () => {
 	function reporter(log: string[]) {
-		return { starting: (id: number) => log.push(`start ${id}`), completed: (id: number) => log.push(`done ${id}`), stopped: (id: number) => log.push(`stop ${id}`) };
+		return {
+			starting: (id: number) => log.push(`start ${id}`),
+			completed: (id: number) => log.push(`done ${id}`),
+			stopped: (id: number) => log.push(`stop ${id}`),
+		};
 	}
 
 	it('runs the migrations after the version reached, in order', async () => {

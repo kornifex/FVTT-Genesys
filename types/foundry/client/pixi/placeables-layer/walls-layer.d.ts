@@ -89,7 +89,10 @@ declare global {
 		checkCollision(ray: Ray, { type, mode }: { type?: WallRestrictionType; mode: 'any' }): boolean;
 		checkCollision(ray: Ray, { type, mode }: { type?: WallRestrictionType; mode: 'all' }): PolygonVertex[];
 		checkCollision(ray: Ray, { type, mode }?: { type?: WallRestrictionType; mode?: undefined }): PolygonVertex[];
-		checkCollision(ray: Ray, { type, mode }?: { type?: WallRestrictionType; mode?: WallMode }): boolean | PolygonVertex | PolygonVertex[];
+		checkCollision(
+			ray: Ray,
+			{ type, mode }?: { type?: WallRestrictionType; mode?: WallMode },
+		): boolean | PolygonVertex | PolygonVertex[];
 
 		/**
 		 * Highlight the endpoints of Wall segments which are currently group-controlled on the Walls layer
@@ -188,7 +191,10 @@ declare global {
 		 *         The closest collision, if mode is "closest"
 		 *         Whether any collision occurred if mode is "any"
 		 */
-		getRayCollisions(ray: Ray, { type, mode, _performance }?: { type?: WallType; mode?: WallMode; _performance?: unknown }): Record<string, unknown> | Record<string, unknown> | boolean;
+		getRayCollisions(
+			ray: Ray,
+			{ type, mode, _performance }?: { type?: WallType; mode?: WallMode; _performance?: unknown },
+		): Record<string, unknown> | Record<string, unknown> | boolean;
 
 		/* -------------------------------------------- */
 		/*  Helper Methods                              */
@@ -209,7 +215,18 @@ declare global {
 		 *
 		 * @returns An array of Ray objects
 		 */
-		static castRays(x: number, y: number, distance: number, { density, endpoints, limitAngle, aMin, aMax }?: { density?: number; endpoints?: PointArray[]; limitAngle?: boolean; aMin?: number; aMax?: boolean }): Ray[];
+		static castRays(
+			x: number,
+			y: number,
+			distance: number,
+			{
+				density,
+				endpoints,
+				limitAngle,
+				aMin,
+				aMax,
+			}?: { density?: number; endpoints?: PointArray[]; limitAngle?: boolean; aMin?: number; aMax?: boolean },
+		): Ray[];
 
 		/**
 		 * Test a single Ray against a single Wall

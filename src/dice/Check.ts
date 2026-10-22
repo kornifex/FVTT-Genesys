@@ -115,14 +115,27 @@ export type Check<S extends CheckSkill = CheckSkill> = {
 /**
  * Resolve a check of an actor, or a bare dice pool without one.
  */
-export function resolveCheck<S extends CheckSkill>(actor: CheckActor<S> | undefined, request: CheckRequest<S>, rules: CheckRules<S>): Check<S> {
+export function resolveCheck<S extends CheckSkill>(
+	actor: CheckActor<S> | undefined,
+	request: CheckRequest<S>,
+	rules: CheckRules<S>,
+): Check<S> {
 	if (!actor) {
-		return { kind: 'pool', characteristicValue: 0, rank: 0, usesSuperCharacteristic: rules.useSuperCharacteristics && !!request.usesSuperCharacteristic, poolModifications: [] };
+		return {
+			kind: 'pool',
+			characteristicValue: 0,
+			rank: 0,
+			usesSuperCharacteristic: rules.useSuperCharacteristics && !!request.usesSuperCharacteristic,
+			poolModifications: [],
+		};
 	}
 
 	const data = actor.systemData as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
-	const characteristic = request.characteristic === undefined ? rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic : request.characteristic ?? undefined;
+	const characteristic =
+		request.characteristic === undefined
+			? rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic
+			: request.characteristic ?? undefined;
 
 	let kind: CheckKind = characteristic ? 'characteristic' : 'pool';
 	let rank = 0;
@@ -134,7 +147,11 @@ export function resolveCheck<S extends CheckSkill>(actor: CheckActor<S> | undefi
 		rank = actor.type === 'minion' ? data.groupSkillRank ?? 0 : rolledSkill.skill.system.rank;
 	}
 
-	const poolModifications = poolModificationsForCheck(actor, request.target, { characteristic, skillName: rolledSkill?.skill.name, attackRange: request.attackRange });
+	const poolModifications = poolModificationsForCheck(actor, request.target, {
+		characteristic,
+		skillName: rolledSkill?.skill.name,
+		attackRange: request.attackRange,
+	});
 
 	return {
 		actor,
@@ -175,7 +192,11 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 		modifications: {
 			baseDifficulty: parsePoolModifications(difficulty),
 			manualChanges,
-			effects: check.poolModifications.map((modification) => ({ name: modification.key, enabled: isEnabled(modification), mods: modification.mods })),
+			effects: check.poolModifications.map((modification) => ({
+				name: modification.key,
+				enabled: isEnabled(modification),
+				mods: modification.mods,
+			})),
 		},
 	});
 }
@@ -209,15 +230,28 @@ export function checkDescription(check: Check, purpose: CheckPurpose, i18n: Loca
 		case 'attack':
 			if (skill) {
 				return characteristicAbbr
-					? i18n.format('Genesys.Rolls.Description.AttackSkill', { name: purpose.weaponName, skill, characteristic: characteristicAbbr, superChar })
+					? i18n.format('Genesys.Rolls.Description.AttackSkill', {
+							name: purpose.weaponName,
+							skill,
+							characteristic: characteristicAbbr,
+							superChar,
+						})
 					: i18n.format('Genesys.Rolls.Description.AttackSkillWithoutCharacteristic', { name: purpose.weaponName, skill });
 			}
 
-			return characteristicName && i18n.format('Genesys.Rolls.Description.AttackCharacteristic', { name: purpose.weaponName, characteristic: characteristicName });
+			return (
+				characteristicName &&
+				i18n.format('Genesys.Rolls.Description.AttackCharacteristic', {
+					name: purpose.weaponName,
+					characteristic: characteristicName,
+				})
+			);
 
 		case 'check':
 			if (skill) {
-				return characteristicAbbr ? i18n.format('Genesys.Rolls.Description.Skill', { skill, characteristic: characteristicAbbr, superChar }) : i18n.format('Genesys.Rolls.Description.SkillWithoutCharacteristic', { skill });
+				return characteristicAbbr
+					? i18n.format('Genesys.Rolls.Description.Skill', { skill, characteristic: characteristicAbbr, superChar })
+					: i18n.format('Genesys.Rolls.Description.SkillWithoutCharacteristic', { skill });
 			}
 
 			if (characteristicName) {

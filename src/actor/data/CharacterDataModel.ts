@@ -166,7 +166,13 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	 */
 	get currentEncumbrance(): Encumbrance {
 		return {
-			value: Math.max(0, (<CharacterActor>(<unknown>this.parent)).items.reduce((total, i) => total + this.#effectiveEncumbranceForItem(<EquipmentItem>i), 0) + this.encumbrance.value),
+			value: Math.max(
+				0,
+				(<CharacterActor>(<unknown>this.parent)).items.reduce(
+					(total, i) => total + this.#effectiveEncumbranceForItem(<EquipmentItem>i),
+					0,
+				) + this.encumbrance.value,
+			),
 			threshold: 5 + this.encumbrance.threshold + this.characteristics.brawn + this.#additionalEncumbranceThreshold(),
 		};
 	}
@@ -181,13 +187,20 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 	}
 
 	get talentPyramidTotals() {
-		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[];
+		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter(
+			(i) => i.type === 'talent',
+		) as GenesysItem<TalentDataModel>[];
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
 	}
 
 	#additionalEncumbranceThreshold() {
 		return (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => (<EquipmentItem>i).systemData.encumbrance !== undefined && (i as EquipmentItem).systemData.state !== EquipmentState.Dropped && (i as EquipmentItem).systemData.encumbrance < 0)
+			.filter(
+				(i) =>
+					(<EquipmentItem>i).systemData.encumbrance !== undefined &&
+					(i as EquipmentItem).systemData.state !== EquipmentState.Dropped &&
+					(i as EquipmentItem).systemData.encumbrance < 0,
+			)
 			.reduce((total, i) => total + Math.abs((<EquipmentItem>i).systemData.encumbrance), 0);
 	}
 
@@ -204,7 +217,9 @@ export default abstract class CharacterDataModel extends foundry.abstract.DataMo
 		// When armor is worn, its encumbrance rating is reduced by three (to a minimum of 0).
 		if (item.type === 'armor') {
 			if (item.systemData.state === EquipmentState.Equipped) {
-				return Math.max(0, item.systemData.encumbrance - 3) + Math.max(0, item.systemData.encumbrance * (item.systemData.quantity - 1));
+				return (
+					Math.max(0, item.systemData.encumbrance - 3) + Math.max(0, item.systemData.encumbrance * (item.systemData.quantity - 1))
+				);
 			}
 		}
 

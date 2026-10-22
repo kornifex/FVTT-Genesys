@@ -5,7 +5,10 @@ import { BaseUser } from '../documents/user.mjs';
 import { DatabaseBackend, DataModel, EmbeddedCollection } from './module.mjs';
 
 /** The abstract base interface for all Document types. */
-export abstract class Document<TParent extends Document | null = _Document | null, TSchema extends fields.DataSchema = fields.DataSchema> extends DataModel<TParent, TSchema> {
+export abstract class Document<
+	TParent extends Document | null = _Document | null,
+	TSchema extends fields.DataSchema = fields.DataSchema,
+> extends DataModel<TParent, TSchema> {
 	/** An immutable reference to a containing Compendium collection to which this Document belongs. */
 	readonly pack: string | null;
 
@@ -65,7 +68,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * @param [options.exact=false] Require the exact permission level requested?
 	 * @return Does the user have this permission level over the Document?
 	 */
-	testUserPermission(user: BaseUser, ownership: DocumentOwnershipString | DocumentOwnershipLevel, { exact }?: { exact?: boolean }): boolean;
+	testUserPermission(
+		user: BaseUser,
+		ownership: DocumentOwnershipString | DocumentOwnershipLevel,
+		{ exact }?: { exact?: boolean },
+	): boolean;
 
 	/**
 	 * Test whether a given User has permission to perform some action on this Document
@@ -130,7 +137,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * const created = await Actor.createDocuments(data, {pack: "mymodule.mypack"});
 	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	static createDocuments<T extends Document>(this: ConstructorOf<T>, data?: PreCreate<T['_source']>[], context?: DocumentModificationContext<ParentOf<T>>): Promise<T[]>;
+	static createDocuments<T extends Document>(
+		this: ConstructorOf<T>,
+		data?: PreCreate<T['_source']>[],
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T[]>;
 
 	/**
 	 * Update multiple Document instances using provided differential data.
@@ -158,7 +169,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * const updated = await Actor.updateDocuments([{_id: actor.id, name: "New Name"}], {pack: "mymodule.mypack"});
 	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	static updateDocuments<T extends Document>(this: ConstructorOf<T>, updates?: DocumentUpdateData<T>[], context?: DocumentModificationContext<ParentOf<T>>): Promise<T[]>;
+	static updateDocuments<T extends Document>(
+		this: ConstructorOf<T>,
+		updates?: DocumentUpdateData<T>[],
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T[]>;
 
 	/**
 	 * Delete one or multiple existing Documents using an array of provided ids.
@@ -188,7 +203,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * const deleted = await Actor.deleteDocuments([actor.id], {pack: "mymodule.mypack"});
 	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	static deleteDocuments<T extends Document>(this: ConstructorOf<T>, ids?: string[], context?: DocumentModificationContext<ParentOf<T>>): Promise<T[]>;
+	static deleteDocuments<T extends Document>(
+		this: ConstructorOf<T>,
+		ids?: string[],
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T[]>;
 
 	/**
 	 * Create a new Document using provided input data, saving it to the database.
@@ -210,9 +229,21 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * const data = [{name: "Special Sword", type: "weapon"}];
 	 * const created = await Item.create(data, {pack: "mymodule.mypack"});
 	 */
-	static create<T extends Document>(this: ConstructorOf<T>, data: PreCreate<T['_source']>, context?: DocumentModificationContext<ParentOf<T>>): Promise<T | undefined>;
-	static create<T extends Document>(this: ConstructorOf<T>, data: PreCreate<T['_source']>[], context?: DocumentModificationContext<ParentOf<T>>): Promise<T[]>;
-	static create<T extends Document>(this: ConstructorOf<T>, data: PreCreate<T['_source']> | PreCreate<T['_source']>[], context?: DocumentModificationContext<ParentOf<T>>): Promise<T[] | T | undefined>;
+	static create<T extends Document>(
+		this: ConstructorOf<T>,
+		data: PreCreate<T['_source']>,
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T | undefined>;
+	static create<T extends Document>(
+		this: ConstructorOf<T>,
+		data: PreCreate<T['_source']>[],
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T[]>;
+	static create<T extends Document>(
+		this: ConstructorOf<T>,
+		data: PreCreate<T['_source']> | PreCreate<T['_source']>[],
+		context?: DocumentModificationContext<ParentOf<T>>,
+	): Promise<T[] | T | undefined>;
 
 	/**
 	 * Update one or multiple existing entities using provided input data.
@@ -283,7 +314,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * @param [context={}] Additional context which customizes the creation workflow
 	 * @return An array of created Document instances
 	 */
-	createEmbeddedDocuments(embeddedName: string, data: PreCreate<object>[], context?: DocumentModificationContext<this>): Promise<Document[]>;
+	createEmbeddedDocuments(
+		embeddedName: string,
+		data: PreCreate<object>[],
+		context?: DocumentModificationContext<this>,
+	): Promise<Document[]>;
 
 	/**
 	 * Update multiple embedded Document instances within a parent Document using provided differential data.
@@ -292,7 +327,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * @param [context={}] Additional context which customizes the update workflow
 	 * @return An array of updated Document instances
 	 */
-	updateEmbeddedDocuments(embeddedName: string, updates: EmbeddedDocumentUpdateData<Document>[], context?: DocumentModificationContext<this>): Promise<Document[]>;
+	updateEmbeddedDocuments(
+		embeddedName: string,
+		updates: EmbeddedDocumentUpdateData<Document>[],
+		context?: DocumentModificationContext<this>,
+	): Promise<Document[]>;
 
 	/**
 	 * Delete multiple embedded Document instances within a parent Document using provided string ids.
@@ -357,7 +396,11 @@ export abstract class Document<TParent extends Document | null = _Document | nul
 	 * @param options Additional options which modify the creation request
 	 * @param user    The User requesting the document creation
 	 */
-	protected _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext<TParent>, user: BaseUser): Promise<void>;
+	protected _preCreate(
+		data: PreDocumentId<this['_source']>,
+		options: DocumentModificationContext<TParent>,
+		user: BaseUser,
+	): Promise<void>;
 
 	/**
 	 * Perform preliminary operations before a Document of this type is updated.
@@ -448,7 +491,9 @@ export interface DocumentMetadata {
 }
 
 declare global {
-	type PreCreate<T extends object> = T extends { name: string; type: string } ? Omit<DeepPartial<T>, 'name' | 'type'> & { name: string; type: T['type'] } : DeepPartial<T>;
+	type PreCreate<T extends object> = T extends { name: string; type: string }
+		? Omit<DeepPartial<T>, 'name' | 'type'> & { name: string; type: T['type'] }
+		: DeepPartial<T>;
 
 	type PreDocumentId<T extends object> = Omit<T, '_id'> & { _id: null };
 

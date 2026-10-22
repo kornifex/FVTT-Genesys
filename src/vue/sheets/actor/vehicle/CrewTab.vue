@@ -9,7 +9,12 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 
 import GenesysActor from '@/actor/GenesysActor';
-import { CrewDragTransferData, CrewExtraDragTransferData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import {
+	CrewDragTransferData,
+	CrewExtraDragTransferData,
+	DragTransferData,
+	extractDataFromDragTransferTypes,
+} from '@/data/DragTransferData';
 import CloneActorPrompt from '@/app/CloneActorPrompt';
 
 type FromUuidSimpleReturnData = null | {
@@ -103,7 +108,10 @@ async function dropToPassengers(event: DragEvent, relativeToPassengerUuid: strin
 
 		// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to make a
 		// clone and save a reference of it instead.
-		if (!(droppedEntity as GenesysActor).prototypeToken.actorLink && (Actor.implementation as typeof GenesysActor).canUserCreate(game.user)) {
+		if (
+			!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
+			(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
+		) {
 			const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
 
 			if (actorToAdd) {
@@ -221,7 +229,10 @@ async function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorU
 
 		// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to make a
 		// clone and save a reference of it instead.
-		if (!(droppedEntity as GenesysActor).prototypeToken.actorLink && (Actor.implementation as typeof GenesysActor).canUserCreate(game.user)) {
+		if (
+			!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
+			(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
+		) {
 			const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
 
 			if (actorToAdd) {
@@ -270,7 +281,9 @@ async function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorU
 	}
 
 	// Add the crew member to the role.
-	const positionIndex = memberUnder ? roles[roleIndex].members.findIndex((member) => member === memberUnder) : roles[roleIndex].members.length;
+	const positionIndex = memberUnder
+		? roles[roleIndex].members.findIndex((member) => member === memberUnder)
+		: roles[roleIndex].members.length;
 	roles[roleIndex].members.splice(positionIndex, 0, crewUuid);
 	updateMap.set('system.roles', roles);
 

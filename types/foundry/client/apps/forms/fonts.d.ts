@@ -25,7 +25,10 @@ declare global {
 		 * @param family     The font family.
 		 * @param definition The font family definition.
 		 */
-		protected _getDataForDefinition(family: string, definition: FontFamilyDefinition): { family: string; index: number; selected?: true; font: unknown }[];
+		protected _getDataForDefinition(
+			family: string,
+			definition: FontFamilyDefinition,
+		): { family: string; index: number; selected?: true; font: unknown }[];
 
 		override activateListeners(html: JQuery): void;
 

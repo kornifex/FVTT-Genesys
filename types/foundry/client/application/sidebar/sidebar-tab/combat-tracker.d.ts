@@ -32,7 +32,10 @@ declare interface CombatTrackerData {
 }
 
 /** The combat and turn order tracker tab */
-declare class CombatTracker<TCombat extends Combat | null, TOptions extends CombatTrackerOptions = CombatTrackerOptions> extends SidebarTab<TOptions> {
+declare class CombatTracker<
+	TCombat extends Combat | null,
+	TOptions extends CombatTrackerOptions = CombatTrackerOptions,
+> extends SidebarTab<TOptions> {
 	static override get defaultOptions(): CombatTrackerOptions;
 
 	/** Record a reference to the currently highlighted Token */

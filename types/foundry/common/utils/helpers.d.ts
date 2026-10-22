@@ -63,7 +63,12 @@ declare global {
 			 * @example <caption>Deleting an existing object key</caption>
 			 * mergeObject({k1: "v1", k2: "v2"}, {"-=k1": null});   // {k2: "v2"}
 			 */
-			function mergeObject<T extends object, U extends object = T>(original: T, other?: U, { insertKeys, insertValues, overwrite, inplace, enforceTypes, performDeletions }?: MergeObjectOptions, _d?: number): T & U;
+			function mergeObject<T extends object, U extends object = T>(
+				original: T,
+				other?: U,
+				{ insertKeys, insertValues, overwrite, inplace, enforceTypes, performDeletions }?: MergeObjectOptions,
+				_d?: number,
+			): T & U;
 
 			/**
 			 * Learn the named type of a token - extending the functionality of typeof to recognize some core Object types

@@ -43,7 +43,10 @@ declare global {
 		private _addEffectChange(button: HTMLElement): HTMLElement;
 
 		/** @override */
-		protected _updateObject(event: Event, formData: Record<string, unknown> & { changes?: foundry.data.EffectChangeData[] }): Promise<void>;
+		protected _updateObject(
+			event: Event,
+			formData: Record<string, unknown> & { changes?: foundry.data.EffectChangeData[] },
+		): Promise<void>;
 
 		/** @override */
 		protected _preparePartContext(partId: string, context: Record<string, unknown>): Promise<Record<string, unknown>>;

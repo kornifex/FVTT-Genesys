@@ -6,7 +6,13 @@ declare global {
 		/** The default vertex shader used by all instances of AbstractBaseMaskFilter */
 		static vertexShader: string;
 
-		override apply(filterManager: PIXI.FilterSystem, input: PIXI.RenderTexture, output: PIXI.RenderTexture, clearMode?: PIXI.CLEAR_MODES, _currentState?: PIXI.FilterState): void;
+		override apply(
+			filterManager: PIXI.FilterSystem,
+			input: PIXI.RenderTexture,
+			output: PIXI.RenderTexture,
+			clearMode?: PIXI.CLEAR_MODES,
+			_currentState?: PIXI.FilterState,
+		): void;
 	}
 
 	/**
@@ -35,6 +41,12 @@ declare global {
 
 		static create<T extends AbstractBaseFilter>(this: ConstructorOf<T>, uniforms?: object): T;
 
-		override apply(filterManager: PIXI.FilterSystem, input: PIXI.RenderTexture, output: PIXI.RenderTexture, clearMode?: PIXI.CLEAR_MODES, _currentState?: PIXI.FilterState): void;
+		override apply(
+			filterManager: PIXI.FilterSystem,
+			input: PIXI.RenderTexture,
+			output: PIXI.RenderTexture,
+			clearMode?: PIXI.CLEAR_MODES,
+			_currentState?: PIXI.FilterState,
+		): void;
 	}
 }

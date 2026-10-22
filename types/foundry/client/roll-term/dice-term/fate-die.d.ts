@@ -12,7 +12,9 @@ declare global {
 
 		override roll({ minimize, maximize }?: { minimize?: boolean; maximize?: boolean }): DiceTermResult;
 
-		override getResultLabel<T extends DiceTermResult>(result: DiceTermResult): T['result'] extends -1 ? '-' : T extends 0 ? '&nbsp;' : T extends 1 ? '+' : never;
+		override getResultLabel<T extends DiceTermResult>(
+			result: DiceTermResult,
+		): T['result'] extends -1 ? '-' : T extends 0 ? '&nbsp;' : T extends 1 ? '+' : never;
 	}
 
 	interface FateDie extends DiceTerm {

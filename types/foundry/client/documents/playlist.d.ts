@@ -99,11 +99,29 @@ declare global {
 
 		protected override _onDelete(options: DocumentModificationContext, userId: string): void;
 
-		protected override _onCreateEmbeddedDocuments(embeddedName: 'PlaylistSound', documents: PlaylistSound[], result: foundry.data.PlaylistSoundSource[], options: DocumentModificationContext, userId: string): void;
+		protected override _onCreateEmbeddedDocuments(
+			embeddedName: 'PlaylistSound',
+			documents: PlaylistSound[],
+			result: foundry.data.PlaylistSoundSource[],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onUpdateEmbeddedDocuments(embeddedName: 'PlaylistSound', documents: PlaylistSound[], result: foundry.data.PlaylistSoundSource[], options: DocumentModificationContext, userId: string): void;
+		protected override _onUpdateEmbeddedDocuments(
+			embeddedName: 'PlaylistSound',
+			documents: PlaylistSound[],
+			result: foundry.data.PlaylistSoundSource[],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onDeleteEmbeddedDocuments(embeddedName: 'PlaylistSound', documents: ClientDocument[], result: PlaylistSound[], options: DocumentModificationContext, userId: string): void;
+		protected override _onDeleteEmbeddedDocuments(
+			embeddedName: 'PlaylistSound',
+			documents: ClientDocument[],
+			result: PlaylistSound[],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
 		/** Handle callback logic when an individual sound within the Playlist concludes playback naturally */
 		protected _onSoundEnd(sound: PlaylistSound): Promise<this | undefined>;

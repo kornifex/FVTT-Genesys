@@ -120,6 +120,7 @@ declare class MeasuredTemplate<TDocument extends MeasuredTemplateDocument = Meas
 	override _onDelete(options: DocumentModificationContext<TDocument>, userId: string): void;
 }
 
-declare interface MeasuredTemplate<TDocument extends MeasuredTemplateDocument = MeasuredTemplateDocument> extends PlaceableObject<TDocument> {
+declare interface MeasuredTemplate<TDocument extends MeasuredTemplateDocument = MeasuredTemplateDocument>
+	extends PlaceableObject<TDocument> {
 	get layer(): TemplateLayer<this>;
 }

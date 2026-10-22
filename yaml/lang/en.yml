@@ -234,7 +234,7 @@ Genesys:
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
     SlotAlreadyClaimed: This initiative slot is already claimed.
     NoGMForExtraSlot: A GM must be online to roll the initiative of an extra slot.
-    CombatantHasNoActivationLeft: "{name} has no activation left this round."
+    CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     CannotSelectActor: You do not have sufficient permission to select this Actor.
     InvalidTokenTypeForAction: The selected token is of an invalid type to perform this action.
     EffectsWereNotUpdatedAfterTransfer: There was an error updating the effects with the latest values for the transfered '{name}'.
@@ -271,7 +271,7 @@ Genesys:
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:
-    Difficulty: '{difficulty} [{symbols}] {skill} check'  # e.g. Average [♦♦] Coercion Check
+    Difficulty: '{difficulty} [{symbols}] {skill} check' # e.g. Average [♦♦] Coercion Check
     Opposed: 'Opposed {skill1} versus {skill2} check'
 
   # Combat Tracker

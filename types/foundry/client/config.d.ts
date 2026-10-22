@@ -208,7 +208,10 @@ declare global {
 				rect: string;
 				ray: string;
 			};
-			documentClass: new (data: PreCreate<foundry.data.MeasuredTemplateSource>, context?: DocumentConstructionContext<TMeasuredTemplateDocument>) => TMeasuredTemplateDocument;
+			documentClass: new (
+				data: PreCreate<foundry.data.MeasuredTemplateSource>,
+				context?: DocumentConstructionContext<TMeasuredTemplateDocument>,
+			) => TMeasuredTemplateDocument;
 			objectClass: ConstructorOf<TMeasuredTemplateDocument['object']>;
 			layerClass: ConstructorOf<TMeasuredTemplateDocument['object']['layer']>;
 		};

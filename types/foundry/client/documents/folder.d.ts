@@ -51,7 +51,10 @@ declare global {
 		 * @param updateByName Update existing entries in the Compendium pack, matching by name
 		 * @return The updated Compendium Collection instance
 		 */
-		exportToCompendium(pack: CompendiumCollection<TDocument>, { updateByName }?: { updateByName?: boolean }): Promise<CompendiumCollection<TDocument>>;
+		exportToCompendium(
+			pack: CompendiumCollection<TDocument>,
+			{ updateByName }?: { updateByName?: boolean },
+		): Promise<CompendiumCollection<TDocument>>;
 
 		/**
 		 * Provide a dialog form that allows for exporting the contents of a Folder into an eligible Compendium pack.

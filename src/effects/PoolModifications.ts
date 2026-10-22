@@ -153,7 +153,11 @@ export function scaledChangeValue(item: SourceItem | undefined, change: { key: s
 /**
  * The Pool Modifications that the effects of the actor and of their target, and the target's defense, bring to a check.
  */
-export function poolModificationsForCheck(actor: PoolModificationActor | undefined, target: PoolModificationActor | undefined, check: CheckForPoolModifications) {
+export function poolModificationsForCheck(
+	actor: PoolModificationActor | undefined,
+	target: PoolModificationActor | undefined,
+	check: CheckForPoolModifications,
+) {
 	const modifications: ExternalPoolModification[] = [];
 
 	if (!actor) {
@@ -183,7 +187,11 @@ export function poolModificationsForCheck(actor: PoolModificationActor | undefin
 	return modifications;
 }
 
-function effectModifications(actor: PoolModificationActor, source: PoolModificationSource, { characteristic, skillName }: CheckForPoolModifications) {
+function effectModifications(
+	actor: PoolModificationActor,
+	source: PoolModificationSource,
+	{ characteristic, skillName }: CheckForPoolModifications,
+) {
 	const appliesToCheck = (key: PoolModificationKey | undefined) => {
 		if (key?.source !== source) {
 			return false;
@@ -207,7 +215,9 @@ function effectModifications(actor: PoolModificationActor, source: PoolModificat
 		}
 
 		const item = sourceItem(effect);
-		const mods = effect.changes.filter((change) => appliesToCheck(decodeKey(change.key))).flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
+		const mods = effect.changes
+			.filter((change) => appliesToCheck(decodeKey(change.key)))
+			.flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
 
 		if (mods.length > 0) {
 			modifications.push({ source, from: { effect: effect.name }, mods: mods.sort(sortPoolModifications) });
@@ -233,7 +243,10 @@ export type EditedChange = foundry.data.EffectChangeSource & {
  */
 export function skillChoices(compendiumSkillNames: string[], changes: EditedChange[]): Record<string, string> {
 	const changeSkillNames = changes.flatMap((change) => (change.skill ? [change.skill] : []));
-	const names = [...compendiumSkillNames.map((name) => changeSkillNames.find((changeName) => skillNamesMatch(changeName, name)) ?? name), ...changeSkillNames];
+	const names = [
+		...compendiumSkillNames.map((name) => changeSkillNames.find((changeName) => skillNamesMatch(changeName, name)) ?? name),
+		...changeSkillNames,
+	];
 	return Object.fromEntries(names.map((name) => [name, name]));
 }
 
@@ -284,7 +297,11 @@ export function fromEditedChange(change: EditedChange) {
 	}
 
 	const kind = baseKey[1] as PoolModificationKind;
-	change.key = encodeKey({ kind, source: baseKey[2] as PoolModificationSource, subject: (kind === 'char' ? change.char : change.skill) ?? '' });
+	change.key = encodeKey({
+		kind,
+		source: baseKey[2] as PoolModificationSource,
+		subject: (kind === 'char' ? change.char : change.skill) ?? '',
+	});
 	change.mode = CONST.ACTIVE_EFFECT_MODES.CUSTOM;
 	if (!isPoolModificationValue(change.value)) {
 		change.value = '';

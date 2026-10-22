@@ -29,7 +29,9 @@ declare module foundry {
 			flags: Record<string, unknown>;
 		}
 
-		class AmbientSoundData<TDocument extends documents.BaseAmbientSound = documents.BaseAmbientSound> extends abstract.DocumentData<TDocument> {
+		class AmbientSoundData<
+			TDocument extends documents.BaseAmbientSound = documents.BaseAmbientSound,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 
 			darkness: DarknessActivation;

@@ -34,7 +34,19 @@ declare class SearchFilter {
 	 */
 	protected _filter: () => void;
 
-	constructor({ inputSelector, contentSelector, initial, callback, delay }?: { inputSelector: string; contentSelector: string; initial: string; callback: () => void; delay: number });
+	constructor({
+		inputSelector,
+		contentSelector,
+		initial,
+		callback,
+		delay,
+	}?: {
+		inputSelector: string;
+		contentSelector: string;
+		initial: string;
+		callback: () => void;
+		delay: number;
+	});
 
 	bind(html: HTMLElement): void;
 }

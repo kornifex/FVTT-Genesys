@@ -7,7 +7,17 @@ import type GenesysActor from '@/actor/GenesysActor';
 import type CharacterDataModel from '@/actor/data/CharacterDataModel';
 import type ArchetypeDataModel from '@/item/data/ArchetypeDataModel';
 import type GenesysItem from '@/item/GenesysItem';
-import { applyArchetype, archetypeActorUpdate, ArchetypeGrants, ArchetypeHolder, canRemoveArchetype, grantedNonSkills, grantedSkillRankUpdates, heldNonSkillsGrantedBy, removeArchetype } from '@/actor/data/character/Archetype';
+import {
+	applyArchetype,
+	archetypeActorUpdate,
+	ArchetypeGrants,
+	ArchetypeHolder,
+	canRemoveArchetype,
+	grantedNonSkills,
+	grantedSkillRankUpdates,
+	heldNonSkillsGrantedBy,
+	removeArchetype,
+} from '@/actor/data/character/Archetype';
 import { EntryType } from '@/actor/data/character/ExperienceJournal';
 
 function archetypeGrants(): ArchetypeGrants {
@@ -101,12 +111,18 @@ describe('granted items', () => {
 	});
 
 	it('gives or takes a rank of each granted skill', () => {
-		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, 1)).toEqual([{ skill: held[0], update: { 'system.rank': 2 } }]);
-		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, -1)).toEqual([{ skill: held[0], update: { 'system.rank': 0 } }]);
+		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, 1)).toEqual([
+			{ skill: held[0], update: { 'system.rank': 2 } },
+		]);
+		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, -1)).toEqual([
+			{ skill: held[0], update: { 'system.rank': 0 } },
+		]);
 	});
 
 	it('gives a rank of a granted skill the character names with another case', () => {
-		expect(grantedSkillRankUpdates(held, [{ name: 'brawl', type: 'skill' }], 1)).toEqual([{ skill: held[1], update: { 'system.rank': 3 } }]);
+		expect(grantedSkillRankUpdates(held, [{ name: 'brawl', type: 'skill' }], 1)).toEqual([
+			{ skill: held[1], update: { 'system.rank': 3 } },
+		]);
 	});
 });
 
@@ -149,7 +165,11 @@ describe('applyArchetype', () => {
 		const { actor, archetype, operations } = fakeActor();
 		await applyArchetype(actor, archetype);
 
-		expect(operations).toEqual(['create Tough, Grit', 'update Athletics {"system.rank":2}', 'update actor [{"amount":110,"type":"Starting"}]']);
+		expect(operations).toEqual([
+			'create Tough, Grit',
+			'update Athletics {"system.rank":2}',
+			'update actor [{"amount":110,"type":"Starting"}]',
+		]);
 	});
 });
 

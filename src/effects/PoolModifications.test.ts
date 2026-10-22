@@ -38,7 +38,15 @@ function talent(rank: number, scalesWithRank: 'yes' | 'no' = 'no') {
 	return { documentName: 'Item', id: 'talentId', type: 'talent', system: { rank, scalesWithRank } };
 }
 
-function effect(changes: Change[], { name = 'Effect', isSuppressed = false, origin = null, parent = null }: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown } = {}): PoolModificationEffect {
+function effect(
+	changes: Change[],
+	{
+		name = 'Effect',
+		isSuppressed = false,
+		origin = null,
+		parent = null,
+	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown } = {},
+): PoolModificationEffect {
 	return { name, isSuppressed, origin, parent, changes };
 }
 
@@ -157,13 +165,17 @@ describe('poolModificationsForCheck', () => {
 			),
 		]);
 
-		expect(poolModificationsForCheck(self, undefined, check)).toEqual([{ source: 'self', from: { effect: 'Talent' }, mods: ['B', 'A', '^'] }]);
+		expect(poolModificationsForCheck(self, undefined, check)).toEqual([
+			{ source: 'self', from: { effect: 'Talent' }, mods: ['B', 'A', '^'] },
+		]);
 	});
 
 	it('collects the changes of a skill whatever the case of its name', () => {
 		const self = actor('character', [effect([{ key: 'genesys.pool.skill.self.Ranged (Light)', value: 'B' }], { name: 'Talent' })]);
 
-		expect(poolModificationsForCheck(self, undefined, { characteristic: Characteristic.Agility, skillName: 'Ranged (light)' })).toEqual([{ source: 'self', from: { effect: 'Talent' }, mods: ['B'] }]);
+		expect(poolModificationsForCheck(self, undefined, { characteristic: Characteristic.Agility, skillName: 'Ranged (light)' })).toEqual(
+			[{ source: 'self', from: { effect: 'Talent' }, mods: ['B'] }],
+		);
 	});
 
 	it('only collects the changes for every check without a characteristic or a skill', () => {
@@ -178,7 +190,10 @@ describe('poolModificationsForCheck', () => {
 	});
 
 	it('leaves out suppressed effects and effects without a relevant change', () => {
-		const self = actor('character', [effect([{ key: 'genesys.pool.check.self.', value: 'B' }], { isSuppressed: true }), effect([{ key: 'system.soak', value: '1' }])]);
+		const self = actor('character', [
+			effect([{ key: 'genesys.pool.check.self.', value: 'B' }], { isSuppressed: true }),
+			effect([{ key: 'system.soak', value: '1' }]),
+		]);
 
 		expect(poolModificationsForCheck(self, undefined, check)).toEqual([]);
 	});
@@ -217,9 +232,15 @@ describe('poolModificationsForCheck', () => {
 		const character = actor('character', [], { totalDefense: { melee: 1, ranged: 2 } });
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
 
-		expect(poolModificationsForCheck(self, character, { attackRange: 'engaged' })).toEqual([{ source: 'target', from: { defense: 'melee' }, mods: ['S'] }]);
-		expect(poolModificationsForCheck(self, character, { attackRange: 'long' })).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
-		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] }]);
+		expect(poolModificationsForCheck(self, character, { attackRange: 'engaged' })).toEqual([
+			{ source: 'target', from: { defense: 'melee' }, mods: ['S'] },
+		]);
+		expect(poolModificationsForCheck(self, character, { attackRange: 'long' })).toEqual([
+			{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] },
+		]);
+		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([
+			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] },
+		]);
 		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
 	});
 
@@ -236,14 +257,20 @@ describe('poolModificationsForCheck', () => {
 		const self = actor('character', []);
 
 		expect(poolModificationsForCheck(self, target, { attackRange: 'engaged' })).toEqual([]);
-		expect(poolModificationsForCheck(undefined, actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]), {})).toEqual([]);
+		expect(
+			poolModificationsForCheck(undefined, actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]), {}),
+		).toEqual([]);
 	});
 });
 
 /**
  * A change as Foundry stores it, with the extra fields the effect sheets edit.
  */
-function editedChange(key: string, value: string, { mode = 0, char = undefined as string | undefined, skill = undefined as string | undefined } = {}) {
+function editedChange(
+	key: string,
+	value: string,
+	{ mode = 0, char = undefined as string | undefined, skill = undefined as string | undefined } = {},
+) {
 	const change = { key, value, mode, priority: 0 } as EditedChange;
 	if (char !== undefined) {
 		change.char = char;
@@ -259,20 +286,26 @@ describe('editing changes in the effect sheets', () => {
 		const change = editedChange('genesys.pool.skill.target.Stealth', 'S');
 
 		expect(toEditedChange(change)).toEqual(editedChange('genesys.pool.skill.target', 'S', { skill: 'Stealth' }));
-		expect(toEditedChange(editedChange('genesys.pool.char.self.brawn', 'S'))).toEqual(editedChange('genesys.pool.char.self', 'S', { char: 'brawn' }));
+		expect(toEditedChange(editedChange('genesys.pool.char.self.brawn', 'S'))).toEqual(
+			editedChange('genesys.pool.char.self', 'S', { char: 'brawn' }),
+		);
 		expect(toEditedChange(editedChange('genesys.pool.check.self.', 'S'))).toEqual(editedChange('genesys.pool.check.self', 'S'));
 		expect(change.key).toBe('genesys.pool.skill.target.Stealth');
 	});
 
 	it('leaves other changes as they are', () => {
 		expect(toEditedChange(editedChange('system.soak', '1', { mode: 2 }))).toEqual(editedChange('system.soak', '1', { mode: 2 }));
-		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }))).toEqual(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }));
+		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }))).toEqual(
+			editedChange('system.soak', '1', { mode: 2, char: 'brawn' }),
+		);
 	});
 
 	it('puts the subject back into the key of a Pool Modification', () => {
 		const subjects = { mode: 2, skill: 'Stealth', char: 'brawn' };
 
-		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects))).toEqual(editedChange('genesys.pool.skill.target.Stealth', 'S'));
+		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects))).toEqual(
+			editedChange('genesys.pool.skill.target.Stealth', 'S'),
+		);
 		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects)).key).toBe('genesys.pool.char.self.brawn');
 		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects)).key).toBe('genesys.pool.check.self.');
 	});
@@ -296,7 +329,11 @@ describe('editing changes in the effect sheets', () => {
 			editedChange('genesys.pool.skill.self', 'B', { skill: '' }),
 		];
 
-		expect(skillChoices(['Cool', 'Athletics'], changes)).toEqual({ Cool: 'Cool', Athletics: 'Athletics', 'Piloting (Space)': 'Piloting (Space)' });
+		expect(skillChoices(['Cool', 'Athletics'], changes)).toEqual({
+			Cool: 'Cool',
+			Athletics: 'Athletics',
+			'Piloting (Space)': 'Piloting (Space)',
+		});
 		expect(skillChoices([], changes)).toEqual({ 'Piloting (Space)': 'Piloting (Space)', Cool: 'Cool' });
 	});
 

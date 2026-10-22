@@ -17,8 +17,8 @@
 		"lint": "eslint --max-warnings=0 src build *.config.ts",
 		"knip": "knip",
 		"i18n": "node build/checkI18n.ts",
-		"format": "prettier --write src/ types/ build/ *.config.ts",
-		"format:check": "prettier --check src/ types/ build/ *.config.ts",
+		"format": "prettier --write src/ types/ build/ yaml/ *.config.ts",
+		"format:check": "prettier --check src/ types/ build/ yaml/ *.config.ts",
 		"test": "vitest run",
 		"typecheck": "vue-tsc --noEmit && tsc -p tsconfig.node.json"
 	},

@@ -124,7 +124,11 @@ declare global {
 		/*  Event Handlers                              */
 		/* -------------------------------------------- */
 
-		protected override _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext, user: User): Promise<void>;
+		protected override _preCreate(
+			data: PreDocumentId<this['_source']>,
+			options: DocumentModificationContext,
+			user: User,
+		): Promise<void>;
 	}
 
 	interface ActiveEffect {

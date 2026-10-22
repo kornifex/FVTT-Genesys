@@ -6,7 +6,8 @@ const NAMESPACE = /^(?:Genesys|TYPES)\./;
  * A Handlebars `concat` subexpression, a template literal whose interpolations stand for a part of the key, or a key that fills a quoted string.
  * A quoted key ending with a dot is the start of a concatenation.
  */
-const KEY_REFERENCE = /\(concat((?:\s+(?:'[^']*'|"[^"]*"|\([^()]*\)|[^\s()'"]+))+)\s*\)|`((?:Genesys|TYPES)\.(?:[\w.]|\$\{[^}]*\})*)`|(['"])((?:Genesys|TYPES)\.[\w.]*)\3/g;
+const KEY_REFERENCE =
+	/\(concat((?:\s+(?:'[^']*'|"[^"]*"|\([^()]*\)|[^\s()'"]+))+)\s*\)|`((?:Genesys|TYPES)\.(?:[\w.]|\$\{[^}]*\})*)`|(['"])((?:Genesys|TYPES)\.[\w.]*)\3/g;
 
 /** A `concat` argument is a quoted string or a value computed at runtime. */
 const CONCAT_ARGUMENT = /'([^']*)'|"([^"]*)"|\([^()]*\)|[^\s()'"]+/g;
@@ -44,7 +45,9 @@ export function checkKeys(references: ReadonlyMap<string, readonly string[]>, en
 	const matched = (enKey: string) => [...patterns.values()].some((pattern) => pattern.test(enKey));
 
 	return {
-		missing: [...references].filter(([key]) => !enKeys.some((enKey) => patterns.get(key)!.test(enKey))).map(([key, files]) => ({ key, files })),
+		missing: [...references]
+			.filter(([key]) => !enKeys.some((enKey) => patterns.get(key)!.test(enKey)))
+			.map(([key, files]) => ({ key, files })),
 		// Foundry localizes the document types from TYPES.<Document>.<type> itself.
 		unused: enKeys.filter((enKey) => !enKey.startsWith('TYPES.') && !matched(enKey)),
 		untranslated: enKeys.filter((enKey) => !frKeys.has(enKey)),

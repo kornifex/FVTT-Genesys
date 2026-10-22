@@ -51,7 +51,8 @@ export default function VueSheet<TBase extends Constructor, ContextType extends 
 			if (!this.form) {
 				const form = document.createElement('form');
 
-				const cssClass = (vueContext as { data?: { cssClass?: string } } | undefined)?.data?.cssClass ?? options?.classes?.join(' ') ?? '';
+				const cssClass =
+					(vueContext as { data?: { cssClass?: string } } | undefined)?.data?.cssClass ?? options?.classes?.join(' ') ?? '';
 
 				form.className = `${cssClass} vue-app`;
 				form.setAttribute('autocomplete', 'off');

@@ -135,7 +135,9 @@ export default class StoryPointTracker extends VueSheet(Application) {
 		}
 
 		// Add chat message
-		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', { type: targetPool === 'gmPool' ? 'gm' : 'player' });
+		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
+			type: targetPool === 'gmPool' ? 'gm' : 'player',
+		});
 		await ChatMessage.create({
 			user: game.user.id,
 			speaker: {

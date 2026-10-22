@@ -15,7 +15,10 @@ function walkedActor(actor: Actor): WalkedActor {
  */
 const foundryActorWorld: ActorWorld = {
 	worldActors: () => game.actors.map(walkedActor),
-	tokenActors: () => game.scenes.contents.flatMap((scene) => scene.tokens.contents.flatMap((token) => (!token.actorLink && token.actor ? [walkedActor(token.actor)] : []))),
+	tokenActors: () =>
+		game.scenes.contents.flatMap((scene) =>
+			scene.tokens.contents.flatMap((token) => (!token.actorLink && token.actor ? [walkedActor(token.actor)] : [])),
+		),
 	actorPacks: () =>
 		game.packs
 			.filter((pack) => pack.metadata.type === 'Actor' && pack.metadata.packageType === 'world')
@@ -38,7 +41,10 @@ async function migrateEveryActor(plan: ActorPlanner) {
 	return failures.length === 0;
 }
 
-const migrations: (() => Promise<boolean>)[] = [() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)), () => migrateEveryActor(actorOnlyOnceInCrew)];
+const migrations: (() => Promise<boolean>)[] = [
+	() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)),
+	() => migrateEveryActor(actorOnlyOnceInCrew),
+];
 
 export async function performMigrations(lastAlpha: string) {
 	const totalMigrationScripts = migrations.length;
@@ -54,17 +60,23 @@ export async function performMigrations(lastAlpha: string) {
 		return;
 	}
 
-	const isGmHub = game.users.activeGM?.isSelf ?? (game.user.isGM && game.users.filter((user) => user.isGM && user.active).every((candidate) => candidate.id >= game.user.id));
+	const isGmHub =
+		game.users.activeGM?.isSelf ??
+		(game.user.isGM && game.users.filter((user) => user.isGM && user.active).every((candidate) => candidate.id >= game.user.id));
 	if (!isGmHub) {
 		ui.notifications.error('Genesys.Migration.MustPerformMigration', { localize: true, permanent: true });
 		return;
 	}
 
-	ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingMigration', { amount: totalMigrationScripts - currentMigrationVersion }), { permanent: true });
+	ui.notifications.warn(
+		game.i18n.format('Genesys.Migration.StartingMigration', { amount: totalMigrationScripts - currentMigrationVersion }),
+		{ permanent: true },
+	);
 
 	const lastMigrationRun = await runMigrationChain(migrations, currentMigrationVersion, {
 		starting: (id) => ui.notifications.warn(game.i18n.format('Genesys.Migration.StartingScriptMigration', { id }), { permanent: true }),
-		completed: (id) => ui.notifications.warn(game.i18n.format('Genesys.Migration.CompletedScriptMigration', { id }), { permanent: true }),
+		completed: (id) =>
+			ui.notifications.warn(game.i18n.format('Genesys.Migration.CompletedScriptMigration', { id }), { permanent: true }),
 		stopped: (id) => ui.notifications.error(game.i18n.format('Genesys.Migration.StoppedScriptMigration', { id }), { permanent: true }),
 	});
 
@@ -76,7 +88,9 @@ export async function performMigrations(lastAlpha: string) {
 
 	const remainingAmountMigrations = totalMigrationScripts - lastMigrationRun;
 	if (remainingAmountMigrations > 0) {
-		ui.notifications.error(game.i18n.format('Genesys.Migration.StoppedMigration', { amount: remainingAmountMigrations }), { permanent: true });
+		ui.notifications.error(game.i18n.format('Genesys.Migration.StoppedMigration', { amount: remainingAmountMigrations }), {
+			permanent: true,
+		});
 	} else {
 		ui.notifications.info('Genesys.Migration.CompletedMigration', { localize: true, permanent: true });
 	}

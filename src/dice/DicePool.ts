@@ -107,7 +107,8 @@ export function applyDicePoolModifications(dicePool: DicePool, modifierTokens: s
 
 			// Check which sub pool we want to modify. Note that dice glyphs are always uppercase letters while symbols
 			// use lowercase letters.
-			const targetSubPool: PartialRecord<PoolEntity, number> = targetEntity === targetEntity.toUpperCase() ? dicePool.dice : dicePool.symbols;
+			const targetSubPool: PartialRecord<PoolEntity, number> =
+				targetEntity === targetEntity.toUpperCase() ? dicePool.dice : dicePool.symbols;
 			const entityName = GenesysPoolModifications[targetEntity].targetName;
 
 			// Do not let the number of dice or symbols be a negative value.
@@ -198,8 +199,16 @@ export function hasSameChanceToSucceed(firstDicePool: DicePool, secondDicePool: 
 	}
 
 	// Advantages and threats do not impact the chance to succeed so we ignore them.
-	const firstPoolNetSuccesses = (firstDicePool.symbols.Success ?? 0) + (firstDicePool.symbols.Triumph ?? 0) - (firstDicePool.symbols.Failure ?? 0) - (firstDicePool.symbols.Despair ?? 0);
-	const secondPoolNetSuccesses = (secondDicePool.symbols.Success ?? 0) + (secondDicePool.symbols.Triumph ?? 0) - (secondDicePool.symbols.Failure ?? 0) - (secondDicePool.symbols.Despair ?? 0);
+	const firstPoolNetSuccesses =
+		(firstDicePool.symbols.Success ?? 0) +
+		(firstDicePool.symbols.Triumph ?? 0) -
+		(firstDicePool.symbols.Failure ?? 0) -
+		(firstDicePool.symbols.Despair ?? 0);
+	const secondPoolNetSuccesses =
+		(secondDicePool.symbols.Success ?? 0) +
+		(secondDicePool.symbols.Triumph ?? 0) -
+		(secondDicePool.symbols.Failure ?? 0) -
+		(secondDicePool.symbols.Despair ?? 0);
 
 	return firstPoolNetSuccesses === secondPoolNetSuccesses;
 }

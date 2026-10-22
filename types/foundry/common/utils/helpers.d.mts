@@ -59,7 +59,12 @@ export function duplicate<T>(original: T): T;
  * @example <caption>Deleting an existing object key</caption>
  * mergeObject({k1: "v1", k2: "v2"}, {"-=k1": null});   // {k2: "v2"}
  */
-export function mergeObject<T extends object, U extends object = T>(original: T, other?: U, { insertKeys, insertValues, overwrite, inplace, enforceTypes }?: MergeObjectOptions, _d?: number): T & U;
+export function mergeObject<T extends object, U extends object = T>(
+	original: T,
+	other?: U,
+	{ insertKeys, insertValues, overwrite, inplace, enforceTypes }?: MergeObjectOptions,
+	_d?: number,
+): T & U;
 
 /**
  * Learn the named type of a token - extending the functionality of typeof to recognize some core Object types

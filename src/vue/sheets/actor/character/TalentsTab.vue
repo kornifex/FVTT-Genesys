@@ -21,7 +21,9 @@ const activeAbilities = computed(
 				return a.name.localeCompare(b.name);
 			}) as GenesysItem<AbilityDataModel>[],
 );
-const activeAbilityTypes = computed(() => Array.from(new Set(activeAbilities.value.map((t) => t.systemData.activation.detail.toLowerCase()))).filter((t) => t !== ''));
+const activeAbilityTypes = computed(() =>
+	Array.from(new Set(activeAbilities.value.map((t) => t.systemData.activation.detail.toLowerCase()))).filter((t) => t !== ''),
+);
 const passiveAbilities = computed(
 	() =>
 		toRaw(context.data.actor)
@@ -30,7 +32,12 @@ const passiveAbilities = computed(
 				return a.name.localeCompare(b.name);
 			}) as GenesysItem<AbilityDataModel>[],
 );
-const archetypeAbilities = computed(() => (toRaw(context.data.actor).items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel>)?.systemData.grantedItems.filter((g) => g.type === 'ability').map((r) => r.name) ?? []);
+const archetypeAbilities = computed(
+	() =>
+		(toRaw(context.data.actor).items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel>)?.systemData.grantedItems
+			.filter((g) => g.type === 'ability')
+			.map((r) => r.name) ?? [],
+);
 
 const allTalents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const activeTalents = computed(() => {
@@ -43,7 +50,15 @@ const activeTalents = computed(() => {
 			return a.name.localeCompare(b.name);
 		});
 });
-const activeTalentTypes = computed(() => Array.from(new Set(activeTalents.value.filter((t) => t.systemData.activation.detail.trim() !== '').map((t) => t.systemData.activation.detail.toLowerCase()))));
+const activeTalentTypes = computed(() =>
+	Array.from(
+		new Set(
+			activeTalents.value
+				.filter((t) => t.systemData.activation.detail.trim() !== '')
+				.map((t) => t.systemData.activation.detail.toLowerCase()),
+		),
+	),
+);
 const passiveTalents = computed(() => {
 	return allTalents.value
 		.filter((i) => i.systemData.activation.type === 'passive')
@@ -75,10 +90,26 @@ async function openItem(item: GenesysItem) {
 	<section class="tab-talents">
 		<div class="pyramid">
 			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 1 }" />: {{ talentTotals[1] }}/∞</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{ tierLimit(talentTotals, 2) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 3 }" />: {{ talentTotals[3] }}/{{ tierLimit(talentTotals, 3) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 4 }" />: {{ talentTotals[4] }}/{{ tierLimit(talentTotals, 4) }}</div>
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 5 }" />: {{ talentTotals[5] }}/{{ tierLimit(talentTotals, 5) }}</div>
+			<div>
+				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{
+					tierLimit(talentTotals, 2)
+				}}
+			</div>
+			<div>
+				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 3 }" />: {{ talentTotals[3] }}/{{
+					tierLimit(talentTotals, 3)
+				}}
+			</div>
+			<div>
+				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 4 }" />: {{ talentTotals[4] }}/{{
+					tierLimit(talentTotals, 4)
+				}}
+			</div>
+			<div>
+				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 5 }" />: {{ talentTotals[5] }}/{{
+					tierLimit(talentTotals, 5)
+				}}
+			</div>
 		</div>
 
 		<div class="block">

@@ -123,7 +123,9 @@ async function activate() {
 
 	// Again, this shouldn't happen - but just in case.
 	if (editing.value) {
-		log.error(`Attempted to activate an editor for ${props.name} in ${rootContext.sheet.document.name}, but the editor is already active!`);
+		log.error(
+			`Attempted to activate an editor for ${props.name} in ${rootContext.sheet.document.name}, but the editor is already active!`,
+		);
 		return;
 	}
 

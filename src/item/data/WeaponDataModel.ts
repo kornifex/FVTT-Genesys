@@ -14,7 +14,15 @@ export default abstract class WeaponDataModel extends BaseWeaponDataModel {
 			...super.defineSchema(),
 			damageCharacteristic: new fields.StringField({
 				initial: '-',
-				choices: ['-', Characteristic.Brawn, Characteristic.Agility, Characteristic.Intellect, Characteristic.Cunning, Characteristic.Willpower, Characteristic.Presence],
+				choices: [
+					'-',
+					Characteristic.Brawn,
+					Characteristic.Agility,
+					Characteristic.Intellect,
+					Characteristic.Cunning,
+					Characteristic.Willpower,
+					Characteristic.Presence,
+				],
 			}),
 		};
 	}

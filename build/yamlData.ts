@@ -15,7 +15,9 @@ export function readYamlData(dir: string): Map<string, string> {
 		.map((file) => file.split(path.sep).join('/'))
 		.sort();
 
-	return new Map(files.map((file) => [file.replace(/\.yml$/, '.json'), JSON.stringify(load(fs.readFileSync(path.join(dir, file), 'utf8')))]));
+	return new Map(
+		files.map((file) => [file.replace(/\.yml$/, '.json'), JSON.stringify(load(fs.readFileSync(path.join(dir, file), 'utf8')))]),
+	);
 }
 
 /**
@@ -50,7 +52,11 @@ export function yamlData(dir: string): Plugin {
 			const root = path.resolve(dir);
 			server.watcher.add(root);
 			server.watcher.on('all', (event, file) => {
-				if (['add', 'change', 'unlink'].includes(event) && path.resolve(file).startsWith(root + path.sep) && file.endsWith('.yml')) {
+				if (
+					['add', 'change', 'unlink'].includes(event) &&
+					path.resolve(file).startsWith(root + path.sep) &&
+					file.endsWith('.yml')
+				) {
 					data = readYamlData(dir);
 					server.ws.send({ type: 'full-reload' });
 				}

@@ -20,8 +20,15 @@ import { skillNamesMatch, skillToRoll } from '@/data/Skills';
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
-const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'vehicleWeapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<VehicleWeaponDataModel>[]);
-const criticalHits = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const weapons = computed(
+	() =>
+		toRaw(rootContext.data.actor).items.filter(
+			(i) => i.type === 'vehicleWeapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
+		) as GenesysItem<VehicleWeaponDataModel>[],
+);
+const criticalHits = computed(
+	() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[],
+);
 
 const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {
 	'-': 'D'.repeat(0),
@@ -56,7 +63,9 @@ async function deleteItem(item: GenesysItem) {
 async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
 	const potentialAttackers: CharacterSkillOption[] = [];
 	for (const role of actor.value.systemData.roles) {
-		const roleWeaponSkills = weapon.systemData.skills.filter((weaponSkill) => role.skills.some((skill) => skillNamesMatch(skill, weaponSkill)));
+		const roleWeaponSkills = weapon.systemData.skills.filter((weaponSkill) =>
+			role.skills.some((skill) => skillNamesMatch(skill, weaponSkill)),
+		);
 		if (roleWeaponSkills.length === 0) {
 			continue;
 		}
@@ -99,7 +108,9 @@ async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataMo
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	const skillNameForRepairing = CONFIG.genesys.settings.skillForRepairingHit;
-	const relevantRoles = actor.value.systemData.roles.filter((role) => role.skills.some((skill) => skillNamesMatch(skill, skillNameForRepairing)));
+	const relevantRoles = actor.value.systemData.roles.filter((role) =>
+		role.skills.some((skill) => skillNamesMatch(skill, skillNameForRepairing)),
+	);
 	const potentialRepairer: CharacterSkillOption[] = [];
 
 	for (const role of relevantRoles) {

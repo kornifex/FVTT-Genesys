@@ -57,7 +57,10 @@ const RELEVANT_TYPES = {
 	CONSUMABLE: ['consumable'],
 };
 
-export default abstract class VehicleDataModel extends foundry.abstract.DataModel implements IHasPreCreate<GenesysActor<VehicleDataModel>>, IHasOnDelete<GenesysActor<VehicleDataModel>> {
+export default abstract class VehicleDataModel
+	extends foundry.abstract.DataModel
+	implements IHasPreCreate<GenesysActor<VehicleDataModel>>, IHasOnDelete<GenesysActor<VehicleDataModel>>
+{
 	abstract silhouette: number;
 	abstract speed: number;
 	abstract handling: number;
@@ -141,7 +144,10 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 			(accum, item) => {
 				const equipment = item as GenesysItem<EquipmentDataModel>;
 
-				if (VehicleDataModel.isRelevantTypeForContext('ENCUMBRANCE', equipment.type) && equipment.systemData.encumbrance !== undefined) {
+				if (
+					VehicleDataModel.isRelevantTypeForContext('ENCUMBRANCE', equipment.type) &&
+					equipment.systemData.encumbrance !== undefined
+				) {
 					if (equipment.systemData.encumbrance >= 0) {
 						accum.value += equipment.systemData.encumbrance * equipment.systemData.quantity;
 					} else {
@@ -307,7 +313,10 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 	}
 
 	hasCrew(crewUuid: string) {
-		return this.passengers.list.some((passenger) => passenger.uuid === crewUuid) || this.roles.some((role) => role.members.includes(crewUuid));
+		return (
+			this.passengers.list.some((passenger) => passenger.uuid === crewUuid) ||
+			this.roles.some((role) => role.members.includes(crewUuid))
+		);
 	}
 
 	async removeCrew(crewUuid: string) {
@@ -341,10 +350,20 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 	}
 
 	async handleEffectsStatus(items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
-		await updateEffectsStatus(this.parent as unknown as GenesysActor<VehicleDataModel>, VehicleDataModel.isRelevantTypeForContext, items, overrides);
+		await updateEffectsStatus(
+			this.parent as unknown as GenesysActor<VehicleDataModel>,
+			VehicleDataModel.isRelevantTypeForContext,
+			items,
+			overrides,
+		);
 	}
 
-	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: unknown, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _user: User) {
+	async preCreate(
+		actor: GenesysActor<VehicleDataModel>,
+		_data: unknown,
+		_options: DocumentModificationContext<GenesysActor<VehicleDataModel>>,
+		_user: User,
+	) {
 		const prototypeToken = {
 			bar1: { attribute: 'trauma' },
 			bar2: { attribute: 'strain' },
@@ -354,7 +373,11 @@ export default abstract class VehicleDataModel extends foundry.abstract.DataMode
 		actor.updateSource({ prototypeToken });
 	}
 
-	onDelete(actor: GenesysActor<VehicleDataModel>, _options: DocumentModificationContext<GenesysActor<VehicleDataModel>>, _userId: string) {
+	onDelete(
+		actor: GenesysActor<VehicleDataModel>,
+		_options: DocumentModificationContext<GenesysActor<VehicleDataModel>>,
+		_userId: string,
+	) {
 		VehicleDataModel._GAME_VEHICLES.delete(actor);
 	}
 

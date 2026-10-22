@@ -8,7 +8,9 @@ declare namespace foundry {
 			attribute: string | null;
 		}
 
-		class TokenBarData<TDocument extends documents.BaseToken | documents.BaseActor = documents.BaseToken | documents.BaseActor> extends abstract.DocumentData<TDocument> {
+		class TokenBarData<
+			TDocument extends documents.BaseToken | documents.BaseActor = documents.BaseToken | documents.BaseActor,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 		}
 

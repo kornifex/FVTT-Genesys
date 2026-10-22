@@ -21,7 +21,9 @@ declare module foundry {
 			alias: string;
 		}
 
-		class ChatSpeakerData<TDocument extends documents.BaseChatMessage = documents.BaseChatMessage> extends abstract.DocumentData<TDocument> {
+		class ChatSpeakerData<
+			TDocument extends documents.BaseChatMessage = documents.BaseChatMessage,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 		}
 

@@ -7,7 +7,10 @@ import { EmbeddedCollection } from './embedded-collection.mjs';
  * @param [data={}]    Initial data used to construct the data object
  * @param [options={}] Options which affect DataModel construction
  */
-export abstract class DataModel<TParent extends DataModel | null = _DataModel | null, TSchema extends fields.DataSchema = fields.DataSchema> {
+export abstract class DataModel<
+	TParent extends DataModel | null = _DataModel | null,
+	TSchema extends fields.DataSchema = fields.DataSchema,
+> {
 	constructor(data?: DeepPartial<SourceFromSchema<fields.DataSchema>>, options?: DataModelConstructionOptions<TParent>);
 
 	/**
@@ -106,7 +109,14 @@ export abstract class DataModel<TParent extends DataModel | null = _DataModel | 
 	 *                                 example testing a complete data model) by explicitly passing true.
 	 * @return An indicator for whether the document contains valid data
 	 */
-	validate(options?: { changes?: DeepPartial<SourceFromSchema<TSchema>>; clean?: boolean; fallback?: boolean; strict?: boolean; fields?: boolean; joint?: boolean }): boolean;
+	validate(options?: {
+		changes?: DeepPartial<SourceFromSchema<TSchema>>;
+		clean?: boolean;
+		fallback?: boolean;
+		strict?: boolean;
+		fields?: boolean;
+		joint?: boolean;
+	}): boolean;
 
 	/**
 	 * Get an array of validation errors from the provided error structure
@@ -178,7 +188,13 @@ export abstract class DataModel<TParent extends DataModel | null = _DataModel | 
 }
 
 export type RawObject<TModel extends DataModel<DataModel | null>> = {
-	[P in keyof TModel]: TModel[P] extends EmbeddedCollection<infer U> ? RawObject<U>[] : TModel[P] extends DataModel ? RawObject<TModel[P]> : TModel[P] extends DataModel[] ? RawObject<TModel[P][number]>[] : TModel[P];
+	[P in keyof TModel]: TModel[P] extends EmbeddedCollection<infer U>
+		? RawObject<U>[]
+		: TModel[P] extends DataModel
+			? RawObject<TModel[P]>
+			: TModel[P] extends DataModel[]
+				? RawObject<TModel[P][number]>[]
+				: TModel[P];
 };
 
 declare global {

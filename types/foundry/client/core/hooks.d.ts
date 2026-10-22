@@ -17,14 +17,26 @@ declare global {
 	type HookParamsGetSceneControlButtons = HookParameters<'getSceneControlButtons', [SceneControl[]]>;
 	type HookParamsHotbarDrop = HookParameters<'hotbarDrop', [Hotbar, unknown, string]>;
 	type HookParamsLightingRefresh = HookParameters<'lightingRefresh', [LightingLayer]>;
-	type HookParamsPreCreateItem = HookParameters<'preCreateItem', [PreCreate<foundry.data.ItemSource>, DocumentModificationContext, string]>;
-	type HooksParamsPreUpdateCombat = HookParameters<'preUpdateCombat', [Combat, object, { diff: boolean; advanceTime: number; [key: string]: unknown }, string]>;
-	type HookParamsPreUpdateToken = HookParameters<'preUpdateToken', [Scene, foundry.data.TokenData, Partial<foundry.data.TokenData>, { diff: boolean; [key: string]: unknown }, string]>;
+	type HookParamsPreCreateItem = HookParameters<
+		'preCreateItem',
+		[PreCreate<foundry.data.ItemSource>, DocumentModificationContext, string]
+	>;
+	type HooksParamsPreUpdateCombat = HookParameters<
+		'preUpdateCombat',
+		[Combat, object, { diff: boolean; advanceTime: number; [key: string]: unknown }, string]
+	>;
+	type HookParamsPreUpdateToken = HookParameters<
+		'preUpdateToken',
+		[Scene, foundry.data.TokenData, Partial<foundry.data.TokenData>, { diff: boolean; [key: string]: unknown }, string]
+	>;
 	type HookParamsRender<T extends Application, N extends string> = HookParameters<`render${N}`, [T, JQuery, ReturnType<T['getData']>]>;
 	type HookParamsChatMessage = HookParameters<'chatMessage', [ChatLog, string, any]>;
 	type HookParamsRenderChatMessage = HookParameters<'renderChatMessage', [ChatMessage, JQuery, foundry.data.ChatMessageSource]>;
 	type HookParamsTargetToken = HookParameters<'targetToken', [User, Token, boolean]>;
-	type HookParamsUpdate<T extends ClientDocument, N extends string> = HookParameters<`update${N}`, [T, DocumentUpdateData<T>, DocumentModificationContext]>;
+	type HookParamsUpdate<T extends ClientDocument, N extends string> = HookParameters<
+		`update${N}`,
+		[T, DocumentUpdateData<T>, DocumentModificationContext]
+	>;
 	type HookParamsUpdateWorldTime = HookParameters<'updateWorldTime', [number, number]>;
 
 	class Hooks {

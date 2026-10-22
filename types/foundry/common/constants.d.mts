@@ -81,7 +81,20 @@ export const COMPATIBILITY_MODES: {
 export const DEFAULT_TOKEN: 'icons/svg/mystery-man.svg';
 
 /** Define the allowed Document class types. */
-export const DOCUMENT_TYPES: ['Actor', 'Cards', 'ChatMessage', 'Combat', 'Item', 'Folder', 'JournalEntry', 'Macro', 'Playlist', 'RollTable', 'Scene', 'User'];
+export const DOCUMENT_TYPES: [
+	'Actor',
+	'Cards',
+	'ChatMessage',
+	'Combat',
+	'Item',
+	'Folder',
+	'JournalEntry',
+	'Macro',
+	'Playlist',
+	'RollTable',
+	'Scene',
+	'User',
+];
 
 /** The allowed Document types which may exist within a Compendium pack. */
 export const COMPENDIUM_DOCUMENT_TYPES: ['Actor', 'Cards', 'Item', 'JournalEntry', 'Macro', 'Playlist', 'RollTable', 'Scene', 'Adventure'];

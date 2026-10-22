@@ -6,7 +6,11 @@ declare module foundry {
 
 			static override get metadata(): FogExplorationMetadata;
 
-			protected override _preUpdate(changed: DocumentUpdateData<this>, options: DocumentModificationContext, user: BaseUser): Promise<void>;
+			protected override _preUpdate(
+				changed: DocumentUpdateData<this>,
+				options: DocumentModificationContext,
+				user: BaseUser,
+			): Promise<void>;
 
 			/** Test whether a User can modify a FogExploration document. */
 			protected static _canUserModify<T extends BaseFogExploration>(user: BaseUser, doc: T): boolean;

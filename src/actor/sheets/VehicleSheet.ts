@@ -61,7 +61,9 @@ export default class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleData
 		if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 			if (droppedItem.actor) {
 				// If the item was dropped from another actor then we try transfering it and save a reference to it.
-				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) => VehicleDataModel.isRelevantTypeForContext('INVENTORY', type));
+				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) =>
+					VehicleDataModel.isRelevantTypeForContext('INVENTORY', type),
+				);
 			} else {
 				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
@@ -82,7 +84,10 @@ export default class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleData
 		return clonedDroppedItem ?? false;
 	}
 
-	protected override async _onDropActor(event: DragEvent, data: DropCanvasData<'Actor', GenesysActor<VehicleDataModel>>): Promise<false | void> {
+	protected override async _onDropActor(
+		event: DragEvent,
+		data: DropCanvasData<'Actor', GenesysActor<VehicleDataModel>>,
+	): Promise<false | void> {
 		// Regardless of what was dropped this is the last spot to process it.
 		event.stopPropagation();
 
@@ -125,7 +130,10 @@ export default class VehicleSheet extends VueSheet(GenesysActorSheet<VehicleData
 
 			// If the dropped actor produces unlinked tokens and the user can create actors then ask if they want to
 			// make a clone and save a reference of it instead.
-			if (!(droppedEntity as GenesysActor).prototypeToken.actorLink && (Actor.implementation as typeof GenesysActor).canUserCreate(game.user)) {
+			if (
+				!(droppedEntity as GenesysActor).prototypeToken.actorLink &&
+				(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)
+			) {
 				const actorToAdd = await CloneActorPrompt.promptForInstantiation(droppedEntity as GenesysActor);
 
 				if (actorToAdd) {

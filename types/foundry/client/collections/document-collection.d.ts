@@ -42,7 +42,11 @@ declare abstract class DocumentCollection<TDocument extends foundry.abstract.Doc
 	 * @param [options]      Additional options passed to Entity.update
 	 * @return An array of updated data once the operation is complete
 	 */
-	updateAll(transformation: DocumentUpdateData<TDocument> | ((document: TDocument) => DocumentUpdateData<TDocument>), condition?: ((document: TDocument) => boolean) | null, options?: DocumentModificationContext): Promise<TDocument[]>;
+	updateAll(
+		transformation: DocumentUpdateData<TDocument> | ((document: TDocument) => DocumentUpdateData<TDocument>),
+		condition?: ((document: TDocument) => boolean) | null,
+		options?: DocumentModificationContext,
+	): Promise<TDocument[]>;
 
 	/**
 	 * Preliminary actions taken before a set of Documents in this Collection are created.
@@ -59,7 +63,12 @@ declare abstract class DocumentCollection<TDocument extends foundry.abstract.Doc
 	 * @param options   Options which modified the creation operation
 	 * @param userId    The ID of the User who triggered the operation
 	 */
-	protected _onCreateDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onCreateDocuments(
+		documents: TDocument[],
+		result: TDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Preliminary actions taken before a set of Documents in this Collection are updated.
@@ -76,7 +85,12 @@ declare abstract class DocumentCollection<TDocument extends foundry.abstract.Doc
 	 * @param options   Options which modified the update operation
 	 * @param userId    The ID of the User who triggered the operation
 	 */
-	protected _onUpdateDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onUpdateDocuments(
+		documents: TDocument[],
+		result: TDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Preliminary actions taken before a set of Documents in this Collection are deleted.
@@ -93,5 +107,10 @@ declare abstract class DocumentCollection<TDocument extends foundry.abstract.Doc
 	 * @param options   Options which modified the deletion operation
 	 * @param userId    The ID of the User who triggered the operation
 	 */
-	protected _onDeleteDocuments(documents: TDocument[], result: TDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onDeleteDocuments(
+		documents: TDocument[],
+		result: TDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 }

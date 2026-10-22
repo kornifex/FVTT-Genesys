@@ -41,7 +41,9 @@ const system = computed(() => context.data.item.systemData);
 
 				<div class="row">
 					<label>
-						<Tooltip content="Genesys.Tooltips.IsInitiative" localized><Localized label="Genesys.Labels.IsInitiative" /></Tooltip>
+						<Tooltip content="Genesys.Tooltips.IsInitiative" localized
+							><Localized label="Genesys.Labels.IsInitiative"
+						/></Tooltip>
 					</label>
 					<input type="checkbox" name="system.initiative" :checked="system.initiative" />
 				</div>

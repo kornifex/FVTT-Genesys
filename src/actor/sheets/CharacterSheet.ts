@@ -46,7 +46,10 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 		};
 	}
 
-	protected override async _onDropItem(event: DragEvent, data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>): Promise<GenesysItem<BaseItemDataModel>[] | boolean> {
+	protected override async _onDropItem(
+		event: DragEvent,
+		data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>,
+	): Promise<GenesysItem<BaseItemDataModel>[] | boolean> {
 		// Regardless of what was dropped this is the last spot to process it.
 		event.stopPropagation();
 
@@ -122,12 +125,20 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 			} else if (droppedItem.type === 'talent') {
 				const droppedTalent = droppedItem as GenesysItem<TalentDataModel>;
 				const newId = foundry.utils.randomID();
-				const bought = await advance(this.actor, buyDroppedTalent(advancementCharacter(this.actor), { name: droppedTalent.name, tier: droppedTalent.systemData.tier, source: droppedTalent.toObject() }, newId));
+				const bought = await advance(
+					this.actor,
+					buyDroppedTalent(
+						advancementCharacter(this.actor),
+						{ name: droppedTalent.name, tier: droppedTalent.systemData.tier, source: droppedTalent.toObject() },
+						newId,
+					),
+				);
 				if (!bought) {
 					return false;
 				}
 
-				const targetTalent = this.actor.items.get(newId) ?? this.actor.items.find((i) => i.type === 'talent' && i.name === droppedTalent.name);
+				const targetTalent =
+					this.actor.items.get(newId) ?? this.actor.items.find((i) => i.type === 'talent' && i.name === droppedTalent.name);
 				clonedDroppedItem = [targetTalent as GenesysItem<BaseItemDataModel>];
 			} else {
 				// Let `super` handle the drop and save a reference to it.
@@ -136,7 +147,9 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 		} else if (CharacterDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 			if (droppedItem.actor) {
 				// If the item was dropped from another actor then we try transfering it and save a reference to it.
-				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) => CharacterDataModel.isRelevantTypeForContext('INVENTORY', type));
+				clonedDroppedItem = await transferInventoryBetweenActors(dragData, this.actor, (type) =>
+					CharacterDataModel.isRelevantTypeForContext('INVENTORY', type),
+				);
 			} else {
 				// If the item comes from a folder or compendium then let `super` handle the drop and save a reference to it.
 				clonedDroppedItem = await super._onDropItem(event, data);
@@ -169,7 +182,9 @@ export default class CharacterSheet extends VueSheet(GenesysActorSheet<Character
 	 */
 	async applyCareer(droppedCareer: GenesysItem<CareerDataModel>) {
 		const [career] = await this._onDropItemCreate(droppedCareer.toObject());
-		const commonSkills = <GenesysItem<SkillDataModel>[]>this.actor.items.filter((i) => i.type === 'skill' && isCareerSkill(i.name, droppedCareer.systemData.careerSkills));
+		const commonSkills = <GenesysItem<SkillDataModel>[]>(
+			this.actor.items.filter((i) => i.type === 'skill' && isCareerSkill(i.name, droppedCareer.systemData.careerSkills))
+		);
 		const selectedSkills = await CareerSkillPrompt.promptForSkills(commonSkills);
 
 		await career.update({

@@ -81,14 +81,24 @@ async function toggleEdit(which: 'gm' | 'player') {
 			<a v-if="isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"><i class="fas fa-arrows-rotate"></i></a>
 		</header>
 		<input v-if="editingGM" class="points" :value="context.gmPool" @change="manualStoryPoints('gm', $event)" ref="gmInput" />
-		<a v-else-if="canSpend.gmPool" class="points" @click="spendStoryPoint('gmPool')" @contextmenu="toggleEdit('gm')">{{ context.gmPool }}</a>
+		<a v-else-if="canSpend.gmPool" class="points" @click="spendStoryPoint('gmPool')" @contextmenu="toggleEdit('gm')">{{
+			context.gmPool
+		}}</a>
 		<div v-else class="points" @contextmenu="toggleEdit('gm')">{{ context.gmPool }}</div>
 	</div>
 
 	<div class="tracker">
 		<header><Localized label="Genesys.StoryPoints.Player" /></header>
-		<input v-if="editingPlayer" class="points" :value="context.playerPool" @change="manualStoryPoints('player', $event)" ref="playerInput" />
-		<a v-else-if="canSpend.playerPool" class="points" @click="spendStoryPoint('playerPool')" @contextmenu="toggleEdit('player')">{{ context.playerPool }}</a>
+		<input
+			v-if="editingPlayer"
+			class="points"
+			:value="context.playerPool"
+			@change="manualStoryPoints('player', $event)"
+			ref="playerInput"
+		/>
+		<a v-else-if="canSpend.playerPool" class="points" @click="spendStoryPoint('playerPool')" @contextmenu="toggleEdit('player')">{{
+			context.playerPool
+		}}</a>
 		<div v-else class="points" @contextmenu="toggleEdit('player')">{{ context.playerPool }}</div>
 	</div>
 </template>

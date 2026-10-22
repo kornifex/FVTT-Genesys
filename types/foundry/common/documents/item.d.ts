@@ -16,7 +16,11 @@ declare module foundry {
 
 			override canUserModify(user: BaseUser, action: UserAction, data?: DocumentUpdateData<this>): boolean;
 
-			override testUserPermission(user: BaseUser, permission: DocumentOwnershipString | DocumentOwnershipLevel, { exact }?: { exact?: boolean }): boolean;
+			override testUserPermission(
+				user: BaseUser,
+				permission: DocumentOwnershipString | DocumentOwnershipLevel,
+				{ exact }?: { exact?: boolean },
+			): boolean;
 
 			/**
 			 * Migrate the system data object to conform to data model defined by the current system version.
@@ -27,7 +31,15 @@ declare module foundry {
 			 * @param options.enforceTypes Require that data types match the model exactly to be retained
 			 * @return The migrated system data object, not yet saved to the database
 			 */
-			migrateSystemData({ insertKeys, insertValues, enforceTypes }?: { insertKeys?: boolean; insertValues?: boolean; enforceTypes?: boolean }): this['data']['system'];
+			migrateSystemData({
+				insertKeys,
+				insertValues,
+				enforceTypes,
+			}?: {
+				insertKeys?: boolean;
+				insertValues?: boolean;
+				enforceTypes?: boolean;
+			}): this['data']['system'];
 		}
 
 		interface BaseItem {

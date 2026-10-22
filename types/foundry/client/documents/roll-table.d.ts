@@ -46,7 +46,19 @@ declare global {
 		 * @param [options.rollMode]         The chat roll mode to use when displaying the result
 		 * @returns A Promise which resolves to an object containing the executed roll and the produced results
 		 */
-		draw({ roll, recursive, results, displayChat, rollMode }?: { roll?: Roll | null; recursive?: boolean; results?: TableResult[]; displayChat?: boolean; rollMode?: RollMode | null }): Promise<RollTableDraw>;
+		draw({
+			roll,
+			recursive,
+			results,
+			displayChat,
+			rollMode,
+		}?: {
+			roll?: Roll | null;
+			recursive?: boolean;
+			results?: TableResult[];
+			displayChat?: boolean;
+			rollMode?: RollMode | null;
+		}): Promise<RollTableDraw>;
 
 		/**
 		 * Draw multiple results from a RollTable, constructing a final synthetic Roll as a dice pool of inner rolls.
@@ -58,7 +70,15 @@ declare global {
 		 * @param [options.rollMode]         Customize the roll mode used to display the drawn results
 		 * @returns The drawn results
 		 */
-		drawMany(number: number, { roll, recursive, displayChat, rollMode }?: { roll?: Roll | null; recursive?: boolean; displayChat?: boolean; rollMode?: RollMode | null }): Promise<RollTableDraw>;
+		drawMany(
+			number: number,
+			{
+				roll,
+				recursive,
+				displayChat,
+				rollMode,
+			}?: { roll?: Roll | null; recursive?: boolean; displayChat?: boolean; rollMode?: RollMode | null },
+		): Promise<RollTableDraw>;
 
 		/** Normalize the probabilities of rolling each item in the RollTable based on their assigned weights */
 		normalize(): Promise<this>;
@@ -98,9 +118,21 @@ declare global {
 		/*  Event Handlers                              */
 		/* -------------------------------------------- */
 
-		protected override _onCreateEmbeddedDocuments(embeddedName: 'TableResult', documents: TableResult[], result: foundry.data.TableResultSource[], options: DocumentModificationContext, userId: string): void;
+		protected override _onCreateEmbeddedDocuments(
+			embeddedName: 'TableResult',
+			documents: TableResult[],
+			result: foundry.data.TableResultSource[],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onDeleteEmbeddedDocuments(embeddedName: 'TableResult', documents: TableResult[], result: foundry.data.TableResultSource[], options: DocumentModificationContext, userId: string): void;
+		protected override _onDeleteEmbeddedDocuments(
+			embeddedName: 'TableResult',
+			documents: TableResult[],
+			result: foundry.data.TableResultSource[],
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
 		/* -------------------------------------------- */
 		/*  Importing and Exporting                     */

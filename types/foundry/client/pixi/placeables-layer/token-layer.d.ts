@@ -37,7 +37,21 @@ declare global {
 
 		override deactivate(): this;
 
-		override selectObjects({ x, y, width, height, releaseOptions, controlOptions }: { x: number; y: number; width: number; height: number; releaseOptions?: object; controlOptions?: object }): number;
+		override selectObjects({
+			x,
+			y,
+			width,
+			height,
+			releaseOptions,
+			controlOptions,
+		}: {
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+			releaseOptions?: object;
+			controlOptions?: object;
+		}): number;
 		/**
 		 * Target all Token instances which fall within a coordinate rectangle.
 		 * @param x             The top-left x-coordinate of the selection rectangle
@@ -47,7 +61,10 @@ declare global {
 		 * @param releaseOthers Whether or not to release other targeted tokens
 		 * @return The number of Token instances which were targeted.
 		 */
-		targetObjects({ x, y, width, height }: { x: number; y: number; width: number; height: number }, { releaseOthers }?: { releaseOthers?: boolean }): number;
+		targetObjects(
+			{ x, y, width, height }: { x: number; y: number; width: number; height: number },
+			{ releaseOthers }?: { releaseOthers?: boolean },
+		): number;
 
 		/**
 		 * Cycle the controlled token by rotating through the list of Owned Tokens that are available within the Scene
@@ -66,7 +83,11 @@ declare global {
 		 * @param [token] A specific Token which is the origin of the group toggle request
 		 * @return The Combatants added or removed
 		 */
-		toggleCombat(state: boolean | undefined, combat: Combat, { token }?: { token?: TToken | null }): Promise<NonNullable<TToken['combatant']>>[];
+		toggleCombat(
+			state: boolean | undefined,
+			combat: Combat,
+			{ token }?: { token?: TToken | null },
+		): Promise<NonNullable<TToken['combatant']>>[];
 
 		/** Get the tab cycle order for tokens by sorting observable tokens based on their distance from top-left. */
 		protected _getCycleOrder(): TToken[];
@@ -79,7 +100,10 @@ declare global {
 		/* -------------------------------------------- */
 
 		/** Handle dropping of Actor data onto the Scene canvas */
-		protected _onDropActorData(event: ElementDragEvent, data: DropCanvasData<'Actor', NonNullable<TToken['actor']>['_source']>): Promise<TToken['actor']>;
+		protected _onDropActorData(
+			event: ElementDragEvent,
+			data: DropCanvasData<'Actor', NonNullable<TToken['actor']>['_source']>,
+		): Promise<TToken['actor']>;
 
 		protected override _onClickLeft(event: PIXI.InteractionEvent): void;
 	}

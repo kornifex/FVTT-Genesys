@@ -19,8 +19,18 @@ const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
 
-const weapons = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<WeaponDataModel>[]);
-const armors = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'armor' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped) as GenesysItem<ArmorDataModel>[]);
+const weapons = computed(
+	() =>
+		toRaw(rootContext.data.actor).items.filter(
+			(i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
+		) as GenesysItem<WeaponDataModel>[],
+);
+const armors = computed(
+	() =>
+		toRaw(rootContext.data.actor).items.filter(
+			(i) => i.type === 'armor' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
+		) as GenesysItem<ArmorDataModel>[],
+);
 const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 const SEVERITY_TO_DIFFICULTY: Record<InjuryDataModel['severity'], string> = {
@@ -101,7 +111,10 @@ function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
 					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.skill.id ?? 'skill'">
 						<template v-if="weaponSkill">
 							{{ weaponSkill.skill.name }}
-							<SkillRanks :skill-value="weaponSkill.rank" :characteristic-value="actor.systemData.characteristics[weaponSkill.skill.systemData.characteristic]" />
+							<SkillRanks
+								:skill-value="weaponSkill.rank"
+								:characteristic-value="actor.systemData.characteristics[weaponSkill.skill.systemData.characteristic]"
+							/>
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>

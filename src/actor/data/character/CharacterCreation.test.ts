@@ -12,7 +12,14 @@ describe('isInCharacterCreation', () => {
 	});
 
 	it('is true while the journal holds only starting XP and spends', () => {
-		expect(isInCharacterCreation([{ type: EntryType.Starting }, { type: EntryType.Characteristic }, { type: EntryType.Skill }, { type: EntryType.NewTalent }])).toBe(true);
+		expect(
+			isInCharacterCreation([
+				{ type: EntryType.Starting },
+				{ type: EntryType.Characteristic },
+				{ type: EntryType.Skill },
+				{ type: EntryType.NewTalent },
+			]),
+		).toBe(true);
 	});
 
 	it('ends with the first XP award', () => {

@@ -46,7 +46,13 @@ declare global {
 		 * @param menuItems The array of menu items being rendered.
 		 * @param [hookName="EntryContext"]  The name of the hook to call.
 		 */
-		static create(app: Application, html: JQuery, selector: string, menuItems: ContextMenuEntry[], hookName?: string): ContextMenu | void;
+		static create(
+			app: Application,
+			html: JQuery,
+			selector: string,
+			menuItems: ContextMenuEntry[],
+			hookName?: string,
+		): ContextMenu | void;
 
 		/** Attach a ContextMenu instance to an HTML selector */
 		bind(): void;

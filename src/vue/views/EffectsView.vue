@@ -48,7 +48,9 @@ async function deleteEffect(effect: GenesysEffect) {
 				<div class="source"><Localized label="Genesys.ActiveEffects.Source" /></div>
 				<div class="duration"><Localized label="Genesys.ActiveEffects.Duration" /></div>
 				<div class="buttons">
-					<a @click="emit('addEffect', section.toLowerCase())"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
+					<a @click="emit('addEffect', section.toLowerCase())"
+						><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add"
+					/></a>
 				</div>
 			</div>
 
@@ -59,7 +61,9 @@ async function deleteEffect(effect: GenesysEffect) {
 					<div class="source">{{ effect.sourceName }}</div>
 					<div class="duration">{{ effect.duration.label }}</div>
 					<div v-if="rootContext.data.editable" class="buttons">
-						<a @click="suppressEffect(effect)" :style="effect.isSuppressed ? 'opacity: 25%' : undefined"><i class="fas fa-power-off"></i></a>
+						<a @click="suppressEffect(effect)" :style="effect.isSuppressed ? 'opacity: 25%' : undefined"
+							><i class="fas fa-power-off"></i
+						></a>
 						<a @click="openEffect(effect)"><i class="fas fa-edit"></i></a>
 						<a v-if="!effect.origin" @click="deleteEffect(effect)"><i class="fas fa-trash"></i></a>
 					</div>

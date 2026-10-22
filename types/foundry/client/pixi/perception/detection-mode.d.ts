@@ -65,7 +65,12 @@ declare global {
 		 * @param target       The target object being tested
 		 * @param test         The test case being evaluated
 		 */
-		protected _testPoint(visionSource: VisionSource<Token>, mode: TokenDetectionMode, target: PlaceableObject, test: CanvasVisibilityTest): boolean;
+		protected _testPoint(
+			visionSource: VisionSource<Token>,
+			mode: TokenDetectionMode,
+			target: PlaceableObject,
+			test: CanvasVisibilityTest,
+		): boolean;
 
 		/**
 		 * Test whether the line-of-sight requirement for detection is satisfied.
@@ -77,7 +82,12 @@ declare global {
 		 * @param test         The test case being evaluated
 		 * @returns Is the LOS requirement satisfied for this test?
 		 */
-		protected _testLOS(visionSource: VisionSource<Token>, mode: TokenDetectionMode, target: PlaceableObject, test: CanvasVisibilityTest): boolean;
+		protected _testLOS(
+			visionSource: VisionSource<Token>,
+			mode: TokenDetectionMode,
+			target: PlaceableObject,
+			test: CanvasVisibilityTest,
+		): boolean;
 
 		/**
 		 * Verify that a target is in range of a source.
@@ -87,7 +97,12 @@ declare global {
 		 * @param test         The test case being evaluated
 		 * @returns Is the target within range?
 		 */
-		protected _testRange(visionSource: VisionSource<Token>, mode: TokenDetectionMode, target: PlaceableObject, test: CanvasVisibilityTest): boolean;
+		protected _testRange(
+			visionSource: VisionSource<Token>,
+			mode: TokenDetectionMode,
+			target: PlaceableObject,
+			test: CanvasVisibilityTest,
+		): boolean;
 	}
 
 	/**
@@ -98,7 +113,12 @@ declare global {
 	class DetectionModeBasicSight extends DetectionMode {
 		static override BASIC_MODE_ID: 'basicSight';
 
-		protected override _testPoint(visionSource: VisionSource<Token>, mode: TokenDetectionMode, target: PlaceableObject, test: CanvasVisibilityTest): boolean;
+		protected override _testPoint(
+			visionSource: VisionSource<Token>,
+			mode: TokenDetectionMode,
+			target: PlaceableObject,
+			test: CanvasVisibilityTest,
+		): boolean;
 	}
 
 	/**

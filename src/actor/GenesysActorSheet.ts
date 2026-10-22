@@ -4,10 +4,10 @@ import GenesysItem from '@/item/GenesysItem';
 
 import './GenesysActorSheet.scss';
 
-export default class GenesysActorSheet<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel, ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ActorSheet<
-	GenesysActor<ActorDataModel>,
-	GenesysItem<ItemDataModel>
-> {
+export default class GenesysActorSheet<
+	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
+	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
+> extends ActorSheet<GenesysActor<ActorDataModel>, GenesysItem<ItemDataModel>> {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,
