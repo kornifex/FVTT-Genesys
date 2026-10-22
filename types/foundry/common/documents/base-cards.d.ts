@@ -15,7 +15,11 @@ declare module foundry {
 			/** Is a user able to update an existing Card? */
 			protected static _canUpdate(user: BaseUser, doc: BaseCards, data: object): boolean;
 
-			override testUserPermission(user: BaseUser, permission: DocumentOwnershipString | DocumentOwnershipLevel, { exact }?: { exact?: boolean }): boolean;
+			override testUserPermission(
+				user: BaseUser,
+				permission: DocumentOwnershipString | DocumentOwnershipLevel,
+				{ exact }?: { exact?: boolean },
+			): boolean;
 		}
 
 		interface BaseCards extends abstract.Document {

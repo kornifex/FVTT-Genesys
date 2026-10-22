@@ -36,7 +36,10 @@ declare global {
 		 * @param border The hex border color of the highlight
 		 * @param alpha  The opacity of the highlight
 		 */
-		highlightGridPosition(layer: GridHighlight, data?: { x?: number; y?: number; color?: number; border?: number; alpha?: number }): this;
+		highlightGridPosition(
+			layer: GridHighlight,
+			data?: { x?: number; y?: number; color?: number; border?: number; alpha?: number },
+		): this;
 
 		/* -------------------------------------------- */
 		/*  Grid Measurement Methods

@@ -4,7 +4,15 @@ import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '
 import DicePrompt from '@/app/DicePrompt';
 import * as log from '@/log';
 import { Characteristic } from '@/data/Characteristics';
-import { ClaimInitiativeSlotData, emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload, CombatSocketBaseData, UpdateInitiativeForExtraSlotData } from '@/socket';
+import {
+	ClaimInitiativeSlotData,
+	emit as socketEmit,
+	SOCKET_NAME,
+	SocketOperation,
+	SocketPayload,
+	CombatSocketBaseData,
+	UpdateInitiativeForExtraSlotData,
+} from '@/socket';
 import {
 	buildSlots,
 	claimRefusal,
@@ -51,7 +59,9 @@ export default class GenesysCombat extends Combat {
 	 * Skills from the Skills Compendium that can be used for initiative.
 	 */
 	get initiativeSkills(): InitiativeSkill[] {
-		const initiativeSkills = CONFIG.genesys.skills.filter((skill) => skill.systemData.initiative).map((skill) => ({ skillName: skill.name, skillChar: skill.systemData.characteristic }));
+		const initiativeSkills = CONFIG.genesys.skills
+			.filter((skill) => skill.systemData.initiative)
+			.map((skill) => ({ skillName: skill.name, skillChar: skill.systemData.characteristic }));
 
 		// Without any, initiative is a Characteristic Check on Brawn.
 		if (initiativeSkills.length === 0) {
@@ -69,7 +79,11 @@ export default class GenesysCombat extends Combat {
 	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
 	slotsForRound(round: number): InitiativeSlot[] {
-		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({ id: combatant.id, initiative: combatant.initiative, disposition: combatant.disposition }));
+		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({
+			id: combatant.id,
+			initiative: combatant.initiative,
+			disposition: combatant.disposition,
+		}));
 
 		return buildSlots(combatants, extraSlotsForRound(this.storedExtraSlots, round), this.claimsForRound(round));
 	}
@@ -159,7 +173,10 @@ export default class GenesysCombat extends Combat {
 	 * Why a combatant can't claim an Initiative Slot, as a localization key, or undefined if it can.
 	 */
 	claimRefusal(round: number, slotId: string, combatant: GenesysCombatant): string | undefined {
-		return claimRefusal(this.slotsForRound(round), this.claimsForRound(round), slotId, { id: combatant.id, side: combatant.initiativeSide });
+		return claimRefusal(this.slotsForRound(round), this.claimsForRound(round), slotId, {
+			id: combatant.id,
+			side: combatant.initiativeSide,
+		});
 	}
 
 	/**
@@ -223,7 +240,10 @@ export default class GenesysCombat extends Combat {
 
 	async addExtraSlot(combatantId: string, round: number) {
 		// The new slot may sort before the current one.
-		await this.updateExtraSlots([...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }], this.currentSlotId);
+		await this.updateExtraSlots(
+			[...this.storedExtraSlots, { activationSource: combatantId, initiative: null, startingRound: round }],
+			this.currentSlotId,
+		);
 	}
 
 	/**
@@ -274,9 +294,14 @@ export default class GenesysCombat extends Combat {
 	 * Roll the initiative of combatants. Foundry names combatants: roll their own Initiative Slots, or the slots their
 	 * initiative gives this round when asked.
 	 */
-	override async rollInitiative(ids: string | string[], { formula: _formula = null, slotsOfCombatants, ...options }: GenesysRollInitiativeOptions = {}) {
+	override async rollInitiative(
+		ids: string | string[],
+		{ formula: _formula = null, slotsOfCombatants, ...options }: GenesysRollInitiativeOptions = {},
+	) {
 		const combatantIds = typeof ids === 'string' ? [ids] : ids;
-		const slotIds = slotsOfCombatants ? slotIdsOf(this.slots, combatantIds, { unrolledOnly: slotsOfCombatants === 'unrolled' }) : ownSlotIds(combatantIds);
+		const slotIds = slotsOfCombatants
+			? slotIdsOf(this.slots, combatantIds, { unrolledOnly: slotsOfCombatants === 'unrolled' })
+			: ownSlotIds(combatantIds);
 
 		return this.rollSlotsInitiative(slotIds, options);
 	}
@@ -307,14 +332,24 @@ export default class GenesysCombat extends Combat {
 
 			if (prompt) {
 				try {
-					checkRoll = await DicePrompt.promptForInitiative(combatant.actor, initiativeSkill.skillName, { difficulty: '', characteristic: initiativeSkill.skillChar });
+					checkRoll = await DicePrompt.promptForInitiative(combatant.actor, initiativeSkill.skillName, {
+						difficulty: '',
+						characteristic: initiativeSkill.skillChar,
+					});
 				} catch {
 					continue;
 				}
 			} else {
 				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
-				const check = resolveCheck(combatant.actor, { skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar }, worldCheckRules());
-				checkRoll = { check, dicePool: checkDicePool(check, { difficulty: '', isEnabled: () => CONFIG.genesys.settings.autoApplyPoolModifications }) };
+				const check = resolveCheck(
+					combatant.actor,
+					{ skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar },
+					worldCheckRules(),
+				);
+				checkRoll = {
+					check,
+					dicePool: checkDicePool(check, { difficulty: '', isEnabled: () => CONFIG.genesys.settings.autoApplyPoolModifications }),
+				};
 			}
 
 			const roll = GenesysRoller.rollForPool(checkRoll.dicePool);
@@ -325,11 +360,16 @@ export default class GenesysCombat extends Combat {
 			const chatData = {
 				user: game.user.id,
 				speaker: { actor: combatant.actorId },
-				content: await GenesysRoller.checkMessageContent(checkDescription(checkRoll.check, { kind: 'initiative' }, game.i18n), results),
+				content: await GenesysRoller.checkMessageContent(
+					checkDescription(checkRoll.check, { kind: 'initiative' }, game.i18n),
+					results,
+				),
 				sound: messages.length > 0 ? null : CONFIG.sounds.dice,
 				rolls: [roll],
 			};
-			const rollMode = ('rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode) as RollMode;
+			const rollMode = (
+				'rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode
+			) as RollMode;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- Foundry's types take the data of a message to create for a whole ChatMessageSource.
 			ChatMessage.applyRollMode(chatData as any, rollMode);
 
@@ -348,7 +388,11 @@ export default class GenesysCombat extends Combat {
 			// Without a turn, Foundry keeps it on the current combatant's first slot.
 			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { combatants: writes.combatants });
 			// The types we have lack Foundry's turn options.
-			await this.updateEmbeddedDocuments('Combatant', writes.combatants, combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as DocumentModificationContext<this>));
+			await this.updateEmbeddedDocuments(
+				'Combatant',
+				writes.combatants,
+				combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as DocumentModificationContext<this>),
+			);
 		}
 
 		if (writes.extraSlots.length) {
@@ -397,7 +441,9 @@ export default class GenesysCombat extends Combat {
 	}
 
 	override async rollAll(options?: RollInitiativeOptions, onlyNPCs: boolean = false) {
-		const combatantIds = this.combatants.filter((combatant) => combatant.isOwner && (!onlyNPCs || combatant.isNPC)).map((combatant) => combatant.id);
+		const combatantIds = this.combatants
+			.filter((combatant) => combatant.isOwner && (!onlyNPCs || combatant.isNPC))
+			.map((combatant) => combatant.id);
 
 		return this.rollSlotsInitiative(slotIdsOf(this.slots, combatantIds, { unrolledOnly: true }), options);
 	}
@@ -406,7 +452,11 @@ export default class GenesysCombat extends Combat {
 		return this.rollAll(options, true);
 	}
 
-	protected override async _preUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, user: foundry.documents.BaseUser) {
+	protected override async _preUpdate(
+		changed: DeepPartial<this['_source']>,
+		options: DocumentUpdateContext<this>,
+		user: foundry.documents.BaseUser,
+	) {
 		// Foundry picks the last turn of a round from the turns of the round it leaves, but a round only has the extra slots
 		// added up to it.
 		if (typeof changed.round === 'number' && typeof changed.turn === 'number') {

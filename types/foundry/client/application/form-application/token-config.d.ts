@@ -1,5 +1,8 @@
 /** A Token Configuration Application */
-declare class TokenConfig<TDocument extends TokenDocument = TokenDocument, TOptions extends DocumentSheetOptions = DocumentSheetOptions> extends DocumentSheet<TDocument, TOptions> {
+declare class TokenConfig<
+	TDocument extends TokenDocument = TokenDocument,
+	TOptions extends DocumentSheetOptions = DocumentSheetOptions,
+> extends DocumentSheet<TDocument, TOptions> {
 	constructor(object: TDocument, options?: Partial<FormApplicationOptions>);
 
 	token: TDocument;

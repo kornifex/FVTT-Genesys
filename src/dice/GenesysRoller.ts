@@ -118,7 +118,8 @@ export default class GenesysRoller {
 		const withDamageCharacteristic = (weapon.systemData as WeaponDataModel).damageCharacteristic;
 		if (actor && withDamageCharacteristic && withDamageCharacteristic !== '-') {
 			totalDamage += (actor.system as { characteristics: CharacteristicsContainer }).characteristics[withDamageCharacteristic];
-			damageFormula = game.i18n.localize(`Genesys.CharacteristicAbbr.${withDamageCharacteristic.capitalize()}`) + ` + ${damageFormula}`;
+			damageFormula =
+				game.i18n.localize(`Genesys.CharacteristicAbbr.${withDamageCharacteristic.capitalize()}`) + ` + ${damageFormula}`;
 		}
 
 		if (results.netSuccess > 0) {

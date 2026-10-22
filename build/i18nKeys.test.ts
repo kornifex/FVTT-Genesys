@@ -29,7 +29,11 @@ describe('keyReferences', () => {
 			{{ localize (concat 'Genesys.Range.' (capitalize system.range)) }}
 		`;
 
-		expect(keyReferences(source)).toEqual(['Genesys.Equipment.DamageState.*', 'Genesys.StoryPoints.ChatMessage*Pool', 'Genesys.Range.*']);
+		expect(keyReferences(source)).toEqual([
+			'Genesys.Equipment.DamageState.*',
+			'Genesys.StoryPoints.ChatMessage*Pool',
+			'Genesys.Range.*',
+		]);
 	});
 });
 

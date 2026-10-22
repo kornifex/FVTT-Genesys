@@ -20,7 +20,11 @@ declare module foundry {
 		 * @property [ownership] An object which configures user permissions to this Actor
 		 * @property [flags={}]   An object of optional key/value flags
 		 */
-		interface ActorSource<TType extends string = string, TSystemSource extends object = object, TItemSource extends ItemSource = ItemSource> {
+		interface ActorSource<
+			TType extends string = string,
+			TSystemSource extends object = object,
+			TItemSource extends ItemSource = ItemSource,
+		> {
 			_id: string;
 			name: string;
 			type: TType;
@@ -35,7 +39,11 @@ declare module foundry {
 			flags: ActorFlags;
 		}
 
-		class ActorData<TDocument extends documents.BaseActor, TActiveEffect extends documents.BaseActiveEffect, TItem extends documents.BaseItem> extends abstract.DocumentData<TDocument> {
+		class ActorData<
+			TDocument extends documents.BaseActor,
+			TActiveEffect extends documents.BaseActiveEffect,
+			TItem extends documents.BaseItem,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 
 			/** A Collection of ActiveEffect embedded Documents */
@@ -49,7 +57,11 @@ declare module foundry {
 			protected override _initialize(): void;
 		}
 
-		interface ActorData<TDocument extends documents.BaseActor, TActiveEffect extends documents.BaseActiveEffect, TItem extends documents.BaseItem> extends Omit<ActorSource, 'effects' | 'flags' | 'items' | 'token'> {
+		interface ActorData<
+			TDocument extends documents.BaseActor,
+			TActiveEffect extends documents.BaseActiveEffect,
+			TItem extends documents.BaseItem,
+		> extends Omit<ActorSource, 'effects' | 'flags' | 'items' | 'token'> {
 			readonly _source: ActorSource;
 		}
 

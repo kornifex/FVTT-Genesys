@@ -3,7 +3,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { canAddTalentAtTier, canRemoveTalentAtTier, countTalentsPerTier, PyramidTalent, TalentPyramidTotals, tierLimit } from '@/actor/data/character/TalentPyramid';
+import {
+	canAddTalentAtTier,
+	canRemoveTalentAtTier,
+	countTalentsPerTier,
+	PyramidTalent,
+	TalentPyramidTotals,
+	tierLimit,
+} from '@/actor/data/character/TalentPyramid';
 
 function talent(tier: number, rank = 1): PyramidTalent {
 	return { tier, rank, effectiveTier: Math.min(5, tier + rank - 1) };

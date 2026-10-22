@@ -134,7 +134,6 @@ Actor:
       threshold: 0
     roles: []
 
-
 Item:
   types:
     # TODO: It'd be nice to do something like Pathfinder 2E does, using optgroups in the drop-down.

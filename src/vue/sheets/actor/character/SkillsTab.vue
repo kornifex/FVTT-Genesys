@@ -34,7 +34,15 @@ const SKILL_CATEGORY_SORT_ORDER = {
 
 const skills = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'skill') as GenesysItem<SkillDataModel>[]);
 
-const skillCategories = computed(() => Array.from(new Set(skills.value.map((s) => s.systemData.category).sort((left, right) => SKILL_CATEGORY_SORT_ORDER[left] - SKILL_CATEGORY_SORT_ORDER[right]))));
+const skillCategories = computed(() =>
+	Array.from(
+		new Set(
+			skills.value
+				.map((s) => s.systemData.category)
+				.sort((left, right) => SKILL_CATEGORY_SORT_ORDER[left] - SKILL_CATEGORY_SORT_ORDER[right]),
+		),
+	),
+);
 
 const canMarkSuper = computed(() => system.value.availableStartingXP > 0);
 
@@ -192,13 +200,17 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 
 						<div class="body">
 							<ContextMenu
-								v-for="skill in skills.filter((s) => s.systemData.category === skillCategory).sort((l: GenesysItem, r: GenesysItem) => (l.name < r.name ? -1 : l.name > r.name ? 1 : 0))"
+								v-for="skill in skills
+									.filter((s) => s.systemData.category === skillCategory)
+									.sort((l: GenesysItem, r: GenesysItem) => (l.name < r.name ? -1 : l.name > r.name ? 1 : 0))"
 								:key="skill.id"
 								class="skill row"
 							>
 								<template v-slot:menu-items>
 									<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
-										<template v-slot:icon><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i></template>
+										<template v-slot:icon
+											><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i
+										></template>
 										{{ skill.systemData.career ? unmarkCareerLabel : markCareerLabel }}
 									</MenuItem>
 
@@ -225,7 +237,11 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 
 								<img :src="skill.img" :alt="skill.name" />
 								<a class="name" @click="rollSkill(skill)">
-									<span>{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.system.characteristic.capitalize()}`" />)</span>
+									<span
+										>{{ skill.name }} (<Localized
+											:label="`Genesys.CharacteristicAbbr.${skill.system.characteristic.capitalize()}`"
+										/>)</span
+									>
 									<i v-if="skill.system.career" class="fas fa-star"></i>
 								</a>
 
@@ -237,7 +253,10 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 									</a>
 								</span>
 
-								<SkillRanks :skill-value="skill.systemData.rank" :characteristic-value="system.characteristics[skill.systemData.characteristic]" />
+								<SkillRanks
+									:skill-value="skill.systemData.rank"
+									:characteristic-value="system.characteristics[skill.systemData.characteristic]"
+								/>
 							</ContextMenu>
 						</div>
 					</div>

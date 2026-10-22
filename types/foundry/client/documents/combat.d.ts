@@ -155,15 +155,37 @@ declare global {
 
 		protected override _onCreate(data: this['_source'], options: DocumentModificationContext<this>, userId: string): void;
 
-		protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentModificationContext<this>, userId: string): void;
+		protected override _onUpdate(
+			changed: DeepPartial<this['_source']>,
+			options: DocumentModificationContext<this>,
+			userId: string,
+		): void;
 
 		protected override _onDelete(options: DocumentModificationContext<this>, userId: string): void;
 
-		protected override _onCreateEmbeddedDocuments(type: 'Combatant', documents: Combatant[], result: Combatant['_source'][], options: DocumentModificationContext<Combatant>, userId: string): void;
+		protected override _onCreateEmbeddedDocuments(
+			type: 'Combatant',
+			documents: Combatant[],
+			result: Combatant['_source'][],
+			options: DocumentModificationContext<Combatant>,
+			userId: string,
+		): void;
 
-		protected override _onUpdateEmbeddedDocuments(embeddedName: 'Combatant', documents: Combatant[], result: Combatant['_source'][], options: DocumentModificationContext<Combatant>, userId: string): void;
+		protected override _onUpdateEmbeddedDocuments(
+			embeddedName: 'Combatant',
+			documents: Combatant[],
+			result: Combatant['_source'][],
+			options: DocumentModificationContext<Combatant>,
+			userId: string,
+		): void;
 
-		protected override _onDeleteEmbeddedDocuments(embeddedName: 'Combatant', documents: Combatant[], result: Combatant['_source'][], options: DocumentModificationContext<Combatant>, userId: string): void;
+		protected override _onDeleteEmbeddedDocuments(
+			embeddedName: 'Combatant',
+			documents: Combatant[],
+			result: Combatant['_source'][],
+			options: DocumentModificationContext<Combatant>,
+			userId: string,
+		): void;
 	}
 
 	interface Combat {
@@ -172,7 +194,11 @@ declare global {
 		// V10 shim
 		readonly flags: this['data']['flags'];
 
-		createEmbeddedDocuments(embeddedName: 'Combatant', data: PreCreate<Combatant['_source']>[], context?: DocumentModificationContext<Combatant>): Promise<Combatant<this>[]>;
+		createEmbeddedDocuments(
+			embeddedName: 'Combatant',
+			data: PreCreate<Combatant['_source']>[],
+			context?: DocumentModificationContext<Combatant>,
+		): Promise<Combatant<this>[]>;
 	}
 
 	interface RollInitiativeOptions {

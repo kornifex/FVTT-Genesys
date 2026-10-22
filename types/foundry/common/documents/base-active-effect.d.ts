@@ -10,9 +10,17 @@ declare module foundry {
 
 			static override get metadata(): ActiveEffectMetadata;
 
-			protected override _preCreate(data: PreDocumentId<data.ActiveEffectSource>, options: DocumentModificationContext, user: BaseUser): Promise<void>;
+			protected override _preCreate(
+				data: PreDocumentId<data.ActiveEffectSource>,
+				options: DocumentModificationContext,
+				user: BaseUser,
+			): Promise<void>;
 
-			override testUserPermission(user: BaseUser, permission: DocumentOwnershipString | DocumentOwnershipLevel, { exact }?: { exact?: boolean }): boolean;
+			override testUserPermission(
+				user: BaseUser,
+				permission: DocumentOwnershipString | DocumentOwnershipLevel,
+				{ exact }?: { exact?: boolean },
+			): boolean;
 		}
 
 		interface BaseActiveEffect {

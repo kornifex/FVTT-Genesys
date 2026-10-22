@@ -65,16 +65,29 @@ const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.ty
 const system = computed(() => props.item.systemData);
 
 const armorData = computed(() => system.value as ArmorDataModel);
-const weaponData = computed(() => ({ baseWeapon: system.value as BaseWeaponDataModel, charWeapon: system.value as WeaponDataModel, vehWeapon: system.value as VehicleWeaponDataModel }));
+const weaponData = computed(() => ({
+	baseWeapon: system.value as BaseWeaponDataModel,
+	charWeapon: system.value as WeaponDataModel,
+	vehWeapon: system.value as VehicleWeaponDataModel,
+}));
 
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
 const displayContainerContents = ref(false);
-const containedItems = computed(() => toRaw(context.data.actor).items.filter((i) => (i as GenesysItem<EquipmentDataModel>).systemData.container === props.item.id) as GenesysItem<EquipmentDataModel>[]);
+const containedItems = computed(
+	() =>
+		toRaw(context.data.actor).items.filter(
+			(i) => (i as GenesysItem<EquipmentDataModel>).systemData.container === props.item.id,
+		) as GenesysItem<EquipmentDataModel>[],
+);
 
 const weaponDamage = computed(() => {
 	const characterActor = context.data.actor.systemData as CharacterDataModel;
-	if (weaponData.value.charWeapon.damageCharacteristic && weaponData.value.charWeapon.damageCharacteristic !== '-' && characterActor.characteristics) {
+	if (
+		weaponData.value.charWeapon.damageCharacteristic &&
+		weaponData.value.charWeapon.damageCharacteristic !== '-' &&
+		characterActor.characteristics
+	) {
 		return characterActor.characteristics[weaponData.value.charWeapon.damageCharacteristic] + weaponData.value.baseWeapon.baseDamage;
 	}
 
@@ -138,7 +151,10 @@ async function sendItemToChat() {
 			skill: weaponData.value.charWeapon.skills[0] ?? '-',
 			damage:
 				(weaponData.value.charWeapon.baseDamage ?? 0).toString() +
-				(weaponData.value.charWeapon.damageCharacteristic !== '-' ? ' + ' + game.i18n.localize(`Genesys.CharacteristicAbbr.${weaponData.value.charWeapon.damageCharacteristic.capitalize()}`) : ''),
+				(weaponData.value.charWeapon.damageCharacteristic !== '-'
+					? ' + ' +
+						game.i18n.localize(`Genesys.CharacteristicAbbr.${weaponData.value.charWeapon.damageCharacteristic.capitalize()}`)
+					: ''),
 		};
 	} else if (props.item.type === 'vehicleWeapon') {
 		weapon = {
@@ -203,7 +219,10 @@ function getFiringArcLabels(weapon: VehicleWeaponDataModel) {
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
-	return (context.data.actor.systemData.constructor as typeof VehicleDataModel | typeof CharacterDataModel).isRelevantTypeForContext('EQUIPABLE', item.type);
+	return (context.data.actor.systemData.constructor as typeof VehicleDataModel | typeof CharacterDataModel).isRelevantTypeForContext(
+		'EQUIPABLE',
+		item.type,
+	);
 }
 
 function canEquipItem(item: GenesysItem<EquipmentDataModel>) {
@@ -409,7 +428,11 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<div v-else class="details" @dragenter="dragEnter" @dragleave="dragLeave">
 			<span class="name">
 				<a @click="openItem">{{ item.name }}</a>
-				<button class="attack" v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()" @click="rollAttack">
+				<button
+					class="attack"
+					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
+					@click="rollAttack"
+				>
 					<Localized label="Genesys.Labels.Attack" />
 				</button>
 			</span>
@@ -421,11 +444,13 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<div>{{ weaponData.baseWeapon.skills[0] ?? '-' }}</div>
 
 					<!-- Firing Arc -->
+					<!-- prettier-ignore -->
 					<div v-if="weaponData.vehWeapon.firingArc" class="firing-arc">
 						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="arc in getFiringArcLabels(weaponData.vehWeapon)" :key="arc">{{ arc }}</span>
 					</div>
 
 					<!-- Damage -->
+					<!-- prettier-ignore -->
 					<div>
 						<Localized label="Genesys.Labels.Damage" /> <span v-if="!weaponData.charWeapon.damageCharacteristic || weaponData.charWeapon.damageCharacteristic === '-'">{{ weaponData.baseWeapon.baseDamage }}</span>
 						<span v-else-if="weaponData.baseWeapon.baseDamage >= 0">
@@ -438,11 +463,17 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData.baseWeapon.critical }}</div>
 
 					<!-- Range -->
+					<!-- prettier-ignore -->
 					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData.baseWeapon.range.capitalize()}`" />]</div>
 
 					<!-- Qualities -->
 					<div v-if="weaponData.baseWeapon.qualities.length > 0" class="item-qualities">
-						<Tooltip v-for="quality in weaponData.baseWeapon.qualities" :key="quality.name" :content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description" :localized="quality.description === ''">
+						<Tooltip
+							v-for="quality in weaponData.baseWeapon.qualities"
+							:key="quality.name"
+							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
+							:localized="quality.description === ''"
+						>
 							{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : '' }}
 						</Tooltip>
 					</div>
@@ -460,7 +491,12 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 					<!-- Qualities -->
 					<div v-if="armorData.qualities.length > 0" class="item-qualities">
-						<Tooltip v-for="quality in armorData.qualities" :key="quality.name" :content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description" :localized="quality.description === ''">
+						<Tooltip
+							v-for="quality in armorData.qualities"
+							:key="quality.name"
+							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
+							:localized="quality.description === ''"
+						>
 							{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : '' }}
 						</Tooltip>
 					</div>
@@ -468,7 +504,9 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 				<!-- Container Details -->
 				<template v-else-if="item.type === 'container'">
-					<a v-if="displayContainerContents" @click="displayContainerContents = false"><i class="fas fa-box-open"></i> <Localized label="Genesys.Labels.CloseContainer" /></a>
+					<a v-if="displayContainerContents" @click="displayContainerContents = false"
+						><i class="fas fa-box-open"></i> <Localized label="Genesys.Labels.CloseContainer"
+					/></a>
 					<a v-else @click="displayContainerContents = true">
 						<i class="fas fa-box"></i>
 						{{ containedItems.length }}
@@ -479,25 +517,44 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			</div>
 		</div>
 
-		<a v-if="item.type !== 'container'" class="quantity" @click="changeItemQuantity($event, item, +1)" @contextmenu="changeItemQuantity($event, item, -1)" data-tooltip="Genesys.Labels.Quantity">
+		<a
+			v-if="item.type !== 'container'"
+			class="quantity"
+			@click="changeItemQuantity($event, item, +1)"
+			@contextmenu="changeItemQuantity($event, item, -1)"
+			data-tooltip="Genesys.Labels.Quantity"
+		>
 			{{ item.systemData.quantity }}
 			<i class="fas fa-suitcase"></i>
 		</a>
 
-		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i></div>
+		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
+			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
+		</div>
 
-		<a class="damage" @click="changeDamageState($event, item, +1)" @contextmenu="changeDamageState($event, item, -1)" :data-tooltip="'Genesys.Equipment.DamageState.' + item.systemData.damage.capitalize()">
+		<a
+			class="damage"
+			@click="changeDamageState($event, item, +1)"
+			@contextmenu="changeDamageState($event, item, -1)"
+			:data-tooltip="'Genesys.Equipment.DamageState.' + item.systemData.damage.capitalize()"
+		>
 			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
 		</a>
 
 		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable || mini">
 			<template v-slot:menu-items>
-				<MenuItem v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)" @click="setItemState(EquipmentState.Equipped)">
+				<MenuItem
+					v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)"
+					@click="setItemState(EquipmentState.Equipped)"
+				>
 					<template v-slot:icon><i class="fas fa-hand-fist"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.Equip" />
 				</MenuItem>
 
-				<MenuItem v-if="allowEquippedState && item.type === 'armor' && canEquipItem(item)" @click="setItemState(EquipmentState.Equipped)">
+				<MenuItem
+					v-if="allowEquippedState && item.type === 'armor' && canEquipItem(item)"
+					@click="setItemState(EquipmentState.Equipped)"
+				>
 					<template v-slot:icon><i class="fas fa-shield"></i></template>
 					<Localized label="Genesys.Equipment.Dropdown.Equip" />
 				</MenuItem>

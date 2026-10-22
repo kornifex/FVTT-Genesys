@@ -96,11 +96,15 @@ export function register(namespace: string) {
 			if (!pack) {
 				ui.notifications.error(game.i18n.format('Genesys.Notifications.MissingCompendium', { name: skillsCompendiumName }));
 			} else if (pack.metadata.type !== 'Item') {
-				ui.notifications.error(game.i18n.format('Genesys.Notifications.WrongCompendiumType', { name: skillsCompendiumName, type: pack.metadata.type }));
+				ui.notifications.error(
+					game.i18n.format('Genesys.Notifications.WrongCompendiumType', { name: skillsCompendiumName, type: pack.metadata.type }),
+				);
 			} else if (!pack.index.some((item) => item.type === 'skill')) {
 				ui.notifications.warn(game.i18n.format('Genesys.Notifications.NoSkillsInCompendium', { name: skillsCompendiumName }));
 			} else {
-				skills = (await pack.getDocuments()).filter((item) => (item as GenesysItem).type === 'skill') as GenesysItem<SkillDataModel>[];
+				skills = (await pack.getDocuments()).filter(
+					(item) => (item as GenesysItem).type === 'skill',
+				) as GenesysItem<SkillDataModel>[];
 			}
 
 			CONFIG.genesys.skills = skills;
@@ -114,7 +118,9 @@ export function register(namespace: string) {
 	const reloadSkills = (item: unknown) => {
 		const targetItem = item as GenesysItem;
 		if (targetItem.pack === CONFIG.genesys.settings.skillsCompendium && targetItem.type === 'skill') {
-			void game.settings.settings.get<string>(`${namespace}.${KEY_SKILLS_COMPENDIUM}`)?.onChange?.(game.settings.get(namespace, KEY_SKILLS_COMPENDIUM));
+			void game.settings.settings
+				.get<string>(`${namespace}.${KEY_SKILLS_COMPENDIUM}`)
+				?.onChange?.(game.settings.get(namespace, KEY_SKILLS_COMPENDIUM));
 		}
 	};
 	Hooks.on('createItem', reloadSkills);

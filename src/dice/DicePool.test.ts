@@ -12,15 +12,38 @@ vi.hoisted(() => {
 	});
 });
 
-import { applyDicePoolModifications, buildDicePool, compileDiceFormula, compileSymbolsData, DicePool, DicePoolInputs, DicePoolModifications, hasSameChanceToSucceed, parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
+import {
+	applyDicePoolModifications,
+	buildDicePool,
+	compileDiceFormula,
+	compileSymbolsData,
+	DicePool,
+	DicePoolInputs,
+	DicePoolModifications,
+	hasSameChanceToSucceed,
+	parsePoolModifications,
+	sortPoolModifications,
+} from '@/dice/DicePool';
 
 type PoolInputs = Partial<Omit<DicePoolInputs, 'modifications'>> & Partial<DicePoolModifications>;
 
 /**
  * Build a dice pool, every input defaulting to nothing.
  */
-function pool({ characteristicValue = 0, skillRank = 0, usesSuperCharacteristic = false, baseDifficulty = [], manualChanges = [], effects = [] }: PoolInputs = {}) {
-	return buildDicePool({ characteristicValue, skillRank, usesSuperCharacteristic, modifications: { baseDifficulty, manualChanges, effects } });
+function pool({
+	characteristicValue = 0,
+	skillRank = 0,
+	usesSuperCharacteristic = false,
+	baseDifficulty = [],
+	manualChanges = [],
+	effects = [],
+}: PoolInputs = {}) {
+	return buildDicePool({
+		characteristicValue,
+		skillRank,
+		usesSuperCharacteristic,
+		modifications: { baseDifficulty, manualChanges, effects },
+	});
 }
 
 function emptyPool(): DicePool {
@@ -58,11 +81,20 @@ describe('buildDicePool', () => {
 
 	describe('Step 2: task difficulty', () => {
 		it('adds the Difficulty dice of the difficulty', () => {
-			expect(pool({ characteristicValue: 2, baseDifficulty: ['D', 'D'] }).dice).toEqual({ Proficiency: 0, Ability: 2, Difficulty: 2 });
+			expect(pool({ characteristicValue: 2, baseDifficulty: ['D', 'D'] }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 2,
+				Difficulty: 2,
+			});
 		});
 
 		it('upgrades the Difficulty dice of the difficulty', () => {
-			expect(pool({ baseDifficulty: ['D', 'D', 'D', '*'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 2, Challenge: 1 });
+			expect(pool({ baseDifficulty: ['D', 'D', 'D', '*'] }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 0,
+				Difficulty: 2,
+				Challenge: 1,
+			});
 		});
 
 		it('applies the difficulty in the order given', () => {
@@ -72,7 +104,12 @@ describe('buildDicePool', () => {
 
 		it('applies the difficulty before the other modifications', () => {
 			// The downgrade comes after the difficulty's upgrade even though it would be sorted before an added die.
-			expect(pool({ baseDifficulty: ['D', '*'], manualChanges: ['~'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 1, Challenge: 0 });
+			expect(pool({ baseDifficulty: ['D', '*'], manualChanges: ['~'] }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 0,
+				Difficulty: 1,
+				Challenge: 0,
+			});
 		});
 	});
 
@@ -84,7 +121,12 @@ describe('buildDicePool', () => {
 
 		it('upgrades dice before downgrading them', () => {
 			expect(pool({ characteristicValue: 2, manualChanges: ['_', '^'] }).dice).toEqual({ Proficiency: 0, Ability: 2 });
-			expect(pool({ baseDifficulty: ['D'], manualChanges: ['~', '*'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 1, Challenge: 0 });
+			expect(pool({ baseDifficulty: ['D'], manualChanges: ['~', '*'] }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 0,
+				Difficulty: 1,
+				Challenge: 0,
+			});
 		});
 
 		it('downgrades dice before removing them', () => {
@@ -113,10 +155,18 @@ describe('buildDicePool', () => {
 		});
 
 		it('leaves the modifications it is given untouched', () => {
-			const modifications: DicePoolModifications = { baseDifficulty: ['D'], manualChanges: ['^', 'A'], effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }] };
+			const modifications: DicePoolModifications = {
+				baseDifficulty: ['D'],
+				manualChanges: ['^', 'A'],
+				effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }],
+			};
 			buildDicePool({ characteristicValue: 2, skillRank: 1, usesSuperCharacteristic: false, modifications });
 
-			expect(modifications).toEqual({ baseDifficulty: ['D'], manualChanges: ['^', 'A'], effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }] });
+			expect(modifications).toEqual({
+				baseDifficulty: ['D'],
+				manualChanges: ['^', 'A'],
+				effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }],
+			});
 		});
 	});
 
@@ -250,7 +300,9 @@ describe('sortPoolModifications', () => {
 
 describe('compileDiceFormula', () => {
 	it('compiles each die into its formula term', () => {
-		expect(compileDiceFormula({ ...emptyPool(), dice: { Proficiency: 2, Ability: 1, Boost: 1, Difficulty: 2, Challenge: 1, Setback: 3 } })).toBe('2dp+1da+1db+2di+1dc+3ds');
+		expect(
+			compileDiceFormula({ ...emptyPool(), dice: { Proficiency: 2, Ability: 1, Boost: 1, Difficulty: 2, Challenge: 1, Setback: 3 } }),
+		).toBe('2dp+1da+1db+2di+1dc+3ds');
 	});
 
 	it('keeps the terms of the dice that are not in the pool anymore', () => {
@@ -258,7 +310,9 @@ describe('compileDiceFormula', () => {
 	});
 
 	it('explodes the Proficiency dice with a super-characteristic', () => {
-		expect(compileDiceFormula({ ...emptyPool(), dice: { Proficiency: 2, Ability: 1 }, usesSuperCharacteristic: true })).toBe('2dpX+1da');
+		expect(compileDiceFormula({ ...emptyPool(), dice: { Proficiency: 2, Ability: 1 }, usesSuperCharacteristic: true })).toBe(
+			'2dpX+1da',
+		);
 	});
 
 	it('compiles a pool without dice into an empty roll', () => {
@@ -282,7 +336,9 @@ describe('hasSameChanceToSucceed', () => {
 	});
 
 	it('counts a missing die as none', () => {
-		expect(hasSameChanceToSucceed({ ...emptyPool(), dice: { Ability: 2, Boost: 0 } }, { ...emptyPool(), dice: { Ability: 2 } })).toBe(true);
+		expect(hasSameChanceToSucceed({ ...emptyPool(), dice: { Ability: 2, Boost: 0 } }, { ...emptyPool(), dice: { Ability: 2 } })).toBe(
+			true,
+		);
 	});
 
 	it('fails for pools with different dice', () => {
@@ -290,7 +346,12 @@ describe('hasSameChanceToSucceed', () => {
 	});
 
 	it('fails when only one pool uses a super-characteristic', () => {
-		expect(hasSameChanceToSucceed(pool({ characteristicValue: 2, skillRank: 2 }), pool({ characteristicValue: 2, skillRank: 2, usesSuperCharacteristic: true }))).toBe(false);
+		expect(
+			hasSameChanceToSucceed(
+				pool({ characteristicValue: 2, skillRank: 2 }),
+				pool({ characteristicValue: 2, skillRank: 2, usesSuperCharacteristic: true }),
+			),
+		).toBe(false);
 	});
 
 	it('ignores advantages and threats', () => {

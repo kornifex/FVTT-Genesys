@@ -54,5 +54,14 @@ declare global {
 	// Override the typings for various CONFIG values in order to provide strongly-typed config within the system.
 	const CONFIG: GenesysConfig;
 
-	const game: Game<GenesysActor, Actors<GenesysActor>, ChatMessage<GenesysActor>, GenesysCombat, GenesysItem, Macro, Scene, User<GenesysActor>>;
+	const game: Game<
+		GenesysActor,
+		Actors<GenesysActor>,
+		ChatMessage<GenesysActor>,
+		GenesysCombat,
+		GenesysItem,
+		Macro,
+		Scene,
+		User<GenesysActor>
+	>;
 }

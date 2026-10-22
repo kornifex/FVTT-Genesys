@@ -17,5 +17,8 @@ declare class SortingHelpers {
 	 *
 	 * @returns An Array of updates for the caller of the helper function to perform
 	 */
-	static performIntegerSort<T extends object>(source: T, { target, siblings, sortKey, sortBefore }: { target?: T; siblings?: T[]; sortKey?: string; sortBefore?: boolean }): { target: T; update: Record<string, number> }[];
+	static performIntegerSort<T extends object>(
+		source: T,
+		{ target, siblings, sortKey, sortBefore }: { target?: T; siblings?: T[]; sortKey?: string; sortBefore?: boolean },
+	): { target: T; update: Record<string, number> }[];
 }

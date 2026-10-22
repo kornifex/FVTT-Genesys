@@ -131,7 +131,12 @@ declare class ChatLog<TChatMessage extends ChatMessage = ChatMessage> extends Si
 	 * @param chatData      The initial chat data
 	 * @param createOptions Options used to create the message
 	 */
-	protected _processDiceCommand(command: string, matches: RegExpMatchArray[], chatData: DeepPartial<foundry.data.ChatMessageSource>, createOptions: ChatMessageModificationContext): Promise<void>;
+	protected _processDiceCommand(
+		command: string,
+		matches: RegExpMatchArray[],
+		chatData: DeepPartial<foundry.data.ChatMessageSource>,
+		createOptions: ChatMessageModificationContext,
+	): Promise<void>;
 
 	/**
 	 * Get the ChatLog entry context options

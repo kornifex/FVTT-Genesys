@@ -30,11 +30,27 @@ declare module foundry {
 			 * @param options.enforceTypes Require that data types match the model exactly to be retained
 			 * @return The migrated system data object, not yet saved to the database
 			 */
-			migrateSystemData({ insertKeys, insertValues, enforceTypes }?: { insertKeys?: boolean; insertValues?: boolean; enforceTypes?: boolean }): this['data']['system'];
+			migrateSystemData({
+				insertKeys,
+				insertValues,
+				enforceTypes,
+			}?: {
+				insertKeys?: boolean;
+				insertValues?: boolean;
+				enforceTypes?: boolean;
+			}): this['data']['system'];
 
-			protected override _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext, user: BaseUser): Promise<void>;
+			protected override _preCreate(
+				data: PreDocumentId<this['_source']>,
+				options: DocumentModificationContext,
+				user: BaseUser,
+			): Promise<void>;
 
-			protected override _preUpdate(changed: DocumentUpdateData<BaseActor>, options: DocumentModificationContext, user: BaseUser): Promise<void>;
+			protected override _preUpdate(
+				changed: DocumentUpdateData<BaseActor>,
+				options: DocumentModificationContext,
+				user: BaseUser,
+			): Promise<void>;
 		}
 
 		interface BaseActor {

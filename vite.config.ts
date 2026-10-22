@@ -58,6 +58,10 @@ export default defineConfig({
 	},
 	plugins: [pluginVue(), yamlData('yaml')],
 	resolve: {
-		alias: [{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') }, { find: '@scss', replacement: path.resolve(import.meta.dirname, 'src/scss') }, ...releaseOnlyAliases],
+		alias: [
+			{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') },
+			{ find: '@scss', replacement: path.resolve(import.meta.dirname, 'src/scss') },
+			...releaseOnlyAliases,
+		],
 	},
 });

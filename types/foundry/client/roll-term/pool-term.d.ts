@@ -99,7 +99,11 @@ declare global {
 		 * @param [options] Additional options applied to the PoolTerm
 		 * @return The evaluated PoolTerm object or null if the formula is invalid
 		 */
-		static fromExpression<D extends PoolTermData, T extends PoolTerm<D>>(this: ConstructorOf<T>, formula: string, options?: Record<string, unknown>): T | null;
+		static fromExpression<D extends PoolTermData, T extends PoolTerm<D>>(
+			this: ConstructorOf<T>,
+			formula: string,
+			options?: Record<string, unknown>,
+		): T | null;
 
 		/**
 		 * Create a PoolTerm by providing an array of existing Roll objects

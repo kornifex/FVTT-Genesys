@@ -13,7 +13,13 @@ import {
 	KEY_SUPER_CHARACTERISTICS,
 	KEY_UNCOUPLE_SKILLS_FROM_CHARACTERISTICS,
 } from '@/settings/campaign';
-import { KEY_AUTO_APPLY_POOL_MODIFICATIONS, KEY_CHANCE_TO_SUCCEED_BY_PERMUTATION, KEY_CHANCE_TO_SUCCEED_BY_SIMULATION, KEY_COLLAPSE_POOL_MODIFICATIONS, KEY_USE_MAGICAL_GIRL_SYMBOLS } from '@/settings/user';
+import {
+	KEY_AUTO_APPLY_POOL_MODIFICATIONS,
+	KEY_CHANCE_TO_SUCCEED_BY_PERMUTATION,
+	KEY_CHANCE_TO_SUCCEED_BY_SIMULATION,
+	KEY_COLLAPSE_POOL_MODIFICATIONS,
+	KEY_USE_MAGICAL_GIRL_SYMBOLS,
+} from '@/settings/user';
 import SkillDataModel from '@/item/data/SkillDataModel';
 import GenesysItem from '@/item/GenesysItem';
 
@@ -133,6 +139,7 @@ export function ready() {
 	CONFIG.genesys.settings.useMagicalGirlSymbols = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_USE_MAGICAL_GIRL_SYMBOLS) ?? false;
 	applySetting<boolean>(KEY_COLLAPSE_POOL_MODIFICATIONS);
 	applySetting<boolean>(KEY_AUTO_APPLY_POOL_MODIFICATIONS);
-	CONFIG.genesys.settings.showChanceToSucceedFromPermutations = game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_CHANCE_TO_SUCCEED_BY_PERMUTATION) ?? false;
+	CONFIG.genesys.settings.showChanceToSucceedFromPermutations =
+		game.settings.get<boolean>(SETTINGS_NAMESPACE, KEY_CHANCE_TO_SUCCEED_BY_PERMUTATION) ?? false;
 	applySetting<number>(KEY_CHANCE_TO_SUCCEED_BY_SIMULATION);
 }

@@ -38,6 +38,8 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 
 - `<script setup lang="ts">` and `<style lang="scss" scoped>`. An unscoped style says why in a comment.
 - SCSS loads modules with `@use`.
+- Vue drops the whitespace between two elements when it holds a line break, so a line Prettier breaks can lose or gain a visible space. Where it does, the element keeps its line under `<!-- prettier-ignore -->`.
+- Prettier can't parse the Handlebars templates (blocks inside attributes, inline partials): they follow the same layout by hand.
 
 ## Text and i18n
 

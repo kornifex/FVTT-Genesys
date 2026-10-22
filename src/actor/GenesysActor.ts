@@ -44,7 +44,10 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	 * Override the createDialog callback to include an unique class that identifies the created dialog.
 	 * @inheritDoc
 	 */
-	static override createDialog(data?: { folder?: string | undefined }, options?: Partial<FormApplicationOptions>): Promise<ClientDocument<foundry.documents.BaseActor> | undefined> {
+	static override createDialog(
+		data?: { folder?: string | undefined },
+		options?: Partial<FormApplicationOptions>,
+	): Promise<ClientDocument<foundry.documents.BaseActor> | undefined> {
 		// The 'dialog' class needs to be added explicitly, otherwise it won't be added by the super call.
 		const touchedOptions = {
 			...options,
@@ -63,7 +66,9 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 			}
 
 			return await this.update({
-				[`system.${tokenAttribute.valuePath}`]: isDelta ? Number(foundry.utils.getProperty(this.systemData, tokenAttribute.valuePath)) + value : value,
+				[`system.${tokenAttribute.valuePath}`]: isDelta
+					? Number(foundry.utils.getProperty(this.systemData, tokenAttribute.valuePath)) + value
+					: value,
 			});
 		} else {
 			return super.modifyTokenAttribute(attribute, value, isDelta, isBar);
@@ -75,7 +80,11 @@ export default class GenesysActor<ActorDataModel extends foundry.abstract.DataMo
 	 * when rerolling.
 	 * @inheritDoc
 	 */
-	override async rollInitiative({ createCombatants = false, rerollInitiative = false, initiativeOptions = {} }: { createCombatants?: boolean; rerollInitiative?: boolean; initiativeOptions?: object } | undefined = {}) {
+	override async rollInitiative({
+		createCombatants = false,
+		rerollInitiative = false,
+		initiativeOptions = {},
+	}: { createCombatants?: boolean; rerollInitiative?: boolean; initiativeOptions?: object } | undefined = {}) {
 		// Foundry leaves out the combatants that have rolled their own slot: hand them all over, the combat picks the slots.
 		const options: GenesysRollInitiativeOptions = { ...initiativeOptions, slotsOfCombatants: rerollInitiative ? 'all' : 'unrolled' };
 

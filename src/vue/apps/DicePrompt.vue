@@ -16,7 +16,17 @@ import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperatio
 import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import { type Check, type CheckPoolModification, type CheckRequest, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
-import { type DicePool, type DieGradeOperationName, type DieName, type SymbolName, compileDiceFormula, compileSymbolsData, hasSameChanceToSucceed, parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
+import {
+	type DicePool,
+	type DieGradeOperationName,
+	type DieName,
+	type SymbolName,
+	compileDiceFormula,
+	compileSymbolsData,
+	hasSameChanceToSucceed,
+	parsePoolModifications,
+	sortPoolModifications,
+} from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
 
@@ -123,14 +133,19 @@ function resolve(request: CheckRequest<PromptSkill>) {
 
 function poolModificationName({ source, from }: CheckPoolModification) {
 	return (
-		game.i18n.localize(source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects') +
-		('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`))
+		game.i18n.localize(
+			source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects',
+		) + ('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`))
 	);
 }
 
 function buildDicePool() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
-	currentDicePool.value = checkDicePool(check.value!, { difficulty: context.difficulty, manualChanges: manualChanges.value, isEnabled: (modification) => enabledKeys.has(modification.key) });
+	currentDicePool.value = checkDicePool(check.value!, {
+		difficulty: context.difficulty,
+		manualChanges: manualChanges.value,
+		isEnabled: (modification) => enabledKeys.has(modification.key),
+	});
 
 	void approximateProbability();
 }
@@ -193,7 +208,8 @@ async function approximateProbability() {
 
 function onSkillChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
-	const skill = availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value);
+	const skill =
+		availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value);
 
 	resolve({ skillName: skill?.name });
 }
@@ -201,7 +217,10 @@ function onSkillChange(event: Event) {
 function onCharacteristicChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
 
-	resolve({ skillName: selectedSkill.value?.name, characteristic: selectedOption.value !== '-' ? (selectedOption.value as Characteristic) : null });
+	resolve({
+		skillName: selectedSkill.value?.name,
+		characteristic: selectedOption.value !== '-' ? (selectedOption.value as Characteristic) : null,
+	});
 }
 
 function getOrderedDice(category: DieCategory) {
@@ -274,12 +293,22 @@ async function rollPool() {
 			<!-- Positive Pool -->
 			<div class="positive">
 				<template v-for="[dieName, amount] in getOrderedDice('positive')" :key="dieName">
-					<div v-for="index in amount" :key="`${dieName}-${index}`" @click="addDiceOperation(dieName as DieName, true)" :class="`die die-${dieName}`">
+					<div
+						v-for="index in amount"
+						:key="`${dieName}-${index}`"
+						@click="addDiceOperation(dieName as DieName, true)"
+						:class="`die die-${dieName}`"
+					>
 						{{ GenesysDice[dieName as DieName].GLYPH }}
 					</div>
 				</template>
 				<template v-for="[symbolName, amount] in getOrderedSymbols('positive')" :key="symbolName">
-					<div v-for="index in amount" :key="`${symbolName}-${index}`" @click="addSymbolOperation(symbolName as SymbolName, true)" class="symbol">
+					<div
+						v-for="index in amount"
+						:key="`${symbolName}-${index}`"
+						@click="addSymbolOperation(symbolName as SymbolName, true)"
+						class="symbol"
+					>
 						{{ GenesysSymbol[symbolName as SymbolName].GLYPH }}
 					</div>
 				</template>
@@ -288,12 +317,22 @@ async function rollPool() {
 			<!-- Negative Pool -->
 			<div class="negative">
 				<template v-for="[dieName, amount] in getOrderedDice('negative')" :key="dieName">
-					<div v-for="index in amount" :key="`${dieName}-${index}`" @click="addDiceOperation(dieName as DieName, true)" :class="`die die-${dieName}`">
+					<div
+						v-for="index in amount"
+						:key="`${dieName}-${index}`"
+						@click="addDiceOperation(dieName as DieName, true)"
+						:class="`die die-${dieName}`"
+					>
 						{{ GenesysDice[dieName as DieName].GLYPH }}
 					</div>
 				</template>
 				<template v-for="[symbolName, amount] in getOrderedSymbols('negative')" :key="symbolName">
-					<div v-for="index in amount" :key="`${symbolName}-${index}`" @click="addSymbolOperation(symbolName as SymbolName, true)" class="symbol">
+					<div
+						v-for="index in amount"
+						:key="`${symbolName}-${index}`"
+						@click="addSymbolOperation(symbolName as SymbolName, true)"
+						class="symbol"
+					>
 						{{ GenesysSymbol[symbolName as SymbolName].GLYPH }}
 					</div>
 				</template>
@@ -335,16 +374,25 @@ async function rollPool() {
 
 		<div v-if="context.actor" class="characteristic-skill-row">
 			<!-- Characteristic Selection -->
-			<select name="characteristic" :value="selectedCharacteristic ?? '-'" :disabled="selectedSkill && !USE_UNCOUPLED_SKILLS" @change="onCharacteristicChange">
+			<select
+				name="characteristic"
+				:value="selectedCharacteristic ?? '-'"
+				:disabled="selectedSkill && !USE_UNCOUPLED_SKILLS"
+				@change="onCharacteristicChange"
+			>
 				<option value="-">—</option>
-				<option v-for="[charLabel, charValue] in Object.entries(Characteristic)" :key="charValue" :value="charValue"><Localized :label="`Genesys.Characteristics.${charLabel}`" /></option>
+				<option v-for="[charLabel, charValue] in Object.entries(Characteristic)" :key="charValue" :value="charValue">
+					<Localized :label="`Genesys.Characteristics.${charLabel}`" />
+				</option>
 			</select>
 
 			<!-- Skill Selection -->
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
+				<!-- prettier-ignore -->
 				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
 				<optgroup v-if="unrankedSkills.length > 0" v-localize:label="'Genesys.DicePrompt.UnrankedSkills'">
+					<!-- prettier-ignore -->
 					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
 				</optgroup>
 			</select>
@@ -365,16 +413,27 @@ async function rollPool() {
 				<div>
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.DefaultDifficulty" /></span>
 					<div>
-						<a v-for="(modification, index) in baseDifficulty" :key="index" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
-							{{ GenesysPoolModifications[modification].icon.baseGlyph }}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
+						<a
+							v-for="(modification, index) in baseDifficulty"
+							:key="index"
+							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
+						>
+							{{ GenesysPoolModifications[modification].icon.baseGlyph
+							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
 						</a>
 					</div>
 				</div>
 				<div class="pool-modifications-manual">
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
 					<div>
-						<a v-for="(modification, index) in manualChanges" :key="index" @click="removeManualChange(index)" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
-							{{ GenesysPoolModifications[modification].icon.baseGlyph }}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
+						<a
+							v-for="(modification, index) in manualChanges"
+							:key="index"
+							@click="removeManualChange(index)"
+							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
+						>
+							{{ GenesysPoolModifications[modification].icon.baseGlyph
+							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
 						</a>
 					</div>
 				</div>
@@ -384,8 +443,13 @@ async function rollPool() {
 						<label>{{ '\xa0' + effect.name }}</label>
 					</span>
 					<div>
-						<a v-for="(modification, index) in effect.mods" :key="index" :data-pool-entity="GenesysPoolModifications[modification].icon.baseName">
-							{{ GenesysPoolModifications[modification].icon.baseGlyph }}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
+						<a
+							v-for="(modification, index) in effect.mods"
+							:key="index"
+							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
+						>
+							{{ GenesysPoolModifications[modification].icon.baseGlyph
+							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
 						</a>
 					</div>
 				</div>
@@ -394,7 +458,10 @@ async function rollPool() {
 
 		<div v-if="USE_CHANCE_TO_SUCCEED" class="chance-to-succeed">
 			<label>
-				<i class="fas fa-circle-info" :data-tooltip="`Genesys.DicePrompt.ChanceToSucceedBy${USE_CHANCE_TO_SUCCEED_BY_PERMUTATION ? 'Permutation' : 'Simulation'}Disclaimer`"></i>
+				<i
+					class="fas fa-circle-info"
+					:data-tooltip="`Genesys.DicePrompt.ChanceToSucceedBy${USE_CHANCE_TO_SUCCEED_BY_PERMUTATION ? 'Permutation' : 'Simulation'}Disclaimer`"
+				></i>
 				{{ '\xa0' }}
 				<Localized label="Genesys.DicePrompt.ChanceToSucceed" />
 			</label>

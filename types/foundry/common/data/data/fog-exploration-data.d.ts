@@ -18,7 +18,9 @@ declare module foundry {
 			timestamp: number;
 		}
 
-		class FogExplorationData<TDocument extends documents.BaseFogExploration = documents.BaseFogExploration> extends abstract.DocumentData<TDocument> {}
+		class FogExplorationData<
+			TDocument extends documents.BaseFogExploration = documents.BaseFogExploration,
+		> extends abstract.DocumentData<TDocument> {}
 
 		interface FogExplorationData extends FogExplorationSource {
 			readonly _source: FogExplorationSource;

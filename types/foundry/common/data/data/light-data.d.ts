@@ -37,7 +37,9 @@ declare module foundry {
 			shadows: number;
 		}
 
-		class LightData<TDocument extends documents.BaseAmbientLight | documents.BaseToken = documents.BaseAmbientLight | documents.BaseToken> extends abstract.DocumentData<TDocument> {
+		class LightData<
+			TDocument extends documents.BaseAmbientLight | documents.BaseToken = documents.BaseAmbientLight | documents.BaseToken,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 
 			/** A reusable field definition for uniform fields used by LightData */

@@ -164,7 +164,9 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 
 			<div class="entries">
 				<div v-for="(entry, index) in system.experienceJournal.entries" :key="index" class="entry">
-					<div><Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="journalEntryFormatArgs(entry)" enriched /></div>
+					<div>
+						<Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="journalEntryFormatArgs(entry)" enriched />
+					</div>
 					<div class="value">{{ entry.amount }}</div>
 					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(index)"><i class="fas fa-trash"></i></a>
 				</div>

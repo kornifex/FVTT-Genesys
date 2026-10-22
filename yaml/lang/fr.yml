@@ -4,7 +4,7 @@ TYPES:
     minion: Sbire
     rival: Rival
     nemesis: Némésis
-    vehicle : Vehicule
+    vehicle: Vehicule
 
   Item:
     # Character Creation Items

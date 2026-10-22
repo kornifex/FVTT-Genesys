@@ -35,7 +35,8 @@ export interface BaseSheetContext<
 	data: SheetDataType;
 }
 
-interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends ActorSheetData<GenesysActor<ActorDataModel>> {
+interface GenesysActorSheetData<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel>
+	extends ActorSheetData<GenesysActor<ActorDataModel>> {
 	actor: GenesysActor<ActorDataModel>;
 }
 
@@ -58,7 +59,8 @@ export interface ActorSheetContext<
 	data: SheetDataType;
 }
 
-export interface GenesysItemSheetData<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheetData<GenesysItem<ItemDataModel>> {
+export interface GenesysItemSheetData<ItemDataModel extends BaseItemDataModel = BaseItemDataModel>
+	extends ItemSheetData<GenesysItem<ItemDataModel>> {
 	item: GenesysItem<ItemDataModel>;
 }
 

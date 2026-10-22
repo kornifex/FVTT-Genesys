@@ -90,20 +90,43 @@ describe('raiseCharacteristic', () => {
 	});
 
 	it('is only allowed during Character Creation, even with XP left', () => {
-		expect(isAllowed(raiseCharacteristic(character({ entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), Characteristic.Agility))).toBe(false);
+		expect(
+			isAllowed(
+				raiseCharacteristic(character({ entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), Characteristic.Agility),
+			),
+		).toBe(false);
 	});
 
 	it('is refused at 5, or without enough XP', () => {
-		expect(isAllowed(raiseCharacteristic(character({ characteristics: { brawn: 5, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 } }), Characteristic.Brawn))).toBe(false);
-		expect(isAllowed(raiseCharacteristic(character({ entries: [{ amount: 29, type: EntryType.Starting }] }), Characteristic.Agility))).toBe(false);
-		expect(isAllowed(raiseCharacteristic(character({ entries: [{ amount: 30, type: EntryType.Starting }] }), Characteristic.Agility))).toBe(true);
+		expect(
+			isAllowed(
+				raiseCharacteristic(
+					character({ characteristics: { brawn: 5, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 } }),
+					Characteristic.Brawn,
+				),
+			),
+		).toBe(false);
+		expect(
+			isAllowed(raiseCharacteristic(character({ entries: [{ amount: 29, type: EntryType.Starting }] }), Characteristic.Agility)),
+		).toBe(false);
+		expect(
+			isAllowed(raiseCharacteristic(character({ entries: [{ amount: 30, type: EntryType.Starting }] }), Characteristic.Agility)),
+		).toBe(true);
 	});
 });
 
 describe('buySkillRank', () => {
 	it('costs 5 XP per new rank for a career skill, 5 more otherwise', () => {
-		expect(newEntries(buySkillRank(character(), 'athletics')).at(-1)).toEqual({ amount: -5, type: EntryType.Skill, data: { name: 'Athletics', id: 'athletics', rank: 1 } });
-		expect(newEntries(buySkillRank(character(), 'cool')).at(-1)).toEqual({ amount: -15, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 2 } });
+		expect(newEntries(buySkillRank(character(), 'athletics')).at(-1)).toEqual({
+			amount: -5,
+			type: EntryType.Skill,
+			data: { name: 'Athletics', id: 'athletics', rank: 1 },
+		});
+		expect(newEntries(buySkillRank(character(), 'cool')).at(-1)).toEqual({
+			amount: -15,
+			type: EntryType.Skill,
+			data: { name: 'Cool', id: 'cool', rank: 2 },
+		});
 		expect(plan(buySkillRank(character(), 'cool')).itemUpdates).toEqual([{ _id: 'cool', 'system.rank': 2 }]);
 	});
 
@@ -111,8 +134,20 @@ describe('buySkillRank', () => {
 		const atTwo = { skills: [{ id: 'cool', name: 'Cool', rank: 2, career: true }] };
 
 		expect(isAllowed(buySkillRank(character(atTwo), 'cool'))).toBe(false);
-		expect(isAllowed(buySkillRank(character({ ...atTwo, entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), 'cool'))).toBe(true);
-		expect(isAllowed(buySkillRank(character({ skills: [{ id: 'cool', name: 'Cool', rank: 5, career: true }], entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), 'cool'))).toBe(false);
+		expect(isAllowed(buySkillRank(character({ ...atTwo, entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), 'cool'))).toBe(
+			true,
+		);
+		expect(
+			isAllowed(
+				buySkillRank(
+					character({
+						skills: [{ id: 'cool', name: 'Cool', rank: 5, career: true }],
+						entries: [{ amount: 100, type: EntryType.Starting }, AWARD],
+					}),
+					'cool',
+				),
+			),
+		).toBe(false);
 	});
 
 	it('is refused without enough XP, or for a skill the character lacks', () => {
@@ -129,18 +164,32 @@ describe('buyTalentRank', () => {
 		const result = buyTalentRank(character({ talents }), 'grit');
 
 		expect(plan(result).itemUpdates).toEqual([{ _id: 'grit', 'system.rank': 2 }]);
-		expect(newEntries(result).at(-1)).toEqual({ amount: -10, type: EntryType.TalentRank, data: { name: 'grit', id: 'grit', tier: 2, rank: 2 } });
+		expect(newEntries(result).at(-1)).toEqual({
+			amount: -10,
+			type: EntryType.TalentRank,
+			data: { name: 'grit', id: 'grit', tier: 2, rank: 2 },
+		});
 	});
 
 	it("is refused for a talent that isn't ranked", () => {
-		expect(refusal(buyTalentRank(character({ talents: [talent('grit', 1, 1, 'no')] }), 'grit'))).toEqual({ key: 'Genesys.Notifications.TalentNotRanked', data: { talentName: 'grit' } });
+		expect(refusal(buyTalentRank(character({ talents: [talent('grit', 1, 1, 'no')] }), 'grit'))).toEqual({
+			key: 'Genesys.Notifications.TalentNotRanked',
+			data: { talentName: 'grit' },
+		});
 	});
 
 	it('is refused when the Talent Pyramid has no room at the tier, unless the house rule ignores it', () => {
 		const lonely = [talent('grit', 1)];
 
-		expect(refusal(buyTalentRank(character({ talents: lonely }), 'grit'))).toEqual({ key: 'Genesys.Notifications.CannotPurchaseTalentTier', data: { tier: 2, lowerTier: 1, minimum: 2 } });
-		expect(isAllowed(buyTalentRank(character({ talents: lonely, houseRules: { ignoreTalentPyramid: true, talentTierVersions: false } }), 'grit'))).toBe(true);
+		expect(refusal(buyTalentRank(character({ talents: lonely }), 'grit'))).toEqual({
+			key: 'Genesys.Notifications.CannotPurchaseTalentTier',
+			data: { tier: 2, lowerTier: 1, minimum: 2 },
+		});
+		expect(
+			isAllowed(
+				buyTalentRank(character({ talents: lonely, houseRules: { ignoreTalentPyramid: true, talentTierVersions: false } }), 'grit'),
+			),
+		).toBe(true);
 	});
 
 	it('is refused without enough XP', () => {
@@ -154,7 +203,11 @@ describe('buyTalentRank', () => {
 		const tierVersions = { talents, houseRules: { ignoreTalentPyramid: true, talentTierVersions: true } };
 
 		expect(refusal(buyTalentRank(character(tierVersions), 'grit'))).toBeUndefined();
-		expect(newEntries(buyTalentRank(character(tierVersions), 'grit', 3)).at(-1)).toEqual({ amount: -15, type: EntryType.TalentRank, data: { name: 'grit', id: 'grit', tier: 3, rank: 2 } });
+		expect(newEntries(buyTalentRank(character(tierVersions), 'grit', 3)).at(-1)).toEqual({
+			amount: -15,
+			type: EntryType.TalentRank,
+			data: { name: 'grit', id: 'grit', tier: 3, rank: 2 },
+		});
 	});
 });
 
@@ -165,11 +218,17 @@ describe('buyDroppedTalent', () => {
 		const result = buyDroppedTalent(character(), dropped, 'newId');
 
 		expect(plan(result).itemCreates).toEqual([{ ...dropped.source, _id: 'newId' }]);
-		expect(newEntries(result).at(-1)).toEqual({ amount: -5, type: EntryType.NewTalent, data: { name: 'Dodge', id: 'newId', tier: 1, rank: 1 } });
+		expect(newEntries(result).at(-1)).toEqual({
+			amount: -5,
+			type: EntryType.NewTalent,
+			data: { name: 'Dodge', id: 'newId', tier: 1, rank: 1 },
+		});
 	});
 
 	it('is refused when the Talent Pyramid has no room, or without enough XP', () => {
-		expect(refusal(buyDroppedTalent(character(), { ...dropped, tier: 2 }, 'newId'))?.key).toBe('Genesys.Notifications.CannotPurchaseTalentTier');
+		expect(refusal(buyDroppedTalent(character(), { ...dropped, tier: 2 }, 'newId'))?.key).toBe(
+			'Genesys.Notifications.CannotPurchaseTalentTier',
+		);
 		expect(refusal(buyDroppedTalent(character({ entries: [{ amount: 4, type: EntryType.Starting }] }), dropped, 'newId'))).toEqual({
 			key: 'Genesys.Notifications.CannotAffordTalent',
 			data: { name: 'Dodge', cost: 5 },
@@ -203,7 +262,11 @@ describe('undoEntry', () => {
 		];
 		const result = undoEntry(character({ entries, woundThreshold: 13 }), 1);
 
-		expect(plan(result).actorUpdate).toEqual({ 'system.characteristics.brawn': 2, 'system.wounds.max': 12, 'system.experienceJournal.entries': [{ amount: 100, type: EntryType.Starting }] });
+		expect(plan(result).actorUpdate).toEqual({
+			'system.characteristics.brawn': 2,
+			'system.wounds.max': 12,
+			'system.experienceJournal.entries': [{ amount: 100, type: EntryType.Starting }],
+		});
 	});
 
 	it('refuses to undo a characteristic or skill rank that a later rank builds on', () => {
@@ -216,16 +279,23 @@ describe('undoEntry', () => {
 			{ amount: -15, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 2 } },
 		];
 
-		expect(refusal(undoEntry(character({ entries: characteristics }), 0))?.key).toBe('Genesys.Notifications.CannotDeleteCharacteristic');
+		expect(refusal(undoEntry(character({ entries: characteristics }), 0))?.key).toBe(
+			'Genesys.Notifications.CannotDeleteCharacteristic',
+		);
 		expect(isAllowed(undoEntry(character({ entries: characteristics }), 1))).toBe(true);
-		expect(refusal(undoEntry(character({ entries: skills }), 0))).toEqual({ key: 'Genesys.Notifications.CannotDeleteSkill', data: skills[0].data });
+		expect(refusal(undoEntry(character({ entries: skills }), 0))).toEqual({
+			key: 'Genesys.Notifications.CannotDeleteSkill',
+			data: skills[0].data,
+		});
 	});
 
 	it('lowers the skill rank, never below 0', () => {
 		const entries: Entry[] = [{ amount: -10, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 1 } }];
 
 		expect(plan(undoEntry(character({ entries }), 0)).itemUpdates).toEqual([{ _id: 'cool', 'system.rank': 0 }]);
-		expect(plan(undoEntry(character({ entries, skills: [{ id: 'cool', name: 'Cool', rank: 0, career: false }] }), 0)).itemUpdates).toEqual([{ _id: 'cool', 'system.rank': 0 }]);
+		expect(
+			plan(undoEntry(character({ entries, skills: [{ id: 'cool', name: 'Cool', rank: 0, career: false }] }), 0)).itemUpdates,
+		).toEqual([{ _id: 'cool', 'system.rank': 0 }]);
 	});
 
 	it('deletes a new talent, and lowers the rank of a talent', () => {
@@ -233,27 +303,41 @@ describe('undoEntry', () => {
 		const talentRank: Entry[] = [{ amount: -10, type: EntryType.TalentRank, data: { name: 'grit', id: 'grit', tier: 2, rank: 2 } }];
 
 		expect(plan(undoEntry(character({ entries: newTalent, talents: [talent('grit', 1)] }), 0)).itemDeletes).toEqual(['grit']);
-		expect(plan(undoEntry(character({ entries: talentRank, talents: [talent('grit', 1, 2), talent('parry', 1)] }), 0)).itemUpdates).toEqual([{ _id: 'grit', 'system.rank': 1 }]);
+		expect(
+			plan(undoEntry(character({ entries: talentRank, talents: [talent('grit', 1, 2), talent('parry', 1)] }), 0)).itemUpdates,
+		).toEqual([{ _id: 'grit', 'system.rank': 1 }]);
 	});
 
 	it("refuses to undo a talent entry that isn't the talent's latest rank", () => {
 		const entries: Entry[] = [{ amount: -5, type: EntryType.NewTalent, data: { name: 'grit', id: 'grit', tier: 1, rank: 1 } }];
 
-		expect(refusal(undoEntry(character({ entries, talents: [talent('grit', 1, 2), talent('parry', 1)] }), 0))?.key).toBe('Genesys.Notifications.CannotDeleteExistingTalent');
+		expect(refusal(undoEntry(character({ entries, talents: [talent('grit', 1, 2), talent('parry', 1)] }), 0))?.key).toBe(
+			'Genesys.Notifications.CannotDeleteExistingTalent',
+		);
 	});
 
 	it('refuses to undo a talent the Talent Pyramid rests on, unless the house rule ignores it', () => {
 		const entries: Entry[] = [{ amount: -5, type: EntryType.NewTalent, data: { name: 'grit', id: 'grit', tier: 1, rank: 1 } }];
 		const talents = [talent('grit', 1), talent('parry', 1), talent('dodge', 2)];
 
-		expect(refusal(undoEntry(character({ entries, talents }), 0))).toEqual({ key: 'Genesys.Notifications.CannotDeleteInvalidTalentPyramid', data: { rank: 1 } });
-		expect(isAllowed(undoEntry(character({ entries, talents, houseRules: { ignoreTalentPyramid: true, talentTierVersions: false } }), 0))).toBe(true);
+		expect(refusal(undoEntry(character({ entries, talents }), 0))).toEqual({
+			key: 'Genesys.Notifications.CannotDeleteInvalidTalentPyramid',
+			data: { rank: 1 },
+		});
+		expect(
+			isAllowed(undoEntry(character({ entries, talents, houseRules: { ignoreTalentPyramid: true, talentTierVersions: false } }), 0)),
+		).toBe(true);
 	});
 
 	it('only removes the entry when what it bought is gone', () => {
 		const entries: Entry[] = [{ amount: -10, type: EntryType.Skill, data: { name: 'Stealth', id: 'stealth', rank: 1 } }];
 
-		expect(plan(undoEntry(character({ entries }), 0))).toEqual({ actorUpdate: { 'system.experienceJournal.entries': [] }, itemCreates: [], itemUpdates: [], itemDeletes: [] });
+		expect(plan(undoEntry(character({ entries }), 0))).toEqual({
+			actorUpdate: { 'system.experienceJournal.entries': [] },
+			itemCreates: [],
+			itemUpdates: [],
+			itemDeletes: [],
+		});
 	});
 
 	it('returns the character to Character Creation when the only Award is undone', () => {

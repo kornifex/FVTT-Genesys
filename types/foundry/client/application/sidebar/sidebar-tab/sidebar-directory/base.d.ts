@@ -38,7 +38,12 @@ declare global {
 		 * Populate a single folder with child folders and content
 		 * This method is called recursively when building the folder tree
 		 */
-		protected static _populate(folder: Folder, folders: Folder[], documents: WorldDocument[], { allowChildren }?: { allowChildren?: boolean }): [Folder[], WorldDocument[]];
+		protected static _populate(
+			folder: Folder,
+			folders: Folder[],
+			documents: WorldDocument[],
+			{ allowChildren }?: { allowChildren?: boolean },
+		): [Folder[], WorldDocument[]];
 
 		/**
 		 * Sort two Documents by name, alphabetically.

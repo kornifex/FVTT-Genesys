@@ -75,7 +75,11 @@ declare global {
 		 * @param shiftKey Emulate the SHIFT modifier as pressed
 		 * @param repeat   Emulate this as a repeat event
 		 */
-		static emulateKeypress(up: boolean, code: string, { altKey, ctrlKey, shiftKey, repeat }?: { altKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; repeat?: boolean }): KeyboardEvent;
+		static emulateKeypress(
+			up: boolean,
+			code: string,
+			{ altKey, ctrlKey, shiftKey, repeat }?: { altKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; repeat?: boolean },
+		): KeyboardEvent;
 
 		/**
 		 * Format a KeyboardEvent#code into a displayed string.

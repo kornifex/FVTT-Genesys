@@ -21,7 +21,9 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
 /**
  * Basic functionality shared by all ItemSheets.
  */
-export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<GenesysItem<ItemDataModel>> {
+export default class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends ItemSheet<
+	GenesysItem<ItemDataModel>
+> {
 	static override get defaultOptions() {
 		return {
 			...super.defaultOptions,

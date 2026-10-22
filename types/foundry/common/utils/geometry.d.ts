@@ -70,7 +70,13 @@ declare global {
 			 *
 			 * @returns The intersection of the segment AB with the circle
 			 */
-			export function lineCircleIntersection(a: Point, b: Point, center: Point, radius: number, epsilon?: number): LineCircleIntersection;
+			export function lineCircleIntersection(
+				a: Point,
+				b: Point,
+				center: Point,
+				radius: number,
+				epsilon?: number,
+			): LineCircleIntersection;
 
 			/**
 			 * Identify the point closest to C on segment AB

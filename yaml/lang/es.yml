@@ -234,7 +234,7 @@ Genesys:
     CannotClaimOppositeSlot: No puedes reclamar este puesto de iniciativa con {name} - ¡está en el lado equivocado!
     SlotAlreadyClaimed: Este puesto de iniciativa ya está reclamado.
     NoGMForExtraSlot: Un DJ debe estar conectado para tirar la iniciativa de un puesto adicional.
-    CombatantHasNoActivationLeft: "{name} no tiene más activaciones esta ronda."
+    CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     InvalidTokenTypeForAction: El token seleccionado es de un tipo no válido para realizar esta acción.
     EffectsWereNotUpdatedAfterTransfer: Se ha producido un error al actualizar los efectos con los últimos valores del "{nombre}" transferido.
@@ -271,7 +271,7 @@ Genesys:
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:
-    Difficulty: 'Tirada de {skill} contra {difficulty} [{symbols}]'  # e.g. Average [♦♦] Coercion Check
+    Difficulty: 'Tirada de {skill} contra {difficulty} [{symbols}]' # e.g. Average [♦♦] Coercion Check
     Opposed: 'Tirada enfrentada de {skill1} contra {skill2}'
 
   # Combat Tracker

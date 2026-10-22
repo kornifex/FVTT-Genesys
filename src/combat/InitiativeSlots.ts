@@ -161,7 +161,10 @@ export function buildSlots(combatants: SlotCombatant[], extraSlots: ExtraSlot[],
 	});
 }
 
-function compareActivations(first: { combatant: SlotCombatant; initiative: number | null }, second: { combatant: SlotCombatant; initiative: number | null }) {
+function compareActivations(
+	first: { combatant: SlotCombatant; initiative: number | null },
+	second: { combatant: SlotCombatant; initiative: number | null },
+) {
 	const firstInitiative = first.initiative ?? -Infinity;
 	const secondInitiative = second.initiative ?? -Infinity;
 
@@ -192,7 +195,9 @@ export function ownSlotIds(combatantIds: string[]) {
  * only those without initiative yet.
  */
 export function slotIdsOf(slots: InitiativeSlot[], combatantIds: string[], { unrolledOnly }: { unrolledOnly: boolean }) {
-	return slots.filter((slot) => combatantIds.includes(slot.originId) && (!unrolledOnly || slot.initiative === null)).map((slot) => slot.id);
+	return slots
+		.filter((slot) => combatantIds.includes(slot.originId) && (!unrolledOnly || slot.initiative === null))
+		.map((slot) => slot.id);
 }
 
 /**
@@ -226,7 +231,12 @@ export function initiativeWrites(rolls: { slot: InitiativeSlot; initiative: numb
 /**
  * Why a combatant can't claim an Initiative Slot of the round, as a localization key, or undefined if it can.
  */
-export function claimRefusal(slots: InitiativeSlot[], claims: RoundClaims, targetSlotId: string, claimant: { id: string; side: InitiativeSide }) {
+export function claimRefusal(
+	slots: InitiativeSlot[],
+	claims: RoundClaims,
+	targetSlotId: string,
+	claimant: { id: string; side: InitiativeSide },
+) {
 	const slot = slots.find((candidate) => candidate.id === targetSlotId);
 	if (!slot) {
 		return 'Genesys.Notifications.GenericError';

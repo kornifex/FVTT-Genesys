@@ -28,7 +28,10 @@ declare module foundry {
 			flags: Record<string, Record<string, unknown>>;
 		}
 
-		class JournalEntryData<TDocument extends documents.BaseJournalEntry = documents.BaseJournalEntry, TPage extends documents.BaseJournalEntryPage = documents.BaseJournalEntryPage> extends abstract.DocumentData<TDocument> {
+		class JournalEntryData<
+			TDocument extends documents.BaseJournalEntry = documents.BaseJournalEntry,
+			TPage extends documents.BaseJournalEntryPage = documents.BaseJournalEntryPage,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 
 			pages: abstract.EmbeddedCollection<TPage>;

@@ -136,7 +136,8 @@ export function register() {
 			}
 			difficultyName = game.i18n.localize(`Genesys.Difficulty.${difficultyName}`);
 
-			const difficultyIcons = '<span class="die die-C">C</span>'.repeat(upgrades) + '<span class="die die-D">D</span>'.repeat(difficulty - upgrades);
+			const difficultyIcons =
+				'<span class="die die-C">C</span>'.repeat(upgrades) + '<span class="die die-D">D</span>'.repeat(difficulty - upgrades);
 
 			const container = document.createElement('a');
 			container.style.fontWeight = 'bold';
@@ -168,7 +169,10 @@ export function register() {
 
 			for (const mod of mods) {
 				const newIDie = document.createElement('i');
-				newIDie.className = GenesysPoolModifications[mod].icon.baseType === 'dice' ? `die die-${GenesysPoolModifications[mod].icon.baseName}` : 'symbol';
+				newIDie.className =
+					GenesysPoolModifications[mod].icon.baseType === 'dice'
+						? `die die-${GenesysPoolModifications[mod].icon.baseName}`
+						: 'symbol';
 				newIDie.innerText = GenesysPoolModifications[mod].icon.baseGlyph;
 
 				const newIOperator = document.createElement('i');

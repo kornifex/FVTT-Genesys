@@ -66,13 +66,19 @@ export function register() {
 	// Roboto Mono
 	CONFIG.fontDefinitions['Roboto Mono'] = {
 		editor: true,
-		fonts: [buildDefinition('RobotoMono-VariableFont_wght.ttf', 'normal', '100 700'), buildDefinition('RobotoMono-Italic-VariableFont_wght.ttf', 'italic', '100 700')],
+		fonts: [
+			buildDefinition('RobotoMono-VariableFont_wght.ttf', 'normal', '100 700'),
+			buildDefinition('RobotoMono-Italic-VariableFont_wght.ttf', 'italic', '100 700'),
+		],
 	};
 
 	// Roboto Serif
 	CONFIG.fontDefinitions['Roboto Serif'] = {
 		editor: true,
-		fonts: [buildDefinition('RobotoSerif-VariableFont_GRAD,opsz,wdth,wght.ttf', 'normal', '100 900'), buildDefinition('RobotoSerif-Italic-VariableFont_GRAD,opsz,wdth,wght.ttf', 'italic', '100 900')],
+		fonts: [
+			buildDefinition('RobotoSerif-VariableFont_GRAD,opsz,wdth,wght.ttf', 'normal', '100 900'),
+			buildDefinition('RobotoSerif-Italic-VariableFont_GRAD,opsz,wdth,wght.ttf', 'italic', '100 900'),
+		],
 	};
 
 	// Genesys Symbols

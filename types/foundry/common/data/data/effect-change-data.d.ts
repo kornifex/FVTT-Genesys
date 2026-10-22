@@ -14,7 +14,9 @@ declare module foundry {
 			priority: number;
 		}
 
-		class EffectChangeData<TDocument extends documents.BaseActiveEffect = documents.BaseActiveEffect> extends abstract.DocumentData<TDocument> {
+		class EffectChangeData<
+			TDocument extends documents.BaseActiveEffect = documents.BaseActiveEffect,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 		}
 

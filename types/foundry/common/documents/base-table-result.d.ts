@@ -9,7 +9,11 @@ declare module foundry {
 			/** Is a user able to update an existing TableResult? */
 			protected static _canUpdate(user: BaseUser, doc: BaseTableResult, data: data.TableResultData): boolean;
 
-			override testUserPermission(user: BaseUser, permission: DocumentOwnershipString | DocumentOwnershipLevel, { exact }?: { exact?: boolean }): boolean;
+			override testUserPermission(
+				user: BaseUser,
+				permission: DocumentOwnershipString | DocumentOwnershipLevel,
+				{ exact }?: { exact?: boolean },
+			): boolean;
 		}
 
 		interface BaseTableResult {

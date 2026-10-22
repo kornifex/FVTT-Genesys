@@ -79,7 +79,19 @@ declare global {
 		/**
 		 * Create a Howl instance
 		 */
-		create({ src, preload, autoplay, volume, loop }: { src: string; preload: boolean; autoplay: boolean; volume: number; loop: boolean }): void;
+		create({
+			src,
+			preload,
+			autoplay,
+			volume,
+			loop,
+		}: {
+			src: string;
+			preload: boolean;
+			autoplay: boolean;
+			volume: number;
+			loop: boolean;
+		}): void;
 
 		/**
 		 * Play a single audio effect by it's source path and Howl ID

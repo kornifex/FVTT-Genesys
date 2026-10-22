@@ -122,7 +122,17 @@ declare global {
 
          * @return      The resulting Promise from the Scene.update operation
          */
-		rotateMany({ angle, delta, snap, ids }?: { angle?: number; delta?: number; snap?: number; ids?: number[] | Set<number> }): Promise<any>;
+		rotateMany({
+			angle,
+			delta,
+			snap,
+			ids,
+		}?: {
+			angle?: number;
+			delta?: number;
+			snap?: number;
+			ids?: number[] | Set<number>;
+		}): Promise<any>;
 
 		/**
 		 * Simultaneously move multiple PlaceableObjects via keyboard movement offsets.
@@ -202,7 +212,21 @@ declare global {
 		 * @param controlOptions Optional arguments provided to any called control() method
 		 * @return The number of PlaceableObject instances which were controlled.
 		 */
-		selectObjects({ x, y, width, height, releaseOptions, controlOptions }: { x: number; y: number; width: number; height: number; releaseOptions?: object; controlOptions?: object }): number;
+		selectObjects({
+			x,
+			y,
+			width,
+			height,
+			releaseOptions,
+			controlOptions,
+		}: {
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+			releaseOptions?: object;
+			controlOptions?: object;
+		}): number;
 
 		/**
 		 * Update all objects in this layer with a provided transformation.
@@ -212,7 +236,11 @@ declare global {
 		 * @param [options]      Additional options passed to Entity.update
 		 * @return An array of updated data once the operation is complete
 		 */
-		updateAll(transformation: (document: TObject) => DocumentUpdateData<TObject['document']> | DocumentUpdateData<TObject['document']>, condition?: Function | null, options?: DocumentModificationContext): Promise<TObject['document'][]>;
+		updateAll(
+			transformation: (document: TObject) => DocumentUpdateData<TObject['document']> | DocumentUpdateData<TObject['document']>,
+			condition?: Function | null,
+			options?: DocumentModificationContext,
+		): Promise<TObject['document'][]>;
 
 		/* -------------------------------------------- */
 		/*  Event Listeners and Handlers                */

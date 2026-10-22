@@ -143,7 +143,10 @@ Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: obj
 		const select = container.querySelector<HTMLSelectElement>('select[name=type]');
 
 		if (select) {
-			select.append(constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Adversary'), AdversaryTypes), constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Other')));
+			select.append(
+				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Adversary'), AdversaryTypes),
+				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Other')),
+			);
 			select.querySelector('option')!.selected = true;
 		}
 	}

@@ -108,7 +108,14 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 			<div class="role-members">
 				<TransitionGroup name="mems">
 					<div v-for="member in actorsInRole" :key="member.uuid" class="role-member" @drop="drop($event, member.uuid)">
-						<ActorTile :actor="member as GenesysActor" draggable="true" @dragstart="emit('actorDragStart', $event)" @dragend="emit('actorDragEnd')" :dragging="dragging" @remove-member="emit('removeMember', member.uuid)" />
+						<ActorTile
+							:actor="member as GenesysActor"
+							draggable="true"
+							@dragstart="emit('actorDragStart', $event)"
+							@dragend="emit('actorDragEnd')"
+							:dragging="dragging"
+							@remove-member="emit('removeMember', member.uuid)"
+						/>
 					</div>
 				</TransitionGroup>
 			</div>

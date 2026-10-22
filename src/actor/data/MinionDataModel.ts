@@ -49,7 +49,12 @@ export default abstract class MinionDataModel extends AdversaryDataModel impleme
 		return Math.clamp(this.remainingMembers - 1, 0, 5);
 	}
 
-	async preCreate(actor: GenesysActor<MinionDataModel>, _data: unknown, _options: DocumentModificationContext<GenesysActor<MinionDataModel>>, _user: foundry.documents.BaseUser) {
+	async preCreate(
+		actor: GenesysActor<MinionDataModel>,
+		_data: unknown,
+		_options: DocumentModificationContext<GenesysActor<MinionDataModel>>,
+		_user: foundry.documents.BaseUser,
+	) {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 			bar2: { attribute: 'members' },

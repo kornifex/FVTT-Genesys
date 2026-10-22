@@ -108,7 +108,19 @@ declare global {
 				 * @param [options.strict]   If strict, will throw errors for any invalid data. Default is false.
 				 * @return An indicator for whether or not the document contains valid data
 				 */
-				validate({ changes, children, clean, replace, strict }?: { changes?: boolean; children?: boolean; clean?: boolean; replace?: boolean; strict?: boolean }): boolean;
+				validate({
+					changes,
+					children,
+					clean,
+					replace,
+					strict,
+				}?: {
+					changes?: boolean;
+					children?: boolean;
+					clean?: boolean;
+					replace?: boolean;
+					strict?: boolean;
+				}): boolean;
 
 				/**
 				 * Jointly validate the overall document after each field has been individually validated.

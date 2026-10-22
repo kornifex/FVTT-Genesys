@@ -87,7 +87,11 @@ declare global {
 		/*  Event Handlers                              */
 		/* -------------------------------------------- */
 
-		override _onUpdate(changed: DeepPartial<TDocument['_source']>, options: DocumentModificationContext<TDocument>, userId: string): void;
+		override _onUpdate(
+			changed: DeepPartial<TDocument['_source']>,
+			options: DocumentModificationContext<TDocument>,
+			userId: string,
+		): void;
 
 		override _onDelete(options: DocumentModificationContext<TDocument>, userId: string): void;
 

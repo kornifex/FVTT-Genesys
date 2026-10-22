@@ -28,7 +28,12 @@ const characteristics = { brawn: 3, agility: 2, intellect: 1, cunning: 2, willpo
 function actor(
 	type: string,
 	skills: CheckSkill[],
-	{ effects = [] as PoolModificationEffect[], superCharacteristics = [] as Characteristic[], groupSkillRank = undefined as number | undefined, totalDefense = { melee: 0, ranged: 0 } } = {},
+	{
+		effects = [] as PoolModificationEffect[],
+		superCharacteristics = [] as Characteristic[],
+		groupSkillRank = undefined as number | undefined,
+		totalDefense = { melee: 0, ranged: 0 },
+	} = {},
 ): CheckActor {
 	return {
 		type,
@@ -42,7 +47,11 @@ function effect(name: string, changes: { key: string; value: string }[]): PoolMo
 	return { name, isSuppressed: false, origin: null, parent: null, changes };
 }
 
-const compendium = [skill('Cool', Characteristic.Presence), skill('Melee', Characteristic.Brawn), skill('Vigilance', Characteristic.Willpower)];
+const compendium = [
+	skill('Cool', Characteristic.Presence),
+	skill('Melee', Characteristic.Brawn),
+	skill('Vigilance', Characteristic.Willpower),
+];
 const rules = { compendiumSkills: compendium, useSuperCharacteristics: true };
 
 describe('resolveCheck', () => {
@@ -50,13 +59,26 @@ describe('resolveCheck', () => {
 		const melee = skill('melee', Characteristic.Brawn, 2);
 		const check = resolveCheck(actor('character', [melee]), { skillName: 'Melee' }, rules);
 
-		expect(check).toMatchObject({ kind: 'skill', skill: melee, characteristic: Characteristic.Brawn, characteristicValue: 3, rank: 2, usesSuperCharacteristic: false });
+		expect(check).toMatchObject({
+			kind: 'skill',
+			skill: melee,
+			characteristic: Characteristic.Brawn,
+			characteristicValue: 3,
+			rank: 2,
+			usesSuperCharacteristic: false,
+		});
 	});
 
 	it("resolves an Unranked Skill Check of the Skills Compendium's skill", () => {
 		const check = resolveCheck(actor('character', []), { skillName: 'Vigilance', fallbackCharacteristic: Characteristic.Brawn }, rules);
 
-		expect(check).toMatchObject({ kind: 'unranked', skill: compendium[2], characteristic: Characteristic.Willpower, characteristicValue: 4, rank: 0 });
+		expect(check).toMatchObject({
+			kind: 'unranked',
+			skill: compendium[2],
+			characteristic: Characteristic.Willpower,
+			characteristicValue: 4,
+			rank: 0,
+		});
 	});
 
 	it('resolves a Characteristic Check without a skill, or when the skill is found nowhere', () => {
@@ -67,20 +89,35 @@ describe('resolveCheck', () => {
 			characteristicValue: 2,
 			rank: 0,
 		});
-		expect(resolveCheck(actor('character', []), { skillName: 'Piloting', fallbackCharacteristic: Characteristic.Brawn }, rules)).toMatchObject({ kind: 'characteristic', characteristic: Characteristic.Brawn });
+		expect(
+			resolveCheck(actor('character', []), { skillName: 'Piloting', fallbackCharacteristic: Characteristic.Brawn }, rules),
+		).toMatchObject({ kind: 'characteristic', characteristic: Characteristic.Brawn });
 	});
 
 	it('resolves a bare dice pool with neither skill nor characteristic', () => {
 		expect(resolveCheck(actor('character', []), {}, rules)).toMatchObject({ kind: 'pool', characteristicValue: 0, rank: 0 });
-		expect(resolveCheck(undefined, { usesSuperCharacteristic: true }, rules)).toMatchObject({ kind: 'pool', usesSuperCharacteristic: true });
-		expect(resolveCheck(undefined, { usesSuperCharacteristic: true }, { ...rules, useSuperCharacteristics: false }).usesSuperCharacteristic).toBe(false);
+		expect(resolveCheck(undefined, { usesSuperCharacteristic: true }, rules)).toMatchObject({
+			kind: 'pool',
+			usesSuperCharacteristic: true,
+		});
+		expect(
+			resolveCheck(undefined, { usesSuperCharacteristic: true }, { ...rules, useSuperCharacteristics: false })
+				.usesSuperCharacteristic,
+		).toBe(false);
 	});
 
 	it('rolls the characteristic picked instead of the skill’s, or none', () => {
 		const cool = skill('Cool', Characteristic.Presence, 1);
 
-		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, rules)).toMatchObject({ kind: 'skill', characteristic: Characteristic.Willpower, characteristicValue: 4, rank: 1 });
-		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, rules)).toMatchObject({ kind: 'skill', characteristic: undefined, characteristicValue: 0, rank: 1 });
+		expect(
+			resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, rules),
+		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Willpower, characteristicValue: 4, rank: 1 });
+		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, rules)).toMatchObject({
+			kind: 'skill',
+			characteristic: undefined,
+			characteristicValue: 0,
+			rank: 1,
+		});
 	});
 
 	it('gives a minion group its group skill rank for the skills it owns only', () => {
@@ -94,36 +131,57 @@ describe('resolveCheck', () => {
 		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], { superCharacteristics: [Characteristic.Brawn] });
 
 		expect(resolveCheck(hero, { skillName: 'Melee' }, rules).usesSuperCharacteristic).toBe(true);
-		expect(resolveCheck(hero, { skillName: 'Melee' }, { ...rules, useSuperCharacteristics: false }).usesSuperCharacteristic).toBe(false);
+		expect(resolveCheck(hero, { skillName: 'Melee' }, { ...rules, useSuperCharacteristics: false }).usesSuperCharacteristic).toBe(
+			false,
+		);
 		expect(resolveCheck(hero, { skillName: 'Cool' }, rules).usesSuperCharacteristic).toBe(false);
 	});
 
 	it("collects the actor's Pool Modifications, and the target's when it has one", () => {
-		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], { effects: [effect('Dueling', [{ key: 'genesys.pool.skill.self.melee', value: 'B' }])] });
-		const foe = actor('rival', [], { effects: [effect('Shield', [{ key: 'genesys.pool.check.target.', value: 'S' }])], totalDefense: { melee: 1, ranged: 0 } });
+		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], {
+			effects: [effect('Dueling', [{ key: 'genesys.pool.skill.self.melee', value: 'B' }])],
+		});
+		const foe = actor('rival', [], {
+			effects: [effect('Shield', [{ key: 'genesys.pool.check.target.', value: 'S' }])],
+			totalDefense: { melee: 1, ranged: 0 },
+		});
 
-		expect(resolveCheck(hero, { skillName: 'Melee' }, rules).poolModifications).toEqual([{ key: 'self.effect.Dueling', source: 'self', from: { effect: 'Dueling' }, mods: ['B'] }]);
-		expect(resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged' }, rules).poolModifications.map((modification) => modification.key)).toEqual([
-			'self.effect.Dueling',
-			'target.effect.Shield',
-			'target.defense.melee',
+		expect(resolveCheck(hero, { skillName: 'Melee' }, rules).poolModifications).toEqual([
+			{ key: 'self.effect.Dueling', source: 'self', from: { effect: 'Dueling' }, mods: ['B'] },
 		]);
+		expect(
+			resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged' }, rules).poolModifications.map(
+				(modification) => modification.key,
+			),
+		).toEqual(['self.effect.Dueling', 'target.effect.Shield', 'target.defense.melee']);
 	});
 });
 
 describe('checkDicePool', () => {
-	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 2)], { effects: [effect('Dueling', [{ key: 'genesys.pool.skill.self.Melee', value: 'B' }])] });
+	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 2)], {
+		effects: [effect('Dueling', [{ key: 'genesys.pool.skill.self.Melee', value: 'B' }])],
+	});
 	const check = resolveCheck(hero, { skillName: 'Melee' }, rules);
 
 	it('builds the pool from the characteristic, the rank, the difficulty and the enabled Pool Modifications', () => {
-		expect(checkDicePool(check, { difficulty: 'DD', isEnabled: () => true })).toEqual({ dice: { Proficiency: 2, Ability: 1, Difficulty: 2, Boost: 1 }, symbols: {}, usesSuperCharacteristic: false });
-		expect(checkDicePool(check, { difficulty: '', manualChanges: ['s'], isEnabled: () => false })).toEqual({ dice: { Proficiency: 2, Ability: 1 }, symbols: { Success: 1 }, usesSuperCharacteristic: false });
+		expect(checkDicePool(check, { difficulty: 'DD', isEnabled: () => true })).toEqual({
+			dice: { Proficiency: 2, Ability: 1, Difficulty: 2, Boost: 1 },
+			symbols: {},
+			usesSuperCharacteristic: false,
+		});
+		expect(checkDicePool(check, { difficulty: '', manualChanges: ['s'], isEnabled: () => false })).toEqual({
+			dice: { Proficiency: 2, Ability: 1 },
+			symbols: { Success: 1 },
+			usesSuperCharacteristic: false,
+		});
 	});
 });
 
 describe('an initiative check', () => {
 	it("ignores the target, so only the actor's Pool Modifications apply", () => {
-		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], { effects: [effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }])] });
+		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], {
+			effects: [effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }])],
+		});
 		const check = resolveCheck(hero, { skillName: 'Cool' }, rules);
 
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.Alert']);
@@ -137,13 +195,22 @@ describe('checkDescription', () => {
 		format: (key: string, data: Record<string, string>) => `${key.split('.').pop()} ${JSON.stringify(data)}`,
 	};
 	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], { superCharacteristics: [Characteristic.Brawn] });
-	const description = (check: Check, purpose: Parameters<typeof checkDescription>[1] = { kind: 'check' }) => checkDescription(check, purpose, i18n);
+	const description = (check: Check, purpose: Parameters<typeof checkDescription>[1] = { kind: 'check' }) =>
+		checkDescription(check, purpose, i18n);
 
 	it('describes each kind of check', () => {
-		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules))).toBe('Skill {"skill":"Melee","characteristic":"Brawn","superChar":"super-char"}');
-		expect(description(resolveCheck(hero, { skillName: 'Cool' }, rules))).toBe('Skill {"skill":"Cool","characteristic":"Presence","superChar":"hide-it"}');
-		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules))).toBe('SkillWithoutCharacteristic {"skill":"Melee"}');
-		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Agility }, rules))).toBe('Characteristic {"characteristic":"Agility"}');
+		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules))).toBe(
+			'Skill {"skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
+		);
+		expect(description(resolveCheck(hero, { skillName: 'Cool' }, rules))).toBe(
+			'Skill {"skill":"Cool","characteristic":"Presence","superChar":"hide-it"}',
+		);
+		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules))).toBe(
+			'SkillWithoutCharacteristic {"skill":"Melee"}',
+		);
+		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Agility }, rules))).toBe(
+			'Characteristic {"characteristic":"Agility"}',
+		);
 		expect(description(resolveCheck(hero, {}, rules))).toBeUndefined();
 		expect(description(resolveCheck(undefined, { usesSuperCharacteristic: true }, rules))).toBe('Simple {"superChar":"super-char"}');
 	});
@@ -151,14 +218,24 @@ describe('checkDescription', () => {
 	it('describes each kind of attack', () => {
 		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
 
-		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules), attack)).toBe('AttackSkill {"name":"Sword","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}');
-		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules), attack)).toBe('AttackSkillWithoutCharacteristic {"name":"Sword","skill":"Melee"}');
-		expect(description(resolveCheck(hero, { characteristic: Characteristic.Brawn }, rules), attack)).toBe('AttackCharacteristic {"name":"Sword","characteristic":"Brawn"}');
+		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules), attack)).toBe(
+			'AttackSkill {"name":"Sword","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
+		);
+		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules), attack)).toBe(
+			'AttackSkillWithoutCharacteristic {"name":"Sword","skill":"Melee"}',
+		);
+		expect(description(resolveCheck(hero, { characteristic: Characteristic.Brawn }, rules), attack)).toBe(
+			'AttackCharacteristic {"name":"Sword","characteristic":"Brawn"}',
+		);
 		expect(description(resolveCheck(hero, {}, rules), attack)).toBeUndefined();
 	});
 
 	it('describes initiative with the skill, or the characteristic of a Characteristic Check', () => {
-		expect(description(resolveCheck(hero, { skillName: 'Vigilance' }, rules), { kind: 'initiative' })).toBe('Initiative {"skill":"Vigilance","superChar":"hide-it"}');
-		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules), { kind: 'initiative' })).toBe('Initiative {"skill":"Brawn","superChar":"super-char"}');
+		expect(description(resolveCheck(hero, { skillName: 'Vigilance' }, rules), { kind: 'initiative' })).toBe(
+			'Initiative {"skill":"Vigilance","superChar":"hide-it"}',
+		);
+		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules), { kind: 'initiative' })).toBe(
+			'Initiative {"skill":"Brawn","superChar":"super-char"}',
+		);
 	});
 });

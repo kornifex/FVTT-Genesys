@@ -22,7 +22,11 @@ async function showTooltip(event: Event) {
 	const enriched = await TextEditor.enrichHTML(sourceText, { async: true });
 	const content = document.createRange().createContextualFragment(enriched);
 
-	game.tooltip.activate(event.currentTarget as HTMLElement, { content: content, direction: props.direction, cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys' });
+	game.tooltip.activate(event.currentTarget as HTMLElement, {
+		content: content,
+		direction: props.direction,
+		cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys',
+	});
 }
 
 async function hideTooltip() {

@@ -6,7 +6,11 @@ declare module foundry {
 
 			static override get metadata(): MacroMetadata;
 
-			protected override _preCreate(data: PreDocumentId<foundry.data.MacroSource>, options: DocumentModificationContext, user: BaseUser): Promise<void>;
+			protected override _preCreate(
+				data: PreDocumentId<foundry.data.MacroSource>,
+				options: DocumentModificationContext,
+				user: BaseUser,
+			): Promise<void>;
 
 			/** Is a user able to update an existing Macro document? */
 			protected static _canUpdate(user: BaseUser, doc: BaseMacro, data: data.MacroData): boolean;

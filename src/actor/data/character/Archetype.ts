@@ -55,14 +55,18 @@ export function archetypeActorUpdate(character: ArchetypeHolder, archetype: Arch
 	const update: Record<string, unknown> = {};
 
 	for (const characteristic of Object.values(Characteristic)) {
-		update[`system.characteristics.${characteristic}`] = character.characteristics[characteristic] + sign * archetype.characteristics[characteristic];
+		update[`system.characteristics.${characteristic}`] =
+			character.characteristics[characteristic] + sign * archetype.characteristics[characteristic];
 	}
 
 	update['system.wounds.max'] = character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn);
 	update['system.strain.max'] = character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower);
 
 	// Starting XP is always the first entry of the Experience Journal.
-	update['system.experienceJournal.entries'] = sign > 0 ? withStartingXP(character.experienceJournal.entries, archetype.startingXP) : withoutStartingXP(character.experienceJournal.entries);
+	update['system.experienceJournal.entries'] =
+		sign > 0
+			? withStartingXP(character.experienceJournal.entries, archetype.startingXP)
+			: withoutStartingXP(character.experienceJournal.entries);
 
 	return update;
 }
@@ -93,7 +97,11 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(items: T[], grantedIt
  * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank.
  * Each granted skill is the one the character rolls for its name.
  */
-export function grantedSkillRankUpdates<T extends HeldItem>(items: T[], grantedItems: ArchetypeGrants['grantedItems'], sign: ArchetypeSign) {
+export function grantedSkillRankUpdates<T extends HeldItem>(
+	items: T[],
+	grantedItems: ArchetypeGrants['grantedItems'],
+	sign: ArchetypeSign,
+) {
 	const skills = items.filter((i) => i.type === 'skill') as (T & { system: SkillDataModel })[];
 	const grantedSkills = new Set(grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []));
 
@@ -124,7 +132,11 @@ export async function applyArchetype(actor: GenesysActor<CharacterDataModel>, ar
 	await actor.createEmbeddedDocuments('Item', grantedNonSkills(archetypeData.grantedItems));
 
 	// Skills gain a rank.
-	await Promise.all(grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, 1).map(async ({ skill, update }) => await skill.update(update)));
+	await Promise.all(
+		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, 1).map(
+			async ({ skill, update }) => await skill.update(update),
+		),
+	);
 
 	await actor.update(actorUpdate);
 }
@@ -140,7 +152,11 @@ export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, a
 	await Promise.all(heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems).map(async (i) => await i.delete()));
 
 	// Skills get reduced by 1 rank.
-	await Promise.all(grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(async ({ skill, update }) => await skill.update(update)));
+	await Promise.all(
+		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(
+			async ({ skill, update }) => await skill.update(update),
+		),
+	);
 
 	await actor.update(actorUpdate);
 

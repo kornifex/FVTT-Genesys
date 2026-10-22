@@ -35,7 +35,10 @@ declare module foundry {
 			flags: Record<string, Record<string, unknown>>;
 		}
 
-		class RollTableData<TDocument extends documents.BaseRollTable = documents.BaseRollTable, TResults extends documents.BaseTableResult = documents.BaseTableResult> extends abstract.DocumentData<TDocument> {
+		class RollTableData<
+			TDocument extends documents.BaseRollTable = documents.BaseRollTable,
+			TResults extends documents.BaseTableResult = documents.BaseTableResult,
+		> extends abstract.DocumentData<TDocument> {
 			static override defineSchema(): abstract.DocumentSchema;
 
 			/** The default icon used for newly created Macro documents */

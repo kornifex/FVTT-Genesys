@@ -151,7 +151,14 @@ const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.Unmark
 		margin-left: -1em;
 		width: calc(100% + 2em);
 
-		$clip-path: polygon(0% 100%, 0% ($clip-size + $row-size), $clip-size $row-size, calc(100% - $clip-size) $row-size, 100% ($clip-size + $row-size), 100% 100%);
+		$clip-path: polygon(
+			0% 100%,
+			0% ($clip-size + $row-size),
+			$clip-size $row-size,
+			calc(100% - $clip-size) $row-size,
+			100% ($clip-size + $row-size),
+			100% 100%
+		);
 		clip-path: $clip-path;
 
 		.box-inner {

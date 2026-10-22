@@ -64,7 +64,12 @@ export default abstract class EquipmentDataModel extends BaseItemDataModel {
 			price: new fields.NumberField({ initial: 0 }),
 			damage: new fields.StringField({
 				initial: EquipmentDamageState.Undamaged,
-				choices: [EquipmentDamageState.Undamaged, EquipmentDamageState.Minor, EquipmentDamageState.Moderate, EquipmentDamageState.Major],
+				choices: [
+					EquipmentDamageState.Undamaged,
+					EquipmentDamageState.Minor,
+					EquipmentDamageState.Moderate,
+					EquipmentDamageState.Major,
+				],
 			}),
 			container: new fields.StringField(),
 			quantity: new fields.NumberField({ integer: true, initial: 1 }),

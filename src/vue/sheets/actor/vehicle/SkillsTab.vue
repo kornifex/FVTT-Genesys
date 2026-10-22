@@ -72,7 +72,11 @@ watch(
 					if (!targetActorSkill.skills.has(skill)) {
 						const check = resolveCheck(targetActorSkill.actor, { skillName: skill }, worldCheckRules());
 						if (check.skill) {
-							targetActorSkill.skills.set(skill, { skill: check.skill, rank: check.rank, characteristicValue: check.characteristicValue });
+							targetActorSkill.skills.set(skill, {
+								skill: check.skill,
+								rank: check.rank,
+								characteristicValue: check.characteristicValue,
+							});
 						}
 					}
 				}
@@ -92,7 +96,9 @@ watch(
 					});
 
 					// A role skill missing from the Skills Compendium is listed once a member owns it.
-					const skillImage = CONFIG.genesys.skills.find((skillItem) => skillNamesMatch(skillItem.name, skill))?.img ?? skillUsers[0]?.skill.skill.img;
+					const skillImage =
+						CONFIG.genesys.skills.find((skillItem) => skillNamesMatch(skillItem.name, skill))?.img ??
+						skillUsers[0]?.skill.skill.img;
 					if (!skillImage) {
 						continue;
 					}
@@ -147,7 +153,9 @@ async function openActorSheet(actor: GenesysActor) {
 			<section v-for="[memberId, details] in groupedByMember" :key="memberId">
 				<div class="member-details">
 					<img class="member-image" :src="details.actor.img" :alt="details.actor.name" draggable="false" />
-					<a class="member-name" @click="openActorSheet(details.actor as GenesysActor<NonVehicleDataModel>)">{{ details.actor.name }}</a>
+					<a class="member-name" @click="openActorSheet(details.actor as GenesysActor<NonVehicleDataModel>)">{{
+						details.actor.name
+					}}</a>
 					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role }}</div>
 
 					<div class="member-skills" v-if="details.skills.size > 0">
@@ -158,8 +166,15 @@ async function openActorSheet(actor: GenesysActor) {
 						<div class="member-skills-container">
 							<div v-for="[skillName, rolledSkill] in details.skills" :key="skillName" class="member-skill">
 								<img :src="rolledSkill.skill.img" :alt="rolledSkill.skill.name" />
-								<a class="skill-name" @click="rollSkillForActor(details.actor as GenesysActor<NonVehicleDataModel>, skillName)">
-									<span>{{ rolledSkill.skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${rolledSkill.skill.systemData.characteristic.capitalize()}`" />)</span>
+								<a
+									class="skill-name"
+									@click="rollSkillForActor(details.actor as GenesysActor<NonVehicleDataModel>, skillName)"
+								>
+									<span
+										>{{ rolledSkill.skill.name }} (<Localized
+											:label="`Genesys.CharacteristicAbbr.${rolledSkill.skill.systemData.characteristic.capitalize()}`"
+										/>)</span
+									>
 								</a>
 
 								<span class="skill-rank">{{ rolledSkill.rank }}</span>
@@ -185,12 +200,24 @@ async function openActorSheet(actor: GenesysActor) {
 						</div>
 
 						<div v-for="[actorId, actorRoleSkill] in details.actors" :key="actorId" class="skill-content-details">
-							<img class="skill-content-details-charImage" :src="actorRoleSkill.actor.img" :alt="actorRoleSkill.actor.name" draggable="false" />
-							<a class="skill-content-details-charName" @click="openActorSheet(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>)">{{ actorRoleSkill.actor.name }}</a>
+							<img
+								class="skill-content-details-charImage"
+								:src="actorRoleSkill.actor.img"
+								:alt="actorRoleSkill.actor.name"
+								draggable="false"
+							/>
+							<a
+								class="skill-content-details-charName"
+								@click="openActorSheet(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>)"
+								>{{ actorRoleSkill.actor.name }}</a
+							>
 							<div>{{ actorRoleSkill.role }}</div>
 							<div class="skill-content-details-skillRank">{{ actorRoleSkill.skill.rank }}</div>
 							<a @click="rollSkillForActor(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>, skillName)">
-								<SkillRanks :skill-value="actorRoleSkill.skill.rank" :characteristic-value="actorRoleSkill.skill.characteristicValue" />
+								<SkillRanks
+									:skill-value="actorRoleSkill.skill.rank"
+									:characteristic-value="actorRoleSkill.skill.characteristicValue"
+								/>
 							</a>
 						</div>
 					</div>

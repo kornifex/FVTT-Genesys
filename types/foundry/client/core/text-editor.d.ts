@@ -63,7 +63,10 @@ declare global {
 		 * @param [splitWords] Whether to truncate by splitting on white space (if true) or breaking words.
 		 * @param [suffix]     A suffix string to append to denote that the text was truncated.
 		 */
-		static truncateText(text: string, { maxLength, splitWords, suffix }: { maxLength?: number; splitWords?: boolean; suffix?: string | null }): string;
+		static truncateText(
+			text: string,
+			{ maxLength, splitWords, suffix }: { maxLength?: number; splitWords?: boolean; suffix?: string | null },
+		): string;
 
 		/* -------------------------------------------- */
 		/*  Text Node Manipulation                      */
@@ -113,7 +116,11 @@ declare global {
 		 * @returns The replaced match, returned as a Promise if async was true and the message contained an
 		 *          immediate inline roll.
 		 */
-		static _createInlineRoll(match: RegExpMatchArray, rollData: Record<string, unknown>, options?: EvaluateRollParams): HTMLAnchorElement | null | Promise<HTMLAnchorElement | null>;
+		static _createInlineRoll(
+			match: RegExpMatchArray,
+			rollData: Record<string, unknown>,
+			options?: EvaluateRollParams,
+		): HTMLAnchorElement | null | Promise<HTMLAnchorElement | null>;
 
 		/* -------------------------------------------- */
 		/*  Event Listeners and Handlers                */

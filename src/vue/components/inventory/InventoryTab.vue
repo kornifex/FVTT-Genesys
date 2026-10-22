@@ -40,10 +40,19 @@ const dragCounters = ref({
 	[EquipmentState.Dropped]: 0,
 });
 
-const inventory = computed(() => toRaw(context.data.actor).items.filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[]);
+const inventory = computed(
+	() =>
+		toRaw(context.data.actor).items.filter((i) =>
+			dataModel.isRelevantTypeForContext('INVENTORY', i.type),
+		) as GenesysItem<EquipmentDataModel>[],
+);
 const equippedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Equipped).sort(sortItems));
-const carriedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Carried && i.systemData.container === '').sort(sortItems));
-const droppedItems = computed(() => inventory.value.filter((i) => i.systemData.state === EquipmentState.Dropped && i.systemData.container === '').sort(sortItems));
+const carriedItems = computed(() =>
+	inventory.value.filter((i) => i.systemData.state === EquipmentState.Carried && i.systemData.container === '').sort(sortItems),
+);
+const droppedItems = computed(() =>
+	inventory.value.filter((i) => i.systemData.state === EquipmentState.Dropped && i.systemData.container === '').sort(sortItems),
+);
 
 type ItemSection = {
 	state: keyof typeof dragCounters.value;
@@ -101,7 +110,10 @@ async function dropInventoryToSortSlot(event: DragEvent, sortCategory: Equipment
 
 	// The user must own the actor, and if it's being dropped to the `Equipped` equipment state it must be of the correct type.
 	const actor = toRaw(context.data.actor);
-	if (!actor.isOwner || (sortCategory === EquipmentState.Equipped && !dataModel.isRelevantTypeForContext('EQUIPABLE', droppedItem.type))) {
+	if (
+		!actor.isOwner ||
+		(sortCategory === EquipmentState.Equipped && !dataModel.isRelevantTypeForContext('EQUIPABLE', droppedItem.type))
+	) {
 		return;
 	}
 
@@ -240,7 +252,10 @@ function dragLeave(event: DragEvent) {
 								:allow-dropped-state="allowDroppedState"
 							/>
 
-							<SortSlot :active="dragCounters[section.state] > 0" @drop="dropInventoryToSortSlot($event, section.state, index)" />
+							<SortSlot
+								:active="dragCounters[section.state] > 0"
+								@drop="dropInventoryToSortSlot($event, section.state, index)"
+							/>
 						</template>
 					</TransitionGroup>
 				</template>

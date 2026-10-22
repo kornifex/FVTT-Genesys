@@ -81,7 +81,11 @@ declare global {
 		 *          * all: returns a sorted array of PolygonVertex instances
 		 *          * closest: returns a PolygonVertex instance or null
 		 */
-		static testCollision(origin: Point, destination: Point, config?: PointSourcePolygonConfig & { mode?: 'any' | 'all' | 'closest' }): boolean | PolygonVertex | PolygonVertex[] | null;
+		static testCollision(
+			origin: Point,
+			destination: Point,
+			config?: PointSourcePolygonConfig & { mode?: 'any' | 'all' | 'closest' },
+		): boolean | PolygonVertex | PolygonVertex[] | null;
 
 		/**
 		 * Determine the set of collisions which occurs for a Ray.

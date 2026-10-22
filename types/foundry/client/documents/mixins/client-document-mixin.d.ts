@@ -15,7 +15,10 @@ declare type ClientDocumentMixin<T extends typeof foundry.abstract.Document> = {
 	 * @param [options] Positioning and sizing options for the resulting dialog
 	 * @return A Promise which resolves to the created Document
 	 */
-	createDialog(data?: { folder?: string }, options?: Partial<FormApplicationOptions>): Promise<ClientDocument<InstanceType<T>> | undefined>;
+	createDialog(
+		data?: { folder?: string },
+		options?: Partial<FormApplicationOptions>,
+	): Promise<ClientDocument<InstanceType<T>> | undefined>;
 
 	/**
 	 * A helper function to handle obtaining the relevant Document from dropped data provided via a DataTransfer event.
@@ -30,7 +33,11 @@ declare type ClientDocumentMixin<T extends typeof foundry.abstract.Document> = {
 	 *                                    World-level Document reference
 	 * @return The Document data that should be handled by the drop handler
 	 */
-	fromDropData<TDocument extends ClientDocument>(this: ConstructorOf<TDocument>, data: DropCanvasData<TDocument['documentName']>, { importWorld }?: { importWorld?: boolean }): Promise<TDocument | undefined>;
+	fromDropData<TDocument extends ClientDocument>(
+		this: ConstructorOf<TDocument>,
+		data: DropCanvasData<TDocument['documentName']>,
+		{ importWorld }?: { importWorld?: boolean },
+	): Promise<TDocument | undefined>;
 } & T;
 
 declare class ClientDocument<TDocument extends foundry.abstract.Document = foundry.abstract.Document> extends foundry.abstract.Document {
@@ -148,7 +155,19 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param [options] Sorting options provided to SortingHelper.performIntegerSort
 	 * @returns The Document after it has been re-sorted
 	 */
-	sortRelative({ target, siblings, sortKey, sortBefore, updateData }: { target?: any; siblings?: any[]; sortKey?: string; sortBefore?: boolean; updateData?: any }): Promise<this>;
+	sortRelative({
+		target,
+		siblings,
+		sortKey,
+		sortBefore,
+		updateData,
+	}: {
+		target?: any;
+		siblings?: any[];
+		sortKey?: string;
+		sortBefore?: boolean;
+		updateData?: any;
+	}): Promise<this>;
 
 	/* -------------------------------------------- */
 	/*  Event Handlers                              */
@@ -167,7 +186,12 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the creation operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _preCreateEmbeddedDocuments(embeddedName: string, result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _preCreateEmbeddedDocuments(
+		embeddedName: string,
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Follow-up actions taken after a set of embedded Documents in this parent Document are created.
@@ -177,7 +201,13 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the creation operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _onCreateEmbeddedDocuments(embeddedName: string, documents: ClientDocument[], result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onCreateEmbeddedDocuments(
+		embeddedName: string,
+		documents: ClientDocument[],
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Preliminary actions taken before a set of embedded Documents in this parent Document are updated.
@@ -186,7 +216,12 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the update operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _preUpdateEmbeddedDocuments(embeddedName: string, result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _preUpdateEmbeddedDocuments(
+		embeddedName: string,
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Follow-up actions taken after a set of embedded Documents in this parent Document are updated.
@@ -196,7 +231,13 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the update operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _onUpdateEmbeddedDocuments(embeddedName: string, documents: ClientDocument[], result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onUpdateEmbeddedDocuments(
+		embeddedName: string,
+		documents: ClientDocument[],
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Preliminary actions taken before a set of embedded Documents in this parent Document are deleted.
@@ -205,7 +246,12 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the deletion operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _preDeleteEmbeddedDocuments(embeddedName: string, result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _preDeleteEmbeddedDocuments(
+		embeddedName: string,
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Follow-up actions taken after a set of embedded Documents in this parent Document are deleted.
@@ -215,7 +261,13 @@ declare class ClientDocument<TDocument extends foundry.abstract.Document = found
 	 * @param options      Options which modified the deletion operation
 	 * @param userId       The ID of the User who triggered the operation
 	 */
-	protected _onDeleteEmbeddedDocuments(embeddedName: string, documents: ClientDocument[], result: ClientDocument['_source'][], options: DocumentModificationContext, userId: string): void;
+	protected _onDeleteEmbeddedDocuments(
+		embeddedName: string,
+		documents: ClientDocument[],
+		result: ClientDocument['_source'][],
+		options: DocumentModificationContext,
+		userId: string,
+	): void;
 
 	/**
 	 * Present a Dialog form to confirm deletion of this Document.

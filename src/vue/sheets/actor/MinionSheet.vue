@@ -66,7 +66,13 @@ async function deleteItem(item: GenesysItem) {
 				:secondary-value="system.wounds.value"
 			/>
 
-			<CombatStat v-else label="Genesys.Labels.WoundThreshold" name="system.wounds.threshold" :value="system.wounds.threshold" edit-primary />
+			<CombatStat
+				v-else
+				label="Genesys.Labels.WoundThreshold"
+				name="system.wounds.threshold"
+				:value="system.wounds.threshold"
+				edit-primary
+			/>
 
 			<CombatStat
 				label="Genesys.Labels.Defense"
@@ -100,7 +106,10 @@ async function deleteItem(item: GenesysItem) {
 
 					<a @click="rollSkill(skill)">
 						<span>{{ skill.name }}</span>
-						<SkillRanks :skill-value="system.groupSkillRank" :characteristic-value="system.characteristics[skill.systemData.characteristic]" />
+						<SkillRanks
+							:skill-value="system.groupSkillRank"
+							:characteristic-value="system.characteristics[skill.systemData.characteristic]"
+						/>
 					</a>
 				</ContextMenu>
 			</div>

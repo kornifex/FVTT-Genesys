@@ -26,7 +26,9 @@ declare global {
 
 		override get title(): string;
 
-		override getData(options?: Partial<FormApplicationOptions>): DocumentSheetConfigData<TDocument> | Promise<DocumentSheetConfigData<TDocument>>;
+		override getData(
+			options?: Partial<FormApplicationOptions>,
+		): DocumentSheetConfigData<TDocument> | Promise<DocumentSheetConfigData<TDocument>>;
 
 		protected override _updateObject(event: Event, formData: FormApplicationData): Promise<void>;
 
@@ -54,7 +56,12 @@ declare global {
 		 * @param [options.types]       An array of document types for which this sheet should be used
 		 * @param [options.makeDefault] Whether to make this sheet the default for provided types
 		 */
-		static registerSheet<T extends ClientDocument>(documentClass: ConstructorOf<T>, scope: string, sheetClass: ConstructorOf<T['sheet']>, options?: RegisterSheetOptions): void;
+		static registerSheet<T extends ClientDocument>(
+			documentClass: ConstructorOf<T>,
+			scope: string,
+			sheetClass: ConstructorOf<T['sheet']>,
+			options?: RegisterSheetOptions,
+		): void;
 
 		/** Perform the sheet registration */
 		protected static _registerSheet(options: unknown): void;
@@ -66,7 +73,12 @@ declare global {
 		 * @param sheetClass  A defined Application class used to render the sheet
 		 * @param types             An Array of types for which this sheet should be removed
 		 */
-		static unregisterSheet<T extends ClientDocument>(documentClass: ConstructorOf<T>, scope: string, sheetClass: ConstructorOf<T['sheet']>, options?: { types: string[] }): void;
+		static unregisterSheet<T extends ClientDocument>(
+			documentClass: ConstructorOf<T>,
+			scope: string,
+			sheetClass: ConstructorOf<T['sheet']>,
+			options?: { types: string[] },
+		): void;
 
 		/** Perform the sheet de-registration */
 		protected static _unregisterSheet(options: { documentClass: typeof foundry.abstract.Document; id: string; types: string[] }): void;

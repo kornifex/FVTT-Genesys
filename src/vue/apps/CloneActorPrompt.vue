@@ -23,7 +23,9 @@ async function submitSelection(event: Event) {
 				...(targetActor.type === 'minion' && { genesys: { independentMinion: true } }),
 			},
 		};
-		targetActor = await (Actor.implementation as typeof GenesysActor).create(foundry.utils.mergeObject(targetActor.toObject(), modifiedProperties));
+		targetActor = await (Actor.implementation as typeof GenesysActor).create(
+			foundry.utils.mergeObject(targetActor.toObject(), modifiedProperties),
+		);
 
 		await targetActor?.update({ 'prototypeToken.actorLink': true });
 	}

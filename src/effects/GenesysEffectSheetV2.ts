@@ -23,7 +23,9 @@ export default class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffe
 				CONFIG.genesys.skills.map((skill) => skill.name),
 				changes,
 			);
-			partContext.characteristics = Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]));
+			partContext.characteristics = Object.fromEntries(
+				Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]),
+			);
 		}
 
 		return partContext;

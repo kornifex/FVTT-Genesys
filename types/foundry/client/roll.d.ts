@@ -227,7 +227,11 @@ declare global {
 		 *                  left as-is.
 		 * @param [warn] Display a warning notification when encountering an un-matched key.
 		 */
-		static replaceFormulaData(formula: string, data: Record<string, unknown>, { missing, warn }?: { missing?: string; warn?: boolean }): string;
+		static replaceFormulaData(
+			formula: string,
+			data: Record<string, unknown>,
+			{ missing, warn }?: { missing?: string; warn?: boolean },
+		): string;
 
 		/**
 		 * Validate that a provided roll formula can represent a valid
@@ -310,7 +314,10 @@ declare global {
 		 * @param [options.next]               The next term to classify
 		 * @returns A classified RollTerm instance
 		 */
-		protected static _classifyStringTerm(term: string, { intermediate, prior, next }?: { intermediate?: boolean; prior?: RollTerm | string; next?: RollTerm | string }): RollTerm;
+		protected static _classifyStringTerm(
+			term: string,
+			{ intermediate, prior, next }?: { intermediate?: boolean; prior?: RollTerm | string; next?: RollTerm | string },
+		): RollTerm;
 
 		/* -------------------------------------------- */
 		/*  Chat Messages                               */
@@ -344,9 +351,18 @@ declare global {
 		 * @return A promise which resolves to the created ChatMessage entity, if create is true
 		 *         or the Object of prepared chatData otherwise.
 		 */
-		toMessage(messageData: PreCreate<foundry.data.ChatMessageSource> | undefined, { rollMode, create }: { rollMode?: RollMode | 'roll'; create: false }): Promise<foundry.data.ChatMessageSource>;
-		toMessage(messageData?: PreCreate<foundry.data.ChatMessageSource>, { rollMode, create }?: { rollMode?: RollMode | 'roll'; create?: true }): Promise<ChatMessage>;
-		toMessage(messageData?: PreCreate<foundry.data.ChatMessageSource>, { rollMode, create }?: { rollMode?: RollMode | 'roll'; create?: boolean }): Promise<ChatMessage | foundry.data.ChatMessageSource>;
+		toMessage(
+			messageData: PreCreate<foundry.data.ChatMessageSource> | undefined,
+			{ rollMode, create }: { rollMode?: RollMode | 'roll'; create: false },
+		): Promise<foundry.data.ChatMessageSource>;
+		toMessage(
+			messageData?: PreCreate<foundry.data.ChatMessageSource>,
+			{ rollMode, create }?: { rollMode?: RollMode | 'roll'; create?: true },
+		): Promise<ChatMessage>;
+		toMessage(
+			messageData?: PreCreate<foundry.data.ChatMessageSource>,
+			{ rollMode, create }?: { rollMode?: RollMode | 'roll'; create?: boolean },
+		): Promise<ChatMessage | foundry.data.ChatMessageSource>;
 
 		/* -------------------------------------------- */
 		/*  Interface Helpers                           */

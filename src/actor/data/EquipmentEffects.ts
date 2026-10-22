@@ -34,7 +34,12 @@ export function areEffectsDisabled(isEquipmentType: IsEquipmentType, itemType: s
  * Enable or disable the effects the items gave to the actor, according to the equipment state of each item, or to the
  * overriding state if there's one.
  */
-export async function updateEffectsStatus(actor: GenesysActor, isEquipmentType: IsEquipmentType, items: GenesysItem[], overrides?: { equipmentState: EquipmentState }) {
+export async function updateEffectsStatus(
+	actor: GenesysActor,
+	isEquipmentType: IsEquipmentType,
+	items: GenesysItem[],
+	overrides?: { equipmentState: EquipmentState },
+) {
 	const allUpdates = [];
 	for (const item of items) {
 		const itemEquipmentState = overrides?.equipmentState ? overrides.equipmentState : (item.systemData as EquipmentDataModel).state;

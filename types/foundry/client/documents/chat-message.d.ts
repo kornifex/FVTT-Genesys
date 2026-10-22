@@ -52,7 +52,10 @@ declare global {
 		 */
 		static applyRollMode(chatData: foundry.data.ChatMessageSource, rollMode: RollMode): foundry.data.ChatMessageSource;
 		static applyRollMode(chatData: foundry.data.ChatMessageData, rollMode: RollMode): foundry.data.ChatMessageData;
-		static applyRollMode(chatData: foundry.data.ChatMessageSource | foundry.data.ChatMessageData, rollMode: RollMode): foundry.data.ChatMessageSource | foundry.data.ChatMessageData;
+		static applyRollMode(
+			chatData: foundry.data.ChatMessageSource | foundry.data.ChatMessageData,
+			rollMode: RollMode,
+		): foundry.data.ChatMessageSource | foundry.data.ChatMessageData;
 
 		/**
 		 * Update the data of a ChatMessage instance to apply a requested rollMode
@@ -70,7 +73,17 @@ declare global {
 		 * @param [alias] The name of the speaker to display
 		 * @returns The identified speaker data
 		 */
-		static getSpeaker({ scene, actor, token, alias }?: { scene?: Scene | null; actor?: Actor | null; token?: TokenDocument | null; alias?: string }): foundry.data.ChatSpeakerSource;
+		static getSpeaker({
+			scene,
+			actor,
+			token,
+			alias,
+		}?: {
+			scene?: Scene | null;
+			actor?: Actor | null;
+			token?: TokenDocument | null;
+			alias?: string;
+		}): foundry.data.ChatSpeakerSource;
 
 		/** A helper to prepare the speaker object based on a target Token */
 		protected static _getSpeakerFromToken({ token, alias }: { token: Token; alias?: string }): {
@@ -123,7 +136,11 @@ declare global {
 		 */
 		protected _renderRollContent: (messageData: ChatMessageRenderData) => Promise<void>;
 
-		protected override _preUpdate(changed: DeepPartial<foundry.data.ChatMessageSource>, options: DocumentModificationContext<this>, user: User): Promise<void>;
+		protected override _preUpdate(
+			changed: DeepPartial<foundry.data.ChatMessageSource>,
+			options: DocumentModificationContext<this>,
+			user: User,
+		): Promise<void>;
 
 		protected override _onCreate(data: foundry.data.ChatMessageSource, options: DocumentModificationContext, userId: string): void;
 
@@ -136,9 +153,21 @@ declare global {
 	}
 
 	namespace ChatMessage {
-		function create<T extends ChatMessage>(this: ConstructorOf<T>, data: PreCreate<T['_source']>[], context?: ChatMessageModificationContext): Promise<T[]>;
-		function create<T extends ChatMessage>(this: ConstructorOf<T>, data: PreCreate<T['_source']>, context?: ChatMessageModificationContext): Promise<T | undefined>;
-		function create<T extends ChatMessage>(this: ConstructorOf<T>, data: PreCreate<T['_source']>[] | PreCreate<T['_source']>, context?: ChatMessageModificationContext): Promise<T[] | T | undefined>;
+		function create<T extends ChatMessage>(
+			this: ConstructorOf<T>,
+			data: PreCreate<T['_source']>[],
+			context?: ChatMessageModificationContext,
+		): Promise<T[]>;
+		function create<T extends ChatMessage>(
+			this: ConstructorOf<T>,
+			data: PreCreate<T['_source']>,
+			context?: ChatMessageModificationContext,
+		): Promise<T | undefined>;
+		function create<T extends ChatMessage>(
+			this: ConstructorOf<T>,
+			data: PreCreate<T['_source']>[] | PreCreate<T['_source']>,
+			context?: ChatMessageModificationContext,
+		): Promise<T[] | T | undefined>;
 
 		const implementation: typeof ChatMessage;
 	}

@@ -303,7 +303,10 @@ declare global {
 		checkCollision(destination: Point, { type, mode }: { type?: WallRestrictionType; mode: 'any' }): boolean;
 		checkCollision(destination: Point, { type, mode }: { type?: WallRestrictionType; mode: 'all' }): PolygonVertex[];
 		checkCollision(destination: Point, { type, mode }?: { type?: WallRestrictionType; mode?: undefined }): PolygonVertex[];
-		checkCollision(destination: Point, { type, mode }?: { type?: WallRestrictionType; mode?: WallMode }): boolean | PolygonVertex | PolygonVertex[];
+		checkCollision(
+			destination: Point,
+			{ type, mode }?: { type?: WallRestrictionType; mode?: WallMode },
+		): boolean | PolygonVertex | PolygonVertex[];
 
 		/**
 		 * Handle changes to Token behavior when a significant status effect is applied
@@ -350,7 +353,10 @@ declare global {
 		 * @param releaseOthers  Release other active targets for the same player?
 		 * @param groupSelection Is this target being set as part of a group selection workflow?
 		 */
-		setTarget(targeted?: boolean, { user, releaseOthers, groupSelection }?: { user?: User | null; releaseOthers?: boolean; groupSelection?: boolean }): void;
+		setTarget(
+			targeted?: boolean,
+			{ user, releaseOthers, groupSelection }?: { user?: User | null; releaseOthers?: boolean; groupSelection?: boolean },
+		): void;
 
 		/**
 		 * Add or remove the currently controlled Tokens from the active combat encounter
@@ -404,7 +410,11 @@ declare global {
 		override _onUpdate(changed: DeepPartial<TDocument['_source']>, options: DocumentModificationContext, userId: string): void;
 
 		/** Control updates to the appearance of the Token and its linked TokenMesh when a data update occurs. */
-		protected _onUpdateAppearance(data: DeepPartial<foundry.data.TokenSource>, changed: Set<string>, options: DocumentModificationContext): Promise<void>;
+		protected _onUpdateAppearance(
+			data: DeepPartial<foundry.data.TokenSource>,
+			changed: Set<string>,
+			options: DocumentModificationContext,
+		): Promise<void>;
 
 		/** Define additional steps taken when an existing placeable object of this type is deleted */
 		override _onDelete(options: DocumentModificationContext<TDocument>, userId: string): void;

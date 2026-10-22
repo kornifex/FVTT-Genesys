@@ -136,15 +136,29 @@ declare global {
 		 * @param [highest] Keep the highest?
 		 * @return The modified results array
 		 */
-		protected static _keepOrDrop<T extends DiceTermResult>(results: T[], number: number, { keep, highest }?: { keep?: boolean; highest?: boolean }): T[];
+		protected static _keepOrDrop<T extends DiceTermResult>(
+			results: T[],
+			number: number,
+			{ keep, highest }?: { keep?: boolean; highest?: boolean },
+		): T[];
 
 		/**
 		 * A reusable helper function to handle the identification and deduction of failures
 		 */
-		protected static _applyCount<T extends DiceTermResult>(results: T, comparison: ComparisonOperator, target: number, { flagSuccess, flagFailure }?: { flagSuccess?: boolean; flagFailure?: boolean }): void;
+		protected static _applyCount<T extends DiceTermResult>(
+			results: T,
+			comparison: ComparisonOperator,
+			target: number,
+			{ flagSuccess, flagFailure }?: { flagSuccess?: boolean; flagFailure?: boolean },
+		): void;
 
 		/** A reusable helper function to handle the identification and deduction of failures */
-		protected static _applyDeduct<T extends DiceTermResult>(results: T[], comparison: ComparisonOperator, target: number, { deductFailure, invertFailure }?: { deductFailure?: boolean; invertFailure?: boolean }): void;
+		protected static _applyDeduct<T extends DiceTermResult>(
+			results: T[],
+			comparison: ComparisonOperator,
+			target: number,
+			{ deductFailure, invertFailure }?: { deductFailure?: boolean; invertFailure?: boolean },
+		): void;
 
 		/* -------------------------------------------- */
 		/*  Factory Methods                             */

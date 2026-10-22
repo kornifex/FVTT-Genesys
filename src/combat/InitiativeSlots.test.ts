@@ -55,7 +55,10 @@ describe('buildSlots', () => {
 	});
 
 	it('gives each extra slot its own initiative, and drops the extra slots of combatants that left', () => {
-		const slots = buildSlots([combatant('boss', 1, 'hostile'), combatant('hero', 2)], [extraSlot('boss', 0, 3), extraSlot('gone', 1, 5), extraSlot('boss', 2, null)]);
+		const slots = buildSlots(
+			[combatant('boss', 1, 'hostile'), combatant('hero', 2)],
+			[extraSlot('boss', 0, 3), extraSlot('gone', 1, 5), extraSlot('boss', 2, null)],
+		);
 
 		expect(slots.map(({ id, originId, activationId, initiative }) => ({ id, originId, activationId, initiative }))).toEqual([
 			{ id: 'boss:0', originId: 'boss', activationId: 0, initiative: 3 },
@@ -97,16 +100,22 @@ describe('claimRefusal', () => {
 	});
 
 	it('refuses a slot that is already claimed', () => {
-		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.SlotAlreadyClaimed');
+		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe(
+			'Genesys.Notifications.SlotAlreadyClaimed',
+		);
 	});
 
 	it('refuses a combatant that claimed as many slots as its initiative gives', () => {
-		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'ally:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.CombatantHasNoActivationLeft');
+		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'ally:-1', { id: 'hero', side: 'pc' })).toBe(
+			'Genesys.Notifications.CombatantHasNoActivationLeft',
+		);
 	});
 
 	it('lets a combatant with extra slots claim once more for each of them', () => {
 		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'ally:-1', { id: 'ally', side: 'pc' })).toBeUndefined();
-		expect(claimRefusal(slots, { 'hero:-1': 'ally', 'ally:-1': 'ally' }, 'ally:0', { id: 'ally', side: 'pc' })).toBe('Genesys.Notifications.CombatantHasNoActivationLeft');
+		expect(claimRefusal(slots, { 'hero:-1': 'ally', 'ally:-1': 'ally' }, 'ally:0', { id: 'ally', side: 'pc' })).toBe(
+			'Genesys.Notifications.CombatantHasNoActivationLeft',
+		);
 	});
 });
 
@@ -196,7 +205,10 @@ describe('rolling Initiative Slots', () => {
 	});
 
 	it('writes each roll to the slot it names, whatever the order of the slots asked', () => {
-		const slots = buildSlots([combatant('boss', null, 'hostile')], extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1));
+		const slots = buildSlots(
+			[combatant('boss', null, 'hostile')],
+			extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1),
+		);
 
 		expect(roll(slots, ['boss:1', 'boss:-1', 'boss:0'], { 'boss:1': 1, 'boss:-1': 2, 'boss:0': 3 })).toEqual({
 			combatants: [{ _id: 'boss', initiative: 2 }],

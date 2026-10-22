@@ -55,7 +55,11 @@ declare global {
 
 		override prepareBaseData(): void;
 
-		protected override _preCreate(data: PreDocumentId<foundry.data.SceneSource>, options: DocumentModificationContext, user: User): Promise<void>;
+		protected override _preCreate(
+			data: PreDocumentId<foundry.data.SceneSource>,
+			options: DocumentModificationContext,
+			user: User,
+		): Promise<void>;
 
 		protected override _onCreate(data: foundry.data.SceneSource, options: DocumentModificationContext, userId: string): void;
 
@@ -73,19 +77,64 @@ declare global {
 		 */
 		protected _onActivate(active: boolean): Promise<this>;
 
-		protected override _preCreateEmbeddedDocuments(embeddedName: 'Token', result: foundry.data.TokenSource[], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _preCreateEmbeddedDocuments(
+			embeddedName: 'Token',
+			result: foundry.data.TokenSource[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onCreateEmbeddedDocuments(embeddedName: 'Token', documents: TokenDocument[], result: foundry.data.TokenSource[], options: SceneEmbeddedModificationContext, userId: string): void;
-		protected override _onCreateEmbeddedDocuments(embeddedName: string, documents: ClientDocument[], result: object[], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _onCreateEmbeddedDocuments(
+			embeddedName: 'Token',
+			documents: TokenDocument[],
+			result: foundry.data.TokenSource[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
+		protected override _onCreateEmbeddedDocuments(
+			embeddedName: string,
+			documents: ClientDocument[],
+			result: object[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
-		protected override _preUpdateEmbeddedDocuments(embeddedName: 'Token', result: foundry.data.TokenSource[], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _preUpdateEmbeddedDocuments(
+			embeddedName: 'Token',
+			result: foundry.data.TokenSource[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onUpdateEmbeddedDocuments(embeddedName: 'Token', documents: TokenDocument[], result: TokenDocument['_source'][], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _onUpdateEmbeddedDocuments(
+			embeddedName: 'Token',
+			documents: TokenDocument[],
+			result: TokenDocument['_source'][],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
-		protected override _preDeleteEmbeddedDocuments(embeddedName: 'Token', result: TokenDocument['_source'][], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _preDeleteEmbeddedDocuments(
+			embeddedName: 'Token',
+			result: TokenDocument['_source'][],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
-		protected override _onDeleteEmbeddedDocuments(embeddedName: 'Token', documents: TokenDocument[], result: foundry.data.TokenSource[], options: SceneEmbeddedModificationContext, userId: string): void;
-		protected override _onDeleteEmbeddedDocuments(embeddedName: string, documents: ClientDocument[], result: object[], options: SceneEmbeddedModificationContext, userId: string): void;
+		protected override _onDeleteEmbeddedDocuments(
+			embeddedName: 'Token',
+			documents: TokenDocument[],
+			result: foundry.data.TokenSource[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
+		protected override _onDeleteEmbeddedDocuments(
+			embeddedName: string,
+			documents: ClientDocument[],
+			result: object[],
+			options: SceneEmbeddedModificationContext,
+			userId: string,
+		): void;
 
 		override toCompendium(pack: CompendiumCollection<this>): this['_source'];
 
@@ -97,11 +146,29 @@ declare global {
          * @param [height]      The desired thumbnail height. Default is 100px;
          * @return The created thumbnail data.
          */
-		createThumbnail({ img, width, height }?: { img?: ImageFilePath | null; width?: number; height?: number }): Promise<Record<string, unknown>>;
+		createThumbnail({
+			img,
+			width,
+			height,
+		}?: {
+			img?: ImageFilePath | null;
+			width?: number;
+			height?: number;
+		}): Promise<Record<string, unknown>>;
 	}
 
 	interface Scene {
-		readonly data: foundry.data.SceneData<this, TokenDocument, AmbientLightDocument, AmbientSoundDocument, DrawingDocument, MeasuredTemplateDocument, NoteDocument, TileDocument, WallDocument>;
+		readonly data: foundry.data.SceneData<
+			this,
+			TokenDocument,
+			AmbientLightDocument,
+			AmbientSoundDocument,
+			DrawingDocument,
+			MeasuredTemplateDocument,
+			NoteDocument,
+			TileDocument,
+			WallDocument
+		>;
 
 		readonly drawings: foundry.abstract.EmbeddedCollection<DrawingDocument>;
 		readonly lights: foundry.abstract.EmbeddedCollection<AmbientLightDocument>;
@@ -120,14 +187,46 @@ declare global {
 
 		update(data: DocumentUpdateData<this>, options?: SceneUpdateContext): Promise<this>;
 
-		updateEmbeddedDocuments(embeddedName: 'Token', updateData: EmbeddedDocumentUpdateData<TokenDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['tokens']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'AmbientLight', updateData: EmbeddedDocumentUpdateData<AmbientLightDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['lights']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'AmbientSound', updateData: EmbeddedDocumentUpdateData<AmbientSoundDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['sounds']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'Drawing', updateData: EmbeddedDocumentUpdateData<DrawingDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['drawings']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'MeasuredTemplate', updateData: EmbeddedDocumentUpdateData<MeasuredTemplateDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['tokens']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'Note', updateData: EmbeddedDocumentUpdateData<NoteDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['notes']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'Tile', updateData: EmbeddedDocumentUpdateData<TileDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['tiles']>[]>;
-		updateEmbeddedDocuments(embeddedName: 'Wall', updateData: EmbeddedDocumentUpdateData<WallDocument>[], options?: SceneEmbeddedModificationContext): Promise<CollectionValue<this['data']['walls']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'Token',
+			updateData: EmbeddedDocumentUpdateData<TokenDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['tokens']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'AmbientLight',
+			updateData: EmbeddedDocumentUpdateData<AmbientLightDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['lights']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'AmbientSound',
+			updateData: EmbeddedDocumentUpdateData<AmbientSoundDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['sounds']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'Drawing',
+			updateData: EmbeddedDocumentUpdateData<DrawingDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['drawings']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'MeasuredTemplate',
+			updateData: EmbeddedDocumentUpdateData<MeasuredTemplateDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['tokens']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'Note',
+			updateData: EmbeddedDocumentUpdateData<NoteDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['notes']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'Tile',
+			updateData: EmbeddedDocumentUpdateData<TileDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['tiles']>[]>;
+		updateEmbeddedDocuments(
+			embeddedName: 'Wall',
+			updateData: EmbeddedDocumentUpdateData<WallDocument>[],
+			options?: SceneEmbeddedModificationContext,
+		): Promise<CollectionValue<this['data']['walls']>[]>;
 		updateEmbeddedDocuments(
 			embeddedName: 'Token' | 'AmbientLight' | 'AmbientSound' | 'Drawing' | 'MeasuredTemplate' | 'Note' | 'Tile' | 'Wall',
 			updateData:

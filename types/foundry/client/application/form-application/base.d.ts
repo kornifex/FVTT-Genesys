@@ -13,7 +13,10 @@ declare global {
 	 *
 	 * @param options   Additional options which modify the rendering of the sheet.
 	 */
-	abstract class FormApplication<TObject extends object = object, TOptions extends FormApplicationOptions = FormApplicationOptions> extends Application<TOptions> {
+	abstract class FormApplication<
+		TObject extends object = object,
+		TOptions extends FormApplicationOptions = FormApplicationOptions,
+	> extends Application<TOptions> {
 		constructor(object?: TObject, options?: Partial<TOptions>);
 
 		override options: TOptions;

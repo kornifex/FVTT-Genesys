@@ -5,7 +5,11 @@ import type EquipmentDataModel from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 import type GenesysItem from '@/item/GenesysItem';
 
-async function cloneInventoryItemForAnotherActor(sourceItem: GenesysItem<EquipmentDataModel>, targetActor: GenesysActor, containerId: string) {
+async function cloneInventoryItemForAnotherActor(
+	sourceItem: GenesysItem<EquipmentDataModel>,
+	targetActor: GenesysActor,
+	containerId: string,
+) {
 	// Clone the source object and add it to the target actor.
 	const clonedItemAsObject = sourceItem.toObject();
 	const clonedItemAsObjectSystem = clonedItemAsObject.system as EquipmentDataModel;
@@ -39,7 +43,11 @@ async function cloneInventoryItemForAnotherActor(sourceItem: GenesysItem<Equipme
 	return clonedItem;
 }
 
-export async function transferInventoryBetweenActors(dragData: DragTransferData, actor: GenesysActor, isRelevantType: (type: string) => boolean) {
+export async function transferInventoryBetweenActors(
+	dragData: DragTransferData,
+	actor: GenesysActor,
+	isRelevantType: (type: string) => boolean,
+) {
 	// Check that we have the UUID of whatever was dropped, that it's permitted to be dropped on this actor, and that the target
 	// actor is owned by the user.
 	if (!actor.isOwner || !dragData.uuid || (dragData.genesysType && !isRelevantType(dragData.genesysType))) {
@@ -57,7 +65,9 @@ export async function transferInventoryBetweenActors(dragData: DragTransferData,
 	// If this is a container make sure to transfer all the contained items so long they also follow the restrictions of what can be dropped to the inventory.
 	let containedItems: GenesysItem<EquipmentDataModel>[] = [];
 	if (droppedItem.type === 'container') {
-		containedItems = sourceActor.items.filter((item) => (item as GenesysItem<EquipmentDataModel>).systemData.container === droppedItem.id) as GenesysItem<EquipmentDataModel>[];
+		containedItems = sourceActor.items.filter(
+			(item) => (item as GenesysItem<EquipmentDataModel>).systemData.container === droppedItem.id,
+		) as GenesysItem<EquipmentDataModel>[];
 		if (!containedItems.every((item) => isRelevantType(item.type))) {
 			return;
 		}

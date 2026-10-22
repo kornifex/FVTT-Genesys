@@ -106,7 +106,22 @@ declare module foundry {
 			journal: documents.BaseJournalEntry | null;
 		}
 
-		interface SceneData extends Omit<SceneSource, 'flags' | 'drawings' | 'tokens' | 'lights' | 'notes' | 'sounds' | 'templates' | 'tiles' | 'walls' | 'playlist' | 'playlistSound' | 'journal'> {
+		interface SceneData
+			extends Omit<
+				SceneSource,
+				| 'flags'
+				| 'drawings'
+				| 'tokens'
+				| 'lights'
+				| 'notes'
+				| 'sounds'
+				| 'templates'
+				| 'tiles'
+				| 'walls'
+				| 'playlist'
+				| 'playlistSound'
+				| 'journal'
+			> {
 			_source: SceneSource;
 		}
 	}

@@ -65,10 +65,12 @@ async function deleteGrantedItem(index: number) {
 
 					<ul>
 						<li>
-							<strong><Localized label="Genesys.Archetype.StartingWounds" />:</strong> {{ system.woundThreshold }} + <Localized label="Genesys.Characteristics.Brawn" />
+							<strong><Localized label="Genesys.Archetype.StartingWounds" />:</strong> {{ system.woundThreshold }} +
+							<Localized label="Genesys.Characteristics.Brawn" />
 						</li>
 						<li>
-							<strong><Localized label="Genesys.Archetype.StartingStrain" />:</strong> {{ system.strainThreshold }} + <Localized label="Genesys.Characteristics.Willpower" />
+							<strong><Localized label="Genesys.Archetype.StartingStrain" />:</strong> {{ system.strainThreshold }} +
+							<Localized label="Genesys.Characteristics.Willpower" />
 						</li>
 						<li>
 							<strong><Localized label="Genesys.Archetype.StartingXP" />:</strong> {{ system.startingXP }}

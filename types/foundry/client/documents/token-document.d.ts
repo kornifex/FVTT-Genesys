@@ -97,7 +97,11 @@ declare global {
 		 * @param options Provided options which modify the creation request
 		 * @returns The created Embedded Document instances
 		 */
-		createActorEmbeddedDocuments(embeddedName: 'ActiveEffect' | 'Item', data: PreCreate<foundry.data.ActiveEffectSource>[] | Partial<foundry.data.ActiveEffectSource>[], options?: DocumentModificationContext): ActiveEffect | Item[];
+		createActorEmbeddedDocuments(
+			embeddedName: 'ActiveEffect' | 'Item',
+			data: PreCreate<foundry.data.ActiveEffectSource>[] | Partial<foundry.data.ActiveEffectSource>[],
+			options?: DocumentModificationContext,
+		): ActiveEffect | Item[];
 
 		/**
 		 * Redirect updating of Documents within a synthetic Token Actor to instead update the tokenData override object.
@@ -106,7 +110,11 @@ declare global {
 		 * @param options      Provided options which modify the update request
 		 * @returns The updated Embedded Document instances
 		 */
-		updateActorEmbeddedDocuments(embeddedName: 'ActiveEffect' | 'Item', updates: EmbeddedDocumentUpdateData<ActiveEffect | Item>[], options: DocumentModificationContext): Promise<ActiveEffect[] | Item[]>;
+		updateActorEmbeddedDocuments(
+			embeddedName: 'ActiveEffect' | 'Item',
+			updates: EmbeddedDocumentUpdateData<ActiveEffect | Item>[],
+			options: DocumentModificationContext,
+		): Promise<ActiveEffect[] | Item[]>;
 
 		/**
 		 * Redirect deletion of Documents within a synthetic Token Actor to instead update the tokenData override object.
@@ -115,13 +123,21 @@ declare global {
 		 * @param options      Provided options which modify the update request
 		 * @returns The updated Embedded Document instances
 		 */
-		deleteActorEmbeddedDocuments(embeddedName: 'ActiveEffect' | 'Item', ids: string[], options: DocumentModificationContext): Promise<ActiveEffect[] | Item[]>;
+		deleteActorEmbeddedDocuments(
+			embeddedName: 'ActiveEffect' | 'Item',
+			ids: string[],
+			options: DocumentModificationContext,
+		): Promise<ActiveEffect[] | Item[]>;
 
 		/* -------------------------------------------- */
 		/*  Event Handlers                              */
 		/* -------------------------------------------- */
 
-		protected override _preUpdate(data: DocumentUpdateData<this>, options: DocumentModificationContext<this>, user: User): Promise<void>;
+		protected override _preUpdate(
+			data: DocumentUpdateData<this>,
+			options: DocumentModificationContext<this>,
+			user: User,
+		): Promise<void>;
 
 		/** When the Actor data overrides change for an un-linked Token Actor, simulate the pre-update process. */
 		protected _preUpdateTokenActor(data: DocumentUpdateData<TActor>, options: TokenUpdateContext<this>, userId: string): Promise<void>;
@@ -132,7 +148,11 @@ declare global {
 		_onUpdateBaseActor(update?: Record<string, unknown>, options?: DocumentModificationContext<Actor>): void;
 
 		/** When the Actor data overrides change for an un-linked Token Actor, simulate the post-update process. */
-		protected _onUpdateTokenActor(data: DeepPartial<this['_source']['actorData']>, options: DocumentModificationContext, userId: string): void;
+		protected _onUpdateTokenActor(
+			data: DeepPartial<this['_source']['actorData']>,
+			options: DocumentModificationContext,
+			userId: string,
+		): void;
 
 		/** Get an Array of attribute choices which could be tracked for Actors in the Combat Tracker */
 		static getTrackedAttributes(data?: Record<string, unknown>, _path?: string[]): TokenAttributes;

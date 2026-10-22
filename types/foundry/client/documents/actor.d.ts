@@ -118,13 +118,25 @@ declare global {
 		 * @param [options.initiativeOptions={}]   Additional options passed to the Combat#rollInitiative method.
 		 * @return A promise which resolves to the Combat entity once rolls are complete.
 		 */
-		rollInitiative({ createCombatants, rerollInitiative, initiativeOptions }?: { createCombatants?: boolean; rerollInitiative?: boolean; initiativeOptions?: object }): Promise<Combat | null>;
+		rollInitiative({
+			createCombatants,
+			rerollInitiative,
+			initiativeOptions,
+		}?: {
+			createCombatants?: boolean;
+			rerollInitiative?: boolean;
+			initiativeOptions?: object;
+		}): Promise<Combat | null>;
 
 		override getEmbeddedCollection(embeddedName: 'ActiveEffect'): this['effects'];
 		override getEmbeddedCollection(embeddedName: 'Item'): this['items'];
 		override getEmbeddedCollection(embeddedName: 'ActiveEffect' | 'Item'): this['effects'] | this['items'];
 
-		protected override _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext<this>, user: User): Promise<void>;
+		protected override _preCreate(
+			data: PreDocumentId<this['_source']>,
+			options: DocumentModificationContext<this>,
+			user: User,
+		): Promise<void>;
 
 		protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, userId: string): void;
 
@@ -178,15 +190,35 @@ declare global {
 
 		get folder(): Folder<this> | null;
 
-		deleteEmbeddedDocuments(embeddedName: 'ActiveEffect', dataId: string[], context?: DocumentModificationContext): Promise<ActiveEffect[]>;
+		deleteEmbeddedDocuments(
+			embeddedName: 'ActiveEffect',
+			dataId: string[],
+			context?: DocumentModificationContext,
+		): Promise<ActiveEffect[]>;
 		deleteEmbeddedDocuments(embeddedName: 'Item', dataId: string[], context?: DocumentModificationContext): Promise<Item[]>;
-		deleteEmbeddedDocuments(embeddedName: 'ActiveEffect' | 'Item', dataId: string[], context?: DocumentModificationContext): Promise<ActiveEffect[] | Item[]>;
+		deleteEmbeddedDocuments(
+			embeddedName: 'ActiveEffect' | 'Item',
+			dataId: string[],
+			context?: DocumentModificationContext,
+		): Promise<ActiveEffect[] | Item[]>;
 	}
 
 	namespace Actor {
-		function create<A extends Actor>(this: ConstructorOf<A>, data: PreCreate<A['_source']>, context?: DocumentModificationContext): Promise<A | undefined>;
-		function create<A extends Actor>(this: ConstructorOf<A>, data: PreCreate<A['_source']>[], context?: DocumentModificationContext): Promise<A[]>;
-		function create<A extends Actor>(this: ConstructorOf<A>, data: PreCreate<A['_source']>[] | PreCreate<A['_source']>, context?: DocumentModificationContext): Promise<A[] | A | undefined>;
+		function create<A extends Actor>(
+			this: ConstructorOf<A>,
+			data: PreCreate<A['_source']>,
+			context?: DocumentModificationContext,
+		): Promise<A | undefined>;
+		function create<A extends Actor>(
+			this: ConstructorOf<A>,
+			data: PreCreate<A['_source']>[],
+			context?: DocumentModificationContext,
+		): Promise<A[]>;
+		function create<A extends Actor>(
+			this: ConstructorOf<A>,
+			data: PreCreate<A['_source']>[] | PreCreate<A['_source']>,
+			context?: DocumentModificationContext,
+		): Promise<A[] | A | undefined>;
 	}
 
 	type ActorUUID = `Actor.${string}` | CompendiumUUID;

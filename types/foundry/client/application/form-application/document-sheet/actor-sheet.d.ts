@@ -86,7 +86,10 @@ declare global {
 		 * @param data The data transfer extracted from the event
 		 * @return A data object which describes the result of the drop
 		 */
-		protected _onDropActiveEffect<D extends ActiveEffect>(event: ElementDragEvent, data?: DropCanvasData<'ActiveEffect', D>): Promise<D | void>;
+		protected _onDropActiveEffect<D extends ActiveEffect>(
+			event: ElementDragEvent,
+			data?: DropCanvasData<'ActiveEffect', D>,
+		): Promise<D | void>;
 
 		/**
 		 * Handle dropping of an Actor data onto another Actor sheet
