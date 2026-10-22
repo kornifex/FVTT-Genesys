@@ -9,6 +9,7 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { DragTransferData } from '@/data/DragTransferData';
 import { ownedSkill } from '@/data/Skills';
+import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 
 /**
  * Actor sheet shared by the adversaries: minions, rivals and nemeses.
@@ -90,8 +91,7 @@ export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
 				clonedDroppedItem = await super._onDropItem(event, data);
 			}
 		} else if (AdversaryDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			// Let `super` handle the drop and save a reference to it.
-			clonedDroppedItem = await super._onDropItem(event, data);
+			clonedDroppedItem = await receiveInventoryDrop(this.actor, data);
 		} else {
 			// If the dropped item is not of a type that we have a default behavior then end early.
 			return false;
