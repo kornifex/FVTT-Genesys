@@ -22,7 +22,7 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
-import { weaponSkillName } from '@/data/Skills';
+import { freeRank, weaponSkillName } from '@/data/Skills';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -79,13 +79,19 @@ async function deleteItem(item: GenesysItem) {
 	await toRaw(item).delete();
 }
 
-async function adjustTalentOrSkillRank(item: GenesysItem<TalentDataModel> | GenesysItem<SkillDataModel>, adjustment: number) {
+async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
+	await toRaw(skill).update({
+		'system.rank': freeRank(skill.systemData.rank, step),
+	});
+}
+
+async function adjustTalentRank(talent: GenesysItem<TalentDataModel>, adjustment: number) {
 	// Talents should be deleted if rank is reduced to 0.
-	if (item.systemData.rank + adjustment === 0 && item.type === 'talent') {
-		await toRaw(item).delete();
+	if (talent.systemData.rank + adjustment === 0) {
+		await toRaw(talent).delete();
 	} else {
-		await toRaw(item).update({
-			'system.rank': Math.max(0, item.systemData.rank + adjustment),
+		await toRaw(talent).update({
+			'system.rank': Math.max(0, talent.systemData.rank + adjustment),
 		});
 	}
 }
@@ -317,12 +323,12 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								<Localized v-if="skills.length === 0" label="Genesys.Adversary.None" />
 								<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
 									<template v-slot:menu-items>
-										<MenuItem @click="adjustTalentOrSkillRank(skill, 1)">
+										<MenuItem @click="freeSkillRank(skill, 1)">
 											<template v-slot:icon><i class="fas fa-circle-up"></i></template>
 											{{ rankUpLabel }}
 										</MenuItem>
 
-										<MenuItem @click="adjustTalentOrSkillRank(skill, -1)">
+										<MenuItem @click="freeSkillRank(skill, -1)">
 											<template v-slot:icon><i class="fas fa-circle-down"></i></template>
 											{{ rankDownLabel }}
 										</MenuItem>
@@ -357,12 +363,12 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="talent in talents" :key="talent.id" class="talent">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="adjustTalentOrSkillRank(talent, 1)">
+										<MenuItem @click="adjustTalentRank(talent, 1)">
 											<template v-slot:icon><i class="fas fa-circle-up"></i></template>
 											{{ rankUpLabel }}
 										</MenuItem>
 
-										<MenuItem @click="adjustTalentOrSkillRank(talent, -1)">
+										<MenuItem @click="adjustTalentRank(talent, -1)">
 											<template v-slot:icon><i class="fas fa-circle-down"></i></template>
 											{{ rankDownLabel }}
 										</MenuItem>

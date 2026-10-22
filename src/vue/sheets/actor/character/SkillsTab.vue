@@ -1,12 +1,9 @@
 <script lang="ts" setup>
-/**
- * TODO: Just redo this whole mess. The entire reason I wanted to move away from HBS in the first place is that it was getting kinda nasty.
- */
-
 import { computed, inject, toRaw } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
+import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/data/character/CharacterCreation';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -19,32 +16,41 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import MasonryWall from '@yeger/vue-masonry-wall';
 import { Characteristic as CharacteristicType } from '@/data/Characteristics';
+import { freeRank, SkillCategory, skillsByCategory } from '@/data/Skills';
+
+const CHARACTERISTICS: { characteristic: CharacteristicType; label: string }[] = [
+	{ characteristic: CharacteristicType.Brawn, label: 'Genesys.Characteristics.Brawn' },
+	{ characteristic: CharacteristicType.Agility, label: 'Genesys.Characteristics.Agility' },
+	{ characteristic: CharacteristicType.Intellect, label: 'Genesys.Characteristics.Intellect' },
+	{ characteristic: CharacteristicType.Cunning, label: 'Genesys.Characteristics.Cunning' },
+	{ characteristic: CharacteristicType.Willpower, label: 'Genesys.Characteristics.Willpower' },
+	{ characteristic: CharacteristicType.Presence, label: 'Genesys.Characteristics.Presence' },
+];
+
+const CHARACTERISTIC_ABBREVIATIONS: Record<CharacteristicType, string> = {
+	[CharacteristicType.Brawn]: 'Genesys.CharacteristicAbbr.Brawn',
+	[CharacteristicType.Agility]: 'Genesys.CharacteristicAbbr.Agility',
+	[CharacteristicType.Intellect]: 'Genesys.CharacteristicAbbr.Intellect',
+	[CharacteristicType.Cunning]: 'Genesys.CharacteristicAbbr.Cunning',
+	[CharacteristicType.Willpower]: 'Genesys.CharacteristicAbbr.Willpower',
+	[CharacteristicType.Presence]: 'Genesys.CharacteristicAbbr.Presence',
+};
+
+const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = {
+	general: 'Genesys.Labels.GeneralSkills',
+	magic: 'Genesys.Labels.MagicSkills',
+	combat: 'Genesys.Labels.CombatSkills',
+	social: 'Genesys.Labels.SocialSkills',
+	knowledge: 'Genesys.Labels.KnowledgeSkills',
+};
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 const system = computed(() => context.data.actor.systemData);
 const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
 
-const SKILL_CATEGORY_SORT_ORDER = {
-	general: 0,
-	magic: 1,
-	combat: 2,
-	social: 3,
-	knowledge: 4,
-};
+const skillCategories = computed(() => skillsByCategory(toRaw(context.data.actor).skills, game.i18n.lang));
 
-const skills = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'skill') as GenesysItem<SkillDataModel>[]);
-
-const skillCategories = computed(() =>
-	Array.from(
-		new Set(
-			skills.value
-				.map((s) => s.systemData.category)
-				.sort((left, right) => SKILL_CATEGORY_SORT_ORDER[left] - SKILL_CATEGORY_SORT_ORDER[right]),
-		),
-	),
-);
-
-const canMarkSuper = computed(() => system.value.availableStartingXP > 0);
+const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 
 const markCareerLabel = game.i18n.localize('Genesys.Labels.MarkCareerSkill');
 const unmarkCareerLabel = game.i18n.localize('Genesys.Labels.UnmarkCareerSkill');
@@ -77,28 +83,32 @@ function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
 	return isAllowed(buySkillRank(advancement.value, skill.id));
 }
 
+// A skill can be marked as a career skill by hand at any time, whatever the character's Career: a talent or the GM
+// may grant one.
 async function toggleCareerSkill(skill: GenesysItem<SkillDataModel>) {
 	await toRaw(skill).update({
 		'system.career': !skill.systemData.career,
 	});
 }
 
-async function freeSkillRank(skill: GenesysItem<SkillDataModel>, adjustment: number) {
+async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
 	await toRaw(skill).update({
-		'system.rank': Math.max(0, skill.systemData.rank + adjustment),
+		'system.rank': freeRank(skill.systemData.rank, step),
 	});
 }
 
 async function toggleSuper(characteristic: CharacteristicType) {
-	const superCharacteristics = new Set(system.value.superCharacteristics);
-	if (superCharacteristics.has(characteristic)) {
-		superCharacteristics.delete(characteristic);
-	} else {
-		superCharacteristics.add(characteristic);
+	const superCharacteristics = toggleSuperCharacteristic(
+		system.value.experienceJournal.entries,
+		system.value.superCharacteristics,
+		characteristic,
+	);
+	if (!superCharacteristics) {
+		return;
 	}
 
 	await toRaw(context.data.actor).update({
-		'system.superCharacteristics': Array.from(superCharacteristics),
+		'system.superCharacteristics': superCharacteristics,
 	});
 }
 
@@ -114,75 +124,17 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 	<section class="tab-skills">
 		<div class="characteristics-row">
 			<Characteristic
-				label="Genesys.Characteristics.Brawn"
-				:value="system.characteristics.brawn"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Brawn)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Brawn)"
+				v-for="{ characteristic, label } in CHARACTERISTICS"
+				:key="characteristic"
+				:label="label"
+				:value="system.characteristics[characteristic]"
+				:can-upgrade="canPurchaseCharacteristic(characteristic)"
+				@upgrade="purchaseCharacteristic(characteristic)"
 				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Brawn)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Brawn)"
+				@rollCharacteristicCheck="rollCharacteristicCheck(characteristic)"
+				:is-super="system.superCharacteristics.has(characteristic)"
 				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Brawn)"
-			/>
-
-			<Characteristic
-				label="Genesys.Characteristics.Agility"
-				:value="system.characteristics.agility"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Agility)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Agility)"
-				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Agility)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Agility)"
-				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Agility)"
-			/>
-
-			<Characteristic
-				label="Genesys.Characteristics.Intellect"
-				:value="system.characteristics.intellect"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Intellect)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Intellect)"
-				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Intellect)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Intellect)"
-				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Intellect)"
-			/>
-
-			<Characteristic
-				label="Genesys.Characteristics.Cunning"
-				:value="system.characteristics.cunning"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Cunning)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Cunning)"
-				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Cunning)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Cunning)"
-				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Cunning)"
-			/>
-
-			<Characteristic
-				label="Genesys.Characteristics.Willpower"
-				:value="system.characteristics.willpower"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Willpower)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Willpower)"
-				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Willpower)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Willpower)"
-				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Willpower)"
-			/>
-
-			<Characteristic
-				label="Genesys.Characteristics.Presence"
-				:value="system.characteristics.presence"
-				:can-upgrade="canPurchaseCharacteristic(CharacteristicType.Presence)"
-				@upgrade="purchaseCharacteristic(CharacteristicType.Presence)"
-				can-roll-characteristic-check
-				@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Presence)"
-				:is-super="system.superCharacteristics.has(CharacteristicType.Presence)"
-				:can-mark-super="canMarkSuper"
-				@toggle-super="toggleSuper(CharacteristicType.Presence)"
+				@toggle-super="toggleSuper(characteristic)"
 			/>
 		</div>
 
@@ -191,7 +143,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				<template #default="{ item: skillCategory, index }">
 					<div class="skill-category" :style="`position: relative; z-index: ${skillCategories.length - index}`">
 						<div class="header">
-							<label><Localized :label="`Genesys.Labels.${skillCategory.capitalize()}Skills`" /></label>
+							<label><Localized :label="SKILL_CATEGORY_LABELS[skillCategory.category]" /></label>
 							<div class="blank" />
 
 							<label style="position: relative; left: -3px"><Localized label="Genesys.Labels.Rank" /></label>
@@ -199,13 +151,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 						</div>
 
 						<div class="body">
-							<ContextMenu
-								v-for="skill in skills
-									.filter((s) => s.systemData.category === skillCategory)
-									.sort((l: GenesysItem, r: GenesysItem) => (l.name < r.name ? -1 : l.name > r.name ? 1 : 0))"
-								:key="skill.id"
-								class="skill row"
-							>
+							<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
 								<template v-slot:menu-items>
 									<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
 										<template v-slot:icon
@@ -239,14 +185,14 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 								<a class="name" @click="rollSkill(skill)">
 									<span
 										>{{ skill.name }} (<Localized
-											:label="`Genesys.CharacteristicAbbr.${skill.system.characteristic.capitalize()}`"
+											:label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]"
 										/>)</span
 									>
-									<i v-if="skill.system.career" class="fas fa-star"></i>
+									<i v-if="skill.systemData.career" class="fas fa-star"></i>
 								</a>
 
 								<span class="rank-display">
-									{{ skill.system.rank }}
+									{{ skill.systemData.rank }}
 
 									<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
 										<i class="fas fa-arrow-circle-up" />

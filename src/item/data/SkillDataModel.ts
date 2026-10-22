@@ -1,5 +1,6 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
+import type { SkillCategory } from '@/data/Skills';
 
 export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
@@ -10,7 +11,7 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
 	 * Skill category
 	 */
-	abstract category: 'general' | 'magic' | 'combat' | 'social' | 'knowledge';
+	abstract category: SkillCategory;
 
 	/**
 	 * Whether the skill can be used for initiative.

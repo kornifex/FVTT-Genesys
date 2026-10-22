@@ -1,5 +1,6 @@
 /**
- * @file Skills: how skill names match, and which skill an actor rolls for a name, for a weapon, and in the dice prompt.
+ * @file Skills: how skill names match, which skill an actor rolls for a name, for a weapon, and in the dice prompt, Free
+ * Ranks, and how a character's skills are listed.
  */
 
 /**
@@ -9,6 +10,14 @@ export type Skill = {
 	name: string;
 	system: { rank: number };
 };
+
+// The order a character's skills are listed in.
+const SKILL_CATEGORIES = ['general', 'magic', 'combat', 'social', 'knowledge'] as const;
+
+/**
+ * The category a skill belongs to.
+ */
+export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
 
 /**
  * A skill an actor rolls: one they own, or the Skills Compendium's, as an Unranked Skill Check.
@@ -82,6 +91,26 @@ export function promptSkills<S extends Skill>(ownedSkills: S[], compendiumSkills
 		owned: [...ownedSkills].sort(byName),
 		unranked: compendiumSkills.filter((skill) => !ownedSkill(ownedSkills, skill.name)).sort(byName),
 	};
+}
+
+/**
+ * A skill's rank after a Free Rank up or down: gained or lost without spending XP, and never below 0.
+ */
+export function freeRank(rank: number, step: 1 | -1) {
+	return Math.max(0, rank + step);
+}
+
+/**
+ * A character's skills, grouped by category in the categories' order and sorted by name within each, in the given
+ * locale. A category with no skill is left out.
+ */
+export function skillsByCategory<S extends { name: string; system: { category: SkillCategory } }>(skills: S[], locale: string) {
+	return SKILL_CATEGORIES.map((category) => ({
+		category,
+		skills: skills
+			.filter((skill) => skill.system.category === category)
+			.sort((left, right) => left.name.localeCompare(right.name, locale)),
+	})).filter((group) => group.skills.length > 0);
 }
 
 function byName(left: Skill, right: Skill) {
