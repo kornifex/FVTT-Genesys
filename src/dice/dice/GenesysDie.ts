@@ -2,7 +2,7 @@
  * @file Root type of all the custom Die types in the Genesys system.
  */
 
-import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
+import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 export type DieCategory = 'positive' | 'negative';
 

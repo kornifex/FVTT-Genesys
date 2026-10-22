@@ -1,9 +1,9 @@
-import AbilityDie from '@/dice/types/AbilityDie';
-import BoostDie from '@/dice/types/BoostDie';
-import ProficiencyDie from '@/dice/types/ProficiencyDie';
-import SetbackDie from '@/dice/types/SetbackDie';
-import DifficultyDie from '@/dice/types/DifficultyDie';
-import ChallengeDie from '@/dice/types/ChallengeDie';
+import AbilityDie from '@/dice/dice/AbilityDie';
+import BoostDie from '@/dice/dice/BoostDie';
+import ProficiencyDie from '@/dice/dice/ProficiencyDie';
+import SetbackDie from '@/dice/dice/SetbackDie';
+import DifficultyDie from '@/dice/dice/DifficultyDie';
+import ChallengeDie from '@/dice/dice/ChallengeDie';
 
 import './diceSoNice';
 

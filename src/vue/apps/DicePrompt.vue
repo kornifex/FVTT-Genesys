@@ -9,11 +9,11 @@ import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { vLocalize } from '@/vue/directives';
 import { GenesysDice } from '@/dice';
-import { DieCategory } from '@/dice/types/GenesysDie';
-import { GenesysSymbol } from '@/dice/types/GenesysSymbol';
+import { DieCategory } from '@/dice/dice/GenesysDie';
+import { GenesysSymbol } from '@/dice/GenesysSymbol';
 import GenesysActor from '@/actor/GenesysActor';
-import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
-import { GenesysPoolModifications } from '@/dice/types/GenesysPoolModifications';
+import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
+import { GenesysPoolModifications } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import { type Check, type CheckPoolModification, type CheckRequest, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import {

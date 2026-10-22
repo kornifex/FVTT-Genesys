@@ -3,9 +3,9 @@
  */
 
 import { GenesysDice } from '@/dice';
-import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
-import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
-import { GenesysSymbol } from '@/dice/types/GenesysSymbol';
+import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
+import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { GenesysSymbol } from '@/dice/GenesysSymbol';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 

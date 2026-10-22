@@ -1,5 +1,5 @@
 import GenesysActor from '@/actor/GenesysActor';
-import GenesysDie from '@/dice/types/GenesysDie';
+import GenesysDie from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import GenesysItem from '@/item/GenesysItem';

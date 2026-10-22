@@ -1,6 +1,6 @@
 import { GenesysDice } from '@/dice';
-import { GenesysPoolGradeOperation } from '@/dice/types/GenesysPoolGradeOperation';
-import { GenesysSymbol } from '@/dice/types/GenesysSymbol';
+import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
+import { GenesysSymbol } from '@/dice/GenesysSymbol';
 
 type PoolEntity = keyof typeof GenesysDice | keyof typeof GenesysSymbol | keyof typeof GenesysPoolGradeOperation;
 

@@ -2,7 +2,7 @@ import GenesysActor from '@/actor/GenesysActor';
 import DicePrompt from '@/app/DicePrompt';
 import { checkLinkActor } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
-import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/types/GenesysPoolModifications';
+import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 
 const DICE_COLOR_TO_GLYPH = Object.fromEntries(
 	Object.values(GenesysDice).map((die) => {

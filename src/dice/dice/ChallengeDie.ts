@@ -1,5 +1,5 @@
-import GenesysDie from '@/dice/types/GenesysDie';
-import { GenesysDieFace } from '@/dice/types/GenesysSymbol';
+import GenesysDie from '@/dice/dice/GenesysDie';
+import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
  * Challenge (red) Die
