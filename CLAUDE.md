@@ -15,3 +15,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 ### Code style
 
 Before writing code, a commit or a pull request, read `docs/agents/code-style.md`.
+
+### Releases
+
+Before changing the version, the changelog or the release workflow, read `docs/agents/releasing.md`.
