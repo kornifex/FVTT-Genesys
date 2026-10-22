@@ -56,6 +56,11 @@ export default defineConfig({
 			cssFileName: 'style',
 		},
 	},
+	experimental: {
+		// The chance worker loads from a URL relative to Genesys.js, so that it still resolves when Foundry serves its
+		// routes under a prefix.
+		renderBuiltUrl: (_, { hostType }) => (hostType === 'js' ? { relative: true } : undefined),
+	},
 	plugins: [pluginVue(), yamlData('yaml')],
 	resolve: {
 		alias: [

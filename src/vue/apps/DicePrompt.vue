@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
-import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData, CALCULATE_CHANCE_WORKER_NAME } from '@/app/DicePrompt';
+import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
+import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { Characteristic } from '@/data/Characteristics';
 import { GenesysRoller } from '@/dice/GenesysRoller';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -175,20 +176,8 @@ async function approximateProbability() {
 
 	let chanceToSucceed: number;
 	if (USE_CHANCE_TO_SUCCEED_BY_PERMUTATION) {
-		const worker = game.workers.get(CALCULATE_CHANCE_WORKER_NAME);
-		if (!worker) {
-			probabilityOfSuccess.value = undefined;
-			return;
-		}
-
-		const rawDicePool = toRaw(dicePool);
-		chanceToSucceed = (await worker.executeFunction('calculateChanceForDicePool', [
-			{
-				dicePool: rawDicePool.dice,
-				extraSymbols: rawDicePool.symbols,
-				criteriaType: 'SUCCESS',
-			},
-		])) as number;
+		const { dice, symbols } = toRaw(dicePool);
+		chanceToSucceed = await chanceToSucceedInWorker({ dice, symbols });
 	} else {
 		const formula = compileDiceFormula(currentDicePool.value);
 		const symbols = { symbols: compileSymbolsData(currentDicePool.value) };

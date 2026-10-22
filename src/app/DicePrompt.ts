@@ -125,13 +125,3 @@ export class DicePrompt extends VueSheet(Application) {
 		};
 	}
 }
-
-export const CALCULATE_CHANCE_WORKER_NAME = 'CalculateChance';
-
-export function registerWorker() {
-	if (CONFIG.genesys.settings.showChanceToSucceedFromPermutations) {
-		game.workers.createWorker(CALCULATE_CHANCE_WORKER_NAME, {
-			scripts: ['../systems/genesys/scripts/calculate-chance-worker.js'],
-		});
-	}
-}
