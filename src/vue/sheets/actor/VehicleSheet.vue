@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw, ref, onBeforeMount, onBeforeUpdate, type Ref } from 'vue';
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import { inject, computed, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
@@ -13,30 +12,12 @@ import CrewTab from '@/vue/sheets/actor/vehicle/CrewTab.vue';
 import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import DetailsTab from '@/vue/sheets/actor/vehicle/DetailsTab.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
+import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-// The reactive type of a document is too deep for TypeScript to unwrap.
-const effects = ref([]) as Ref<GenesysEffect[]>;
-
-async function addEffect(category: string) {
-	await toRaw(context.sheet.actor).createEmbeddedDocuments('ActiveEffect', [
-		{
-			name: context.data.actor.name,
-			img: 'icons/svg/aura.svg',
-			disabled: category === 'suppressed',
-			duration: category === 'temporary' ? { rounds: 1 } : undefined,
-		},
-	]);
-}
-
-function updateEffects() {
-	effects.value = [...toRaw(context.data.actor).effects] as GenesysEffect[];
-}
-
-onBeforeMount(updateEffects);
-onBeforeUpdate(updateEffects);
+const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 </script>
 
 <template>

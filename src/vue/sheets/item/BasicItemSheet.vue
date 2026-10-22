@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import { computed, inject } from 'vue';
 
 import { vLocalize } from '@/vue/directives';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
+import Enriched from '@/vue/components/Enriched.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
+import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
 defineProps<{
 	/**
@@ -23,36 +24,7 @@ defineProps<{
 const context = inject<ItemSheetContext>(RootContext)!;
 const system = computed(() => context.data.item.systemData);
 
-// A local ref, updated in onBeforeUpdate, works around some struggles with Foundry. The reactive type of a document
-// is too deep for TypeScript to unwrap.
-const effects = ref([]) as Ref<GenesysEffect[]>;
-const source = ref('');
-
-watch(
-	() => system.value.source,
-	async (text) => {
-		source.value = await TextEditor.enrichHTML(text, { async: true });
-	},
-	{ immediate: true },
-);
-
-async function addEffect(category: string) {
-	await toRaw(context.sheet.item).createEmbeddedDocuments('ActiveEffect', [
-		{
-			name: context.data.item.name,
-			img: 'icons/svg/aura.svg',
-			disabled: category === 'suppressed',
-			duration: category === 'temporary' ? { rounds: 1 } : undefined,
-		},
-	]);
-}
-
-function updateEffects() {
-	effects.value = [...toRaw(context.data.item).effects] as GenesysEffect[];
-}
-
-onBeforeMount(updateEffects);
-onBeforeUpdate(updateEffects);
+const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 </script>
 
 <template>
@@ -89,7 +61,7 @@ onBeforeUpdate(updateEffects);
 				<slot name="description">
 					<section class="description">
 						<Editor name="system.description" :content="system.description" button />
-						<div class="source" v-html="source" />
+						<Enriched class="source" :value="system.source" />
 					</section>
 				</slot>
 			</div>

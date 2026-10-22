@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { GenesysEffect } from '@/effects/GenesysEffect';
+import { EffectCategory } from '@/effects/NewEffect';
 import { inject, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
@@ -9,20 +10,21 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-	(e: 'addEffect', category: string): void;
+	(e: 'addEffect', category: EffectCategory): void;
 }>();
 
 const rootContext = inject<BaseSheetContext>(RootContext)!;
 
 type EffectSection = {
+	category: EffectCategory;
 	label: string;
 	filter: (effect: GenesysEffect) => boolean;
 };
 
 const sections: EffectSection[] = [
-	{ label: 'Temporary', filter: (e) => e.isTemporary && !e.isSuppressed },
-	{ label: 'Passive', filter: (e) => !e.isTemporary && !e.isSuppressed },
-	{ label: 'Suppressed', filter: (e) => e.isSuppressed },
+	{ category: 'temporary', label: 'Genesys.ActiveEffects.Temporary', filter: (e) => e.isTemporary && !e.isSuppressed },
+	{ category: 'passive', label: 'Genesys.ActiveEffects.Passive', filter: (e) => !e.isTemporary && !e.isSuppressed },
+	{ category: 'suppressed', label: 'Genesys.ActiveEffects.Suppressed', filter: (e) => e.isSuppressed },
 ];
 
 async function openEffect(effect: GenesysEffect) {
@@ -42,15 +44,13 @@ async function deleteEffect(effect: GenesysEffect) {
 
 <template>
 	<section class="effects-view">
-		<template v-for="{ label: section, filter } in sections" :key="section">
+		<template v-for="{ category, label, filter } in sections" :key="category">
 			<div class="effects-header">
-				<div class="name"><Localized :label="`Genesys.ActiveEffects.${section}`" /></div>
+				<div class="name"><Localized :label="label" /></div>
 				<div class="source"><Localized label="Genesys.ActiveEffects.Source" /></div>
 				<div class="duration"><Localized label="Genesys.ActiveEffects.Duration" /></div>
 				<div class="buttons">
-					<a @click="emit('addEffect', section.toLowerCase())"
-						><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add"
-					/></a>
+					<a @click="emit('addEffect', category)"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
 				</div>
 			</div>
 

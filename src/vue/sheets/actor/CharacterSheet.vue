@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, type Ref } from 'vue';
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Localized from '@/vue/components/Localized.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
+import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
 import JournalTab from '@/vue/sheets/actor/character/JournalTab.vue';
 import SkillsTab from '@/vue/sheets/actor/character/SkillsTab.vue';
@@ -17,26 +17,7 @@ import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-// The reactive type of a document is too deep for TypeScript to unwrap.
-const effects = ref([]) as Ref<GenesysEffect[]>;
-
-async function addEffect(category: string) {
-	await toRaw(context.sheet.actor).createEmbeddedDocuments('ActiveEffect', [
-		{
-			name: context.data.actor.name,
-			img: 'icons/svg/aura.svg',
-			disabled: category === 'suppressed',
-			duration: category === 'temporary' ? { rounds: 1 } : undefined,
-		},
-	]);
-}
-
-function updateEffects() {
-	effects.value = [...toRaw(context.data.actor).effects] as GenesysEffect[];
-}
-
-onBeforeMount(updateEffects);
-onBeforeUpdate(updateEffects);
+const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 </script>
 
 <template>
