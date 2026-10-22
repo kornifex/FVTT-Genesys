@@ -87,11 +87,11 @@ jobs:
           cp dist/system.json manifest.json
           gh release upload "$TAG" manifest.json genesys.zip --clobber
 
-      # A pre-release stays out of releases/latest, which Foundry reads for updates.
+      # A pre-release version (0.4.0-rc.1) stays out of releases/latest, which Foundry reads for updates. release-please
+      # can't mark it: its prerelease option would also mark every 0.x version.
       - name: Publish the Release
         run: |
-          if [ "$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)" = true ]; then
-            gh release edit "$TAG" --draft=false
-          else
-            gh release edit "$TAG" --draft=false --latest
-          fi
+          case "$TAG" in
+            *-*) gh release edit "$TAG" --draft=false --prerelease ;;
+            *) gh release edit "$TAG" --draft=false --latest ;;
+          esac
