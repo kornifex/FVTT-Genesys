@@ -57,7 +57,7 @@ async function doAlphaNotice(lastAlpha: string) {
 	<div style="text-align: center">@dice[apbdcs]</div>
 	<h4 style="font-family: 'Bebas Neue', sans-serif">Useful Links</h4>
 	<ul style="margin-top: 0">
-		<li><a href="https://github.com/kornifex/FVTT-Genesys#readme">Project Documentation</a></li>
+		<li><a href="https://github.com/kornifex/FVTT-Genesys/wiki">Project Documentation</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys">Project Source Code</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys/issues">Report Bugs &amp; Suggest Features</a></li>
 		<li><a href="https://github.com/kornifex/FVTT-Genesys/blob/main/LICENSE">Licensed under the MIT License</a></li>
@@ -203,9 +203,8 @@ Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement
 	}
 
 	if (note) {
-		// The upstream wiki still documents these pages; #73 moves them to the fork's documentation.
 		note.innerHTML = note.innerHTML.replaceAll(wikiLinkPattern, (_m, g1, _g2, g3) => {
-			return `<a href="https://github.com/Mezryss/FVTT-Genesys/wiki/${g1}" target="_blank">${g3 ? g3 : g1}</a>`;
+			return `<a href="https://github.com/kornifex/FVTT-Genesys/wiki/${g1}" target="_blank">${g3 ? g3 : g1}</a>`;
 		});
 	}
 });

@@ -30,7 +30,7 @@ If your table installed Genesys from the original repository, switch it to this 
 If Foundry ever offers to switch this system's source back to the original repository, decline.
 
 ## Documentation
-The [original project's wiki](https://github.com/Mezryss/FVTT-Genesys/wiki) still applies to most features.
+The [wiki](https://github.com/kornifex/FVTT-Genesys/wiki) documents the system for players and GMs.
 
 ## Screenshots
 #### Character Sheet
