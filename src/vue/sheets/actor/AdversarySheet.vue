@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { computed, inject, onBeforeMount, onBeforeUpdate, ref, toRaw, watch, type Ref } from 'vue';
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
+import { useDocumentEffects } from '@/vue/useDocumentEffects';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -38,38 +38,13 @@ const equipment = computed(
 );
 const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
-// The reactive type of a document is too deep for TypeScript to unwrap.
-const effects = ref([]) as Ref<GenesysEffect[]>;
-const source = ref('');
-
-watch(
-	() => system.value.source,
-	async (text) => {
-		source.value = await TextEditor.enrichHTML(text, { async: true });
-	},
-	{ immediate: true },
-);
+const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 
 const editLabel = game.i18n.localize('Genesys.Labels.Edit');
 const checkLabel = game.i18n.localize('Genesys.Labels.PerformCheck');
 const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
 const rankUpLabel = game.i18n.localize('Genesys.Labels.RankUp');
 const rankDownLabel = game.i18n.localize('Genesys.Labels.RankDown');
-
-async function addEffect(category: string) {
-	await toRaw(context.sheet.actor).createEmbeddedDocuments('ActiveEffect', [
-		{
-			name: context.data.actor.name,
-			img: 'icons/svg/aura.svg',
-			disabled: category === 'suppressed',
-			duration: category === 'temporary' ? { rounds: 1 } : undefined,
-		},
-	]);
-}
-
-function updateEffects() {
-	effects.value = [...toRaw(context.data.actor).effects] as GenesysEffect[];
-}
 
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
@@ -231,9 +206,6 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 	event.dataTransfer?.setData('text/plain', JSON.stringify(transferData));
 	event.dataTransfer?.setData(genesysTransferType, '');
 }
-
-onBeforeMount(updateEffects);
-onBeforeUpdate(updateEffects);
 </script>
 
 <template>
@@ -259,7 +231,7 @@ onBeforeUpdate(updateEffects);
 					<div class="description-area">
 						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
 							<Editor name="system.description" :content="system.description" button />
-							<div class="source" v-html="source" />
+							<Enriched class="source" :value="system.source" />
 						</div>
 					</div>
 
