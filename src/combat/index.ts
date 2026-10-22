@@ -9,7 +9,6 @@ export function register() {
 	CONFIG.Combatant.documentClass = GenesysCombatant;
 
 	if (isFoundryV13OrLater()) {
-		// @ts-expect-error -- The types we have are v12's, whose Combat Tracker is no ApplicationV2.
 		CONFIG.ui.combat = GenesysCombatTracker;
 	} else {
 		// v12: the Combat Tracker is an Application.
