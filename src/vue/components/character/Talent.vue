@@ -1,33 +1,23 @@
 <script lang="ts" setup>
-import { inject, ref } from 'vue';
+import { inject, ref, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
-import { ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
+import { AbilityDataModel } from '@/item/data/AbilityDataModel';
+import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { postChatCard } from '@/item/ChatCards';
 
 const props = withDefaults(
 	defineProps<{
-		img: string;
-		name: string;
-		description: string;
-		source: string;
-		activation: {
-			type: 'passive' | 'active';
-			detail: string;
-		};
-		ranked?: boolean;
-		rank?: number;
-		effectiveTier?: number;
+		item: GenesysItem<TalentDataModel | AbilityDataModel>;
 		canDelete?: boolean;
 		canUpgrade?: boolean;
 	}>(),
 	{
 		canDelete: false,
 		canUpgrade: false,
-		ranked: false,
-		scalesWithRank: false,
-		rank: 0,
 	},
 );
 
@@ -41,46 +31,32 @@ const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
 const expanded = ref(false);
 
+// The item isn't reactive: the sheet re-renders this component with its context, so these read the item on each render.
+function talent() {
+	return props.item.type === 'talent' ? (props.item.systemData as TalentDataModel) : undefined;
+}
+
+function ranked() {
+	return talent()?.ranked === 'yes';
+}
+
 async function sendToChat() {
-	const enrichedDescription = await TextEditor.enrichHTML(props.description, { async: true });
-
-	const templateData = {
-		img: props.img,
-		name: props.name,
-		description: enrichedDescription,
-		activation: {
-			label: ACTIVATION_LABELS[props.activation.type],
-			detail: props.activation.detail,
-		},
-		effectiveTier: props.effectiveTier,
-		ranked: props.ranked,
-		rank: props.rank,
-	};
-
-	const chatTemplate = await renderTemplate('systems/genesys/templates/chat/ability.hbs', templateData);
-	await ChatMessage.create({
-		user: game.user.id,
-		speaker: {
-			actor: game.user.character?.id,
-		},
-		content: chatTemplate,
-		style: CONST.CHAT_MESSAGE_STYLES.IC,
-	});
+	await postChatCard(toRaw(props.item), toRaw(rootContext.data.actor));
 }
 </script>
 
 <template>
 	<div class="talent">
-		<img :src="img" :alt="name" />
+		<img :src="item.img" :alt="item.name" />
 		<span class="name">
 			<a @click="expanded = !expanded">
-				{{ name }}
-				<template v-if="ranked">
-					{{ rank }}
+				{{ item.name }}
+				<template v-if="ranked()">
+					{{ talent()?.rank }}
 				</template>
 			</a>
 
-			<a v-if="ranked && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
+			<a v-if="ranked() && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
 		</span>
 		<div></div>
 		<span v-if="canDelete">
@@ -93,13 +69,13 @@ async function sendToChat() {
 			<a @click="sendToChat()"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
-			<div v-if="effectiveTier" class="tier-container">
-				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ effectiveTier }}</span>
+			<div v-if="talent()" class="tier-container">
+				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent()?.effectiveTier }}</span>
 			</div>
 
-			<Enriched class="desc" :value="description"></Enriched>
+			<Enriched class="desc" :value="item.systemData.description"></Enriched>
 
-			<div v-if="source" class="source">{{ source }}</div>
+			<div v-if="item.systemData.source" class="source">{{ item.systemData.source }}</div>
 		</div>
 	</div>
 </template>

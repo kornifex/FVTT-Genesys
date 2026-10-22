@@ -17,6 +17,7 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 
 import { SelectCharacterSkillPrompt, CharacterSkillOption } from '@/app/SelectCharacterSkillPrompt';
 import { skillNamesMatch, skillToRoll } from '@/data/Skills';
+import { firingArcLabels } from '@/item/ChatCards';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
@@ -32,16 +33,7 @@ const criticalHits = computed(
 );
 
 function getFiringArcLabels(weapon: GenesysItem<VehicleWeaponDataModel>) {
-	const possibleDirections = Object.entries(weapon.systemData.firingArc);
-	const firingArc = possibleDirections.filter(([_arc, canFire]) => canFire);
-
-	if (possibleDirections.length == firingArc.length) {
-		return [game.i18n.localize('Genesys.FiringArc.All')];
-	} else if (firingArc.length === 0) {
-		return [game.i18n.localize('Genesys.FiringArc.None')];
-	} else {
-		return firingArc.map(([arc, _canFire]) => game.i18n.localize(`Genesys.FiringArc.${arc.capitalize()}`));
-	}
+	return firingArcLabels(weapon.systemData.firingArc, game.i18n);
 }
 
 async function openItem(item: GenesysItem) {

@@ -10,9 +10,8 @@ import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { AbilityDataModel, ACTIVATION_LABELS } from '@/item/data/AbilityDataModel';
+import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -23,6 +22,7 @@ import { Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 import { freeRank, weaponSkillName } from '@/data/Skills';
+import { postChatCard } from '@/item/ChatCards';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -123,82 +123,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	});
 }
 
-async function sendTalentToChat(talent: GenesysItem<TalentDataModel | AbilityDataModel>) {
-	const enrichedDescription = await TextEditor.enrichHTML(talent.systemData.description, { async: true });
-
-	const templateData = {
-		img: talent.img,
-		name: talent.name,
-		description: enrichedDescription,
-		activation: {
-			label: ACTIVATION_LABELS[talent.systemData.activation.type],
-			detail: talent.systemData.activation.detail,
-		},
-		...(talent.type === 'talent' && {
-			effectiveTier: (talent.systemData as TalentDataModel).effectiveTier,
-			ranked: (talent.systemData as TalentDataModel).ranked,
-			rank: (talent.systemData as TalentDataModel).rank,
-		}),
-	};
-
-	const chatTemplate = await renderTemplate('systems/genesys/templates/chat/ability.hbs', templateData);
-	await ChatMessage.create({
-		user: game.user.id,
-		speaker: {
-			actor: game.user.character?.id,
-		},
-		content: chatTemplate,
-		style: CONST.CHAT_MESSAGE_STYLES.IC,
-	});
-}
-
-async function sendItemToChat(item: GenesysItem<EquipmentDataModel>) {
-	const enrichedDescription = await TextEditor.enrichHTML(item.systemData.description, { async: true });
-
-	let qualities = undefined;
-
-	if (['armor', 'weapon', 'vehicleWeapon'].includes(item.type)) {
-		const itemQualities = (item.systemData as WeaponDataModel | ArmorDataModel).qualities;
-
-		await Promise.all(
-			itemQualities.map(async (quality) => {
-				quality.description = await TextEditor.enrichHTML(quality.description, { async: true });
-			}),
-		);
-
-		qualities = itemQualities;
-	}
-
-	let weapon = undefined;
-	if (item.type === 'weapon') {
-		const charWeapon = item.systemData as WeaponDataModel;
-		weapon = {
-			skill: charWeapon.skills[0] ?? '-',
-			damage:
-				(charWeapon.baseDamage ?? 0).toString() +
-				(charWeapon.damageCharacteristic !== '-'
-					? ' + ' + game.i18n.localize(`Genesys.CharacteristicAbbr.${charWeapon.damageCharacteristic.capitalize()}`)
-					: ''),
-		};
-	}
-
-	const chatTemplate = await renderTemplate('systems/genesys/templates/chat/item.hbs', {
-		img: item.img,
-		name: item.name,
-		type: item.type,
-		system: item.systemData,
-		description: enrichedDescription,
-		weapon,
-		qualities,
-	});
-	await ChatMessage.create({
-		user: game.user.id,
-		speaker: {
-			actor: game.user.character?.id,
-		},
-		content: chatTemplate,
-		style: CONST.CHAT_MESSAGE_STYLES.IC,
-	});
+async function sendToChat(item: GenesysItem) {
+	await postChatCard(toRaw(item), toRaw(context.data.actor));
 }
 
 function dragStart(event: DragEvent, item: GenesysItem) {
@@ -388,7 +314,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 										<a @click="editItem(talent)"
 											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
 										>
-										<a class="send-to-chat-link" @click="sendTalentToChat(talent)"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(talent)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched class="description" v-if="talent.systemData.description" :value="talent.systemData.description" />
@@ -411,7 +337,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 
 									<label>
 										<a @click="editItem(ability)">{{ ability.name }}</a>
-										<a class="send-to-chat-link" @click="sendTalentToChat(ability)"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(ability)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched
@@ -465,7 +391,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 										</span> </span
 									>)
 								</a>
-								<a class="send-to-chat-link" @click="sendItemToChat(item)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 							<ContextMenu
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
@@ -494,7 +420,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 								</a>
-								<a class="send-to-chat-link" @click="sendItemToChat(item)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 						</div>
 					</div>

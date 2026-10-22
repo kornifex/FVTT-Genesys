@@ -5,14 +5,6 @@ interface AbilityActivation {
 	detail: string;
 }
 
-/**
- * The label of each activation type of an ability or a talent.
- */
-export const ACTIVATION_LABELS: Record<AbilityActivation['type'], string> = {
-	passive: 'Genesys.Labels.Passive',
-	active: 'Genesys.Labels.Active',
-};
-
 export abstract class AbilityDataModel extends BaseItemDataModel {
 	/**
 	 * Details on what is required to activate the Special Ability.
