@@ -1,19 +1,16 @@
-$-blue: #2b4b73;
-$-gold: #efaf61;
-
 // Default values of the system's Palette. Each color is exposed as a `--genesys-<name>` CSS custom property on `:root`
 // (see `scss/theme.scss`) so the Palette can be customized by overriding those properties.
 $defaults: (
 	'red': #90231e,
 
 	'light-blue': #71c6ff,
-	'blue': $-blue,
+	'blue': #2b4b73,
 	// Derived in the browser, so that the shades follow the blue and gold of any Style or override. Mixed with black
 	// rather than through relative colors, which Chromium 122 (the Foundry v12 desktop app) computes as black.
 	'blue-shade': color-mix(in srgb, var(--genesys-blue), black 32%),
 	'dark-blue': #384455,
 
-	'gold': $-gold,
+	'gold': #efaf61,
 	'gold-shade': color-mix(in srgb, var(--genesys-gold), black 1.2%),
 	'orange': #f36c21,
 

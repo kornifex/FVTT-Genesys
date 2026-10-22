@@ -83,7 +83,7 @@ describe('Palette', () => {
 		});
 	});
 
-	// Chromium 122 (the Foundry v12 desktop app) reads relative colors with the older spec, where they come out black.
+	// v12: Chromium 122 (the Foundry v12 desktop app) reads relative colors with the older spec, where they come out black.
 	it('uses no relative color syntax', () => {
 		expect(css).not.toMatch(/\(\s*from\s/);
 	});
