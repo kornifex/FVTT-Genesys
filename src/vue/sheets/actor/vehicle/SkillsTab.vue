@@ -50,9 +50,14 @@ const groupingMode = ref<GroupingMode>('member');
 const groupedByMember = ref<Map<string, GroupedByMemberData>>(new Map());
 const groupedBySkill = ref<Map<string, GroupedBySkillData>>(new Map());
 
+// The sheet re-renders by assigning a new `data` object, after a change to the vehicle or to one of its crew.
 watch(
-	[toRaw(context.data), groupingMode],
-	async () => {
+	[() => context.data, groupingMode],
+	async (_sources, _oldSources, onCleanup) => {
+		// Resolving the members is asynchronous: a later render's tables replace the ones still being computed.
+		let stale = false;
+		onCleanup(() => (stale = true));
+
 		const actorData = toRaw(context.data.actor).systemData;
 		const allActorSkills = new Map<string, GroupedByMemberData>();
 
@@ -81,6 +86,10 @@ watch(
 					}
 				}
 			}
+		}
+
+		if (stale) {
+			return;
 		}
 
 		if (groupingMode.value === 'member') {
