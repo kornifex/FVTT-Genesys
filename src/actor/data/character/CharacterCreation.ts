@@ -1,8 +1,10 @@
 /**
- * @file Character creation: it lasts until the character receives their first XP award, and limits the skill ranks they can buy.
+ * @file Character creation: it lasts until the character receives their first XP award, limits the skill ranks they can buy,
+ * and is when super-characteristics are marked.
  */
 
 import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
+import { Characteristic } from '@/data/Characteristics';
 
 /**
  * The highest rank a skill can reach.
@@ -26,4 +28,33 @@ export function isInCharacterCreation(entries: Pick<Entry, 'type'>[]) {
  */
 export function maxPurchasableSkillRank(entries: Pick<Entry, 'type'>[]) {
 	return isInCharacterCreation(entries) ? MAX_CREATION_SKILL_RANK : MAX_SKILL_RANK;
+}
+
+/**
+ * Whether a character can mark or unmark super-characteristics: only during character creation, whether or not they
+ * have starting XP left.
+ */
+export function canMarkSuperCharacteristics(entries: Pick<Entry, 'type'>[]) {
+	return isInCharacterCreation(entries);
+}
+
+/**
+ * A character's super-characteristics with one marked, or unmarked if it already was. Undefined when they can no longer
+ * be changed.
+ */
+export function toggleSuperCharacteristic(
+	entries: Pick<Entry, 'type'>[],
+	superCharacteristics: Set<Characteristic>,
+	characteristic: Characteristic,
+): Characteristic[] | undefined {
+	if (!canMarkSuperCharacteristics(entries)) {
+		return undefined;
+	}
+
+	const toggled = new Set(superCharacteristics);
+	if (!toggled.delete(characteristic)) {
+		toggled.add(characteristic);
+	}
+
+	return Array.from(toggled);
 }
