@@ -19,7 +19,7 @@ import { register as registerToken } from '@/token';
 import { register as registerEffects } from '@/effects';
 import { register as registerItems, CharacterCreationItemTypes, EquipmentItemTypes } from '@/item';
 import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
-import { DicePrompt, registerWorker } from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import { isFoundryV13OrLater } from '@/foundryGeneration';
 
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -108,7 +108,6 @@ Hooks.once('ready', async () => {
 
 	registerStoryPointTracker();
 	registerVehicles();
-	registerWorker();
 });
 
 function constructOptGroup(select: HTMLSelectElement, groupLabel: string, optValues?: string[]): HTMLOptGroupElement {

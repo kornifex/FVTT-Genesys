@@ -1,4 +1,5 @@
 import { GenesysDie } from '@/dice/dice/GenesysDie';
+import { DieFaces } from '@/dice/DieFaces';
 import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
@@ -10,5 +11,5 @@ export class BoostDie extends GenesysDie {
 	static override FORMULA = 'db' as const;
 	static override CATEGORY = 'positive' as const;
 	static override COLOR = 'B';
-	static override FACES: GenesysDieFace[] = [' ', ' ', 's', 'sa', 'aa', 'a'];
+	static override FACES: GenesysDieFace[] = DieFaces.Boost;
 }
