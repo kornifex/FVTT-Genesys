@@ -5,7 +5,8 @@
 import { GenesysCombat } from '@/combat/GenesysCombat';
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
 
-export class GenesysCombatTracker extends CombatTracker<GenesysCombat> {
+// A name of its own: the bundle would rename one of two classes sharing a name, and Foundry names the render hooks after the class.
+export class GenesysCombatTrackerV12 extends CombatTracker<GenesysCombat> {
 	override get template(): string {
 		return 'systems/genesys/templates/sidebar/combat-tracker.v12.hbs';
 	}
