@@ -2,6 +2,7 @@
 import { computed, inject, ref } from 'vue';
 
 import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
+import { toggledFreeRankChoice } from '@/actor/data/character/Career';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
@@ -16,12 +17,7 @@ const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - 
 function selectSkill(event: Event, skill: GenesysItem<SkillDataModel>) {
 	event.preventDefault();
 
-	const existingIndex = selectedSkillIDs.value.findIndex((id) => id === skill.id);
-	if (existingIndex >= 0) {
-		selectedSkillIDs.value.splice(existingIndex, 1);
-	} else if (remaining.value > 0) {
-		selectedSkillIDs.value.push(skill.id);
-	}
+	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, CONFIG.genesys.settings.freeCareerSkillRanks);
 }
 
 function confirm(event: Event) {
