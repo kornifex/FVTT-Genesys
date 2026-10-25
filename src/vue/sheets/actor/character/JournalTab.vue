@@ -4,6 +4,7 @@ import { computed, inject, toRaw } from 'vue';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, advancementCharacter, awardXP, undoEntry } from '@/actor/data/character/Advancement';
+import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
@@ -35,7 +36,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 
 	return {
 		...entry.data,
-		characteristic: game.i18n.localize(`Genesys.Characteristics.${entry.data.characteristic.capitalize()}`),
+		characteristic: game.i18n.localize(CHARACTERISTIC_LABELS[entry.data.characteristic]),
 	};
 }
 </script>

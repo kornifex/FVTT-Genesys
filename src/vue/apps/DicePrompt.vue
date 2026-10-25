@@ -2,7 +2,7 @@
 import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
-import { Characteristic } from '@/data/Characteristics';
+import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { GenesysRoller } from '@/dice/GenesysRoller';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -370,8 +370,8 @@ async function rollPool() {
 				@change="onCharacteristicChange"
 			>
 				<option value="-">—</option>
-				<option v-for="[charLabel, charValue] in Object.entries(Characteristic)" :key="charValue" :value="charValue">
-					<Localized :label="`Genesys.Characteristics.${charLabel}`" />
+				<option v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :value="characteristic">
+					<Localized :label="label" />
 				</option>
 			</select>
 
@@ -379,10 +379,10 @@ async function rollPool() {
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
 				<!-- prettier-ignore -->
-				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
+				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
 				<optgroup v-if="unrankedSkills.length > 0" v-localize:label="'Genesys.DicePrompt.UnrankedSkills'">
 					<!-- prettier-ignore -->
-					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`" />)</option>
+					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
 				</optgroup>
 			</select>
 		</div>

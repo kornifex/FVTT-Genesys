@@ -3,7 +3,7 @@ import { GenesysRoller, CheckRoll } from '@/dice/GenesysRoller';
 import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
-import { Characteristic } from '@/data/Characteristics';
+import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import {
 	ClaimInitiativeSlotData,
 	emit as socketEmit,
@@ -65,7 +65,7 @@ export class GenesysCombat extends Combat {
 
 		// Without any, initiative is a Characteristic Check on Brawn.
 		if (initiativeSkills.length === 0) {
-			return [{ skillName: game.i18n.localize('Genesys.Characteristics.Brawn'), skillChar: Characteristic.Brawn }];
+			return [{ skillName: game.i18n.localize(CHARACTERISTIC_LABELS[Characteristic.Brawn]), skillChar: Characteristic.Brawn }];
 		}
 
 		return initiativeSkills;

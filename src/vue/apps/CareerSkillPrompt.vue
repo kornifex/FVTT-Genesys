@@ -2,6 +2,7 @@
 import { computed, inject, ref } from 'vue';
 
 import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
+import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -43,11 +44,7 @@ function confirm(event: Event) {
 			>
 				<i v-if="selectedSkillIDs.includes(skill.id)" class="fas fa-check-circle" />
 				<img :src="skill.img" :alt="skill.name" />
-				<span
-					>{{ skill.name }} (<Localized
-						:label="`Genesys.CharacteristicAbbr.${skill.systemData.characteristic.capitalize()}`"
-					/>)</span
-				>
+				<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</span>
 			</button>
 		</div>
 

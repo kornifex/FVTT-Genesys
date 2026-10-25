@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, inject } from 'vue';
 
+import { CHARACTERISTIC_LABELS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -44,23 +45,23 @@ async function deleteGrantedItem(index: number) {
 
 					<div class="characteristics-container">
 						<div class="characteristics-row">
-							<Characteristic label="Genesys.Characteristics.Brawn" :value="system.characteristics.brawn" />
-							<Characteristic label="Genesys.Characteristics.Agility" :value="system.characteristics.agility" />
-							<Characteristic label="Genesys.Characteristics.Intellect" :value="system.characteristics.intellect" />
-							<Characteristic label="Genesys.Characteristics.Cunning" :value="system.characteristics.cunning" />
-							<Characteristic label="Genesys.Characteristics.Willpower" :value="system.characteristics.willpower" />
-							<Characteristic label="Genesys.Characteristics.Presence" :value="system.characteristics.presence" />
+							<Characteristic
+								v-for="{ characteristic, label } in CHARACTERISTICS"
+								:key="characteristic"
+								:label="label"
+								:value="system.characteristics[characteristic]"
+							/>
 						</div>
 					</div>
 
 					<ul>
 						<li>
 							<strong><Localized label="Genesys.Archetype.StartingWounds" />:</strong> {{ system.woundThreshold }} +
-							<Localized label="Genesys.Characteristics.Brawn" />
+							<Localized :label="CHARACTERISTIC_LABELS[CharacteristicType.Brawn]" />
 						</li>
 						<li>
 							<strong><Localized label="Genesys.Archetype.StartingStrain" />:</strong> {{ system.strainThreshold }} +
-							<Localized label="Genesys.Characteristics.Willpower" />
+							<Localized :label="CHARACTERISTIC_LABELS[CharacteristicType.Willpower]" />
 						</li>
 						<li>
 							<strong><Localized label="Genesys.Archetype.StartingXP" />:</strong> {{ system.startingXP }}
@@ -79,34 +80,13 @@ async function deleteGrantedItem(index: number) {
 
 		<template v-slot:data>
 			<section class="data-grid">
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Brawn" /></label>
-					<input type="number" name="system.characteristics.brawn" :value="system.characteristics.brawn" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Agility" /></label>
-					<input type="number" name="system.characteristics.agility" :value="system.characteristics.agility" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Intellect" /></label>
-					<input type="number" name="system.characteristics.intellect" :value="system.characteristics.intellect" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Cunning" /></label>
-					<input type="number" name="system.characteristics.cunning" :value="system.characteristics.cunning" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Willpower" /></label>
-					<input type="number" name="system.characteristics.willpower" :value="system.characteristics.willpower" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Characteristics.Presence" /></label>
-					<input type="number" name="system.characteristics.presence" :value="system.characteristics.presence" />
+				<div v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" class="row">
+					<label><Localized :label="label" /></label>
+					<input
+						type="number"
+						:name="`system.characteristics.${characteristic}`"
+						:value="system.characteristics[characteristic]"
+					/>
 				</div>
 
 				<div class="row">

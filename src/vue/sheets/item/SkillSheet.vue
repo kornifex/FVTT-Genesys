@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, inject } from 'vue';
 
+import { CHARACTERISTICS } from '@/data/Characteristics';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -19,12 +20,9 @@ const system = computed(() => context.data.item.systemData);
 				<div class="row">
 					<label><Localized label="Genesys.Labels.Characteristic" /></label>
 					<select name="system.characteristic" :value="system.characteristic">
-						<option value="brawn"><Localized label="Genesys.Characteristics.Brawn" /></option>
-						<option value="agility"><Localized label="Genesys.Characteristics.Agility" /></option>
-						<option value="intellect"><Localized label="Genesys.Characteristics.Intellect" /></option>
-						<option value="cunning"><Localized label="Genesys.Characteristics.Cunning" /></option>
-						<option value="willpower"><Localized label="Genesys.Characteristics.Willpower" /></option>
-						<option value="presence"><Localized label="Genesys.Characteristics.Presence" /></option>
+						<option v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :value="characteristic">
+							<Localized :label="label" />
+						</option>
 					</select>
 				</div>
 

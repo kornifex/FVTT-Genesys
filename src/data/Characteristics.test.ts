@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { Characteristic, toggledSuperCharacteristics } from '@/data/Characteristics';
+import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic, toggledSuperCharacteristics } from '@/data/Characteristics';
+
+describe('CHARACTERISTIC_LABELS and CHARACTERISTIC_ABBREVIATIONS', () => {
+	it("give a characteristic's name and abbreviation keys", () => {
+		expect(CHARACTERISTIC_LABELS[Characteristic.Willpower]).toBe('Genesys.Characteristics.Willpower');
+		expect(CHARACTERISTIC_ABBREVIATIONS[Characteristic.Willpower]).toBe('Genesys.CharacteristicAbbr.Willpower');
+		expect(CHARACTERISTIC_LABELS[Characteristic.Cunning]).toBe('Genesys.Characteristics.Cunning');
+		expect(CHARACTERISTIC_ABBREVIATIONS[Characteristic.Cunning]).toBe('Genesys.CharacteristicAbbr.Cunning');
+	});
+});
 
 describe('toggledSuperCharacteristics', () => {
 	it('marks a characteristic that is not a super-characteristic', () => {

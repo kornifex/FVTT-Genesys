@@ -4,7 +4,7 @@
 
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
-import { Characteristic } from '@/data/Characteristics';
+import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { Skill, skillToRoll } from '@/data/Skills';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import { ExternalPoolModification, PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
@@ -219,8 +219,8 @@ export type Localizer = {
  */
 export function checkDescription(check: Check, purpose: CheckPurpose, i18n: Localizer): string | undefined {
 	const superChar = check.usesSuperCharacteristic ? 'super-char' : 'hide-it';
-	const characteristicName = check.characteristic && i18n.localize(`Genesys.Characteristics.${capitalize(check.characteristic)}`);
-	const characteristicAbbr = check.characteristic && i18n.localize(`Genesys.CharacteristicAbbr.${capitalize(check.characteristic)}`);
+	const characteristicName = check.characteristic && i18n.localize(CHARACTERISTIC_LABELS[check.characteristic]);
+	const characteristicAbbr = check.characteristic && i18n.localize(CHARACTERISTIC_ABBREVIATIONS[check.characteristic]);
 	const skill = check.skill?.name;
 
 	switch (purpose.kind) {
@@ -261,8 +261,4 @@ export function checkDescription(check: Check, purpose: CheckPurpose, i18n: Loca
 			// A bare dice pool is only described when rolled without an actor.
 			return check.actor ? undefined : i18n.format('Genesys.Rolls.Description.Simple', { superChar });
 	}
-}
-
-function capitalize(text: string) {
-	return text.charAt(0).toUpperCase() + text.slice(1);
 }

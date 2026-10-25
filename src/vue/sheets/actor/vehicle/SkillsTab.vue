@@ -5,6 +5,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
 import { CrewMemberSkill, crewActors, crewMemberSkills, rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { skillNamesMatch } from '@/data/Skills';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -97,7 +98,7 @@ async function openActorSheet(actor: GenesysActor) {
 								<a class="skill-name" @click="rollForCrew([rolledSkill])">
 									<span
 										>{{ rolledSkill.skill.name }} (<Localized
-											:label="`Genesys.CharacteristicAbbr.${rolledSkill.skill.systemData.characteristic.capitalize()}`"
+											:label="CHARACTERISTIC_ABBREVIATIONS[rolledSkill.skill.systemData.characteristic]"
 										/>)</span
 									>
 								</a>
