@@ -15,26 +15,8 @@ import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import MasonryWall from '@yeger/vue-masonry-wall';
-import { Characteristic as CharacteristicType } from '@/data/Characteristics';
+import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { freeRank, SkillCategory, skillsByCategory } from '@/data/Skills';
-
-const CHARACTERISTICS: { characteristic: CharacteristicType; label: string }[] = [
-	{ characteristic: CharacteristicType.Brawn, label: 'Genesys.Characteristics.Brawn' },
-	{ characteristic: CharacteristicType.Agility, label: 'Genesys.Characteristics.Agility' },
-	{ characteristic: CharacteristicType.Intellect, label: 'Genesys.Characteristics.Intellect' },
-	{ characteristic: CharacteristicType.Cunning, label: 'Genesys.Characteristics.Cunning' },
-	{ characteristic: CharacteristicType.Willpower, label: 'Genesys.Characteristics.Willpower' },
-	{ characteristic: CharacteristicType.Presence, label: 'Genesys.Characteristics.Presence' },
-];
-
-const CHARACTERISTIC_ABBREVIATIONS: Record<CharacteristicType, string> = {
-	[CharacteristicType.Brawn]: 'Genesys.CharacteristicAbbr.Brawn',
-	[CharacteristicType.Agility]: 'Genesys.CharacteristicAbbr.Agility',
-	[CharacteristicType.Intellect]: 'Genesys.CharacteristicAbbr.Intellect',
-	[CharacteristicType.Cunning]: 'Genesys.CharacteristicAbbr.Cunning',
-	[CharacteristicType.Willpower]: 'Genesys.CharacteristicAbbr.Willpower',
-	[CharacteristicType.Presence]: 'Genesys.CharacteristicAbbr.Presence',
-};
 
 const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = {
 	general: 'Genesys.Labels.GeneralSkills',

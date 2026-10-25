@@ -4,7 +4,7 @@
  */
 
 import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
-import { Characteristic } from '@/data/Characteristics';
+import { Characteristic, toggledSuperCharacteristics } from '@/data/Characteristics';
 
 /**
  * The highest rank a skill can reach.
@@ -51,10 +51,5 @@ export function toggleSuperCharacteristic(
 		return undefined;
 	}
 
-	const toggled = new Set(superCharacteristics);
-	if (!toggled.delete(characteristic)) {
-		toggled.add(characteristic);
-	}
-
-	return Array.from(toggled);
+	return toggledSuperCharacteristics(superCharacteristics, characteristic);
 }

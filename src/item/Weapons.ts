@@ -1,20 +1,8 @@
 /** @file The damage and firing arcs of weapons and vehicle weapons. */
-import type { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
+import { CHARACTERISTIC_ABBREVIATIONS, type CharacteristicsContainer } from '@/data/Characteristics';
 import type { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
-
-/**
- * The abbreviation of each characteristic a weapon adds to its damage.
- */
-const CHARACTERISTIC_ABBREVIATIONS: Record<Characteristic, string> = {
-	brawn: 'Genesys.CharacteristicAbbr.Brawn',
-	agility: 'Genesys.CharacteristicAbbr.Agility',
-	intellect: 'Genesys.CharacteristicAbbr.Intellect',
-	cunning: 'Genesys.CharacteristicAbbr.Cunning',
-	willpower: 'Genesys.CharacteristicAbbr.Willpower',
-	presence: 'Genesys.CharacteristicAbbr.Presence',
-};
 
 /**
  * What a weapon's damage is read from. A vehicle weapon has no damage characteristic.

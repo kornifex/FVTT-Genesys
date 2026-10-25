@@ -17,7 +17,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
-import { Characteristic as CharacteristicType } from '@/data/Characteristics';
+import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 import { weaponSkillName } from '@/data/Skills';
@@ -107,16 +107,10 @@ function damageForWeapon(weapon: GenesysItem) {
 	return weaponDamage(weapon.systemData as WeaponDataModel, system.value.characteristics);
 }
 
+// An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
 async function toggleSuper(characteristic: CharacteristicType) {
-	const superCharacteristics = new Set(system.value.superCharacteristics);
-	if (superCharacteristics.has(characteristic)) {
-		superCharacteristics.delete(characteristic);
-	} else {
-		superCharacteristics.add(characteristic);
-	}
-
 	await toRaw(context.data.actor).update({
-		'system.superCharacteristics': Array.from(superCharacteristics),
+		'system.superCharacteristics': toggledSuperCharacteristics(system.value.superCharacteristics, characteristic),
 	});
 }
 
@@ -167,70 +161,17 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					<div class="characteristics-container">
 						<div class="characteristics-row">
 							<Characteristic
-								label="Genesys.Characteristics.Brawn"
-								:value="system.characteristics.brawn"
-								name="system.characteristics.brawn"
+								v-for="{ characteristic, label } in CHARACTERISTICS"
+								:key="characteristic"
+								:label="label"
+								:value="system.characteristics[characteristic]"
+								:name="`system.characteristics.${characteristic}`"
 								can-edit
 								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Brawn)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Brawn)"
+								@rollCharacteristicCheck="rollCharacteristicCheck(characteristic)"
+								:is-super="system.superCharacteristics.has(characteristic)"
 								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Brawn)"
-							/>
-							<Characteristic
-								label="Genesys.Characteristics.Agility"
-								:value="system.characteristics.agility"
-								name="system.characteristics.agility"
-								can-edit
-								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Agility)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Agility)"
-								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Agility)"
-							/>
-							<Characteristic
-								label="Genesys.Characteristics.Intellect"
-								:value="system.characteristics.intellect"
-								name="system.characteristics.intellect"
-								can-edit
-								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Intellect)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Intellect)"
-								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Intellect)"
-							/>
-							<Characteristic
-								label="Genesys.Characteristics.Cunning"
-								:value="system.characteristics.cunning"
-								name="system.characteristics.cunning"
-								can-edit
-								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Cunning)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Cunning)"
-								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Cunning)"
-							/>
-							<Characteristic
-								label="Genesys.Characteristics.Willpower"
-								:value="system.characteristics.willpower"
-								name="system.characteristics.willpower"
-								can-edit
-								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Willpower)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Willpower)"
-								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Willpower)"
-							/>
-							<Characteristic
-								label="Genesys.Characteristics.Presence"
-								:value="system.characteristics.presence"
-								name="system.characteristics.presence"
-								can-edit
-								can-roll-characteristic-check
-								@rollCharacteristicCheck="rollCharacteristicCheck(CharacteristicType.Presence)"
-								:is-super="system.superCharacteristics.has(CharacteristicType.Presence)"
-								can-mark-super
-								@toggle-super="toggleSuper(CharacteristicType.Presence)"
+								@toggle-super="toggleSuper(characteristic)"
 							/>
 						</div>
 					</div>
