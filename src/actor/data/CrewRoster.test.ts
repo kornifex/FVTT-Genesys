@@ -4,6 +4,9 @@ import {
 	addRole,
 	addRoleSkill,
 	Crew,
+	crewForSkills,
+	crewSkillsByMember,
+	crewSkillsBySkill,
 	hasActor,
 	placeActor,
 	removeActor,
@@ -260,5 +263,88 @@ describe('Crew operations', () => {
 
 		expect(change(crew)).toBeDefined();
 		expect(crew).toEqual(before);
+	});
+});
+
+describe('crewForSkills', () => {
+	function skilledRole(id: string, skills: string[], ...members: string[]): Role {
+		return { id, name: id, skills, members };
+	}
+
+	it('finds the members of the Roles that list a skill, whatever its case', () => {
+		const pilot = skilledRole('pilot', ['Piloting'], 'P1', 'P2');
+		const copilot = skilledRole('copilot', ['piloting'], 'C');
+		const crew: Crew = { passengers: [], roles: [pilot, copilot] };
+
+		expect(crewForSkills(crew, ['PILOTING'])).toEqual([
+			{ member: 'P1', role: pilot, skillName: 'Piloting' },
+			{ member: 'P2', role: pilot, skillName: 'Piloting' },
+			{ member: 'C', role: copilot, skillName: 'piloting' },
+		]);
+	});
+
+	it("leaves out the members of a Role that doesn't list the skills", () => {
+		const gunner = skilledRole('gunner', ['Gunnery', 'Ranged'], 'G');
+		const crew: Crew = { passengers: [], roles: [skilledRole('pilot', ['Piloting'], 'P'), gunner, skilledRole('cook', [], 'K')] };
+
+		expect(crewForSkills(crew, ['Ranged', 'gunnery'])).toEqual([
+			{ member: 'G', role: gunner, skillName: 'Gunnery' },
+			{ member: 'G', role: gunner, skillName: 'Ranged' },
+		]);
+	});
+
+	it('finds a member once for a skill their Role lists in two cases, as worlds made before the Role skills matched may', () => {
+		const gunner = skilledRole('gunner', ['Gunnery', 'gunnery'], 'G');
+
+		expect(crewForSkills({ passengers: [], roles: [gunner] }, ['GUNNERY'])).toEqual([
+			{ member: 'G', role: gunner, skillName: 'Gunnery' },
+		]);
+	});
+
+	it('finds nobody in a Crew without Roles', () => {
+		expect(crewForSkills({ passengers: passengers('A'), roles: [] }, ['Piloting'])).toEqual([]);
+	});
+});
+
+describe('crewSkillsBySkill', () => {
+	it('lists every Role skill once whatever its case, by name, with the members who roll it in Crew order', () => {
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Gunnery'], members: ['P'] };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['gunnery', 'athletics'], members: ['G1', 'G2'] };
+		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation'], members: [] };
+		const crew: Crew = { passengers: [], roles: [pilot, gunner, navigator] };
+		// G1 rolls none of the Gunner's skills.
+		const rolled = [
+			{ member: 'P', role: pilot, skillName: 'Piloting' },
+			{ member: 'P', role: pilot, skillName: 'Gunnery' },
+			{ member: 'G2', role: gunner, skillName: 'gunnery' },
+		];
+
+		expect(crewSkillsBySkill(crew, rolled, 'en')).toEqual([
+			{ skillName: 'Astrogation', members: [] },
+			{ skillName: 'athletics', members: [] },
+			{ skillName: 'Gunnery', members: [rolled[1], rolled[2]] },
+			{ skillName: 'Piloting', members: [rolled[0]] },
+		]);
+	});
+});
+
+describe('crewSkillsByMember', () => {
+	it('lists the members of the Roles with skills in Crew order, with the skills they roll by name', () => {
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'gunnery'], members: ['P'] };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: ['G1', 'G2'] };
+		const cook: Role = { id: 'cook', name: 'Cook', skills: [], members: ['K'] };
+		const crew: Crew = { passengers: passengers('A'), roles: [pilot, cook, gunner] };
+		// G1 rolls none of the Gunner's skills.
+		const rolled = [
+			{ member: 'P', role: pilot, skillName: 'Piloting' },
+			{ member: 'P', role: pilot, skillName: 'gunnery' },
+			{ member: 'G2', role: gunner, skillName: 'Gunnery' },
+		];
+
+		expect(crewSkillsByMember(crew, rolled, 'en')).toEqual([
+			{ member: 'P', role: pilot, skills: [rolled[1], rolled[0]] },
+			{ member: 'G1', role: gunner, skills: [] },
+			{ member: 'G2', role: gunner, skills: [rolled[2]] },
+		]);
 	});
 });

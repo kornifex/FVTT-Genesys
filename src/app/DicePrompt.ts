@@ -38,7 +38,7 @@ export type InitiativeRollData = {
  */
 type RollData = AttackRollData | InitiativeRollData;
 
-type DicePromptOptions = {
+export type DicePromptOptions = {
 	rollType?: RollType;
 	difficulty?: string;
 	/**

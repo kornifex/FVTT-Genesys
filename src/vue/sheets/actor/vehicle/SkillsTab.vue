@@ -1,45 +1,26 @@
 <script lang="ts" setup>
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, toRaw, ref, watch } from 'vue';
+import { inject, toRaw, ref, shallowRef, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { GenesysItem } from '@/item/GenesysItem';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { crewForSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
+import { CrewMemberSkill, crewActors, crewMemberSkills, rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { skillNamesMatch } from '@/data/Skills';
 
-import { DicePrompt } from '@/app/DicePrompt';
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
-import { skillNamesMatch } from '@/data/Skills';
-import { resolveCheck, worldCheckRules } from '@/dice/Check';
 
-type NonVehicleDataModel = CharacterDataModel | AdversaryDataModel;
-
-// A role skill as a member rolls it, resolved as a check.
-type MemberSkill = {
-	skill: GenesysItem<SkillDataModel>;
-	rank: number;
-	characteristicValue: number;
+type MemberRow = {
+	member: string;
+	actor: GenesysActor;
+	role: Role;
+	skills: CrewMemberSkill[];
 };
 
-type GroupedByMemberData = {
-	actor: GenesysActor<NonVehicleDataModel>;
-	role: string;
-	skills: Map<string, MemberSkill>;
-};
-
-type GroupedBySkillData = {
+type SkillRow = {
 	skillName: string;
 	skillImage: string;
-	actors: Map<
-		string,
-		{
-			actor: GenesysActor<NonVehicleDataModel>;
-			skill: MemberSkill;
-			role: string;
-		}
-	>;
+	members: CrewMemberSkill[];
 };
 
 type GroupingMode = 'member' | 'skill';
@@ -47,102 +28,42 @@ type GroupingMode = 'member' | 'skill';
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
 const groupingMode = ref<GroupingMode>('member');
-const groupedByMember = ref<Map<string, GroupedByMemberData>>(new Map());
-const groupedBySkill = ref<Map<string, GroupedBySkillData>>(new Map());
+const byMember = shallowRef<MemberRow[]>([]);
+const bySkill = shallowRef<SkillRow[]>([]);
 
 // The sheet re-renders by assigning a new `data` object, after a change to the vehicle or to one of its crew.
 watch(
-	[() => context.data, groupingMode],
-	async (_sources, _oldSources, onCleanup) => {
+	() => context.data,
+	async (_source, _oldSource, onCleanup) => {
 		// Resolving the members is asynchronous: a later render's tables replace the ones still being computed.
 		let stale = false;
 		onCleanup(() => (stale = true));
 
-		const actorData = toRaw(context.data.actor).systemData;
-		const allActorSkills = new Map<string, GroupedByMemberData>();
-
-		for (const role of actorData.roles) {
-			for (const skill of role.skills) {
-				for (const member of role.members) {
-					if (!allActorSkills.has(member)) {
-						const targetActor = await fromUuid<GenesysActor<NonVehicleDataModel>>(member);
-						if (!targetActor) {
-							continue;
-						}
-						allActorSkills.set(member, { actor: targetActor, role: role.name, skills: new Map() });
-					}
-
-					const targetActorSkill = allActorSkills.get(member)!;
-
-					if (!targetActorSkill.skills.has(skill)) {
-						const check = resolveCheck(targetActorSkill.actor, { skillName: skill }, worldCheckRules());
-						if (check.skill) {
-							targetActorSkill.skills.set(skill, {
-								skill: check.skill,
-								rank: check.rank,
-								characteristicValue: check.characteristicValue,
-							});
-						}
-					}
-				}
-			}
-		}
-
+		const crew = toRaw(context.data.actor).systemData.crew;
+		const actors = await crewActors(crew.roles.flatMap((role) => role.members));
 		if (stale) {
 			return;
 		}
 
-		if (groupingMode.value === 'member') {
-			groupedByMember.value = allActorSkills;
-		} else if (groupingMode.value === 'skill') {
-			const groupedBySkillData = new Map<string, GroupedBySkillData>();
-			for (const role of actorData.roles) {
-				for (const skill of role.skills) {
-					const skillUsers = role.members.flatMap((member) => {
-						const actorSkills = allActorSkills.get(member);
-						const desiredSkill = actorSkills?.skills.get(skill);
-						return actorSkills && desiredSkill ? [{ member, actor: actorSkills.actor, skill: desiredSkill }] : [];
-					});
-
-					// A role skill missing from the Skills Compendium is listed once a member owns it.
-					const skillImage =
-						CONFIG.genesys.skills.find((skillItem) => skillNamesMatch(skillItem.name, skill))?.img ??
-						skillUsers[0]?.skill.skill.img;
-					if (!skillImage) {
-						continue;
-					}
-
-					if (!groupedBySkillData.has(skill)) {
-						groupedBySkillData.set(skill, { skillName: skill, skillImage, actors: new Map() });
-					}
-
-					for (const { member, actor, skill: desiredSkill } of skillUsers) {
-						groupedBySkillData.get(skill)!.actors.set(member, { actor, skill: desiredSkill, role: role.name });
-					}
-				}
-			}
-
-			groupedBySkill.value = new Map([...groupedBySkillData.entries()].sort(sortNames));
-		}
+		const roleSkills = crewForSkills(
+			crew,
+			crew.roles.flatMap((role) => role.skills),
+		);
+		const memberSkills = crewMemberSkills(roleSkills, actors);
+		byMember.value = crewSkillsByMember(crew, memberSkills, game.i18n.lang).flatMap((row) => {
+			const actor = actors.get(row.member);
+			return actor ? [{ ...row, actor }] : [];
+		});
+		bySkill.value = crewSkillsBySkill(crew, memberSkills, game.i18n.lang).flatMap((row) => {
+			// A Role skill is named as the Skills Compendium names it, whatever the case its Roles list it in. One missing
+			// from the Skills Compendium is listed once a member rolls it.
+			const defined = CONFIG.genesys.skills.find((skill) => skillNamesMatch(skill.name, row.skillName));
+			const skillImage = defined?.img ?? row.members[0]?.skill.img;
+			return skillImage ? [{ ...row, skillName: defined?.name ?? row.skillName, skillImage }] : [];
+		});
 	},
 	{ immediate: true },
 );
-
-function sortNames([left]: [string, unknown], [right]: [string, unknown]) {
-	if (left > right) {
-		return 1;
-	} else if (left < right) {
-		return -1;
-	} else {
-		return 0;
-	}
-}
-
-async function rollSkillForActor(actor: GenesysActor, skillName: string) {
-	if (actor.isOwner) {
-		await DicePrompt.promptForRoll(actor, skillName);
-	}
-}
 
 async function openActorSheet(actor: GenesysActor) {
 	await toRaw(actor).sheet.render(true);
@@ -159,26 +80,21 @@ async function openActorSheet(actor: GenesysActor) {
 			</select>
 		</div>
 		<div v-if="groupingMode === 'member'" class="members-container">
-			<section v-for="[memberId, details] in groupedByMember" :key="memberId">
+			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
 					<img class="member-image" :src="details.actor.img" :alt="details.actor.name" draggable="false" />
-					<a class="member-name" @click="openActorSheet(details.actor as GenesysActor<NonVehicleDataModel>)">{{
-						details.actor.name
-					}}</a>
-					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role }}</div>
+					<a class="member-name" @click="openActorSheet(details.actor)">{{ details.actor.name }}</a>
+					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role.name }}</div>
 
-					<div class="member-skills" v-if="details.skills.size > 0">
+					<div class="member-skills" v-if="details.skills.length > 0">
 						<div class="member-skills-header">
 							<span><Localized label="Genesys.Labels.RoleSkills" /></span>
 						</div>
 
 						<div class="member-skills-container">
-							<div v-for="[skillName, rolledSkill] in details.skills" :key="skillName" class="member-skill">
+							<div v-for="rolledSkill in details.skills" :key="rolledSkill.skillName" class="member-skill">
 								<img :src="rolledSkill.skill.img" :alt="rolledSkill.skill.name" />
-								<a
-									class="skill-name"
-									@click="rollSkillForActor(details.actor as GenesysActor<NonVehicleDataModel>, skillName)"
-								>
+								<a class="skill-name" @click="rollForCrew([rolledSkill])">
 									<span
 										>{{ rolledSkill.skill.name }} (<Localized
 											:label="`Genesys.CharacteristicAbbr.${rolledSkill.skill.systemData.characteristic.capitalize()}`"
@@ -195,7 +111,7 @@ async function openActorSheet(actor: GenesysActor) {
 			</section>
 		</div>
 		<div v-else-if="groupingMode === 'skill'" class="skills-container">
-			<section v-for="[skillName, details] in groupedBySkill" :key="skillName">
+			<section v-for="details in bySkill" :key="details.skillName">
 				<div class="skill-details">
 					<div class="skill-details-name">
 						<img class="skill-details-image" :src="details.skillImage" :alt="details.skillName" draggable="false" />
@@ -203,30 +119,25 @@ async function openActorSheet(actor: GenesysActor) {
 					</div>
 					<div class="skill-contents">
 						<div class="skill-content-header">
-							<div class="skill-content-header-charName"><Localized label="Genesys.Labels.CharacterName" /></div>
+							<div class="skill-content-header-charName"><Localized label="Genesys.Labels.CrewMember" /></div>
 							<div class="skill-content-header-roles"><Localized label="Genesys.Labels.Role" /></div>
 							<div class="skill-content-header-skill"><Localized label="Genesys.Labels.Skill" /></div>
 						</div>
 
-						<div v-for="[actorId, actorRoleSkill] in details.actors" :key="actorId" class="skill-content-details">
+						<div v-for="memberSkill in details.members" :key="memberSkill.member" class="skill-content-details">
 							<img
 								class="skill-content-details-charImage"
-								:src="actorRoleSkill.actor.img"
-								:alt="actorRoleSkill.actor.name"
+								:src="memberSkill.actor.img"
+								:alt="memberSkill.actor.name"
 								draggable="false"
 							/>
-							<a
-								class="skill-content-details-charName"
-								@click="openActorSheet(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>)"
-								>{{ actorRoleSkill.actor.name }}</a
-							>
-							<div>{{ actorRoleSkill.role }}</div>
-							<div class="skill-content-details-skillRank">{{ actorRoleSkill.skill.rank }}</div>
-							<a @click="rollSkillForActor(actorRoleSkill.actor as GenesysActor<NonVehicleDataModel>, skillName)">
-								<SkillRanks
-									:skill-value="actorRoleSkill.skill.rank"
-									:characteristic-value="actorRoleSkill.skill.characteristicValue"
-								/>
+							<a class="skill-content-details-charName" @click="openActorSheet(memberSkill.actor)">{{
+								memberSkill.actor.name
+							}}</a>
+							<div>{{ memberSkill.role.name }}</div>
+							<div class="skill-content-details-skillRank">{{ memberSkill.rank }}</div>
+							<a @click="rollForCrew([memberSkill])">
+								<SkillRanks :skill-value="memberSkill.rank" :characteristic-value="memberSkill.characteristicValue" />
 							</a>
 						</div>
 					</div>

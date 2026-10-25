@@ -1,4 +1,4 @@
-/** @file A vehicle's Crew: its passengers and Roles, and the operations that keep an actor at most once in it. */
+/** @file A vehicle's Crew: its passengers and Roles, the operations that keep an actor at most once in it, and the skills its members roll. */
 
 import { skillNamesMatch } from '@/data/Skills';
 
@@ -167,6 +167,62 @@ export function removeRoleSkill(crew: Crew, roleId: string, skill: string): Crew
 		const skills = role.skills.filter((roleSkill) => !skillNamesMatch(roleSkill, skill));
 		return skills.length === role.skills.length ? undefined : { ...role, skills };
 	});
+}
+
+/**
+ * A Role skill a member rolls for the vehicle, named as the Role lists it.
+ */
+export type CrewSkill = {
+	member: string;
+	role: Role;
+	skillName: string;
+};
+
+/**
+ * The skills the Crew rolls among some skills: each skill a Role lists, matched whatever its case, for each of the Role's
+ * members. In the Roles' order, then their members', then their skills'.
+ */
+export function crewForSkills(crew: Crew, skillNames: string[]): CrewSkill[] {
+	return crew.roles.flatMap((role) => {
+		const skills = distinctSkills(role.skills).filter((roleSkill) => skillNames.some((name) => skillNamesMatch(roleSkill, name)));
+		return role.members.flatMap((member) => skills.map((skillName) => ({ member, role, skillName })));
+	});
+}
+
+/**
+ * The Crew's skills by member: the members of the Roles that list skills, in the Crew's order, each with the skills they
+ * roll among the rolled skills, sorted by name in the given locale.
+ */
+export function crewSkillsByMember<C extends CrewSkill>(crew: Crew, rolledSkills: C[], locale: string) {
+	return crew.roles
+		.filter((role) => role.skills.length > 0)
+		.flatMap((role) =>
+			role.members.map((member) => ({
+				member,
+				role,
+				skills: rolledSkills
+					.filter((rolled) => rolled.member === member)
+					.sort((left, right) => left.skillName.localeCompare(right.skillName, locale)),
+			})),
+		);
+}
+
+/**
+ * The Crew's skills by skill, sorted by name in the given locale: each skill its Roles list, once whatever its case and
+ * named as first listed, with the rolled skills of the members who roll it, in their order.
+ */
+export function crewSkillsBySkill<C extends CrewSkill>(crew: Crew, rolledSkills: C[], locale: string) {
+	return distinctSkills(crew.roles.flatMap((role) => role.skills))
+		.sort((left, right) => left.localeCompare(right, locale))
+		.map((skillName) => ({ skillName, members: rolledSkills.filter((rolled) => skillNamesMatch(rolled.skillName, skillName)) }));
+}
+
+/**
+ * Skill names without those that match an earlier one: a Role may list a skill in two cases, as Roles did before their
+ * skills matched whatever their case.
+ */
+function distinctSkills(skillNames: string[]) {
+	return skillNames.filter((name, index) => skillNames.findIndex((other) => skillNamesMatch(other, name)) === index);
 }
 
 function changeRole(crew: Crew, roleId: string, change: (role: Role) => Role | undefined): Crew | undefined {

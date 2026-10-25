@@ -185,9 +185,9 @@ Genesys:
     Amount: Valeur
     Reason: Motif
 
-  # Character Skill Prompt Labels
-  CharacterSkillPrompt:
-    Title: Select User
+  # Crew Member Prompt Labels
+  CrewMemberPrompt:
+    Title: Choisir un membre d'équipage
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:
@@ -398,6 +398,7 @@ Genesys:
     NoSkill: Aucune compétence
     Name: Nom
     CharacterName: Nom du personnage
+    CrewMember: Membre d'équipage
     SpeciesArchetype: Espèce/Archétype
     Career: Carrière
     Soak: Encaissement
