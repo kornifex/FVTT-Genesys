@@ -54,6 +54,21 @@ describe('buildSlots', () => {
 		expect(order(slots)).toEqual(['f1:-1', 'f2:-1', 'n:-1', 'h:-1']);
 	});
 
+	it('ranks the checks by Successes, then by Advantage (CRB p. 96)', () => {
+		const slots = buildSlots(
+			[combatant('a', encodeInitiative(2, 0)), combatant('b', encodeInitiative(1, 5)), combatant('c', encodeInitiative(2, 1))],
+			[],
+		);
+
+		expect(order(slots)).toEqual(['c:-1', 'a:-1', 'b:-1']);
+	});
+
+	it('ranks a PC above an NPC with as many Successes and Advantage (CRB p. 96)', () => {
+		const slots = buildSlots([combatant('boss', encodeInitiative(1, 2), 'hostile'), combatant('hero', encodeInitiative(1, 2))], []);
+
+		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
+	});
+
 	it('gives each extra slot its own initiative, and drops the extra slots of combatants that left', () => {
 		const slots = buildSlots(
 			[combatant('boss', 1, 'hostile'), combatant('hero', 2)],
@@ -87,7 +102,7 @@ describe('buildSlots', () => {
 describe('claimRefusal', () => {
 	const slots = buildSlots([combatant('hero', 3), combatant('ally', 2), combatant('boss', 1, 'hostile')], [extraSlot('ally', 0, 1.5)]);
 
-	it('lets a combatant claim an unclaimed slot of its side', () => {
+	it('lets a combatant claim an unclaimed slot of its side (CRB p. 96)', () => {
 		expect(claimRefusal(slots, {}, 'ally:-1', { id: 'hero', side: 'pc' })).toBeUndefined();
 	});
 
@@ -95,17 +110,17 @@ describe('claimRefusal', () => {
 		expect(claimRefusal(slots, {}, 'nobody:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.GenericError');
 	});
 
-	it('refuses a slot of the other side', () => {
+	it('refuses a slot of the other side: PC slots go to PCs, NPC slots to NPCs (CRB p. 96)', () => {
 		expect(claimRefusal(slots, {}, 'boss:-1', { id: 'hero', side: 'pc' })).toBe('Genesys.Notifications.CannotClaimOppositeSlot');
 	});
 
-	it('refuses a slot that is already claimed', () => {
+	it('refuses a slot that is already claimed (CRB p. 96)', () => {
 		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe(
 			'Genesys.Notifications.SlotAlreadyClaimed',
 		);
 	});
 
-	it('refuses a combatant that claimed as many slots as its initiative gives', () => {
+	it('refuses a combatant that claimed as many slots as its initiative gives: a character acts once per round (CRB p. 96)', () => {
 		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'ally:-1', { id: 'hero', side: 'pc' })).toBe(
 			'Genesys.Notifications.CombatantHasNoActivationLeft',
 		);
@@ -130,7 +145,7 @@ describe('slotView', () => {
 		expect(slotView(claimed, true, player).showsAsClaimed).toBe(true);
 	});
 
-	it('lets players claim PC slots, and the GM any slot', () => {
+	it('lets players claim PC slots, and the GM any slot: the GM picks the NPCs (CRB p. 96)', () => {
 		expect(slotView(unclaimed, true, player).canClaim).toBe(true);
 		expect(slotView(npcSlot, true, player).canClaim).toBe(false);
 		expect(slotView(npcSlot, true, gm).canClaim).toBe(true);

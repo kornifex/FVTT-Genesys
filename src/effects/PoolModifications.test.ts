@@ -233,7 +233,7 @@ describe('poolModificationsForCheck', () => {
 		]);
 	});
 
-	it("adds the target's defense against the range of an attack", () => {
+	it("adds one Setback per point of the target's defense (CRB p. 104): melee defense against a weapon of engaged range, ranged defense against the others", () => {
 		const self = actor('character', []);
 		const character = actor('character', [], { totalDefense: { melee: 1, ranged: 2 } });
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
@@ -250,7 +250,7 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
 	});
 
-	it("leaves out the target's defense when it is 0 against the range of the attack", () => {
+	it("leaves out the target's defense when it is 0 against the attack (CRB p. 104)", () => {
 		const self = actor('character', []);
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
 
