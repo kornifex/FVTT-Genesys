@@ -47,13 +47,19 @@ type CheckActorData = {
 export type CheckRules<S extends CheckSkill = CheckSkill> = {
 	compendiumSkills: S[];
 	useSuperCharacteristics: boolean;
+	uncoupleSkillsFromCharacteristics: boolean;
 };
 
 /**
- * The world's rules for checks: its Skills Compendium and its super characteristics setting.
+ * The world's rules for checks: its Skills Compendium, its super characteristics setting and its Uncoupling Skills
+ * from Characteristics setting.
  */
 export function worldCheckRules(): CheckRules<GenesysItem<SkillDataModel>> {
-	return { compendiumSkills: CONFIG.genesys.skills, useSuperCharacteristics: CONFIG.genesys.settings.useSuperCharacteristics };
+	return {
+		compendiumSkills: CONFIG.genesys.skills,
+		useSuperCharacteristics: CONFIG.genesys.settings.useSuperCharacteristics,
+		uncoupleSkillsFromCharacteristics: CONFIG.genesys.settings.uncoupleSkillsFromCharacteristics,
+	};
 }
 
 /**
@@ -66,7 +72,8 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	skillName?: string;
 
 	/**
-	 * The characteristic rolled, as the dice prompt picks it: the skill's when left undefined, none when null.
+	 * The characteristic rolled, as the dice prompt picks it: the skill's when left undefined, none when null. A skill
+	 * check ignores it unless the world uncouples skills from characteristics.
 	 */
 	characteristic?: Characteristic | null;
 
@@ -133,9 +140,9 @@ export function resolveCheck<S extends CheckSkill>(
 	const data = actor.systemData as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
 	const characteristic =
-		request.characteristic === undefined
-			? rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic
-			: request.characteristic ?? undefined;
+		request.characteristic !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
+			? request.characteristic ?? undefined
+			: rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic;
 
 	let kind: CheckKind = characteristic ? 'characteristic' : 'pool';
 	let rank = 0;
@@ -163,6 +170,14 @@ export function resolveCheck<S extends CheckSkill>(
 		usesSuperCharacteristic: rules.useSuperCharacteristics && !!characteristic && !!data.superCharacteristics?.has(characteristic),
 		poolModifications: poolModifications.map((modification) => ({ ...modification, key: poolModificationKey(modification) })),
 	};
+}
+
+/**
+ * Whether the roller may pick the characteristic of a check: always without a skill, and for a skill check only when
+ * the world uncouples skills from characteristics.
+ */
+export function canPickCharacteristic(check: Pick<Check, 'skill'>, rules: Pick<CheckRules, 'uncoupleSkillsFromCharacteristics'>) {
+	return !check.skill || rules.uncoupleSkillsFromCharacteristics;
 }
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
