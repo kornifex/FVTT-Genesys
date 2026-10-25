@@ -1,8 +1,8 @@
 import { GenesysActor } from '@/actor/GenesysActor';
+import { encumberingItems, EncumbranceRules, equipmentEncumbrance } from '@/actor/data/Encumbrance';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { HasPreCreate } from '@/data/HasPreCreate';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
@@ -35,6 +35,13 @@ const RELEVANT_TYPES = {
 	EQUIPABLE: ['vehicleWeapon'],
 	// Types that can be spent.
 	CONSUMABLE: ['consumable'],
+};
+
+// A vehicle's cargo all counts, whatever its Equipment State.
+const ENCUMBRANCE_RULES: EncumbranceRules = {
+	isRelevant: (type) => VehicleDataModel.isRelevantTypeForContext('ENCUMBRANCE', type),
+	ignoresDropped: false,
+	reducesEquippedArmor: false,
 };
 
 export abstract class VehicleDataModel
@@ -120,29 +127,11 @@ export abstract class VehicleDataModel
 	 */
 	get currentEncumbrance() {
 		const actor = this.parent as unknown as GenesysActor<this>;
-		const cargoEncumbrance = actor.items.reduce(
-			(accum, item) => {
-				const equipment = item as GenesysItem<EquipmentDataModel>;
-
-				if (
-					VehicleDataModel.isRelevantTypeForContext('ENCUMBRANCE', equipment.type) &&
-					equipment.systemData.encumbrance !== undefined
-				) {
-					if (equipment.systemData.encumbrance >= 0) {
-						accum.value += equipment.systemData.encumbrance * equipment.systemData.quantity;
-					} else {
-						accum.threshold -= equipment.systemData.encumbrance * equipment.systemData.quantity;
-					}
-				}
-
-				return accum;
-			},
-			{ value: this.encumbrance.value, threshold: this.encumbrance.threshold },
-		);
+		const cargo = equipmentEncumbrance(encumberingItems(actor.items), ENCUMBRANCE_RULES);
 
 		return {
-			value: Math.max(cargoEncumbrance.value, 0),
-			threshold: Math.max(cargoEncumbrance.threshold, 0),
+			value: Math.max(this.encumbrance.value + cargo.value, 0),
+			threshold: Math.max(this.encumbrance.threshold + cargo.thresholdBonus, 0),
 		};
 	}
 
