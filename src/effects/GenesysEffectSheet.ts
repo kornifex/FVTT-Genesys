@@ -1,4 +1,4 @@
-import { Characteristic } from '@/data/Characteristics';
+import { CHARACTERISTICS } from '@/data/Characteristics';
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import '@/effects/GenesysEffectSheet.scss';
@@ -25,9 +25,7 @@ export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 				CONFIG.genesys.skills.map((skill) => skill.name),
 				changes,
 			);
-			partContext.characteristics = Object.fromEntries(
-				Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName]),
-			);
+			partContext.characteristics = CHARACTERISTICS;
 		}
 
 		return partContext;

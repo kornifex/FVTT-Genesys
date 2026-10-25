@@ -18,18 +18,9 @@
 					{{!-- Characteristics Changes --}}
 					<optgroup label="{{localize 'Genesys.ActiveEffects.Types.ModifyCharacteristic'}}">
 						{{!-- Character & Adversary Characteristics --}}
-						<option value="system.characteristics.brawn">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Brawn'}}</option>
-						<option value="system.characteristics.agility">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Agility'}}</option>
-						<option value="system.characteristics.intellect">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Intellect'}}</option>
-						<option value="system.characteristics.cunning">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Cunning'}}</option>
-						<option value="system.characteristics.willpower">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Willpower'}}</option>
-						<option value="system.characteristics.presence">&#x1F9D1; {{localize
-							'Genesys.Characteristics.Presence'}}</option>
+						{{#each @root.characteristics}}
+						<option value="system.characteristics.{{characteristic}}">&#x1F9D1; {{localize label}}</option>
+						{{/each}}
 
 						{{!-- Vehicle Characteristics --}}
 						<option value="system.silhouette">&#x1F697; {{localize 'Genesys.Labels.Silhouette'}}</option>
@@ -95,7 +86,7 @@
 			<div class="mode">
 				<div class="check-selection initial-hide {{#if (isSubstringOf 'genesys.pool.check.' change.key)}}show-it{{/if}}">—</div>
 				<select name="changes.{{i}}.char" class="characteristic-selection initial-hide {{#if (isSubstringOf 'genesys.pool.char.' change.key)}}show-it{{/if}}">
-					{{selectOptions @root.characteristics selected=change.char sort=true}}
+					{{selectOptions @root.characteristics selected=change.char valueAttr="characteristic" labelAttr="label" localize=true sort=true}}
 				</select>
 				<select name="changes.{{i}}.skill" class="skill-selection initial-hide {{#if (isSubstringOf 'genesys.pool.skill.' change.key)}}show-it{{/if}}">
 					{{selectOptions @root.skills selected=change.skill sort=true}}

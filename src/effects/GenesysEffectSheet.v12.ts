@@ -3,7 +3,7 @@
  */
 
 import { GenesysEffect } from '@/effects/GenesysEffect';
-import { Characteristic } from '@/data/Characteristics';
+import { CHARACTERISTICS } from '@/data/Characteristics';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 
 type IncompleteSheetSubmitData = { changes: EditedChange[] };
@@ -44,7 +44,7 @@ export class GenesysEffectSheet extends ActiveEffectConfig<GenesysEffect> {
 				CONFIG.genesys.skills.map((skill) => skill.name),
 				changes,
 			),
-			characteristics: Object.fromEntries(Object.entries(Characteristic).map(([charName, charKey]) => [charKey, charName])),
+			characteristics: CHARACTERISTICS,
 		});
 	}
 
