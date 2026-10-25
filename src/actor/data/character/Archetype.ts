@@ -56,7 +56,7 @@ export type HeldItem = {
 /**
  * The `genesys` flag of an item an Archetype granted, which holds the id of the character it was granted to.
  */
-const ARCHETYPE_GRANT_FLAG = 'archetypeGrant';
+const FLAG_ARCHETYPE_GRANT = 'archetypeGrant';
 
 /**
  * The actor update for adding (sign +1) or removing (sign -1) an Archetype: characteristics, wound and strain
@@ -103,7 +103,7 @@ function grantedSkillNames(grantedItems: ArchetypeGrants['grantedItems']) {
 function flaggedGrant<T extends ArchetypeGrants['grantedItems'][number]>(grantedItem: T, actorId: string | null) {
 	return {
 		...grantedItem,
-		flags: { ...grantedItem.flags, genesys: { ...grantedItem.flags?.genesys, [ARCHETYPE_GRANT_FLAG]: actorId } },
+		flags: { ...grantedItem.flags, genesys: { ...grantedItem.flags?.genesys, [FLAG_ARCHETYPE_GRANT]: actorId } },
 	};
 }
 
@@ -118,7 +118,7 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(
 	actorId: string | null,
 ) {
 	const nonSkills = items.filter((i) => i.type !== 'skill');
-	const flagged = nonSkills.filter((i) => i.flags?.genesys?.[ARCHETYPE_GRANT_FLAG] === actorId);
+	const flagged = nonSkills.filter((i) => i.flags?.genesys?.[FLAG_ARCHETYPE_GRANT] === actorId);
 	if (flagged.length > 0) {
 		return flagged;
 	}

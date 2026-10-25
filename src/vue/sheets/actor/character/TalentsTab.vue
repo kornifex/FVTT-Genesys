@@ -34,7 +34,7 @@ const passiveAbilities = computed(
 			}) as GenesysItem<AbilityDataModel>[],
 );
 // The ids of the items the Archetype granted, which only go away with it.
-const archetypeGrants = computed(() => {
+const grantedItemIds = computed(() => {
 	const actor = toRaw(context.data.actor);
 	const archetype = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
 	return new Set(
@@ -127,7 +127,7 @@ async function openItem(item: GenesysItem) {
 					:key="ability.id"
 					:item="ability"
 					@open="openItem(ability)"
-					:can-delete="!archetypeGrants.has(ability.id)"
+					:can-delete="!grantedItemIds.has(ability.id)"
 					@delete="ability.delete()"
 				/>
 
@@ -139,7 +139,7 @@ async function openItem(item: GenesysItem) {
 						:key="ability.id"
 						:item="ability"
 						@open="openItem(ability)"
-						:can-delete="!archetypeGrants.has(ability.id)"
+						:can-delete="!grantedItemIds.has(ability.id)"
 						@delete="ability.delete()"
 					/>
 				</template>
@@ -151,7 +151,7 @@ async function openItem(item: GenesysItem) {
 					:key="ability.id"
 					:item="ability"
 					@open="openItem(ability)"
-					:can-delete="!archetypeGrants.has(ability.id)"
+					:can-delete="!grantedItemIds.has(ability.id)"
 					@delete="ability.delete()"
 				/>
 			</div>
