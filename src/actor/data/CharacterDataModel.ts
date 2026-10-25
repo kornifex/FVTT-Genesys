@@ -2,13 +2,13 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
-import { rootContainer } from '@/actor/data/character/Encumbrance';
+import { encumberingItems, EncumbranceRules, equipmentEncumbrance } from '@/actor/data/Encumbrance';
 import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { CombatPool, Defense } from '@/data/Actors';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
@@ -43,7 +43,6 @@ type Encumbrance = {
 
 type CharacterActor = GenesysActor<CharacterDataModel>;
 type ArmorItem = GenesysItem<ArmorDataModel>;
-type EquipmentItem = GenesysItem<EquipmentDataModel>;
 
 /**
  * A list of Document types that a Character actor cares about for different reasons.
@@ -65,6 +64,13 @@ const RELEVANT_TYPES = {
 	EQUIPABLE: ['weapon', 'armor'],
 	// Types that can be spent.
 	CONSUMABLE: ['consumable'],
+};
+
+// A character's Dropped equipment counts towards neither the value nor the threshold, and their worn armor counts 3 less.
+const ENCUMBRANCE_RULES: EncumbranceRules = {
+	isRelevant: (type) => CharacterDataModel.isRelevantTypeForContext('ENCUMBRANCE', type),
+	ignoresDropped: true,
+	reducesEquippedArmor: true,
 };
 
 export abstract class CharacterDataModel extends foundry.abstract.DataModel implements HasPreCreate<CharacterActor> {
@@ -159,15 +165,11 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	 * Player's current Encumbrance value, including both ActiveEffects and equipment.
 	 */
 	get currentEncumbrance(): Encumbrance {
+		const equipment = equipmentEncumbrance(encumberingItems((<CharacterActor>(<unknown>this.parent)).items), ENCUMBRANCE_RULES);
+
 		return {
-			value: Math.max(
-				0,
-				(<CharacterActor>(<unknown>this.parent)).items.reduce(
-					(total, i) => total + this.#effectiveEncumbranceForItem(<EquipmentItem>i),
-					0,
-				) + this.encumbrance.value,
-			),
-			threshold: 5 + this.encumbrance.threshold + this.characteristics.brawn + this.#additionalEncumbranceThreshold(),
+			value: Math.max(0, equipment.value + this.encumbrance.value),
+			threshold: 5 + this.encumbrance.threshold + this.characteristics.brawn + equipment.thresholdBonus,
 		};
 	}
 
@@ -185,48 +187,6 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 			(i) => i.type === 'talent',
 		) as GenesysItem<TalentDataModel>[];
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
-	}
-
-	#additionalEncumbranceThreshold() {
-		return (<CharacterActor>(<unknown>this.parent)).items
-			.filter(
-				(i) =>
-					(<EquipmentItem>i).systemData.encumbrance !== undefined &&
-					(i as EquipmentItem).systemData.state !== EquipmentState.Dropped &&
-					(i as EquipmentItem).systemData.encumbrance < 0,
-			)
-			.reduce((total, i) => total + Math.abs((<EquipmentItem>i).systemData.encumbrance), 0);
-	}
-
-	#effectiveEncumbranceForItem(item: EquipmentItem) {
-		if (!CharacterDataModel.isRelevantTypeForContext('ENCUMBRANCE', item.type)) {
-			return 0;
-		}
-
-		// Negative encumbrance increases Encumbrance Threshold.
-		if (item.systemData.encumbrance < 0 || item.systemData.state === EquipmentState.Dropped) {
-			return 0;
-		}
-
-		// When armor is worn, its encumbrance rating is reduced by three (to a minimum of 0).
-		if (item.type === 'armor') {
-			if (item.systemData.state === EquipmentState.Equipped) {
-				return (
-					Math.max(0, item.systemData.encumbrance - 3) + Math.max(0, item.systemData.encumbrance * (item.systemData.quantity - 1))
-				);
-			}
-		}
-
-		// If it's contained, it doesn't contribute when its root container is dropped.
-		if (item.systemData.container !== '') {
-			const items = (<CharacterActor>(<unknown>this.parent)).items;
-			const root = rootContainer(item.systemData.container, (id) => (<EquipmentItem | undefined>items.get(id))?.systemData);
-			if (root?.state === EquipmentState.Dropped) {
-				return 0;
-			}
-		}
-
-		return item.systemData.encumbrance * item.systemData.quantity;
 	}
 
 	async preCreate(actor: CharacterActor, _data: unknown, _options: DocumentModificationContext<CharacterActor>, _user: User) {
