@@ -19,34 +19,27 @@ const CHARACTERISTIC_ABBREVIATIONS: Record<Characteristic, string> = {
 /**
  * What a weapon's damage is read from. A vehicle weapon has no damage characteristic.
  */
-type DamageSource = Pick<BaseWeaponDataModel, 'baseDamage'> & Partial<Pick<WeaponDataModel, 'damageCharacteristic'>>;
+type WeaponDamageData = Pick<BaseWeaponDataModel, 'baseDamage'> & Partial<Pick<WeaponDataModel, 'damageCharacteristic'>>;
 
 /**
  * The damage a weapon deals in the hands of an actor with these characteristics. An actor without characteristics,
  * like a vehicle, deals the weapon's base damage.
  */
-export function weaponDamage(weapon: DamageSource, characteristics: CharacteristicsContainer | undefined) {
-	const baseDamage = baseDamageOf(weapon);
+export function weaponDamage(weapon: WeaponDamageData, characteristics: CharacteristicsContainer | undefined) {
+	const characteristic = damageCharacteristicOf(weapon);
 
-	if (!weapon.damageCharacteristic || weapon.damageCharacteristic === '-' || !characteristics) {
-		return baseDamage;
-	}
-
-	return baseDamage + characteristics[weapon.damageCharacteristic];
+	return baseDamageOf(weapon) + (characteristic && characteristics ? characteristics[characteristic] : 0);
 }
 
 /**
  * The parts a weapon's damage is written with: its base damage, and the localization key of its damage
  * characteristic's abbreviation when it has one.
  */
-export function damageFormula(weapon: DamageSource): { baseDamage: number; characteristic?: string } {
+export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; characteristic?: string } {
 	const baseDamage = baseDamageOf(weapon);
+	const characteristic = damageCharacteristicOf(weapon);
 
-	if (!weapon.damageCharacteristic || weapon.damageCharacteristic === '-') {
-		return { baseDamage };
-	}
-
-	return { baseDamage, characteristic: CHARACTERISTIC_ABBREVIATIONS[weapon.damageCharacteristic] };
+	return characteristic ? { baseDamage, characteristic: CHARACTERISTIC_ABBREVIATIONS[characteristic] } : { baseDamage };
 }
 
 /**
@@ -96,7 +89,12 @@ export function firingArcLabels(firingArc: VehicleWeaponDataModel['firingArc']) 
 	}
 }
 
-function baseDamageOf(weapon: DamageSource) {
+function damageCharacteristicOf(weapon: WeaponDamageData) {
+	// A vehicle weapon has no damage characteristic, and a weapon saves its absence as '-'.
+	return weapon.damageCharacteristic === '-' ? undefined : weapon.damageCharacteristic;
+}
+
+function baseDamageOf(weapon: WeaponDamageData) {
 	// The weapon sheets save an emptied damage field as null.
 	return weapon.baseDamage ?? 0;
 }

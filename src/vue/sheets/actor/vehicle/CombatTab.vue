@@ -16,7 +16,7 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 
 import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { firingArcLabels } from '@/item/Weapons';
+import { damageFormula, firingArcLabels } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
@@ -79,7 +79,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 					</div>
 					<div class="skill" v-else><Localized label="Genesys.Labels.SkillNotFound" /></div>
 
-					<div class="damage">{{ weapon.systemData.baseDamage }}</div>
+					<div class="damage">{{ damageFormula(weapon.systemData).baseDamage }}</div>
 
 					<div class="crit">{{ weapon.systemData.critical }}</div>
 

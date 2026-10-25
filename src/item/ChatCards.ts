@@ -137,9 +137,10 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 	};
 
 	if (item.type === 'weapon') {
+		const { skills } = item.systemData;
 		const { baseDamage, characteristic } = damageFormula(item.systemData);
 		card.data.weapon = {
-			skill: item.systemData.skills[0] ?? '-',
+			skill: skills[0] ?? '-',
 			damage: baseDamage.toString() + (characteristic ? ' + ' + i18n.localize(characteristic) : ''),
 		};
 	} else if (item.type === 'vehicleWeapon') {
