@@ -4,6 +4,20 @@ An unofficial implementation of the Genesys RPG rules as a Foundry VTT game syst
 
 ## Language
 
+### Rules
+
+**Core Rulebook**:
+The Genesys Core Rulebook published by Fantasy Flight Games in 2017: the authority for the rules the system implements.
+_Avoid_: CRB in player-facing text, the PDF
+
+**Alternate Rule**:
+An optional rule the Core Rulebook itself offers, such as Uncoupling Skills from Characteristics, Nemesis Extra Activation or Super-characteristics.
+_Avoid_: House rule, variant
+
+**House Rule**:
+A deliberate departure from the Core Rulebook, either turned on by the GM in the world settings or adopted by the system by default.
+_Avoid_: Alternate rule, variant
+
 ### Combat
 
 **Combatant**:
