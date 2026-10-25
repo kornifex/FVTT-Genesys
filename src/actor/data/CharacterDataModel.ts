@@ -3,6 +3,7 @@ import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJ
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
 import { rootContainer } from '@/actor/data/character/Encumbrance';
+import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -112,26 +113,20 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	 * Total value for Soak (base + Brawn + Armor).
 	 */
 	get totalSoak(): number {
-		const armorSoak = (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
-			.map((i) => (<ArmorItem>i).systemData.soak)
-			.reduce((total, s) => total + s, 0);
-		return this.soak + this.characteristics.brawn + armorSoak;
+		return totalSoak(this.soak, this.characteristics.brawn, this.#equippedArmor());
 	}
 
 	/**
 	 * Total value for Defense (base defenses + armor).
 	 */
 	get totalDefense(): Defense {
-		const armorDefense = (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
-			.map((i) => (<ArmorItem>i).systemData.defense)
-			.reduce((total, d) => total + d, 0);
+		return totalDefense(this.defense, this.#equippedArmor());
+	}
 
-		return {
-			ranged: Math.min(4, this.defense.ranged + armorDefense),
-			melee: Math.min(4, this.defense.melee + armorDefense),
-		};
+	#equippedArmor() {
+		return (<CharacterActor>(<unknown>this.parent)).items
+			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
+			.map((i) => (<ArmorItem>i).systemData);
 	}
 
 	/**

@@ -1,4 +1,4 @@
-/** @file The damage and firing arcs of weapons and vehicle weapons. */
+/** @file The damage of weapons and their attacks, and the firing arcs of vehicle weapons. */
 import { CHARACTERISTIC_ABBREVIATIONS, type CharacteristicsContainer } from '@/data/Characteristics';
 import type { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -17,6 +17,13 @@ export function weaponDamage(weapon: WeaponDamageData, characteristics: Characte
 	const characteristic = damageCharacteristicOf(weapon);
 
 	return baseDamageOf(weapon) + (characteristic && characteristics ? characteristics[characteristic] : 0);
+}
+
+/**
+ * The damage of an attack with a weapon: the weapon's damage, plus one per Success left when the attack hits.
+ */
+export function attackDamage(weapon: WeaponDamageData, characteristics: CharacteristicsContainer | undefined, netSuccess: number) {
+	return weaponDamage(weapon, characteristics) + Math.max(0, netSuccess);
 }
 
 /**
