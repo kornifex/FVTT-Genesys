@@ -5,6 +5,7 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel, EquipmentDamageState, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { damageStep } from '@/item/data/EquipmentDamage';
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -52,7 +53,6 @@ const damageStateToIcon = new Map([
 	[EquipmentDamageState.Moderate, 'fa-face-frown'],
 	[EquipmentDamageState.Major, 'fa-face-dizzy'],
 ]);
-const damageStateProgression = Array.from(damageStateToIcon.keys());
 
 const dragCounter = ref(0);
 const isBeingDragged = ref(false);
@@ -214,15 +214,14 @@ async function changeItemQuantity(event: MouseEvent, item: GenesysItem<Equipment
 	}
 }
 
-async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: number) {
-	const currentDamageStateIndex = damageStateProgression.indexOf(item.systemData.damage);
-	const newDamageStateIndex = currentDamageStateIndex + direction;
+async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: 1 | -1) {
+	const newDamage = damageStep(item.systemData.damage, direction);
 	const containerDiv = (event.currentTarget as HTMLAnchorElement | null)?.parentElement?.parentElement;
 	let containerScroll = containerDiv?.scrollTop;
 
-	if (currentDamageStateIndex === -1 || newDamageStateIndex < 0) {
+	if (!newDamage) {
 		return;
-	} else if (newDamageStateIndex >= damageStateToIcon.size) {
+	} else if (newDamage === 'destroyed') {
 		const shouldDeleteItem = await Dialog.confirm({
 			title: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Title'),
 			content: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content'),
@@ -239,7 +238,7 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 		}
 	} else {
 		await toRaw(item).update({
-			'system.damage': damageStateProgression[newDamageStateIndex],
+			'system.damage': newDamage,
 		});
 	}
 
@@ -390,7 +389,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 		<a
 			class="damage"
-			@click="changeDamageState($event, item, +1)"
+			@click="changeDamageState($event, item, 1)"
 			@contextmenu="changeDamageState($event, item, -1)"
 			:data-tooltip="'Genesys.Equipment.DamageState.' + item.systemData.damage.capitalize()"
 		>

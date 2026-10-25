@@ -2,7 +2,14 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { availableXP } from '@/actor/data/character/Advancement';
-import { encumberingItems, EncumbranceRules, equipmentEncumbrance } from '@/actor/data/Encumbrance';
+import {
+	characterEncumbrance,
+	encumberingItems,
+	Encumbrance,
+	EncumbranceRules,
+	equipmentEncumbrance,
+	isEncumbered,
+} from '@/actor/data/Encumbrance';
 import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
@@ -34,11 +41,6 @@ type Details = {
 	hair: string;
 	eyes: string;
 	notableFeatures: string;
-};
-
-type Encumbrance = {
-	value: number;
-	threshold: number;
 };
 
 type CharacterActor = GenesysActor<CharacterDataModel>;
@@ -167,19 +169,14 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	get currentEncumbrance(): Encumbrance {
 		const equipment = equipmentEncumbrance(encumberingItems((<CharacterActor>(<unknown>this.parent)).items), ENCUMBRANCE_RULES);
 
-		return {
-			value: Math.max(0, equipment.value + this.encumbrance.value),
-			threshold: 5 + this.encumbrance.threshold + this.characteristics.brawn + equipment.thresholdBonus,
-		};
+		return characterEncumbrance(equipment, this.encumbrance, this.characteristics.brawn);
 	}
 
 	/**
 	 * Whether the character is currently encumbered.
 	 */
 	get isEncumbered() {
-		const currentEncumbrance = this.currentEncumbrance;
-
-		return currentEncumbrance.value > currentEncumbrance.threshold;
+		return isEncumbered(this.currentEncumbrance);
 	}
 
 	get talentPyramidTotals() {

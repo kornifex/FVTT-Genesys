@@ -1,5 +1,5 @@
 /**
- * @file Encumbrance of a character's or vehicle's equipment, including the equipment held in containers.
+ * @file Encumbrance of a character's or vehicle's equipment, including the equipment held in containers, and a character's threshold.
  */
 
 import type { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
@@ -77,9 +77,17 @@ function addedValue(item: EncumberingItem, rules: EncumbranceRules) {
 }
 
 /**
+ * What equipment adds to the encumbrance value, and what its negative encumbrance adds to the threshold.
+ */
+type EquipmentEncumbrance = {
+	value: number;
+	thresholdBonus: number;
+};
+
+/**
  * The encumbrance value of a list of items, and the bonus their negative encumbrance gives to the threshold.
  */
-export function equipmentEncumbrance(items: EncumberingItem[], rules: EncumbranceRules) {
+export function equipmentEncumbrance(items: EncumberingItem[], rules: EncumbranceRules): EquipmentEncumbrance {
 	const byId = new Map(items.map((item) => [item.id, item]));
 
 	// The contents of a container share its Equipment State, so they are Dropped when its outermost container is.
@@ -99,6 +107,32 @@ export function equipmentEncumbrance(items: EncumberingItem[], rules: Encumbranc
 			},
 			{ value: 0, thresholdBonus: 0 },
 		);
+}
+
+/**
+ * An encumbrance value against its threshold.
+ */
+export type Encumbrance = {
+	value: number;
+	threshold: number;
+};
+
+/**
+ * A character's encumbrance: their equipment's value, and a threshold of 5 plus their Brawn raised by the negative
+ * encumbrance of their equipment. `own` is what their effects add to the value and the threshold.
+ */
+export function characterEncumbrance(equipment: EquipmentEncumbrance, own: Encumbrance, brawn: number): Encumbrance {
+	return {
+		value: Math.max(0, equipment.value + own.value),
+		threshold: 5 + brawn + own.threshold + equipment.thresholdBonus,
+	};
+}
+
+/**
+ * Whether an encumbrance value is over its threshold.
+ */
+export function isEncumbered({ value, threshold }: Encumbrance) {
+	return value > threshold;
 }
 
 /**

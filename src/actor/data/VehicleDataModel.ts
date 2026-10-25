@@ -1,5 +1,5 @@
 import { GenesysActor } from '@/actor/GenesysActor';
-import { encumberingItems, EncumbranceRules, equipmentEncumbrance } from '@/actor/data/Encumbrance';
+import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered } from '@/actor/data/Encumbrance';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { HasPreCreate } from '@/data/HasPreCreate';
@@ -136,8 +136,7 @@ export abstract class VehicleDataModel
 	}
 
 	get isEncumbered() {
-		const currentEncumbrance = this.currentEncumbrance;
-		return currentEncumbrance.value > currentEncumbrance.threshold;
+		return isEncumbered(this.currentEncumbrance);
 	}
 
 	/**
