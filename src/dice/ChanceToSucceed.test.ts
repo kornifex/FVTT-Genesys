@@ -30,7 +30,7 @@ const cases: [string, ChancePool, number][] = [
 	['an added Success', { dice: { Ability: 2, Difficulty: 2 }, symbols: { Success: 1 } }, 0.714111328125],
 	['added Failures and a Threat', { dice: { Ability: 2, Difficulty: 2 }, symbols: { Failure: 2, Threat: 1 } }, 0.047607421875],
 	[
-		'an added Triumph and Despair, which cancel out',
+		'an added Triumph and Despair, whose Success and Failure cancel out',
 		{ dice: { Ability: 2, Difficulty: 2 }, symbols: { Triumph: 1, Despair: 1, Advantage: 2 } },
 		0.43505859375,
 	],
@@ -45,5 +45,23 @@ const cases: [string, ChancePool, number][] = [
 describe('chanceToSucceed', () => {
 	it.each(cases)('computes the chance to succeed of %s', (_, pool, chance) => {
 		expect(chanceToSucceed(pool)).toBe(chance);
+	});
+});
+
+// The rough chances the book gives for each difficulty level, for a focused character (a characteristic of 3 and one
+// rank: two Ability dice and a Proficiency die) and a general one (a characteristic of 2 and no rank: two Ability dice).
+const bookChances: [string, number, (chance: number) => void, (chance: number) => void][] = [
+	['Simple', 0, (focused) => expect(focused).toBeGreaterThan(0.9), (general) => expect(general).toBeCloseTo(0.75, 1)],
+	['Easy', 1, (focused) => expect(focused).toBeCloseTo(0.8, 1), (general) => expect(general).toBeCloseTo(0.6, 1)],
+	['Average', 2, (focused) => expect(focused).toBeCloseTo(2 / 3, 1), (general) => expect(general).toBeLessThan(0.5)],
+	['Hard', 3, (focused) => expect(focused).toBeGreaterThan(0.5), (general) => expect(general).toBeCloseTo(1 / 3, 1)],
+	['Daunting', 4, (focused) => expect(focused).toBeCloseTo(0.45, 1), (general) => expect(general).toBeCloseTo(0.25, 1)],
+	['Formidable', 5, (focused) => expect(focused).toBeCloseTo(1 / 3, 1), (general) => expect(general).toBeLessThan(0.2)],
+];
+
+describe('chanceToSucceed against the difficulty levels (CRB p. 16-18)', () => {
+	it.each(bookChances)('gives a %s check the chances of the book', (_, difficultyDice, expectFocused, expectGeneral) => {
+		expectFocused(chanceToSucceed({ dice: { Ability: 2, Proficiency: 1, Difficulty: difficultyDice }, symbols: {} }));
+		expectGeneral(chanceToSucceed({ dice: { Ability: 2, Difficulty: difficultyDice }, symbols: {} }));
 	});
 });

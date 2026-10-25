@@ -51,8 +51,8 @@ function emptyPool(): DicePool {
 }
 
 describe('buildDicePool', () => {
-	describe('Step 1: skills and characteristics', () => {
-		it('adds Ability dice up to the higher value and upgrades as many as the lower value', () => {
+	describe('Step 1: skills and characteristics (CRB p. 19)', () => {
+		it('adds Ability dice up to the higher value and upgrades as many as the lower value, as for Kendra and Katie (Examples 1-2)', () => {
 			expect(pool({ characteristicValue: 3, skillRank: 2 }).dice).toEqual({ Proficiency: 2, Ability: 1 });
 			expect(pool({ characteristicValue: 2, skillRank: 3 }).dice).toEqual({ Proficiency: 2, Ability: 1 });
 		});
@@ -61,11 +61,12 @@ describe('buildDicePool', () => {
 			expect(pool({ characteristicValue: 3, skillRank: 3 }).dice).toEqual({ Proficiency: 3, Ability: 0 });
 		});
 
-		it('only adds Ability dice without ranks in the skill', () => {
+		it('only adds Ability dice without ranks in the skill, the lower value being zero, as for Rex (Example 3)', () => {
+			expect(pool({ characteristicValue: 2 }).dice).toEqual({ Proficiency: 0, Ability: 2 });
 			expect(pool({ characteristicValue: 3 }).dice).toEqual({ Proficiency: 0, Ability: 3 });
 		});
 
-		it('adds Ability dice for the skill ranks without a characteristic', () => {
+		it('adds Ability dice for the skill ranks with a characteristic of zero', () => {
 			expect(pool({ skillRank: 2 }).dice).toEqual({ Proficiency: 0, Ability: 2 });
 		});
 
@@ -79,7 +80,7 @@ describe('buildDicePool', () => {
 		});
 	});
 
-	describe('Step 2: task difficulty', () => {
+	describe('Step 2: task difficulty (CRB p. 16-20)', () => {
 		it('adds the Difficulty dice of the difficulty', () => {
 			expect(pool({ characteristicValue: 2, baseDifficulty: ['D', 'D'] }).dice).toEqual({
 				Proficiency: 0,
@@ -102,7 +103,7 @@ describe('buildDicePool', () => {
 			expect(pool({ baseDifficulty: ['*', 'D', 'D'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 3 });
 		});
 
-		it('applies the difficulty before the other modifications', () => {
+		it('applies the difficulty with the basic pool, before the other modifications (CRB p. 20)', () => {
 			// The downgrade comes after the difficulty's upgrade even though it would be sorted before an added die.
 			expect(pool({ baseDifficulty: ['D', '*'], manualChanges: ['~'] }).dice).toEqual({
 				Proficiency: 0,
@@ -113,7 +114,7 @@ describe('buildDicePool', () => {
 		});
 	});
 
-	describe('Step 3: modifying the dice pool', () => {
+	describe('Step 3: modifying the dice pool, in the order add, upgrade, downgrade, remove (CRB p. 20-23)', () => {
 		it('adds dice before upgrading them', () => {
 			expect(pool({ manualChanges: ['^', 'A'] }).dice).toEqual({ Proficiency: 1, Ability: 0 });
 			expect(pool({ manualChanges: ['*', 'D'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 0, Challenge: 1 });
@@ -135,6 +136,10 @@ describe('buildDicePool', () => {
 
 		it('adds dice before removing them', () => {
 			expect(pool({ manualChanges: ['-B', 'B'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Boost: 0 });
+		});
+
+		it("adds Boost and Setback dice, which don't cancel each other (CRB p. 21)", () => {
+			expect(pool({ manualChanges: ['B', 'B', 'S'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Boost: 2, Setback: 1 });
 		});
 
 		it('adds symbols before removing them', () => {
@@ -189,56 +194,56 @@ describe('buildDicePool', () => {
 });
 
 describe('applyDicePoolModifications', () => {
-	it('adds an Ability die when upgrading without one', () => {
+	it('adds an Ability die when upgrading without one (CRB p. 22)', () => {
 		const dicePool = emptyPool();
 		applyDicePoolModifications(dicePool, ['^']);
 
 		expect(dicePool.dice).toEqual({ Ability: 1 });
 	});
 
-	it('adds an Ability die when upgrading a pool of Proficiency dice only', () => {
+	it('adds an Ability die when upgrading a pool of Proficiency dice only (CRB p. 22)', () => {
 		const dicePool: DicePool = { ...emptyPool(), dice: { Proficiency: 2, Ability: 0 } };
 		applyDicePoolModifications(dicePool, ['^']);
 
 		expect(dicePool.dice).toEqual({ Proficiency: 2, Ability: 1 });
 	});
 
-	it('upgrades the Ability die that a previous upgrade added', () => {
+	it('upgrades the Ability die that a previous upgrade added (CRB p. 22)', () => {
 		const dicePool = emptyPool();
 		applyDicePoolModifications(dicePool, ['^', '^']);
 
 		expect(dicePool.dice).toEqual({ Ability: 0, Proficiency: 1 });
 	});
 
-	it('adds a Difficulty die when upgrading without one', () => {
+	it('adds a Difficulty die when upgrading without one (CRB p. 22)', () => {
 		const dicePool = emptyPool();
 		applyDicePoolModifications(dicePool, ['*']);
 
 		expect(dicePool.dice).toEqual({ Difficulty: 1 });
 	});
 
-	it('downgrades a Proficiency die into an Ability die', () => {
+	it('downgrades a Proficiency die into an Ability die (CRB p. 22)', () => {
 		const dicePool: DicePool = { ...emptyPool(), dice: { Proficiency: 2, Ability: 1 } };
 		applyDicePoolModifications(dicePool, ['_']);
 
 		expect(dicePool.dice).toEqual({ Proficiency: 1, Ability: 2 });
 	});
 
-	it('downgrades a Challenge die into a Difficulty die', () => {
+	it('downgrades a Challenge die into a Difficulty die (CRB p. 22)', () => {
 		const dicePool: DicePool = { ...emptyPool(), dice: { Challenge: 1 } };
 		applyDicePoolModifications(dicePool, ['~']);
 
 		expect(dicePool.dice).toEqual({ Challenge: 0, Difficulty: 1 });
 	});
 
-	it('does nothing when downgrading without a die to downgrade', () => {
+	it('ignores a downgrade without a die to downgrade (CRB p. 22)', () => {
 		const dicePool: DicePool = { ...emptyPool(), dice: { Proficiency: 0, Ability: 2, Difficulty: 1 } };
 		applyDicePoolModifications(dicePool, ['_', '~']);
 
 		expect(dicePool.dice).toEqual({ Proficiency: 0, Ability: 2, Difficulty: 1 });
 	});
 
-	it('removes dice down to zero but never below', () => {
+	it('removes dice down to zero and ignores the removals past them (CRB p. 23)', () => {
 		const dicePool: DicePool = { ...emptyPool(), dice: { Proficiency: 0, Ability: 1 } };
 		applyDicePoolModifications(dicePool, ['-A', '-A', '-P', '-S']);
 
@@ -293,7 +298,7 @@ describe('sortPoolModifications', () => {
 		expect(['s', 'B', 'a', 'D', 'A'].sort(sortPoolModifications)).toEqual(['B', 'D', 'A', 's', 'a']);
 	});
 
-	it('puts upgrades of either die before downgrades of either die', () => {
+	it('puts upgrades of either die before downgrades of either die (CRB p. 22-23)', () => {
 		expect(['~', '_', '*', '^'].sort(sortPoolModifications)).toEqual(['*', '^', '~', '_']);
 	});
 });
