@@ -9,6 +9,7 @@ import Talent from '@/vue/components/character/Talent.vue';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
+import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
@@ -32,12 +33,14 @@ const passiveAbilities = computed(
 				return a.name.localeCompare(b.name);
 			}) as GenesysItem<AbilityDataModel>[],
 );
-const archetypeAbilities = computed(
-	() =>
-		(toRaw(context.data.actor).items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel>)?.systemData.grantedItems
-			.filter((g) => g.type === 'ability')
-			.map((r) => r.name) ?? [],
-);
+// The ids of the items the Archetype granted, which only go away with it.
+const archetypeGrants = computed(() => {
+	const actor = toRaw(context.data.actor);
+	const archetype = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
+	return new Set(
+		archetype ? heldNonSkillsGrantedBy(actor.items.contents, archetype.systemData.grantedItems, actor.id).map((i) => i.id) : [],
+	);
+});
 
 const allTalents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const activeTalents = computed(() => {
@@ -124,7 +127,7 @@ async function openItem(item: GenesysItem) {
 					:key="ability.id"
 					:item="ability"
 					@open="openItem(ability)"
-					:can-delete="!archetypeAbilities.includes(ability.name)"
+					:can-delete="!archetypeGrants.has(ability.id)"
 					@delete="ability.delete()"
 				/>
 
@@ -136,7 +139,7 @@ async function openItem(item: GenesysItem) {
 						:key="ability.id"
 						:item="ability"
 						@open="openItem(ability)"
-						:can-delete="!archetypeAbilities.includes(ability.name)"
+						:can-delete="!archetypeGrants.has(ability.id)"
 						@delete="ability.delete()"
 					/>
 				</template>
@@ -148,7 +151,7 @@ async function openItem(item: GenesysItem) {
 					:key="ability.id"
 					:item="ability"
 					@open="openItem(ability)"
-					:can-delete="!archetypeAbilities.includes(ability.name)"
+					:can-delete="!archetypeGrants.has(ability.id)"
 					@delete="ability.delete()"
 				/>
 			</div>

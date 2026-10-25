@@ -106,8 +106,58 @@ describe('granted items', () => {
 		expect(grantedNonSkills(archetypeGrants().grantedItems).map((i) => i.name)).toEqual(['Tough', 'Grit']);
 	});
 
-	it('finds the non-skills of the character granted by the Archetype', () => {
-		expect(heldNonSkillsGrantedBy(held, archetypeGrants().grantedItems).map((i) => i.name)).toEqual(['Tough', 'Grit']);
+	describe('with flagged granted items', () => {
+		const granted = (name: string, type: string, actorId = 'hero') => ({
+			name,
+			type,
+			system: {},
+			flags: { genesys: { archetypeGrant: actorId } },
+		});
+
+		it('leaves out an item added by hand under the name of a granted item, of the same type or another', () => {
+			const items = [
+				granted('Tough', 'ability'),
+				granted('Grit', 'talent'),
+				{ name: 'Tough', type: 'ability', system: {} },
+				{ name: 'Grit', type: 'equipment', system: {} },
+			];
+
+			expect(heldNonSkillsGrantedBy(items, archetypeGrants().grantedItems, 'hero')).toEqual([items[0], items[1]]);
+		});
+
+		it('keeps a granted item that was renamed', () => {
+			const items = [granted('Tougher', 'ability'), granted('Grit', 'talent')];
+
+			expect(heldNonSkillsGrantedBy(items, archetypeGrants().grantedItems, 'hero')).toEqual(items);
+		});
+
+		it('leaves out a copy of an item granted to another character', () => {
+			const items = [granted('Tough', 'ability'), granted('Grit', 'talent'), granted('Tough', 'ability', 'sidekick')];
+
+			expect(heldNonSkillsGrantedBy(items, archetypeGrants().grantedItems, 'hero')).toEqual([items[0], items[1]]);
+		});
+	});
+
+	describe('without flagged granted items', () => {
+		it('finds one held item per grant, of the same type and name', () => {
+			const items = [
+				{ name: 'Tough', type: 'equipment', system: {} },
+				{ name: 'Tough', type: 'ability', system: {} },
+				{ name: 'Tough', type: 'ability', system: {} },
+				{ name: 'Grit', type: 'talent', system: {} },
+			];
+
+			expect(heldNonSkillsGrantedBy(items, archetypeGrants().grantedItems, 'hero')).toEqual([items[1], items[3]]);
+		});
+
+		it('finds the items of a character granted under another id, as a duplicated character holds them', () => {
+			const items = [
+				{ name: 'Tough', type: 'ability', system: {}, flags: { genesys: { archetypeGrant: 'original' } } },
+				{ name: 'Grit', type: 'talent', system: {}, flags: { genesys: { archetypeGrant: 'original' } } },
+			];
+
+			expect(heldNonSkillsGrantedBy(items, archetypeGrants().grantedItems, 'copy')).toEqual(items);
+		});
 	});
 
 	it('gives or takes a rank of each granted skill', () => {
@@ -131,6 +181,7 @@ describe('granted items', () => {
  */
 function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 	const operations: string[] = [];
+	const created: object[] = [];
 	const item = (name: string, type: string, system: object = {}) => ({
 		name,
 		type,
@@ -145,10 +196,12 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 	const items = [item('Athletics', 'skill', { rank: 1 }), item('Brawl', 'skill', { rank: 0 }), item('Tough', 'ability')];
 
 	const actor = {
+		id: 'hero',
 		systemData: { ...character(), experienceJournal: { entries } },
 		items: { contents: items },
 		createEmbeddedDocuments: async (_type: string, data: { name: string }[]) => {
 			operations.push(`create ${data.map((d) => d.name).join(', ')}`);
+			created.push(...data);
 		},
 		update: async (changes: Record<string, unknown>) => {
 			operations.push(`update actor ${JSON.stringify(changes['system.experienceJournal.entries'])}`);
@@ -157,7 +210,7 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 
 	const archetype = { systemData: archetypeGrants(), ...item('Brute', 'archetype') } as unknown as GenesysItem<ArchetypeDataModel>;
 
-	return { actor, archetype, operations };
+	return { actor, archetype, operations, created };
 }
 
 describe('applyArchetype', () => {
@@ -169,6 +222,20 @@ describe('applyArchetype', () => {
 			'create Tough, Grit',
 			'update Athletics {"system.rank":2}',
 			'update actor [{"amount":110,"type":"Starting"}]',
+		]);
+	});
+
+	it('flags the granted items with the id of the character, keeping their other flags', async () => {
+		const { actor, archetype, created } = fakeActor();
+		archetype.systemData.grantedItems = [
+			{ name: 'Tough', type: 'ability', flags: { core: { sourceId: 'Item.tough' }, genesys: { archetypeGrant: 'stale', other: 1 } } },
+			{ name: 'Grit', type: 'talent' },
+		] as unknown as typeof archetype.systemData.grantedItems;
+		await applyArchetype(actor, archetype);
+
+		expect(created).toEqual([
+			{ name: 'Tough', type: 'ability', flags: { core: { sourceId: 'Item.tough' }, genesys: { archetypeGrant: 'hero', other: 1 } } },
+			{ name: 'Grit', type: 'talent', flags: { genesys: { archetypeGrant: 'hero' } } },
 		]);
 	});
 });
