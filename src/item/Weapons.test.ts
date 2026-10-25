@@ -20,7 +20,8 @@ describe('weaponDamage', () => {
 		expect(weaponDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics)).toBe(6);
 	});
 
-	it('gives a vehicle weapon its base damage', () => {
+	it("gives a vehicle weapon its base damage, whatever its gunner's characteristics (CRB p. 223)", () => {
+		// The 24-pounder cannons of the three-masted frigate (p. 231): damage 6.
 		expect(weaponDamage({ baseDamage: 6 }, characteristics)).toBe(6);
 	});
 
@@ -40,6 +41,11 @@ describe('attackDamage', () => {
 	it("adds one damage per Success left to the weapon's damage when the attack hits (CRB p. 90, 102)", () => {
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 1)).toBe(7);
 		expect(attackDamage({ baseDamage: 2, damageCharacteristic: Characteristic.Brawn }, characteristics, 3)).toBe(8);
+	});
+
+	it("adds one damage per Success left to a vehicle weapon's base damage, not its gunner's characteristics (CRB p. 223)", () => {
+		// The fighter's air-to-air missiles (p. 231): damage 5, fired with two Successes left.
+		expect(attackDamage({ baseDamage: 5 }, characteristics, 2)).toBe(7);
 	});
 
 	it("gives the damage a chat card shows on a miss, when the world's setting shows it: the weapon's damage alone", () => {
@@ -74,12 +80,27 @@ describe('damageFormula', () => {
 });
 
 describe('firingArcs', () => {
-	it('gives a vehicle weapon that fires in every arc all arcs', () => {
+	it("gives a turret, which fires at any target the hull doesn't hide, all arcs (CRB p. 224)", () => {
 		expect(firingArcs({ fore: true, aft: true, port: true, starboard: true })).toBe('all');
 	});
 
 	it('gives a vehicle weapon that fires in no arc none', () => {
 		expect(firingArcs({ fore: false, aft: false, port: false, starboard: false })).toBe('none');
+	});
+
+	it.each([
+		{
+			weapon: "the fighter's rotary cannon, Fire Arc Forward",
+			firingArc: { fore: true, aft: false, port: false, starboard: false },
+			arcs: ['fore'],
+		},
+		{
+			weapon: "the frigate's cannons, Fire Arc Starboard and Fire Arc Port",
+			firingArc: { fore: false, aft: false, port: true, starboard: true },
+			arcs: ['port', 'starboard'],
+		},
+	])('gives $weapon the arcs its mounting fires in (CRB p. 224, 231)', ({ firingArc, arcs }) => {
+		expect(firingArcs(firingArc)).toEqual(arcs);
 	});
 
 	it('lists the arcs a vehicle weapon fires in, fore to starboard', () => {

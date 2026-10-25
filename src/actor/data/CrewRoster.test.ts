@@ -271,7 +271,7 @@ describe('crewForSkills', () => {
 		return { id, name: id, skills, members };
 	}
 
-	it('finds the members of the Roles that list a skill, whatever its case', () => {
+	it('finds the members of the Roles that list a skill, whatever its case: the pilots and the copilot for Piloting (CRB p. 220, 229)', () => {
 		const pilot = skilledRole('pilot', ['Piloting'], 'P1', 'P2');
 		const copilot = skilledRole('copilot', ['piloting'], 'C');
 		const crew: Crew = { passengers: [], roles: [pilot, copilot] };
@@ -283,9 +283,12 @@ describe('crewForSkills', () => {
 		]);
 	});
 
-	it("leaves out the members of a Role that doesn't list the skills", () => {
+	it("leaves out the passengers and the members of a Role that doesn't list the skills, like a vehicle weapon's Gunnery (CRB p. 69)", () => {
 		const gunner = skilledRole('gunner', ['Gunnery', 'Ranged'], 'G');
-		const crew: Crew = { passengers: [], roles: [skilledRole('pilot', ['Piloting'], 'P'), gunner, skilledRole('cook', [], 'K')] };
+		const crew: Crew = {
+			passengers: passengers('A'),
+			roles: [skilledRole('pilot', ['Piloting'], 'P'), gunner, skilledRole('cook', [], 'K')],
+		};
 
 		expect(crewForSkills(crew, ['Ranged', 'gunnery'])).toEqual([
 			{ member: 'G', role: gunner, skillName: 'Gunnery' },
