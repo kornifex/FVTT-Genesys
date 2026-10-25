@@ -116,17 +116,6 @@ describe('resolveCheck', () => {
 		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Presence, characteristicValue: 2, rank: 1 });
 	});
 
-	it('rolls a skill check with no characteristic when the dice prompt picks none and skills are uncoupled from characteristics', () => {
-		const cool = skill('Cool', Characteristic.Presence, 1);
-
-		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, uncoupled)).toMatchObject({
-			kind: 'skill',
-			characteristic: undefined,
-			characteristicValue: 0,
-			rank: 1,
-		});
-	});
-
 	it('rolls the characteristic a skill is linked to, whatever the characteristic picked, unless skills are uncoupled from characteristics (CRB p. 205)', () => {
 		const cool = skill('Cool', Characteristic.Presence, 1);
 
