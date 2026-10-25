@@ -13,7 +13,7 @@ vi.hoisted(() => {
 });
 
 import { Characteristic } from '@/data/Characteristics';
-import { Check, CheckActor, CheckSkill, checkDescription, checkDicePool, resolveCheck } from '@/dice/Check';
+import { Check, CheckActor, CheckSkill, canPickCharacteristic, checkDescription, checkDicePool, resolveCheck } from '@/dice/Check';
 import { PoolModificationEffect } from '@/effects/PoolModifications';
 
 function skill(name: string, characteristic: Characteristic, rank = 0): CheckSkill {
@@ -52,7 +52,8 @@ const compendium = [
 	skill('Melee', Characteristic.Brawn),
 	skill('Vigilance', Characteristic.Willpower),
 ];
-const rules = { compendiumSkills: compendium, useSuperCharacteristics: true };
+const rules = { compendiumSkills: compendium, useSuperCharacteristics: true, uncoupleSkillsFromCharacteristics: false };
+const uncoupled = { ...rules, uncoupleSkillsFromCharacteristics: true };
 
 describe('resolveCheck', () => {
 	it('resolves a check of an owned skill with its rank and characteristic', () => {
@@ -106,17 +107,33 @@ describe('resolveCheck', () => {
 		).toBe(false);
 	});
 
-	it('rolls the characteristic picked instead of the skill’s, or none', () => {
+	it('rolls the characteristic picked instead of the skill’s, or none, when skills are uncoupled from characteristics', () => {
 		const cool = skill('Cool', Characteristic.Presence, 1);
 
 		expect(
-			resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, rules),
+			resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, uncoupled),
 		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Willpower, characteristicValue: 4, rank: 1 });
-		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, rules)).toMatchObject({
+		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, uncoupled)).toMatchObject({
 			kind: 'skill',
 			characteristic: undefined,
 			characteristicValue: 0,
 			rank: 1,
+		});
+	});
+
+	it('rolls the skill’s characteristic whatever the characteristic picked, when skills are coupled to characteristics', () => {
+		const cool = skill('Cool', Characteristic.Presence, 1);
+
+		expect(
+			resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, rules),
+		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Presence, characteristicValue: 2, rank: 1 });
+		expect(resolveCheck(actor('character', []), { skillName: 'Cool', characteristic: null }, rules)).toMatchObject({
+			kind: 'unranked',
+			characteristic: Characteristic.Presence,
+		});
+		expect(resolveCheck(actor('character', [cool]), { characteristic: Characteristic.Willpower }, rules)).toMatchObject({
+			kind: 'characteristic',
+			characteristic: Characteristic.Willpower,
 		});
 	});
 
@@ -155,6 +172,21 @@ describe('resolveCheck', () => {
 				(modification) => modification.key,
 			),
 		).toEqual(['self.effect.Dueling', 'target.effect.Shield', 'target.defense.melee']);
+	});
+});
+
+describe('canPickCharacteristic', () => {
+	const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)]);
+
+	it('lets the roller pick the characteristic of a skill check only when skills are uncoupled from characteristics', () => {
+		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Cool' }, rules), rules)).toBe(false);
+		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Vigilance' }, rules), rules)).toBe(false);
+		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Cool' }, uncoupled), uncoupled)).toBe(true);
+	});
+
+	it('always lets the roller pick the characteristic of a check without a skill', () => {
+		expect(canPickCharacteristic(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules), rules)).toBe(true);
+		expect(canPickCharacteristic(resolveCheck(hero, {}, rules), rules)).toBe(true);
 	});
 });
 
@@ -206,7 +238,7 @@ describe('checkDescription', () => {
 		expect(description(resolveCheck(hero, { skillName: 'Cool' }, rules))).toBe(
 			'Skill {"skill":"Cool","characteristic":"Presence","superChar":"hide-it"}',
 		);
-		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules))).toBe(
+		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, uncoupled))).toBe(
 			'SkillWithoutCharacteristic {"skill":"Melee"}',
 		);
 		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Agility }, rules))).toBe(
@@ -222,7 +254,7 @@ describe('checkDescription', () => {
 		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules), attack)).toBe(
 			'AttackSkill {"name":"Sword","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
 		);
-		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, rules), attack)).toBe(
+		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, uncoupled), attack)).toBe(
 			'AttackSkillWithoutCharacteristic {"name":"Sword","skill":"Melee"}',
 		);
 		expect(description(resolveCheck(hero, { characteristic: Characteristic.Brawn }, rules), attack)).toBe(

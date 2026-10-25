@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
+import { computed, inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
 import { chanceToSucceed as countChanceToSucceed } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
@@ -17,7 +17,15 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
 import { GenesysPoolModifications } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
-import { type Check, type CheckPoolModification, type CheckRequest, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
+import {
+	type Check,
+	type CheckPoolModification,
+	type CheckRequest,
+	canPickCharacteristic,
+	checkDicePool,
+	resolveCheck,
+	worldCheckRules,
+} from '@/dice/Check';
 import {
 	type DicePool,
 	type DieGradeOperationName,
@@ -54,7 +62,6 @@ const SORT_ORDER: Record<SimplePoolEntity, number> = {
 	Threat: 5,
 };
 
-const USE_UNCOUPLED_SKILLS = CONFIG.genesys.settings.uncoupleSkillsFromCharacteristics;
 const USE_SUPER_CHARACTERISTICS = CONFIG.genesys.settings.useSuperCharacteristics;
 const CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS = CONFIG.genesys.settings.showChanceToSucceedFromSimulations.amountOfRolls;
 const USE_CHANCE_TO_SUCCEED_BY_PERMUTATION = CONFIG.genesys.settings.showChanceToSucceedFromPermutations;
@@ -78,6 +85,8 @@ const unrankedSkills = ref<PromptSkill[]>([]);
 const selectedSkill = ref<AlsoNone<PromptSkill>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
 const probabilityOfSuccess = ref<AlsoNone<string>>();
+
+const characteristicPickable = computed(() => !check.value || canPickCharacteristic(check.value, worldCheckRules()));
 
 const useSuperCharacteristic = ref(false);
 const showPoolModifications = ref(!CONFIG.genesys.settings.startWithCollapsedPoolModifications);
@@ -364,7 +373,7 @@ async function rollPool() {
 			<select
 				name="characteristic"
 				:value="selectedCharacteristic ?? '-'"
-				:disabled="selectedSkill && !USE_UNCOUPLED_SKILLS"
+				:disabled="!characteristicPickable"
 				@change="onCharacteristicChange"
 			>
 				<option value="-">—</option>
