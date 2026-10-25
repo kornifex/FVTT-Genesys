@@ -38,7 +38,7 @@ describe('decideAdversaryDrop', () => {
 		expect(decideAdversaryDrop(adversary('nemesis'), { type: 'talent', name: 'Grit' })).toEqual({ action: 'create' });
 	});
 
-	it('raises the rank of a ranked talent the adversary owns', () => {
+	it('raises the rank of a ranked talent the adversary owns (CRB p. 72)', () => {
 		const nemesis = adversary('nemesis', { talents: [{ id: 'grit', name: 'Grit', system: { ranked: 'yes', rank: 1 } }] });
 
 		expect(decideAdversaryDrop(nemesis, { type: 'talent', name: 'Grit' })).toEqual({
@@ -47,7 +47,7 @@ describe('decideAdversaryDrop', () => {
 		});
 	});
 
-	it('refuses a non-ranked talent the adversary owns, and says why', () => {
+	it('refuses a non-ranked talent the adversary owns, which is bought only once, and says why (CRB p. 72)', () => {
 		const rival = adversary('rival', { talents: [{ id: 'swift', name: 'Swift', system: { ranked: 'no', rank: 1 } }] });
 
 		expect(decideAdversaryDrop(rival, { type: 'talent', name: 'Swift' })).toEqual({
@@ -82,7 +82,7 @@ describe('decideAdversaryDrop', () => {
 });
 
 describe('talentRankChange', () => {
-	it('raises the rank of a ranked talent', () => {
+	it('raises the rank of a ranked talent (CRB p. 72)', () => {
 		const grit = { id: 'grit', name: 'Grit', system: { ranked: 'yes' as const, rank: 2 } };
 
 		expect(talentRankChange(grit, 1)).toEqual({ action: 'update', update: { _id: 'grit', system: { rank: 3 } } });
@@ -100,7 +100,7 @@ describe('talentRankChange', () => {
 		expect(talentRankChange(grit, -1)).toEqual({ action: 'delete', id: 'grit' });
 	});
 
-	it.each([1, -1] as const)('refuses to change the rank of a non-ranked talent by %i, and says why', (step) => {
+	it.each([1, -1] as const)('refuses to change the rank of a non-ranked talent by %i, and says why (CRB p. 72)', (step) => {
 		const swift = { id: 'swift', name: 'Swift', system: { ranked: 'no' as const, rank: 1 } };
 
 		expect(talentRankChange(swift, step)).toEqual({

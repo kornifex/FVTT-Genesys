@@ -187,7 +187,7 @@ describe('buyTalentRank', () => {
 	// Two tier 1 talents allow one talent at tier 2.
 	const talents = [talent('grit', 1), talent('toughened', 1), talent('parry', 1)];
 
-	it('buys the next rank at the next tier, for 5 XP per tier', () => {
+	it('buys the next rank of a ranked talent at the next tier, for 5 XP per tier (CRB p. 71-72)', () => {
 		const result = buyTalentRank(character({ talents }), 'grit');
 
 		expect(plan(result).itemUpdates).toEqual([{ _id: 'grit', 'system.rank': 2 }]);
@@ -198,14 +198,30 @@ describe('buyTalentRank', () => {
 		});
 	});
 
-	it("is refused for a talent that isn't ranked", () => {
+	it('buys the next rank of a talent at tier 5 at tier 5, for 25 XP (CRB p. 71-72)', () => {
+		// Six tier 1 talents, five tier 2, four tier 3 and three tier 4 leave room for a second rank at tier 5.
+		const pyramid = [6, 5, 4, 3].flatMap((count, index) =>
+			Array.from({ length: count }, (_, n) => talent(`t${index + 1}-${n}`, index + 1)),
+		);
+		const talents = [...pyramid, talent('hero', 5)];
+
+		expect(
+			newEntries(buyTalentRank(character({ talents, entries: [{ amount: 200, type: EntryType.Starting }] }), 'hero')).at(-1),
+		).toEqual({
+			amount: -25,
+			type: EntryType.TalentRank,
+			data: { name: 'hero', id: 'hero', tier: 5, rank: 2 },
+		});
+	});
+
+	it("is refused for a talent that isn't ranked, which is bought only once (CRB p. 72)", () => {
 		expect(refusal(buyTalentRank(character({ talents: [talent('grit', 1, 1, 'no')] }), 'grit'))).toEqual({
 			key: 'Genesys.Notifications.TalentNotRanked',
 			data: { talentName: 'grit' },
 		});
 	});
 
-	it('is refused when the Talent Pyramid has no room at the tier, unless the house rule ignores it', () => {
+	it('is refused when the Talent Pyramid has no room at the tier, unless the house rule ignores it (CRB p. 72)', () => {
 		const lonely = [talent('grit', 1)];
 
 		expect(refusal(buyTalentRank(character({ talents: lonely }), 'grit'))).toEqual({
@@ -258,7 +274,7 @@ describe('buyDroppedTalent', () => {
 		expect(newEntries(buyDroppedTalent(anyTier, { ...dropped, tier: 5 }, 'newId')).at(-1)?.amount).toBe(-25);
 	});
 
-	it('is refused when the Talent Pyramid has no room, or without enough XP', () => {
+	it('is refused when the Talent Pyramid has no room, or without enough XP (CRB p. 72)', () => {
 		expect(refusal(buyDroppedTalent(character(), { ...dropped, tier: 2 }, 'newId'))?.key).toBe(
 			'Genesys.Notifications.CannotPurchaseTalentTier',
 		);
@@ -268,7 +284,7 @@ describe('buyDroppedTalent', () => {
 		});
 	});
 
-	it('buys a rank of the talent of the same name when the character has it', () => {
+	it('buys a rank of the ranked talent of the same name when the character has it (CRB p. 72)', () => {
 		const held = [talent('Dodge', 1), talent('grit', 1), talent('parry', 1)];
 		const result = buyDroppedTalent(character({ talents: held }), dropped, 'newId');
 

@@ -1,7 +1,10 @@
 /**
- * @file Tests for how skill names match, which skill an actor rolls, Free Ranks and how a character's skills are listed.
+ * @file Tests for how skill names match, which skill an actor rolls, Free Ranks, how a character's skills are listed, and the
+ * skills of the Core Rulebook's Skills Compendium.
  */
 
+import { readFileSync } from 'fs';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
 import {
 	freeRank,
@@ -168,5 +171,80 @@ describe('skillsByCategory', () => {
 		const cool = categorized('Cool', 'general');
 
 		expect(skillsByCategory([cool], 'en')[0].skills[0]).toBe(cool);
+	});
+});
+
+describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
+	const crbSkills = readFileSync(path.resolve(__dirname, '../../public/packs/crb-skills.db'), 'utf8')
+		.split('\n')
+		.filter((line) => line.trim() !== '')
+		.map(
+			(line) =>
+				JSON.parse(line) as {
+					name: string;
+					type: string;
+					system: { characteristic: string; category: string; source: string; initiative?: boolean };
+				},
+		);
+
+	// Table I.3–1 (CRB p. 53), with each skill's characteristic and category from its description (p. 54-70).
+	const skillTable: [name: string, characteristic: string, category: SkillCategory, page: number][] = [
+		['Charm', 'presence', 'social', 54],
+		['Coercion', 'willpower', 'social', 55],
+		['Deception', 'cunning', 'social', 56],
+		['Leadership', 'presence', 'social', 56],
+		['Negotiation', 'presence', 'social', 56],
+		['Alchemy', 'intellect', 'general', 57],
+		['Astrocartography', 'intellect', 'general', 57],
+		['Athletics', 'brawn', 'general', 58],
+		['Computers', 'intellect', 'general', 58],
+		['Cool', 'presence', 'general', 59],
+		['Coordination', 'agility', 'general', 59],
+		['Discipline', 'willpower', 'general', 60],
+		['Driving', 'agility', 'general', 60],
+		['Mechanics', 'intellect', 'general', 60],
+		['Medicine', 'intellect', 'general', 61],
+		['Operating', 'intellect', 'general', 62],
+		['Perception', 'cunning', 'general', 62],
+		['Piloting', 'agility', 'general', 62],
+		['Resilience', 'brawn', 'general', 63],
+		['Riding', 'agility', 'general', 63],
+		['Skulduggery', 'cunning', 'general', 64],
+		['Stealth', 'agility', 'general', 64],
+		['Streetwise', 'cunning', 'general', 65],
+		['Survival', 'cunning', 'general', 65],
+		['Vigilance', 'willpower', 'general', 65],
+		['Knowledge', 'intellect', 'knowledge', 66],
+		['Brawl', 'brawn', 'combat', 67],
+		['Melee', 'brawn', 'combat', 67],
+		['Melee (Light)', 'brawn', 'combat', 68],
+		['Melee (Heavy)', 'brawn', 'combat', 68],
+		['Ranged', 'agility', 'combat', 68],
+		['Ranged (Light)', 'agility', 'combat', 68],
+		['Ranged (Heavy)', 'agility', 'combat', 69],
+		['Gunnery', 'agility', 'combat', 69],
+		['Arcana', 'intellect', 'magic', 70],
+		['Divine', 'willpower', 'magic', 70],
+		['Primal', 'cunning', 'magic', 70],
+	];
+
+	it('holds the 37 skills of Table I.3–1, and only skills (CRB p. 53)', () => {
+		expect(crbSkills.map((item) => item.name).sort()).toEqual(skillTable.map(([name]) => name).sort());
+		expect(crbSkills.every((item) => item.type === 'skill')).toBe(true);
+	});
+
+	it.each(skillTable)('links %s to %s, in the %s skills, described on page %i (CRB p. 52-70)', (name, characteristic, category, page) => {
+		const skill = crbSkills.find((item) => item.name === name)!;
+
+		expect(skill.system).toMatchObject({ characteristic, category, source: `Core Rulebook, p.${page}` });
+	});
+
+	it('flags Cool and Vigilance, and only them, as Initiative Skills (CRB p. 54, 95)', () => {
+		expect(
+			crbSkills
+				.filter((item) => item.system.initiative)
+				.map((item) => item.name)
+				.sort(),
+		).toEqual(['Cool', 'Vigilance']);
 	});
 });
