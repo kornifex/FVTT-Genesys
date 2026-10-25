@@ -49,6 +49,13 @@ export const CHARACTERISTICS: { characteristic: Characteristic; label: string; a
 ];
 
 /**
+ * The localization key of each characteristic's name.
+ */
+export const CHARACTERISTIC_LABELS = Object.fromEntries(
+	CHARACTERISTICS.map(({ characteristic, label }) => [characteristic, label]),
+) as Record<Characteristic, string>;
+
+/**
  * The localization key of each characteristic's abbreviation.
  */
 export const CHARACTERISTIC_ABBREVIATIONS = Object.fromEntries(
