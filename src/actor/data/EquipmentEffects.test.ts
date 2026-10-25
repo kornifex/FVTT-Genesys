@@ -20,16 +20,19 @@ function applyingStates(actorType: string, itemType: string) {
 }
 
 describe('isSuppressedByEquipmentState', () => {
-	it("applies a character's weapons and armor only while they are equipped", () => {
-		expect(applyingStates('character', 'weapon')).toEqual([EquipmentState.Equipped]);
+	it("applies a character's armor only while it is equipped, as armor protects while worn (CRB p. 92)", () => {
 		expect(applyingStates('character', 'armor')).toEqual([EquipmentState.Equipped]);
+	});
+
+	it("applies a character's weapons only while they are equipped", () => {
+		expect(applyingStates('character', 'weapon')).toEqual([EquipmentState.Equipped]);
 	});
 
 	it("applies a character's consumables only while they are used", () => {
 		expect(applyingStates('character', 'consumable')).toEqual([EquipmentState.Used]);
 	});
 
-	it("applies a character's other equipment only while it is carried", () => {
+	it("applies a character's other equipment only while it is carried, like a backpack while worn (CRB p. 94)", () => {
 		expect(applyingStates('character', 'gear')).toEqual([EquipmentState.Carried]);
 		expect(applyingStates('character', 'container')).toEqual([EquipmentState.Carried]);
 	});
