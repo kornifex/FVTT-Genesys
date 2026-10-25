@@ -25,8 +25,13 @@ export type ArchetypeGrants = {
 	woundThreshold: number;
 	strainThreshold: number;
 	startingXP: number;
-	grantedItems: { name: string; type: string }[];
+	grantedItems: { name: string; type: string; flags?: Flags }[];
 };
+
+/**
+ * The flags of a document, by scope.
+ */
+type Flags = Record<string, Record<string, unknown> | undefined>;
 
 /**
  * What the computations below read from the character.
@@ -45,7 +50,13 @@ export type HeldItem = {
 	name: string;
 	type: string;
 	system: unknown;
+	flags?: Flags;
 };
+
+/**
+ * The `genesys` flag of an item an Archetype granted, which holds the id of the character it was granted to.
+ */
+const FLAG_ARCHETYPE_GRANT = 'archetypeGrant';
 
 /**
  * The actor update for adding (sign +1) or removing (sign -1) an Archetype: characteristics, wound and strain
@@ -86,11 +97,37 @@ function grantedSkillNames(grantedItems: ArchetypeGrants['grantedItems']) {
 }
 
 /**
- * Items of the character that were granted by the Archetype as embedded items, and are deleted along with it.
+ * The data of a granted non-skill as it is embedded in the character: flagged with the character's id, which
+ * replaces the one a copied grant may hold, and keeping its other flags.
  */
-export function heldNonSkillsGrantedBy<T extends HeldItem>(items: T[], grantedItems: ArchetypeGrants['grantedItems']) {
-	const nonSkills = grantedNonSkills(grantedItems).map((a) => a.name);
-	return items.filter((i) => i.type !== 'skill' && nonSkills.includes(i.name));
+function flaggedGrant<T extends ArchetypeGrants['grantedItems'][number]>(grantedItem: T, actorId: string | null) {
+	return {
+		...grantedItem,
+		flags: { ...grantedItem.flags, genesys: { ...grantedItem.flags?.genesys, [FLAG_ARCHETYPE_GRANT]: actorId } },
+	};
+}
+
+/**
+ * Items of the character that its Archetype granted as embedded items, and are deleted along with it: the non-skills
+ * whose flag holds the character's id. A character holding none, because it got its Archetype before the flag or was
+ * duplicated or imported under a new id, gets one held item per granted non-skill, of the same type and name.
+ */
+export function heldNonSkillsGrantedBy<T extends HeldItem>(
+	items: T[],
+	grantedItems: ArchetypeGrants['grantedItems'],
+	actorId: string | null,
+) {
+	const nonSkills = items.filter((i) => i.type !== 'skill');
+	const flagged = nonSkills.filter((i) => i.flags?.genesys?.[FLAG_ARCHETYPE_GRANT] === actorId);
+	if (flagged.length > 0) {
+		return flagged;
+	}
+
+	const unmatched = [...nonSkills];
+	return grantedNonSkills(grantedItems).flatMap((granted) => {
+		const index = unmatched.findIndex((i) => i.type === granted.type && i.name === granted.name);
+		return index < 0 ? [] : unmatched.splice(index, 1);
+	});
 }
 
 /**
@@ -129,7 +166,10 @@ export async function applyArchetype(actor: GenesysActor<CharacterDataModel>, ar
 	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, 1);
 
 	// Non-skills get added as embedded items.
-	await actor.createEmbeddedDocuments('Item', grantedNonSkills(archetypeData.grantedItems));
+	await actor.createEmbeddedDocuments(
+		'Item',
+		grantedNonSkills(archetypeData.grantedItems).map((grantedItem) => flaggedGrant(grantedItem, actor.id)),
+	);
 
 	// Skills gain a rank.
 	await Promise.all(
@@ -149,7 +189,9 @@ export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, a
 	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, -1);
 
 	// Non-skills are embedded items & need to be deleted.
-	await Promise.all(heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems).map(async (i) => await i.delete()));
+	await Promise.all(
+		heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems, actor.id).map(async (i) => await i.delete()),
+	);
 
 	// Skills get reduced by 1 rank.
 	await Promise.all(
