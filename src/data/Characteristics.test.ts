@@ -1,6 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
-import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic, toggledSuperCharacteristics } from '@/data/Characteristics';
+import {
+	CHARACTERISTIC_ABBREVIATIONS,
+	CHARACTERISTIC_LABELS,
+	CHARACTERISTICS,
+	Characteristic,
+	toggledSuperCharacteristics,
+} from '@/data/Characteristics';
+
+describe('CHARACTERISTICS', () => {
+	it('lists the six characteristics: Agility, Brawn, Cunning, Intellect, Presence and Willpower (CRB p. 13)', () => {
+		const characteristics = CHARACTERISTICS.map(({ characteristic }) => characteristic);
+
+		expect(characteristics).toHaveLength(6);
+		expect(new Set(characteristics)).toEqual(
+			new Set([
+				Characteristic.Agility,
+				Characteristic.Brawn,
+				Characteristic.Cunning,
+				Characteristic.Intellect,
+				Characteristic.Presence,
+				Characteristic.Willpower,
+			]),
+		);
+	});
+});
 
 describe('CHARACTERISTIC_LABELS and CHARACTERISTIC_ABBREVIATIONS', () => {
 	it("give a characteristic's name and abbreviation keys", () => {

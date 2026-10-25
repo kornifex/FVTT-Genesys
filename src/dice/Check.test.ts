@@ -127,10 +127,11 @@ describe('resolveCheck', () => {
 		expect(resolveCheck(minions, { skillName: 'Cool' }, rules)).toMatchObject({ kind: 'unranked', rank: 0 });
 	});
 
-	it('uses a super characteristic when the world allows it and the actor has it', () => {
+	it('uses a super-characteristic for a check based on it, with a skill or alone, when the world allows it (CRB p. 251)', () => {
 		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], { superCharacteristics: [Characteristic.Brawn] });
 
 		expect(resolveCheck(hero, { skillName: 'Melee' }, rules).usesSuperCharacteristic).toBe(true);
+		expect(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules).usesSuperCharacteristic).toBe(true);
 		expect(resolveCheck(hero, { skillName: 'Melee' }, { ...rules, useSuperCharacteristics: false }).usesSuperCharacteristic).toBe(
 			false,
 		);

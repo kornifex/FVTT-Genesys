@@ -105,12 +105,12 @@ describe('raiseCharacteristic', () => {
 		expect(plan(raiseCharacteristic(character(), Characteristic.Agility)).actorUpdate).not.toHaveProperty('system.wounds.max');
 	});
 
-	it('is only allowed during Character Creation, even with XP left (CRB p. 30, 44)', () => {
-		expect(
-			isAllowed(
-				raiseCharacteristic(character({ entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), Characteristic.Agility),
-			),
-		).toBe(false);
+	it('is only allowed during Character Creation, even with XP left (CRB p. 30, 44), so no later Brawn or Willpower raise reaches a threshold (CRB p. 31, 45)', () => {
+		const afterCreation = character({ entries: [{ amount: 100, type: EntryType.Starting }, AWARD] });
+
+		for (const characteristic of [Characteristic.Agility, Characteristic.Brawn, Characteristic.Willpower]) {
+			expect(isAllowed(raiseCharacteristic(afterCreation, characteristic))).toBe(false);
+		}
 	});
 
 	it('is refused at 5, or without enough XP (CRB p. 30, 44)', () => {
@@ -304,7 +304,7 @@ describe('awardXP', () => {
 });
 
 describe('undoEntry', () => {
-	it('lowers the characteristic, and the threshold it raised', () => {
+	it('lowers the characteristic, and the threshold it raised (CRB p. 31, 45)', () => {
 		const entries: Entry[] = [
 			{ amount: 100, type: EntryType.Starting },
 			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } },

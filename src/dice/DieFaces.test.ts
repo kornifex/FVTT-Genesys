@@ -23,7 +23,8 @@ describe('the dice', () => {
 		expect(GenesysDice.Challenge.CATEGORY).toBe('negative');
 	});
 
-	// Table I.1–2, face by face: s Success, a Advantage, t Triumph, f Failure, h Threat, d Despair.
+	// Table I.1–2, face by face: s Success, a Advantage, t Triumph, f Failure, h Threat, d Despair. The Triumph is the
+	// Proficiency die's highest face, the one Foundry's explode modifier rolls again on for a super-characteristic (CRB p. 251).
 	it.each([
 		['Boost', 'd6', [' ', ' ', 's', 'sa', 'aa', 'a']],
 		['Setback', 'd6', [' ', ' ', 'f', 'f', 'h', 'h']],
