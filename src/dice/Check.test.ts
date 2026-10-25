@@ -107,21 +107,16 @@ describe('resolveCheck', () => {
 		).toBe(false);
 	});
 
-	it('rolls the characteristic picked instead of the skill’s, or none, when skills are uncoupled from characteristics', () => {
-		const cool = skill('Cool', Characteristic.Presence, 1);
+	it('rolls the characteristic the roller picks for a skill check when skills are uncoupled from characteristics (CRB p. 205)', () => {
+		// The book's example: Coercion is linked to Willpower, but Huck offers the suspect a coffee and rolls Presence.
+		const coercion = skill('Coercion', Characteristic.Willpower, 1);
 
 		expect(
-			resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: Characteristic.Willpower }, uncoupled),
-		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Willpower, characteristicValue: 4, rank: 1 });
-		expect(resolveCheck(actor('character', [cool]), { skillName: 'Cool', characteristic: null }, uncoupled)).toMatchObject({
-			kind: 'skill',
-			characteristic: undefined,
-			characteristicValue: 0,
-			rank: 1,
-		});
+			resolveCheck(actor('character', [coercion]), { skillName: 'Coercion', characteristic: Characteristic.Presence }, uncoupled),
+		).toMatchObject({ kind: 'skill', characteristic: Characteristic.Presence, characteristicValue: 2, rank: 1 });
 	});
 
-	it('rolls the skill’s characteristic whatever the characteristic picked, when skills are coupled to characteristics', () => {
+	it('rolls the characteristic a skill is linked to, whatever the characteristic picked, unless skills are uncoupled from characteristics (CRB p. 205)', () => {
 		const cool = skill('Cool', Characteristic.Presence, 1);
 
 		expect(
@@ -130,10 +125,6 @@ describe('resolveCheck', () => {
 		expect(resolveCheck(actor('character', []), { skillName: 'Cool', characteristic: null }, rules)).toMatchObject({
 			kind: 'unranked',
 			characteristic: Characteristic.Presence,
-		});
-		expect(resolveCheck(actor('character', [cool]), { characteristic: Characteristic.Willpower }, rules)).toMatchObject({
-			kind: 'characteristic',
-			characteristic: Characteristic.Willpower,
 		});
 	});
 
@@ -178,7 +169,7 @@ describe('resolveCheck', () => {
 describe('canPickCharacteristic', () => {
 	const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)]);
 
-	it('lets the roller pick the characteristic of a skill check only when skills are uncoupled from characteristics', () => {
+	it('lets the roller pick the characteristic of a skill check only when skills are uncoupled from characteristics (CRB p. 205)', () => {
 		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Cool' }, rules), rules)).toBe(false);
 		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Vigilance' }, rules), rules)).toBe(false);
 		expect(canPickCharacteristic(resolveCheck(hero, { skillName: 'Cool' }, uncoupled), uncoupled)).toBe(true);

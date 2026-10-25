@@ -48,6 +48,16 @@ describe('attackDamage', () => {
 		expect(attackDamage({ baseDamage: 5 }, characteristics, 2)).toBe(7);
 	});
 
+	it("gives a magic attack, made with a weapon listing the magic skill and its characteristic, that characteristic's damage plus one per uncanceled Success (CRB p. 215)", () => {
+		// An Arcana attack by a character with Intellect 1, which hits with two Successes left.
+		expect(attackDamage({ baseDamage: 0, damageCharacteristic: Characteristic.Intellect }, characteristics, 2)).toBe(3);
+	});
+
+	it("adds a magic implement's damage bonus to a magic attack's base damage (CRB p. 219)", () => {
+		// A magic staff (Table III.2–12): +4 damage to attack spells.
+		expect(attackDamage({ baseDamage: 4, damageCharacteristic: Characteristic.Intellect }, characteristics, 2)).toBe(7);
+	});
+
 	it("gives the damage a chat card shows on a miss, when the world's setting shows it: the weapon's damage alone", () => {
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 0)).toBe(6);
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, -2)).toBe(6);
