@@ -20,7 +20,8 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { weaponSkillName } from '@/data/Skills';
-import { firingArcLabels, postChatCard } from '@/item/ChatCards';
+import { postChatCard } from '@/item/ChatCards';
+import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
 
 const props = withDefaults(
 	defineProps<{
@@ -75,18 +76,11 @@ const containedItems = computed(() =>
 	containerContents(toRaw(context.data.actor).items.contents as GenesysItem<EquipmentDataModel>[], props.item.id),
 );
 
-const weaponDamage = computed(() => {
-	const characterActor = context.data.actor.systemData as CharacterDataModel;
-	if (
-		weaponData.value.charWeapon.damageCharacteristic &&
-		weaponData.value.charWeapon.damageCharacteristic !== '-' &&
-		characterActor.characteristics
-	) {
-		return characterActor.characteristics[weaponData.value.charWeapon.damageCharacteristic] + weaponData.value.baseWeapon.baseDamage;
-	}
-
-	return weaponData.value.baseWeapon.baseDamage;
-});
+const damage = computed(() => ({
+	...damageFormula(weaponData.value.charWeapon),
+	// A vehicle has no characteristics to add to the damage.
+	total: weaponDamage(weaponData.value.charWeapon, (context.data.actor.systemData as Partial<CharacterDataModel>).characteristics),
+}));
 
 async function rollAttack() {
 	const skillName = skillForWeapon();
@@ -125,10 +119,6 @@ async function setItemState(state: EquipmentState) {
 
 function skillForWeapon() {
 	return weaponSkillName(toRaw(context.data.actor).skills, weaponData.value.baseWeapon.skills);
-}
-
-function getFiringArcLabels(weapon: VehicleWeaponDataModel) {
-	return firingArcLabels(weapon.firingArc, game.i18n);
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
@@ -312,17 +302,17 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<!-- Firing Arc -->
 					<!-- prettier-ignore -->
 					<div v-if="weaponData.vehWeapon.firingArc" class="firing-arc">
-						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="arc in getFiringArcLabels(weaponData.vehWeapon)" :key="arc">{{ arc }}</span>
+						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcLabels(weaponData.vehWeapon.firingArc)" :key="label"><Localized :label="label" /></span>
 					</div>
 
 					<!-- Damage -->
 					<!-- prettier-ignore -->
 					<div>
-						<Localized label="Genesys.Labels.Damage" /> <span v-if="!weaponData.charWeapon.damageCharacteristic || weaponData.charWeapon.damageCharacteristic === '-'">{{ weaponData.baseWeapon.baseDamage }}</span>
-						<span v-else-if="weaponData.baseWeapon.baseDamage >= 0">
-							<Localized :label="`Genesys.CharacteristicAbbr.${weaponData.charWeapon.damageCharacteristic.capitalize()}`" />+{{ weaponData.baseWeapon.baseDamage }} ({{ weaponDamage }})</span
+						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage.characteristic">{{ damage.baseDamage }}</span>
+						<span v-else-if="damage.baseDamage >= 0">
+							<Localized :label="damage.characteristic" />+{{ damage.baseDamage }} ({{ damage.total }})</span
 						>
-						<span v-else><Localized :label="`Genesys.CharacteristicAbbr.${weaponData.charWeapon.damageCharacteristic.capitalize()}`" />{{ weaponData.baseWeapon.baseDamage }} ({{ weaponDamage }})</span>
+						<span v-else><Localized :label="damage.characteristic" />{{ damage.baseDamage }} ({{ damage.total }})</span>
 					</div>
 
 					<!-- Critical -->

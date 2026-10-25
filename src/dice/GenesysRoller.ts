@@ -4,6 +4,7 @@ import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import { GenesysItem } from '@/item/GenesysItem';
 import { enrichedQualities } from '@/item/ChatCards';
+import { damageFormula, weaponDamage } from '@/item/Weapons';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CharacteristicsContainer } from '@/data/Characteristics';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -113,15 +114,12 @@ export class GenesysRoller {
 		await roll.evaluate();
 		const results = this.parseRollResults(roll);
 
-		let totalDamage = weapon.systemData.baseDamage;
-		let damageFormula = weapon.systemData.baseDamage.toString();
+		// A vehicle has no characteristics to add to its weapons' damage.
+		const characteristics = (actor?.system as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
+		let totalDamage = weaponDamage(weapon.systemData, characteristics);
 
-		const withDamageCharacteristic = (weapon.systemData as WeaponDataModel).damageCharacteristic;
-		if (actor && withDamageCharacteristic && withDamageCharacteristic !== '-') {
-			totalDamage += (actor.system as { characteristics: CharacteristicsContainer }).characteristics[withDamageCharacteristic];
-			damageFormula =
-				game.i18n.localize(`Genesys.CharacteristicAbbr.${withDamageCharacteristic.capitalize()}`) + ` + ${damageFormula}`;
-		}
+		const { baseDamage, characteristic } = damageFormula(weapon.systemData);
+		const formula = characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString();
 
 		if (results.netSuccess > 0) {
 			totalDamage += results.netSuccess;
@@ -133,7 +131,7 @@ export class GenesysRoller {
 			description: checkDescription(check, { kind: 'attack', weaponName: weapon.name }, game.i18n),
 			results,
 			totalDamage,
-			damageFormula,
+			damageFormula: formula,
 			critical: weapon.systemData.critical,
 			// tbh I can't be assed to implement another Handlebars helper for array length so let's just do undefined. <.<
 			qualities: weapon.systemData.qualities.length === 0 ? undefined : attackQualities,

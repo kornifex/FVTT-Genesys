@@ -15,6 +15,7 @@ import { DicePrompt, RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 import { skillToRoll, weaponSkillName } from '@/data/Skills';
+import { weaponDamage } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
@@ -71,14 +72,6 @@ function skillForWeapon(weapon: GenesysItem<WeaponDataModel>): { skill: GenesysI
 
 	return rolledSkill && { skill: rolledSkill.skill, rank: rolledSkill.unranked ? 0 : rolledSkill.skill.systemData.rank };
 }
-
-function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
-	if (weapon.systemData.damageCharacteristic === '-') {
-		return weapon.systemData.baseDamage;
-	}
-
-	return weapon.systemData.baseDamage + rootContext.data.actor.systemData.characteristics[weapon.systemData.damageCharacteristic];
-}
 </script>
 
 <template>
@@ -110,7 +103,7 @@ function damageForWeapon(weapon: GenesysItem<WeaponDataModel>) {
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
-					<div class="damage">{{ damageForWeapon(weapon) }}</div>
+					<div class="damage">{{ weaponDamage(weapon.systemData, actor.systemData.characteristics) }}</div>
 					<div class="crit">{{ weapon.systemData.critical }}</div>
 					<div class="range"><Localized :label="`Genesys.Range.${weapon.systemData.range.capitalize()}`" /></div>
 					<div v-if="weapon.systemData.qualities.length > 0" class="qualities">
