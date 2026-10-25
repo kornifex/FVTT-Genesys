@@ -1,5 +1,5 @@
 /**
- * @file Tests for which skills a Career makes Career skills.
+ * @file Tests for which skills a Career makes Career skills, and the Free Ranks it gives them.
  */
 
 import { describe, expect, it } from 'vitest';

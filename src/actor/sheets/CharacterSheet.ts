@@ -150,18 +150,15 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 	async applyCareer(droppedCareer: GenesysItem<CareerDataModel>) {
 		const [career] = await this._onDropItemCreate(droppedCareer.toObject());
 		const careerSkills = droppedCareer.systemData.careerSkills;
-		const selectedSkills = await CareerSkillPrompt.promptForSkills(
-			heldCareerSkills(this.actor.items.contents, careerSkills) as GenesysItem<SkillDataModel>[],
-		);
+		const skills = heldCareerSkills(this.actor.items.contents, careerSkills) as GenesysItem<SkillDataModel>[];
+		const selectedSkills = await CareerSkillPrompt.promptForSkills(skills);
 
 		await career.update({
 			'system.selectedSkillIDs': selectedSkills,
 		});
 
 		await Promise.all(
-			careerSkillUpdates(this.actor.items.contents, careerSkills, selectedSkills, 1).map(
-				async ({ skill, update }) => await skill.update(update),
-			),
+			careerSkillUpdates(skills, careerSkills, selectedSkills, 1).map(async ({ skill, update }) => await skill.update(update)),
 		);
 
 		return career;
