@@ -203,7 +203,7 @@ function sortInSection(section: InventoryItem[], item: InventoryItem, after?: nu
  * there.
  */
 function placement(receiver: Receiver, types: InventoryTypes, item: InventoryItem, at: DropTarget) {
-	// Adversaries and minions have no Equipment State: their equipment stays Carried.
+	// Adversaries have no Equipment State: their equipment stays Carried.
 	const hasState = hasEquipmentState(receiver.type, item.type);
 	if (at.kind === 'container') {
 		const container = receiver.items.find((receiverItem) => receiverItem.id === at.id);

@@ -1,8 +1,12 @@
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysActor } from '@/actor/GenesysActor';
+import { groupSkillRank, groupWoundThreshold, remainingMembers } from '@/actor/data/MinionGroup';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
+/**
+ * The data of a Minion Group.
+ */
 export abstract class MinionDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<MinionDataModel>> {
 	abstract groupSize: number;
 	abstract wounds: {
@@ -27,26 +31,25 @@ export abstract class MinionDataModel extends AdversaryDataModel implements HasP
 		...AdversaryDataModel.tokenAttributes,
 	};
 
+	/**
+	 * The Minion Group's wound threshold, which its token's wounds bar reaches.
+	 */
 	get groupWoundThreshold() {
-		return this.wounds.threshold * this.groupSize;
-	}
-
-	get remainingMembers(): number {
-		if (this.groupWoundThreshold === 0) {
-			return 0;
-		}
-		if (this.wounds.value === 0) {
-			return this.groupSize;
-		}
-
-		return Math.max(0, this.groupSize - Math.floor((this.wounds.value - 1) / this.wounds.threshold));
+		return groupWoundThreshold(this);
 	}
 
 	/**
-	 * Rank of the group in each of its skills: one per remaining member beyond the first, up to 5.
+	 * How many of the Minion Group's members are still standing.
 	 */
-	get groupSkillRank(): number {
-		return Math.clamp(this.remainingMembers - 1, 0, 5);
+	get remainingMembers() {
+		return remainingMembers(this);
+	}
+
+	/**
+	 * The rank the Minion Group rolls each of its skills at.
+	 */
+	get groupSkillRank() {
+		return groupSkillRank(this);
 	}
 
 	async preCreate(

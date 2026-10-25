@@ -69,7 +69,7 @@ _Avoid_: Bonus rank, manual rank
 ### Equipment
 
 **Equipment State**:
-Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dropped or Used. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped, of a consumable only while it's Used, and of any other equipment only while it's Carried. Adversaries and minions have no Equipment State: the effects of their equipment always apply.
+Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dropped or Used. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped, of a consumable only while it's Used, and of any other equipment only while it's Carried. Adversaries have no Equipment State: the effects of their equipment always apply.
 _Avoid_: Inventory category, equipment status
 
 **Container**:
@@ -85,6 +85,16 @@ _Avoid_: Occupants
 **Role**:
 A post in a vehicle's crew (pilot, gunner…) with the skills its members roll for the vehicle.
 _Avoid_: Station, position
+
+### Adversaries
+
+**Adversary**:
+A character the GM runs against the players with a stat block of its own: a Minion Group, a rival or a nemesis.
+_Avoid_: Enemy
+
+**Minion Group**:
+Identical minions acting as one Adversary. Its members share one wound threshold, and the group's is theirs times its group size. A member falls each time the group's wounds exceed another member's threshold, not when they reach it; with a threshold of 0, no member stands. The group rolls every skill at its group skill rank: one per remaining member beyond the first, up to 5.
+_Avoid_: Squad
 
 ### Talents
 

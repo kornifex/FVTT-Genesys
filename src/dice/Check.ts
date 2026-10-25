@@ -143,7 +143,7 @@ export function resolveCheck<S extends CheckSkill>(
 		kind = 'unranked';
 	} else if (rolledSkill) {
 		kind = 'skill';
-		// A minion group rolls the skills it owns with its group skill rank.
+		// A Minion Group rolls the skills it owns at its group skill rank.
 		rank = actor.type === 'minion' ? data.groupSkillRank ?? 0 : rolledSkill.skill.system.rank;
 	}
 
