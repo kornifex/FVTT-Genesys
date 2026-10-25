@@ -102,6 +102,9 @@ _Avoid_: Squad
 
 ### Talents
 
+**Ability**:
+A special ability of a character or an Adversary, distinct from their talents: it has no rank and no tier, costs no XP and doesn't count in the Talent Pyramid. A character gets abilities from their archetype, for as long as they keep it, or by hand; an Adversary's are part of its stat block. The character sheet calls it a Special Ability; it has nothing to do with the Ability die.
+
 **Talent Pyramid**:
 The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached, and every rank bought at tier 5 counts at tier 5.
 
