@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Characteristic } from '@/data/Characteristics';
-import { damageFormula, firingArcLabels, firingArcs, weaponDamage } from '@/item/Weapons';
+import { attackDamage, damageFormula, firingArcLabels, firingArcs, weaponDamage } from '@/item/Weapons';
 
 const characteristics = { brawn: 3, agility: 2, intellect: 1, cunning: 2, willpower: 4, presence: 1 };
 
@@ -27,6 +27,18 @@ describe('weaponDamage', () => {
 			3,
 		);
 		expect(weaponDamage({ baseDamage: null as unknown as number, damageCharacteristic: '-' }, characteristics)).toBe(0);
+	});
+});
+
+describe('attackDamage', () => {
+	it("adds one damage per Success left to the weapon's damage when the attack hits (CRB p. 102)", () => {
+		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 1)).toBe(7);
+		expect(attackDamage({ baseDamage: 2, damageCharacteristic: Characteristic.Brawn }, characteristics, 3)).toBe(8);
+	});
+
+	it("gives the damage a chat card shows on a miss, when the world's setting shows it: the weapon's damage alone", () => {
+		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 0)).toBe(6);
+		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, -2)).toBe(6);
 	});
 });
 
