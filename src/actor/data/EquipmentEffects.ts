@@ -19,8 +19,8 @@ type HeldItem = {
 	system: { state?: EquipmentState };
 };
 
-// The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries and minions have
-// none: the effects of their equipment always apply.
+// The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries have none: the
+// effects of their equipment always apply.
 const EQUIPMENT_TYPES_BY_ACTOR_TYPE: Partial<Record<string, IsEquipmentType>> = {
 	character: CharacterDataModel.isRelevantTypeForContext,
 	vehicle: VehicleDataModel.isRelevantTypeForContext,
