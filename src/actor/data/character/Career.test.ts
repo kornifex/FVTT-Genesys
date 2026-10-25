@@ -8,7 +8,7 @@ import { careerSkillUpdates, isCareerSkill, toggledFreeRankChoice } from '@/acto
 describe('isCareerSkill', () => {
 	const careerSkills = [{ name: 'Athletics' }, { name: 'ranged (light)' }];
 
-	it("matches the Career's skills whatever their case", () => {
+	it("matches the Career's skills whatever their case: they are the character's career skills (CRB p. 40)", () => {
 		expect(isCareerSkill('Athletics', careerSkills)).toBe(true);
 		expect(isCareerSkill('athletics', careerSkills)).toBe(true);
 		expect(isCareerSkill('Ranged (Light)', careerSkills)).toBe(true);
@@ -29,7 +29,7 @@ describe('careerSkillUpdates', () => {
 		{ id: 'cool', name: 'Cool', type: 'talent', system: { rank: 1 } },
 	];
 
-	it('marks the held skills the Career lists, and gives a Free Rank to the chosen ones', () => {
+	it('marks the held skills the Career lists, and gives a Free Rank to the chosen ones, without spending XP (CRB p. 40)', () => {
 		expect(careerSkillUpdates(held, careerSkills, ['brawl'], 1)).toEqual([
 			{ skill: held[0], update: { 'system.career': true, 'system.rank': 1 } },
 			{ skill: held[1], update: { 'system.career': true, 'system.rank': 1 } },
@@ -52,7 +52,11 @@ describe('toggledFreeRankChoice', () => {
 		expect(toggledFreeRankChoice(['cool', 'brawl'], 'cool', 2)).toEqual(['brawl']);
 	});
 
-	it('chooses each skill once, and no more skills than Free Ranks', () => {
+	it('chooses each skill once, and no more skills than Free Ranks: four separate career skills for four ranks (CRB p. 40)', () => {
+		const four = ['athletics', 'brawl', 'cool', 'stealth'];
+
+		expect(toggledFreeRankChoice(four.slice(0, 3), 'stealth', 4)).toEqual(four);
+		expect(toggledFreeRankChoice(four, 'perception', 4)).toEqual(four);
 		expect(toggledFreeRankChoice(['cool', 'brawl'], 'stealth', 2)).toEqual(['cool', 'brawl']);
 		expect(toggledFreeRankChoice([], 'cool', 0)).toEqual([]);
 	});
