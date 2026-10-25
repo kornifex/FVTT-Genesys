@@ -12,12 +12,12 @@ export const KEY_STORY_POINTS = 'storyPoints';
  */
 export type StoryPointData = {
 	/**
-	 * Number of Story Points available to players.
+	 * Number of Story Points available to the GM.
 	 */
 	gm: number;
 
 	/**
-	 * Number of Story Points available to the GM.
+	 * Number of Story Points available to players.
 	 */
 	player: number;
 };

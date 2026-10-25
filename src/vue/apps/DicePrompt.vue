@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
+import { chanceToSucceed as countChanceToSucceed } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { GenesysRoller } from '@/dice/GenesysRoller';
@@ -160,12 +161,9 @@ async function approximateProbability() {
 	const obsoleteDicePool = previousDicePool;
 	previousDicePool = dicePool;
 
-	// Slight optimization for a pool without dice.
+	// A pool without dice is counted at once, without a worker or a simulation.
 	if (Object.values(dicePool.dice).reduce((accum, amount) => accum + amount) === 0) {
-		const totalSuccesses = (dicePool.symbols.Success ?? 0) + (dicePool.symbols.Triumph ?? 0);
-		const totalFailures = (dicePool.symbols.Failure ?? 0) + (dicePool.symbols.Despair ?? 0);
-		const deterministicResult = totalSuccesses > totalFailures ? 100 : 0;
-		probabilityOfSuccess.value = deterministicResult.toFixed(2);
+		probabilityOfSuccess.value = (countChanceToSucceed(toRaw(dicePool)) * 100).toFixed(2);
 		return;
 	}
 
