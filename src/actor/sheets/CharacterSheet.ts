@@ -7,7 +7,7 @@ import { CareerDataModel } from '@/item/data/CareerDataModel';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
-import { isCareerSkill } from '@/actor/data/character/Career';
+import { careerSkillUpdates, heldCareerSkills } from '@/actor/data/character/Career';
 import { ownedSkill } from '@/data/Skills';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
@@ -145,56 +145,35 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 	}
 
 	/**
-	 *
-	 * @param droppedCareer
+	 * Add a Career to the character: its skills become Career skills, and those the player picks get its Free Ranks.
 	 */
 	async applyCareer(droppedCareer: GenesysItem<CareerDataModel>) {
 		const [career] = await this._onDropItemCreate(droppedCareer.toObject());
-		const commonSkills = <GenesysItem<SkillDataModel>[]>(
-			this.actor.items.filter((i) => i.type === 'skill' && isCareerSkill(i.name, droppedCareer.systemData.careerSkills))
-		);
-		const selectedSkills = await CareerSkillPrompt.promptForSkills(commonSkills);
+		const careerSkills = droppedCareer.systemData.careerSkills;
+		const skills = heldCareerSkills(this.actor.items.contents, careerSkills) as GenesysItem<SkillDataModel>[];
+		const selectedSkills = await CareerSkillPrompt.promptForSkills(skills);
 
 		await career.update({
 			'system.selectedSkillIDs': selectedSkills,
 		});
 
 		await Promise.all(
-			commonSkills.map(
-				async (skill) =>
-					await skill.update({
-						'system.career': true,
-						'system.rank': skill.systemData.rank + (selectedSkills.includes(skill.id) ? 1 : 0),
-					}),
-			),
+			careerSkillUpdates(skills, careerSkills, selectedSkills, 1).map(async ({ skill, update }) => await skill.update(update)),
 		);
 
 		return career;
 	}
 
 	/**
-	 *
-	 * @param career
+	 * Remove a Career from the character, with what it gave their skills.
 	 */
 	async removeCareer(career: GenesysItem<CareerDataModel>) {
 		const careerData = career.systemData;
 
-		// Unmark Career Skills
-		const skills = <GenesysItem<SkillDataModel>[]>this.actor.items.filter((i) => i.type === 'skill');
-
 		await Promise.all(
-			skills.map(async (skill) => {
-				// Only un-mark career skills from the Career
-				if (isCareerSkill(skill.name, careerData.careerSkills)) {
-					// Reduce the skill's rank if it was one of the selected skills.
-					const rank = skill.systemData.rank - (careerData.selectedSkillIDs.includes(skill.id) ? 1 : 0);
-
-					await skill.update({
-						'system.career': false,
-						'system.rank': rank,
-					});
-				}
-			}),
+			careerSkillUpdates(this.actor.items.contents, careerData.careerSkills, careerData.selectedSkillIDs, -1).map(
+				async ({ skill, update }) => await skill.update(update),
+			),
 		);
 
 		await career.delete();
