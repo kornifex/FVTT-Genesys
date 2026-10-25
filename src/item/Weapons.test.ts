@@ -6,12 +6,18 @@ import { attackDamage, damageFormula, firingArcLabels, firingArcs, weaponDamage 
 const characteristics = { brawn: 3, agility: 2, intellect: 1, cunning: 2, willpower: 4, presence: 1 };
 
 describe('weaponDamage', () => {
-	it('adds the damage characteristic to the base damage', () => {
-		expect(weaponDamage({ baseDamage: 2, damageCharacteristic: Characteristic.Brawn }, characteristics)).toBe(5);
+	it('adds the damage characteristic, Brawn for a "+" damage, to the base damage (CRB p. 86, 90)', () => {
+		// The knife of Table I.5–5 (p. 91): +1 damage, in the hands of a character with Brawn 3.
+		expect(weaponDamage({ baseDamage: 1, damageCharacteristic: Characteristic.Brawn }, characteristics)).toBe(4);
 	});
 
-	it('gives a weapon without a damage characteristic its base damage', () => {
-		expect(weaponDamage({ baseDamage: 4, damageCharacteristic: '-' }, characteristics)).toBe(4);
+	it('adds any other damage characteristic the same way', () => {
+		expect(weaponDamage({ baseDamage: 2, damageCharacteristic: Characteristic.Willpower }, characteristics)).toBe(6);
+	});
+
+	it('gives a weapon without a damage characteristic its base damage (CRB p. 90)', () => {
+		// The revolver of Table I.5–5 (p. 91): 6 damage, whoever holds it.
+		expect(weaponDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics)).toBe(6);
 	});
 
 	it('gives a vehicle weapon its base damage', () => {
@@ -31,7 +37,7 @@ describe('weaponDamage', () => {
 });
 
 describe('attackDamage', () => {
-	it("adds one damage per Success left to the weapon's damage when the attack hits (CRB p. 102)", () => {
+	it("adds one damage per Success left to the weapon's damage when the attack hits (CRB p. 90, 102)", () => {
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 1)).toBe(7);
 		expect(attackDamage({ baseDamage: 2, damageCharacteristic: Characteristic.Brawn }, characteristics, 3)).toBe(8);
 	});
@@ -43,7 +49,14 @@ describe('attackDamage', () => {
 });
 
 describe('damageFormula', () => {
-	it('gives the base damage and the abbreviation of the damage characteristic', () => {
+	it("gives the base damage and the abbreviation of the damage characteristic, which the sheets write Br+1 for the book's +1 (CRB p. 90)", () => {
+		expect(damageFormula({ baseDamage: 1, damageCharacteristic: Characteristic.Brawn })).toEqual({
+			baseDamage: 1,
+			characteristic: 'Genesys.CharacteristicAbbr.Brawn',
+		});
+	});
+
+	it('gives the abbreviation of any other damage characteristic', () => {
 		expect(damageFormula({ baseDamage: 2, damageCharacteristic: Characteristic.Willpower })).toEqual({
 			baseDamage: 2,
 			characteristic: 'Genesys.CharacteristicAbbr.Willpower',
