@@ -16,7 +16,7 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 
 import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { firingArcLabels } from '@/item/ChatCards';
+import { damageFormula, firingArcLabels } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
@@ -30,10 +30,6 @@ const weapons = computed(
 const criticalHits = computed(
 	() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[],
 );
-
-function getFiringArcLabels(weapon: GenesysItem<VehicleWeaponDataModel>) {
-	return firingArcLabels(weapon.systemData.firingArc, game.i18n);
-}
 
 async function openItem(item: GenesysItem) {
 	await item.sheet?.render(true);
@@ -83,14 +79,14 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 					</div>
 					<div class="skill" v-else><Localized label="Genesys.Labels.SkillNotFound" /></div>
 
-					<div class="damage">{{ weapon.systemData.baseDamage }}</div>
+					<div class="damage">{{ damageFormula(weapon.systemData).baseDamage }}</div>
 
 					<div class="crit">{{ weapon.systemData.critical }}</div>
 
 					<div class="range"><Localized :label="`Genesys.Range.${weapon.systemData.range.capitalize()}`" /></div>
 
 					<div class="firing-arc">
-						<span v-for="arc in getFiringArcLabels(weapon)" :key="arc">{{ arc }}</span>
+						<span v-for="label in firingArcLabels(weapon.systemData.firingArc)" :key="label"><Localized :label="label" /></span>
 					</div>
 
 					<div class="qualities" v-if="weapon.systemData.qualities.length > 0">

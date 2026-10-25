@@ -24,6 +24,7 @@ import { weaponSkillName } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
+import { weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -102,14 +103,8 @@ function skillForWeapon(weapon: GenesysItem) {
 	return weaponSkillName(toRaw(context.data.actor).skills, (weapon.systemData as WeaponDataModel).skills);
 }
 
-function damageForWeapon(weapon: GenesysItem): number {
-	const weaponData = weapon.system as WeaponDataModel;
-
-	if (weaponData.damageCharacteristic === '-') {
-		return weaponData.baseDamage;
-	}
-
-	return weaponData.baseDamage + system.value.characteristics[weaponData.damageCharacteristic];
+function damageForWeapon(weapon: GenesysItem) {
+	return weaponDamage(weapon.systemData as WeaponDataModel, system.value.characteristics);
 }
 
 async function toggleSuper(characteristic: CharacteristicType) {
