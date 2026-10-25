@@ -44,6 +44,10 @@ _Avoid_: Unskilled check
 A check that uses a characteristic alone, with no skill involved at all.
 _Avoid_: Unskilled check, raw roll
 
+**Super-characteristic**:
+A characteristic marked as super, under the optional rule the world settings turn on: the Proficiency dice of a check that uses it explode. A character marks or unmarks super-characteristics only during Character Creation; an Adversary at any time.
+_Avoid_: Super stat
+
 **Pool Modification**:
 A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand.
 _Avoid_: Dice modifier, pool mod
