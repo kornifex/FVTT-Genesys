@@ -1,4 +1,5 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import * as Talents from '@/item/data/Talents';
 
 interface AbilityActivation {
 	type: 'passive' | 'active';
@@ -13,17 +14,17 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 	abstract rank: number;
 
 	/**
-	 * Tier increases with further rank purchases, plateauing at tier 5.
+	 * The tier the talent's latest rank was bought at.
 	 */
 	get effectiveTier() {
-		return Math.min(5, this.tier + this.rank - 1);
+		return Talents.effectiveTier(this);
 	}
 
 	/**
-	 * Get the effective tier of the next tier.
+	 * The tier the talent's next rank is bought at.
 	 */
 	get effectiveNextTier() {
-		return Math.min(5, this.tier + this.rank);
+		return Talents.effectiveNextTier(this);
 	}
 
 	static override defineSchema() {

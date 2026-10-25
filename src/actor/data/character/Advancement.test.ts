@@ -24,7 +24,7 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { Characteristic } from '@/data/Characteristics';
 
 function talent(id: string, tier: number, rank = 1, ranked: 'yes' | 'no' = 'yes'): AdvancementTalent {
-	return { id, name: id, ranked, tier, rank, effectiveTier: Math.min(5, tier + rank - 1), effectiveNextTier: Math.min(5, tier + rank) };
+	return { id, name: id, ranked, tier, rank };
 }
 
 /**

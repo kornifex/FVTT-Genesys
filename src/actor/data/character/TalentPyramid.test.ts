@@ -13,7 +13,7 @@ import {
 } from '@/actor/data/character/TalentPyramid';
 
 function talent(tier: number, rank = 1): PyramidTalent {
-	return { tier, rank, effectiveTier: Math.min(5, tier + rank - 1) };
+	return { tier, rank };
 }
 
 function totals(...counts: number[]): TalentPyramidTotals {
