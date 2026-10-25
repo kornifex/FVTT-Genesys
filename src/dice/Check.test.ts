@@ -69,7 +69,7 @@ describe('resolveCheck', () => {
 		});
 	});
 
-	it("resolves an Unranked Skill Check of the Skills Compendium's skill", () => {
+	it("resolves an Unranked Skill Check of the Skills Compendium's skill with no ranks, the lower value being zero (CRB p. 19)", () => {
 		const check = resolveCheck(actor('character', []), { skillName: 'Vigilance', fallbackCharacteristic: Characteristic.Brawn }, rules);
 
 		expect(check).toMatchObject({
