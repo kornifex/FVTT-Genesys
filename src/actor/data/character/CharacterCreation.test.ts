@@ -54,7 +54,7 @@ describe('super-characteristics', () => {
 	];
 	const awarded = (entries: Entry[]): Entry[] => [...entries, { amount: 20, type: EntryType.Award, data: { reason: 'Session' } }];
 
-	it('can be marked and unmarked during Character Creation, with or without starting XP left', () => {
+	it('can be marked and unmarked during Character Creation (CRB p. 251), with or without starting XP left', () => {
 		for (const entries of [withStartingXPLeft, withNoStartingXPLeft]) {
 			expect(canMarkSuperCharacteristics(entries)).toBe(true);
 			expect(toggleSuperCharacteristic(entries, new Set([Characteristic.Brawn]), Characteristic.Willpower)).toEqual([
@@ -67,7 +67,7 @@ describe('super-characteristics', () => {
 		}
 	});
 
-	it('can no longer be marked or unmarked after the first XP award, with or without starting XP left', () => {
+	it('can no longer be marked or unmarked after the first XP award (CRB p. 251), with or without starting XP left', () => {
 		for (const entries of [awarded(withStartingXPLeft), awarded(withNoStartingXPLeft)]) {
 			expect(canMarkSuperCharacteristics(entries)).toBe(false);
 			expect(toggleSuperCharacteristic(entries, new Set(), Characteristic.Willpower)).toBeUndefined();

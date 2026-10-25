@@ -314,7 +314,7 @@ describe('compileDiceFormula', () => {
 		expect(compileDiceFormula(pool({ manualChanges: ['B', '-B'] }))).toBe('0dp+0da+0db');
 	});
 
-	it('explodes the Proficiency dice with a super-characteristic', () => {
+	it('explodes the Proficiency dice, and only them, with a super-characteristic (CRB p. 251)', () => {
 		expect(compileDiceFormula({ ...emptyPool(), dice: { Proficiency: 2, Ability: 1 }, usesSuperCharacteristic: true })).toBe(
 			'2dpX+1da',
 		);
