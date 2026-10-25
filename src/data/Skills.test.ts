@@ -57,7 +57,7 @@ describe('skillToRoll', () => {
 		expect(skillToRoll([ranged], compendium, 'Ranged (Light)')).toEqual({ skill: ranged, unranked: false });
 	});
 
-	it("rolls the Skills Compendium's skill as an Unranked Skill Check when the actor doesn't own it", () => {
+	it("rolls the Skills Compendium's skill as an Unranked Skill Check when the actor doesn't own it (CRB p. 19)", () => {
 		expect(skillToRoll([skill('Cool', 1)], compendium, 'resilience')).toEqual({ skill: compendium[3], unranked: true });
 	});
 
