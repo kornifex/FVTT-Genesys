@@ -51,7 +51,7 @@ describe('isSuppressedByEquipmentState', () => {
 		expect(applyingStates('vehicle', 'gear')).toEqual([EquipmentState.Carried]);
 	});
 
-	it('always applies the equipment of adversaries and minions', () => {
+	it('always applies the equipment of adversaries', () => {
 		for (const actorType of ['minion', 'rival', 'nemesis']) {
 			for (const itemType of ['weapon', 'armor', 'consumable', 'gear', 'container']) {
 				expect(applyingStates(actorType, itemType)).toEqual(ALL_STATES);

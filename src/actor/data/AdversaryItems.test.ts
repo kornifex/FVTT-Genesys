@@ -11,7 +11,7 @@ function adversary(type: string, owned: Partial<Omit<Adversary, 'type'>> = {}): 
 }
 
 describe('decideAdversaryDrop', () => {
-	it('creates a new skill on a rival at rank 1', () => {
+	it('creates a new skill on a rival at rank 1, as rivals have skills like PCs (CRB p. 132, 134)', () => {
 		expect(decideAdversaryDrop(adversary('rival'), { type: 'skill', name: 'Melee' })).toEqual({ action: 'create', rank: 1 });
 	});
 
@@ -24,17 +24,17 @@ describe('decideAdversaryDrop', () => {
 		});
 	});
 
-	it("creates a new skill on a minion at the rank it has, since a Minion Group's skills roll at the group's rank", () => {
+	it("creates a new skill on a minion at the rank it has, since minions have no skills of their own and roll at the group's rank (CRB p. 132, 134)", () => {
 		expect(decideAdversaryDrop(adversary('minion'), { type: 'skill', name: 'Melee' })).toEqual({ action: 'create' });
 	});
 
-	it('refuses a skill a minion owns', () => {
+	it('refuses a skill a minion owns, as a minion has no ranks to raise (CRB p. 132)', () => {
 		const minion = adversary('minion', { skills: [{ id: 'melee', name: 'Melee', system: { rank: 0 } }] });
 
 		expect(decideAdversaryDrop(minion, { type: 'skill', name: 'Melee' })).toEqual({ action: 'refuse' });
 	});
 
-	it('creates a new talent at the rank it has', () => {
+	it('creates a new talent at the rank it has, with no tier to check, as adversaries ignore the tier system (CRB p. 203)', () => {
 		expect(decideAdversaryDrop(adversary('nemesis'), { type: 'talent', name: 'Grit' })).toEqual({ action: 'create' });
 	});
 

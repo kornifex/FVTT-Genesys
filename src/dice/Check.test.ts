@@ -120,7 +120,7 @@ describe('resolveCheck', () => {
 		});
 	});
 
-	it('gives a minion group its group skill rank for the skills it owns only', () => {
+	it('gives a minion group its group skill rank for the skills on its profile only (CRB p. 132)', () => {
 		const minions = actor('minion', [skill('Melee', Characteristic.Brawn, 0)], { groupSkillRank: 3 });
 
 		expect(resolveCheck(minions, { skillName: 'Melee' }, rules)).toMatchObject({ kind: 'skill', rank: 3 });

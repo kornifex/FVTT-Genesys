@@ -69,24 +69,40 @@ describe('buildSlots', () => {
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
 	});
 
-	it('gives each extra slot its own initiative, and drops the extra slots of combatants that left', () => {
+	it('gives each extra slot its own initiative, as a nemesis records both its results (CRB p. 205)', () => {
 		const slots = buildSlots(
 			[combatant('boss', 1, 'hostile'), combatant('hero', 2)],
-			[extraSlot('boss', 0, 3), extraSlot('gone', 1, 5), extraSlot('boss', 2, null)],
+			[extraSlot('boss', 0, 3), extraSlot('boss', 1, null)],
 		);
 
 		expect(slots.map(({ id, originId, activationId, initiative }) => ({ id, originId, activationId, initiative }))).toEqual([
 			{ id: 'boss:0', originId: 'boss', activationId: 0, initiative: 3 },
 			{ id: 'hero:-1', originId: 'hero', activationId: -1, initiative: 2 },
 			{ id: 'boss:-1', originId: 'boss', activationId: -1, initiative: 1 },
-			{ id: 'boss:2', originId: 'boss', activationId: 2, initiative: null },
+			{ id: 'boss:1', originId: 'boss', activationId: 1, initiative: null },
 		]);
+	});
+
+	it('drops the extra slots of combatants that left', () => {
+		const slots = buildSlots([combatant('hero', 2)], [extraSlot('gone', 0, 5)]);
+
+		expect(order(slots)).toEqual(['hero:-1']);
 	});
 
 	it('gives friendly combatants PC slots and every other combatant NPC slots', () => {
 		const slots = buildSlots([combatant('f', 3), combatant('n', 2, 'neutral'), combatant('h', 1, 'hostile')], []);
 
 		expect(slots.map((slot) => slot.side)).toEqual(['pc', 'npc', 'npc']);
+	});
+
+	it("gives an NPC's extra slots NPC slots, as both of a nemesis's results are NPC slots (CRB p. 205)", () => {
+		const slots = buildSlots([combatant('hero', 2), combatant('boss', 1, 'hostile')], [extraSlot('boss', 0, 3)]);
+
+		expect(slots.map(({ id, side }) => ({ id, side }))).toEqual([
+			{ id: 'boss:0', side: 'npc' },
+			{ id: 'hero:-1', side: 'pc' },
+			{ id: 'boss:-1', side: 'npc' },
+		]);
 	});
 
 	it('keeps a Claim on its slot when a reroll changes the turn order', () => {
@@ -129,6 +145,19 @@ describe('claimRefusal', () => {
 	it('lets a combatant with extra slots claim once more for each of them', () => {
 		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'ally:-1', { id: 'ally', side: 'pc' })).toBeUndefined();
 		expect(claimRefusal(slots, { 'hero:-1': 'ally', 'ally:-1': 'ally' }, 'ally:0', { id: 'ally', side: 'pc' })).toBe(
+			'Genesys.Notifications.CombatantHasNoActivationLeft',
+		);
+	});
+
+	it('lets a nemesis with an extra slot take two turns a round, and no more (CRB p. 205)', () => {
+		const withNemesis = buildSlots(
+			[combatant('hero', 3), combatant('goons', 2, 'hostile'), combatant('boss', 1, 'hostile')],
+			[extraSlot('boss', 0, 2)],
+		);
+		const nemesis = { id: 'boss', side: 'npc' as const };
+
+		expect(claimRefusal(withNemesis, { 'boss:0': 'boss' }, 'boss:-1', nemesis)).toBeUndefined();
+		expect(claimRefusal(withNemesis, { 'boss:0': 'boss', 'boss:-1': 'boss' }, 'goons:-1', nemesis)).toBe(
 			'Genesys.Notifications.CombatantHasNoActivationLeft',
 		);
 	});
@@ -215,7 +244,7 @@ describe('rolling Initiative Slots', () => {
 		expect(withExtraSlotInitiatives(stored, writes.extraSlots).map((slot) => slot.initiative)).toEqual([null, 3, 4]);
 	});
 
-	it("writes the roll of an extra slot to that slot, not to the combatant's own", () => {
+	it("writes the roll of an extra slot to that slot, not to the combatant's own, so both results are kept (CRB p. 205)", () => {
 		expect(roll(round2, ['hero:1'], { 'hero:1': 3 })).toEqual({ combatants: [], extraSlots: [{ index: 1, initiative: 3 }] });
 	});
 
