@@ -3,7 +3,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { EncumberingItem, EncumbranceRules, equipmentEncumbrance, HeldContainer, rootContainer } from '@/actor/data/Encumbrance';
+import {
+	characterEncumbrance,
+	EncumberingItem,
+	EncumbranceRules,
+	equipmentEncumbrance,
+	HeldContainer,
+	isEncumbered,
+	rootContainer,
+} from '@/actor/data/Encumbrance';
 
 type Container = HeldContainer & { id: string };
 
@@ -133,5 +141,29 @@ describe('equipmentEncumbrance', () => {
 
 		expect(equipmentEncumbrance([plate], CHARACTER)).toEqual({ value: 4, thresholdBonus: 0 });
 		expect(equipmentEncumbrance([equippedPlate], VEHICLE)).toEqual({ value: 4, thresholdBonus: 0 });
+	});
+});
+
+describe('characterEncumbrance', () => {
+	it("sets the threshold at 5 plus Brawn, raised by the effects' threshold and the negative encumbrance", () => {
+		const equipment = { value: 6, thresholdBonus: 4 };
+
+		expect(characterEncumbrance(equipment, { value: 0, threshold: 0 }, 2)).toEqual({ value: 6, threshold: 11 });
+		expect(characterEncumbrance(equipment, { value: 0, threshold: 1 }, 3)).toEqual({ value: 6, threshold: 13 });
+	});
+
+	it("adds the effects' value to the equipment's, to a minimum of 0", () => {
+		const equipment = { value: 3, thresholdBonus: 0 };
+
+		expect(characterEncumbrance(equipment, { value: 2, threshold: 0 }, 2)).toEqual({ value: 5, threshold: 7 });
+		expect(characterEncumbrance(equipment, { value: -5, threshold: 0 }, 2)).toEqual({ value: 0, threshold: 7 });
+	});
+});
+
+describe('isEncumbered', () => {
+	it('is true only when the value is over the threshold', () => {
+		expect(isEncumbered({ value: 8, threshold: 7 })).toBe(true);
+		expect(isEncumbered({ value: 7, threshold: 7 })).toBe(false);
+		expect(isEncumbered({ value: 0, threshold: 7 })).toBe(false);
 	});
 });
