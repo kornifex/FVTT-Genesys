@@ -34,11 +34,11 @@ describe('isInCharacterCreation', () => {
 });
 
 describe('maxPurchasableSkillRank', () => {
-	it('is 2 during character creation', () => {
+	it('is 2 during character creation (CRB p. 30, 44)', () => {
 		expect(maxPurchasableSkillRank([{ type: EntryType.Starting }])).toBe(2);
 	});
 
-	it('is 5 after the first XP award', () => {
+	it('is 5 after the first XP award: a skill has five ranks (CRB p. 30, 44)', () => {
 		expect(maxPurchasableSkillRank([{ type: EntryType.Starting }, { type: EntryType.Award }])).toBe(5);
 	});
 });

@@ -7,6 +7,7 @@ import {
 	AdvancementCharacter,
 	AdvancementResult,
 	AdvancementTalent,
+	availableXP,
 	awardXP,
 	buyDroppedTalent,
 	buySkillRank,
@@ -66,7 +67,7 @@ function newEntries(result: AdvancementResult) {
 }
 
 describe('raiseCharacteristic', () => {
-	it('raises a characteristic for 10 XP per new value', () => {
+	it('raises a characteristic for ten times its new rating in XP (CRB p. 30, 44)', () => {
 		const result = raiseCharacteristic(character(), Characteristic.Agility);
 
 		expect(plan(result)).toEqual({
@@ -83,13 +84,28 @@ describe('raiseCharacteristic', () => {
 		});
 	});
 
-	it('raises the wound threshold with Brawn and the strain threshold with Willpower', () => {
+	it('raises the characteristic one rating at a time: Brawn 3 to 5 costs 40, then 50 XP (CRB p. 44)', () => {
+		const atThree = character({ characteristics: { brawn: 3, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 } });
+		const raised = raiseCharacteristic(atThree, Characteristic.Brawn);
+		const toFour = newEntries(raised);
+		const toFive = newEntries(
+			raiseCharacteristic(
+				character({ entries: toFour, characteristics: { ...atThree.characteristics, brawn: 4 } }),
+				Characteristic.Brawn,
+			),
+		);
+
+		expect(toFive.slice(1).map((entry) => entry.amount)).toEqual([-40, -50]);
+		expect(plan(raised).actorUpdate['system.characteristics.brawn']).toBe(4);
+	});
+
+	it('raises the wound threshold with Brawn and the strain threshold with Willpower (CRB p. 31, 45)', () => {
 		expect(plan(raiseCharacteristic(character(), Characteristic.Brawn)).actorUpdate['system.wounds.max']).toBe(13);
 		expect(plan(raiseCharacteristic(character(), Characteristic.Willpower)).actorUpdate['system.strain.max']).toBe(13);
 		expect(plan(raiseCharacteristic(character(), Characteristic.Agility)).actorUpdate).not.toHaveProperty('system.wounds.max');
 	});
 
-	it('is only allowed during Character Creation, even with XP left', () => {
+	it('is only allowed during Character Creation, even with XP left (CRB p. 30, 44)', () => {
 		expect(
 			isAllowed(
 				raiseCharacteristic(character({ entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), Characteristic.Agility),
@@ -97,7 +113,7 @@ describe('raiseCharacteristic', () => {
 		).toBe(false);
 	});
 
-	it('is refused at 5, or without enough XP', () => {
+	it('is refused at 5, or without enough XP (CRB p. 30, 44)', () => {
 		expect(
 			isAllowed(
 				raiseCharacteristic(
@@ -116,7 +132,7 @@ describe('raiseCharacteristic', () => {
 });
 
 describe('buySkillRank', () => {
-	it('costs 5 XP per new rank for a career skill, 5 more otherwise', () => {
+	it('costs five times the new rank in XP for a career skill, 5 more otherwise (CRB p. 30, 40, 44)', () => {
 		expect(newEntries(buySkillRank(character(), 'athletics')).at(-1)).toEqual({
 			amount: -5,
 			type: EntryType.Skill,
@@ -130,7 +146,18 @@ describe('buySkillRank', () => {
 		expect(plan(buySkillRank(character(), 'cool')).itemUpdates).toEqual([{ _id: 'cool', 'system.rank': 2 }]);
 	});
 
-	it('caps bought ranks at 2 during Character Creation, at 5 afterwards', () => {
+	it('buys a career skill to rank 2 for 15 XP, a non-career skill for 25 XP, one rank at a time (CRB p. 44)', () => {
+		const costs = (skill: { id: string; name: string; rank: number; career: boolean }) => {
+			const toOne = newEntries(buySkillRank(character({ skills: [skill] }), skill.id));
+			const toTwo = newEntries(buySkillRank(character({ entries: toOne, skills: [{ ...skill, rank: 1 }] }), skill.id));
+			return toTwo.slice(1).map((entry) => entry.amount);
+		};
+
+		expect(costs({ id: 'athletics', name: 'Athletics', rank: 0, career: true })).toEqual([-5, -10]);
+		expect(costs({ id: 'stealth', name: 'Stealth', rank: 0, career: false })).toEqual([-10, -15]);
+	});
+
+	it('caps bought ranks at 2 during Character Creation, at 5 afterwards (CRB p. 30, 44)', () => {
 		const atTwo = { skills: [{ id: 'cool', name: 'Cool', rank: 2, career: true }] };
 
 		expect(isAllowed(buySkillRank(character(atTwo), 'cool'))).toBe(false);
@@ -214,7 +241,7 @@ describe('buyTalentRank', () => {
 describe('buyDroppedTalent', () => {
 	const dropped = { name: 'Dodge', tier: 1, source: { name: 'Dodge', type: 'talent', system: { tier: 1 } } };
 
-	it('creates a new talent with the given id, for 5 XP per tier', () => {
+	it('creates a new talent with the given id, for five times its tier in XP (CRB p. 30, 44)', () => {
 		const result = buyDroppedTalent(character(), dropped, 'newId');
 
 		expect(plan(result).itemCreates).toEqual([{ ...dropped.source, _id: 'newId' }]);
@@ -223,6 +250,12 @@ describe('buyDroppedTalent', () => {
 			type: EntryType.NewTalent,
 			data: { name: 'Dodge', id: 'newId', tier: 1, rank: 1 },
 		});
+	});
+
+	it('costs 25 XP for a tier 5 talent (CRB p. 44)', () => {
+		const anyTier = character({ houseRules: { ignoreTalentPyramid: true, talentTierVersions: false } });
+
+		expect(newEntries(buyDroppedTalent(anyTier, { ...dropped, tier: 5 }, 'newId')).at(-1)?.amount).toBe(-25);
 	});
 
 	it('is refused when the Talent Pyramid has no room, or without enough XP', () => {
@@ -355,6 +388,16 @@ describe('Starting XP', () => {
 	it('is the first entry of the Experience Journal', () => {
 		expect(withStartingXP([AWARD], 110)).toEqual([{ amount: 110, type: EntryType.Starting }, AWARD]);
 		expect(withoutStartingXP([{ amount: 110, type: EntryType.Starting }, AWARD])).toEqual([AWARD]);
+	});
+
+	it('left unspent at the end of Character Creation, is spent along with the XP earned in play (CRB p. 30, 44)', () => {
+		const entries: Entry[] = [
+			{ amount: 100, type: EntryType.Starting },
+			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Agility, rank: 3 } },
+			AWARD,
+		];
+
+		expect(availableXP(entries)).toBe(90);
 	});
 });
 

@@ -44,7 +44,7 @@ function character(): ArchetypeHolder {
 }
 
 describe('archetypeActorUpdate', () => {
-	it('adds the characteristics, thresholds and Starting XP of the Archetype', () => {
+	it('adds the characteristics, thresholds and Starting XP of the Archetype: each threshold is its base plus Brawn or Willpower (CRB p. 35, 45)', () => {
 		const holder = character();
 		holder.experienceJournal.entries = [{ amount: 5, type: EntryType.Award }];
 
@@ -61,6 +61,24 @@ describe('archetypeActorUpdate', () => {
 				{ amount: 110, type: EntryType.Starting },
 				{ amount: 5, type: EntryType.Award },
 			],
+		});
+	});
+
+	it('gives a laborer Brawn 3, Willpower 1, a wound threshold of 15, a strain threshold of 9 and 100 Starting XP (CRB p. 37)', () => {
+		const laborer: ArchetypeGrants = {
+			characteristics: { brawn: 3, agility: 2, intellect: 2, cunning: 2, willpower: 1, presence: 2 },
+			woundThreshold: 12,
+			strainThreshold: 8,
+			startingXP: 100,
+			grantedItems: [],
+		};
+
+		expect(archetypeActorUpdate(character(), laborer, 1)).toMatchObject({
+			'system.characteristics.brawn': 3,
+			'system.characteristics.willpower': 1,
+			'system.wounds.max': 15,
+			'system.strain.max': 9,
+			'system.experienceJournal.entries': [{ amount: 100, type: EntryType.Starting }],
 		});
 	});
 
@@ -102,7 +120,7 @@ describe('granted items', () => {
 		{ name: 'Rope', type: 'equipment', system: {} },
 	];
 
-	it('embeds everything but skills', () => {
+	it('embeds everything but skills: its abilities and talents (CRB p. 35)', () => {
 		expect(grantedNonSkills(archetypeGrants().grantedItems).map((i) => i.name)).toEqual(['Tough', 'Grit']);
 	});
 
@@ -160,7 +178,7 @@ describe('granted items', () => {
 		});
 	});
 
-	it('gives or takes a rank of each granted skill', () => {
+	it('gives or takes a rank of each granted skill, before any XP is spent (CRB p. 36-39)', () => {
 		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, 1)).toEqual([
 			{ skill: held[0], update: { 'system.rank': 2 } },
 		]);
