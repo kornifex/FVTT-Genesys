@@ -2,6 +2,8 @@
  * @file The Talent Pyramid: a character must always have more talents of each tier than of the tier above it.
  */
 
+import { effectiveTier } from '@/item/data/Talents';
+
 /**
  * Number of talents counted at each tier, from 1 to 5.
  */
@@ -13,7 +15,6 @@ export type TalentPyramidTotals = Record<number, number>;
 export type PyramidTalent = {
 	tier: number;
 	rank: number;
-	effectiveTier: number;
 };
 
 /**
@@ -23,7 +24,7 @@ export type PyramidTalent = {
 export function countTalentsPerTier(talents: PyramidTalent[]): TalentPyramidTotals {
 	return talents.reduce(
 		(accumulator, talent) => {
-			const talentEffectiveTier = talent.effectiveTier;
+			const talentEffectiveTier = effectiveTier(talent);
 			for (let k = talentEffectiveTier; k > 0; k--) {
 				if (k === 5 && talentEffectiveTier === 5) {
 					// If we want to count talents of tier 5 it requires that we consider the ranking of the talent if appropriate;

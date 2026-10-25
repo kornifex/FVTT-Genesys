@@ -12,6 +12,7 @@ import type { CombatPool } from '@/data/Actors';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { TalentDataModel } from '@/item/data/TalentDataModel';
+import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
 import { Notification, notify } from '@/notifications';
 
 /**
@@ -32,8 +33,6 @@ export type AdvancementTalent = {
 	ranked: 'yes' | 'no';
 	tier: number;
 	rank: number;
-	effectiveTier: number;
-	effectiveNextTier: number;
 };
 
 /**
@@ -194,7 +193,7 @@ export function buyTalentRank(character: AdvancementCharacter, talentId: string,
 		return refuse();
 	}
 
-	const tier = character.houseRules.talentTierVersions ? versionTier! : talent.effectiveNextTier;
+	const tier = character.houseRules.talentTierVersions ? versionTier! : effectiveNextTier(talent);
 	const cost = talentCost(tier);
 	const rank = talent.rank + 1;
 
@@ -318,8 +317,9 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 			}
 
 			const totals = TalentPyramid.countTalentsPerTier(character.talents);
-			if (!character.houseRules.ignoreTalentPyramid && !TalentPyramid.canRemoveTalentAtTier(totals, talent.effectiveTier)) {
-				return refuse('Genesys.Notifications.CannotDeleteInvalidTalentPyramid', { rank: talent.effectiveTier });
+			const tier = effectiveTier(talent);
+			if (!character.houseRules.ignoreTalentPyramid && !TalentPyramid.canRemoveTalentAtTier(totals, tier)) {
+				return refuse('Genesys.Notifications.CannotDeleteInvalidTalentPyramid', { rank: tier });
 			}
 
 			if (entry.type === EntryType.NewTalent) {
@@ -357,8 +357,6 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
 			ranked: talent.systemData.ranked,
 			tier: talent.systemData.tier,
 			rank: talent.systemData.rank,
-			effectiveTier: talent.systemData.effectiveTier,
-			effectiveNextTier: talent.systemData.effectiveNextTier,
 		})),
 		houseRules: {
 			ignoreTalentPyramid: CONFIG.genesys.settings.ignoreTalentPyramid,
