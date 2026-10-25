@@ -3,10 +3,9 @@ import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import { GenesysItem } from '@/item/GenesysItem';
-import { GenesysActor } from '@/actor/GenesysActor';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
-import { DicePrompt, RollType } from '@/app/DicePrompt';
+import { RollType } from '@/app/DicePrompt';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -15,8 +14,8 @@ import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-import { SelectCharacterSkillPrompt, CharacterSkillOption } from '@/app/SelectCharacterSkillPrompt';
-import { skillNamesMatch, skillToRoll } from '@/data/Skills';
+import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { crewForSkills } from '@/actor/data/CrewRoster';
 import { firingArcLabels } from '@/item/ChatCards';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
@@ -44,86 +43,15 @@ async function deleteItem(item: GenesysItem) {
 	await item.delete();
 }
 
-async function pickAttackerAndRollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
-	const potentialAttackers: CharacterSkillOption[] = [];
-	for (const role of actor.value.systemData.roles) {
-		const roleWeaponSkills = weapon.systemData.skills.filter((weaponSkill) =>
-			role.skills.some((skill) => skillNamesMatch(skill, weaponSkill)),
-		);
-		if (roleWeaponSkills.length === 0) {
-			continue;
-		}
-
-		for (const member of role.members) {
-			const currentActor = await fromUuid<GenesysActor>(member);
-			if (!currentActor) {
-				continue;
-			}
-
-			for (const weaponSkill of roleWeaponSkills) {
-				const rolledSkill = skillToRoll(currentActor.skills, CONFIG.genesys.skills, weaponSkill);
-				if (rolledSkill) {
-					potentialAttackers.push({ actor: currentActor, skill: rolledSkill.skill });
-				}
-			}
-		}
-	}
-
-	if (potentialAttackers.length === 0) {
-		ui.notifications.warn('Genesys.Notifications.NoRoleMembersWithAppropriateSkills', { localize: true });
-		return;
-	}
-
-	const selectAttacker = await SelectCharacterSkillPrompt.promptFromCharactersList(potentialAttackers);
-	if (!selectAttacker) {
-		return;
-	}
-
-	if (!selectAttacker.actor.isOwner) {
-		ui.notifications.warn('Genesys.Notifications.CannotSelectActor', { localize: true });
-		return;
-	}
-
-	await DicePrompt.promptForRoll(selectAttacker.actor, selectAttacker.skill.name, {
+async function rollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
+	await rollForCrew(crewForSkills(actor.value.systemData.crew, weapon.systemData.skills), {
 		rollType: RollType.Attack,
 		rollData: { weapon },
 	});
 }
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
-	const skillNameForRepairing = CONFIG.genesys.settings.skillForRepairingHit;
-	const relevantRoles = actor.value.systemData.roles.filter((role) =>
-		role.skills.some((skill) => skillNamesMatch(skill, skillNameForRepairing)),
-	);
-	const potentialRepairer: CharacterSkillOption[] = [];
-
-	for (const role of relevantRoles) {
-		for (const member of role.members) {
-			const currentActor = await fromUuid<GenesysActor>(member);
-			const rolledSkill = currentActor ? skillToRoll(currentActor.skills, CONFIG.genesys.skills, skillNameForRepairing) : undefined;
-
-			if (rolledSkill) {
-				potentialRepairer.push({ actor: currentActor!, skill: rolledSkill.skill });
-			}
-		}
-	}
-
-	if (potentialRepairer.length === 0) {
-		ui.notifications.warn('Genesys.Notifications.NoRoleMembersWithAppropriateSkills', { localize: true });
-		return;
-	}
-
-	const selectRepairer = await SelectCharacterSkillPrompt.promptFromCharactersList(potentialRepairer);
-	if (!selectRepairer) {
-		return;
-	}
-
-	if (!selectRepairer.actor.isOwner) {
-		ui.notifications.warn('Genesys.Notifications.CannotSelectActor', { localize: true });
-		return;
-	}
-
-	await DicePrompt.promptForRoll(selectRepairer.actor, selectRepairer.skill.name, {
+	await rollForCrew(crewForSkills(actor.value.systemData.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
 		difficulty: severityDifficulty(criticalHit.systemData.severity),
 	});
 }
@@ -147,7 +75,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 					<img :src="weapon.img" :alt="weapon.name" />
 
 					<div class="name">
-						<a @click="pickAttackerAndRollAttack(weapon)">{{ weapon.name }}</a>
+						<a @click="rollAttack(weapon)">{{ weapon.name }}</a>
 					</div>
 
 					<div class="skill" v-if="weapon.systemData.skills.length > 0">

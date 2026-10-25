@@ -185,9 +185,9 @@ Genesys:
     Amount: Cantidad
     Reason: Razón
 
-  # Character Skill Prompt Labels
-  CharacterSkillPrompt:
-    Title: Select User
+  # Crew Member Prompt Labels
+  CrewMemberPrompt:
+    Title: Seleccionar miembro de la tripulación
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:
@@ -390,6 +390,7 @@ Genesys:
     NoSkill: Sin habilidad
     Name: Nombre
     CharacterName: Nombre del personaje
+    CrewMember: Miembro de la tripulación
     SpeciesArchetype: Arquetipo/Especie
     Career: Profesión
     Soak: Absorción

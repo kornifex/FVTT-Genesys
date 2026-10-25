@@ -185,9 +185,9 @@ Genesys:
     Amount: Amount
     Reason: Reason
 
-  # Character Skill Prompt Labels
-  CharacterSkillPrompt:
-    Title: Select User
+  # Crew Member Prompt Labels
+  CrewMemberPrompt:
+    Title: Select Crew Member
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:
@@ -398,6 +398,7 @@ Genesys:
     NoSkill: No skill
     Name: Name
     CharacterName: Character Name
+    CrewMember: Crew Member
     SpeciesArchetype: Species/Archetype
     Career: Career
     Soak: Soak
