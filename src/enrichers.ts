@@ -1,6 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { DicePrompt } from '@/app/DicePrompt';
-import { checkLinkActor } from '@/app/CheckLinks';
+import { checkLinkActor, checkLinkDifficulty } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { isPoolModificationValue } from '@/effects/PoolModifications';
@@ -108,47 +108,23 @@ export function register() {
 				return null;
 			}
 
-			let difficulty = parseInt(match.groups?.['difficulty'] ?? '2', 10);
-			const upgrades = Math.min(parseInt(match.groups?.['upgrades'] ?? '0', 10), difficulty);
-
-			let difficultyName: string;
-			switch (difficulty) {
-				case 0:
-					difficultyName = 'Simple';
-					break;
-				case 1:
-					difficultyName = 'Easy';
-					break;
-				case 2:
-					difficultyName = 'Average';
-					break;
-				case 3:
-					difficultyName = 'Hard';
-					break;
-				case 4:
-					difficultyName = 'Daunting';
-					break;
-				case 5:
-					difficultyName = 'Formidable';
-					break;
-				default:
-					difficultyName = 'Impossible';
-					difficulty = 5;
-			}
-			difficultyName = game.i18n.localize(`Genesys.Difficulty.${difficultyName}`);
+			const { label, challengeDice, difficultyDice } = checkLinkDifficulty(
+				parseInt(match.groups?.['difficulty'] ?? '2', 10),
+				parseInt(match.groups?.['upgrades'] ?? '0', 10),
+			);
 
 			const difficultyIcons =
-				'<span class="die die-C">C</span>'.repeat(upgrades) + '<span class="die die-D">D</span>'.repeat(difficulty - upgrades);
+				'<span class="die die-C">C</span>'.repeat(challengeDice) + '<span class="die die-D">D</span>'.repeat(difficultyDice);
 
 			const container = document.createElement('a');
 			container.style.fontWeight = 'bold';
 			container.dataset.skillCheck = skill;
-			container.dataset.difficulty = 'C'.repeat(upgrades) + 'D'.repeat(difficulty - upgrades);
+			container.dataset.difficulty = 'C'.repeat(challengeDice) + 'D'.repeat(difficultyDice);
 
 			container.innerHTML =
 				'<i class="fas fa-dice-d20"></i> ' +
 				game.i18n.format('Genesys.Enrichers.Difficulty', {
-					difficulty: difficultyName,
+					difficulty: game.i18n.localize(label),
 					symbols: difficultyIcons || '—',
 					skill,
 				});

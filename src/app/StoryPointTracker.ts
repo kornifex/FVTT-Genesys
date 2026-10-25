@@ -4,6 +4,7 @@
 
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
+import { sessionStoryPoints, storyPointsAfterSpending } from '@/data/StoryPoints';
 import { emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload } from '@/socket';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
@@ -75,9 +76,10 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return;
 		}
 
+		const session = sessionStoryPoints(game.users.filter((u) => !u.isGM && u.active).length);
 		await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, {
-			player: player ?? game.users.filter((u) => !u.isGM && u.active).length,
-			gm: gm ?? 1,
+			player: player ?? session.player,
+			gm: gm ?? session.gm,
 		});
 
 		StoryPointTracker.forceRender();
@@ -94,9 +96,11 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return;
 		}
 
-		const storyPoints = StoryPointTracker.instance.storyPoints;
-
-		if ((targetPool === 'gmPool' && storyPoints.gm === 0) || (targetPool === 'playerPool' && storyPoints.player === 0)) {
+		const spentStoryPoints = storyPointsAfterSpending(
+			StoryPointTracker.instance.storyPoints,
+			targetPool === 'gmPool' ? 'gm' : 'player',
+		);
+		if (!spentStoryPoints) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NotEnoughStoryPoints'));
 			return;
 		}
@@ -104,10 +108,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		// Socket update
 		if (game.user.isGM) {
 			// 1. Update setting.
-			await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, {
-				player: storyPoints.player + (targetPool === 'playerPool' ? -1 : 1),
-				gm: storyPoints.gm + (targetPool === 'gmPool' ? -1 : 1),
-			});
+			await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, spentStoryPoints);
 
 			// 2. Force local re-render
 			StoryPointTracker.forceRender();
@@ -164,17 +165,14 @@ export function register() {
 				}
 
 				// 1. Update the story point settings.
-				const storyPoints = StoryPointTracker.instance.storyPoints;
+				const spentStoryPoints = storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, 'player');
 
 				// Do nothing if there are no player points to actually spend.
-				if (storyPoints.player === 0) {
+				if (!spentStoryPoints) {
 					return;
 				}
 
-				await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, {
-					gm: storyPoints.gm + 1,
-					player: storyPoints.player - 1,
-				});
+				await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, spentStoryPoints);
 
 				// 2. Force re-render locally & tell other to re-render.
 				StoryPointTracker.forceRender();
