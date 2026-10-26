@@ -27,12 +27,24 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 		return Talents.effectiveNextTier(this);
 	}
 
+	/**
+	 * Read a tier saved above Tier 5, before the field had a maximum, as Tier 5.
+	 * @inheritDoc
+	 */
+	static override migrateData(source: { tier?: unknown }) {
+		if (typeof source.tier === 'number' && source.tier > Talents.MAX_TIER) {
+			source.tier = Talents.MAX_TIER;
+		}
+
+		return super.migrateData(source) as typeof source;
+	}
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
 		return {
 			...super.defineSchema(),
-			tier: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+			tier: new fields.NumberField({ integer: true, initial: 1, min: 1, max: Talents.MAX_TIER }),
 			activation: new fields.SchemaField({
 				type: new fields.StringField({
 					initial: 'passive',

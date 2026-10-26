@@ -1,6 +1,9 @@
 /** @file Talents: the tier a talent's ranks are bought at. */
 
-const MAX_TIER = 5;
+/**
+ * The highest tier a talent can have (CRB p. 71-72).
+ */
+export const MAX_TIER = 5;
 
 /**
  * What this module reads of a talent: its own tier and its rank.
