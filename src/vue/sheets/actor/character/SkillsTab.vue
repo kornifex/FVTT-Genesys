@@ -86,6 +86,10 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		characteristic,
 	);
 	if (!superCharacteristics) {
+		// Outside Character Creation the menu is locked, so the warning is for the cap of two.
+		if (canMarkSuper.value) {
+			ui.notifications.warn('Genesys.Notifications.TooManySuperCharacteristics', { localize: true });
+		}
 		return;
 	}
 

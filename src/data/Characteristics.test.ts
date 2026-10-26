@@ -49,6 +49,26 @@ describe('toggledSuperCharacteristics', () => {
 		]);
 	});
 
+	describe('allows two super-characteristics at most (CRB p. 251)', () => {
+		const { Brawn, Agility, Intellect, Cunning } = Characteristic;
+
+		it.each([
+			{ before: [], toggle: Brawn, after: [Brawn] },
+			{ before: [Brawn], toggle: Agility, after: [Brawn, Agility] },
+			{ before: [Brawn, Agility], toggle: Agility, after: [Brawn] },
+			{ before: [Brawn, Agility, Cunning], toggle: Cunning, after: [Brawn, Agility] },
+		])('toggles $toggle on $before into $after', ({ before, toggle, after }) => {
+			expect(toggledSuperCharacteristics(new Set(before), toggle)).toEqual(after);
+		});
+
+		it.each([
+			{ before: [Brawn, Agility], toggle: Intellect },
+			{ before: [Brawn, Agility, Cunning], toggle: Intellect },
+		])('refuses to mark $toggle on $before', ({ before, toggle }) => {
+			expect(toggledSuperCharacteristics(new Set(before), toggle)).toBeUndefined();
+		});
+	});
+
 	it('leaves its input unchanged', () => {
 		const superCharacteristics = new Set([Characteristic.Brawn]);
 

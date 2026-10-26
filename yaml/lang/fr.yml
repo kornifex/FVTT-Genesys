@@ -240,6 +240,7 @@ Genesys:
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.
     InvalidTokenTypeForAction: Le token selectionné est d'un type invalide pour réaliser cette action.
     NoRoleMembersWithAppropriateSkills: Aucun membre du groupe pour ce rôle ne possède les compétences appropriées pour faire cette action.
+    TooManySuperCharacteristics: Un acteur ne peut pas avoir plus de deux super-caractéristiques. Retirez-en une d'abord.
 
   # Dialogs Prompts
   Dialogs:

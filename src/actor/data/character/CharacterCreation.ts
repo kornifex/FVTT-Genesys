@@ -40,7 +40,7 @@ export function canMarkSuperCharacteristics(entries: Pick<Entry, 'type'>[]) {
 
 /**
  * A character's super-characteristics with one marked, or unmarked if it already was. Undefined when they can no longer
- * be changed.
+ * be changed, or when marking it would go over two.
  */
 export function toggleSuperCharacteristic(
 	entries: Pick<Entry, 'type'>[],

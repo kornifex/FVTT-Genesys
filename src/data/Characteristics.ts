@@ -63,12 +63,24 @@ export const CHARACTERISTIC_ABBREVIATIONS = Object.fromEntries(
 ) as Record<Characteristic, string>;
 
 /**
- * The super-characteristics with one marked, or unmarked if it already was. The caller decides whether they can be
+ * The most super-characteristics an actor can have (CRB p. 251).
+ */
+const MAX_SUPER_CHARACTERISTICS = 2;
+
+/**
+ * The super-characteristics with one marked, or unmarked if it already was. Undefined when marking it would go over two;
+ * unmarking is always allowed, so an actor stored with more can get back to two. The caller decides whether they can be
  * changed at all.
  */
-export function toggledSuperCharacteristics(superCharacteristics: Set<Characteristic>, characteristic: Characteristic) {
+export function toggledSuperCharacteristics(
+	superCharacteristics: Set<Characteristic>,
+	characteristic: Characteristic,
+): Characteristic[] | undefined {
 	const toggled = new Set(superCharacteristics);
 	if (!toggled.delete(characteristic)) {
+		if (toggled.size >= MAX_SUPER_CHARACTERISTICS) {
+			return undefined;
+		}
 		toggled.add(characteristic);
 	}
 
