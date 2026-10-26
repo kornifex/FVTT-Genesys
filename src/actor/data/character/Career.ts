@@ -13,6 +13,14 @@ export function isCareerSkill(skillName: string, careerSkills: { name: string }[
 }
 
 /**
+ * Whether a skill created on a character is a Career skill: the Career's skills are, whenever they are added, and a
+ * skill created as a Career skill stays one, since it may have been marked by hand.
+ */
+export function createdSkillIsCareer(skill: { name: string; career: boolean }, careerSkills: { name: string }[]) {
+	return skill.career || isCareerSkill(skill.name, careerSkills);
+}
+
+/**
  * The skills of a character that their Career lists.
  */
 export function heldCareerSkills<T extends { name: string; type: string }>(items: T[], careerSkills: { name: string }[]) {
