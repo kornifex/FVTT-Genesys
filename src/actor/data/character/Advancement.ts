@@ -340,9 +340,11 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {
 	const system = actor.systemData;
 
+	// An Advancement prices, caps and writes the base ratings: an Active Effect only adds to them for a while, so it
+	// keeps applying on top of the raised rating (CRB p. 44).
 	return {
 		entries: system.experienceJournal.entries,
-		characteristics: system.characteristics,
+		characteristics: system._source.characteristics as CharacteristicsContainer,
 		woundThreshold: (system._source.wounds as CombatPool).max,
 		strainThreshold: (system._source.strain as CombatPool).max,
 		skills: (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).map((skill) => ({
