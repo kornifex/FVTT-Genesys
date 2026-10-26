@@ -40,6 +40,9 @@ const cases: [string, ChancePool, number][] = [
 	['negative dice alone', { dice: { Difficulty: 3 }, symbols: {} }, 0],
 	['a Success without dice', { dice: {}, symbols: { Success: 1 } }, 1],
 	['a Success and a Failure without dice', { dice: {}, symbols: { Success: 1, Failure: 1 } }, 0],
+	// Pool Modifications never produce a negative amount: one would count against the pool, here leaving only the
+	// Ability die's double Success, rather than be ignored.
+	['a negative Success amount, which counts as a Failure', { dice: { Ability: 1 }, symbols: { Success: -1 } }, 0.125],
 ];
 
 describe('chanceToSucceed', () => {

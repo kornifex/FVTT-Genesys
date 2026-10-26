@@ -10,11 +10,13 @@ vi.hoisted(() => {
 });
 
 import {
+	containerContents,
 	decideDrop,
 	heldByDeletedContainers,
 	InventoryItem,
 	containerStateUpdates,
 	equipmentStateUpdates,
+	sectionItems,
 	wornArmor,
 } from '@/actor/data/Inventory';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
@@ -493,6 +495,25 @@ describe('heldByDeletedContainers', () => {
 		];
 
 		expect(heldByDeletedContainers(items, ['bag', 'lamp-stand'])).toEqual(['rope', 'pouch', 'coin']);
+	});
+});
+
+describe('sectionItems', () => {
+	it('lists the items of an Equipment State held in no Container, in sort order', () => {
+		const sword = item('sword', 'weapon', EquipmentState.Equipped, 200000);
+		const shield = item('shield', 'weapon', EquipmentState.Equipped, 100000);
+		const items = [sword, item('rope', 'gear', EquipmentState.Carried, 300000), shield];
+
+		expect(sectionItems(items, EquipmentState.Equipped)).toEqual([shield, sword]);
+	});
+
+	it('leaves out an Equipped item held in a Container, from older data or a script: it is listed in its Container', () => {
+		const backpack = item('backpack', 'container', EquipmentState.Carried, 100000);
+		const dagger = item('dagger', 'weapon', EquipmentState.Equipped, 200000, 'backpack');
+		const items = [backpack, dagger];
+
+		expect(sectionItems(items, EquipmentState.Equipped)).toEqual([]);
+		expect(containerContents(items, 'backpack')).toEqual([dagger]);
 	});
 });
 

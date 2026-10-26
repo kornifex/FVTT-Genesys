@@ -124,6 +124,12 @@ describe('placeActor', () => {
 		expect(placeActor(crew, 'G3', { kind: 'role', roleId: 'gunner', before: 'G1' })?.roles).toEqual([role('gunner', 'G3', 'G1', 'G2')]);
 	});
 
+	it('moves a member dropped on its own Role last in it', () => {
+		const crew: Crew = { passengers: [], roles: [role('gunner', 'G1', 'G2', 'G3')] };
+
+		expect(placeActor(crew, 'G1', { kind: 'role', roleId: 'gunner' })?.roles).toEqual([role('gunner', 'G2', 'G3', 'G1')]);
+	});
+
 	it('does nothing when a member is placed before itself', () => {
 		const crew: Crew = { passengers: [], roles: [role('gunner', 'G1', 'G2')] };
 
@@ -228,6 +234,12 @@ describe('Roles', () => {
 		const crew: Crew = { passengers: [], roles: [{ ...role('pilot'), skills: ['Piloting', 'Perception'] }] };
 
 		expect(removeRoleSkill(crew, 'pilot', 'piloting')?.roles).toEqual([{ ...role('pilot'), skills: ['Perception'] }]);
+	});
+
+	it('removes every skill of a Role matching it, whatever their case', () => {
+		const crew: Crew = { passengers: [], roles: [{ ...role('gunner'), skills: ['Gunnery', 'Perception', 'gunnery'] }] };
+
+		expect(removeRoleSkill(crew, 'gunner', 'GUNNERY')?.roles).toEqual([{ ...role('gunner'), skills: ['Perception'] }]);
 	});
 
 	it("does nothing when the Role doesn't have the skill", () => {

@@ -147,6 +147,17 @@ describe('equipmentEncumbrance', () => {
 		expect(equipmentEncumbrance(items, CHARACTER)).toEqual({ value: 1, thresholdBonus: 2 });
 	});
 
+	it('counts every item of containers that hold each other, which only a script or an import can make', () => {
+		const items = [
+			item('pouch', { type: 'container', encumbrance: 1, container: 'satchel' }),
+			item('satchel', { type: 'container', encumbrance: 2, container: 'pouch' }),
+			item('rope', { encumbrance: 1, quantity: 2, container: 'pouch' }),
+			item('saddlebag', { encumbrance: -2, container: 'satchel' }),
+		];
+
+		expect(equipmentEncumbrance(items, CHARACTER)).toEqual({ value: 5, thresholdBonus: 2 });
+	});
+
 	it("counts a character's Equipped armor 3 less, to a minimum of 0, for one of its quantity (CRB p. 84, 92)", () => {
 		const plate = item('plate', { type: 'armor', encumbrance: 4, state: 'equipped' });
 		const leather = item('leather', { type: 'armor', encumbrance: 2, state: 'equipped' });

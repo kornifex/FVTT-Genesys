@@ -135,6 +135,15 @@ describe('promptSkills', () => {
 			unranked: [],
 		});
 	});
+
+	it('leaves out of the weapon group a listed skill that neither the actor nor the Skills Compendium has, though it can be chosen', () => {
+		const owned = [skill('Melee', 1)];
+		const weapon = { skills: ['Nonexistent', 'Melee'], attackSkill: 'Nonexistent' };
+
+		expect(attackSkillChoices(weapon.skills)).toEqual(['Nonexistent', 'Melee']);
+		expect(attackSkillName(owned, weapon)).toBe('Nonexistent');
+		expect(promptSkills(owned, compendium, weapon.skills)).toEqual({ weapon: [owned[0]], owned: [], unranked: compendium });
+	});
 });
 
 describe('freeRank', () => {

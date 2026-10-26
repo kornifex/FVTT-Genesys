@@ -398,6 +398,25 @@ describe('undoEntry', () => {
 		expect(isInCharacterCreation(entries)).toBe(true);
 	});
 
+	it('keeps the skill ranks bought above 2 after the only Award when it is undone, and caps only new purchases at 2', () => {
+		const entries: Entry[] = [
+			{ amount: 100, type: EntryType.Starting },
+			AWARD,
+			{ amount: -15, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 3 } },
+		];
+		const skills = [
+			{ id: 'athletics', name: 'Athletics', rank: 2, career: true },
+			{ id: 'cool', name: 'Cool', rank: 3, career: true },
+		];
+		const undone = plan(undoEntry(character({ entries, skills }), 1));
+		const backInCreation = character({ entries: newEntries({ plan: undone }), skills });
+
+		expect(undone.itemUpdates).toEqual([]);
+		expect(isInCharacterCreation(backInCreation.entries)).toBe(true);
+		expect(isAllowed(buySkillRank(backInCreation, 'cool'))).toBe(false);
+		expect(isAllowed(buySkillRank(backInCreation, 'athletics'))).toBe(false);
+	});
+
 	it('refuses an entry that does not exist', () => {
 		expect(refusal(undoEntry(character(), 3))).toBeUndefined();
 	});
@@ -449,6 +468,16 @@ describe('advancementCharacter', () => {
 		const entries = newEntries(raiseCharacteristic(advancementCharacter(actor(2, 1)), Characteristic.Brawn));
 
 		expect(plan(undoEntry(advancementCharacter(actor(3, 1, entries)), 1)).actorUpdate['system.characteristics.brawn']).toBe(2);
+	});
+
+	it('puts back one less than the rank an older entry stored with an Active Effect, one too high per effect point', () => {
+		// Before raises were made from the base rating, Brawn 2 + 1 raised once was recorded as rank 4 for a base of 3.
+		const entries: Entry[] = [
+			{ amount: 200, type: EntryType.Starting },
+			{ amount: -40, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 4 } },
+		];
+
+		expect(plan(undoEntry(advancementCharacter(actor(3, 1, entries)), 1)).actorUpdate['system.characteristics.brawn']).toBe(3);
 	});
 });
 
