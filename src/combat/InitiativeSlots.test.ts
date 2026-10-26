@@ -261,10 +261,7 @@ describe('rolling Initiative Slots', () => {
 	});
 
 	it('writes each roll to the slot it names, whatever the order of the slots asked', () => {
-		const slots = buildSlots(
-			[combatant('boss', null, 'npc')],
-			extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1),
-		);
+		const slots = buildSlots([combatant('boss', null, 'npc')], extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1));
 
 		expect(roll(slots, ['boss:1', 'boss:-1', 'boss:0'], { 'boss:1': 1, 'boss:-1': 2, 'boss:0': 3 })).toEqual({
 			combatants: [{ _id: 'boss', initiative: 2 }],
