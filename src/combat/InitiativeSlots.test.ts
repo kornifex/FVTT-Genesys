@@ -75,7 +75,7 @@ describe('buildSlots', () => {
 		expect(order(slots)).toEqual(['b:-1', 'a:-1']);
 	});
 
-	it('counts leftover Threats as no Advantage, so a PC and an NPC with as many Successes tie (CRB p. 96)', () => {
+	it('counts leftover Threats as no Advantage, so a PC ranks above an NPC with as many Successes (CRB p. 96)', () => {
 		const slots = buildSlots([combatant('boss', encodeInitiative(1, -1), 'hostile'), combatant('hero', encodeInitiative(1, -2))], []);
 
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
@@ -293,7 +293,7 @@ describe('rolling Initiative Slots', () => {
 });
 
 describe('initiative', () => {
-	it('stores net successes with net advantages as hundredths', () => {
+	it('stores the Successes with the Advantage as hundredths', () => {
 		expect(encodeInitiative(2, 3)).toBe(2.03);
 		expect(decodeInitiative(encodeInitiative(2, 3))).toEqual({ successes: 2, advantages: 3 });
 		expect(decodeInitiative(encodeInitiative(1, 0))).toEqual({ successes: 1, advantages: 0 });

@@ -107,7 +107,7 @@ function slotId(originId: string, activationId: number) {
  */
 export function encodeInitiative(netSuccess: number, netAdvantage: number) {
 	// Initiative ranks by the Successes and Advantage left after canceling: leftover Failures and Threats count as none
-	// (CRB p. 96). This also keeps the stored value from going negative, which decodeInitiative can't read back.
+	// (CRB p. 96). This also keeps both parts from going negative, which decodeInitiative can't read back.
 	return Math.max(netSuccess, 0) + Math.max(netAdvantage, 0) / 100;
 }
 
