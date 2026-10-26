@@ -28,7 +28,9 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 	}
 
 	/**
-	 * Read a tier saved above Tier 5, before the field had a maximum, as Tier 5.
+	 * Read a tier saved above tier 5, before the field had a maximum, as tier 5. Foundry v12 and v13 also clamp it when
+	 * they clean the field, but that cleaning isn't meant to fix old data, and an out-of-range value could fail
+	 * validation instead.
 	 * @inheritDoc
 	 */
 	static override migrateData(source: { tier?: unknown }) {
