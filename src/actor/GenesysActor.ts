@@ -2,6 +2,7 @@ import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
+import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
@@ -74,6 +75,11 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 		return super.createDialog(data, touchedOptions);
 	}
 
+	/**
+	 * Change one of the system's token attributes from a token's bar or the Token HUD, within the bounds the rules give
+	 * it.
+	 * @inheritDoc
+	 */
 	override async modifyTokenAttribute(attribute: string, value: number, isDelta?: boolean, isBar?: boolean) {
 		const tokenAttributes = (this.systemData.constructor as DataModelWithTokenAttributes)?.tokenAttributes;
 		if (tokenAttributes) {
@@ -82,10 +88,15 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 				return this;
 			}
 
+			const read = (path: string) => Number(foundry.utils.getProperty(this.systemData, path));
+
 			return await this.update({
-				[`system.${tokenAttribute.valuePath}`]: isDelta
-					? Number(foundry.utils.getProperty(this.systemData, tokenAttribute.valuePath)) + value
-					: value,
+				[`system.${tokenAttribute.valuePath}`]: newTokenAttributeValue({
+					current: read(tokenAttribute.valuePath),
+					value,
+					isDelta: !!isDelta,
+					cappedThreshold: tokenAttribute.isBar && tokenAttribute.cappedAtTwiceMax ? read(tokenAttribute.maxPath) : undefined,
+				}),
 			});
 		} else {
 			return super.modifyTokenAttribute(attribute, value, isDelta, isBar);
