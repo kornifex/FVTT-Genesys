@@ -1,6 +1,8 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered } from '@/actor/data/Encumbrance';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { vehicleDefense } from '@/actor/data/Protection';
+import { Defense } from '@/data/Actors';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -137,6 +139,13 @@ export abstract class VehicleDataModel
 
 	get isEncumbered() {
 		return isEncumbered(this.currentEncumbrance);
+	}
+
+	/**
+	 * Total value for Defense, against melee and ranged attacks alike, capped as a character's is.
+	 */
+	get totalDefense(): Defense {
+		return vehicleDefense(this.defense);
 	}
 
 	/**

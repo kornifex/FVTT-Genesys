@@ -1,7 +1,7 @@
-/** @file Tests for a character's soak and defense, and an Adversary's defense, against the Core Rulebook. */
+/** @file Tests for a character's soak and defense, an Adversary's defense and a vehicle's defense, against the Core Rulebook. */
 
 import { describe, expect, it } from 'vitest';
-import { adversaryDefense, totalDefense, totalSoak } from '@/actor/data/Protection';
+import { adversaryDefense, totalDefense, totalSoak, vehicleDefense } from '@/actor/data/Protection';
 
 describe('totalSoak', () => {
 	it("is the character's current Brawn without armor, raised whenever Brawn is (CRB p. 31, 46, 105)", () => {
@@ -61,5 +61,13 @@ describe('adversaryDefense', () => {
 		expect(adversaryDefense({ melee: 1, ranged: 2 })).toEqual({ melee: 1, ranged: 2 });
 		expect(adversaryDefense({ melee: 4, ranged: 4 })).toEqual({ melee: 4, ranged: 4 });
 		expect(adversaryDefense({ melee: 5, ranged: 6 })).toEqual({ melee: 4, ranged: 4 });
+	});
+});
+
+describe('vehicleDefense', () => {
+	it("is the vehicle's defense against melee and ranged attacks alike, up to 4 (CRB p. 223, 104-105)", () => {
+		expect(vehicleDefense(0)).toEqual({ melee: 0, ranged: 0 });
+		expect(vehicleDefense(2)).toEqual({ melee: 2, ranged: 2 });
+		expect(vehicleDefense(5)).toEqual({ melee: 4, ranged: 4 });
 	});
 });

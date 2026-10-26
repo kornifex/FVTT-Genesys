@@ -1,5 +1,5 @@
 /**
- * @file A character's soak and defense, from their own values, their Brawn and their worn armor, and an adversary's defense.
+ * @file A character's soak and defense, from their own values, their Brawn and their worn armor, and an adversary's and a vehicle's defense.
  */
 
 import type { Defense } from '@/data/Actors';
@@ -31,7 +31,7 @@ export function totalSoak(ownSoak: number, brawn: number, armor: WornArmor[]) {
 	return ownSoak + brawn + (protectingArmor(armor)?.soak ?? 0);
 }
 
-// No character, PC or Adversary, can have a defense rating higher than 4.
+// No character, PC or Adversary, can have a defense rating higher than 4, and a vehicle's defense works the same (CRB p. 223).
 const MAX_DEFENSE = 4;
 
 /**
@@ -51,4 +51,12 @@ export function totalDefense(defense: Defense, armor: WornArmor[]): Defense {
  */
 export function adversaryDefense(defense: Defense): Defense {
 	return totalDefense(defense, []);
+}
+
+/**
+ * A vehicle's defense: its single rating counts against melee and ranged attacks alike, up to 4 as a character's
+ * (CRB p. 223).
+ */
+export function vehicleDefense(defense: number): Defense {
+	return totalDefense({ melee: defense, ranged: defense }, []);
 }

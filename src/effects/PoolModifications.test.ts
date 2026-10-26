@@ -14,6 +14,7 @@ vi.hoisted(() => {
 	});
 });
 
+import { vehicleDefense } from '@/actor/data/Protection';
 import { Characteristic } from '@/data/Characteristics';
 import {
 	decodeKey,
@@ -247,6 +248,9 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([
 			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] },
 		]);
+		expect(
+			poolModificationsForCheck(self, actor('rival', [], { totalDefense: { melee: 0, ranged: 2 } }), { attackRange: 'medium' }),
+		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
 		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
 	});
 
@@ -258,11 +262,37 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, actor('rival', []), { attackRange: 'medium' })).toEqual([]);
 	});
 
-	it("ignores targets that aren't characters or adversaries, and everything without an actor", () => {
-		const target = actor('vehicle', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]);
+	it("collects a targeted vehicle's changes, and adds one Setback per point of its defense at any range (CRB p. 223, 104)", () => {
+		const self = actor('character', []);
+		const vehicle = actor('vehicle', [effect([{ key: 'genesys.pool.check.target.', value: 'D' }], { name: 'Smoke' })], {
+			totalDefense: vehicleDefense(2),
+		});
+
+		expect(poolModificationsForCheck(self, vehicle, {})).toEqual([{ source: 'target', from: { effect: 'Smoke' }, mods: ['D'] }]);
+		expect(poolModificationsForCheck(self, vehicle, { attackRange: 'medium' })).toContainEqual({
+			source: 'target',
+			from: { defense: 'ranged' },
+			mods: ['S', 'S'],
+		});
+		expect(poolModificationsForCheck(self, vehicle, { attackRange: 'engaged' })).toContainEqual({
+			source: 'target',
+			from: { defense: 'melee' },
+			mods: ['S', 'S'],
+		});
+	});
+
+	it("counts a targeted vehicle's defense up to 4, and leaves it out at 0 (CRB p. 223, 104)", () => {
 		const self = actor('character', []);
 
-		expect(poolModificationsForCheck(self, target, { attackRange: 'engaged' })).toEqual([]);
+		expect(poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0) }), { attackRange: 'long' })).toEqual(
+			[],
+		);
+		expect(
+			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5) }), { attackRange: 'short' }),
+		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
+	});
+
+	it('collects nothing without an actor making the check', () => {
 		expect(
 			poolModificationsForCheck(undefined, actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]), {}),
 		).toEqual([]);
