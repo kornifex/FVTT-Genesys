@@ -2,6 +2,9 @@
  * @file Check links: the difficulty of a `@check` link, and which actor rolls its check wherever the link is rendered.
  */
 
+import type { DicePool } from '@/dice/DicePool';
+import { upgradeDie } from '@/dice/DieGrades';
+
 /**
  * The actors a `@check` link can roll for.
  */
@@ -57,12 +60,18 @@ export type CheckLinkDifficulty = {
 };
 
 /**
- * The difficulty of a `@check` link from its level and its upgrades. The upgrades turn Difficulty dice into Challenge
- * dice and stop when none is left.
+ * The difficulty of a `@check` link from its level and its upgrades. Each upgrade turns a Difficulty die into a
+ * Challenge die, or adds a Difficulty die when none is left, as the dice prompt upgrades them.
  */
 export function checkLinkDifficulty(level: number, upgrades: number): CheckLinkDifficulty {
-	const dice = Math.min(level, DIFFICULTY_LABELS.length - 1);
-	const challengeDice = Math.min(upgrades, dice);
+	const dice: DicePool['dice'] = { Difficulty: Math.min(level, DIFFICULTY_LABELS.length - 1) };
+	for (let upgrade = 0; upgrade < upgrades; upgrade++) {
+		upgradeDie(dice, 'Difficulty', 'Challenge');
+	}
 
-	return { label: DIFFICULTY_LABELS[level] ?? IMPOSSIBLE_LABEL, challengeDice, difficultyDice: dice - challengeDice };
+	return {
+		label: DIFFICULTY_LABELS[level] ?? IMPOSSIBLE_LABEL,
+		challengeDice: dice.Challenge ?? 0,
+		difficultyDice: dice.Difficulty ?? 0,
+	};
 }
