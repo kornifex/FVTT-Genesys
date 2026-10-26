@@ -6,6 +6,7 @@ import { GenesysDice } from '@/dice';
 import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
+import { upgradeDie } from '@/dice/DieUpgrades';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 
@@ -82,12 +83,7 @@ export function applyDicePoolModifications(dicePool: DicePool, modifierTokens: s
 	for (const modifierToken of modifierTokens) {
 		if (modifierToken === '^' || modifierToken === '*') {
 			const [baseDice, upgradeDice]: DieName[] = modifierToken === '^' ? ['Ability', 'Proficiency'] : ['Difficulty', 'Challenge'];
-			if (dicePool.dice[baseDice]) {
-				dicePool.dice[baseDice]--;
-				dicePool.dice[upgradeDice] = 1 + (dicePool.dice[upgradeDice] ?? 0);
-			} else {
-				dicePool.dice[baseDice] = 1 + (dicePool.dice[baseDice] ?? 0);
-			}
+			upgradeDie(dicePool.dice, baseDice, upgradeDice);
 		} else if (modifierToken === '_' || modifierToken === '~') {
 			const [baseDice, downgradeDice]: DieName[] = modifierToken === '_' ? ['Proficiency', 'Ability'] : ['Challenge', 'Difficulty'];
 			if (dicePool.dice[baseDice]) {

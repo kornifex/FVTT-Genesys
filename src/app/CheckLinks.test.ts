@@ -49,4 +49,13 @@ describe('checkLinkDifficulty', () => {
 		expect(checkLinkDifficulty(2, 1)).toEqual({ label: 'Genesys.Difficulty.Average', challengeDice: 1, difficultyDice: 1 });
 		expect(checkLinkDifficulty(3, 3)).toEqual({ label: 'Genesys.Difficulty.Hard', challengeDice: 3, difficultyDice: 0 });
 	});
+
+	it('adds a Difficulty die for an upgrade with none left, which the next upgrade turns into a Challenge die (CRB p. 22)', () => {
+		expect(checkLinkDifficulty(2, 3)).toEqual({ label: 'Genesys.Difficulty.Average', challengeDice: 2, difficultyDice: 1 });
+		expect(checkLinkDifficulty(1, 3)).toEqual({ label: 'Genesys.Difficulty.Easy', challengeDice: 2, difficultyDice: 0 });
+	});
+
+	it('adds a Difficulty die to a Simple check for its first upgrade, and keeps its name (CRB p. 22)', () => {
+		expect(checkLinkDifficulty(0, 1)).toEqual({ label: 'Genesys.Difficulty.Simple', challengeDice: 0, difficultyDice: 1 });
+	});
 });
