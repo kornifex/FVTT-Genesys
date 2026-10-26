@@ -10,6 +10,7 @@ import {
 	encodeInitiative,
 	ExtraSlot,
 	extraSlotsForRound,
+	InitiativeSide,
 	InitiativeSlot,
 	initiativeWrites,
 	ownSlotIds,
@@ -21,8 +22,8 @@ import {
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 
-function combatant(id: string, initiative: number | null, hasPlayerOwner = true) {
-	return { id, initiative, hasPlayerOwner };
+function combatant(id: string, initiative: number | null, side: InitiativeSide = 'pc') {
+	return { id, initiative, hasPlayerOwner: side === 'pc' };
 }
 
 function extraSlot(activationSource: string, index: number, initiative: number | null): ExtraSlot {
@@ -48,7 +49,7 @@ describe('buildSlots', () => {
 	});
 
 	it('breaks initiative ties with PC slots first, then by combatant id (CRB p. 96)', () => {
-		const slots = buildSlots([combatant('npc2', 2, false), combatant('npc1', 2, false), combatant('pc2', 2), combatant('pc1', 2)], []);
+		const slots = buildSlots([combatant('npc2', 2, 'npc'), combatant('npc1', 2, 'npc'), combatant('pc2', 2), combatant('pc1', 2)], []);
 
 		expect(order(slots)).toEqual(['pc1:-1', 'pc2:-1', 'npc1:-1', 'npc2:-1']);
 	});
@@ -63,7 +64,7 @@ describe('buildSlots', () => {
 	});
 
 	it('ranks a PC above an NPC with as many Successes and Advantage (CRB p. 96)', () => {
-		const slots = buildSlots([combatant('boss', encodeInitiative(1, 2), false), combatant('hero', encodeInitiative(1, 2))], []);
+		const slots = buildSlots([combatant('boss', encodeInitiative(1, 2), 'npc'), combatant('hero', encodeInitiative(1, 2))], []);
 
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
 	});
@@ -75,14 +76,14 @@ describe('buildSlots', () => {
 	});
 
 	it('counts leftover Threats as no Advantage, so a PC ranks above an NPC with as many Successes (CRB p. 96)', () => {
-		const slots = buildSlots([combatant('boss', encodeInitiative(1, -1), false), combatant('hero', encodeInitiative(1, -2))], []);
+		const slots = buildSlots([combatant('boss', encodeInitiative(1, -1), 'npc'), combatant('hero', encodeInitiative(1, -2))], []);
 
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
 	});
 
 	it('gives each extra slot its own initiative, as a nemesis records both its results (CRB p. 205)', () => {
 		const slots = buildSlots(
-			[combatant('boss', 1, false), combatant('hero', 2)],
+			[combatant('boss', 1, 'npc'), combatant('hero', 2)],
 			[extraSlot('boss', 0, 3), extraSlot('boss', 1, null)],
 		);
 
@@ -101,13 +102,13 @@ describe('buildSlots', () => {
 	});
 
 	it('gives the combatants whose actor a player owns PC slots and every other combatant NPC slots', () => {
-		const slots = buildSlots([combatant('hero', 3), combatant('ally', 2, false), combatant('boss', 1, false)], []);
+		const slots = buildSlots([combatant('hero', 3), combatant('ally', 2, 'npc'), combatant('boss', 1, 'npc')], []);
 
 		expect(slots.map((slot) => slot.side)).toEqual(['pc', 'npc', 'npc']);
 	});
 
 	it("gives an NPC's extra slots NPC slots, as both of a nemesis's results are NPC slots (CRB p. 205)", () => {
-		const slots = buildSlots([combatant('hero', 2), combatant('boss', 1, false)], [extraSlot('boss', 0, 3)]);
+		const slots = buildSlots([combatant('hero', 2), combatant('boss', 1, 'npc')], [extraSlot('boss', 0, 3)]);
 
 		expect(slots.map(({ id, side }) => ({ id, side }))).toEqual([
 			{ id: 'boss:0', side: 'npc' },
@@ -127,10 +128,10 @@ describe('buildSlots', () => {
 });
 
 describe('claimRefusal', () => {
-	const slots = buildSlots([combatant('hero', 3), combatant('ally', 2), combatant('boss', 1, false)], [extraSlot('ally', 0, 1.5)]);
+	const slots = buildSlots([combatant('hero', 3), combatant('rogue', 2), combatant('boss', 1, 'npc')], [extraSlot('rogue', 0, 1.5)]);
 
 	it('lets a combatant claim an unclaimed slot of its side (CRB p. 96)', () => {
-		expect(claimRefusal(slots, {}, 'ally:-1', { id: 'hero', side: 'pc' })).toBeUndefined();
+		expect(claimRefusal(slots, {}, 'rogue:-1', { id: 'hero', side: 'pc' })).toBeUndefined();
 	});
 
 	it('refuses a slot that does not exist', () => {
@@ -142,27 +143,27 @@ describe('claimRefusal', () => {
 	});
 
 	it('refuses a slot that is already claimed (CRB p. 96)', () => {
-		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe(
+		expect(claimRefusal(slots, { 'hero:-1': 'rogue' }, 'hero:-1', { id: 'hero', side: 'pc' })).toBe(
 			'Genesys.Notifications.SlotAlreadyClaimed',
 		);
 	});
 
 	it('refuses a combatant that claimed as many slots as its initiative gives: a character acts once per round (CRB p. 96)', () => {
-		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'ally:-1', { id: 'hero', side: 'pc' })).toBe(
+		expect(claimRefusal(slots, { 'hero:-1': 'hero' }, 'rogue:-1', { id: 'hero', side: 'pc' })).toBe(
 			'Genesys.Notifications.CombatantHasNoActivationLeft',
 		);
 	});
 
 	it('lets a combatant with extra slots claim once more for each of them', () => {
-		expect(claimRefusal(slots, { 'hero:-1': 'ally' }, 'ally:-1', { id: 'ally', side: 'pc' })).toBeUndefined();
-		expect(claimRefusal(slots, { 'hero:-1': 'ally', 'ally:-1': 'ally' }, 'ally:0', { id: 'ally', side: 'pc' })).toBe(
+		expect(claimRefusal(slots, { 'hero:-1': 'rogue' }, 'rogue:-1', { id: 'rogue', side: 'pc' })).toBeUndefined();
+		expect(claimRefusal(slots, { 'hero:-1': 'rogue', 'rogue:-1': 'rogue' }, 'rogue:0', { id: 'rogue', side: 'pc' })).toBe(
 			'Genesys.Notifications.CombatantHasNoActivationLeft',
 		);
 	});
 
 	it('lets a nemesis with an extra slot take two turns a round, and no more (CRB p. 205)', () => {
 		const withNemesis = buildSlots(
-			[combatant('hero', 3), combatant('goons', 2, false), combatant('boss', 1, false)],
+			[combatant('hero', 3), combatant('goons', 2, 'npc'), combatant('boss', 1, 'npc')],
 			[extraSlot('boss', 0, 2)],
 		);
 		const nemesis = { id: 'boss', side: 'npc' as const };
@@ -200,7 +201,7 @@ describe('slotView', () => {
 
 	it("gives the claimant's players control of the turn", () => {
 		expect(slotView(claimed, true, player).controlsTurn).toBe(true);
-		expect(slotView({ ...claimed, claimantId: 'ally' }, true, player).controlsTurn).toBe(false);
+		expect(slotView({ ...claimed, claimantId: 'rogue' }, true, player).controlsTurn).toBe(false);
 		expect(slotView(unclaimed, true, player).controlsTurn).toBe(false);
 	});
 });
@@ -230,7 +231,7 @@ describe('withExtraSlotInitiatives', () => {
 });
 
 describe('rolling Initiative Slots', () => {
-	const combatants = [combatant('hero', null), combatant('boss', null, false)];
+	const combatants = [combatant('hero', null), combatant('boss', null, 'npc')];
 
 	// At round 3, an extra slot for Boss; back at round 2, one for Hero and another for Boss.
 	const stored = [storedSlot('boss', 3), storedSlot('hero', 2), storedSlot('boss', 2)];
@@ -261,7 +262,7 @@ describe('rolling Initiative Slots', () => {
 
 	it('writes each roll to the slot it names, whatever the order of the slots asked', () => {
 		const slots = buildSlots(
-			[combatant('boss', null, false)],
+			[combatant('boss', null, 'npc')],
 			extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1),
 		);
 

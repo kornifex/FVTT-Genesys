@@ -177,8 +177,9 @@ function compareActivations(
 	}
 
 	// Initiative ties go to PCs (CRB p. 96).
-	if (first.combatant.hasPlayerOwner !== second.combatant.hasPlayerOwner) {
-		return first.combatant.hasPlayerOwner ? -1 : 1;
+	const firstSide = sideOf(first.combatant.hasPlayerOwner);
+	if (firstSide !== sideOf(second.combatant.hasPlayerOwner)) {
+		return firstSide === 'pc' ? -1 : 1;
 	}
 
 	if (first.combatant.id === second.combatant.id) {
