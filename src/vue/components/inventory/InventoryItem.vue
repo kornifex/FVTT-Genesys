@@ -60,14 +60,24 @@ const isBeingDragged = ref(false);
 const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
-const system = computed(() => props.item.systemData);
 
-const armorData = computed(() => system.value as ArmorDataModel);
-const weaponData = computed(() => ({
-	baseWeapon: system.value as BaseWeaponDataModel,
-	charWeapon: system.value as WeaponDataModel,
-	vehWeapon: system.value as VehicleWeaponDataModel,
-}));
+// Foundry updates the item out of Vue's sight, so a computed reading it would lag behind: the row reads the item's data
+// on each render of the sheet instead, which replaces the context.
+function system() {
+	return toRaw(props.item).systemData;
+}
+
+function armorData() {
+	return system() as ArmorDataModel;
+}
+
+function weaponData() {
+	return {
+		baseWeapon: system() as BaseWeaponDataModel,
+		charWeapon: system() as WeaponDataModel,
+		vehWeapon: system() as VehicleWeaponDataModel,
+	};
+}
 
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
@@ -76,11 +86,14 @@ const containedItems = computed(() =>
 	containerContents(toRaw(context.data.actor).items.contents as GenesysItem<EquipmentDataModel>[], props.item.id),
 );
 
-const damage = computed(() => ({
-	...damageFormula(weaponData.value.charWeapon),
-	// A vehicle has no characteristics to add to the damage.
-	total: weaponDamage(weaponData.value.charWeapon, (context.data.actor.systemData as Partial<CharacterDataModel>).characteristics),
-}));
+function damage() {
+	const weapon = weaponData().charWeapon;
+	return {
+		...damageFormula(weapon),
+		// A vehicle has no characteristics to add to the damage.
+		total: weaponDamage(weapon, (context.data.actor.systemData as Partial<CharacterDataModel>).characteristics),
+	};
+}
 
 async function rollAttack() {
 	const skillName = skillForWeapon();
@@ -117,9 +130,7 @@ async function setItemState(state: EquipmentState) {
 }
 
 function skillForWeapon() {
-	// Foundry updates the item out of Vue's sight, so the cached weaponData can lag behind it: read the weapon from the
-	// item on each render of the sheet.
-	return attackSkillName(toRaw(context.data.actor).skills, toRaw(props.item).systemData as WeaponDataModel);
+	return attackSkillName(toRaw(context.data.actor).skills, weaponData().charWeapon);
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
@@ -263,7 +274,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		:class="{
 			'inventory-item': true,
 			mini: props.mini,
-			[system.state]: true,
+			[system().state]: true,
 			hover: dragCounter > 0,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
@@ -286,7 +297,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<a @click="openItem">{{ item.name }}</a>
 				<button
 					class="attack"
-					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
+					v-if="item.type === 'weapon' && system().state === EquipmentState.Equipped && skillForWeapon()"
 					@click="rollAttack"
 				>
 					<Localized label="Genesys.Labels.Attack" />
@@ -297,35 +308,35 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<!-- Weapon Details -->
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
 					<!-- Skill -->
-					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData.baseWeapon.skills[0]) ?? '-' }}</div>
+					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().baseWeapon.skills[0]) ?? '-' }}</div>
 
 					<!-- Firing Arc -->
 					<!-- prettier-ignore -->
-					<div v-if="weaponData.vehWeapon.firingArc" class="firing-arc">
-						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcLabels(weaponData.vehWeapon.firingArc)" :key="label"><Localized :label="label" /></span>
+					<div v-if="weaponData().vehWeapon.firingArc" class="firing-arc">
+						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcLabels(weaponData().vehWeapon.firingArc)" :key="label"><Localized :label="label" /></span>
 					</div>
 
 					<!-- Damage -->
 					<!-- prettier-ignore -->
 					<div>
-						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage.characteristic">{{ damage.baseDamage }}</span>
-						<span v-else-if="damage.baseDamage >= 0">
-							<Localized :label="damage.characteristic" />+{{ damage.baseDamage }} ({{ damage.total }})</span
+						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage().characteristic">{{ damage().baseDamage }}</span>
+						<span v-else-if="damage().baseDamage >= 0">
+							<Localized :label="damage().characteristic!" />+{{ damage().baseDamage }} ({{ damage().total }})</span
 						>
-						<span v-else><Localized :label="damage.characteristic" />{{ damage.baseDamage }} ({{ damage.total }})</span>
+						<span v-else><Localized :label="damage().characteristic!" />{{ damage().baseDamage }} ({{ damage().total }})</span>
 					</div>
 
 					<!-- Critical -->
-					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData.baseWeapon.critical }}</div>
+					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().baseWeapon.critical }}</div>
 
 					<!-- Range -->
 					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData.baseWeapon.range.capitalize()}`" />]</div>
+					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().baseWeapon.range.capitalize()}`" />]</div>
 
 					<!-- Qualities -->
-					<div v-if="weaponData.baseWeapon.qualities.length > 0" class="item-qualities">
+					<div v-if="weaponData().baseWeapon.qualities.length > 0" class="item-qualities">
 						<Tooltip
-							v-for="quality in weaponData.baseWeapon.qualities"
+							v-for="quality in weaponData().baseWeapon.qualities"
 							:key="quality.name"
 							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
 							:localized="quality.description === ''"
@@ -338,17 +349,17 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<!-- Armor Details -->
 				<template v-else-if="item.type === 'armor'">
 					<!-- Soak -->
-					<div v-if="armorData.soak > 0"><Localized label="Genesys.Labels.Soak" /> +{{ armorData.soak }}</div>
-					<div v-else-if="armorData.soak < 0"><Localized label="Genesys.Labels.Soak" /> {{ armorData.soak }}</div>
+					<div v-if="armorData().soak > 0"><Localized label="Genesys.Labels.Soak" /> +{{ armorData().soak }}</div>
+					<div v-else-if="armorData().soak < 0"><Localized label="Genesys.Labels.Soak" /> {{ armorData().soak }}</div>
 
 					<!-- Defense -->
-					<div v-if="armorData.defense > 0"><Localized label="Genesys.Labels.Defense" /> +{{ armorData.defense }}</div>
-					<div v-else-if="armorData.defense < 0"><Localized label="Genesys.Labels.Defense" /> {{ armorData.defense }}</div>
+					<div v-if="armorData().defense > 0"><Localized label="Genesys.Labels.Defense" /> +{{ armorData().defense }}</div>
+					<div v-else-if="armorData().defense < 0"><Localized label="Genesys.Labels.Defense" /> {{ armorData().defense }}</div>
 
 					<!-- Qualities -->
-					<div v-if="armorData.qualities.length > 0" class="item-qualities">
+					<div v-if="armorData().qualities.length > 0" class="item-qualities">
 						<Tooltip
-							v-for="quality in armorData.qualities"
+							v-for="quality in armorData().qualities"
 							:key="quality.name"
 							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
 							:localized="quality.description === ''"
@@ -385,7 +396,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		</a>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
-			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
+			{{ system().encumbrance < 0 ? '+' : null }}{{ Math.abs(system().encumbrance) }} <i class="fas fa-weight-hanging"></i>
 		</div>
 
 		<a
