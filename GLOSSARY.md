@@ -94,6 +94,10 @@ _Avoid_: Inventory category, equipment status
 A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. A container can't hold another container.
 _Avoid_: Bag, pack
 
+**Worn Armor**:
+The armor a character wears: Equipped and held in no container. A character wears one armor: equipping an armor puts the one worn before back to Carried. When older data still has several worn, only the one with the best soak, then the best defense, then the first in item order adds its soak and defense. An armor in a container never adds soak or defense, whatever the container's state.
+_Avoid_: Active armor, armor in use
+
 **Encumbrance**:
 The total encumbrance of a character's or vehicle's equipment (its value), against the threshold above which they are encumbered. Each item adds its encumbrance to the value once per item of its quantity; an item with a negative encumbrance raises the threshold instead, also once per item. On a character, Dropped equipment, including the contents of a Dropped container, counts towards neither the value nor the threshold, and an Equipped armor counts 3 less, to a minimum of 0, for one of its quantity. On a vehicle, all equipment counts, whatever its Equipment State.
 _Avoid_: Weight, load

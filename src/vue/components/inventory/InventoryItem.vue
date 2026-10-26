@@ -12,7 +12,7 @@ import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
-import { containerContents } from '@/actor/data/Inventory';
+import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -111,10 +111,9 @@ async function sendItemToChat() {
 }
 
 async function setItemState(state: EquipmentState) {
-	// A Container's contents take its new state with it.
-	await props.item.update({
-		'system.state': state,
-	});
+	// A Container's contents take its new state with it, and an armor put on takes off the one worn before.
+	const actor = toRaw(context.data.actor);
+	await actor.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.items.contents, props.item.id, state));
 }
 
 function skillForWeapon() {
