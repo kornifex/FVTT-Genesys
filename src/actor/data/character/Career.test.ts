@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { careerSkillUpdates, isCareerSkill, toggledFreeRankChoice } from '@/actor/data/character/Career';
+import { careerSkillUpdates, createdSkillIsCareer, isCareerSkill, toggledFreeRankChoice } from '@/actor/data/character/Career';
 
 describe('isCareerSkill', () => {
 	const careerSkills = [{ name: 'Athletics' }, { name: 'ranged (light)' }];
@@ -17,6 +17,24 @@ describe('isCareerSkill', () => {
 	it('does not match the other skills', () => {
 		expect(isCareerSkill('Cool', careerSkills)).toBe(false);
 		expect(isCareerSkill('Ranged', careerSkills)).toBe(false);
+	});
+});
+
+describe('createdSkillIsCareer', () => {
+	const careerSkills = [{ name: 'ranged' }];
+
+	it('makes a skill the Career lists a career skill, whenever it is created on the character (CRB p. 40)', () => {
+		expect(createdSkillIsCareer({ name: 'Ranged', career: false }, careerSkills)).toBe(true);
+		expect(createdSkillIsCareer({ name: 'Ranged', career: true }, careerSkills)).toBe(true);
+	});
+
+	it('keeps the career value of a skill the Career does not list, so a career skill marked by hand stays one (CRB p. 40)', () => {
+		expect(createdSkillIsCareer({ name: 'Cool', career: false }, careerSkills)).toBe(false);
+		expect(createdSkillIsCareer({ name: 'Cool', career: true }, careerSkills)).toBe(true);
+	});
+
+	it('keeps the career value of a skill created on a character with no Career (CRB p. 40)', () => {
+		expect(createdSkillIsCareer({ name: 'Ranged', career: false }, [])).toBe(false);
 	});
 });
 

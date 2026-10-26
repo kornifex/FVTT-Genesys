@@ -1,6 +1,9 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import type { SkillCategory } from '@/data/Skills';
+import type { GenesysItem } from '@/item/GenesysItem';
+import type { CareerDataModel } from '@/item/data/CareerDataModel';
+import { createdSkillIsCareer } from '@/actor/data/character/Career';
 
 export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
@@ -27,6 +30,24 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	 * (Owned Only) Number of Ranks the player has taken in the skill.
 	 */
 	abstract rank: number;
+
+	/**
+	 * Make a skill created on a character a Career skill when their Career lists it, however it is created.
+	 */
+	async preCreate(
+		skill: GenesysItem<SkillDataModel>,
+		_data: unknown,
+		_options: DocumentModificationContext<GenesysItem<SkillDataModel>>,
+		_user: foundry.documents.BaseUser,
+	) {
+		if (skill.actor?.type !== 'character') {
+			return;
+		}
+
+		const careers = skill.actor.items.filter((item) => item.type === 'career') as GenesysItem<CareerDataModel>[];
+		const careerSkills = careers.flatMap((career) => career.systemData.careerSkills);
+		skill.updateSource({ 'system.career': createdSkillIsCareer({ name: skill.name, career: this.career }, careerSkills) });
+	}
 
 	static override defineSchema() {
 		const fields = foundry.data.fields;
