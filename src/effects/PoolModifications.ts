@@ -80,8 +80,9 @@ export type ExternalPoolModification = {
 	mods: string[];
 };
 
-// The actor types whose effects and defense modify the checks that target them.
-const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis'];
+// The actor types whose effects and defense modify the checks that target them. A vehicle's defense works as a
+// character's (CRB p. 223).
+const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis', 'vehicle'];
 
 const KEY_PREFIX = 'genesys.pool';
 const KEY_PATTERN = /^genesys\.pool\.(check|char|skill)\.(self|target)\.(.*)$/;
