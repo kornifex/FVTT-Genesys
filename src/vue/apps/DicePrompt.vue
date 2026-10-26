@@ -90,7 +90,7 @@ const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
 const probabilityOfSuccess = ref<AlsoNone<string>>();
 
 const characteristicPickable = computed(() => !check.value || canPickCharacteristic(check.value, worldCheckRules()));
-const noCharacteristicOffered = computed(() => !check.value || canRollWithoutCharacteristic(check.value));
+const offersNoCharacteristic = computed(() => !check.value || canRollWithoutCharacteristic(check.value));
 
 const useSuperCharacteristic = ref(false);
 const showPoolModifications = ref(!CONFIG.genesys.settings.startWithCollapsedPoolModifications);
@@ -382,7 +382,7 @@ async function rollPool() {
 				:disabled="!characteristicPickable"
 				@change="onCharacteristicChange"
 			>
-				<option v-if="noCharacteristicOffered" value="-">—</option>
+				<option v-if="offersNoCharacteristic" value="-">—</option>
 				<option v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :value="characteristic">
 					<Localized :label="label" />
 				</option>

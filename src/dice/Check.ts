@@ -140,11 +140,14 @@ export function resolveCheck<S extends CheckSkill>(
 
 	const data = actor.systemData as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
-	// Every skill check has a characteristic (CRB p. 205): none only stands for a check without a skill.
-	const picked = request.characteristic === null && rolledSkill ? undefined : request.characteristic;
+	// A skill check given no characteristic rolls the skill's, as when it is left undefined.
+	const requested =
+		request.characteristic === null && !canRollWithoutCharacteristic({ skill: rolledSkill?.skill })
+			? undefined
+			: request.characteristic;
 	const characteristic =
-		picked !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
-			? picked ?? undefined
+		requested !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
+			? requested ?? undefined
 			: rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic;
 
 	let kind: CheckKind = characteristic ? 'characteristic' : 'pool';
