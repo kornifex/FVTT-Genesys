@@ -58,4 +58,8 @@ describe('checkLinkDifficulty', () => {
 	it('adds a Difficulty die to a Simple check for its first upgrade, and keeps its name (CRB p. 22)', () => {
 		expect(checkLinkDifficulty(0, 1)).toEqual({ label: 'Genesys.Difficulty.Simple', challengeDice: 0, difficultyDice: 1 });
 	});
+
+	it('upgrades an Impossible task from five Difficulty dice (CRB p. 18, 22)', () => {
+		expect(checkLinkDifficulty(6, 6)).toEqual({ label: 'Genesys.Difficulty.Impossible', challengeDice: 5, difficultyDice: 1 });
+	});
 });

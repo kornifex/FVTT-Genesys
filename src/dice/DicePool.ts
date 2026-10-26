@@ -6,7 +6,7 @@ import { GenesysDice } from '@/dice';
 import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
-import { upgradeDie } from '@/dice/DieUpgrades';
+import { downgradeDie, upgradeDie } from '@/dice/DieGrades';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 
@@ -86,10 +86,7 @@ export function applyDicePoolModifications(dicePool: DicePool, modifierTokens: s
 			upgradeDie(dicePool.dice, baseDice, upgradeDice);
 		} else if (modifierToken === '_' || modifierToken === '~') {
 			const [baseDice, downgradeDice]: DieName[] = modifierToken === '_' ? ['Proficiency', 'Ability'] : ['Challenge', 'Difficulty'];
-			if (dicePool.dice[baseDice]) {
-				dicePool.dice[baseDice]--;
-				dicePool.dice[downgradeDice] = 1 + (dicePool.dice[downgradeDice] ?? 0);
-			}
+			downgradeDie(dicePool.dice, baseDice, downgradeDice);
 		} else {
 			// If we reach this branch then the glyph is for a dice or symbol.
 			let targetEntity = modifierToken;

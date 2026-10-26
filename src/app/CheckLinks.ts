@@ -2,8 +2,8 @@
  * @file Check links: the difficulty of a `@check` link, and which actor rolls its check wherever the link is rendered.
  */
 
-import type { DieName } from '@/dice/DicePool';
-import { upgradeDie } from '@/dice/DieUpgrades';
+import type { DicePool } from '@/dice/DicePool';
+import { upgradeDie } from '@/dice/DieGrades';
 
 /**
  * The actors a `@check` link can roll for.
@@ -64,7 +64,7 @@ export type CheckLinkDifficulty = {
  * Challenge die, or adds a Difficulty die when none is left, as the dice prompt upgrades them.
  */
 export function checkLinkDifficulty(level: number, upgrades: number): CheckLinkDifficulty {
-	const dice: Partial<Record<DieName, number>> = { Difficulty: Math.min(level, DIFFICULTY_LABELS.length - 1) };
+	const dice: DicePool['dice'] = { Difficulty: Math.min(level, DIFFICULTY_LABELS.length - 1) };
 	for (let upgrade = 0; upgrade < upgrades; upgrade++) {
 		upgradeDie(dice, 'Difficulty', 'Challenge');
 	}
