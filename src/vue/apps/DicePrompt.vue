@@ -79,6 +79,8 @@ const baseDifficulty = parsePoolModifications(context.difficulty);
 const manualChanges = ref<string[]>([]);
 // The Pool Modifications of the check, each turned on or off by the roller.
 const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
+// The skills the attacking weapon lists, offered first and only there.
+const weaponSkills = ref<PromptSkill[]>([]);
 const availableSkills = ref<PromptSkill[]>([]);
 // Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
 const unrankedSkills = ref<PromptSkill[]>([]);
@@ -101,7 +103,10 @@ onMounted(() => {
 	const actor = toRaw(context.actor);
 
 	if (actor) {
-		const skills = promptSkills(actor.skills, CONFIG.genesys.skills);
+		const weapon = context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon : undefined;
+		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
+		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.systemData.skills : []);
+		weaponSkills.value = skills.weapon;
 		availableSkills.value = skills.owned;
 		unrankedSkills.value = skills.unranked;
 	}
@@ -204,8 +209,7 @@ async function approximateProbability() {
 
 function onSkillChange(event: Event) {
 	const selectedOption = event.currentTarget as HTMLSelectElement;
-	const skill =
-		availableSkills.value.find((s) => s.id === selectedOption.value) ?? unrankedSkills.value.find((s) => s.id === selectedOption.value);
+	const skill = [...weaponSkills.value, ...availableSkills.value, ...unrankedSkills.value].find((s) => s.id === selectedOption.value);
 
 	resolve({ skillName: skill?.name });
 }
@@ -385,6 +389,10 @@ async function rollPool() {
 			<!-- Skill Selection -->
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
+				<optgroup v-if="weaponSkills.length > 0" v-localize:label="'Genesys.DicePrompt.WeaponSkills'">
+					<!-- prettier-ignore -->
+					<option v-for="skill in weaponSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
+				</optgroup>
 				<!-- prettier-ignore -->
 				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
 				<optgroup v-if="unrankedSkills.length > 0" v-localize:label="'Genesys.DicePrompt.UnrankedSkills'">

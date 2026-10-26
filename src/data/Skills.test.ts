@@ -7,6 +7,8 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import {
+	attackSkillChoices,
+	attackSkillName,
 	freeRank,
 	ownedSkill,
 	promptSkills,
@@ -14,7 +16,6 @@ import {
 	skillNamesMatch,
 	skillsByCategory,
 	skillToRoll,
-	weaponSkillName,
 } from '@/data/Skills';
 
 function skill(name: string, rank = 0) {
@@ -69,33 +70,70 @@ describe('skillToRoll', () => {
 	});
 });
 
-describe('weaponSkillName', () => {
+describe('attackSkillName', () => {
 	it('picks the listed skill the actor owns with the highest rank', () => {
-		expect(weaponSkillName([skill('Brawl', 1), skill('melee', 3)], ['Brawl', 'Melee'])).toBe('melee');
+		expect(attackSkillName([skill('Brawl', 1), skill('melee', 3)], { skills: ['Brawl', 'Melee'] })).toBe('melee');
 	});
 
 	it("breaks rank ties by the weapon's order, not the actor's", () => {
-		expect(weaponSkillName([skill('Melee', 2), skill('Brawl', 2)], ['Brawl', 'Melee'])).toBe('Brawl');
+		expect(attackSkillName([skill('Melee', 2), skill('Brawl', 2)], { skills: ['Brawl', 'Melee'] })).toBe('Brawl');
 	});
 
 	it('picks the first listed skill when the actor owns none', () => {
-		expect(weaponSkillName([skill('Cool', 2)], ['Brawl', 'Melee'])).toBe('Brawl');
+		expect(attackSkillName([skill('Cool', 2)], { skills: ['Brawl', 'Melee'] })).toBe('Brawl');
 	});
 
 	it('picks nothing when the weapon lists no skill', () => {
-		expect(weaponSkillName([skill('Cool', 2)], [])).toBeUndefined();
+		expect(attackSkillName([skill('Cool', 2)], { skills: [] })).toBeUndefined();
+	});
+
+	it('picks the chosen skill over a higher ranked one', () => {
+		expect(attackSkillName([skill('Brawl', 1), skill('Melee', 3)], { skills: ['Brawl', 'Melee'], attackSkill: 'Brawl' })).toBe('Brawl');
+	});
+
+	it('ignores a chosen skill the weapon no longer lists', () => {
+		expect(attackSkillName([skill('Brawl', 1), skill('Melee', 3)], { skills: ['Brawl', 'Melee'], attackSkill: 'Ranged' })).toBe(
+			'Melee',
+		);
+	});
+
+	it('matches the chosen skill to the listed and owned ones whatever their case', () => {
+		expect(attackSkillName([skill('brawl', 1), skill('Melee', 3)], { skills: ['Brawl', 'Melee'], attackSkill: 'BRAWL' })).toBe('brawl');
+	});
+
+	it('picks a chosen skill the actor does not own, as an Unranked Skill Check', () => {
+		expect(attackSkillName([skill('Melee', 3)], { skills: ['Brawl', 'Melee'], attackSkill: 'Brawl' })).toBe('Brawl');
+	});
+});
+
+describe('attackSkillChoices', () => {
+	it("offers each skill the weapon lists once, whatever its case, in the weapon's order", () => {
+		expect(attackSkillChoices(['Melee', 'Brawl', 'melee', 'Brawl'])).toEqual(['Melee', 'Brawl']);
 	});
 });
 
 describe('promptSkills', () => {
 	it("offers a character's skills, then the Skills Compendium's others as unranked", () => {
 		const owned = [skill('Ranged (light)', 1), skill('Athletics', 2)];
-		expect(promptSkills(owned, compendium)).toEqual({ owned: [owned[1], owned[0]], unranked: [compendium[1], compendium[3]] });
+		expect(promptSkills(owned, compendium)).toEqual({
+			weapon: [],
+			owned: [owned[1], owned[0]],
+			unranked: [compendium[1], compendium[3]],
+		});
 	});
 
 	it("offers an adversary's few skills, then every other skill of the Skills Compendium as unranked", () => {
 		const owned = [skill('Cool', 2)];
-		expect(promptSkills(owned, compendium)).toEqual({ owned, unranked: [compendium[0], compendium[2], compendium[3]] });
+		expect(promptSkills(owned, compendium)).toEqual({ weapon: [], owned, unranked: [compendium[0], compendium[2], compendium[3]] });
+	});
+
+	it("offers a weapon's skills first, owned or not, in the weapon's order and only there", () => {
+		const owned = [skill('Ranged (light)', 1), skill('Athletics', 2), skill('Cool', 1)];
+		expect(promptSkills(owned, compendium, ['Resilience', 'Ranged (Light)'])).toEqual({
+			weapon: [compendium[3], owned[0]],
+			owned: [owned[1], owned[2]],
+			unranked: [],
+		});
 	});
 });
 

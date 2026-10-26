@@ -65,31 +65,56 @@ export function skillToRoll<S extends Skill>(ownedSkills: S[], compendiumSkills:
 }
 
 /**
- * The name of the skill an actor rolls a weapon with, among the skills the weapon lists: the one they own with the
- * highest rank, then the first in the weapon's order. If they own none, the first listed skill, as an Unranked Skill
- * Check. Undefined when the weapon lists no skill, and it offers no attack.
+ * The skills an actor can choose a weapon's Attack Skill from: each skill the weapon lists, once whatever its case, in
+ * the weapon's order.
  */
-export function weaponSkillName(ownedSkills: Skill[], weaponSkills: string[]): string | undefined {
+export function attackSkillChoices(weaponSkills: string[]) {
+	return weaponSkills.filter((name, index) => weaponSkills.findIndex((other) => skillNamesMatch(other, name)) === index);
+}
+
+/**
+ * The name of a weapon's Attack Skill, among the skills the weapon lists: the chosen one, otherwise the one the actor
+ * owns with the highest rank, then the first in the weapon's order. If they own none, the first listed skill, as an
+ * Unranked Skill Check. Undefined when the weapon lists no skill, and it offers no attack.
+ */
+export function attackSkillName(ownedSkills: Skill[], weapon: { skills: string[]; attackSkill?: string }): string | undefined {
+	const chosen = weapon.skills.find((name) => skillNamesMatch(name, weapon.attackSkill ?? ''));
+	if (chosen) {
+		return ownedSkill(ownedSkills, chosen)?.name ?? chosen;
+	}
+
 	let best: Skill | undefined;
 
-	for (const name of weaponSkills) {
+	for (const name of weapon.skills) {
 		const owned = ownedSkill(ownedSkills, name);
 		if (owned && (!best || owned.system.rank > best.system.rank)) {
 			best = owned;
 		}
 	}
 
-	return best?.name ?? weaponSkills[0];
+	return best?.name ?? weapon.skills[0];
 }
 
 /**
- * The skills the dice prompt offers, sorted by name: those the actor owns, and the Skills Compendium's other skills,
- * which are rolled as Unranked Skill Checks.
+ * The skills the dice prompt offers. For an attack, first the skills the weapon lists, in its order, owned or not;
+ * then, sorted by name, the actor's other skills, and the Skills Compendium's others, which are rolled as Unranked
+ * Skill Checks.
  */
-export function promptSkills<S extends Skill>(ownedSkills: S[], compendiumSkills: S[]) {
+export function promptSkills<S extends Skill>(ownedSkills: S[], compendiumSkills: S[], weaponSkills: string[] = []) {
+	const weapon: S[] = [];
+	for (const name of weaponSkills) {
+		const rolled = skillToRoll(ownedSkills, compendiumSkills, name);
+		if (rolled && !weapon.includes(rolled.skill)) {
+			weapon.push(rolled.skill);
+		}
+	}
+
+	const offered = (skill: S) => !weapon.some((listed) => skillNamesMatch(listed.name, skill.name));
+
 	return {
-		owned: [...ownedSkills].sort(byName),
-		unranked: compendiumSkills.filter((skill) => !ownedSkill(ownedSkills, skill.name)).sort(byName),
+		weapon,
+		owned: ownedSkills.filter(offered).sort(byName),
+		unranked: compendiumSkills.filter((skill) => offered(skill) && !ownedSkill(ownedSkills, skill.name)).sort(byName),
 	};
 }
 

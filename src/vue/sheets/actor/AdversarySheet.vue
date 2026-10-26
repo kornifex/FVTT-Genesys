@@ -12,6 +12,7 @@ import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
+import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -20,7 +21,7 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
-import { weaponSkillName } from '@/data/Skills';
+import { attackSkillChoices, attackSkillName } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
@@ -100,7 +101,7 @@ async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | 
 }
 
 function skillForWeapon(weapon: GenesysItem) {
-	return weaponSkillName(toRaw(context.data.actor).skills, (weapon.systemData as WeaponDataModel).skills);
+	return attackSkillName(toRaw(context.data.actor).skills, weapon.systemData as WeaponDataModel);
 }
 
 function damageForWeapon(weapon: GenesysItem) {
@@ -281,8 +282,16 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
-										<span v-if="skillForWeapon(item)">{{ skillForWeapon(item) }}</span>
-										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
+										<template v-for="attackSkill in [skillForWeapon(item)]" :key="attackSkill ?? 'skill'">
+											<span v-if="attackSkill">
+												<AttackSkillSelect
+													:weapon="item as GenesysItem<WeaponDataModel>"
+													:choices="attackSkillChoices(item.system.skills)"
+													:attack-skill="attackSkill"
+												/>
+											</span>
+											<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
+										</template>
 										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
 										<span

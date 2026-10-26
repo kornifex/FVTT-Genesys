@@ -15,7 +15,8 @@ import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
-import { skillToRoll, weaponSkillName } from '@/data/Skills';
+import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
+import { attackSkillChoices, attackSkillName, skillToRoll } from '@/data/Skills';
 import { weaponDamage } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
@@ -40,7 +41,7 @@ async function deleteItem(item: GenesysItem) {
 }
 
 async function rollAttack(weapon: GenesysItem<WeaponDataModel>) {
-	const skillName = weaponSkillName(actor.value.skills, weapon.systemData.skills);
+	const skillName = attackSkillName(actor.value.skills, weapon.systemData);
 	if (!skillName) {
 		return;
 	}
@@ -60,13 +61,23 @@ async function healInjury(injury: GenesysItem<InjuryDataModel>) {
 }
 
 /**
- * The skill the character rolls the weapon with, and its rank: none for an Unranked Skill Check.
+ * The Attack Skill the character rolls the weapon with, and the skill and its rank when the character or the Skills
+ * Compendium has it: a rank of 0 for an Unranked Skill Check. Undefined when the weapon lists no skill.
  */
-function skillForWeapon(weapon: GenesysItem<WeaponDataModel>): { skill: GenesysItem<SkillDataModel>; rank: number } | undefined {
-	const skillName = weaponSkillName(actor.value.skills, weapon.systemData.skills);
-	const rolledSkill = skillName ? skillToRoll(actor.value.skills, CONFIG.genesys.skills, skillName) : undefined;
+function skillForWeapon(
+	weapon: GenesysItem<WeaponDataModel>,
+): { name: string; skill?: GenesysItem<SkillDataModel>; rank: number } | undefined {
+	const skillName = attackSkillName(actor.value.skills, weapon.systemData);
+	if (!skillName) {
+		return undefined;
+	}
 
-	return rolledSkill && { skill: rolledSkill.skill, rank: rolledSkill.unranked ? 0 : rolledSkill.skill.systemData.rank };
+	const rolledSkill = skillToRoll(actor.value.skills, CONFIG.genesys.skills, skillName);
+	return {
+		name: rolledSkill?.skill.name ?? skillName,
+		skill: rolledSkill?.skill,
+		rank: rolledSkill && !rolledSkill.unranked ? rolledSkill.skill.systemData.rank : 0,
+	};
 }
 </script>
 
@@ -89,13 +100,20 @@ function skillForWeapon(weapon: GenesysItem<WeaponDataModel>): { skill: GenesysI
 						<a v-if="weapon.systemData.skills.length > 0" @click="rollAttack(weapon)">{{ weapon.name }}</a>
 						<span v-else>{{ weapon.name }}</span>
 					</div>
-					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.skill.id ?? 'skill'">
+					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.name ?? 'skill'">
 						<template v-if="weaponSkill">
-							{{ weaponSkill.skill.name }}
+							<!-- A choice the character can't roll stays changeable here. -->
+							<AttackSkillSelect
+								:weapon="weapon"
+								:choices="attackSkillChoices(weapon.systemData.skills)"
+								:attack-skill="weaponSkill.name"
+							/>
 							<SkillRanks
+								v-if="weaponSkill.skill"
 								:skill-value="weaponSkill.rank"
 								:characteristic-value="actor.systemData.characteristics[weaponSkill.skill.systemData.characteristic]"
 							/>
+							<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
