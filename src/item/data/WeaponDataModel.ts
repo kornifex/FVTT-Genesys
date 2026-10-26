@@ -7,6 +7,11 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 	 */
 	abstract damageCharacteristic: Characteristic | '-';
 
+	/**
+	 * Attack Skill chosen by the actor wielding the weapon, among the skills it lists. Empty when none is chosen.
+	 */
+	abstract attackSkill: string;
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -24,6 +29,7 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 					Characteristic.Presence,
 				],
 			}),
+			attackSkill: new fields.StringField({ initial: '' }),
 		};
 	}
 }

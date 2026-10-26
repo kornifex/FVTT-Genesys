@@ -20,7 +20,7 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
-import { weaponSkillName } from '@/data/Skills';
+import { attackSkillName } from '@/data/Skills';
 import { postChatCard } from '@/item/ChatCards';
 import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
 
@@ -117,7 +117,9 @@ async function setItemState(state: EquipmentState) {
 }
 
 function skillForWeapon() {
-	return weaponSkillName(toRaw(context.data.actor).skills, weaponData.value.baseWeapon.skills);
+	// Foundry updates the item out of Vue's sight, so the cached weaponData can lag behind it: read the weapon from the
+	// item on each render of the sheet.
+	return attackSkillName(toRaw(context.data.actor).skills, toRaw(props.item).systemData as WeaponDataModel);
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
@@ -295,7 +297,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<!-- Weapon Details -->
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
 					<!-- Skill -->
-					<div>{{ weaponData.baseWeapon.skills[0] ?? '-' }}</div>
+					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData.baseWeapon.skills[0]) ?? '-' }}</div>
 
 					<!-- Firing Arc -->
 					<!-- prettier-ignore -->

@@ -169,6 +169,7 @@ Genesys:
     Hint: Utiliza el recuadro de dados de la derecha para añadir, incrementar y rebajar. Haz clic en los dados para eliminarlos.
     UseSuperCharacteristic: Tira como una supercaracterística
     UnrankedSkills: Sin rangos
+    WeaponSkills: Habilidades del arma
     PoolModifications:
       Title: Modificaciones de la reserva
       DefaultDifficulty: Dificultad por defecto
