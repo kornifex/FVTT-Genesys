@@ -1,49 +1,42 @@
 import { GenesysActor } from '@/actor/GenesysActor';
-import { GenesysCombat, InitiativeSkill } from '@/combat/GenesysCombat';
+import { GenesysCombat } from '@/combat/GenesysCombat';
+import { chosenInitiativeSkill, InitiativeSkill, initiativeSkillToRoll, nextInitiativeSkill } from '@/combat/InitiativeSkills';
 import { InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
-import { skillNamesMatch } from '@/data/Skills';
 
 export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
-	 * The initiative skill chosen for this combatant, if it's still one of the combat's initiative skills.
+	 * The Initiative Skill chosen for this combatant, if it's still one of the combat's Initiative Skills.
 	 */
 	get initiativeSkill(): InitiativeSkill | undefined {
-		const skillName = this.getFlag<string | undefined>('genesys', 'initiativeSkill');
-
-		if (!skillName) {
-			return undefined;
-		}
-
-		return this.parent.initiativeSkills.find((s) => skillNamesMatch(s.skillName, skillName));
+		return chosenInitiativeSkill(this.parent.initiativeSkills, this.#chosenInitiativeSkillName);
 	}
 
 	/**
-	 * The Initiative Skill this combatant rolls: the one chosen for it, or else the combat's first.
+	 * The Initiative Skill this combatant rolls: the one chosen for it, else Vigilance, else the combat's first.
 	 */
 	get initiativeSkillToRoll(): InitiativeSkill {
-		return this.initiativeSkill ?? this.parent.initiativeSkills[0];
+		return initiativeSkillToRoll(this.parent.initiativeSkills, this.#chosenInitiativeSkillName);
 	}
 
+	get #chosenInitiativeSkillName() {
+		return this.getFlag<string | undefined>('genesys', 'initiativeSkill');
+	}
+
+	/**
+	 * Choose the Initiative Skill this combatant rolls.
+	 */
 	async setInitiativeSkill(skill: InitiativeSkill) {
 		await this.setFlag('genesys', 'initiativeSkill', skill.skillName);
 	}
 
 	/**
-	 * Switch to the combat's next initiative skill, back to the first one after the last.
+	 * Switch to the combat's next Initiative Skill, back to the first one after the last.
 	 */
 	async cycleInitiativeSkill() {
-		const initiativeSkills = this.parent.initiativeSkills;
-		if (initiativeSkills.length < 2) {
-			return;
+		const nextSkill = nextInitiativeSkill(this.parent.initiativeSkills, this.#chosenInitiativeSkillName);
+		if (nextSkill) {
+			await this.setInitiativeSkill(nextSkill);
 		}
-
-		let skillIndex = 0;
-		const currentSkill = this.initiativeSkill;
-		if (currentSkill) {
-			skillIndex = initiativeSkills.findIndex((s) => skillNamesMatch(s.skillName, currentSkill.skillName));
-		}
-
-		await this.setInitiativeSkill(initiativeSkills[(skillIndex + 1) % initiativeSkills.length]);
 	}
 
 	/**

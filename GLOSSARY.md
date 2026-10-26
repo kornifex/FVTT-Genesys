@@ -37,7 +37,7 @@ The act of a combatant taking an unoccupied Initiative Slot of its own side for 
 _Avoid_: Take, assign
 
 **Initiative Skill**:
-A skill flagged as usable for rolling initiative (Cool and Vigilance by default). Each combatant rolls with one chosen Initiative Skill; when none is chosen, the first Initiative Skill of the Skills Compendium is used.
+A skill flagged as usable for rolling initiative (Cool and Vigilance by default). Each combatant rolls with one chosen Initiative Skill; when none is chosen, it rolls Vigilance, or the first Initiative Skill of the Skills Compendium when none is named Vigilance.
 _Avoid_: Initiative type, initiative stat
 
 **Critical Injury**:

@@ -1,4 +1,5 @@
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
+import { InitiativeSkill } from '@/combat/InitiativeSkills';
 import { GenesysRoller, CheckRoll } from '@/dice/GenesysRoller';
 import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -47,11 +48,6 @@ export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
 
 export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
 	prompt?: boolean;
-};
-
-export type InitiativeSkill = {
-	skillName: string;
-	skillChar: Characteristic;
 };
 
 export class GenesysCombat extends Combat {
