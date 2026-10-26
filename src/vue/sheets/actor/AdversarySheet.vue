@@ -110,8 +110,14 @@ function damageForWeapon(weapon: GenesysItem) {
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
 async function toggleSuper(characteristic: CharacteristicType) {
+	const superCharacteristics = toggledSuperCharacteristics(system.value.superCharacteristics, characteristic);
+	if (!superCharacteristics) {
+		ui.notifications.warn('Genesys.Notifications.TooManySuperCharacteristics', { localize: true });
+		return;
+	}
+
 	await toRaw(context.data.actor).update({
-		'system.superCharacteristics': toggledSuperCharacteristics(system.value.superCharacteristics, characteristic),
+		'system.superCharacteristics': superCharacteristics,
 	});
 }
 
