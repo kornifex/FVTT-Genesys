@@ -7,6 +7,8 @@ export type TokenAttributeDetails =
 			editable: boolean;
 			valuePath: string;
 			maxPath: string;
+			/** A change on the bar stops at twice its maximum, as a character's wounds do (CRB p. 113). */
+			cappedAtTwiceMax?: boolean;
 	  }
 	| {
 			label: string;

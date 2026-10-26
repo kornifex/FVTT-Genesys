@@ -97,6 +97,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 			editable: true,
 			valuePath: 'wounds.value',
 			maxPath: 'wounds.max',
+			cappedAtTwiceMax: true,
 		},
 		strain: {
 			label: 'Strain',
