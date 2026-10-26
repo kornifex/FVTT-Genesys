@@ -43,11 +43,21 @@ export type CombatState = {
 	notifications: string[];
 };
 
+/**
+ * A die a roll will land on: its face numbered from 1, in the order of the system's `DieFaces`, out of its face count.
+ */
+export type FixedDie = { face: number; faces: number };
+
 type PageHelpers = {
 	events: string[];
 	notifications: string[];
-	/** Clears the recorded turn events and notifications. */
+	/** Clears the recorded turn events and notifications, and makes the dice random again. */
 	reset(): void;
+	/**
+	 * Makes the next dice rolled in this page land on these faces, one die each in the order the roll rolls them, until
+	 * the next {@link reset}. Once they run out, the dice are random again and the page logs an error.
+	 */
+	fixDice(dice: FixedDie[]): void;
 	/** Replaces combatant ids with their names in a slot id or any other text. */
 	name(text: unknown): string;
 	/** The id of a combatant's slot: its own (-1) or the extra slot of that index. */
@@ -75,6 +85,20 @@ export function installHelpers() {
 		return combatant;
 	};
 
+	const randomUniform = CONFIG.Dice.randomUniform;
+	// The face count of the die being rolled, so that a fixed die given for another die type is caught.
+	let rolling: number | undefined;
+	const DiceTerm = foundry.dice.terms.DiceTerm;
+	const randomFace = DiceTerm.prototype.randomFace;
+	DiceTerm.prototype.randomFace = function (this: { faces: number }, ...args: unknown[]) {
+		rolling = this.faces;
+		try {
+			return randomFace.apply(this, args);
+		} finally {
+			rolling = undefined;
+		}
+	};
+
 	const helpers: PageHelpers = {
 		events: [],
 		notifications: [],
@@ -82,6 +106,24 @@ export function installHelpers() {
 		reset() {
 			helpers.events.length = 0;
 			helpers.notifications.length = 0;
+			CONFIG.Dice.randomUniform = randomUniform;
+		},
+
+		fixDice(dice) {
+			const queue = [...dice];
+			CONFIG.Dice.randomUniform = () => {
+				const die = queue.shift();
+				if (!die) {
+					console.error('e2e: no fixed die left, the roll is random');
+					CONFIG.Dice.randomUniform = randomUniform;
+					return randomUniform();
+				}
+				if (rolling !== undefined && rolling !== die.faces) {
+					console.error(`e2e: a fixed die of ${die.faces} faces was given for a die of ${rolling} faces`);
+				}
+				// DiceTerm#mapRandomFace gives Math.ceil((1 - u) * faces), on v12 as on v13: the middle of the face's interval.
+				return 1 - (die.face - 0.5) / die.faces;
+			};
 		},
 
 		name(text) {

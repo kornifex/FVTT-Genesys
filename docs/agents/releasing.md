@@ -2,6 +2,12 @@
 
 release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges it, after the release's test checklist issue is done.
 
+## Before merging the release PR
+
+1. `pnpm e2e:all` passes on every supported Foundry version, on the release PR's head: it runs every scenario of `e2e/scenarios/` and exits with 1 on a failed assertion ([`e2e/README.md`](../../e2e/README.md)). It needs the licensed installs, so it can't run in CI.
+2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
+3. The checklist items no test proves, listed atop that issue, are tested at the table.
+
 ## Versions
 
 - In 0.x, `feat` and breaking changes bump the minor, `fix` the patch.

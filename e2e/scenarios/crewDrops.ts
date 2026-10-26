@@ -120,17 +120,27 @@ function installCrewHelpers() {
 	};
 }
 
+type Crew = ReturnType<CrewHelpers['crew']>;
+
+const expectedRole = (name: string, { skills = [], members = [] }: { skills?: string[]; members?: string[] } = {}) => ({
+	name,
+	skills,
+	members,
+});
+
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installCrewHelpers);
-	const crew = async (name: string) => {
-		for (const vehicle of ['V1', 'V2']) {
-			e2e.log(`${name} ${vehicle}`, await gm.evaluate((vehicle) => window.crewE2E.crew(vehicle), vehicle));
-		}
-	};
-	const step = async (name: string, action: () => Promise<unknown>) => {
+	// Every step asserts both vehicles' Crew: a drop can wrongly change the vehicle it came from.
+	const step = async (name: string, action: () => Promise<unknown>, expected: { V1: Crew; V2?: Crew }) => {
 		await e2e.step(name, action);
-		await crew(name);
+		for (const vehicle of ['V1', 'V2'] as const) {
+			e2e.expect(
+				`${name} ${vehicle}`,
+				await gm.evaluate((vehicle) => window.crewE2E.crew(vehicle), vehicle),
+				expected[vehicle] ?? { passengers: [], roles: [] },
+			);
+		}
 	};
 	const fromSidebar =
 		(name: string, target: Target, vehicle = 'V1') =>
@@ -150,64 +160,139 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.crewE2E.setUp());
 
 	// Joining: on the sheet anywhere, then on the passengers' slots.
-	await step('A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .section-header|1']));
-	await step('A2 B dropped from the sidebar after A', fromSidebar('B', passengerSlot(2)));
-	await step('A3 C dropped from the sidebar first', fromSidebar('C', passengerSlot(1)));
-	await step('A4 A dropped again from the sidebar is refused', fromSidebar('A', passengerSlot(1)));
+	await step('A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .section-header|1']), {
+		V1: { passengers: ['A'], roles: [] },
+	});
+	await step('A2 B dropped from the sidebar after A', fromSidebar('B', passengerSlot(2)), {
+		V1: { passengers: ['A', 'B'], roles: [] },
+	});
+	await step('A3 C dropped from the sidebar first', fromSidebar('C', passengerSlot(1)), {
+		V1: { passengers: ['C', 'A', 'B'], roles: [] },
+	});
+	await step('A4 A dropped again from the sidebar is refused', fromSidebar('A', passengerSlot(1)), {
+		V1: { passengers: ['C', 'A', 'B'], roles: [] },
+	});
 
 	// Reordering the passengers, from C, A, B.
-	await step('B1 B dragged after C', drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V1', target: passengerSlot(2) }));
-	await step('B2 C dragged after A', drag({ vehicle: 'V1', tile: passengerTile('C') }, { vehicle: 'V1', target: passengerSlot(4) }));
-	await step('B3 A dragged first', drag({ vehicle: 'V1', tile: passengerTile('A') }, { vehicle: 'V1', target: passengerSlot(1) }));
-	await step('B4 B dragged after itself', drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V1', target: passengerSlot(3) }));
+	await step('B1 B dragged after C', drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V1', target: passengerSlot(2) }), {
+		V1: { passengers: ['C', 'B', 'A'], roles: [] },
+	});
+	await step('B2 C dragged after A', drag({ vehicle: 'V1', tile: passengerTile('C') }, { vehicle: 'V1', target: passengerSlot(4) }), {
+		V1: { passengers: ['B', 'A', 'C'], roles: [] },
+	});
+	await step('B3 A dragged first', drag({ vehicle: 'V1', tile: passengerTile('A') }, { vehicle: 'V1', target: passengerSlot(1) }), {
+		V1: { passengers: ['A', 'B', 'C'], roles: [] },
+	});
+	await step(
+		'B4 B dragged after itself',
+		drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V1', target: passengerSlot(3) }),
+		{
+			V1: { passengers: ['A', 'B', 'C'], roles: [] },
+		},
+	);
 
 	// Roles.
-	await step('C1 two Roles added', async () => {
-		await gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .section-header|1', 'a|1']));
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		await gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .section-header|1', 'a|1']));
+	await step(
+		'C1 two Roles added',
+		async () => {
+			await gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .section-header|1', 'a|1']));
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .section-header|1', 'a|1']));
+		},
+		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole(''), expectedRole('')] } },
+	);
+	await step(
+		'C2 Roles renamed',
+		async () => {
+			await gm.evaluate(() => window.crewE2E.rename('V1', 1, 'Pilot'));
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await gm.evaluate(() => window.crewE2E.rename('V1', 2, 'Gunner'));
+		},
+		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot'), expectedRole('Gunner')] } },
+	);
+	await step(
+		'C3 skill dropped on Pilot, then the same skill in lower case',
+		async () => {
+			await gm.evaluate(() =>
+				window.crewE2E.dropFromSidebar(
+					{ type: 'Item', name: 'Piloting' },
+					{ vehicle: 'V1', target: ['.tab-crew .roles .role-section|1'] },
+				),
+			);
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await gm.evaluate(() =>
+				window.crewE2E.dropFromSidebar(
+					{ type: 'Item', name: 'piloting' },
+					{ vehicle: 'V1', target: ['.tab-crew .roles .role-section|1'] },
+				),
+			);
+		},
+		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] }), expectedRole('Gunner')] } },
+	);
+	await step('C4 A dragged to Pilot', drag({ vehicle: 'V1', tile: passengerTile('A') }, { vehicle: 'V1', target: role(1) }), {
+		V1: {
+			passengers: ['B', 'C'],
+			roles: [expectedRole('Pilot', { skills: ['E2E Piloting'], members: ['A'] }), expectedRole('Gunner')],
+		},
 	});
-	await step('C2 Roles renamed', async () => {
-		await gm.evaluate(() => window.crewE2E.rename('V1', 1, 'Pilot'));
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		await gm.evaluate(() => window.crewE2E.rename('V1', 2, 'Gunner'));
+	await step('C5 P dropped from the sidebar on Pilot', fromSidebar('P', role(1)), {
+		V1: {
+			passengers: ['B', 'C'],
+			roles: [expectedRole('Pilot', { skills: ['E2E Piloting'], members: ['A', 'P'] }), expectedRole('Gunner')],
+		},
 	});
-	await step('C3 skill dropped on Pilot, then the same skill in lower case', async () => {
-		await gm.evaluate(() =>
-			window.crewE2E.dropFromSidebar(
-				{ type: 'Item', name: 'Piloting' },
-				{ vehicle: 'V1', target: ['.tab-crew .roles .role-section|1'] },
-			),
-		);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		await gm.evaluate(() =>
-			window.crewE2E.dropFromSidebar(
-				{ type: 'Item', name: 'piloting' },
-				{ vehicle: 'V1', target: ['.tab-crew .roles .role-section|1'] },
-			),
-		);
-	});
-	await step('C4 A dragged to Pilot', drag({ vehicle: 'V1', tile: passengerTile('A') }, { vehicle: 'V1', target: role(1) }));
-	await step('C5 P dropped from the sidebar on Pilot', fromSidebar('P', role(1)));
 	await step(
 		'C6 P dragged before A in Pilot',
 		drag({ vehicle: 'V1', tile: roleMemberTile(1, 2) }, { vehicle: 'V1', target: roleMember(1, 1) }),
+		{
+			V1: {
+				passengers: ['B', 'C'],
+				roles: [expectedRole('Pilot', { skills: ['E2E Piloting'], members: ['P', 'A'] }), expectedRole('Gunner')],
+			},
+		},
 	);
-	await step('C7 C dragged to Gunner', drag({ vehicle: 'V1', tile: passengerTile('C') }, { vehicle: 'V1', target: role(2) }));
+	await step('C7 C dragged to Gunner', drag({ vehicle: 'V1', tile: passengerTile('C') }, { vehicle: 'V1', target: role(2) }), {
+		V1: {
+			passengers: ['B'],
+			roles: [expectedRole('Pilot', { skills: ['E2E Piloting'], members: ['P', 'A'] }), expectedRole('Gunner', { members: ['C'] })],
+		},
+	});
 	await step(
 		'C8 A dragged from Pilot to the passengers',
 		drag({ vehicle: 'V1', tile: roleMemberTile(1, 2) }, { vehicle: 'V1', target: passengerSlot(1) }),
+		{
+			V1: {
+				passengers: ['A', 'B'],
+				roles: [expectedRole('Pilot', { skills: ['E2E Piloting'], members: ['P'] }), expectedRole('Gunner', { members: ['C'] })],
+			},
+		},
 	);
 
 	// Another vehicle.
-	await step('D1 B dragged to V2', drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V2', target: passengerSlot(1) }));
-	await step('D2 D dropped from the sidebar on V2', fromSidebar('D', passengerSlot(1), 'V2'));
+	const v1Roles = (pilots: string[]) => [
+		expectedRole('Pilot', { skills: ['E2E Piloting'], members: pilots }),
+		expectedRole('Gunner', { members: ['C'] }),
+	];
+	await step('D1 B dragged to V2', drag({ vehicle: 'V1', tile: passengerTile('B') }, { vehicle: 'V2', target: passengerSlot(1) }), {
+		V1: { passengers: ['A'], roles: v1Roles(['P']) },
+		V2: { passengers: ['B'], roles: [] },
+	});
+	await step('D2 D dropped from the sidebar on V2', fromSidebar('D', passengerSlot(1), 'V2'), {
+		V1: { passengers: ['A'], roles: v1Roles(['P']) },
+		V2: { passengers: ['D', 'B'], roles: [] },
+	});
 	await step(
 		'D3 P dragged from Pilot to V2 after D',
 		drag({ vehicle: 'V1', tile: roleMemberTile(1, 1) }, { vehicle: 'V2', target: passengerSlot(2) }),
+		{ V1: { passengers: ['A'], roles: v1Roles([]) }, V2: { passengers: ['D', 'P', 'B'], roles: [] } },
 	);
 
-	await step('E1 Gunner deleted', async () =>
-		gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .roles .role-section|2', '.role-name a|1'])),
+	await step(
+		'E1 Gunner deleted',
+		async () => gm.evaluate(() => window.crewE2E.click('V1', ['.tab-crew .roles .role-section|2', '.role-name a|1'])),
+		{
+			V1: { passengers: ['A'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] })] },
+			V2: { passengers: ['D', 'P', 'B'], roles: [] },
+		},
 	);
 }
