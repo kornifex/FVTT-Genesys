@@ -9,6 +9,7 @@ import {
 	decodeInitiative,
 	encodeInitiative,
 	ExtraSlot,
+	extraSlotResets,
 	extraSlotsForRound,
 	InitiativeSide,
 	InitiativeSlot,
@@ -208,6 +209,14 @@ describe('slotView', () => {
 		expect(slotView({ ...claimed, claimantId: 'rogue' }, true, player).controlsTurn).toBe(false);
 		expect(slotView(unclaimed, true, player).controlsTurn).toBe(false);
 	});
+
+	it("lets the owners of the slot's origin roll its initiative and cycle its Initiative Skill, whoever claimed it", () => {
+		const [rogueSlot] = buildSlots([combatant('rogue', null)], []);
+
+		expect(slotView({ ...unclaimed, claimantId: 'rogue' }, true, player).canRollInitiative).toBe(true);
+		expect(slotView({ ...rogueSlot, claimantId: 'hero' }, true, player).canRollInitiative).toBe(false);
+		expect(slotView(rogueSlot, true, gm).canRollInitiative).toBe(true);
+	});
 });
 
 describe('extraSlotsForRound', () => {
@@ -231,6 +240,19 @@ describe('withExtraSlotInitiatives', () => {
 
 	it('ignores writes to an index the combat does not store', () => {
 		expect(withExtraSlotInitiatives([storedSlot('boss', 1)], [{ index: 3, initiative: 2 }])).toEqual([storedSlot('boss', 1)]);
+	});
+});
+
+describe('extraSlotResets', () => {
+	it('resets every extra slot, including those of a later round', () => {
+		const stored = [storedSlot('boss', 1, 102), storedSlot('hero', 2), storedSlot('boss', 5, 300)];
+
+		expect(withExtraSlotInitiatives(stored, extraSlotResets(stored)).map((slot) => slot.initiative)).toEqual([null, null, null]);
+	});
+
+	it('writes nothing when no extra slot has initiative', () => {
+		expect(extraSlotResets([storedSlot('boss', 1), storedSlot('hero', 3)])).toEqual([]);
+		expect(extraSlotResets([])).toEqual([]);
 	});
 });
 

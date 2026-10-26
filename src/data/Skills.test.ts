@@ -10,6 +10,7 @@ import {
 	attackSkillChoices,
 	attackSkillName,
 	freeRank,
+	isOwnedSkillDrop,
 	ownedSkill,
 	promptSkills,
 	SkillCategory,
@@ -52,6 +53,17 @@ describe('ownedSkill', () => {
 
 	it('finds nothing the actor does not own', () => {
 		expect(ownedSkill([skill('Cool', 1)], 'Athletics')).toBeUndefined();
+	});
+});
+
+describe('isOwnedSkillDrop', () => {
+	it('refuses a skill the character owns, whatever the case of its name', () => {
+		expect(isOwnedSkillDrop([skill('Cool', 1), skill('Ranged (light)', 2)], { type: 'skill', name: 'RANGED (Light)' })).toBe(true);
+	});
+
+	it('lets through a skill the character does not own, and an item of another type named as an owned skill', () => {
+		expect(isOwnedSkillDrop([skill('Cool', 1)], { type: 'skill', name: 'Athletics' })).toBe(false);
+		expect(isOwnedSkillDrop([skill('Cool', 1)], { type: 'talent', name: 'cool' })).toBe(false);
 	});
 });
 

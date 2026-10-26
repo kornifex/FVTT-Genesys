@@ -19,6 +19,7 @@ import {
 	CheckSkill,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
+	carriedPoolModificationStates,
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
@@ -244,6 +245,47 @@ describe('checkDicePool', () => {
 			symbols: { Success: 1 },
 			usesSuperCharacteristic: false,
 		});
+	});
+});
+
+describe('carriedPoolModificationStates', () => {
+	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 2), skill('Cool', Characteristic.Presence, 1)], {
+		effects: [
+			effect('Steady', [{ key: 'genesys.pool.check.self.', value: 'B' }]),
+			effect('Dueling', [{ key: 'genesys.pool.skill.self.Melee', value: 'B' }]),
+			effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }]),
+		],
+	});
+	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
+	const before = [
+		{ key: 'self.effect.Steady', enabled: false },
+		{ key: 'self.effect.Dueling', enabled: true },
+	];
+	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
+	const states = (autoApply: boolean) =>
+		carriedPoolModificationStates(before, cool.poolModifications, autoApply).map(({ key, enabled }) => ({ key, enabled }));
+
+	it('keeps the state of the Pool Modifications still listed, and turns new ones on when auto-apply is on', () => {
+		expect(states(true)).toEqual([
+			{ key: 'self.effect.Steady', enabled: false },
+			{ key: 'self.effect.Alert', enabled: true },
+		]);
+	});
+
+	it('leaves new Pool Modifications off when auto-apply is off', () => {
+		expect(states(false)).toEqual([
+			{ key: 'self.effect.Steady', enabled: false },
+			{ key: 'self.effect.Alert', enabled: false },
+		]);
+	});
+
+	it('keeps what each Pool Modification is and does', () => {
+		const [steady, alert] = cool.poolModifications;
+
+		expect(carriedPoolModificationStates(before, cool.poolModifications, true)).toEqual([
+			{ ...steady, enabled: false },
+			{ ...alert, enabled: true },
+		]);
 	});
 });
 

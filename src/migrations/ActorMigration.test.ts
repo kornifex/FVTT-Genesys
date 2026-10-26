@@ -7,6 +7,7 @@ import {
 	ActorChanges,
 	ActorPack,
 	ActorWorld,
+	isWorldActorPack,
 	migrateActors,
 	runMigrationChain,
 	walkActors,
@@ -90,6 +91,18 @@ describe('walkActors', () => {
 		await walkActors({ worldActors: () => [], tokenActors: () => [], actorPacks: () => [pack] }, async () => {});
 
 		expect(log).toEqual(['open pack (locked: false)']);
+	});
+});
+
+describe('isWorldActorPack', () => {
+	it("visits the world's own actor compendiums", () => {
+		expect(isWorldActorPack({ type: 'Actor', packageType: 'world' })).toBe(true);
+	});
+
+	it('leaves alone the actor compendiums of modules and of the system, and the compendiums of other documents', () => {
+		expect(isWorldActorPack({ type: 'Actor', packageType: 'module' })).toBe(false);
+		expect(isWorldActorPack({ type: 'Actor', packageType: 'system' })).toBe(false);
+		expect(isWorldActorPack({ type: 'Item', packageType: 'world' })).toBe(false);
 	});
 });
 

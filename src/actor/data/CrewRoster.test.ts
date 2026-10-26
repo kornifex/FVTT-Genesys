@@ -330,6 +330,29 @@ describe('crewSkillsBySkill', () => {
 			{ skillName: 'Piloting', skillImage: 'Piloting.svg', members: [rolled[0]] },
 		]);
 	});
+
+	it('names a skill as the Skills Compendium names it, whatever the case its Roles list it in', () => {
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['PILOTING', 'gunnery'], members: [] };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: [] };
+		const compendium = [
+			{ name: 'Gunnery', img: 'gunnery.svg' },
+			{ name: 'Piloting', img: 'piloting.svg' },
+		];
+
+		expect(crewSkillsBySkill({ passengers: [], roles: [pilot, gunner] }, [], compendium, 'en')).toEqual([
+			{ skillName: 'Gunnery', skillImage: 'gunnery.svg', members: [] },
+			{ skillName: 'Piloting', skillImage: 'piloting.svg', members: [] },
+		]);
+	});
+
+	it('lists a Role skill missing from the Skills Compendium once a member rolls it, with the image of their skill', () => {
+		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation', 'Sensors'], members: ['N'] };
+		const astrogation = { member: 'N', role: navigator, skillName: 'Astrogation', skill: { name: 'astrogation', img: 'stars.svg' } };
+
+		expect(crewSkillsBySkill({ passengers: [], roles: [navigator] }, [astrogation], [], 'en')).toEqual([
+			{ skillName: 'Astrogation', skillImage: 'stars.svg', members: [astrogation] },
+		]);
+	});
 });
 
 describe('crewSkillsByMember', () => {

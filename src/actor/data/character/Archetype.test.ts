@@ -15,6 +15,7 @@ import {
 	canRemoveArchetype,
 	grantedNonSkills,
 	grantedSkillRankUpdates,
+	grantsItem,
 	heldNonSkillsGrantedBy,
 	removeArchetype,
 } from '@/actor/data/character/Archetype';
@@ -122,6 +123,17 @@ describe('granted items', () => {
 
 	it('embeds everything but skills: its abilities and talents (CRB p. 35)', () => {
 		expect(grantedNonSkills(archetypeGrants().grantedItems).map((i) => i.name)).toEqual(['Tough', 'Grit']);
+	});
+
+	it('already grants a skill named with another case, so a drop of it is refused', () => {
+		expect(grantsItem(archetypeGrants().grantedItems, { type: 'skill', name: 'ATHLETICS' })).toBe(true);
+		expect(grantsItem(archetypeGrants().grantedItems, { type: 'skill', name: 'Brawl' })).toBe(false);
+	});
+
+	it('already grants an item of another type only under the same type and exact name', () => {
+		expect(grantsItem(archetypeGrants().grantedItems, { type: 'talent', name: 'Grit' })).toBe(true);
+		expect(grantsItem(archetypeGrants().grantedItems, { type: 'talent', name: 'grit' })).toBe(false);
+		expect(grantsItem(archetypeGrants().grantedItems, { type: 'ability', name: 'Grit' })).toBe(false);
 	});
 
 	describe('with flagged granted items', () => {
