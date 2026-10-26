@@ -1,4 +1,7 @@
-/** @file An actor's inventory: the drops it receives, and its Containers, whose contents share their Equipment State. */
+/**
+ * @file An actor's inventory: the drops it receives, the armor a character wears, and its Containers, whose contents share
+ * their Equipment State.
+ */
 
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -15,6 +18,11 @@ export type InventoryItem = {
 	sort: number;
 	system: { state: EquipmentState; container: string };
 };
+
+/**
+ * An item in the place it is put. Its id is empty when it is yet to be created.
+ */
+type PlacedItem = Pick<InventoryItem, 'id' | 'type' | 'system'>;
 
 /**
  * The actor receiving a drop.
@@ -126,7 +134,7 @@ export function wornArmor<T extends InventoryItem>(items: T[]) {
 	return items.filter(isWornArmor);
 }
 
-function isWornArmor(item: Pick<InventoryItem, 'type' | 'system'>) {
+function isWornArmor(item: PlacedItem) {
 	return item.type === 'armor' && item.system.state === EquipmentState.Equipped && item.system.container === '';
 }
 
@@ -135,14 +143,14 @@ function isWornArmor(item: Pick<InventoryItem, 'type' | 'system'>) {
  * Equipped in no Container: a character benefits from one piece of armor (CRB p. 92). Weapons and gear can be equipped
  * together.
  */
-function takeOffWornArmor(items: InventoryItem[], landing: Pick<InventoryItem, 'id' | 'type' | 'system'>): ItemUpdate[] {
-	if (!isWornArmor(landing)) {
+function takeOffWornArmor(items: InventoryItem[], placed: PlacedItem): ItemUpdate[] {
+	if (!isWornArmor(placed)) {
 		return [];
 	}
 
 	const end = sectionItems(items, EquipmentState.Carried).at(-1)?.sort ?? 0;
 	return wornArmor(items)
-		.filter((armor) => armor.id !== landing.id)
+		.filter((armor) => armor.id !== placed.id)
 		.map((armor, index) => ({ _id: armor.id, sort: end + (index + 1) * SORT_DENSITY, system: { state: EquipmentState.Carried } }));
 }
 
@@ -150,7 +158,7 @@ function takeOffWornArmor(items: InventoryItem[], landing: Pick<InventoryItem, '
  * The updates that put an item of an actor in an Equipment State: its own, and those that take off the armor it
  * replaces.
  */
-export function stateUpdates(items: InventoryItem[], id: string, state: EquipmentState): ItemUpdate[] {
+export function equipmentStateUpdates(items: InventoryItem[], id: string, state: EquipmentState): ItemUpdate[] {
 	const item = items.find((held) => held.id === id);
 	if (!item) {
 		return [];
@@ -299,8 +307,10 @@ export function decideDrop(receiver: Receiver, { item, from, at }: Drop, newId: 
 	}
 
 	const { state, container, sort } = place;
+	// An item from elsewhere is created with a new id, even when the receiver holds one with its id (a duplicated actor).
 	// The armor taken off leaves the section, so the section's new sort order doesn't move it.
-	const takenOff = takeOffWornArmor(receiver.items, { id: item.id, type: item.type, system: { state, container } });
+	const placedId = from?.uuid === receiver.uuid ? item.id : '';
+	const takenOff = takeOffWornArmor(receiver.items, { id: placedId, type: item.type, system: { state, container } });
 	const update = [...place.update.filter((sorted) => !takenOff.some((armor) => armor._id === sorted._id)), ...takenOff];
 	if (from?.uuid === receiver.uuid) {
 		if (staysInPlace(receiver, item, at)) {

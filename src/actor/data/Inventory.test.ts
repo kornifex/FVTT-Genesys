@@ -9,7 +9,14 @@ vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });
 
-import { decideDrop, heldByDeletedContainers, InventoryItem, containerStateUpdates, stateUpdates, wornArmor } from '@/actor/data/Inventory';
+import {
+	decideDrop,
+	heldByDeletedContainers,
+	InventoryItem,
+	containerStateUpdates,
+	equipmentStateUpdates,
+	wornArmor,
+} from '@/actor/data/Inventory';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 function item(id: string, type: string, state = EquipmentState.Carried, sort = 0, container = ''): InventoryItem {
@@ -143,6 +150,20 @@ describe('decideDrop', () => {
 			],
 			delete: [],
 		});
+	});
+
+	it('takes off the worn armor when an armor from another actor with the same id is equipped (CRB p. 92)', () => {
+		const pc = { uuid: 'Actor.pc', type: 'character', items: [item('jacket', 'armor', EquipmentState.Equipped, 100000)] };
+		const twin = item('jacket', 'armor', EquipmentState.Equipped);
+		const copy = { uuid: 'Actor.copy', isOwner: true, items: [twin] };
+
+		const decision = decideDrop(
+			pc,
+			{ item: twin, from: copy, at: { kind: 'section', state: EquipmentState.Equipped, after: 0 } },
+			newIds(),
+		);
+
+		expect(decision).toMatchObject({ update: [{ _id: 'jacket', system: { state: EquipmentState.Carried } }] });
 	});
 
 	it('leaves the worn armor on when a weapon is equipped or an armor goes into a Container', () => {
@@ -397,11 +418,11 @@ describe('decideDrop', () => {
 	});
 });
 
-describe('stateUpdates', () => {
+describe('equipmentStateUpdates', () => {
 	it('puts an item in an Equipment State', () => {
 		const items = [item('jacket', 'armor', EquipmentState.Equipped), item('sword', 'weapon')];
 
-		expect(stateUpdates(items, 'sword', EquipmentState.Equipped)).toEqual([
+		expect(equipmentStateUpdates(items, 'sword', EquipmentState.Equipped)).toEqual([
 			{ _id: 'sword', system: { state: EquipmentState.Equipped } },
 		]);
 	});
@@ -413,7 +434,7 @@ describe('stateUpdates', () => {
 			item('rope', 'gear', EquipmentState.Carried, 200000),
 		];
 
-		expect(stateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([
+		expect(equipmentStateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([
 			{ _id: 'mail', system: { state: EquipmentState.Equipped } },
 			{ _id: 'jacket', sort: 300000, system: { state: EquipmentState.Carried } },
 		]);
@@ -426,7 +447,9 @@ describe('stateUpdates', () => {
 			item('mail', 'armor', EquipmentState.Carried, 0, 'backpack'),
 		];
 
-		expect(stateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([{ _id: 'mail', system: { state: EquipmentState.Equipped } }]);
+		expect(equipmentStateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([
+			{ _id: 'mail', system: { state: EquipmentState.Equipped } },
+		]);
 	});
 });
 
