@@ -1,5 +1,5 @@
 /**
- * @file A character's soak and defense, from their own values, their Brawn and their worn armor.
+ * @file A character's soak and defense, from their own values, their Brawn and their worn armor, and an adversary's defense.
  */
 
 import type { Defense } from '@/data/Actors';
@@ -31,7 +31,7 @@ export function totalSoak(ownSoak: number, brawn: number, armor: WornArmor[]) {
 	return ownSoak + brawn + (protectingArmor(armor)?.soak ?? 0);
 }
 
-// No character can have a defense rating higher than 4.
+// No character, PC or Adversary, can have a defense rating higher than 4.
 const MAX_DEFENSE = 4;
 
 /**
@@ -44,4 +44,11 @@ export function totalDefense(defense: Defense, armor: WornArmor[]): Defense {
 		melee: Math.min(MAX_DEFENSE, defense.melee + armorDefense),
 		ranged: Math.min(MAX_DEFENSE, defense.ranged + armorDefense),
 	};
+}
+
+/**
+ * An Adversary's melee and ranged defense: their stat block's, which already counts their armor, up to 4.
+ */
+export function adversaryDefense(defense: Defense): Defense {
+	return totalDefense(defense, []);
 }

@@ -3,6 +3,7 @@
  */
 
 import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { adversaryDefense } from '@/actor/data/Protection';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
@@ -56,10 +57,10 @@ export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 	}
 
 	/**
-	 * Total value for Defense. An adversary's stat block already counts their armor.
+	 * Total value for Defense, capped as a character's is.
 	 */
 	get totalDefense(): Defense {
-		return this.defense;
+		return adversaryDefense(this.defense);
 	}
 
 	static override defineSchema() {
