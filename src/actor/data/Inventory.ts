@@ -119,6 +119,47 @@ export function sectionItems<T extends InventoryItem>(items: T[], state: Equipme
 }
 
 /**
+ * The armor a character wears: Equipped and held in no Container. An armor in a Container is packed away, whatever the
+ * Container's state.
+ */
+export function wornArmor<T extends InventoryItem>(items: T[]) {
+	return items.filter(isWornArmor);
+}
+
+function isWornArmor(item: Pick<InventoryItem, 'type' | 'system'>) {
+	return item.type === 'armor' && item.system.state === EquipmentState.Equipped && item.system.container === '';
+}
+
+/**
+ * The updates that take off a character's worn armor, to the end of the Carried section, when another armor lands
+ * Equipped in no Container: a character benefits from one piece of armor (CRB p. 92). Weapons and gear can be equipped
+ * together.
+ */
+function takeOffWornArmor(items: InventoryItem[], landing: Pick<InventoryItem, 'id' | 'type' | 'system'>): ItemUpdate[] {
+	if (!isWornArmor(landing)) {
+		return [];
+	}
+
+	const end = sectionItems(items, EquipmentState.Carried).at(-1)?.sort ?? 0;
+	return wornArmor(items)
+		.filter((armor) => armor.id !== landing.id)
+		.map((armor, index) => ({ _id: armor.id, sort: end + (index + 1) * SORT_DENSITY, system: { state: EquipmentState.Carried } }));
+}
+
+/**
+ * The updates that put an item of an actor in an Equipment State: its own, and those that take off the armor it
+ * replaces.
+ */
+export function stateUpdates(items: InventoryItem[], id: string, state: EquipmentState): ItemUpdate[] {
+	const item = items.find((held) => held.id === id);
+	if (!item) {
+		return [];
+	}
+
+	return [{ _id: id, system: { state } }, ...takeOffWornArmor(items, { ...item, system: { ...item.system, state } })];
+}
+
+/**
  * The contents of a Container, in item order.
  */
 export function containerContents<T extends InventoryItem>(items: T[], containerId: string) {
@@ -257,7 +298,10 @@ export function decideDrop(receiver: Receiver, { item, from, at }: Drop, newId: 
 		return { action: 'refuse' };
 	}
 
-	const { state, container, sort, update } = place;
+	const { state, container, sort } = place;
+	// The armor taken off leaves the section, so the section's new sort order doesn't move it.
+	const takenOff = takeOffWornArmor(receiver.items, { id: item.id, type: item.type, system: { state, container } });
+	const update = [...place.update.filter((sorted) => !takenOff.some((armor) => armor._id === sorted._id)), ...takenOff];
 	if (from?.uuid === receiver.uuid) {
 		if (staysInPlace(receiver, item, at)) {
 			return { action: 'move', create: [], update: [], delete: [] };

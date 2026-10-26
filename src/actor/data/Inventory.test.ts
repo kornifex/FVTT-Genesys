@@ -9,7 +9,7 @@ vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });
 
-import { decideDrop, heldByDeletedContainers, InventoryItem, containerStateUpdates } from '@/actor/data/Inventory';
+import { decideDrop, heldByDeletedContainers, InventoryItem, containerStateUpdates, stateUpdates, wornArmor } from '@/actor/data/Inventory';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 function item(id: string, type: string, state = EquipmentState.Carried, sort = 0, container = ''): InventoryItem {
@@ -115,6 +115,51 @@ describe('decideDrop', () => {
 			create: [{ system: { state: EquipmentState.Equipped } }],
 		});
 		expect(decideDrop(vehicle, { item: item('sword', 'weapon'), at: equipped }, newIds())).toEqual({ action: 'refuse' });
+	});
+
+	it('takes off the worn armor, to the end of the Carried section, when another armor is equipped (CRB p. 92)', () => {
+		const pc = {
+			uuid: 'Actor.pc',
+			type: 'character',
+			items: [
+				item('jacket', 'armor', EquipmentState.Equipped, 100000),
+				item('sword', 'weapon', EquipmentState.Equipped, 200000),
+				item('rope', 'gear', EquipmentState.Carried, 100000),
+			],
+		};
+
+		const decision = decideDrop(
+			pc,
+			{ item: item('mail', 'armor'), at: { kind: 'section', state: EquipmentState.Equipped, after: -1 } },
+			newIds(),
+		);
+
+		expect(decision).toEqual({
+			action: 'copy',
+			create: [{ sourceId: 'mail', _id: 'new1', sort: 100000, system: { state: EquipmentState.Equipped, container: '' } }],
+			update: [
+				{ _id: 'sword', sort: 300000 },
+				{ _id: 'jacket', sort: 200000, system: { state: EquipmentState.Carried } },
+			],
+			delete: [],
+		});
+	});
+
+	it('leaves the worn armor on when a weapon is equipped or an armor goes into a Container', () => {
+		const pc = {
+			uuid: 'Actor.pc',
+			type: 'character',
+			items: [
+				item('jacket', 'armor', EquipmentState.Equipped, 100000),
+				item('backpack', 'container', EquipmentState.Equipped, 200000),
+			],
+		};
+		const equipped = { kind: 'section', state: EquipmentState.Equipped, after: 1 } as const;
+
+		expect(decideDrop(pc, { item: item('sword', 'weapon'), at: equipped }, newIds())).toMatchObject({ update: [] });
+		expect(decideDrop(pc, { item: item('mail', 'armor'), at: { kind: 'container', id: 'backpack' } }, newIds())).toMatchObject({
+			update: [],
+		});
 	});
 
 	it("puts an item dropped into a Container in it, with the Container's Equipment State", () => {
@@ -309,6 +354,27 @@ describe('decideDrop', () => {
 			});
 		});
 
+		it('takes off the worn armor when a carried armor is equipped (CRB p. 92)', () => {
+			const mail = item('mail', 'armor', EquipmentState.Carried, 100000);
+			const [pc, from] = pcWith(item('jacket', 'armor', EquipmentState.Equipped, 100000), mail);
+
+			const decision = decideDrop(
+				pc,
+				{ item: mail, from, at: { kind: 'section', state: EquipmentState.Equipped, after: 0 } },
+				newIds(),
+			);
+
+			expect(decision).toEqual({
+				action: 'move',
+				create: [],
+				update: [
+					{ _id: 'mail', sort: 200000, system: { state: EquipmentState.Equipped, container: '' } },
+					{ _id: 'jacket', sort: 200000, system: { state: EquipmentState.Carried } },
+				],
+				delete: [],
+			});
+		});
+
 		it('puts an item into a Container', () => {
 			const rope = item('rope', 'gear', EquipmentState.Carried, 200000);
 			const [pc, from] = pcWith(item('bag', 'container', EquipmentState.Dropped), rope);
@@ -328,6 +394,39 @@ describe('decideDrop', () => {
 			expect(decideDrop(pc, { item: rope, from, at: { kind: 'container', id: 'bag' } }, newIds())).toEqual(NOTHING);
 			expect(decideDrop(pc, { item: rope, from, at: { kind: 'sheet' } }, newIds())).toEqual(NOTHING);
 		});
+	});
+});
+
+describe('stateUpdates', () => {
+	it('puts an item in an Equipment State', () => {
+		const items = [item('jacket', 'armor', EquipmentState.Equipped), item('sword', 'weapon')];
+
+		expect(stateUpdates(items, 'sword', EquipmentState.Equipped)).toEqual([
+			{ _id: 'sword', system: { state: EquipmentState.Equipped } },
+		]);
+	});
+
+	it('takes off the worn armor, to the end of the Carried section, when another armor is equipped (CRB p. 92)', () => {
+		const items = [
+			item('jacket', 'armor', EquipmentState.Equipped, 100000),
+			item('mail', 'armor', EquipmentState.Carried, 100000),
+			item('rope', 'gear', EquipmentState.Carried, 200000),
+		];
+
+		expect(stateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([
+			{ _id: 'mail', system: { state: EquipmentState.Equipped } },
+			{ _id: 'jacket', sort: 300000, system: { state: EquipmentState.Carried } },
+		]);
+	});
+
+	it("leaves the worn armor on when an armor held in a Container is equipped, as it keeps the Container's state", () => {
+		const items = [
+			item('jacket', 'armor', EquipmentState.Equipped),
+			item('backpack', 'container'),
+			item('mail', 'armor', EquipmentState.Carried, 0, 'backpack'),
+		];
+
+		expect(stateUpdates(items, 'mail', EquipmentState.Equipped)).toEqual([{ _id: 'mail', system: { state: EquipmentState.Equipped } }]);
 	});
 });
 
@@ -371,5 +470,20 @@ describe('heldByDeletedContainers', () => {
 		];
 
 		expect(heldByDeletedContainers(items, ['bag', 'lamp-stand'])).toEqual(['rope', 'pouch', 'coin']);
+	});
+});
+
+describe('wornArmor', () => {
+	it('lists the Equipped armor held in no Container (CRB p. 92)', () => {
+		const jacket = item('jacket', 'armor', EquipmentState.Equipped);
+		const items = [
+			jacket,
+			item('mail', 'armor', EquipmentState.Carried),
+			item('backpack', 'container', EquipmentState.Equipped),
+			item('vest', 'armor', EquipmentState.Equipped, 0, 'backpack'),
+			item('sword', 'weapon', EquipmentState.Equipped),
+		];
+
+		expect(wornArmor(items)).toEqual([jacket]);
 	});
 });

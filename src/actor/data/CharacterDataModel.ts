@@ -11,11 +11,11 @@ import {
 	isEncumbered,
 } from '@/actor/data/Encumbrance';
 import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
+import { wornArmor } from '@/actor/data/Inventory';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { CombatPool, Defense } from '@/data/Actors';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
@@ -118,23 +118,21 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	}
 
 	/**
-	 * Total value for Soak (base + Brawn + Armor).
+	 * Total value for Soak (base + Brawn + worn armor).
 	 */
 	get totalSoak(): number {
-		return totalSoak(this.soak, this.characteristics.brawn, this.#equippedArmor());
+		return totalSoak(this.soak, this.characteristics.brawn, this.#wornArmor());
 	}
 
 	/**
-	 * Total value for Defense (base defenses + armor).
+	 * Total value for Defense (base defenses + worn armor).
 	 */
 	get totalDefense(): Defense {
-		return totalDefense(this.defense, this.#equippedArmor());
+		return totalDefense(this.defense, this.#wornArmor());
 	}
 
-	#equippedArmor() {
-		return (<CharacterActor>(<unknown>this.parent)).items
-			.filter((i) => i.type === 'armor' && (<ArmorItem>i).systemData.state === EquipmentState.Equipped)
-			.map((i) => (<ArmorItem>i).systemData);
+	#wornArmor() {
+		return wornArmor((<CharacterActor>(<unknown>this.parent)).items.contents as ArmorItem[]).map((armor) => armor.systemData);
 	}
 
 	/**

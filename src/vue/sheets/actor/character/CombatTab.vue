@@ -3,6 +3,7 @@ import { computed, inject, toRaw } from 'vue';
 import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
 import Localized from '@/vue/components/Localized.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
@@ -27,12 +28,7 @@ const weapons = computed(
 			(i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
 		) as GenesysItem<WeaponDataModel>[],
 );
-const armors = computed(
-	() =>
-		toRaw(rootContext.data.actor).items.filter(
-			(i) => i.type === 'armor' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
-		) as GenesysItem<ArmorDataModel>[],
-);
+const armors = computed(() => wornArmor(toRaw(rootContext.data.actor).items.contents as GenesysItem<ArmorDataModel>[]));
 const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 async function openItem(item: GenesysItem) {
