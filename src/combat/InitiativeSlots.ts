@@ -103,10 +103,12 @@ function slotId(originId: string, activationId: number) {
 }
 
 /**
- * The initiative of a check, as stored on a combatant: net successes, with net advantages as hundredths.
+ * The initiative of a check, as stored on a combatant: its Successes, with its Advantage as hundredths.
  */
 export function encodeInitiative(netSuccess: number, netAdvantage: number) {
-	return netSuccess + netAdvantage / 100;
+	// Initiative ranks by the Successes and Advantage left after canceling: leftover Failures and Threats count as none
+	// (CRB p. 96). This also keeps the stored value from going negative, which decodeInitiative can't read back.
+	return Math.max(netSuccess, 0) + Math.max(netAdvantage, 0) / 100;
 }
 
 export function decodeInitiative(initiative: number | null) {
