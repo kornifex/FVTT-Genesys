@@ -7,7 +7,6 @@ import {
 	buildSlots,
 	claimRefusal,
 	decodeInitiative,
-	Disposition,
 	encodeInitiative,
 	ExtraSlot,
 	extraSlotsForRound,
@@ -22,8 +21,8 @@ import {
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 
-function combatant(id: string, initiative: number | null, disposition: Disposition = 'friendly') {
-	return { id, initiative, disposition };
+function combatant(id: string, initiative: number | null, hasPlayerOwner = true) {
+	return { id, initiative, hasPlayerOwner };
 }
 
 function extraSlot(activationSource: string, index: number, initiative: number | null): ExtraSlot {
@@ -48,10 +47,10 @@ describe('buildSlots', () => {
 		expect(order(slots)).toEqual(['c:-1', 'd:-1', 'a:-1', 'b:-1']);
 	});
 
-	it('breaks initiative ties by disposition, friendly first, then by combatant id', () => {
-		const slots = buildSlots([combatant('h', 2, 'hostile'), combatant('n', 2, 'neutral'), combatant('f2', 2), combatant('f1', 2)], []);
+	it('breaks initiative ties with PC slots first, then by combatant id (CRB p. 96)', () => {
+		const slots = buildSlots([combatant('npc2', 2, false), combatant('npc1', 2, false), combatant('pc2', 2), combatant('pc1', 2)], []);
 
-		expect(order(slots)).toEqual(['f1:-1', 'f2:-1', 'n:-1', 'h:-1']);
+		expect(order(slots)).toEqual(['pc1:-1', 'pc2:-1', 'npc1:-1', 'npc2:-1']);
 	});
 
 	it('ranks the checks by Successes, then by Advantage (CRB p. 96)', () => {
@@ -64,7 +63,7 @@ describe('buildSlots', () => {
 	});
 
 	it('ranks a PC above an NPC with as many Successes and Advantage (CRB p. 96)', () => {
-		const slots = buildSlots([combatant('boss', encodeInitiative(1, 2), 'hostile'), combatant('hero', encodeInitiative(1, 2))], []);
+		const slots = buildSlots([combatant('boss', encodeInitiative(1, 2), false), combatant('hero', encodeInitiative(1, 2))], []);
 
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
 	});
@@ -76,14 +75,14 @@ describe('buildSlots', () => {
 	});
 
 	it('counts leftover Threats as no Advantage, so a PC ranks above an NPC with as many Successes (CRB p. 96)', () => {
-		const slots = buildSlots([combatant('boss', encodeInitiative(1, -1), 'hostile'), combatant('hero', encodeInitiative(1, -2))], []);
+		const slots = buildSlots([combatant('boss', encodeInitiative(1, -1), false), combatant('hero', encodeInitiative(1, -2))], []);
 
 		expect(order(slots)).toEqual(['hero:-1', 'boss:-1']);
 	});
 
 	it('gives each extra slot its own initiative, as a nemesis records both its results (CRB p. 205)', () => {
 		const slots = buildSlots(
-			[combatant('boss', 1, 'hostile'), combatant('hero', 2)],
+			[combatant('boss', 1, false), combatant('hero', 2)],
 			[extraSlot('boss', 0, 3), extraSlot('boss', 1, null)],
 		);
 
@@ -101,14 +100,14 @@ describe('buildSlots', () => {
 		expect(order(slots)).toEqual(['hero:-1']);
 	});
 
-	it('gives friendly combatants PC slots and every other combatant NPC slots', () => {
-		const slots = buildSlots([combatant('f', 3), combatant('n', 2, 'neutral'), combatant('h', 1, 'hostile')], []);
+	it('gives the combatants whose actor a player owns PC slots and every other combatant NPC slots', () => {
+		const slots = buildSlots([combatant('hero', 3), combatant('ally', 2, false), combatant('boss', 1, false)], []);
 
 		expect(slots.map((slot) => slot.side)).toEqual(['pc', 'npc', 'npc']);
 	});
 
 	it("gives an NPC's extra slots NPC slots, as both of a nemesis's results are NPC slots (CRB p. 205)", () => {
-		const slots = buildSlots([combatant('hero', 2), combatant('boss', 1, 'hostile')], [extraSlot('boss', 0, 3)]);
+		const slots = buildSlots([combatant('hero', 2), combatant('boss', 1, false)], [extraSlot('boss', 0, 3)]);
 
 		expect(slots.map(({ id, side }) => ({ id, side }))).toEqual([
 			{ id: 'boss:0', side: 'npc' },
@@ -128,7 +127,7 @@ describe('buildSlots', () => {
 });
 
 describe('claimRefusal', () => {
-	const slots = buildSlots([combatant('hero', 3), combatant('ally', 2), combatant('boss', 1, 'hostile')], [extraSlot('ally', 0, 1.5)]);
+	const slots = buildSlots([combatant('hero', 3), combatant('ally', 2), combatant('boss', 1, false)], [extraSlot('ally', 0, 1.5)]);
 
 	it('lets a combatant claim an unclaimed slot of its side (CRB p. 96)', () => {
 		expect(claimRefusal(slots, {}, 'ally:-1', { id: 'hero', side: 'pc' })).toBeUndefined();
@@ -163,7 +162,7 @@ describe('claimRefusal', () => {
 
 	it('lets a nemesis with an extra slot take two turns a round, and no more (CRB p. 205)', () => {
 		const withNemesis = buildSlots(
-			[combatant('hero', 3), combatant('goons', 2, 'hostile'), combatant('boss', 1, 'hostile')],
+			[combatant('hero', 3), combatant('goons', 2, false), combatant('boss', 1, false)],
 			[extraSlot('boss', 0, 2)],
 		);
 		const nemesis = { id: 'boss', side: 'npc' as const };
@@ -231,7 +230,7 @@ describe('withExtraSlotInitiatives', () => {
 });
 
 describe('rolling Initiative Slots', () => {
-	const combatants = [combatant('hero', null), combatant('boss', null, 'hostile')];
+	const combatants = [combatant('hero', null), combatant('boss', null, false)];
 
 	// At round 3, an extra slot for Boss; back at round 2, one for Hero and another for Boss.
 	const stored = [storedSlot('boss', 3), storedSlot('hero', 2), storedSlot('boss', 2)];
@@ -262,7 +261,7 @@ describe('rolling Initiative Slots', () => {
 
 	it('writes each roll to the slot it names, whatever the order of the slots asked', () => {
 		const slots = buildSlots(
-			[combatant('boss', null, 'hostile')],
+			[combatant('boss', null, false)],
 			extraSlotsForRound([storedSlot('boss', 1), storedSlot('boss', 1)], 1),
 		);
 

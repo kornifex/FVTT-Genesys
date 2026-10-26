@@ -82,7 +82,7 @@ export class GenesysCombat extends Combat {
 		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({
 			id: combatant.id,
 			initiative: combatant.initiative,
-			disposition: combatant.disposition,
+			hasPlayerOwner: combatant.actorHasPlayerOwner,
 		}));
 
 		return buildSlots(combatants, extraSlotsForRound(this.storedExtraSlots, round), this.claimsForRound(round));
