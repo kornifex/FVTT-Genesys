@@ -5,6 +5,7 @@ import {
 	ActorPlanner,
 	ActorSource,
 	ActorWorld,
+	isWorldActorPack,
 	migrateActors,
 	runMigrationChain,
 	WalkedActor,
@@ -44,7 +45,7 @@ const foundryActorWorld: ActorWorld = {
 		),
 	actorPacks: () =>
 		game.packs
-			.filter((pack) => pack.metadata.type === 'Actor' && pack.metadata.packageType === 'world')
+			.filter((pack) => isWorldActorPack(pack.metadata))
 			.map((pack) => ({
 				locked: pack.locked,
 				setLocked: (locked) => pack.configure({ locked }),

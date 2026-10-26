@@ -8,7 +8,7 @@ import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates, heldCareerSkills } from '@/actor/data/character/Career';
-import { ownedSkill } from '@/data/Skills';
+import { isOwnedSkillDrop } from '@/data/Skills';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
@@ -90,7 +90,7 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 			}
 		} else if (CharacterDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
 			// Prevent adding the same skill multiple times.
-			if (droppedItem.type === 'skill' && ownedSkill(this.actor.skills, droppedItem.name)) {
+			if (isOwnedSkillDrop(this.actor.skills, droppedItem)) {
 				return false;
 			}
 

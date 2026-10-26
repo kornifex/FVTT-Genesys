@@ -252,7 +252,11 @@ describe('an initiative check', () => {
 		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], {
 			effects: [effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }])],
 		});
-		const check = resolveCheck(hero, { skillName: 'Cool' }, rules);
+		const foe = actor('rival', [], {
+			effects: [effect('Shield', [{ key: 'genesys.pool.check.target.', value: 'S' }])],
+			totalDefense: { melee: 1, ranged: 1 },
+		});
+		const check = resolveCheck(hero, { purpose: 'initiative', skillName: 'Cool', target: foe }, rules);
 
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.Alert']);
 		expect(checkDicePool(check, { difficulty: '', isEnabled: () => true }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });

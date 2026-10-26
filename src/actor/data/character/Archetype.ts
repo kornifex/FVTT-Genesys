@@ -1,5 +1,5 @@
 /**
- * @file Adding and removing a character's Archetype.
+ * @file Adding and removing a character's Archetype, and the items an Archetype grants.
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
@@ -10,7 +10,7 @@ import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import { ownedSkill } from '@/data/Skills';
+import { ownedSkill, skillNamesMatch } from '@/data/Skills';
 
 /**
  * Whether the Archetype is being added to the character (+1) or removed from it (-1).
@@ -87,6 +87,17 @@ export function archetypeActorUpdate(character: ArchetypeHolder, archetype: Arch
  */
 export function grantedNonSkills<T extends ArchetypeGrants['grantedItems'][number]>(grantedItems: T[]) {
 	return grantedItems.filter((i) => i && i.type !== 'skill');
+}
+
+/**
+ * Whether the Archetype already grants an item: one of the same type and name, a skill's name matching whatever its
+ * case.
+ */
+export function grantsItem(grantedItems: ArchetypeGrants['grantedItems'], item: { type: string; name: string }) {
+	return grantedItems.some(
+		(granted) =>
+			granted.type === item.type && (item.type === 'skill' ? skillNamesMatch(granted.name, item.name) : granted.name === item.name),
+	);
 }
 
 /**

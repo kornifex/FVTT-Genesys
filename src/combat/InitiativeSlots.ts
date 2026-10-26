@@ -88,6 +88,11 @@ export type SlotViewer = {
 	 * Whether the user is one of the players of a combatant.
 	 */
 	isPlayerOf(combatantId: string): boolean;
+
+	/**
+	 * Whether the user owns a combatant.
+	 */
+	isOwnerOf(combatantId: string): boolean;
 };
 
 /**
@@ -142,6 +147,16 @@ export function withExtraSlotInitiatives(storedExtraSlots: StoredExtraSlot[], wr
 	}
 
 	return extraSlots;
+}
+
+/**
+ * The initiative writes that reset every extra slot, whatever its starting round, or none when no extra slot has
+ * initiative.
+ */
+export function extraSlotResets(storedExtraSlots: StoredExtraSlot[]): ExtraSlotInitiative[] {
+	return storedExtraSlots.some((extraSlot) => extraSlot.initiative !== null)
+		? storedExtraSlots.map((_extraSlot, index) => ({ index, initiative: null }))
+		: [];
 }
 
 /**
@@ -277,5 +292,7 @@ export function slotView(slot: InitiativeSlot, combatStarted: boolean, viewer: S
 		canClaim: slot.side === 'pc' || viewer.isGM,
 		canRevoke: viewer.isGM && combatStarted && slot.claimantId !== undefined,
 		controlsTurn: slot.claimantId !== undefined && viewer.isPlayerOf(slot.claimantId),
+		// The slot's initiative is the origin's, whoever claimed it.
+		canRollInitiative: viewer.isOwnerOf(slot.originId),
 	};
 }

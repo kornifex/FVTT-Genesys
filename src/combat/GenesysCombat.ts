@@ -20,6 +20,7 @@ import {
 	decodeInitiative,
 	encodeInitiative,
 	ExtraSlotInitiative,
+	extraSlotResets,
 	extraSlotsForRound,
 	InitiativeSlot,
 	initiativeWrites,
@@ -105,6 +106,7 @@ export class GenesysCombat extends Combat {
 		return slotView(slot, this.started, {
 			isGM: game.user.isGM,
 			isPlayerOf: (combatantId) => (this.combatants.get<GenesysCombatant>(combatantId)?.players ?? []).includes(game.user),
+			isOwnerOf: (combatantId) => this.combatants.get(combatantId)?.isOwner ?? false,
 		});
 	}
 
@@ -121,8 +123,7 @@ export class GenesysCombat extends Combat {
 			hasRolled: slot.initiative !== null,
 			...decodeInitiative(slot.initiative),
 			initiativeSkill: origin.initiativeSkillToRoll.skillName,
-			// The slot's initiative is the origin's, whoever claimed it.
-			canRollInitiative: origin.isOwner,
+			canRollInitiative: view.canRollInitiative,
 			claimed: view.showsAsClaimed,
 			canClaim: view.canClaim,
 		};
@@ -339,7 +340,7 @@ export class GenesysCombat extends Combat {
 				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
 				const check = resolveCheck(
 					combatant.actor,
-					{ skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar },
+					{ purpose: 'initiative', skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar },
 					worldCheckRules(),
 				);
 				checkRoll = {
@@ -426,10 +427,10 @@ export class GenesysCombat extends Combat {
 	}
 
 	override async resetAll(...args: unknown[]) {
-		// Every extra slot is reset, whatever its starting round, before Foundry orders the turns again.
-		const extraSlots = this.storedExtraSlots;
-		if (extraSlots.some((slot) => slot.initiative !== null)) {
-			await this.writeExtraSlotsInitiative(extraSlots.map((_slot, index) => ({ index, initiative: null })));
+		// The extra slots are reset before Foundry orders the turns again.
+		const resets = extraSlotResets(this.storedExtraSlots);
+		if (resets.length > 0) {
+			await this.writeExtraSlotsInitiative(resets);
 		}
 
 		// @ts-expect-error: Foundry v13 takes options that v12 doesn't.

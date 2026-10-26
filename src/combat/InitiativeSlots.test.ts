@@ -38,8 +38,12 @@ function order(slots: InitiativeSlot[]) {
 	return slots.map((slot) => slot.id);
 }
 
-const player: SlotViewer = { isGM: false, isPlayerOf: (combatantId) => combatantId === 'hero' };
-const gm: SlotViewer = { isGM: true, isPlayerOf: () => false };
+const player: SlotViewer = {
+	isGM: false,
+	isPlayerOf: (combatantId) => combatantId === 'hero',
+	isOwnerOf: (combatantId) => combatantId === 'hero',
+};
+const gm: SlotViewer = { isGM: true, isPlayerOf: () => false, isOwnerOf: () => true };
 
 describe('buildSlots', () => {
 	it('orders the slots by initiative, highest first, and slots without initiative last', () => {

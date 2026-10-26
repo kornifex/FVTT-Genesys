@@ -3,7 +3,7 @@ import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
 import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { skillNamesMatch } from '@/data/Skills';
+import { grantsItem } from '@/actor/data/character/Archetype';
 
 import '@/item/sheets/ArchetypeSheet.scss';
 
@@ -37,10 +37,8 @@ export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 			return;
 		}
 
-		// Prevent adding a granted item that's already present. Skill names match whatever their case.
-		const matchesName = (name: string) =>
-			droppedItem.type === 'skill' ? skillNamesMatch(name, droppedItem.name) : name === droppedItem.name;
-		if (this.item.systemData.grantedItems.find((i) => i.type === droppedItem.type && matchesName(i.name))) {
+		// Prevent adding a granted item that's already present.
+		if (grantsItem(this.item.systemData.grantedItems, droppedItem)) {
 			return;
 		}
 
