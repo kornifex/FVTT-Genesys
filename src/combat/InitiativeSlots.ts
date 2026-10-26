@@ -7,15 +7,17 @@
  */
 export type InitiativeSide = 'pc' | 'npc';
 
-export type Disposition = 'friendly' | 'neutral' | 'hostile';
-
 /**
  * What this module needs of a combatant.
  */
 export type SlotCombatant = {
 	id: string;
 	initiative: number | null;
-	disposition: Disposition;
+
+	/**
+	 * Whether a player owns the combatant's actor.
+	 */
+	hasPlayerOwner: boolean;
 };
 
 /**
@@ -88,14 +90,14 @@ export type SlotViewer = {
 	isPlayerOf(combatantId: string): boolean;
 };
 
-// Initiative ties go to friendly combatants, then neutral ones, then hostile ones.
-const DISPOSITION_ORDER: Disposition[] = ['hostile', 'neutral', 'friendly'];
-
 /**
- * The side of the Initiative Slots a combatant gives and can claim: friendly combatants are PCs, any other is an NPC.
+ * The side of the Initiative Slots a combatant gives and can claim: a combatant whose actor a player owns is a PC, any
+ * other is an NPC.
  */
-export function sideOf(disposition: Disposition): InitiativeSide {
-	return disposition === 'friendly' ? 'pc' : 'npc';
+export function sideOf(hasPlayerOwner: boolean): InitiativeSide {
+	// The actor's player ownership, not its token's disposition or its type, tells a PC: an ally the GM runs is an NPC,
+	// and a vehicle or a companion the players run is a PC.
+	return hasPlayerOwner ? 'pc' : 'npc';
 }
 
 function slotId(originId: string, activationId: number) {
@@ -144,7 +146,7 @@ export function withExtraSlotInitiatives(storedExtraSlots: StoredExtraSlot[], wr
 
 /**
  * The Initiative Slots of a round in turn order: every combatant's own slot and the extra slots they have this round,
- * ordered by initiative, then disposition, then combatant id.
+ * ordered by initiative, then PC slots before NPC slots, then combatant id.
  */
 export function buildSlots(combatants: SlotCombatant[], extraSlots: ExtraSlot[], claims: RoundClaims = {}): InitiativeSlot[] {
 	const combatantsById = new Map(combatants.map((combatant) => [combatant.id, combatant]));
@@ -159,7 +161,7 @@ export function buildSlots(combatants: SlotCombatant[], extraSlots: ExtraSlot[],
 
 	return activations.sort(compareActivations).map(({ combatant, activationId, initiative }) => {
 		const id = slotId(combatant.id, activationId);
-		return { id, originId: combatant.id, activationId, side: sideOf(combatant.disposition), initiative, claimantId: claims[id] };
+		return { id, originId: combatant.id, activationId, side: sideOf(combatant.hasPlayerOwner), initiative, claimantId: claims[id] };
 	});
 }
 
@@ -174,8 +176,10 @@ function compareActivations(
 		return secondInitiative - firstInitiative;
 	}
 
-	if (first.combatant.disposition !== second.combatant.disposition) {
-		return DISPOSITION_ORDER.indexOf(second.combatant.disposition) - DISPOSITION_ORDER.indexOf(first.combatant.disposition);
+	// Initiative ties go to PCs (CRB p. 96).
+	const firstSide = sideOf(first.combatant.hasPlayerOwner);
+	if (firstSide !== sideOf(second.combatant.hasPlayerOwner)) {
+		return firstSide === 'pc' ? -1 : 1;
 	}
 
 	if (first.combatant.id === second.combatant.id) {

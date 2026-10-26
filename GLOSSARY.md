@@ -25,7 +25,7 @@ An actor taking part in an encounter, as listed in the combat tracker.
 _Avoid_: Participant, token
 
 **Initiative Slot**:
-A position in the turn order belonging to a side (PC or NPC), not to a specific combatant.
+A position in the turn order belonging to a side (PC or NPC), not to a specific combatant. A combatant gives slots of its side: a combatant whose actor a player owns is a PC, any other is an NPC, whatever its token's disposition.
 _Avoid_: Turn, initiative entry
 
 **Extra Slot**:

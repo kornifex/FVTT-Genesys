@@ -1,6 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysCombat, InitiativeSkill } from '@/combat/GenesysCombat';
-import { Disposition, InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
+import { InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
 import { skillNamesMatch } from '@/data/Skills';
 
 export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
@@ -46,27 +46,18 @@ export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 		await this.setInitiativeSkill(initiativeSkills[(skillIndex + 1) % initiativeSkills.length]);
 	}
 
-	get disposition(): Disposition {
-		switch ((this.actor.token ?? this.actor.prototypeToken).disposition) {
-			case CONST.TOKEN_DISPOSITIONS.FRIENDLY:
-				return 'friendly';
-
-			case CONST.TOKEN_DISPOSITIONS.NEUTRAL:
-				return 'neutral';
-
-			case CONST.TOKEN_DISPOSITIONS.HOSTILE:
-				return 'hostile';
-
-			default:
-				return 'neutral';
-		}
+	/**
+	 * Whether a player owns this combatant's actor.
+	 */
+	get actorHasPlayerOwner() {
+		return this.actor?.hasPlayerOwner ?? false;
 	}
 
 	/**
-	 * The side of the Initiative Slots this combatant gives and can claim: friendly tokens are PCs, any other is an NPC.
+	 * The side of the Initiative Slots this combatant gives and can claim: a PC if a player owns its actor, else an NPC.
 	 */
 	get initiativeSide(): InitiativeSide {
-		return sideOf(this.disposition);
+		return sideOf(this.actorHasPlayerOwner);
 	}
 
 	/**
