@@ -1,7 +1,7 @@
-/** @file Tests for a character's soak and defense, against the Core Rulebook. */
+/** @file Tests for a character's soak and defense, and an Adversary's defense, against the Core Rulebook. */
 
 import { describe, expect, it } from 'vitest';
-import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
+import { adversaryDefense, totalDefense, totalSoak } from '@/actor/data/Protection';
 
 describe('totalSoak', () => {
 	it("is the character's current Brawn without armor, raised whenever Brawn is (CRB p. 31, 46, 105)", () => {
@@ -53,5 +53,13 @@ describe('totalDefense', () => {
 
 	it('never goes above 4 (CRB p. 104-105)', () => {
 		expect(totalDefense({ melee: 4, ranged: 2 }, [{ soak: 1, defense: 3 }])).toEqual({ melee: 4, ranged: 4 });
+	});
+});
+
+describe('adversaryDefense', () => {
+	it("is the adversary's stat block defense, melee and ranged each, up to 4 (CRB p. 104-105)", () => {
+		expect(adversaryDefense({ melee: 1, ranged: 2 })).toEqual({ melee: 1, ranged: 2 });
+		expect(adversaryDefense({ melee: 4, ranged: 4 })).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 5, ranged: 6 })).toEqual({ melee: 4, ranged: 4 });
 	});
 });

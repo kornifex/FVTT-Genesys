@@ -10,7 +10,7 @@ import {
 	equipmentEncumbrance,
 	isEncumbered,
 } from '@/actor/data/Encumbrance';
-import { totalDefense, totalSoak } from '@/actor/data/character/Protection';
+import { totalDefense, totalSoak } from '@/actor/data/Protection';
 import { wornArmor } from '@/actor/data/Inventory';
 import { isRelevantType } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
