@@ -72,8 +72,9 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	skillName?: string;
 
 	/**
-	 * The characteristic rolled, as the dice prompt picks it: the skill's when left undefined, none when null. A skill
-	 * check ignores it unless the world uncouples skills from characteristics.
+	 * The characteristic rolled, as the dice prompt picks it: the skill's when left undefined, none when null for a check
+	 * without a skill. A skill check ignores it unless the world uncouples skills from characteristics, and rolls the
+	 * skill's characteristic for null.
 	 */
 	characteristic?: Characteristic | null;
 
@@ -139,9 +140,14 @@ export function resolveCheck<S extends CheckSkill>(
 
 	const data = actor.systemData as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
+	// A skill check given no characteristic rolls the skill's, as when it is left undefined.
+	const requested =
+		request.characteristic === null && !canRollWithoutCharacteristic({ skill: rolledSkill?.skill })
+			? undefined
+			: request.characteristic;
 	const characteristic =
-		request.characteristic !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
-			? request.characteristic ?? undefined
+		requested !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
+			? requested ?? undefined
 			: rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic;
 
 	let kind: CheckKind = characteristic ? 'characteristic' : 'pool';
@@ -178,6 +184,14 @@ export function resolveCheck<S extends CheckSkill>(
  */
 export function canPickCharacteristic(check: Pick<Check, 'skill'>, rules: Pick<CheckRules, 'uncoupleSkillsFromCharacteristics'>) {
 	return !check.skill || rules.uncoupleSkillsFromCharacteristics;
+}
+
+/**
+ * Whether the roller may roll a check with no characteristic: only a check without a skill, since every skill check
+ * has one (CRB p. 205).
+ */
+export function canRollWithoutCharacteristic(check: Pick<Check, 'skill'>) {
+	return !check.skill;
 }
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
