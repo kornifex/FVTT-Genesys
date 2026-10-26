@@ -65,7 +65,7 @@ describe('adversaryDefense', () => {
 });
 
 describe('vehicleDefense', () => {
-	it("is the vehicle's defense against melee and ranged attacks alike, up to 4 (CRB p. 223, p. 104-105)", () => {
+	it("is the vehicle's defense against melee and ranged attacks alike, up to 4 (CRB p. 223, 104-105)", () => {
 		expect(vehicleDefense(0)).toEqual({ melee: 0, ranged: 0 });
 		expect(vehicleDefense(2)).toEqual({ melee: 2, ranged: 2 });
 		expect(vehicleDefense(5)).toEqual({ melee: 4, ranged: 4 });

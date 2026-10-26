@@ -31,7 +31,7 @@ export function totalSoak(ownSoak: number, brawn: number, armor: WornArmor[]) {
 	return ownSoak + brawn + (protectingArmor(armor)?.soak ?? 0);
 }
 
-// No character, PC or Adversary, can have a defense rating higher than 4, and a vehicle's defense works the same.
+// No character, PC or Adversary, can have a defense rating higher than 4, and a vehicle's defense works the same (CRB p. 223).
 const MAX_DEFENSE = 4;
 
 /**

@@ -248,6 +248,9 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([
 			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] },
 		]);
+		expect(
+			poolModificationsForCheck(self, actor('rival', [], { totalDefense: { melee: 0, ranged: 2 } }), { attackRange: 'medium' }),
+		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
 		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
 	});
 
@@ -259,7 +262,7 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(self, actor('rival', []), { attackRange: 'medium' })).toEqual([]);
 	});
 
-	it("collects a targeted vehicle's changes, and adds one Setback per point of its defense at any range (CRB p. 223, p. 104)", () => {
+	it("collects a targeted vehicle's changes, and adds one Setback per point of its defense at any range (CRB p. 223, 104)", () => {
 		const self = actor('character', []);
 		const vehicle = actor('vehicle', [effect([{ key: 'genesys.pool.check.target.', value: 'D' }], { name: 'Smoke' })], {
 			totalDefense: vehicleDefense(2),
@@ -278,7 +281,7 @@ describe('poolModificationsForCheck', () => {
 		});
 	});
 
-	it("counts a targeted vehicle's defense up to 4, and leaves it out at 0 (CRB p. 223, p. 104)", () => {
+	it("counts a targeted vehicle's defense up to 4, and leaves it out at 0 (CRB p. 223, 104)", () => {
 		const self = actor('character', []);
 
 		expect(poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0) }), { attackRange: 'long' })).toEqual(
