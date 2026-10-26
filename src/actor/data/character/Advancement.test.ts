@@ -2,7 +2,7 @@
  * @file Tests for Advancement: spending XP and undoing it from the Experience Journal.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import {
@@ -404,44 +404,49 @@ describe('undoEntry', () => {
 });
 
 describe('advancementCharacter', () => {
-	beforeEach(() => {
+	beforeAll(() => {
 		vi.stubGlobal('CONFIG', { genesys: { settings: { ignoreTalentPyramid: false, talentTierVersions: false } } });
 	});
 
+	afterAll(() => {
+		vi.unstubAllGlobals();
+	});
+
 	/**
-	 * A character actor whose own Brawn is `brawn`, shown with `effect` more from an Active Effect.
+	 * A character actor whose base Brawn is `brawn`, shown with `effectBonus` more from an Active Effect.
 	 */
-	function actor(brawn: number, effect: number, entries: Entry[] = [{ amount: 200, type: EntryType.Starting }]) {
-		const own: CharacteristicsContainer = { brawn, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 };
+	function actor(brawn: number, effectBonus: number, entries: Entry[] = [{ amount: 200, type: EntryType.Starting }]) {
+		const base: CharacteristicsContainer = { brawn, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 };
 		return {
 			systemData: {
 				experienceJournal: { entries },
-				characteristics: { ...own, brawn: brawn + effect },
-				_source: { characteristics: own, wounds: { max: 12 }, strain: { max: 12 } },
+				characteristics: { ...base, brawn: brawn + effectBonus },
+				_source: { characteristics: base, wounds: { max: 12 }, strain: { max: 12 } },
 			},
 			items: [],
 		} as unknown as GenesysActor<CharacterDataModel>;
 	}
 
-	it("raises a characteristic from the character's own rating, without its Active Effects (CRB p. 44)", () => {
-		for (const [brawn, cost] of [
-			[2, 30],
-			[3, 40],
-			[4, 50],
+	it('raises a characteristic from its base rating, without its Active Effects (CRB p. 44)', () => {
+		for (const [brawn, effectBonus, cost] of [
+			[2, 1, 30],
+			[3, 1, 40],
+			[4, 1, 50],
+			[2, 0, 30],
 		]) {
-			const raised = plan(raiseCharacteristic(advancementCharacter(actor(brawn, 1)), Characteristic.Brawn));
+			const raised = plan(raiseCharacteristic(advancementCharacter(actor(brawn, effectBonus)), Characteristic.Brawn));
 
 			expect(raised.actorUpdate['system.characteristics.brawn']).toBe(brawn + 1);
 			expect(newEntries({ plan: raised }).at(-1)?.amount).toBe(-cost);
 		}
+	});
+
+	it('refuses to raise a base rating of 5, even with an Active Effect on it (CRB p. 44)', () => {
 		expect(isAllowed(raiseCharacteristic(advancementCharacter(actor(5, 1)), Characteristic.Brawn))).toBe(false);
 	});
 
-	it("restores the character's own rating when a characteristic raise is undone, without its Active Effects (CRB p. 44)", () => {
-		const entries: Entry[] = [
-			{ amount: 200, type: EntryType.Starting },
-			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } },
-		];
+	it('puts the base rating back when the raise is undone, with an Active Effect on it (CRB p. 44)', () => {
+		const entries = newEntries(raiseCharacteristic(advancementCharacter(actor(2, 1)), Characteristic.Brawn));
 
 		expect(plan(undoEntry(advancementCharacter(actor(3, 1, entries)), 1)).actorUpdate['system.characteristics.brawn']).toBe(2);
 	});

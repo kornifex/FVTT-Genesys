@@ -340,8 +340,8 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {
 	const system = actor.systemData;
 
-	// An Advancement prices, caps and writes the character's own ratings: an Active Effect only adds to them for a
-	// while, so it keeps applying on top of the raised rating (CRB p. 44).
+	// An Advancement prices, caps and writes the base ratings: an Active Effect only adds to them for a while, so it
+	// keeps applying on top of the raised rating (CRB p. 44).
 	return {
 		entries: system.experienceJournal.entries,
 		characteristics: system._source.characteristics as CharacteristicsContainer,
