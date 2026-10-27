@@ -9,7 +9,7 @@ vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });
 
-import { isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
+import { isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 const ALL_STATES = [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped, EquipmentState.Used];
@@ -51,6 +51,51 @@ describe('isSuppressedByEquipmentState', () => {
 		expect(applyingStates('vehicle', 'gear')).toEqual([EquipmentState.Carried]);
 	});
 
+	it("suppresses a character's armor held in a Container, whatever its state, as it isn't worn (CRB p. 92)", () => {
+		for (const state of ALL_STATES) {
+			expect(isSuppressedByEquipmentState('character', { type: 'armor', system: { state, container: 'box' } })).toBe(true);
+		}
+	});
+
+	it("suppresses a character's weapon and a vehicle's vehicle weapon held in a Container, though Equipped", () => {
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'weapon', system: { state: EquipmentState.Equipped, container: 'box' } }),
+		).toBe(true);
+		expect(
+			isSuppressedByEquipmentState('vehicle', {
+				type: 'vehicleWeapon',
+				system: { state: EquipmentState.Equipped, container: 'hold' },
+			}),
+		).toBe(true);
+	});
+
+	it('applies equipment that can be equipped while it is Equipped in no Container', () => {
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'weapon', system: { state: EquipmentState.Equipped, container: '' } }),
+		).toBe(false);
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'armor', system: { state: EquipmentState.Equipped, container: '' } }),
+		).toBe(false);
+		expect(
+			isSuppressedByEquipmentState('vehicle', { type: 'vehicleWeapon', system: { state: EquipmentState.Equipped, container: '' } }),
+		).toBe(false);
+	});
+
+	it("applies other equipment held in a Carried Container, as it takes the Container's state", () => {
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'gear', system: { state: EquipmentState.Carried, container: 'box' } }),
+		).toBe(false);
+	});
+
+	it('leaves a consumable held in a Container to its own rule: it applies only while Used', () => {
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'consumable', system: { state: EquipmentState.Carried, container: 'box' } }),
+		).toBe(true);
+		expect(
+			isSuppressedByEquipmentState('character', { type: 'consumable', system: { state: EquipmentState.Used, container: 'box' } }),
+		).toBe(false);
+	});
+
 	it('always applies the equipment of adversaries', () => {
 		for (const actorType of ['minion', 'rival', 'nemesis']) {
 			for (const itemType of ['weapon', 'armor', 'consumable', 'gear', 'container']) {
@@ -62,5 +107,25 @@ describe('isSuppressedByEquipmentState', () => {
 	it('always applies the effects of items that are not equipment', () => {
 		expect(isSuppressedByEquipmentState('character', { type: 'talent', system: {} })).toBe(false);
 		expect(isSuppressedByEquipmentState('vehicle', { type: 'injury', system: {} })).toBe(false);
+	});
+});
+
+describe('isSuppressedByContainer', () => {
+	it('tells when the Container holding equipment that can be equipped is what suppresses its effects', () => {
+		expect(isSuppressedByContainer('character', { type: 'armor', system: { state: EquipmentState.Equipped, container: 'box' } })).toBe(
+			true,
+		);
+		expect(isSuppressedByContainer('character', { type: 'armor', system: { state: EquipmentState.Equipped, container: '' } })).toBe(
+			false,
+		);
+	});
+
+	it("leaves other equipment to its state, and adversaries' equipment alone", () => {
+		expect(isSuppressedByContainer('character', { type: 'gear', system: { state: EquipmentState.Dropped, container: 'box' } })).toBe(
+			false,
+		);
+		expect(isSuppressedByContainer('rival', { type: 'armor', system: { state: EquipmentState.Equipped, container: 'box' } })).toBe(
+			false,
+		);
 	});
 });
