@@ -591,10 +591,15 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 
-	// The character sheet's number fields (§#195). Its current wounds and strain fields turn a value below 0 into 0.
-	const typeInSheet = (value: string) =>
-		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), { actor: 'Hero', name: WOUNDS, value, path: WOUNDS });
-	e2e.expect("E3 the character sheet's wounds field takes a value past twice the wound threshold", await typeInSheet('40'), 40);
+	// The character sheet's number fields (§#195).
+	const typeInSheet = (path: string, value: string) =>
+		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), { actor: 'Hero', name: path, value, path });
+	e2e.expect("E3 the character sheet's wounds field takes a value past twice the wound threshold", await typeInSheet(WOUNDS, '40'), 40);
+	e2e.expect(
+		"E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
+		{ '-3 typed on 40 wounds': await typeInSheet(WOUNDS, '-3'), '-3 typed on 14 strain': await typeInSheet(STRAIN, '-3') },
+		{ '-3 typed on 40 wounds': 0, '-3 typed on 14 strain': 0 },
+	);
 
 	await gm.evaluate(() => window.adversariesE2E.cleanUp());
 }
