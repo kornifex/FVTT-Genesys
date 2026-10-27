@@ -33,7 +33,6 @@ const STATE_LABELS: Record<EquipmentState, string> = {
 	[EquipmentState.Equipped]: 'Genesys.Labels.Equipped',
 	[EquipmentState.Carried]: 'Genesys.Labels.Carried',
 	[EquipmentState.Dropped]: 'Genesys.Labels.Dropped',
-	[EquipmentState.Used]: 'Genesys.Labels.Used',
 };
 
 // An actor's tab also lists the effects of its items, which live on the item.
@@ -49,6 +48,10 @@ function suppressionReason(effect: GenesysEffect) {
 	const item = toRaw(effect).originItem;
 	if (!item || !effect.isSuppressedByEquipmentState) {
 		return undefined;
+	}
+
+	if (toRaw(effect).isSuppressedAsConsumable) {
+		return game.i18n.format('Genesys.ActiveEffects.SuppressedAsConsumable', { item: item.name });
 	}
 
 	const container = toRaw(effect).suppressingContainer;

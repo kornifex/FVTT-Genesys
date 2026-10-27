@@ -147,6 +147,7 @@ Genesys:
     Temporary: Temporary Effects
     Suppressed: Inactive Effects
     Source: Source
+    SuppressedAsConsumable: "Inactive: {item} is a consumable, whose effects don't apply."
     SuppressedByContainer: Inactive while {item} is in {container}.
     SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
@@ -496,7 +497,6 @@ Genesys:
     Equipped: Equipped
     Carried: Carried
     Dropped: Dropped
-    Used: Used
     NotApplicable: N/A
     EffectiveTier: Effective Tier
     Silhouette: Silhouette

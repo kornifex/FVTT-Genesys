@@ -8,7 +8,6 @@ export enum EquipmentState {
 	Carried = 'carried',
 	Dropped = 'dropped',
 	Equipped = 'equipped',
-	Used = 'used',
 }
 
 export enum EquipmentDamageState {
@@ -50,9 +49,22 @@ export abstract class EquipmentDataModel extends BaseItemDataModel {
 	abstract container: string;
 
 	/**
-	 * (Owned Only) State of the item (carried, dropped, equipped, or used)
+	 * (Owned Only) State of the item (carried, dropped, or equipped)
 	 */
 	abstract state: EquipmentState;
+
+	/**
+	 * Read an item saved in the Used state as Carried: nothing in the system set it, and it is gone since #205
+	 * (`.out-of-scope/using-consumables.md`), so only a macro or older data holds it, which would fail validation.
+	 * @inheritDoc
+	 */
+	static override migrateData(source: { state?: unknown }) {
+		if (source.state === 'used') {
+			source.state = EquipmentState.Carried;
+		}
+
+		return super.migrateData(source) as typeof source;
+	}
 
 	static override defineSchema() {
 		const fields = foundry.data.fields;
@@ -75,7 +87,7 @@ export abstract class EquipmentDataModel extends BaseItemDataModel {
 			quantity: new fields.NumberField({ integer: true, initial: 1 }),
 			state: new fields.StringField({
 				initial: EquipmentState.Carried,
-				choices: [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped, EquipmentState.Used],
+				choices: [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped],
 			}),
 		};
 	}
