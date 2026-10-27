@@ -1,8 +1,7 @@
-/**
- * @file The combat items of the test checklist (#37): the tracker, Initiative Slots and their Claims, Extra Slots, initiative
- * rolls and keeping the turn. Each step is named after the checklist section it proves, `#57 A1 …` for §#57.
- */
+/** @file The combat items of the test checklist (#37): the tracker, Initiative Slots, Claims, Extra Slots and initiative rolls. */
 import type { ScenarioContext, StepStates } from '../scenario.ts';
+
+// Each step is named after the checklist section it proves, `#57 A1 …` for §#57.
 
 /**
  * A row of a client's Combat Tracker.
