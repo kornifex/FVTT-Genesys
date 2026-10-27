@@ -8,7 +8,7 @@ import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates, heldCareerSkills } from '@/actor/data/character/Career';
-import { isOwnedSkillDrop } from '@/data/Skills';
+import { isOwnedSkill } from '@/data/Skills';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
@@ -89,8 +89,8 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 				clonedDroppedItem = await super._onDropItem(event, data);
 			}
 		} else if (CharacterDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
-			// Prevent adding the same skill multiple times.
-			if (isOwnedSkillDrop(this.actor.skills, droppedItem)) {
+			// Refuse a skill the character already owns, whatever the case of its name, so that they never own a skill twice.
+			if (isOwnedSkill(this.actor.skills, droppedItem)) {
 				return false;
 			}
 
