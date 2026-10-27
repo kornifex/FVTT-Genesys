@@ -1,6 +1,6 @@
 @use '@scss/vars/colors.scss';
 
-// Foundry v12 tracker, then Foundry v13 tracker.
+// v12: `#combat-tracker` is Foundry v12's tracker; v13's is `#combat .combat-tracker`.
 #combat-tracker,
 #combat .combat-tracker {
 	.active {

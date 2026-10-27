@@ -17,6 +17,8 @@
 
 // ApplicationV2 styles text fields itself, and v12 does it outside a cascade layer, with selectors that outweigh many of the
 // components' own. These restore AppV1's fields, which the components are written over, with as much weight.
+// v12: only v12 needs the weight of the three field rules. From v13 on, those styles sit in a cascade layer, which any
+// unlayered rule outweighs, so these rules can weigh less than the components' own.
 .vue-app
 	:is(
 		input[type='text'],

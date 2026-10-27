@@ -110,6 +110,7 @@ Hooks.once('ready', async () => {
 	registerVehicles();
 });
 
+// v12: only the `renderDialog` hook below uses it.
 function constructOptGroup(select: HTMLSelectElement, groupLabel: string, optValues?: string[]): HTMLOptGroupElement {
 	const options = select.querySelectorAll<HTMLOptionElement>(':scope > option');
 	const optgroup = document.createElement('optgroup');
@@ -121,6 +122,7 @@ function constructOptGroup(select: HTMLSelectElement, groupLabel: string, optVal
 }
 
 // Add options groups to the dialog that appears when creating an actor or item.
+// v12: only v12 needs this hook. From v13 on, the create dialog is a DialogV2, which never fires `renderDialog`.
 Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: object) => {
 	const container = html[0];
 
@@ -152,8 +154,8 @@ Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: obj
 });
 
 // Makes the dice icon at the bottom of the chat to function as a shortcut to call the dice prompt.
+// v12: only v12 needs this hook, since Foundry v13's chat log has no dice icon.
 Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _data: object) => {
-	// v12: Foundry v13's chat log has no dice icon.
 	if (isFoundryV13OrLater()) {
 		return;
 	}
