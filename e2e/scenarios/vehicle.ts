@@ -383,6 +383,8 @@ function installVehicleHelpers() {
 			row.click();
 			await sleep(200);
 			root.querySelector<HTMLButtonElement>('.submit-button')!.click();
+			// The prompt's closing transition can outlast a step's wait on a busy machine.
+			await waitFor('the crew member prompt to close', () => !foundry.applications.instances.has(app.id));
 		},
 
 		notifications: () => [...window.e2e.notifications],
