@@ -1,8 +1,4 @@
-/**
- * @file The sheet, menu and chat card items of the test checklist (#37): the ApplicationV2 sheets and prompts, the effect
- * sheets, the Effects tab, enriched sources, chat cards and the documentation links. Each step is named after the
- * checklist section it proves, `#95 …` for §#95.
- */
+/** @file The sheet and chat card items of the test checklist (#37), each step named after its section: `#95 …` for §#95. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
