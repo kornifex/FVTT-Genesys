@@ -408,9 +408,9 @@ function installMigrationHelpers() {
 		},
 
 		async cleanUp() {
-			// The actors first: deleting a crew member updates the vehicles holding it, the unlinked token's included.
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			// The scene first: deleting a crew member must not reach the unlinked vehicle token of a deleted scene (#219).
 			await Scene.deleteDocuments(game.scenes.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
 			for (const label of ['E2E Migrations', 'E2E Old Actors']) {
 				await packNamed(label).configure({ locked: false });
 				await packNamed(label).deleteCompendium();
