@@ -402,6 +402,16 @@ export async function run(e2e: ScenarioContext) {
 		sortsAs('A2', a2, ['Hero:-1', 'Hero:0', 'Boss:-1', 'Boss:1']);
 		turnOn('A2', a2, 'Boss:-1');
 		noTurnEvent('A2', a2);
+		// A one-turn effect on Boss, from Boss's own slot.
+		await gm.evaluate(async () => {
+			const combat = game.combat;
+			await combat.combatant.actor.createEmbeddedDocuments('ActiveEffect', [
+				{ name: 'E2E Dazed', duration: { turns: 1, combat: combat.id, startRound: combat.round, startTurn: combat.turn } },
+			]);
+		});
+		const effectState = async () =>
+			(await gm.evaluate(() => window.combatE2E.effectRemaining('Boss', 'E2E Dazed'))) ? 'running' : 'expired';
+		const effectBefore = await effectState();
 		const a3 = await e2e.step('#57 A3 GM ends the turn', () => gm.evaluate(() => game.combat.nextTurn()));
 		turnOn('A3', a3, 'Boss:1');
 		// §#96: Foundry v12 sees no turn change when the turn stays with the same combatant, v13 does.
@@ -414,6 +424,12 @@ export async function run(e2e: ScenarioContext) {
 						[e2e.playerUser]: ['combatTurnChange 2->3'],
 					}
 				: bothClients([]),
+		);
+		// Foundry counts a turn-based duration from the combat's round and turn, not from the turn events.
+		e2e.expect(
+			"#96 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot on v12 and v13 alike",
+			{ before: effectBefore, after: await effectState() },
+			{ before: 'running', after: 'expired' },
 		);
 
 		// Initiatives rolled, Boss ahead: Hero's new slot sorts after the current one.
