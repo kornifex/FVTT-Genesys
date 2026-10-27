@@ -1099,13 +1099,13 @@ export async function run(e2e: ScenarioContext) {
 		{ spent, reset: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ spent: { gm: 2, player: 3 }, reset: { gm: 1, player: 1 } },
 	);
-	await e2e.step('#263 GM types letters, then a count, into the GM pool', () =>
+	await e2e.step('#277 GM types letters, then a count, into the GM pool', () =>
 		gm.evaluate(() => window.sheetsE2E.editGMStoryPoints('abc')),
 	);
 	const afterLetters = await gm.evaluate(() => window.sheetsE2E.storyPoints());
 	await gm.evaluate(() => window.sheetsE2E.editGMStoryPoints('4'));
 	e2e.expect(
-		'#263 A1 GM: letters typed into a Story Point pool leave the pools unchanged, and a count sets that pool',
+		'#277 A1 GM: letters typed into a Story Point pool leave the pools unchanged, and a count sets that pool',
 		{ afterLetters, afterCount: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ afterLetters: { gm: 1, player: 1 }, afterCount: { gm: 4, player: 1 } },
 	);
