@@ -60,8 +60,8 @@ export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) 
 }
 
 /**
- * Whether the Container holding an item is what keeps its effects from applying: equipment that can be equipped is packed
- * away in a Container, whatever the Container's state, as an armor in it isn't worn (CRB p. 92).
+ * Whether the Container holding an item is what keeps its effects from applying: equipment that can be equipped is put away
+ * in a Container, whatever the Container's state, as an armor in it isn't worn (CRB p. 92).
  */
 export function isSuppressedByContainer(actorType: string, item: HeldItem) {
 	const isEquipmentType = EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType];

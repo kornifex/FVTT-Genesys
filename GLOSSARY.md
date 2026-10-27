@@ -95,7 +95,7 @@ Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dro
 _Avoid_: Inventory category, equipment status
 
 **Container**:
-A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. Equipment that can be equipped is packed away in a container: its effects never apply, whatever the container's state. A container can't hold another container.
+A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. Equipment that can be equipped is put away in a container: its effects never apply, whatever the container's state. A container can't hold another container.
 _Avoid_: Bag, pack
 
 **Worn Armor**:
