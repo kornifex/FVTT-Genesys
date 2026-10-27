@@ -53,7 +53,10 @@ const launches = [
 // The versions run at once, each on its own port. The versions after v12 read the packs a v12 run migrated: when no
 // earlier run left them, they wait for v12's first launch of the build.
 const migrated = new Map(builds.map((build) => [build.dist, deferred()]));
-const browser = await chromium.launch({ executablePath: config.chromium });
+const browser = await chromium.launch({
+	executablePath: config.chromium,
+	args: config.angle ? [`--use-angle=${config.angle}`] : [],
+});
 const logs = new Map<string, Step[]>();
 try {
 	await Promise.all(config.installs.map(runVersion));
