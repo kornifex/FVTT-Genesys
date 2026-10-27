@@ -1,5 +1,5 @@
 /** @file #214: a vehicle's Crew and its Roles, its Skills tab, the crew members who roll its checks, and deleting vehicles with their crew. */
-import type { ScenarioContext } from '../scenario.ts';
+import type { Client, ScenarioContext } from '../scenario.ts';
 
 /**
  * An actor the scenario creates, named `E2E <name>`.
@@ -68,6 +68,7 @@ type VehicleHelpers = {
 	prompts(): Prompts;
 	closePrompts(): Promise<void>;
 	selectCrewMember(name: string): Promise<void>;
+	/** The notifications since the last call. */
 	notifications(): string[];
 	actorsNamed(prefix: string): string[];
 	updateItem(args: { actor: string; item: string; data: object }): Promise<void>;
@@ -107,35 +108,9 @@ const roleMemberTile = (role: number, n: number): Target => [...roleMember(role,
  * Installs `window.vehicleE2E`. Playwright sends this function's source to the page, so it uses nothing from this module.
  */
 function installVehicleHelpers() {
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const waitFor = async <T>(what: string, find: () => T | undefined | null | false, timeout = 10_000): Promise<T> => {
-		const start = Date.now();
-		for (;;) {
-			const found = find();
-			if (found) return found;
-			if (Date.now() - start > timeout) throw new Error(`Timed out waiting for ${what}`);
-			await sleep(100);
-		}
-	};
-	const text = (element: Element | null | undefined) => (element?.textContent ?? '').replace(/\s+/g, ' ').trim();
-	const unprefixed = (name: string) => name.replace(/^E2E /, '');
-	const actor = (name: string) => {
-		const found = game.actors.getName(`E2E ${name}`);
-		if (!found) throw new Error(`No actor E2E ${name}`);
-		return found;
-	};
+	const { settle, waitFor, text, unprefixed, htmlOf, render, actor, apps, dragStart, drop, poolPreview } = window.e2e;
 	const nameOf = (uuid: string) => unprefixed(fromUuidSync(uuid)?.name ?? uuid);
-	// v12: an AppV1 window's element is a jQuery object.
-	const htmlOf = (app: { element?: unknown }): HTMLElement | undefined =>
-		app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
-	const sheet = async (name: string) => {
-		const app = actor(name).sheet;
-		if (!app.rendered) {
-			await app.render(true);
-			await sleep(500);
-		}
-		return waitFor(`the sheet of ${name}`, () => htmlOf(app));
-	};
+	const sheet = (name: string) => render(actor(name).sheet);
 	const find = (root: Element, target: string[]) =>
 		target.reduce((parent, step) => {
 			const [selector, pick] = step.split('|');
@@ -150,25 +125,16 @@ function installVehicleHelpers() {
 			}
 			return element;
 		}, root);
-	const drop = (element: Element, dataTransfer: DataTransfer) =>
-		element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
 	const sidebarData = (document: { type: 'Actor' | 'Item'; name: string }) => {
 		const collection = document.type === 'Actor' ? game.actors : game.items;
-		const dataTransfer = new DataTransfer();
-		dataTransfer.setData('text/plain', JSON.stringify({ type: document.type, uuid: collection.getName(`E2E ${document.name}`).uuid }));
-		return dataTransfer;
+		return { type: document.type, uuid: collection.getName(`E2E ${document.name}`).uuid };
 	};
-	const appsWith = (cssClass: string) =>
-		[...foundry.applications.instances.values()].filter((app: { options?: { classes?: string[] } }) =>
-			app.options?.classes?.includes(cssClass),
-		);
 	// The dice of a rank preview, as the vehicle's Skills tab and the crew member prompt show them.
 	const ranks = (element: Element | null) =>
 		element
 			? 'P'.repeat(element.querySelectorAll('.rank.proficiency').length) +
 				'A'.repeat(element.querySelectorAll('.rank.ability').length)
 			: '';
-	const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
 	type SceneToken = {
 		x: number;
 		actor: { system: { passengers: { list: { uuid: string; sort: number }[] } }; update(data: object): Promise<unknown> };
@@ -177,6 +143,7 @@ function installVehicleHelpers() {
 	const tokensOf = (scene: string): SceneToken[] =>
 		[...game.scenes.getName(`E2E ${scene}`).tokens].sort((left: SceneToken, right: SceneToken) => left.x - right.x);
 
+	const takeNotifications = window.e2e.recordNotifications();
 	const crewUpdates: string[] = [];
 	Hooks.on('updateActor', (updated: { name: string }, change: { system?: { passengers?: unknown; roles?: unknown } }) => {
 		if (change.system?.passengers || change.system?.roles) crewUpdates.push(unprefixed(updated.name));
@@ -184,10 +151,7 @@ function installVehicleHelpers() {
 
 	const helpers: VehicleHelpers = {
 		async setUp() {
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Item.deleteDocuments(game.items.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await CONFIG.Folder.documentClass.deleteDocuments(game.folders.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Scene.deleteDocuments(game.scenes.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Actor', 'Item', 'Folder', 'Scene');
 			await Actor.createDocuments([
 				...['A', 'B', 'C', 'D', 'P'].map((name) => ({ name: `E2E ${name}`, type: 'character' })),
 				{ name: 'E2E V1', type: 'vehicle' },
@@ -252,8 +216,7 @@ function installVehicleHelpers() {
 		},
 
 		async drag(from, to) {
-			const dataTransfer = new DataTransfer();
-			find(await sheet(from.vehicle), from.tile).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+			const dataTransfer = dragStart(find(await sheet(from.vehicle), from.tile));
 			drop(find(await sheet(to.vehicle), to.target), dataTransfer);
 		},
 
@@ -263,7 +226,8 @@ function installVehicleHelpers() {
 			);
 			try {
 				await helpers.drag(from, to);
-				await sleep(2000);
+				// The source vehicle refuses every update until the drop's work is over.
+				await settle();
 			} finally {
 				Hooks.off('preUpdateActor', hook);
 			}
@@ -282,7 +246,7 @@ function installVehicleHelpers() {
 				// What the drop meets: the Role on the sheet, and none in the vehicle's data.
 				const met = { roleShown: target.isConnected, roles: vehicleActor.system.roles.length };
 				drop(target, sidebarData({ type: 'Actor', name }));
-				await sleep(1000);
+				await settle();
 				return met;
 			} finally {
 				vehicleActor.updateSource({ 'system.roles': roles });
@@ -353,56 +317,59 @@ function installVehicleHelpers() {
 			const select = (await sheet(vehicle)).querySelector<HTMLSelectElement>('.tab-skills .grouping-mode select')!;
 			select.value = mode;
 			select.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(200);
+			await waitFor(`the Skills tab of ${vehicle} grouped by ${mode}`, () =>
+				htmlOf(actor(vehicle).sheet)?.querySelector(`.tab-skills .${mode === 'member' ? 'members' : 'skills'}-container`),
+			);
 		},
 
 		prompts() {
 			return {
-				dice: appsWith('app-dice-prompt').map(
+				dice: apps('app-dice-prompt').map(
 					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: number; difficulty: string }) => {
 						const root = htmlOf(app);
-						const pool = (side: string) => [...(root?.querySelectorAll(`.preview .${side} > *`) ?? [])].map(text).join('');
 						return {
 							actor: app.actor ? unprefixed(app.actor.name) : null,
 							skill: app.skillName ?? null,
 							rollType: app.rollType,
 							difficulty: app.difficulty,
-							pool: `${pool('positive')}|${pool('negative')}`,
+							pool: root ? poolPreview(root) : '|',
 						};
 					},
 				),
-				crew: appsWith('app-select-crew-member-prompt').map((app: { element?: unknown; title: string }) => ({
+				crew: apps('app-select-crew-member-prompt').map((app: { element?: unknown; title: string }) => ({
 					title: app.title,
 					rows: [...(htmlOf(app)?.querySelectorAll('.member-skill-option') ?? [])].map(
 						(row) =>
 							`${unprefixed(text(row.querySelector('.member-name')))} ${text(row.querySelector('.skill-name'))} ${text(row.querySelector('.skill-rank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
 					),
 				})),
-				clone: appsWith('app-clone-actor-prompt').map((app: { targetActor: { name: string } }) => unprefixed(app.targetActor.name)),
+				clone: apps('app-clone-actor-prompt').map((app: { targetActor: { name: string } }) => unprefixed(app.targetActor.name)),
 			};
 		},
 
 		async closePrompts() {
-			const prompts = ['app-dice-prompt', 'app-select-crew-member-prompt', 'app-clone-actor-prompt'].flatMap(appsWith);
+			const prompts = ['app-dice-prompt', 'app-select-crew-member-prompt', 'app-clone-actor-prompt'].flatMap(apps);
 			await Promise.all(prompts.map((app: { close(): Promise<void> }) => app.close()));
-			await sleep(300);
+			await waitFor('the prompts to close', () =>
+				prompts.every((app: { id: string }) => !foundry.applications.instances.has(app.id)),
+			);
 		},
 
 		async selectCrewMember(name) {
-			const app = await waitFor('the crew member prompt', () => appsWith('app-select-crew-member-prompt')[0]);
+			const app = await waitFor('the crew member prompt', () => apps('app-select-crew-member-prompt')[0]);
 			const root = await waitFor('its rows', () => htmlOf(app)?.querySelector('.member-skill-option') && htmlOf(app));
 			const row = [...root.querySelectorAll<HTMLElement>('.member-skill-option')].find(
 				(option) => text(option.querySelector('.member-name')) === `E2E ${name}`,
 			);
 			if (!row) throw new Error(`No crew member E2E ${name} in the prompt`);
 			row.click();
-			await sleep(200);
+			await waitFor(`crew member ${name} picked in the prompt`, () => row.classList.contains('selected-option'));
 			root.querySelector<HTMLButtonElement>('.submit-button')!.click();
 			// The prompt's closing transition can outlast a step's wait on a busy machine.
 			await waitFor('the crew member prompt to close', () => !foundry.applications.instances.has(app.id));
 		},
 
-		notifications: () => [...window.e2e.notifications],
+		notifications: takeNotifications,
 
 		actorsNamed: (prefix) =>
 			game.actors
@@ -471,8 +438,6 @@ function installVehicleHelpers() {
 	window.vehicleE2E = helpers;
 }
 
-type Client = ScenarioContext['gm'];
-
 /**
  * Calls a helper of `window.vehicleE2E` in a client's page.
  */
@@ -499,6 +464,9 @@ const characteristics = (values: Partial<Record<string, number>> = {}) => ({
 	characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2, ...values },
 });
 const skill = (name: string, characteristic: string, rank: number) => ({ name, type: 'skill', system: { characteristic, rank } });
+
+// Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
+export const needsCanvas = true;
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -538,7 +506,6 @@ async function crewDrops(e2e: ScenarioContext) {
 		() =>
 			vehicleE2E('dropFromSidebar', { type: 'Item', name }, { actor: vehicle, target });
 	const drag = (from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }) => () => vehicleE2E('drag', from, to);
-	const pause = () => new Promise((resolve) => setTimeout(resolve, 1000));
 
 	// Joining: on the sheet anywhere, then on the passengers' slots.
 	await step('#109 A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .section-header|1']), {
@@ -580,7 +547,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C1 two Roles added',
 		async () => {
 			await addRole('V1');
-			await pause();
+			await e2e.settle();
 			await addRole('V1');
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole(''), expectedRole('')] } },
@@ -589,7 +556,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C2 Roles renamed',
 		async () => {
 			await vehicleE2E('rename', 'V1', 1, 'Pilot');
-			await pause();
+			await e2e.settle();
 			await vehicleE2E('rename', 'V1', 2, 'Gunner');
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot'), expectedRole('Gunner')] } },
@@ -598,7 +565,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C3 skill dropped on Pilot, then the same skill in lower case',
 		async () => {
 			await skillFromSidebar('Piloting', role(1))();
-			await pause();
+			await e2e.settle();
 			await skillFromSidebar('piloting', role(1))();
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] }), expectedRole('Gunner')] } },
@@ -673,7 +640,7 @@ async function crewDrops(e2e: ScenarioContext) {
 	);
 	// A Role saved with one skill in two cases, as worlds older than the case-insensitive Role skills may hold.
 	await vehicleE2E('setRoleSkills', { vehicle: 'V1', role: 1, skills: ['E2E Piloting', 'E2E piloting'] });
-	await pause();
+	await e2e.settle();
 	await step(
 		'#109 E2 a skill removed from its Role menu, in both its cases',
 		() => vehicleE2E('menu', { actor: 'V1', target: [...role(1), '.role-skill|1'], icon: 'fa-trash' }),
@@ -723,7 +690,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 F3 Minion Group L dropped from the sidebar on a new Role',
 		async () => {
 			await addRole('V3');
-			await pause();
+			await e2e.settle();
 			await fromSidebar('L', role(1), 'V3')();
 		},
 		{ V3: { passengers: ['N', 'R'], roles: [expectedRole('', { members: ['L'] })] } },
@@ -791,7 +758,7 @@ async function deletingCrew(e2e: ScenarioContext) {
 	let errors = gm.errors.length;
 	await e2e.step('#129 the folder of a vehicle and its crew deleted with its contents', () => vehicleE2E('deleteFolder', 'Fleet'));
 	e2e.expect(
-		'#129 deleting a folder with a vehicle and its crew logs no error, and the crew leave the other vehicles',
+		'#129 A1 deleting a folder with a vehicle and its crew logs no error, and the crew leave the other vehicles',
 		{
 			errors: gm.errors.slice(errors),
 			left: await vehicleE2E('actorsNamed', 'Fleet'),
@@ -805,7 +772,7 @@ async function deletingCrew(e2e: ScenarioContext) {
 		vehicleE2E('deleteActors', ['Crew First', 'Crew Second', 'Crewed Ship']),
 	);
 	e2e.expect(
-		'#129 deleting a vehicle with its crew, crew first, logs no error',
+		'#129 A2 deleting a vehicle with its crew, crew first, logs no error',
 		{
 			errors: gm.errors.slice(errors),
 			left: [...(await vehicleE2E('actorsNamed', 'Crew')), ...(await vehicleE2E('actorsNamed', 'Crewed'))],
@@ -1048,7 +1015,7 @@ async function crewRolls(e2e: ScenarioContext) {
 
 	await e2e.step('#133 the vehicle Skills tab grouped by member');
 	e2e.expect(
-		'#133 grouped by member, each member rolls their skills at their rank, sorted by name',
+		'#133 A1 grouped by member, each member rolls their skills at their rank, sorted by name',
 		await vehicleE2E('skillsTab', 'Ship'),
 		{
 			mode: 'member',
@@ -1063,7 +1030,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	await e2e.step('#133 a Role skill rolled from the tab grouped by member', () =>
 		vehicleE2E('click', { actor: 'Ship', target: memberSkill('Gun', 'gunnery') }),
 	);
-	e2e.expect('#133 a Role skill rolled from the tab grouped by member opens the Dice Prompt', await vehicleE2E('prompts'), {
+	e2e.expect('#133 A2 a Role skill rolled from the tab grouped by member opens the Dice Prompt', await vehicleE2E('prompts'), {
 		...noPrompts,
 		dice: [{ actor: 'Gun', skill: 'gunnery', rollType: SKILL_ROLL, difficulty: 'DD', pool: 'PA|DD' }],
 	});
@@ -1071,7 +1038,7 @@ async function crewRolls(e2e: ScenarioContext) {
 
 	await e2e.step('#133 the vehicle Skills tab grouped by skill', () => vehicleE2E('groupBy', { vehicle: 'Ship', mode: 'skill' }));
 	e2e.expect(
-		'#133 grouped by skill, each skill is listed once, named as the Skills Compendium names it, sorted by name',
+		'#133 A3 grouped by skill, each skill is listed once, named as the Skills Compendium names it, sorted by name',
 		await vehicleE2E('skillsTab', 'Ship'),
 		{
 			mode: 'skill',
@@ -1087,7 +1054,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	await e2e.step('#133 a Role skill rolled from the tab grouped by skill', () =>
 		vehicleE2E('click', { actor: 'Ship', target: skillMember('Gunnery', 'Mob') }),
 	);
-	e2e.expect('#133 a Minion Group rolls a Role skill at its group skill rank', await vehicleE2E('prompts'), {
+	e2e.expect('#133 A4 a Minion Group rolls a Role skill at its group skill rank', await vehicleE2E('prompts'), {
 		...noPrompts,
 		dice: [{ actor: 'Mob', skill: 'Gunnery', rollType: SKILL_ROLL, difficulty: 'DD', pool: 'PP|DD' }],
 	});
@@ -1095,19 +1062,19 @@ async function crewRolls(e2e: ScenarioContext) {
 
 	await e2e.step('#133 an attack with a Gunnery vehicle weapon', () => vehicleE2E('click', { actor: 'Ship', target: weapon('Cannon') }));
 	e2e.expect(
-		'#133 an attack several crew members can roll opens the crew member prompt at the ranks they roll',
+		'#133 A5 an attack several crew members can roll opens the crew member prompt at the ranks they roll',
 		await vehicleE2E('prompts'),
 		{ ...noPrompts, crew: [{ title: 'Select Crew Member', rows: gunneryRows }] },
 	);
 	await e2e.step('#133 the Minion Group picked in the crew member prompt', () => vehicleE2E('selectCrewMember', 'Mob'));
-	e2e.expect('#133 the crew member picked rolls the attack', await vehicleE2E('prompts'), {
+	e2e.expect('#133 A6 the crew member picked rolls the attack', await vehicleE2E('prompts'), {
 		...noPrompts,
 		dice: [{ actor: 'Mob', skill: 'Gunnery', rollType: ATTACK_ROLL, difficulty: 'DD', pool: 'PP|DD' }],
 	});
 	await vehicleE2E('closePrompts');
 
 	await e2e.step('#133 an attack with a Piloting vehicle weapon', () => vehicleE2E('click', { actor: 'Ship', target: weapon('Ram') }));
-	e2e.expect('#133 an attack one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
+	e2e.expect('#133 A7 an attack one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
 		...noPrompts,
 		dice: [{ actor: 'Ace', skill: 'Piloting', rollType: ATTACK_ROLL, difficulty: 'DD', pool: 'PPA|DD' }],
 	});
@@ -1116,7 +1083,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	await e2e.step('#133 a Critical Hit repaired', () =>
 		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.severity a|1'] }),
 	);
-	e2e.expect('#133 a repair one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
+	e2e.expect('#133 A8 a repair one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
 		...noPrompts,
 		dice: [{ actor: 'Wrench', skill: 'Mechanics', rollType: SKILL_ROLL, difficulty: 'DDD', pool: 'PPP|DDD' }],
 	});
@@ -1129,8 +1096,10 @@ async function crewRolls(e2e: ScenarioContext) {
 	const playerRoll = async (name: string, action: () => Promise<unknown>) => {
 		let rolled: { prompts: Prompts; notifications: string[] } | undefined;
 		await e2e.step(name, async () => {
+			// Drops what the previous roll notified while its prompts closed: only this roll's notifications are read.
+			await playerE2E('notifications');
 			await action();
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			await e2e.settle();
 			rolled = { prompts: await playerE2E('prompts'), notifications: await playerE2E('notifications') };
 			await playerE2E('closePrompts');
 		});
@@ -1139,7 +1108,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	const cannotSelect = ['warning: Genesys.Notifications.CannotSelectActor'];
 
 	e2e.expect(
-		'#133 player, Skills tab: rolling for an owned crew member opens the Dice Prompt',
+		'#133 A9 player, Skills tab: rolling for an owned crew member opens the Dice Prompt',
 		await playerRoll('#133 player rolls for Gun from the Skills tab', () =>
 			playerE2E('click', { actor: 'Ship', target: memberSkill('Gun', 'gunnery') }),
 		),
@@ -1149,14 +1118,14 @@ async function crewRolls(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'#133 player, Skills tab: rolling for a crew member the player does not own warns',
+		'#133 A10 player, Skills tab: rolling for a crew member the player does not own warns',
 		await playerRoll('#133 player rolls for Ace from the Skills tab', () =>
 			playerE2E('click', { actor: 'Ship', target: memberSkill('Ace', 'Piloting') }),
 		),
 		{ prompts: noPrompts, notifications: cannotSelect },
 	);
 	e2e.expect(
-		'#133 player, Combat tab: rolling for an owned crew member opens the Dice Prompt',
+		'#133 A11 player, Combat tab: rolling for an owned crew member opens the Dice Prompt',
 		await playerRoll('#133 player attacks with the Cannon as Gun', async () => {
 			await playerE2E('click', { actor: 'Ship', target: weapon('Cannon') });
 			await playerE2E('selectCrewMember', 'Gun');
@@ -1167,7 +1136,7 @@ async function crewRolls(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'#133 player, Combat tab: rolling for a crew member the player does not own warns',
+		'#133 A12 player, Combat tab: rolling for a crew member the player does not own warns',
 		await playerRoll('#133 player attacks with the Cannon as Ace', async () => {
 			await playerE2E('click', { actor: 'Ship', target: weapon('Cannon') });
 			await playerE2E('selectCrewMember', 'Ace');
@@ -1183,7 +1152,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	});
 	const tab = await vehicleE2E('skillsTab', 'Ship');
 	e2e.expect(
-		'#49 a Minion Group rolls an owned Role skill at its group rank, an unowned one at 0',
+		'#49 A1 a Minion Group rolls an owned Role skill at its group rank, an unowned one at 0',
 		tab.mode === 'member' ? tab.members.find((member) => member.name === 'Mob') : tab,
 		{ name: 'Mob', role: 'Role: Gunner', skills: ['Gunnery (Ag) 2 PP', 'Vigilance (Will) 0 AA'] },
 	);

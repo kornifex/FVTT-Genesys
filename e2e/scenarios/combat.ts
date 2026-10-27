@@ -85,15 +85,7 @@ declare global {
  */
 function installCombatHelpers() {
 	if (window.combatE2E) return;
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const until = async <T>(find: () => T | undefined, what: string) => {
-		for (let tries = 0; tries < 50; tries++) {
-			const found = find();
-			if (found) return found;
-			await sleep(200);
-		}
-		throw new Error(`No ${what}`);
-	};
+	const { settle, waitFor, unprefixed, apps } = window.e2e;
 	const v13 = game.release.generation >= 13;
 	const combatant = (name: string) => {
 		const found = game.combat?.combatants.find((candidate: { name: string }) => candidate.name === name);
@@ -115,10 +107,7 @@ function installCombatHelpers() {
 		return { entry, target: v13 ? row(slot) : $(row(slot)) };
 	};
 	const answered = new Set<unknown>();
-	const prompts = () =>
-		[...foundry.applications.instances.values()].filter(
-			(app: { options: { classes: string[] }; rendered: boolean }) => app.options.classes.includes('app-dice-prompt') && app.rendered,
-		);
+	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
 
 	const helpers: CombatHelpers = {
 		messages: [],
@@ -194,17 +183,17 @@ function installCombatHelpers() {
 
 		async answerPrompts(answers) {
 			for (const answer of answers) {
-				const prompt = await until(
+				const prompt = await waitFor(
+					'a Dice Prompt',
 					() =>
 						prompts().find(
 							(app: { element: HTMLElement }) => !answered.has(app) && app.element.querySelector('.roll-button'),
 						) as { element: HTMLElement; close(): Promise<void> } | undefined,
-					'Dice Prompt',
 				);
 				answered.add(prompt);
 				if (answer === 'roll') prompt.element.querySelector<HTMLElement>('.roll-button')!.click();
 				else await prompt.close();
-				await sleep(500);
+				await settle();
 			}
 		},
 
@@ -234,7 +223,7 @@ function installCombatHelpers() {
 
 	Hooks.on('createChatMessage', (message: { speaker: { actor: string }; rolls: { formula: string }[]; sound: string | null }) =>
 		helpers.messages.push({
-			speaker: (game.actors.get(message.speaker.actor)?.name ?? '').replace(/^E2E /, ''),
+			speaker: unprefixed(game.actors.get(message.speaker.actor)?.name ?? ''),
 			formula: message.rolls[0]?.formula,
 			sound: message.sound,
 		}),
@@ -267,6 +256,9 @@ const COMBATANTS = {
 } as const;
 
 type Name = keyof typeof COMBATANTS;
+
+// The scenario controls tokens and hovers them on the canvas.
+export const needsCanvas = true;
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -353,12 +345,13 @@ export async function run(e2e: ScenarioContext) {
 				id: Hooks.on(hook, () => fired.add(hook)),
 			}));
 			await ui.combat.render(true);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			// v12: an AppV1 window renders after render() returns.
+			await window.e2e.settle();
 			for (const { hook, id } of hooks) Hooks.off(hook, id);
 			return { className: ui.combat.constructor.name, hooks: [...fired].sort() };
 		});
 		e2e.expect(
-			'#85 the Combat Tracker class and the render hooks it fires',
+			'#85 A1 the Combat Tracker class and the render hooks it fires',
 			tracker,
 			e2e.version >= 13
 				? { className: 'GenesysCombatTracker', hooks: ['renderCombatTracker', 'renderGenesysCombatTracker'] }
@@ -394,7 +387,7 @@ export async function run(e2e: ScenarioContext) {
 		noTurnEvent('A1', a1);
 		// #35: the player's client orders the turns and renders its tracker without waiting for the GM's socket refresh.
 		e2e.expect(
-			"#35 the player's tracker lists an added Extra Slot in turn order",
+			"#35 A1 the player's tracker lists an added Extra Slot in turn order",
 			{ slots: order(a1, e2e.playerUser), rows: (await rows())[e2e.playerUser]?.map((row) => row.slot) },
 			{ slots: ['Hero:-1', 'Hero:0', 'Boss:-1'], rows: ['Hero:-1', 'Hero:0', 'Boss:-1'] },
 		);
@@ -416,7 +409,7 @@ export async function run(e2e: ScenarioContext) {
 		turnOn('A3', a3, 'Boss:1');
 		// §#96: Foundry v12 sees no turn change when the turn stays with the same combatant, v13 does.
 		e2e.expect(
-			"#96 Next Turn from Boss's own slot to its Extra Slot fires turn events on v13 only",
+			"#96 A1 Next Turn from Boss's own slot to its Extra Slot fires turn events on v13 only",
 			Object.fromEntries(Object.entries(a3).map(([user, state]) => [user, state?.events])),
 			e2e.version >= 13
 				? {
@@ -427,7 +420,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		// Foundry counts a turn-based duration from the combat's round and turn, not from the turn events.
 		e2e.expect(
-			"#96 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot on v12 and v13 alike",
+			"#96 A2 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot on v12 and v13 alike",
 			{ before: effectBefore, after: await effectState() },
 			{ before: 'running', after: 'expired' },
 		);
@@ -576,7 +569,7 @@ export async function run(e2e: ScenarioContext) {
 			return shown;
 		};
 		e2e.expect(
-			'#35 before the start, no row offers to revoke a Claim',
+			'#35 A2 before the start, no row offers to revoke a Claim',
 			await revokeShown(),
 			bothClients({ 'Hero:-1': false, 'Boss:-1': false, 'Ally:-1': false }),
 		);
@@ -591,7 +584,7 @@ export async function run(e2e: ScenarioContext) {
 			),
 		);
 		e2e.expect(
-			'#35 Claims of the former flag claim no slot and use no activation',
+			'#35 A3 Claims of the former flag claim no slot and use no activation',
 			{
 				claims: (await stored()).claims,
 				rows: (await rows())[gm.user]?.filter((row) => row.claimed).map((row) => row.slot),
@@ -609,7 +602,7 @@ export async function run(e2e: ScenarioContext) {
 			}),
 		);
 		e2e.expect(
-			"#35 Hero claims Hero's slot",
+			"#35 A4 Hero claims Hero's slot",
 			{
 				claims: (await stored()).claims,
 				rows: Object.fromEntries(
@@ -623,35 +616,37 @@ export async function run(e2e: ScenarioContext) {
 			{ claims: { 'Hero:-1': 'Hero' }, rows: bothClients(['Hero:-1 Hero']), notifications: [] },
 		);
 
-		const refusals: [string, string, string, string][] = [
-			["#35 player claims Boss's slot for Hero", 'Boss:-1', 'Hero', 'Genesys.Notifications.CannotClaimOppositeSlot'],
-			["#35 player claims Hero's claimed slot for Ally", 'Hero:-1', 'Ally', 'Genesys.Notifications.SlotAlreadyClaimed'],
+		// Each refused claim, with the code of its assertion.
+		const refusals: [string, string, string, string, string][] = [
+			['A5', "player claims Boss's slot for Hero", 'Boss:-1', 'Hero', 'Genesys.Notifications.CannotClaimOppositeSlot'],
+			['A6', "player claims Hero's claimed slot for Ally", 'Hero:-1', 'Ally', 'Genesys.Notifications.SlotAlreadyClaimed'],
 			[
-				"#35 player claims Ally's slot for Hero, who has no activation left",
+				'A7',
+				"player claims Ally's slot for Hero, who has no activation left",
 				'Ally:-1',
 				'Hero',
 				'Genesys.Notifications.CombatantHasNoActivationLeft',
 			],
 		];
-		for (const [name, slot, claimant, refusal] of refusals) {
-			const states = await e2e.step(name, () =>
+		for (const [code, claim, slot, claimant, refusal] of refusals) {
+			const states = await e2e.step(`#35 ${claim}`, () =>
 				player.evaluate((args) => window.combatE2E.claim(args.slot, args.claimant), { slot, claimant }),
 			);
 			e2e.expect(
-				`${name}: refused`,
+				`#35 ${code} ${claim}: refused`,
 				{ claims: (await stored()).claims, notifications: notifications(states, e2e.playerUser) },
 				{ claims: { 'Hero:-1': 'Hero' }, notifications: [await warning(refusal, claimant)] },
 			);
 		}
 
 		await e2e.step("#35 GM claims Boss's slot for Boss", () => gm.evaluate(() => window.combatE2E.claim('Boss:-1', 'Boss')));
-		e2e.expect('#35 once the combat started, only the GM is offered to revoke a Claim, on claimed rows', await revokeShown(), {
+		e2e.expect('#35 A8 once the combat started, only the GM is offered to revoke a Claim, on claimed rows', await revokeShown(), {
 			[gm.user]: { 'Hero:-1': true, 'Boss:-1': true, 'Ally:-1': false },
 			[e2e.playerUser]: { 'Hero:-1': false, 'Boss:-1': false, 'Ally:-1': false },
 		});
 		// §#94: hovering a claimed row highlights the claimant's token; an unclaimed row highlights none.
 		e2e.expect(
-			'#94 hovering a claimed row highlights its token, an unclaimed row none',
+			'#94 A1 hovering a claimed row highlights its token, an unclaimed row none',
 			await gm.evaluate(() => ({ claimed: window.combatE2E.hover('Hero:-1'), unclaimed: window.combatE2E.hover('Ally:-1') })),
 			{ claimed: ['E2E Hero'], unclaimed: [] },
 		);
@@ -659,7 +654,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect("#35 the player controls Hero's turn", await player.evaluate(() => game.combat.userControlsTurn), true);
 		const ended = await e2e.step("#35 player ends Hero's turn", () => player.evaluate(() => game.combat.nextTurn()));
 		e2e.expect(
-			"#35 the turn goes on to Boss's slot",
+			"#35 A9 the turn goes on to Boss's slot",
 			Object.fromEntries(Object.entries(ended).map(([user, state]) => [user, state?.current])),
 			bothClients('Boss:-1'),
 		);
@@ -667,7 +662,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step("#35 GM revokes Boss's Claim from the tracker's menu", () =>
 			gm.evaluate(() => window.combatE2E.runMenuEntry('Boss:-1', 'Genesys.CombatTracker.RevokeInitiativeClaim')),
 		);
-		e2e.expect("#35 Boss's Claim is revoked", (await stored()).claims, { 'Hero:-1': 'Hero' });
+		e2e.expect("#35 A10 Boss's Claim is revoked", (await stored()).claims, { 'Hero:-1': 'Hero' });
 
 		const roll = await e2e.step("#35 player rolls Ally's unclaimed slot from the tracker", () =>
 			player.evaluate(async () => {
@@ -676,7 +671,7 @@ export async function run(e2e: ScenarioContext) {
 			}),
 		);
 		e2e.expect(
-			"#35 Ally's slot is rolled, and the turn stays on Boss's slot",
+			"#35 A11 Ally's slot is rolled, and the turn stays on Boss's slot",
 			{
 				rolled: rolled((await stored()).initiatives),
 				speakers: (await messages()).map((message) => message.speaker),
@@ -695,7 +690,7 @@ export async function run(e2e: ScenarioContext) {
 				await window.combatE2E.claim('Ally:0', 'Scout');
 			}),
 		);
-		e2e.expect('#38 Hero and Scout claim the slots of Ally', (await stored()).claims, { 'Ally:-1': 'Hero', 'Ally:0': 'Scout' });
+		e2e.expect('#38 A1 Hero and Scout claim the slots of Ally', (await stored()).claims, { 'Ally:-1': 'Hero', 'Ally:0': 'Scout' });
 
 		await e2e.step('#38 player rolls the row Hero claimed', () =>
 			player.evaluate(async () => {
@@ -704,14 +699,14 @@ export async function run(e2e: ScenarioContext) {
 			}),
 		);
 		e2e.expect(
-			'#38 rolling the row Hero claimed rolls Ally, as the speaker',
+			'#38 A2 rolling the row Hero claimed rolls Ally, as the speaker',
 			{ rolled: rolled((await stored()).initiatives), speakers: (await messages()).map((message) => message.speaker) },
 			{ rolled: { Hero: false, Ally: true, Scout: false, Boss: false }, speakers: ['Ally'] },
 		);
 
 		// §#35: with no Initiative Skill chosen, a combatant rolls Vigilance.
 		e2e.expect(
-			'#35 the row of a combatant with no Initiative Skill chosen shows Vigilance',
+			'#35 A12 the row of a combatant with no Initiative Skill chosen shows Vigilance',
 			Object.fromEntries(
 				Object.entries(await rows()).map(([user, clientRows]) => [user, clientRows.find((row) => row.slot === 'Ally:0')?.skill]),
 			),
@@ -721,7 +716,7 @@ export async function run(e2e: ScenarioContext) {
 			player.evaluate(() => window.combatE2E.clickRow('Ally:0', '.initiative-skill')),
 		);
 		e2e.expect(
-			"#38 switching the Initiative Skill of the row Scout claimed switches Ally's",
+			"#38 A3 switching the Initiative Skill of the row Scout claimed switches Ally's",
 			{
 				skills: (await stored()).skills,
 				rows: Object.fromEntries(
@@ -742,7 +737,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const extraRoll = await stored();
 		e2e.expect(
-			"#38 rolling the row Scout claimed rolls Ally's Extra Slot, as the speaker",
+			"#38 A4 rolling the row Scout claimed rolls Ally's Extra Slot, as the speaker",
 			{
 				rolled: rolled(extraRoll.initiatives),
 				extraSlotRolled: !extraRoll.extraSlots[0].endsWith('=null'),
@@ -760,7 +755,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const reroll = await stored();
 		e2e.expect(
-			'#38 rerolling the row Hero claimed rerolls Ally, as the speaker',
+			'#38 A5 rerolling the row Hero claimed rerolls Ally, as the speaker',
 			{
 				rolled: rolled(reroll.initiatives),
 				extraSlot: reroll.extraSlots[0],
@@ -775,7 +770,7 @@ export async function run(e2e: ScenarioContext) {
 		// 2 Successes and 3 Advantage; Advantage alone; none left, as a check with leftover Failures and Threats stores it.
 		await setUp({ Hero: 2.03, Ally: 0.02, Boss: 0 });
 		e2e.expect(
-			'#35 the trackers show the Successes and Advantage of each initiative',
+			'#35 A13 the trackers show the Successes and Advantage of each initiative',
 			Object.fromEntries(
 				Object.entries(await rows()).map(([user, clientRows]) => [
 					user,
@@ -799,14 +794,14 @@ export async function run(e2e: ScenarioContext) {
 				bothClients(expected),
 			);
 		};
-		await expectSides('#190 the PCs give PC slots, a GM-run friendly rival and a hostile rival NPC slots', {
+		await expectSides('#190 A1 the PCs give PC slots, a GM-run friendly rival and a hostile rival NPC slots', {
 			'Hero:-1': 'pc',
 			'Ally:-1': 'pc',
 			'Rival:-1': 'npc',
 			'Boss:-1': 'npc',
 		});
 		e2e.expect(
-			'#190 on an initiative tie, PC slots go first',
+			'#190 A2 on an initiative tie, PC slots go first',
 			Object.fromEntries(Object.entries(await sides()).map(([user, slots]) => [user, slots.map((slot) => slot.split(' ')[1])])),
 			bothClients(['pc', 'pc', 'npc', 'npc']),
 		);
@@ -815,7 +810,7 @@ export async function run(e2e: ScenarioContext) {
 			player.evaluate(() => window.combatE2E.claim('Rival:-1', 'Hero')),
 		);
 		e2e.expect(
-			"#190 Hero can't claim the friendly rival's slot",
+			"#190 A3 Hero can't claim the friendly rival's slot",
 			{ claims: (await stored()).claims, notifications: notifications(refused, e2e.playerUser) },
 			{ claims: {}, notifications: [await warning('Genesys.Notifications.CannotClaimOppositeSlot', 'Hero')] },
 		);
@@ -827,7 +822,7 @@ export async function run(e2e: ScenarioContext) {
 					.document.update({ disposition: CONST.TOKEN_DISPOSITIONS.HOSTILE }),
 			),
 		);
-		await expectSides("#190 Hero's hostile token still gives a PC slot", {
+		await expectSides("#190 A4 Hero's hostile token still gives a PC slot", {
 			'Hero:-1': 'pc',
 			'Ally:-1': 'pc',
 			'Rival:-1': 'npc',
@@ -837,7 +832,7 @@ export async function run(e2e: ScenarioContext) {
 			player.evaluate(() => window.combatE2E.claim('Hero:-1', 'Ally')),
 		);
 		e2e.expect(
-			"#190 Ally claims the hostile Hero's slot",
+			"#190 A5 Ally claims the hostile Hero's slot",
 			{ claims: (await stored()).claims, notifications: notifications(claimed, e2e.playerUser) },
 			{ claims: { 'Hero:-1': 'Ally' }, notifications: [] },
 		);
@@ -850,7 +845,7 @@ export async function run(e2e: ScenarioContext) {
 				await game.actors.getName('E2E Rival').update({ [`ownership.${playerId}`]: OWNER });
 			}, e2e.playerUser),
 		);
-		await expectSides('#190 a change of player ownership moves the slots to the other side', {
+		await expectSides('#190 A6 a change of player ownership moves the slots to the other side', {
 			'Hero:-1': 'pc',
 			'Ally:-1': 'npc',
 			'Rival:-1': 'pc',
@@ -875,7 +870,7 @@ export async function run(e2e: ScenarioContext) {
 			}, e2e.playerUser),
 		);
 		e2e.expect(
-			'#190 a vehicle the player owns gives a PC slot',
+			'#190 A7 a vehicle the player owns gives a PC slot',
 			Object.fromEntries(Object.entries(await sides()).map(([user, slots]) => [user, slots.find((slot) => slot.startsWith('Rig:'))])),
 			bothClients('Rig:-1 pc'),
 		);
@@ -937,12 +932,12 @@ export async function run(e2e: ScenarioContext) {
 
 		e2e.log('#50 the pools rolled', { rollAllOn, promptedOn, rollNPCOn, actorOn, combatantRoll, rollAllOff, promptedOff });
 		e2e.expect(
-			'#50 with auto-apply on, every unprompted roll rolls the pool of a prompted roll, with the Boost of the effects',
+			'#50 A1 with auto-apply on, every unprompted roll rolls the pool of a prompted roll, with the Boost of the effects',
 			{ rollAll: rollAllOn.Hero, rollNPC: rollNPCOn.Boss, actor: actorOn.Hero, effectAdds: rollAllOn.Hero !== rollAllOff.Hero },
 			{ rollAll: promptedOn, rollNPC: rollAllOn.Boss, actor: promptedOn, effectAdds: true },
 		);
-		e2e.expect('#50 with auto-apply off, Roll All rolls the pool of a prompted roll', rollAllOff.Hero, promptedOff);
-		e2e.expect("#50 a combatant's initiative roll posts a message and writes its slot as the combat's roll does", combatantRoll, {
+		e2e.expect('#50 A2 with auto-apply off, Roll All rolls the pool of a prompted roll', rollAllOff.Hero, promptedOff);
+		e2e.expect("#50 A3 a combatant's initiative roll posts a message and writes its slot as the combat's roll does", combatantRoll, {
 			formulas: { Hero: rollAllOn.Hero },
 			rolled: { Hero: true, Boss: false },
 		});
@@ -984,7 +979,7 @@ export async function run(e2e: ScenarioContext) {
 		let counts = errorCounts();
 		const back = await e2e.step('#53 GM goes back to round 1', () => gm.evaluate(() => game.combat.previousRound()));
 		e2e.expect(
-			'#53 back in round 1, the trackers render the round without the Extra Slot of round 2, and the turn is on one of its slots',
+			'#53 A1 back in round 1, the trackers render the round without the Extra Slot of round 2, and the turn is on one of its slots',
 			await roundView(back, counts),
 			{
 				round: 1,
@@ -1001,7 +996,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#53 GM rolls the NPCs', () => gm.evaluate(() => game.combat.rollNPC()));
 		const rolls = await stored();
 		e2e.expect(
-			'#53 each roll lands in its own slot, and the Extra Slot of round 2 stays unrolled',
+			'#53 A2 each roll lands in its own slot, and the Extra Slot of round 2 stays unrolled',
 			{ rolled: rolled(rolls.initiatives), extraSlots: rolls.extraSlots.map((slot) => slot.replace(/=(?!null).*/, '=rolled')) },
 			{ rolled: { Hero: true, Boss: true }, extraSlots: ['Boss@2=null', 'Hero@1=rolled'] },
 		);
@@ -1021,7 +1016,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const rerolled = await stored();
 		e2e.expect(
-			"#53 rerolling Hero's Extra Slot rolls that slot, and the turn stays on Boss",
+			"#53 A3 rerolling Hero's Extra Slot rolls that slot, and the turn stays on Boss",
 			{
 				hero: rerolled.initiatives.Hero,
 				speakers: (await messages()).map((message) => message.speaker),
@@ -1034,7 +1029,7 @@ export async function run(e2e: ScenarioContext) {
 		const forward = await e2e.step('#53 GM goes forward to round 2', () => gm.evaluate(() => game.combat.nextRound()));
 		const round2 = await roundView(forward, counts);
 		e2e.expect(
-			'#53 forward in round 2, the trackers render its Extra Slots, and the effect has as many rounds left as before',
+			'#53 A4 forward in round 2, the trackers render its Extra Slots, and the effect has as many rounds left as before',
 			{ ...round2, slots: [...round2.slots].sort(), remaining: await remaining() },
 			{
 				round: 2,
@@ -1048,7 +1043,7 @@ export async function run(e2e: ScenarioContext) {
 
 		await e2e.step('#53 GM resets the initiatives', () => gm.evaluate(() => game.combat.resetAll()));
 		const reset = await stored();
-		e2e.expect('#53 Reset clears every slot, an Extra Slot of a later round too', reset, {
+		e2e.expect('#53 A5 Reset clears every slot, an Extra Slot of a later round too', reset, {
 			...reset,
 			initiatives: { Hero: null, Boss: null },
 			extraSlots: ['Boss@2=null', 'Hero@1=null'],
@@ -1067,7 +1062,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const sent = await messages();
 		e2e.expect(
-			'#53 the first message after a cancelled prompt plays the dice sound',
+			'#53 A6 the first message after a cancelled prompt plays the dice sound',
 			{ messages: sent.map(({ speaker, sound }) => ({ speaker, sound })), rolled: rolled((await stored()).initiatives) },
 			{ messages: [{ speaker: 'Boss', sound: await gm.evaluate(() => CONFIG.sounds.dice) }], rolled: { Hero: false, Boss: true } },
 		);
@@ -1083,7 +1078,7 @@ export async function run(e2e: ScenarioContext) {
 			player.evaluate(() => window.combatE2E.clickRow('Hero:0', '.combatant-control.roll')),
 		);
 		e2e.expect(
-			'#53 with no GM online, rolling an Extra Slot warns, with no prompt and no message',
+			'#53 A7 with no GM online, rolling an Extra Slot warns, with no prompt and no message',
 			{
 				notifications: notifications(extra, e2e.playerUser),
 				prompts: await player.evaluate(() => window.combatE2E.openPrompts()),
@@ -1094,7 +1089,7 @@ export async function run(e2e: ScenarioContext) {
 
 		const all = await e2e.step('#53 player rolls all, with no GM online', () => player.evaluate(() => game.combat.rollAll()));
 		e2e.expect(
-			"#53 with no GM online, Roll All warns and rolls Hero's own slot",
+			"#53 A8 with no GM online, Roll All warns and rolls Hero's own slot",
 			{
 				notifications: notifications(all, e2e.playerUser),
 				speakers: (await recorded(() => window.combatE2E.messages))[e2e.playerUser]?.map((message) => message.speaker),
@@ -1108,7 +1103,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		const after = await stored();
 		e2e.expect(
-			"#53 Hero's own slot is rolled, its Extra Slot isn't",
+			"#53 A9 Hero's own slot is rolled, its Extra Slot isn't",
 			{ rolled: rolled(after.initiatives), extraSlots: after.extraSlots },
 			{ rolled: { Hero: true, Boss: false }, extraSlots: ['Hero@1=null'] },
 		);
@@ -1153,8 +1148,8 @@ export async function run(e2e: ScenarioContext) {
 				await attempt('hovering a text node', () => tracker._onCombatantHoverIn({ target: document.createTextNode('E2E') }));
 				return thrown;
 			});
-		e2e.expect('#94 with a combat, the slot actions do nothing on a row without a slot', await tryAll(), []);
+		e2e.expect('#94 A2 with a combat, the slot actions do nothing on a row without a slot', await tryAll(), []);
 		await e2e.step('#94 GM deletes the combat', () => gm.evaluate(() => game.combat.delete()));
-		e2e.expect('#94 with no combat, the slot actions do nothing', await tryAll(), []);
+		e2e.expect('#94 A3 with no combat, the slot actions do nothing', await tryAll(), []);
 	}
 }
