@@ -11,6 +11,8 @@ authors:
   - name: Assembling Kings
   - name: kornifex
     url: https://github.com/kornifex
+# v12: only v12 needs the polyfill, its folder in public/scripts and its credit in README.md. Foundry v12 accepts
+# Safari 15.4, which has no container queries; v13 requires Safari 18.4.
 scripts:
   - scripts/container-query-polyfill/container-query-polyfill.modern.js
 esmodules:

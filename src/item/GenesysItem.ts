@@ -68,6 +68,8 @@ export class GenesysItem<ItemDataModel extends foundry.abstract.DataModel = Base
 	 * Override the createDialog callback to include an unique class that identifies the created dialog.
 	 * @inheritDoc
 	 */
+	// v12: the class is for the `renderDialog` hook in Genesys.ts. v13 takes dialog options in a third parameter, so it
+	// reads these as the old signature and logs a compatibility warning.
 	static override createDialog(
 		data?: { folder?: string | undefined },
 		options?: Partial<FormApplicationOptions>,

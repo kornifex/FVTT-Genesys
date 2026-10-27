@@ -433,6 +433,7 @@ export class GenesysCombat extends Combat {
 			await this.writeExtraSlotsInitiative(resets);
 		}
 
+		// v12: the Foundry types we have are v12's, whose `resetAll` takes no options.
 		// @ts-expect-error: Foundry v13 takes options that v12 doesn't.
 		return await super.resetAll(...args);
 	}
