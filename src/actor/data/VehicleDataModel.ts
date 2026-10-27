@@ -278,6 +278,21 @@ function renderVehiclesCrewedBy(actor: GenesysActor) {
 	}
 }
 
+/**
+ * Whether a vehicle of `_GAME_VEHICLES` still exists. A vehicle deleted in the same operation as a crew member, after
+ * them, has already left the world but not the set; nothing removes an unlinked token's vehicle from the set when its
+ * token or scene is deleted.
+ */
+function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
+	if (!vehicle.isToken) {
+		return game.actors.has(vehicle.id);
+	}
+
+	const token = vehicle.token;
+	const scene = token?.parent;
+	return !!scene && game.scenes.has(scene.id) && scene.tokens.has(token.id);
+}
+
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
 
@@ -304,8 +319,7 @@ export function register() {
 			if (isGmHub) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-					// A vehicle deleted in the same operation, after the actor, has already left the world but not this set.
-					if (!vehicle.isToken && !game.actors.has(vehicle.id)) {
+					if (!isInWorld(vehicle)) {
 						continue;
 					}
 					void vehicle.systemData.updateCrew((crew) => removeActor(crew, genesysActorUuid));

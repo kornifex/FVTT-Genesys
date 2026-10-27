@@ -75,6 +75,13 @@ type VehicleHelpers = {
 	deleteItem(args: { actor: string; item: string }): Promise<void>;
 	deleteFolder(name: string): Promise<void>;
 	deleteActors(names: string[]): Promise<void>;
+	/** Puts unlinked tokens of a vehicle on a new scene `E2E <scene>`, from left to right, each with its own passengers. */
+	placeTokens(args: { scene: string; vehicle: string; passengers: string[][] }): Promise<void>;
+	/** The passengers of the vehicle tokens of a scene, from left to right. */
+	tokenPassengers(scene: string): string[][];
+	deleteScene(name: string): Promise<void>;
+	/** Deletes the n-th token of a scene from the left, from 1. */
+	deleteToken(args: { scene: string; n: number }): Promise<void>;
 };
 
 declare global {
@@ -162,6 +169,13 @@ function installVehicleHelpers() {
 				'A'.repeat(element.querySelectorAll('.rank.ability').length)
 			: '';
 	const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
+	type SceneToken = {
+		x: number;
+		actor: { system: { passengers: { list: { uuid: string; sort: number }[] } }; update(data: object): Promise<unknown> };
+		delete(): Promise<unknown>;
+	};
+	const tokensOf = (scene: string): SceneToken[] =>
+		[...game.scenes.getName(`E2E ${scene}`).tokens].sort((left: SceneToken, right: SceneToken) => left.x - right.x);
 
 	const crewUpdates: string[] = [];
 	Hooks.on('updateActor', (updated: { name: string }, change: { system?: { passengers?: unknown; roles?: unknown } }) => {
@@ -173,6 +187,7 @@ function installVehicleHelpers() {
 			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
 			await Item.deleteDocuments(game.items.filter(isSetUp).map((doc: { id: string }) => doc.id));
 			await CONFIG.Folder.documentClass.deleteDocuments(game.folders.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await Scene.deleteDocuments(game.scenes.filter(isSetUp).map((doc: { id: string }) => doc.id));
 			await Actor.createDocuments([
 				...['A', 'B', 'C', 'D', 'P'].map((name) => ({ name: `E2E ${name}`, type: 'character' })),
 				{ name: 'E2E V1', type: 'vehicle' },
@@ -413,6 +428,45 @@ function installVehicleHelpers() {
 		async deleteActors(names) {
 			await Actor.deleteDocuments(names.map((name) => actor(name).id));
 		},
+
+		async placeTokens({ scene: name, vehicle, passengers }) {
+			const scene = await Scene.create({ name: `E2E ${name}`, width: 1000, height: 1000 });
+			await scene.createEmbeddedDocuments(
+				'Token',
+				passengers.map((_, index) => ({
+					name: `E2E ${vehicle}`,
+					actorId: actor(vehicle).id,
+					actorLink: false,
+					x: (index + 1) * 100,
+					y: 100,
+				})),
+			);
+			// v12 returns created tokens in another order than given: pair them by position.
+			for (const [index, token] of tokensOf(name).entries()) {
+				await token.actor.update({
+					'system.passengers.list': passengers[index].map((passenger, rank) => ({
+						uuid: actor(passenger).uuid,
+						sort: (rank + 1) * 100000,
+					})),
+				});
+			}
+		},
+
+		tokenPassengers(scene) {
+			return tokensOf(scene).map((token) =>
+				[...token.actor.system.passengers.list]
+					.sort((left: { sort: number }, right: { sort: number }) => left.sort - right.sort)
+					.map((passenger: { uuid: string }) => nameOf(passenger.uuid)),
+			);
+		},
+
+		async deleteScene(name) {
+			await game.scenes.getName(`E2E ${name}`).delete();
+		},
+
+		async deleteToken({ scene, n }) {
+			await tokensOf(scene)[n - 1].delete();
+		},
 	};
 	window.vehicleE2E = helpers;
 }
@@ -454,6 +508,7 @@ export async function run(e2e: ScenarioContext) {
 
 	await crewDrops(e2e);
 	await deletingCrew(e2e);
+	await deletingCrewOfGoneTokens(e2e);
 	await skillsTabFollowsCrew(e2e);
 	await crewRolls(e2e);
 	await vehicleE2E('closePrompts');
@@ -757,6 +812,40 @@ async function deletingCrew(e2e: ScenarioContext) {
 			harbour: await vehicleE2E('crew', 'Harbour'),
 		},
 		{ errors: [], left: [], harbour: { passengers: [], roles: [] } },
+	);
+}
+
+/**
+ * §#NNN: deleting a crew member logs no error once an unlinked vehicle token they crewed is gone with its scene or on
+ * its own, and the tokens left lose them.
+ */
+async function deletingCrewOfGoneTokens(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const vehicleE2E = helpersOf(gm);
+	await vehicleE2E('createActors', [
+		{ name: 'Deck Hand', type: 'character' },
+		{ name: 'Deck Mate', type: 'character' },
+		{ name: 'Skiff', type: 'vehicle' },
+	]);
+
+	await e2e.step('#NNN A1 Deck Hand crews a token of Skiff on Dock A, whose scene is deleted', async () => {
+		await vehicleE2E('placeTokens', { scene: 'Dock A', vehicle: 'Skiff', passengers: [['Deck Hand']] });
+		await vehicleE2E('deleteScene', 'Dock A');
+	});
+	let errors = gm.errors.length;
+	await e2e.step('#NNN A2 Deck Hand deleted', () => vehicleE2E('deleteActors', ['Deck Hand']));
+	e2e.expect('#NNN A2 deleting a crew member of a token whose scene was deleted logs no error', gm.errors.slice(errors), []);
+
+	await e2e.step('#NNN B1 Deck Mate crews two tokens of Skiff on Dock B, the first deleted', async () => {
+		await vehicleE2E('placeTokens', { scene: 'Dock B', vehicle: 'Skiff', passengers: [['Deck Mate'], ['Deck Mate']] });
+		await vehicleE2E('deleteToken', { scene: 'Dock B', n: 1 });
+	});
+	errors = gm.errors.length;
+	await e2e.step('#NNN B2 Deck Mate deleted', () => vehicleE2E('deleteActors', ['Deck Mate']));
+	e2e.expect(
+		'#NNN B2 deleting a crew member of a deleted token logs no error, and the token left loses them',
+		{ errors: gm.errors.slice(errors), dockB: await vehicleE2E('tokenPassengers', 'Dock B') },
+		{ errors: [], dockB: [[]] },
 	);
 }
 
