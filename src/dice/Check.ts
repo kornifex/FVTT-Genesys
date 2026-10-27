@@ -84,7 +84,13 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	fallbackCharacteristic?: Characteristic;
 
 	/**
-	 * The target of the check, whose effects and defense bring Pool Modifications. Initiative has none.
+	 * What the check is rolled for. A plain check when left undefined.
+	 */
+	purpose?: CheckPurpose['kind'];
+
+	/**
+	 * The target of the check, whose effects and defense bring Pool Modifications. Initiative has none: a target given for
+	 * it is ignored.
 	 */
 	target?: CheckActor<S>;
 
@@ -160,7 +166,9 @@ export function resolveCheck<S extends CheckSkill>(
 		rank = actor.type === 'minion' ? data.groupSkillRank ?? 0 : rolledSkill.skill.system.rank;
 	}
 
-	const poolModifications = poolModificationsForCheck(actor, request.target, {
+	// Initiative never has a target.
+	const target = request.purpose === 'initiative' ? undefined : request.target;
+	const poolModifications = poolModificationsForCheck(actor, target, {
 		characteristic,
 		skillName: rolledSkill?.skill.name,
 		attackRange: request.attackRange,
@@ -196,6 +204,19 @@ export function canRollWithoutCharacteristic(check: Pick<Check, 'skill'>) {
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
 	return `${source}.${'effect' in from ? `effect.${from.effect}` : `defense.${from.defense}`}`;
+}
+
+/**
+ * The Pool Modifications of a check resolved again, each turned on or off: one still listed keeps the state it had, a
+ * new one is on when the world applies Pool Modifications automatically.
+ */
+export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key'>>(
+	previous: { key: string; enabled: boolean }[],
+	poolModifications: M[],
+	autoApply: boolean,
+): (M & { enabled: boolean })[] {
+	const enabledByKey = new Map(previous.map((modification) => [modification.key, modification.enabled]));
+	return poolModifications.map((modification) => ({ ...modification, enabled: enabledByKey.get(modification.key) ?? autoApply }));
 }
 
 /**

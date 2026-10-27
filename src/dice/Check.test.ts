@@ -19,6 +19,7 @@ import {
 	CheckSkill,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
+	carriedPoolModificationStates,
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
@@ -247,12 +248,57 @@ describe('checkDicePool', () => {
 	});
 });
 
+describe('carriedPoolModificationStates', () => {
+	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 2), skill('Cool', Characteristic.Presence, 1)], {
+		effects: [
+			effect('Steady', [{ key: 'genesys.pool.check.self.', value: 'B' }]),
+			effect('Dueling', [{ key: 'genesys.pool.skill.self.Melee', value: 'B' }]),
+			effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }]),
+		],
+	});
+	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
+	const before = [
+		{ key: 'self.effect.Steady', enabled: false },
+		{ key: 'self.effect.Dueling', enabled: true },
+	];
+	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
+	const states = (autoApply: boolean) =>
+		carriedPoolModificationStates(before, cool.poolModifications, autoApply).map(({ key, enabled }) => ({ key, enabled }));
+
+	it('keeps the state of the Pool Modifications still listed, and turns new ones on when auto-apply is on', () => {
+		expect(states(true)).toEqual([
+			{ key: 'self.effect.Steady', enabled: false },
+			{ key: 'self.effect.Alert', enabled: true },
+		]);
+	});
+
+	it('leaves new Pool Modifications off when auto-apply is off', () => {
+		expect(states(false)).toEqual([
+			{ key: 'self.effect.Steady', enabled: false },
+			{ key: 'self.effect.Alert', enabled: false },
+		]);
+	});
+
+	it('keeps what each Pool Modification is and does', () => {
+		const [steady, alert] = cool.poolModifications;
+
+		expect(carriedPoolModificationStates(before, cool.poolModifications, true)).toEqual([
+			{ ...steady, enabled: false },
+			{ ...alert, enabled: true },
+		]);
+	});
+});
+
 describe('an initiative check', () => {
 	it("ignores the target, so only the actor's Pool Modifications apply", () => {
 		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], {
 			effects: [effect('Alert', [{ key: 'genesys.pool.skill.self.Cool', value: 'B' }])],
 		});
-		const check = resolveCheck(hero, { skillName: 'Cool' }, rules);
+		const foe = actor('rival', [], {
+			effects: [effect('Shield', [{ key: 'genesys.pool.check.target.', value: 'S' }])],
+			totalDefense: { melee: 1, ranged: 1 },
+		});
+		const check = resolveCheck(hero, { purpose: 'initiative', skillName: 'Cool', target: foe }, rules);
 
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.Alert']);
 		expect(checkDicePool(check, { difficulty: '', isEnabled: () => true }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });

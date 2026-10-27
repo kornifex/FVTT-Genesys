@@ -6,7 +6,6 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
 import { CrewMemberSkill, crewActors, crewMemberSkills, rollForCrew } from '@/app/SelectCrewMemberPrompt';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
-import { skillNamesMatch } from '@/data/Skills';
 
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -55,13 +54,7 @@ watch(
 			const actor = actors.get(row.member);
 			return actor ? [{ ...row, actor }] : [];
 		});
-		bySkill.value = crewSkillsBySkill(crew, memberSkills, game.i18n.lang).flatMap((row) => {
-			// A Role skill is named as the Skills Compendium names it, whatever the case its Roles list it in. One missing
-			// from the Skills Compendium is listed once a member rolls it.
-			const defined = CONFIG.genesys.skills.find((skill) => skillNamesMatch(skill.name, row.skillName));
-			const skillImage = defined?.img ?? row.members[0]?.skill.img;
-			return skillImage ? [{ ...row, skillName: defined?.name ?? row.skillName, skillImage }] : [];
-		});
+		bySkill.value = crewSkillsBySkill(crew, memberSkills, CONFIG.genesys.skills, game.i18n.lang);
 	},
 	{ immediate: true },
 );

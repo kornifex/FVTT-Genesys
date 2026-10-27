@@ -23,6 +23,7 @@ import {
 	type CheckRequest,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
+	carriedPoolModificationStates,
 	checkDicePool,
 	resolveCheck,
 	worldCheckRules,
@@ -121,12 +122,12 @@ onMounted(() => {
  * state, new ones follow the world setting.
  */
 function resolve(request: CheckRequest<PromptSkill>) {
-	const [target] = context.rollType !== RollType.Initiative && game.user.targets.size === 1 ? game.user.targets : [];
+	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
 	const resolved = resolveCheck(
 		toRaw(context.actor),
 		{
 			...request,
-			// Initiative never has a target.
+			purpose: context.rollType === RollType.Initiative ? 'initiative' : undefined,
 			target: (target?.actor as GenesysActor | null) ?? undefined,
 			attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
@@ -134,11 +135,14 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		worldCheckRules(),
 	);
 
-	const enabledByKey = new Map(effects.value.map((effect) => [effect.key, effect.enabled]));
-	effects.value = resolved.poolModifications.map((modification) => ({
+	effects.value = carriedPoolModificationStates(
+		effects.value,
+		resolved.poolModifications,
+		CONFIG.genesys.settings.autoApplyPoolModifications,
+	).map((modification) => ({
 		key: modification.key,
 		name: poolModificationName(modification),
-		enabled: enabledByKey.get(modification.key) ?? CONFIG.genesys.settings.autoApplyPoolModifications,
+		enabled: modification.enabled,
 		mods: modification.mods,
 	}));
 

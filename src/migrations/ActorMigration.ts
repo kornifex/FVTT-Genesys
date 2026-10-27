@@ -70,6 +70,14 @@ export type ActorWorld = {
 };
 
 /**
+ * Whether a compendium is one of the world's own actor compendiums, which the walk visits. Module and system
+ * compendiums are left alone.
+ */
+export function isWorldActorPack(metadata: { type: string; packageType: string }) {
+	return metadata.type === 'Actor' && metadata.packageType === 'world';
+}
+
+/**
  * Visit every actor of a world, its world actors first so that the tokens' synthetic actors see their migrated base. A
  * locked pack is unlocked for the visit and locked again afterwards, whatever happens.
  */
