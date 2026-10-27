@@ -51,32 +51,7 @@ declare global {
  * module.
  */
 function installAdversariesHelpers() {
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const waitFor = async <T>(what: string, find: () => T | undefined | null | false, timeout = 10_000): Promise<T> => {
-		const start = Date.now();
-		for (;;) {
-			const found = find();
-			if (found) return found;
-			if (Date.now() - start > timeout) throw new Error(`Timed out waiting for ${what}`);
-			await sleep(100);
-		}
-	};
-	const text = (element: Element | null | undefined) => (element?.textContent ?? '').replace(/\s+/g, ' ').trim();
-	const unprefixed = (name: string) => name.replace(/^E2E /, '');
-	const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
-	// v12: an AppV1 window's element is a jQuery object.
-	const htmlOf = (app: { element?: unknown }): HTMLElement | undefined =>
-		app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
-	const actor = (name: string) => {
-		const found = game.actors.getName(`E2E ${name}`);
-		if (!found) throw new Error(`No actor E2E ${name}`);
-		return found;
-	};
-	const tokenOf = (name: string) => {
-		const token = canvas.tokens.placeables.find((placeable: { actor?: { name: string } }) => placeable.actor?.name === `E2E ${name}`);
-		if (!token) throw new Error(`No token of E2E ${name}`);
-		return token;
-	};
+	const { sleep, waitFor, text, unprefixed, htmlOf, actor, token, target, apps, drop, poolPreview, poolModification } = window.e2e;
 	const sheet = async (name: string) => {
 		const app = actor(name).sheet;
 		if (!app.rendered) await app.render(true);
@@ -124,47 +99,29 @@ function installAdversariesHelpers() {
 		);
 	};
 
-	const prompts = () =>
-		[...foundry.applications.instances.values()].filter((app: { options?: { classes?: string[] } }) =>
-			app.options?.classes?.includes('app-dice-prompt'),
-		);
 	const closePrompts = async () => {
-		for (const app of prompts()) await app.close();
-	};
-	const OPERATORS: Record<string, string> = { 'fa-plus': '+', 'fa-minus': '-', 'fa-arrow-up': '^', 'fa-arrow-down': 'v' };
-	const modText = (element: Element) => {
-		const icon = element.querySelector('i');
-		return `${text(element)}${Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?'}`;
+		for (const app of apps('app-dice-prompt')) await app.close();
 	};
 	const readPrompt = async (): Promise<PromptState> => {
-		const app = await waitFor('the Dice Prompt', () => prompts().length === 1 && prompts()[0]);
+		const app = await waitFor('the Dice Prompt', () => apps('app-dice-prompt').length === 1 && apps('app-dice-prompt')[0]);
 		const root = await waitFor('the Dice Prompt preview', () => htmlOf(app)?.querySelector('.preview') && htmlOf(app));
 		// The pool is built once the check is resolved.
 		await sleep(500);
-		const pool = (side: string) => [...root.querySelectorAll(`.preview .${side} > *`)].map(text).join('');
 		const state = {
-			pool: `${pool('positive')}|${pool('negative')}`,
+			pool: poolPreview(root),
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
 				name: text(row.querySelector('label')),
-				mods: [...row.querySelectorAll(':scope > div > a')].map(modText).join(' '),
+				mods: [...row.querySelectorAll(':scope > div > a')].map((mod) => poolModification(mod)).join(' '),
 			})),
 		};
 		await closePrompts();
 		return state;
 	};
-	const target = (name: string | null) => {
-		for (const token of [...game.user.targets]) token.setTarget(false, { releaseOthers: false });
-		if (name) tokenOf(name).setTarget(true, { releaseOthers: true });
-	};
 
 	window.adversariesE2E = {
 		async setUp() {
 			await window.adversariesE2E.cleanUp();
-			if (!canvas.scene) {
-				const scene = await Scene.create({ name: 'E2E', width: 2000, height: 2000 });
-				await scene.activate();
-				while (canvas.scene?.id !== scene.id) await sleep(200);
-			}
+			await window.e2e.ensureScene();
 
 			const characteristics = (values: number[]) =>
 				Object.fromEntries(
@@ -246,14 +203,7 @@ function installAdversariesHelpers() {
 			}
 			canvas.hud?.token?.clear();
 			target(null);
-			if (canvas.scene) {
-				await canvas.scene.deleteEmbeddedDocuments(
-					'Token',
-					canvas.scene.tokens.filter(isSetUp).map((token: { id: string }) => token.id),
-				);
-			}
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Item.deleteDocuments(game.items.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Token', 'Actor', 'Item');
 		},
 
 		items(name) {
@@ -264,10 +214,8 @@ function installAdversariesHelpers() {
 
 		async drop({ actor: name, item }) {
 			const root = await sheet(name);
-			const dataTransfer = new DataTransfer();
-			dataTransfer.setData('text/plain', JSON.stringify({ type: 'Item', uuid: game.items.getName(`E2E ${item}`).uuid }));
 			return observe(name, () =>
-				root.querySelector('.sheet-body')!.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer })),
+				drop(root.querySelector('.sheet-body')!, { type: 'Item', uuid: game.items.getName(`E2E ${item}`).uuid }),
 			);
 		},
 
@@ -330,9 +278,9 @@ function installAdversariesHelpers() {
 			const hud = canvas.hud.token;
 			hud.clear();
 			await sleep(300);
-			const token = tokenOf(name);
-			const current = String(token.document.getBarAttribute(bar).value);
-			await hud.bind(token);
+			const bound = token(name);
+			const current = String(bound.document.getBarAttribute(bar).value);
+			await hud.bind(bound);
 			// The HUD shows the bar's current value once it is bound to this token.
 			const input = await waitFor(`the Token HUD's ${bar} of ${name}`, () => {
 				const found = document.querySelector<HTMLInputElement>(`#token-hud input[name="${bar}"]`);
@@ -374,7 +322,7 @@ export async function run(e2e: ScenarioContext) {
 		second: skillDrops[name]![1],
 	});
 	e2e.expect(
-		'A1 a new skill dropped on a rival or nemesis is created at rank 1 in one write, and raised to rank 2 by a second drop',
+		'#131 A1 a new skill dropped on a rival or nemesis is created at rank 1 in one write, and raised to rank 2 by a second drop',
 		{ Rival: rivalSkillDrops('Rival'), Nemesis: rivalSkillDrops('Nemesis') },
 		Object.fromEntries(
 			['Rival', 'Nemesis'].map((name) => [
@@ -386,7 +334,7 @@ export async function run(e2e: ScenarioContext) {
 			]),
 		),
 	);
-	e2e.expect("A2 a skill dropped on a minion keeps the skill's own rank, and a second drop is refused silently", skillDrops.Grunts, [
+	e2e.expect("#131 A2 a skill dropped on a minion keeps the skill's own rank, and a second drop is refused silently", skillDrops.Grunts, [
 		{ items: ['skill Stealth 3'], writes: ['create Stealth 3'], notifications: [] },
 		{ items: ['skill Stealth 3'], writes: [], notifications: [] },
 	]);
@@ -403,7 +351,7 @@ export async function run(e2e: ScenarioContext) {
 	const created = (write: string) => ({ writes: [write], notifications: [] });
 
 	e2e.expect(
-		'A3 a ranked talent dropped twice on a minion, a rival and a nemesis reaches rank 2',
+		'#131 A3 a ranked talent dropped twice on a minion, a rival and a nemesis reaches rank 2',
 		await dropTwice('Toughened'),
 		eachAdversary((name) => ({
 			first: created('create Toughened 1'),
@@ -411,7 +359,7 @@ export async function run(e2e: ScenarioContext) {
 		})),
 	);
 	e2e.expect(
-		'A4 a non-ranked talent dropped on an adversary that has it is refused with "Unable to add", its rank unchanged',
+		'#131 A4 a non-ranked talent dropped on an adversary that has it is refused with "Unable to add", its rank unchanged',
 		await dropTwice('Grit'),
 		eachAdversary((name) => ({
 			first: created('create Grit 1'),
@@ -423,7 +371,7 @@ export async function run(e2e: ScenarioContext) {
 		})),
 	);
 	e2e.expect(
-		'A5 an ability dropped on an adversary that has it is refused silently',
+		'#131 A5 an ability dropped on an adversary that has it is refused silently',
 		await dropTwice('Swarm'),
 		eachAdversary((name) => ({
 			first: created('create Swarm'),
@@ -431,14 +379,14 @@ export async function run(e2e: ScenarioContext) {
 		})),
 	);
 	e2e.expect(
-		'A6 a Critical Injury dropped on an adversary is created',
+		'#131 A6 a Critical Injury dropped on an adversary is created',
 		await byAdversary(adversaries, async (name) => (await drop(name, 'Gash')).writes),
 		eachAdversary(() => ['create Gash']),
 	);
 
 	// B: the menus of an adversary's talents and skills (§#131).
 	e2e.expect(
-		"B1 a non-ranked talent's menu on an adversary offers no Rank Up and Rank Down, a ranked talent's does",
+		"#131 B1 a non-ranked talent's menu on an adversary offers no Rank Up and Rank Down, a ranked talent's does",
 		await byAdversary(adversaries, async (name) => ({
 			Grit: await menu(name, 'talent', 'Grit'),
 			Toughened: await menu(name, 'talent', 'Toughened'),
@@ -448,7 +396,7 @@ export async function run(e2e: ScenarioContext) {
 		),
 	);
 	e2e.expect(
-		'B2 the skill menu of a rival or nemesis says "Rank Up (Free)" and "Rank Down (Free)", a minion\'s has no ranks',
+		'#131 B2 the skill menu of a rival or nemesis says "Rank Up (Free)" and "Rank Down (Free)", a minion\'s has no ranks',
 		await byAdversary(adversaries, (name) => menu(name, 'skill', 'Stealth')),
 		{
 			Grunts: ['Edit', 'Delete'],
@@ -465,7 +413,7 @@ export async function run(e2e: ScenarioContext) {
 		return writes;
 	});
 	e2e.expect(
-		"C1 Free Rank Up and Down on a rival's or nemesis's skill change its rank by one, and Rank Down at 0 leaves 0",
+		"#114 C1 Free Rank Up and Down on a rival's or nemesis's skill change its rank by one, and Rank Down at 0 leaves 0",
 		freeRanks,
 		Object.fromEntries(
 			['Rival', 'Nemesis'].map((name) => [
@@ -485,7 +433,7 @@ export async function run(e2e: ScenarioContext) {
 		return { writes, talents: last!.items.filter((item) => item.startsWith('talent')) };
 	});
 	e2e.expect(
-		'C2 Rank Up and Rank Down a ranked talent of a minion, a rival and a nemesis change its rank, and delete it below rank 1',
+		'#131 C2 Rank Up and Rank Down a ranked talent of a minion, a rival and a nemesis change its rank, and delete it below rank 1',
 		talentRanks,
 		eachAdversary(() => ({
 			writes: [['update Toughened 3'], ['update Toughened 2'], ['update Toughened 1'], ['delete Toughened 1']],
@@ -499,7 +447,7 @@ export async function run(e2e: ScenarioContext) {
 	await update('Grunts', { 'system.wounds.value': 6 });
 	const twoStanding = await rollStealth();
 	e2e.expect(
-		"C3 a minion rolls a skill at its group's skill rank, one per member standing beyond the first",
+		"#131 C3 a minion rolls a skill at its group's skill rank, one per member standing beyond the first",
 		{ threeStanding: threeStanding.pool, twoStanding: twoStanding.pool },
 		{ threeStanding: 'PPA|DD', twoStanding: 'PAA|DD' },
 	);
@@ -533,7 +481,7 @@ export async function run(e2e: ScenarioContext) {
 		{ name: `From Target: ${range} Defense`, mods: Array(count).fill('S+').join(' ') },
 	];
 	e2e.expect(
-		'D1 an attack against an adversary with a defense above 4, typed in or raised by an Active Effect, adds four Setback',
+		'#194 D1 an attack against an adversary with a defense above 4, typed in or raised by an Active Effect, adds four Setback',
 		defenseRows,
 		{
 			Grunts: { Knife: defenseRow('Melee', 4), Bow: defenseRow('Ranged', 4) },
@@ -542,7 +490,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'D2 the adversary sheet shows the defense above 4 that the attack counts as 4',
+		'#194 D2 the adversary sheet shows the defense above 4 that the attack counts as 4',
 		await byAdversary(adversaries, (actor) =>
 			gm.evaluate((args) => window.adversariesE2E.sheetInputs(args), {
 				actor,
@@ -564,7 +512,7 @@ export async function run(e2e: ScenarioContext) {
 	const WOUNDS = 'system.wounds.value';
 	const STRAIN = 'system.strain.value';
 	e2e.expect(
-		'E1 a character with wound threshold 12 from the Token HUD: -5 on 2 wounds leaves 0, +10 on 20 leaves 24, 30 typed leaves 24, +5 on 9 strain leaves 14',
+		'#195 E1 a character with wound threshold 12 from the Token HUD: -5 on 2 wounds leaves 0, +10 on 20 leaves 24, 30 typed leaves 24, +5 on 9 strain leaves 14',
 		{
 			'-5 on 2 wounds': await hud('Hero', 'bar1', WOUNDS, 2, '-5'),
 			'+10 on 20 wounds': await hud('Hero', 'bar1', WOUNDS, 20, '+10'),
@@ -574,7 +522,7 @@ export async function run(e2e: ScenarioContext) {
 		{ '-5 on 2 wounds': 0, '+10 on 20 wounds': 24, '30 typed on 5 wounds': 24, '+5 on 9 strain': 14 },
 	);
 	e2e.expect(
-		"E2 from the Token HUD a rival's wounds go past their threshold; a nemesis's strain, a Minion Group's wounds and a vehicle's hull trauma and system strain stop at 0",
+		"#195 E2 from the Token HUD a rival's wounds go past their threshold; a nemesis's strain, a Minion Group's wounds and a vehicle's hull trauma and system strain stop at 0",
 		{
 			'rival +15 on 8 wounds': await hud('Rival', 'bar1', WOUNDS, 8, '+15'),
 			'nemesis -5 on 3 strain': await hud('Nemesis', 'bar2', STRAIN, 3, '-5'),
@@ -594,9 +542,13 @@ export async function run(e2e: ScenarioContext) {
 	// The character sheet's number fields (§#195).
 	const typeInSheet = (path: string, value: string) =>
 		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), { actor: 'Hero', name: path, value, path });
-	e2e.expect("E3 the character sheet's wounds field takes a value past twice the wound threshold", await typeInSheet(WOUNDS, '40'), 40);
 	e2e.expect(
-		"E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
+		"#195 E3 the character sheet's wounds field takes a value past twice the wound threshold",
+		await typeInSheet(WOUNDS, '40'),
+		40,
+	);
+	e2e.expect(
+		"#195 E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
 		{ '-3 typed on 40 wounds': await typeInSheet(WOUNDS, '-3'), '-3 typed on 14 strain': await typeInSheet(STRAIN, '-3') },
 		{ '-3 typed on 40 wounds': 0, '-3 typed on 14 strain': 0 },
 	);

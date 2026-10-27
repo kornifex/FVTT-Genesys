@@ -1,5 +1,5 @@
 /** @file #211: the Dice Prompt and checks: the pool a check rolls, its Pool Modifications, its links, its chance to succeed and its messages. */
-import type { ScenarioContext } from '../scenario.ts';
+import type { Client, ScenarioContext } from '../scenario.ts';
 
 /**
  * A document whose sheet holds what a step clicks or reads, named without its `E2E ` prefix: an actor, an item it
@@ -79,7 +79,6 @@ type DicePromptHelpers = {
 	clickLink(args: { doc: Doc | { message: string }; skill: string | null; difficulty?: string }): Promise<void>;
 	pools(doc: Doc): Promise<{ text: string; icons: string }[]>;
 	control(names: string[]): void;
-	target(name: string | null): void;
 	chatMessage(content: string): Promise<string>;
 	notifications(): string[];
 	clearNotifications(): void;
@@ -96,9 +95,6 @@ type DicePromptHelpers = {
 
 type Settings = Record<string, unknown> & { character: string | null };
 
-// v12: a class of Foundry's scripts, global but no property of `window`.
-declare const CompendiumCollection: unknown;
-
 declare global {
 	interface Window {
 		dicePromptE2E: DicePromptHelpers;
@@ -110,26 +106,7 @@ declare global {
  * module.
  */
 function installDicePromptHelpers() {
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const waitFor = async <T>(what: string, find: () => T | undefined | null | false, timeout = 10_000): Promise<T> => {
-		const start = Date.now();
-		for (;;) {
-			const found = find();
-			if (found) return found;
-			if (Date.now() - start > timeout) throw new Error(`Timed out waiting for ${what}`);
-			await sleep(100);
-		}
-	};
-	const text = (element: Element | null | undefined) => (element?.textContent ?? '').replace(/\s+/g, ' ').trim();
-	const unprefixed = (name: string) => name.replace(/^E2E /, '');
-	// v12: an AppV1 window's element is a jQuery object.
-	const htmlOf = (app: { element?: unknown }): HTMLElement | undefined =>
-		app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
-	const actor = (name: string) => {
-		const found = game.actors.getName(`E2E ${name}`);
-		if (!found) throw new Error(`No actor E2E ${name}`);
-		return found;
-	};
+	const { sleep, waitFor, text, unprefixed, isSetUp, htmlOf, actor, token, apps, poolPreview, poolModification } = window.e2e;
 	const documentOf = (doc: Doc) => {
 		const found =
 			'journal' in doc
@@ -168,20 +145,10 @@ function installDicePromptHelpers() {
 					),
 				)
 			: sheet(doc);
-	const prompts = () =>
-		[...foundry.applications.instances.values()].filter((app: { options?: { classes?: string[] } }) =>
-			app.options?.classes?.includes('app-dice-prompt'),
-		);
 	const thePrompt = () => {
-		const open = prompts();
+		const open = apps('app-dice-prompt');
 		if (open.length !== 1) throw new Error(`${open.length} Dice Prompts are open`);
 		return open[0];
-	};
-	const OPERATORS: Record<string, string> = { 'fa-plus': '+', 'fa-minus': '-', 'fa-arrow-up': '^', 'fa-arrow-down': 'v' };
-	const modText = (element: Element) => {
-		const icon = element.querySelector('i');
-		const operator = Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?';
-		return `${text(element)}${operator}`;
 	};
 	// The text of an element, with its select shown as its selected option in brackets.
 	const withSelect = (element: Element | null) => {
@@ -193,7 +160,6 @@ function installDicePromptHelpers() {
 	const promptState = (): PromptState => {
 		const app = thePrompt();
 		const root = htmlOf(app)!;
-		const pool = (side: string) => [...root.querySelectorAll(`.preview .${side} > *`)].map(text).join('');
 		const characteristic = root.querySelector<HTMLSelectElement>('select[name=characteristic]');
 		const skill = root.querySelector<HTMLSelectElement>('select[name=skill]');
 		let skills: Record<string, string[]> | null = null;
@@ -207,7 +173,7 @@ function installDicePromptHelpers() {
 		const chance = root.querySelector('.chance-to-succeed');
 		return {
 			actor: app.actor ? unprefixed(app.actor.name) : null,
-			pool: `${pool('positive')}|${pool('negative')}`,
+			pool: poolPreview(root),
 			characteristic: characteristic && {
 				value: characteristic.value,
 				disabled: characteristic.disabled,
@@ -218,7 +184,7 @@ function installDicePromptHelpers() {
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
 				name: text(row.querySelector('label')),
 				enabled: row.querySelector('input')!.checked,
-				mods: [...row.querySelectorAll(':scope > div > a')].map(modText).join(' '),
+				mods: [...row.querySelectorAll(':scope > div > a')].map((mod) => poolModification(mod)).join(' '),
 			})),
 			chance: chance ? (chance.querySelector('.fa-spinner') ? 'spinner' : text(chance.querySelector('span'))) : null,
 		};
@@ -245,44 +211,26 @@ function installDicePromptHelpers() {
 			blind: message.blind,
 		};
 	};
-	const tokenOf = (name: string) => {
-		const token = canvas.tokens.placeables.find((placeable: { actor?: { name: string } }) => placeable.actor?.name === `E2E ${name}`);
-		if (!token) throw new Error(`No token of E2E ${name}`);
-		return token;
-	};
 	const SETTINGS = ['uncoupleSkills', 'useSuperCharacteristics', 'defaultDifficulty', 'skillsCompendium'];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
 	window.dicePromptE2E = {
 		settings(user) {
-			return {
-				...Object.fromEntries(SETTINGS.map((key) => [key, game.settings.get('genesys', key)])),
-				character: game.users.getName(user).character?.id ?? null,
-			};
+			return { ...window.e2e.settings(SETTINGS), character: game.users.getName(user).character?.id ?? null };
 		},
 
 		async restore({ user, settings }) {
 			await window.dicePromptE2E.closePrompts();
 			await window.dicePromptE2E.closeSheets();
-			for (const key of SETTINGS) {
-				if (game.settings.get('genesys', key) !== settings[key]) await game.settings.set('genesys', key, settings[key]);
-			}
+			await window.e2e.setSettings(Object.fromEntries(SETTINGS.map((key) => [key, settings[key]])));
 			await game.users.getName(user).update({ character: settings.character });
 			await game.packs.get('world.e2e-skills')?.deleteCompendium();
 			for (const combat of [...game.combats]) await combat.delete();
 			// The tokens of the actors the next scenario deletes.
-			await canvas.scene.deleteEmbeddedDocuments(
-				'Token',
-				canvas.scene.tokens
-					.filter((token: { name: string }) => token.name.startsWith('E2E '))
-					.map((token: { id: string }) => token.id),
-			);
+			await window.e2e.deleteSetUp('Token');
 		},
 
 		async setUp(user) {
-			const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
-			const ids = (collection: { filter(test: (doc: { name: string }) => boolean): { id: string }[] }) =>
-				collection.filter(isSetUp).map((doc) => doc.id);
 			await canvas.scene.deleteEmbeddedDocuments(
 				'Token',
 				canvas.scene.tokens
@@ -294,8 +242,7 @@ function installDicePromptHelpers() {
 					.filter((doc: { name: string }) => isSetUp(doc) && !['E2E Hero', 'E2E Foe'].includes(doc.name))
 					.map((doc: { id: string }) => doc.id),
 			);
-			await Item.deleteDocuments(ids(game.items));
-			await CONFIG.JournalEntry.documentClass.deleteDocuments(ids(game.journal));
+			await window.e2e.deleteSetUp('Item', 'JournalEntry');
 			await game.packs.get('world.e2e-skills')?.deleteCompendium();
 			await game.users.getName(user).update({ character: null });
 
@@ -450,11 +397,11 @@ function installDicePromptHelpers() {
 			await sleep(1000);
 		},
 
-		openPrompts: () => prompts().length,
+		openPrompts: () => apps('app-dice-prompt').length,
 
 		async waitForPrompt() {
 			await waitFor('a Dice Prompt', () => {
-				const open = prompts();
+				const open = apps('app-dice-prompt');
 				return open.length === 1 && htmlOf(open[0])?.querySelector('.preview');
 			});
 			// The prompt resolves its check once mounted.
@@ -463,7 +410,7 @@ function installDicePromptHelpers() {
 		},
 
 		async closePrompts() {
-			await Promise.all(prompts().map((app: { close(): Promise<void> }) => app.close()));
+			await Promise.all(apps('app-dice-prompt').map((app: { close(): Promise<void> }) => app.close()));
 			await sleep(200);
 		},
 
@@ -493,7 +440,7 @@ function installDicePromptHelpers() {
 		async promptAdd(keys) {
 			const buttons = [...htmlOf(thePrompt())!.querySelectorAll('.dice-box a')];
 			for (const key of keys) {
-				const button = buttons.find((candidate) => modText(candidate) === key);
+				const button = buttons.find((candidate) => poolModification(candidate) === key);
 				if (!button) throw new Error(`No dice box button ${key}`);
 				(button as HTMLElement).click();
 				await sleep(100);
@@ -598,12 +545,10 @@ function installDicePromptHelpers() {
 
 		async closeSheets() {
 			const documents = [
-				...game.actors.filter((doc: { name: string }) => doc.name.startsWith('E2E ')),
-				...game.actors
-					.filter((doc: { name: string }) => doc.name.startsWith('E2E '))
-					.flatMap((doc: { items: { contents: unknown[] } }) => doc.items.contents),
-				...game.items.filter((doc: { name: string }) => doc.name.startsWith('E2E ')),
-				...game.journal.filter((doc: { name: string }) => doc.name.startsWith('E2E ')),
+				...game.actors.filter(isSetUp),
+				...game.actors.filter(isSetUp).flatMap((doc: { items: { contents: unknown[] } }) => doc.items.contents),
+				...game.items.filter(isSetUp),
+				...game.journal.filter(isSetUp),
 			];
 			for (const doc of documents) {
 				if (doc.sheet?.rendered) await doc.sheet.close();
@@ -639,22 +584,14 @@ function installDicePromptHelpers() {
 				text: text(paragraph),
 				// Each glyph is followed by the icon of its operator.
 				icons: [...paragraph.querySelectorAll('.pool-modifications > i:not(.fas)')]
-					.map((glyph) => {
-						const icon = glyph.nextElementSibling;
-						return `${text(glyph)}${Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?'}`;
-					})
+					.map((glyph) => poolModification(glyph, glyph.nextElementSibling))
 					.join(' '),
 			}));
 		},
 
 		control(names) {
 			canvas.tokens.releaseAll();
-			for (const name of names) tokenOf(name).control({ releaseOthers: false });
-		},
-
-		target(name) {
-			for (const token of [...game.user.targets]) token.setTarget(false, { releaseOthers: false });
-			if (name) tokenOf(name).setTarget(true, { releaseOthers: true });
+			for (const name of names) token(name).control({ releaseOthers: false });
 		},
 
 		async chatMessage(content) {
@@ -716,13 +653,7 @@ function installDicePromptHelpers() {
 		},
 
 		async createSkillsPack() {
-			// v12: the class is only a global.
-			const Compendiums = foundry.documents?.collections?.CompendiumCollection ?? CompendiumCollection;
-			const pack = await (Compendiums as { createCompendium(data: object): Promise<{ collection: string }> }).createCompendium({
-				label: 'E2E Skills',
-				name: 'e2e-skills',
-				type: 'Item',
-			});
+			const pack = await window.e2e.createCompendium({ label: 'E2E Skills', name: 'e2e-skills', type: 'Item' });
 			await Item.create({ name: 'E2E Lore', type: 'skill', system: { characteristic: 'intellect' } }, { pack: pack.collection });
 		},
 
@@ -816,13 +747,13 @@ export async function run(e2e: ScenarioContext) {
 	}
 	await e2e.step('set up');
 
-	const opened = async (client: typeof gm, action: () => Promise<unknown>) => {
+	const opened = async (client: Client, action: () => Promise<unknown>) => {
 		await client.evaluate(() => window.dicePromptE2E.closePrompts());
 		await action();
 		return client.evaluate(() => window.dicePromptE2E.waitForPrompt());
 	};
 	// What an action opened: how many Dice Prompts, and the notifications it gave.
-	const noPrompt = async (client: typeof gm, action: () => Promise<unknown>) => {
+	const noPrompt = async (client: Client, action: () => Promise<unknown>) => {
 		await client.evaluate(() => window.dicePromptE2E.closePrompts());
 		await client.evaluate(() => window.dicePromptE2E.clearNotifications());
 		await action();
@@ -832,7 +763,7 @@ export async function run(e2e: ScenarioContext) {
 			notifications: window.dicePromptE2E.notifications(),
 		}));
 	};
-	const click = (client: typeof gm, doc: Doc, path: string) => () =>
+	const click = (client: Client, doc: Doc, path: string) => () =>
 		client.evaluate((args) => window.dicePromptE2E.click(args), { doc, path });
 	const select = (name: 'characteristic' | 'skill', option: string) =>
 		gm.evaluate((args) => window.dicePromptE2E.promptSelect(args), { name, option });
@@ -840,8 +771,8 @@ export async function run(e2e: ScenarioContext) {
 	const roll = () => gm.evaluate(() => window.dicePromptE2E.promptRoll());
 	const setSetting = (key: string, value: unknown) => gm.evaluate((args) => window.dicePromptE2E.setSetting(args), { key, value });
 	const update = (doc: Doc, data: object) => gm.evaluate((args) => window.dicePromptE2E.update(args), { doc, data });
-	const target = (name: string | null) => gm.evaluate((name) => window.dicePromptE2E.target(name), name);
-	const control = (client: typeof gm, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
+	const target = (name: string | null) => gm.evaluate((name) => window.e2e.target(name), name);
+	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
 	const ada = { actor: 'Ada' };
 	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill a.name|${skill} (`);
 	const characteristicRoll = (index: number) =>
@@ -852,20 +783,20 @@ export async function run(e2e: ScenarioContext) {
 
 	// A: the skills the prompt offers (§#49, §#100).
 	const cool = await opened(gm, skillRoll('Cool'));
-	e2e.expect('A1 a character is offered its skills, then the Skills Compendium others as unranked', cool.skills, {
+	e2e.expect('#49 A1 a character is offered its skills, then the Skills Compendium others as unranked', cool.skills, {
 		'': ['—', 'Brawl (Br)', 'Cool (Pr)', 'Melee (Br)', 'Ranged (light) (Ag)'],
 		Unranked: unranked(['Brawl', 'Cool', 'Melee', 'Ranged (Light)']),
 	});
 
 	// B: the characteristic menu (§#184, §#204, §#50).
 	e2e.expect(
-		'B1 uncoupled skills off: a skill check is locked on its characteristic, without "—"',
+		'#184 B1 uncoupled skills off: a skill check is locked on its characteristic, without "—"',
 		{ characteristic: cool.characteristic, skill: cool.skill, pool: cool.pool },
 		{ characteristic: { value: 'presence', disabled: true, options: SIX_CHARACTERISTICS }, skill: 'Cool (Pr)', pool: 'A|DD' },
 	);
 	const willpowerCheck = await opened(gm, characteristicRoll(5));
 	e2e.expect(
-		'B2 uncoupled skills off: a Characteristic Check opens the menu, with "—"',
+		'#184 B2 uncoupled skills off: a Characteristic Check opens the menu, with "—"',
 		{
 			characteristic: willpowerCheck.characteristic,
 			skill: willpowerCheck.skill,
@@ -886,7 +817,7 @@ export async function run(e2e: ScenarioContext) {
 	await toggle('E2E Steady');
 	const presenceCheck = await select('characteristic', 'presence');
 	e2e.expect(
-		'B3 switching the characteristic lists its Pool Modifications, and keeps the state of those still listed',
+		'#50 B3 switching the characteristic lists its Pool Modifications, and keeps the state of those still listed',
 		{ pool: presenceCheck.pool, rows: rows(presenceCheck) },
 		{
 			pool: 'a|DD',
@@ -898,7 +829,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const backToWillpower = await select('characteristic', 'willpower');
 	e2e.expect(
-		'B4 switching back lists the first characteristic Pool Modification again, following auto-apply',
+		'#50 B4 switching back lists the first characteristic Pool Modification again, following auto-apply',
 		{ pool: backToWillpower.pool, rows: rows(backToWillpower) },
 		{
 			pool: 'AAAAa|DD',
@@ -912,7 +843,7 @@ export async function run(e2e: ScenarioContext) {
 	await setSetting('uncoupleSkills', true);
 	const coolUncoupled = await opened(gm, skillRoll('Cool'));
 	e2e.expect(
-		'B5 uncoupled skills on: a skill check offers the six characteristics, not "—", on its own',
+		'#184 B5 uncoupled skills on: a skill check offers the six characteristics, not "—", on its own',
 		{ characteristic: coolUncoupled.characteristic, pool: coolUncoupled.pool, rows: rows(coolUncoupled).map(({ name }) => name) },
 		{
 			characteristic: { value: 'presence', disabled: false, options: SIX_CHARACTERISTICS },
@@ -923,7 +854,7 @@ export async function run(e2e: ScenarioContext) {
 	await toggle('E2E Nerve');
 	const coolWillpower = await select('characteristic', 'willpower');
 	e2e.expect(
-		"B6 uncoupled skills on: picking Willpower for Cool changes the pool and the characteristic's Pool Modifications",
+		"#184 B6 uncoupled skills on: picking Willpower for Cool changes the pool and the characteristic's Pool Modifications",
 		{
 			characteristic: coolWillpower.characteristic?.value,
 			skill: coolWillpower.skill,
@@ -942,19 +873,19 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	const noSkill = await select('skill', '—');
-	e2e.expect('B7 uncoupled skills on: picking skill "—" offers "—" again, and picks it', noSkill.characteristic, {
+	e2e.expect('#204 B7 uncoupled skills on: picking skill "—" offers "—" again, and picks it', noSkill.characteristic, {
 		value: '-',
 		disabled: false,
 		options: ['-', ...SIX_CHARACTERISTICS],
 	});
 	const barePool = await select('characteristic', '-');
 	e2e.expect(
-		'B8 "—" with no skill gives a bare pool',
+		'#204 B8 "—" with no skill gives a bare pool',
 		{ pool: barePool.pool, rows: rows(barePool) },
 		{ pool: '|DD', rows: [{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' }] },
 	);
 	const attackUncoupled = await opened(gm, attack('Spear'));
-	e2e.expect('B9 uncoupled skills on: an attack offers the six characteristics, not "—"', attackUncoupled.characteristic, {
+	e2e.expect('#204 B9 uncoupled skills on: an attack offers the six characteristics, not "—"', attackUncoupled.characteristic, {
 		value: 'brawn',
 		disabled: false,
 		options: SIX_CHARACTERISTICS,
@@ -962,7 +893,7 @@ export async function run(e2e: ScenarioContext) {
 	await setSetting('uncoupleSkills', false);
 	const gendr = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
 	e2e.expect(
-		'B10 /gendr opens a bare pool without characteristic and skill menus',
+		'#204 B10 /gendr opens a bare pool without characteristic and skill menus',
 		{ actor: gendr.actor, pool: gendr.pool, characteristic: gendr.characteristic, skills: gendr.skills, rows: rows(gendr) },
 		{ actor: null, pool: '|DD', characteristic: null, skills: null, rows: [] },
 	);
@@ -971,7 +902,7 @@ export async function run(e2e: ScenarioContext) {
 	await target('Rival');
 	const coolAtRival = await opened(gm, skillRoll('Cool'));
 	e2e.expect(
-		'C1 the prompt lists "From Self" and "From Target" Pool Modifications for check, characteristic and skill keys',
+		'#32 C1 the prompt lists "From Self" and "From Target" Pool Modifications for check, characteristic and skill keys',
 		rows(coolAtRival),
 		[
 			{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
@@ -984,7 +915,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const pistol = await opened(gm, attack('Pistol'));
 	e2e.expect(
-		'C2 an attack rolls the owned "Ranged (light)" with the Pool Modification on "Ranged (Light)", and the ranged defense',
+		'#49 C2 an attack rolls the owned "Ranged (light)" with the Pool Modification on "Ranged (Light)", and the ranged defense',
 		{ skill: pistol.skill, pool: pistol.pool, rows: rows(pistol) },
 		{
 			skill: 'Ranged (light) (Ag)',
@@ -1001,7 +932,7 @@ export async function run(e2e: ScenarioContext) {
 	await toggle('Ranged Defense');
 	const pistolRoll = await roll();
 	e2e.expect(
-		'C3 the attack rolls the owned skill with the toggled Pool Modifications',
+		'#49 C3 the attack rolls the owned skill with the toggled Pool Modifications',
 		{ speaker: pistolRoll.speaker, description: pistolRoll.description, formula: pistolRoll.formula },
 		{
 			speaker: 'Ada',
@@ -1033,7 +964,7 @@ export async function run(e2e: ScenarioContext) {
 		}
 	}
 	e2e.expect(
-		"C4 an attack adds one Setback per point of an adversary's or a character's defense against its range, none at 0",
+		"#32 C4 an attack adds one Setback per point of an adversary's or a character's defense against its range, none at 0",
 		defenses,
 		expectedDefenses,
 	);
@@ -1048,14 +979,14 @@ export async function run(e2e: ScenarioContext) {
 	const vehicleRow = (range: string, count: number) => [
 		{ name: `From Target: ${range} Defense`, enabled: false, mods: Array(count).fill('S+').join(' ') },
 	];
-	e2e.expect('C5 an attack against a targeted vehicle adds one Setback per point of its defense, up to 4', vehicleDefenses, {
+	e2e.expect('#201 C5 an attack against a targeted vehicle adds one Setback per point of its defense, up to 4', vehicleDefenses, {
 		'2 Spear': vehicleRow('Melee', 2),
 		'2 Pistol': vehicleRow('Ranged', 2),
 		'5 Spear': vehicleRow('Melee', 4),
 		'5 Pistol': vehicleRow('Ranged', 4),
 	});
 	const coolAtWagon = await opened(gm, skillRoll('Cool'));
-	e2e.expect('C6 a check made while a vehicle is targeted lists its target Pool Modifications', named(coolAtWagon, 'From Target'), [
+	e2e.expect('#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications', named(coolAtWagon, 'From Target'), [
 		{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' },
 	]);
 	await target(null);
@@ -1069,15 +1000,19 @@ export async function run(e2e: ScenarioContext) {
 			const actor = game.actors.getName(`E2E ${'actor' in doc ? doc.actor : ''}`);
 			return actor.items.getName(`E2E ${'item' in doc ? doc.item : ''}`).system.attackSkill;
 		}, doc);
-	e2e.expect("D1 the Combat tab shows each weapon's Attack Skill, a select for a weapon listing several", await combatWeapons('Ada'), [
-		{ name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee', 'Ranged'] },
-		{ name: 'E2E Pistol', link: true, skill: 'Ranged (light)', choices: null },
-		{ name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
-		{ name: 'E2E Blaster', link: true, skill: 'Piloting (Space)Skill Not Found', choices: null },
-		{ name: 'E2E Club', link: true, skill: 'Melee', choices: null },
-	]);
 	e2e.expect(
-		"D2 the Inventory tab shows each weapon's Attack Skill, and no attack for a weapon without skill",
+		"#49 D1 the Combat tab shows each weapon's Attack Skill, a select for a weapon listing several",
+		await combatWeapons('Ada'),
+		[
+			{ name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee', 'Ranged'] },
+			{ name: 'E2E Pistol', link: true, skill: 'Ranged (light)', choices: null },
+			{ name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
+			{ name: 'E2E Blaster', link: true, skill: 'Piloting (Space)Skill Not Found', choices: null },
+			{ name: 'E2E Club', link: true, skill: 'Melee', choices: null },
+		],
+	);
+	e2e.expect(
+		"#49 D2 the Inventory tab shows each weapon's Attack Skill, and no attack for a weapon without skill",
 		await inventoryWeapons(),
 		[
 			{ name: 'E2E Spear', attack: true, skill: 'Melee' },
@@ -1095,7 +1030,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'D3 choosing Ranged for the spear stores it, and both tabs show it',
+		'#196 D3 choosing Ranged for the spear stores it, and both tabs show it',
 		{
 			stored: await attackSkill({ actor: 'Ada', item: 'Spear' }),
 			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
@@ -1109,7 +1044,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const spear = await opened(gm, attack('Spear'));
 	e2e.expect(
-		"D4 the spear's attack opens on the chosen skill, the weapon's skills first in their group, owned or not",
+		"#196 D4 the spear's attack opens on the chosen skill, the weapon's skills first in their group, owned or not",
 		{ skill: spear.skill, pool: spear.pool, skills: spear.skills },
 		{
 			skill: 'Ranged (Ag)',
@@ -1124,13 +1059,13 @@ export async function run(e2e: ScenarioContext) {
 	const athletics = await select('skill', 'Athletics');
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	e2e.expect(
-		'D5 picking another skill in the prompt applies to that roll only',
+		'#196 D5 picking another skill in the prompt applies to that roll only',
 		{ skill: athletics.skill, pool: athletics.pool, stored: await attackSkill({ actor: 'Ada', item: 'Spear' }) },
 		{ skill: 'Athletics (Br)', pool: 'AAA|DD', stored: 'Ranged' },
 	);
 	await update({ actor: 'Ada', item: 'Spear' }, { 'system.skills': ['Brawl', 'Melee'] });
 	e2e.expect(
-		'D6 a choice the weapon no longer lists falls back to the listed skill owned at the highest rank',
+		'#196 D6 a choice the weapon no longer lists falls back to the listed skill owned at the highest rank',
 		{
 			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
 			inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Spear')?.skill,
@@ -1143,7 +1078,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'D7 a weapon without skill offers no attack link on the Combat tab and no Attack button in the inventory',
+		'#49 D7 a weapon without skill offers no attack link on the Combat tab and no Attack button in the inventory',
 		{
 			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Stick'),
 			inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Stick'),
@@ -1156,7 +1091,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// An adversary's weapons.
 	e2e.expect(
-		'D8 the adversary sheet shows a select for a weapon listing several skills',
+		'#49 D8 the adversary sheet shows a select for a weapon listing several skills',
 		await gm.evaluate(() => window.dicePromptE2E.adversaryWeapons('Rival')),
 		[
 			{ text: 'E2E Knife ([Melee]Damage 3Critical 3Range [Engaged])', choices: ['Melee', 'Ranged'] },
@@ -1164,7 +1099,7 @@ export async function run(e2e: ScenarioContext) {
 		],
 	);
 	e2e.expect(
-		"D9 clicking the knife's select doesn't roll",
+		"#196 D9 clicking the knife's select doesn't roll",
 		await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> select.attack-skill')),
 		{ prompts: 0, notifications: [] },
 	);
@@ -1177,12 +1112,12 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const knife = await opened(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a'));
 	e2e.expect(
-		"D10 the rival's knife attacks with the chosen Ranged",
+		"#196 D10 the rival's knife attacks with the chosen Ranged",
 		{ stored: await attackSkill({ actor: 'Rival', item: 'Knife' }), actor: knife.actor, skill: knife.skill },
 		{ stored: 'Ranged', actor: 'Rival', skill: 'Ranged (Ag)' },
 	);
 	e2e.expect(
-		"D11 a rival's weapon without skill doesn't roll, and its menu has no check",
+		"#49 D11 a rival's weapon without skill doesn't roll, and its menu has no check",
 		{
 			click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> :scope > a')),
 			twig: await gm.evaluate(() =>
@@ -1198,7 +1133,7 @@ export async function run(e2e: ScenarioContext) {
 	// A vehicle's weapons and skills.
 	const skiff = { actor: 'Skiff' };
 	e2e.expect(
-		"D12 a vehicle weapon's Combat tab row has no Attack Skill select",
+		"#196 D12 a vehicle weapon's Combat tab row has no Attack Skill select",
 		await gm.evaluate(() =>
 			window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-combat .weapon:not(.header) select' }),
 		),
@@ -1206,12 +1141,12 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const cannon = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
 	e2e.expect(
-		"D13 a vehicle weapon's attack is rolled by its crew member, with no weapon group",
+		"#196 D13 a vehicle weapon's attack is rolled by its crew member, with no weapon group",
 		{ actor: cannon.actor, skill: cannon.skill, groups: Object.keys(cannon.skills ?? {}) },
 		{ actor: 'Ada', skill: 'Gunnery (Ag)', groups: ['', 'Unranked'] },
 	);
 	e2e.expect(
-		"D14 the vehicle's Skills tab by crew member shows the owned Ranged (light) at its rank",
+		"#49 D14 the vehicle's Skills tab by crew member shows the owned Ranged (light) at its rank",
 		await gm.evaluate(() => window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .member-skill' })),
 		['Gunnery (Ag)0', 'Ranged (light) (Ag)2'],
 	);
@@ -1231,7 +1166,7 @@ export async function run(e2e: ScenarioContext) {
 		),
 	);
 	e2e.expect(
-		"D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
+		"#49 D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
 		{
 			bySkill: bySkillRows,
 			prompts: [byMember, bySkill].map((state) => ({
@@ -1255,7 +1190,7 @@ export async function run(e2e: ScenarioContext) {
 	// E: healing and initiative with a skill the actor lacks (§#49), and the messages of checks (§#50, §#157).
 	const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
 	e2e.expect(
-		'E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
+		'#49 E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
 		{ skill: heal.skill, pool: heal.pool, unranked: heal.skills?.Unranked?.includes('Resilience (Br)') },
 		{ skill: 'Resilience (Br)', pool: 'AAA|DD', unranked: true },
 	);
@@ -1267,7 +1202,7 @@ export async function run(e2e: ScenarioContext) {
 	const initiative = await opened(gm, () => gm.evaluate(() => void game.combat.rollSlotInitiative(window.e2e.slotId('Hero'))));
 	const initiativeMessage = await roll();
 	e2e.expect(
-		'E2 a character without Vigilance rolls initiative from the tracker as an Unranked Skill Check of Vigilance',
+		'#49 E2 a character without Vigilance rolls initiative from the tracker as an Unranked Skill Check of Vigilance',
 		{
 			skill: initiative.skill,
 			pool: initiative.pool,
@@ -1298,7 +1233,7 @@ export async function run(e2e: ScenarioContext) {
 	}));
 	await gm.evaluate(() => window.e2e.reset());
 	e2e.expect(
-		"E3 initiative rolled without the prompt rolls the missing Initiative Skill's characteristic, and reads its results",
+		"#49 E3 initiative rolled without the prompt rolls the missing Initiative Skill's characteristic, and reads its results",
 		{
 			message: {
 				speaker: unprompted.message.speaker,
@@ -1328,7 +1263,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	await new Promise((resolve) => setTimeout(resolve, 1000));
 	e2e.expect(
-		"E4 a hidden combatant's initiative is private",
+		"#50 E4 a hidden combatant's initiative is private",
 		{
 			gm: await gm.evaluate(
 				(id) => ({ whispered: game.messages.get(id).whisper.length > 0, blind: game.messages.get(id).blind }),
@@ -1352,7 +1287,7 @@ export async function run(e2e: ScenarioContext) {
 	await opened(gm, skillRoll('Melee'));
 	const superMessage = await roll();
 	e2e.expect(
-		'E5 skill, characteristic, minion and super characteristic messages describe their check',
+		'#50 E5 skill, characteristic, minion and super characteristic messages describe their check',
 		{
 			skill: description(coolMessage),
 			characteristic: description(willpowerMessage),
@@ -1399,7 +1334,7 @@ export async function run(e2e: ScenarioContext) {
 	]);
 	const attackResults = await roll();
 	e2e.expect(
-		'E6 a skill roll and an attack read their net results, with Triumph and Despair apart',
+		'#157 E6 a skill roll and an attack read their net results, with Triumph and Despair apart',
 		{
 			skill: { formula: skillResults.formula, results: skillResults.results, summaries: skillResults.summaries },
 			attack: { formula: attackResults.formula, results: attackResults.results, summaries: attackResults.summaries },
@@ -1413,7 +1348,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// F: effect sheets keep a Pool Modification for a skill outside the Skills Compendium (§#40).
 	e2e.expect(
-		'F1 opening and saving an actor effect and an item effect keeps their custom skill',
+		'#40 F1 opening and saving an actor effect and an item effect keeps their custom skill',
 		{
 			actor: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', effect: 'Knack' })),
 			item: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', item: 'Map', effect: 'Charm' })),
@@ -1428,7 +1363,7 @@ export async function run(e2e: ScenarioContext) {
 	// G: `@check` links as the GM (§#51, §#95, §#157).
 	const journal = { journal: 'Links' };
 	e2e.expect(
-		'G1 a journal page renders its check links with their difficulty',
+		'#51 G1 a journal page renders its check links with their difficulty',
 		await gm.evaluate((doc) => window.dicePromptE2E.links(doc), journal),
 		[
 			{ skill: 'Athletics', difficulty: 'DDD', text: 'Hard [DDD] Athletics check' },
@@ -1440,7 +1375,7 @@ export async function run(e2e: ScenarioContext) {
 			{ skill: 'Athletics', difficulty: 'CCCCCD', text: 'Impossible [CCCCCD] Athletics check' },
 		],
 	);
-	const linkPrompt = async (client: typeof gm, doc: Doc | { message: string }, skill: string, difficulty?: string) => {
+	const linkPrompt = async (client: Client, doc: Doc | { message: string }, skill: string, difficulty?: string) => {
 		const state = await opened(client, () =>
 			client.evaluate((args) => window.dicePromptE2E.clickLink(args), { doc, skill, difficulty }),
 		);
@@ -1448,7 +1383,7 @@ export async function run(e2e: ScenarioContext) {
 	};
 	await control(gm, ['Bo']);
 	e2e.expect(
-		"G2 a journal entry's link opens the prompt for the controlled token's actor, with the link's difficulty",
+		"#51 G2 a journal entry's link opens the prompt for the controlled token's actor, with the link's difficulty",
 		{
 			hard: await linkPrompt(gm, journal, 'Athletics', 'DDD'),
 			upgraded: await linkPrompt(gm, journal, 'Cool', 'CD'),
@@ -1461,13 +1396,13 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'G3 an opposed check link stays inert',
+		'#51 G3 an opposed check link stays inert',
 		await noPrompt(gm, () => gm.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal)),
 		{ prompts: 0, notifications: [] },
 	);
 	const gmMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
 	e2e.expect(
-		"G4 a chat message's and an item sheet's links open the prompt for the controlled token's actor",
+		"#51 G4 a chat message's and an item sheet's links open the prompt for the controlled token's actor",
 		{
 			message: await linkPrompt(gm, { message: gmMessage }, 'Athletics'),
 			item: await linkPrompt(gm, { item: 'Note' }, 'Athletics'),
@@ -1481,7 +1416,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
 	e2e.expect(
-		"G5 an actor sheet's link rolls for that actor, with a token controlled, right after the sheet opens",
+		"#51 G5 an actor sheet's link rolls for that actor, with a token controlled, right after the sheet opens",
 		{
 			character: await linkPrompt(gm, ada, 'Athletics'),
 			adversary: await linkPrompt(gm, { actor: 'Rival' }, 'Athletics'),
@@ -1509,7 +1444,7 @@ export async function run(e2e: ScenarioContext) {
 	await control(player, ['Bo', 'Cy']);
 	const twoTokens = await playerNoPrompt(journal);
 	e2e.expect(
-		'H1 as a player without a character, a link rolls for the single controlled token, and asks for one otherwise',
+		'#51 H1 as a player without a character, a link rolls for the single controlled token, and asks for one otherwise',
 		{ noToken, oneToken, twoTokens },
 		{
 			noToken: { prompts: 0, notifications: [warning] },
@@ -1529,7 +1464,7 @@ export async function run(e2e: ScenarioContext) {
 	await control(player, ['Bo']);
 	const playerMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
 	e2e.expect(
-		'H2 as a player with a character, a link rolls for the single controlled token, otherwise the character',
+		'#51 H2 as a player with a character, a link rolls for the single controlled token, otherwise the character',
 		{
 			twoTokens: characterTwoTokens,
 			noToken: characterNoToken,
@@ -1545,7 +1480,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await control(player, ['Cy']);
 	e2e.expect(
-		"H3 as a player, an actor sheet's link rolls for that actor",
+		"#51 H3 as a player, an actor sheet's link rolls for that actor",
 		{ character: await playerLink({ actor: 'Bo' }, 'Athletics'), adversary: await playerLink({ actor: 'Rival' }, 'Athletics') },
 		{
 			character: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
@@ -1559,7 +1494,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// I: `@pool` links in a journal page (§#115).
 	e2e.expect(
-		'I1 a pool link with a glyph in the wrong case stays as written, the others show their icons',
+		'#115 I1 a pool link with a glyph in the wrong case stays as written, the others show their icons',
 		await gm.evaluate((doc) => window.dicePromptE2E.pools(doc), journal),
 		[
 			{ text: 'P1 @pool[p]', icons: '' },
@@ -1579,7 +1514,7 @@ export async function run(e2e: ScenarioContext) {
 		return { applied: await gm.evaluate(() => CONFIG.genesys.settings.defaultDifficulty), pool: state.pool };
 	};
 	e2e.expect(
-		'J1 the Default Difficulty setting rejects a value that is not glyphs',
+		'#32 J1 the Default Difficulty setting rejects a value that is not glyphs',
 		{ glyphs: await defaultDifficulty('DDD'), text: await defaultDifficulty('xyz') },
 		{ glyphs: { applied: 'DDD', pool: '|DDD' }, text: { applied: 'DD', pool: '|DD' } },
 	);
@@ -1595,7 +1530,7 @@ export async function run(e2e: ScenarioContext) {
 		}));
 	};
 	e2e.expect(
-		'J2 an empty Skills Compendium setting warns and loads the default one, a missing one is an error',
+		'#100 J2 an empty Skills Compendium setting warns and loads the default one, a missing one is an error',
 		{
 			empty: await skillsCompendium(''),
 			missing: await skillsCompendium('world.e2e-missing'),
@@ -1623,7 +1558,7 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.dicePromptE2E.renameSkill('E2E Lore Renamed'));
 	const renamed = await opened(gm, skillRoll('Cool'));
 	e2e.expect(
-		'J3 a skill renamed in a world Skills Compendium shows its new name in the prompt without a reload',
+		'#100 J3 a skill renamed in a world Skills Compendium shows its new name in the prompt without a reload',
 		{
 			skills: await gm.evaluate(() => CONFIG.genesys.skills.map((skill: { name: string }) => skill.name)),
 			unranked: renamed.skills?.Unranked,
@@ -1663,7 +1598,7 @@ export async function run(e2e: ScenarioContext) {
 	await player.evaluate(() => window.dicePromptE2E.promptRemove('C'));
 	chances['-C'] = await chance('48.64%');
 	e2e.expect(
-		'K1 the worker started after the setting is turned on gives the chance of each pool',
+		'#90 K1 the worker started after the setting is turned on gives the chance of each pool',
 		chances,
 		Object.fromEntries([['DD', '0.00%'], ...steps.map(([name, , expected]) => [name, expected]), ['-C', '48.64%']]),
 	);
@@ -1680,7 +1615,7 @@ export async function run(e2e: ScenarioContext) {
 		clearInterval(ticker);
 		return { chance, answered: Date.now() - start < 30_000, frozen: longestPause > 1000 };
 	});
-	e2e.expect('K2 a pool of 16 dice gets its chance without freezing the prompt', large, {
+	e2e.expect('#90 K2 a pool of 16 dice gets its chance without freezing the prompt', large, {
 		chance: '74.52%',
 		answered: true,
 		frozen: false,
@@ -1691,7 +1626,7 @@ export async function run(e2e: ScenarioContext) {
 	const noDice = await chance('0.00%');
 	await add(['s+']);
 	e2e.expect(
-		'K3 a pool without dice has a chance of 0 %, then 100 % with a Success',
+		'#157 K3 a pool without dice has a chance of 0 %, then 100 % with a Success',
 		{ noDice, success: await chance('100.00%') },
 		{
 			noDice: '0.00%',
@@ -1703,7 +1638,7 @@ export async function run(e2e: ScenarioContext) {
 	await playerGendr();
 	await new Promise((resolve) => setTimeout(resolve, 3000));
 	e2e.expect(
-		'K4 a worker error is logged and the prompt keeps its spinner',
+		'#90 K4 a worker error is logged and the prompt keeps its spinner',
 		{
 			chance: (await player.evaluate(() => window.dicePromptE2E.promptChance({ expected: 'spinner', timeout: 0 }))) ?? null,
 			logged: player.errors.slice(errorsBefore).some((error) => error.includes('Genesys | The chance worker failed.')),
@@ -1734,7 +1669,7 @@ export async function run(e2e: ScenarioContext) {
 	const playerSpentLast = await storyPoints();
 	await player.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
 	e2e.expect(
-		'L1 the Story Point pools move between the GM and the players, from both clients',
+		'#157 L1 the Story Point pools move between the GM and the players, from both clients',
 		{ reset, gmSpentGm, gmSpentPlayer, playerSpentLast, playerSpentNone: await storyPoints() },
 		{
 			reset: tracker(1, 1, { gm: [true, true], player: [false, true] }),
