@@ -35,8 +35,8 @@ The harness only reads the data dirs: each run copies the licence and the world 
 
 ```sh
 pnpm e2e:all                                                     # the suite: every e2e/scenarios/*.ts, on v12 then v13
-pnpm e2e e2e/scenarios/rollKeepsTurn.ts                          # builds the working tree, runs one scenario on v12 then v13
-pnpm e2e e2e/scenarios/rollKeepsTurn.ts --compare origin/main    # also on origin/main's build, then the differing steps
+pnpm e2e e2e/scenarios/combat.ts                                 # builds the working tree, runs one scenario on v12 then v13
+pnpm e2e e2e/scenarios/combat.ts --compare origin/main           # also on origin/main's build, then the differing steps
 pnpm e2e path/to/scenario.ts --versions 12 --dist path/to/dist    # an existing build, v12 only
 ```
 
@@ -49,7 +49,7 @@ pnpm e2e path/to/scenario.ts --versions 12 --dist path/to/dist    # an existing 
 
 ## The suite
 
-`e2e/scenarios/` holds one scenario per domain, each covering the items of the release's test checklist it can prove: `combat`, `dicePrompt`, `inventory`, `character`, `vehicle`, `adversaries`, `migrations` (isolated: it needs a pristine world) and `sheets`. The older `rollKeepsTurn` and `extraSlotKeepsTurn` join `combat` when it is written. A checklist item an `expect` step proves is ticked with a link to it: `e2e/scenarios/combat.ts › step "A1 the turn stays on Hero"`.
+`e2e/scenarios/` holds one scenario per domain, each covering the items of the release's test checklist it can prove: `combat`, `dicePrompt`, `inventory`, `character`, `vehicle`, `adversaries`, `migrations` (isolated: it needs a pristine world) and `sheets`. A checklist item an `expect` step proves is ticked with a link to it: `e2e/scenarios/combat.ts › step "#59 A1 the turn stays on Hero:-1, with no turn event"`.
 
 A Foundry-dependent change adds or extends its domain's scenario, rather than keeping a one-off scenario out of the repo. Every `.ts` file of `e2e/scenarios/` is a scenario: helpers shared by several scenarios go in `e2e/`.
 
