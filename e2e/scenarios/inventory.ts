@@ -1,7 +1,7 @@
 /** @file The inventory of #37: drops on actor and item sheets, Containers, Equipment States and their effects, armor, encumbrance and inventory rows. */
 import type { ScenarioContext } from '../scenario.ts';
 
-type State = 'equipped' | 'carried' | 'dropped';
+type EquipmentState = 'equipped' | 'carried' | 'dropped';
 
 /**
  * What a drag carries: an item of the sidebar, of the system's test compendium, of an actor in the test actor
@@ -18,61 +18,59 @@ type Source =
  * Where a drop lands on an actor's sheet: on the n-th sort slot of a section (from 0, the slot above its first item), on
  * an item's row, or on another element of the sheet.
  */
-type Target = { section: State; slot: number } | { item: string } | { on: string };
-
-/**
- * An actor of the setup, by its name without `E2E `; `token:<name>` for the actor of an unlinked token.
- */
-type ActorRef = string;
+type Target = { section: EquipmentState; slot: number } | { item: string } | { on: string };
 
 type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
 
+/**
+ * The helpers name an actor of the setup by its name without `E2E `, or `token:<name>` for the actor of an unlinked token.
+ */
 type InventoryHelpers = {
 	setUp(playerUser: string): Promise<void>;
 	tearDown(): Promise<void>;
 	/** Runs a drag from its source and drops it on a target of an actor's sheet. */
-	drop(source: Source, actor: ActorRef, at: Target): Promise<void>;
+	drop(source: Source, actor: string, at: Target): Promise<void>;
 	/** Drops a drag on the sheet of an item of the sidebar (no actor) or of an actor. */
-	dropOnItemSheet(source: Source, item: string, actor?: ActorRef): Promise<void>;
+	dropOnItemSheet(source: Source, item: string, actor?: string): Promise<void>;
 	/** Picks an action in the menu of an item's inventory row. */
-	menu(actor: ActorRef, item: string, action: MenuAction): Promise<void>;
+	menu(actor: string, item: string, action: MenuAction): Promise<void>;
 	/** Changes a field of an item's sheet, as typing in it does. */
-	editItemSheet(actor: ActorRef, item: string, field: string, value: string): Promise<void>;
+	editItemSheet(actor: string, item: string, field: string, value: string): Promise<void>;
 	/** Damages an item from its row until it's destroyed, and confirms its deletion. */
-	damageToNothing(actor: ActorRef, item: string): Promise<void>;
+	damageToNothing(actor: string, item: string): Promise<void>;
 	/** Clicks the quantity and the damage state of an item's row once. */
-	clickQuantityAndDamage(actor: ActorRef, item: string): Promise<void>;
+	clickQuantityAndDamage(actor: string, item: string): Promise<void>;
 	/** Attacks with a weapon from its inventory row, which opens the dice prompt. */
-	attack(actor: ActorRef, item: string): Promise<void>;
+	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
 	rollPrompt(): Promise<void>;
 	/** Shows a tab of an actor's sheet. */
-	showTab(actor: ActorRef, tab: string): Promise<void>;
+	showTab(actor: string, tab: string): Promise<void>;
 	/** Runs a script on the setup's documents. */
-	updateItem(actor: ActorRef, item: string, changes: object): Promise<void>;
-	deleteItem(actor: ActorRef, item: string): Promise<void>;
-	createItems(actor: ActorRef, items: { name: string; type: string; system?: object; in?: string }[]): Promise<void>;
-	updateActor(actor: ActorRef, changes: object): Promise<void>;
+	updateItem(actor: string, item: string, changes: object): Promise<void>;
+	deleteItem(actor: string, item: string): Promise<void>;
+	createItems(actor: string, items: { name: string; type: string; system?: object; in?: string }[]): Promise<void>;
+	updateActor(actor: string, changes: object): Promise<void>;
 
 	/** The actor's items named `E2E …`: equipment as `Name:state` or `Name:state@Container`, others as `Name (type)`. */
-	items(actor: ActorRef): string[];
+	items(actor: string): string[];
 	/** The items of a section in sort order, as `Name=sort`. */
-	sorts(actor: ActorRef, state: State): string[];
+	sorts(actor: string, state: EquipmentState): string[];
 	/** The rows a section of the Inventory tab lists. */
-	section(actor: ActorRef, state: State): Promise<string[]>;
+	section(actor: string, state: EquipmentState): Promise<string[]>;
 	/** The rows a Container's row lists once opened. */
-	contents(actor: ActorRef, container: string): Promise<string[]>;
-	effects(actor: ActorRef): { onActor: number; applied: string[]; suppressed: string[] };
+	contents(actor: string, container: string): Promise<string[]>;
+	effects(actor: string): { onActor: number; applied: string[]; suppressed: string[] };
 	/** An item's effects, which live on the item. */
-	itemEffects(actor: ActorRef, item: string): string[];
-	stat(actor: ActorRef, path: string): unknown;
+	itemEffects(actor: string, item: string): string[];
+	stat(actor: string, path: string): unknown;
 	/** The Inactive Effects of the Effects tab, as `Name | tooltip`. */
-	inactive(actor: ActorRef): Promise<string[]>;
-	protection(actor: ActorRef): Promise<{ soak: number; defense: number[]; combatTab: string[] }>;
-	encumbrance(actor: ActorRef): Promise<{ value: number; threshold: number; shown: string }>;
-	row(actor: ActorRef, item: string): Promise<{ details: string; quantity: string; weight: string; damageState: string | null }>;
+	inactive(actor: string): Promise<string[]>;
+	protection(actor: string): Promise<{ soak: number; defense: number[]; combatTab: string[] }>;
+	encumbrance(actor: string): Promise<{ value: number; threshold: number; shown: string }>;
+	row(actor: string, item: string): Promise<{ details: string; quantity: string; encumbrance: string; damageState: string | null }>;
 	/** The text of the weapon rows of a sheet's Combat tab or an adversary's sheet. */
-	weaponList(actor: ActorRef): Promise<string[]>;
+	weaponList(actor: string): Promise<string[]>;
 	/** The texts of the last chat message's elements matched by these selectors. */
 	lastMessage(selectors: string[]): string[];
 	/** An item of the sidebar, as `skills` and `qualities` or `granted` items. */
@@ -654,7 +652,7 @@ function installInventoryHelpers() {
 			return {
 				details: [...(row.querySelector('[data-item-type]')?.children ?? [])].map((part) => short(text(part))).join(' | '),
 				quantity: text(row.querySelector(':scope > .quantity')),
-				weight: text(row.querySelector(':scope > .weight')),
+				encumbrance: text(row.querySelector(':scope > .weight')),
 				damageState: row.querySelector(':scope > .damage')?.getAttribute('data-tooltip') ?? null,
 			};
 		},
@@ -712,36 +710,35 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate((playerUser) => window.inventoryE2E.setUp(playerUser), e2e.playerUser);
 
 	const page = gm;
-	const drop = (source: Source, actor: ActorRef, at: Target) => () =>
+	const drop = (source: Source, actor: string, at: Target) => () =>
 		page.evaluate((args) => window.inventoryE2E.drop(args.source, args.actor, args.at), { source, actor, at });
 	const drops =
 		(...actions: (() => Promise<unknown>)[]) =>
 		async () => {
 			for (const action of actions) await action();
 		};
-	const menu = (actor: ActorRef, item: string, action: MenuAction) => () =>
+	const menu = (actor: string, item: string, action: MenuAction) => () =>
 		page.evaluate((args) => window.inventoryE2E.menu(args.actor, args.item, args.action), { actor, item, action });
-	const updateItem = (actor: ActorRef, item: string, changes: object) => () =>
+	const updateItem = (actor: string, item: string, changes: object) => () =>
 		page.evaluate((args) => window.inventoryE2E.updateItem(args.actor, args.item, args.changes), { actor, item, changes });
-	const items = (actor: ActorRef) => page.evaluate((ref) => window.inventoryE2E.items(ref), actor);
-	const sorts = (actor: ActorRef, state: State) =>
+	const items = (actor: string) => page.evaluate((ref) => window.inventoryE2E.items(ref), actor);
+	const sorts = (actor: string, state: EquipmentState) =>
 		page.evaluate((args) => window.inventoryE2E.sorts(args.actor, args.state), { actor, state });
-	const section = (actor: ActorRef, state: State) =>
+	const section = (actor: string, state: EquipmentState) =>
 		page.evaluate((args) => window.inventoryE2E.section(args.actor, args.state), { actor, state });
-	const effects = (actor: ActorRef) => page.evaluate((ref) => window.inventoryE2E.effects(ref), actor);
-	const stat = (actor: ActorRef, path: string) =>
-		page.evaluate((args) => window.inventoryE2E.stat(args.actor, args.path), { actor, path });
-	const inactive = (actor: ActorRef) => page.evaluate((ref) => window.inventoryE2E.inactive(ref), actor);
-	const protection = (actor: ActorRef) => page.evaluate((ref) => window.inventoryE2E.protection(ref), actor);
-	const encumbrance = (actor: ActorRef) => page.evaluate((ref) => window.inventoryE2E.encumbrance(ref), actor);
-	const row = (actor: ActorRef, item: string) => page.evaluate((args) => window.inventoryE2E.row(args.actor, args.item), { actor, item });
+	const effects = (actor: string) => page.evaluate((ref) => window.inventoryE2E.effects(ref), actor);
+	const stat = (actor: string, path: string) => page.evaluate((args) => window.inventoryE2E.stat(args.actor, args.path), { actor, path });
+	const inactive = (actor: string) => page.evaluate((ref) => window.inventoryE2E.inactive(ref), actor);
+	const protection = (actor: string) => page.evaluate((ref) => window.inventoryE2E.protection(ref), actor);
+	const encumbrance = (actor: string) => page.evaluate((ref) => window.inventoryE2E.encumbrance(ref), actor);
+	const row = (actor: string, item: string) => page.evaluate((args) => window.inventoryE2E.row(args.actor, args.item), { actor, item });
 	const takeBatches = () => page.evaluate(() => window.inventoryE2E.takeBatches());
 	const takeNotifications = () => page.evaluate(() => window.inventoryE2E.takeNotifications());
 	const errorCount = () => gm.errors.length;
 	const sidebar = (name: string): Source => ({ sidebar: name });
 	const compendium = (name: string): Source => ({ compendium: name });
-	const held = (item: string, by: ActorRef): Source => ({ held: item, by });
-	const slot = (state: State, n: number): Target => ({ section: state, slot: n });
+	const held = (item: string, by: string): Source => ({ held: item, by });
+	const slot = (state: EquipmentState, n: number): Target => ({ section: state, slot: n });
 	const onSheet: Target = { on: '.window-content' };
 	const tooltip = (item: string, state: string) => `Inactive while E2E ${item} is ${state}.`;
 
@@ -1052,7 +1049,7 @@ export async function run(e2e: ScenarioContext) {
 		items: (await items('Hero')).filter((name) => /^(Pack|Rope|Flask)/.test(name)),
 		rope: (await effects('Hero')).applied.includes('Rope Effect'),
 	});
-	const packIn = (state: State, rope: boolean) => ({
+	const packIn = (state: EquipmentState, rope: boolean) => ({
 		items: [`Flask:${state}@Pack`, `Pack:${state}`, `Rope:${state}@Pack`],
 		rope,
 	});
@@ -1529,7 +1526,7 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect("M4 a weapon's row follows the changes made in its sheet, with the Inventory tab open", await row('Smith', 'Blade'), {
 		details: 'Melee | Damage Br+4 (6) | Critical 2 | Range [Short] | Quality 1',
 		quantity: '1',
-		weight: '3',
+		encumbrance: '3',
 		damageState: 'Genesys.Equipment.DamageState.Undamaged',
 	});
 	await e2e.step("M5 the Hide's soak and defense updated", updateItem('Smith', 'Hide', { 'system.soak': 3, 'system.defense': 2 }));
@@ -1560,7 +1557,7 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect("M8 a click raises an item's quantity and damage state on its row", await row('Smith', 'Blade'), {
 		details: 'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
 		quantity: '2',
-		weight: '3',
+		encumbrance: '3',
 		damageState: 'Genesys.Equipment.DamageState.Minor',
 	});
 
