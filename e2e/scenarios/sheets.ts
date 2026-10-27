@@ -1674,7 +1674,7 @@ export async function run(e2e: ScenarioContext) {
 		Object.fromEntries(sources.map((name) => [name, { before: sourceText, afterLinks: 1 }])),
 	);
 	const editedSource = await gm.evaluate(() => `@UUID[${game.actors.getName('E2E Bearer').uuid}]{E2E Bearer} [[/r 2d6]] @check[Cool]`);
-	await e2e.step('#101 #82 GM edits the source of an adversary, an item, a career and an archetype', () =>
+	await e2e.step('#101 GM edits the source of an adversary, an item, a career and an archetype', () =>
 		gm.evaluate(
 			async ({ names, source }) => {
 				for (const name of names) {
