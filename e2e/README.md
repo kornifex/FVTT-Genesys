@@ -21,6 +21,7 @@ E2E_V13_WORLD=my-world
 
 # Optional
 E2E_CHROMIUM=/path/to/chrome-headless-shell  # default: Playwright's download (pnpm exec playwright-core install chromium-headless-shell)
+E2E_ANGLE=vulkan                             # draws on the GPU (vulkan or gl-egl); default: SwiftShader, on the CPU (Canvas)
 E2E_GM_USER=Gamemaster                       # a GM user without password
 E2E_PLAYER_USER=Player                       # created by the GM when the world lacks it
 E2E_PORT=30100                               # the first version's port; each further version takes the next one
@@ -116,4 +117,4 @@ Every page records its activity: each hook Foundry or the system calls, each soc
 
 ## Canvas
 
-Headless Chromium draws Foundry's WebGL canvas without a GPU, which takes most of the run's CPU. A scenario's clients join in Foundry's no-canvas mode (the `core.noCanvas` client setting): they view the scene without drawing it, and `canvas.scene`, `canvas.tokens` and the token HUD don't exist. A scenario exporting `needsCanvas = true` keeps the canvas, at Foundry's lowest frame rate (`core.maxFPS`, 10): `combat` (controlled and hovered tokens), `dicePrompt` (controlled and targeted tokens, the targeted vehicle checks of #201), `adversaries` (a token's bars in its HUD), and `inventory` and `vehicle`, which delete tokens: Foundry v13 throws in no-canvas mode when a token is deleted, its `CanvasDocument#_onDelete` reading the clipboard of a layer that doesn't exist. `character`, `sheets` and `migrations` run without it; the page helpers reach the viewed scene through `game.scenes.viewed` there.
+Headless Chromium draws Foundry's WebGL canvas without a GPU, which takes most of the run's CPU: on a machine with one, `E2E_ANGLE=vulkan` (or `gl-egl`) draws on it instead. A scenario's clients join in Foundry's no-canvas mode (the `core.noCanvas` client setting): they view the scene without drawing it, and `canvas.scene`, `canvas.tokens` and the token HUD don't exist. A scenario exporting `needsCanvas = true` keeps the canvas, at Foundry's lowest frame rate (`core.maxFPS`, 10): `combat` (controlled and hovered tokens), `dicePrompt` (controlled and targeted tokens, the targeted vehicle checks of #201), `adversaries` (a token's bars in its HUD), and `inventory` and `vehicle`, which delete tokens: Foundry v13 throws in no-canvas mode when a token is deleted, its `CanvasDocument#_onDelete` reading the clipboard of a layer that doesn't exist. `character`, `sheets` and `migrations` run without it; the page helpers reach the viewed scene through `game.scenes.viewed` there.

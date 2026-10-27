@@ -55,6 +55,7 @@ describe('readConfig', () => {
 
 		expect(settings).toEqual({
 			chromium: undefined,
+			angle: undefined,
 			workDir: path.join(os.tmpdir(), 'genesys-e2e'),
 			gmUser: 'Gamemaster',
 			playerUser: 'Player',
@@ -66,6 +67,7 @@ describe('readConfig', () => {
 			{
 				...v12,
 				E2E_CHROMIUM: '/chrome-headless-shell',
+				E2E_ANGLE: 'vulkan',
 				E2E_WORK_DIR: '/scratch/e2e',
 				E2E_GM_USER: 'MJ',
 				E2E_PLAYER_USER: 'Joueur',
@@ -75,6 +77,7 @@ describe('readConfig', () => {
 
 		expect(settings).toEqual({
 			chromium: '/chrome-headless-shell',
+			angle: 'vulkan',
 			workDir: '/scratch/e2e',
 			gmUser: 'MJ',
 			playerUser: 'Joueur',

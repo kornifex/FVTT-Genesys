@@ -23,6 +23,8 @@ type HarnessConfig = {
 	installs: FoundryInstall[];
 	/** A Chromium or headless shell binary; Playwright's own download when undefined. */
 	chromium: string | undefined;
+	/** The ANGLE backend Chromium draws with (`--use-angle`), such as `vulkan` for the GPU; SwiftShader, on the CPU, when undefined. */
+	angle: string | undefined;
 	/** Where the world copies, builds and results go. */
 	workDir: string;
 	gmUser: string;
@@ -57,6 +59,7 @@ export function readConfig(env: Env, versions: number[]): HarnessConfig {
 	return {
 		installs,
 		chromium: env.E2E_CHROMIUM || undefined,
+		angle: env.E2E_ANGLE || undefined,
 		workDir: env.E2E_WORK_DIR || path.join(os.tmpdir(), 'genesys-e2e'),
 		gmUser: env.E2E_GM_USER || 'Gamemaster',
 		playerUser: env.E2E_PLAYER_USER || 'Player',
