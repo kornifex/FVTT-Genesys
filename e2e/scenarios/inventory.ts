@@ -79,7 +79,20 @@ type InventoryHelpers = {
 	takeBatches(): string[];
 	/** The notifications since the last call. */
 	takeNotifications(): string[];
+
+	/** Creates a consumable with an effect in each place #205 seeds the Used state, but the character's, which has one. */
+	createConsumables(): Promise<void>;
+	/** Writes the Used state to the database for each place's consumable, past the client's data model, as older data holds it. */
+	seedUsed(): Promise<void>;
+	/** How each place's consumable loads: its state, its source's, the database's, and whether its collection holds invalid documents. */
+	loadedConsumables(): Promise<Record<ConsumablePlace, { state: string; source: string; database: string; invalid: boolean }>>;
 };
+
+/**
+ * Where #205 seeds a consumable in the Used state: the Items directory, a character, the actor of an unlinked token, and a
+ * compendium.
+ */
+type ConsumablePlace = 'world' | 'actor' | 'token' | 'pack';
 
 declare global {
 	interface Window {
@@ -269,6 +282,33 @@ function installInventoryHelpers() {
 		}
 	};
 
+	// The raw documents the server sends back, as far as #205 reads them: what the database holds, past the client's data model.
+	type Stored = { _id: string; system: { state: string } };
+	type RawResponse = { result: (Stored & { items?: Stored[] })[] };
+	const raw = (request: object) =>
+		new Promise<RawResponse>((resolve, reject) =>
+			game.socket.emit('modifyDocument', request, (response: RawResponse & { error?: { message: string } }) =>
+				response.error ? reject(new Error(response.error.message)) : resolve(response),
+			),
+		);
+	const CONSUMABLE_PLACES: ConsumablePlace[] = ['world', 'actor', 'token', 'pack'];
+	// Each place's consumable, where it sits in the database. The unlinked token's consumable is its actor's, seen through
+	// the token, whose own actor is made from it.
+	const consumableAt = async (place: ConsumablePlace) => {
+		if (place === 'pack') {
+			const document = (await pack('items').getDocuments()).find((packed: { name: string }) => packed.name === full('Packed Stim'));
+			return { id: document.id, operation: { pack: pack('items').collection } as Record<string, string>, document };
+		}
+		if (place === 'world') {
+			const document = game.items.getName(full('Stim'));
+			return { id: document.id, operation: {} as Record<string, string>, document };
+		}
+		const [ref, name] = place === 'actor' ? ['Hero', 'Elixir'] : ['Token Rival', 'Tonic'];
+		const held = window.e2e.actor(ref).items.getName(full(name));
+		const document = place === 'actor' ? held : game.scenes.viewed.tokens.getName(full('Token Rival')).actor.items.getName(full(name));
+		return { id: held.id, operation: { parentUuid: window.e2e.actor(ref).uuid } as Record<string, string>, document };
+	};
+
 	const helpers: InventoryHelpers = {
 		async setUp(playerUser) {
 			await helpers.tearDown();
@@ -366,7 +406,7 @@ function installInventoryHelpers() {
 				{ data: gear('Flask'), state: 'carried', in: 'Pack' },
 				{ data: gear('Bell', {}, [effect('Bell Effect', 'system.strain.max', 100)]), state: 'carried' },
 				{ data: { name: full('Potion'), type: 'consumable', effects: [marker('Potion Effect')] }, state: 'carried' },
-				{ data: { name: full('Elixir'), type: 'consumable', effects: [marker('Elixir Effect')] }, state: 'used' },
+				{ data: { name: full('Elixir'), type: 'consumable', effects: [marker('Elixir Effect')] }, state: 'carried' },
 				{ data: weapon('Axe', {}), state: 'carried' },
 			]);
 			await give(actor('Sorter'), [
@@ -424,6 +464,44 @@ function installInventoryHelpers() {
 			await window.e2e.ensureScene();
 			const tokenData = (await actor('Token Rival').getTokenDocument()).toObject();
 			await canvas.scene.createEmbeddedDocuments('Token', [{ ...tokenData, name: full('Token Rival'), x: 300, y: 700 }]);
+		},
+
+		async createConsumables() {
+			const consumable = (name: string) => ({ name: full(name), type: 'consumable', effects: [marker(`${name} Effect`)] });
+			await Item.create(consumable('Stim'));
+			await actor('Token Rival').createEmbeddedDocuments('Item', [consumable('Tonic')]);
+			await CONFIG.Item.documentClass.create(consumable('Packed Stim'), { pack: pack('items').collection });
+		},
+
+		async seedUsed() {
+			for (const place of CONSUMABLE_PLACES) {
+				const { id, operation } = await consumableAt(place);
+				await raw({
+					type: 'Item',
+					action: 'update',
+					operation: { ...operation, updates: [{ _id: id, system: { state: 'used' } }], diff: true, recursive: true },
+				});
+			}
+		},
+
+		async loadedConsumables() {
+			const loaded: Partial<Awaited<ReturnType<InventoryHelpers['loadedConsumables']>>> = {};
+			for (const place of CONSUMABLE_PLACES) {
+				const { id, operation, document } = await consumableAt(place);
+				const parentId = operation.parentUuid?.split('.')[1];
+				const response = parentId
+					? await raw({ type: 'Actor', action: 'get', operation: { query: { _id: parentId } } })
+					: await raw({ type: 'Item', action: 'get', operation: { ...operation, query: { _id: id } } });
+				const stored = parentId ? response.result[0].items?.find((held) => held._id === id) : response.result[0];
+				const collection = document.pack ? game.packs.get(document.pack) : document.parent?.items ?? game.items;
+				loaded[place] = {
+					state: document.system.state,
+					source: document._source.system.state,
+					database: stored?.system.state ?? '',
+					invalid: collection.invalidDocumentIds.size > 0,
+				};
+			}
+			return loaded as Awaited<ReturnType<InventoryHelpers['loadedConsumables']>>;
 		},
 
 		async tearDown() {
@@ -891,16 +969,16 @@ export async function run(e2e: ScenarioContext) {
 		},
 		{
 			itemEffects: ['Mail Effect'],
-			effects: { onActor: 0, applied: ['Bell Effect', 'Elixir Effect', 'Mail Effect', 'Rope Effect'], suppressed: ['Potion Effect'] },
+			effects: { onActor: 0, applied: ['Bell Effect', 'Mail Effect', 'Rope Effect'], suppressed: ['Elixir Effect', 'Potion Effect'] },
 			woundsMax: 11,
 			notifications: [],
 			errors: 0,
 		},
 	);
 	e2e.expect(
-		'#102 D3 effects follow the Equipment State: equipped armor, carried gear and a used consumable apply, a carried consumable does not',
+		'#102 D3 effects follow the Equipment State: equipped armor and carried gear apply, a carried consumable does not',
 		(await effects('Hero')).suppressed,
-		['Potion Effect'],
+		['Elixir Effect', 'Potion Effect'],
 	);
 	await e2e.step("#103 D4 Ally's Dropped Whistle dropped on Hero's Mail row", drop(held('Whistle', 'Ally'), 'Hero', { item: 'Mail' }));
 	e2e.expect(
@@ -1596,5 +1674,42 @@ export async function run(e2e: ScenarioContext) {
 		damageState: 'Genesys.Equipment.DamageState.Minor',
 	});
 
+	await usedState(e2e);
+
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
+}
+
+/** §#205: the Used Equipment State is gone, a consumable saved in it loads as Carried, and a consumable's effects never apply. */
+async function usedState(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	// A world saved before #205, or a macro's write: the Used state in the database, past the client's data model, which no
+	// longer accepts it.
+	await e2e.step(
+		"#205 N1 consumables saved in the Used state in the Items directory, on a character, on an unlinked token's actor and in a compendium, then the world reloaded",
+		async () => {
+			await gm.evaluate(() => window.inventoryE2E.createConsumables());
+			await gm.evaluate(() => window.inventoryE2E.seedUsed());
+			const errors = gm.errors.length;
+			await gm.reload();
+			await gm.evaluate(installInventoryHelpers);
+			e2e.log('#205 N1 console errors while loading the world', gm.errors.slice(errors));
+		},
+	);
+	const asCarried = { state: 'carried', source: 'carried', database: 'used', invalid: false };
+	e2e.expect(
+		'#205 N1 a consumable saved in the Used state loads as Carried with no error, while the database keeps Used until it is saved again',
+		await gm.evaluate(() => window.inventoryE2E.loadedConsumables()),
+		{ world: asCarried, actor: asCarried, token: asCarried, pack: asCarried },
+	);
+	const reason = (item: string) => `Inactive: E2E ${item} is a consumable, whose effects don't apply.`;
+	e2e.expect(
+		"#205 N2 a character's consumables, the one saved as Used included, list their effects as inactive, with the consumable reason",
+		(await gm.evaluate(() => window.inventoryE2E.inactive('Hero'))).filter((effect) => /^(Elixir|Potion)/.test(effect)).sort(),
+		[`Elixir Effect | ${reason('Elixir')}`, `Potion Effect | ${reason('Potion')}`],
+	);
+	e2e.expect(
+		"#205 N3 an adversary's consumable still applies its effect",
+		(await gm.evaluate(() => window.inventoryE2E.effects('token:Token Rival'))).applied.filter((name) => name.startsWith('Tonic')),
+		['Tonic Effect'],
+	);
 }

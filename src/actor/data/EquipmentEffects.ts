@@ -1,5 +1,5 @@
 /**
- * @file Effects of equipment apply only while their item is in the right Equipment State: equipped and in no Container for equipable items, used for consumables and carried for any other equipment.
+ * @file Effects of equipment apply only while their item is in the right Equipment State: equipped and in no Container for equipable items, and carried for any other equipment but consumables, whose effects never apply.
  */
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -37,7 +37,8 @@ function areEffectsDisabled(isEquipmentType: IsEquipmentType, item: HeldItem) {
 	if (isEquipmentType('EQUIPABLE', item.type)) {
 		return EquipmentState.Equipped !== item.system.state || !!item.system.container;
 	} else if (isEquipmentType('CONSUMABLE', item.type)) {
-		return EquipmentState.Used !== item.system.state;
+		// The system has no way to use a consumable (.out-of-scope/using-consumables.md), so its effects never apply.
+		return true;
 	} else {
 		return EquipmentState.Carried !== item.system.state;
 	}
@@ -51,7 +52,7 @@ export function hasEquipmentState(actorType: string, itemType: string) {
 }
 
 /**
- * Whether the Equipment State of an item, or the Container holding it, keeps its effects from applying to the actor that
+ * Whether the Equipment State of an item, the Container holding it, or its being a consumable keeps its effects from applying to the actor that
  * holds it.
  */
 export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) {
@@ -66,4 +67,11 @@ export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) 
 export function isSuppressedByContainer(actorType: string, item: HeldItem) {
 	const isEquipmentType = EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType];
 	return !!isEquipmentType && isEquipmentType('EQUIPABLE', item.type) && !!item.system.container;
+}
+
+/**
+ * Whether being a consumable is what keeps an item's effects from applying, whatever its state or Container.
+ */
+export function isSuppressedAsConsumable(actorType: string, item: HeldItem) {
+	return EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType]?.('CONSUMABLE', item.type) ?? false;
 }

@@ -1,5 +1,5 @@
 import { GenesysItem } from '@/item/GenesysItem';
-import { isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
+import { isSuppressedAsConsumable, isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
@@ -13,12 +13,20 @@ export class GenesysEffect extends ActiveEffect {
 	}
 
 	/**
-	 * Whether the Equipment State of the item this effect comes from, or the Container holding it, keeps it from applying
-	 * to the item's actor.
+	 * Whether the Equipment State of the item this effect comes from, the Container holding it, or its being a consumable
+	 * keeps it from applying to the item's actor.
 	 */
 	get isSuppressedByEquipmentState() {
 		const item = this.originItem;
 		return !!item?.actor && isSuppressedByEquipmentState(item.actor.type, item);
+	}
+
+	/**
+	 * Whether the item this effect comes from is a consumable, whose effects never apply to its actor.
+	 */
+	get isSuppressedAsConsumable() {
+		const item = this.originItem;
+		return !!item?.actor && isSuppressedAsConsumable(item.actor.type, item);
 	}
 
 	/**
