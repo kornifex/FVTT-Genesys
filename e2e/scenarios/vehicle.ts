@@ -816,7 +816,7 @@ async function deletingCrew(e2e: ScenarioContext) {
 }
 
 /**
- * §#NNN: deleting a crew member logs no error once an unlinked vehicle token they crewed is gone with its scene or on
+ * §#234: deleting a crew member logs no error once an unlinked vehicle token they crewed is gone with its scene or on
  * its own, and the tokens left lose them.
  */
 async function deletingCrewOfGoneTokens(e2e: ScenarioContext) {
@@ -828,22 +828,22 @@ async function deletingCrewOfGoneTokens(e2e: ScenarioContext) {
 		{ name: 'Skiff', type: 'vehicle' },
 	]);
 
-	await e2e.step('#NNN A1 Deck Hand crews a token of Skiff on Dock A, whose scene is deleted', async () => {
+	await e2e.step('#234 A1 Deck Hand crews a token of Skiff on Dock A, whose scene is deleted', async () => {
 		await vehicleE2E('placeTokens', { scene: 'Dock A', vehicle: 'Skiff', passengers: [['Deck Hand']] });
 		await vehicleE2E('deleteScene', 'Dock A');
 	});
 	let errors = gm.errors.length;
-	await e2e.step('#NNN A2 Deck Hand deleted', () => vehicleE2E('deleteActors', ['Deck Hand']));
-	e2e.expect('#NNN A2 deleting a crew member of a token whose scene was deleted logs no error', gm.errors.slice(errors), []);
+	await e2e.step('#234 A2 Deck Hand deleted', () => vehicleE2E('deleteActors', ['Deck Hand']));
+	e2e.expect('#234 A2 deleting a crew member of a token whose scene was deleted logs no error', gm.errors.slice(errors), []);
 
-	await e2e.step('#NNN B1 Deck Mate crews two tokens of Skiff on Dock B, the first deleted', async () => {
+	await e2e.step('#234 B1 Deck Mate crews two tokens of Skiff on Dock B, the first deleted', async () => {
 		await vehicleE2E('placeTokens', { scene: 'Dock B', vehicle: 'Skiff', passengers: [['Deck Mate'], ['Deck Mate']] });
 		await vehicleE2E('deleteToken', { scene: 'Dock B', n: 1 });
 	});
 	errors = gm.errors.length;
-	await e2e.step('#NNN B2 Deck Mate deleted', () => vehicleE2E('deleteActors', ['Deck Mate']));
+	await e2e.step('#234 B2 Deck Mate deleted', () => vehicleE2E('deleteActors', ['Deck Mate']));
 	e2e.expect(
-		'#NNN B2 deleting a crew member of a deleted token logs no error, and the token left loses them',
+		'#234 B2 deleting a crew member of a deleted token logs no error, and the token left loses them',
 		{ errors: gm.errors.slice(errors), dockB: await vehicleE2E('tokenPassengers', 'Dock B') },
 		{ errors: [], dockB: [[]] },
 	);
