@@ -1,4 +1,4 @@
-/** @file The two Story Point pools: what they hold at the start of a session, and where a spent point goes. */
+/** @file The two Story Point pools: what they hold at the start of a session, where a spent point goes, and what the GM may set them to. */
 
 import type { StoryPointData } from '@/settings/storyPoints';
 
@@ -25,4 +25,17 @@ export function storyPointsAfterSpending(storyPoints: StoryPointData, pool: Stor
 	return pool === 'player'
 		? { player: storyPoints.player - 1, gm: storyPoints.gm + 1 }
 		: { player: storyPoints.player + 1, gm: storyPoints.gm - 1 };
+}
+
+/**
+ * The pools once the GM types a new count for one of them. Undefined when the input isn't a whole number of points: the
+ * tracker then keeps the pools as they are.
+ */
+export function storyPointsAfterEditing(storyPoints: StoryPointData, pool: StoryPointPool, input: string): StoryPointData | undefined {
+	const count = input.trim();
+	if (!/^\d+$/.test(count)) {
+		return undefined;
+	}
+
+	return { ...storyPoints, [pool]: Number(count) };
 }

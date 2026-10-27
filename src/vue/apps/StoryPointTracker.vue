@@ -3,6 +3,7 @@ import { computed, inject, nextTick, Ref, ref } from 'vue';
 import { vLocalize } from '@/vue/directives';
 import { RootContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
+import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
 import Localized from '@/vue/components/Localized.vue';
 
 const isGM = game.user.isGM;
@@ -25,23 +26,19 @@ async function spendStoryPoint(targetPool: keyof typeof canSpend.value) {
 	await StoryPointTracker.spendStoryPoint(targetPool);
 }
 
-async function manualStoryPoints(which: 'gm' | 'player', event: Event) {
+async function manualStoryPoints(pool: StoryPointPool, event: Event) {
 	if (!game.user.isGM) {
 		return;
 	}
 
-	const newValue = parseInt((event.currentTarget as HTMLInputElement).value);
-
-	if (isNaN(newValue)) {
-		(event.currentTarget as HTMLInputElement).value = (which === 'gm' ? context.gmPool : context.playerPool).toString();
-	}
-
 	editingGM.value = false;
 	editingPlayer.value = false;
-	await StoryPointTracker.resetStoryPoints({
-		player: which === 'gm' ? context.playerPool : newValue,
-		gm: which === 'gm' ? newValue : context.gmPool,
-	});
+
+	const input = (event.currentTarget as HTMLInputElement).value;
+	const storyPoints = storyPointsAfterEditing({ player: context.playerPool, gm: context.gmPool }, pool, input);
+	if (storyPoints) {
+		await StoryPointTracker.resetStoryPoints(storyPoints);
+	}
 }
 
 async function resetStoryPoints() {

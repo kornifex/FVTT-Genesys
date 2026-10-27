@@ -61,6 +61,8 @@ type SheetsHelpers = {
 	readMessages(): { speaker: string; rolls: number; content: string }[];
 	storyPoints(): { gm: number; player: number };
 	clickStoryPoints(selector: string): Promise<void>;
+	/** Types a count into the GM pool, as the GM does after right-clicking it. */
+	editGMStoryPoints(input: string): Promise<void>;
 	setStoryPoints(points: { gm: number; player: number }): Promise<void>;
 	journal(actor: string): { availableXP: number; entries: number };
 	effectSheet: {
@@ -456,6 +458,15 @@ function installSheetsHelpers() {
 		async clickStoryPoints(selector) {
 			const tracker = foundry.applications.instances.get('story-point-tracker');
 			find(htmlOf(tracker)!, selector).click();
+			await settle();
+		},
+
+		async editGMStoryPoints(input) {
+			const tracker = htmlOf(foundry.applications.instances.get('story-point-tracker'))!;
+			find(tracker, '.points').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			const field = await waitFor('the GM pool input', () => tracker.querySelector<HTMLInputElement>('input.points'));
+			field.value = input;
+			field.dispatchEvent(new Event('change', { bubbles: true }));
 			await settle();
 		},
 
@@ -1087,6 +1098,16 @@ export async function run(e2e: ScenarioContext) {
 		'#95 A20 GM: spending a story point moves it from the GM pool to the players, and resetting gives one to each player',
 		{ spent, reset: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ spent: { gm: 2, player: 3 }, reset: { gm: 1, player: 1 } },
+	);
+	await e2e.step('#263 GM types letters, then a count, into the GM pool', () =>
+		gm.evaluate(() => window.sheetsE2E.editGMStoryPoints('abc')),
+	);
+	const afterLetters = await gm.evaluate(() => window.sheetsE2E.storyPoints());
+	await gm.evaluate(() => window.sheetsE2E.editGMStoryPoints('4'));
+	e2e.expect(
+		'#263 A1 GM: letters typed into a Story Point pool leave the pools unchanged, and a count sets that pool',
+		{ afterLetters, afterCount: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
+		{ afterLetters: { gm: 1, player: 1 }, afterCount: { gm: 4, player: 1 } },
 	);
 	await gm.evaluate((points) => window.sheetsE2E.setStoryPoints(points), storyPoints);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
