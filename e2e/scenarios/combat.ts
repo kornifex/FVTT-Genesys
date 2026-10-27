@@ -85,7 +85,7 @@ declare global {
  */
 function installCombatHelpers() {
 	if (window.combatE2E) return;
-	const { sleep, waitFor, unprefixed, apps } = window.e2e;
+	const { settle, waitFor, unprefixed, apps } = window.e2e;
 	const v13 = game.release.generation >= 13;
 	const combatant = (name: string) => {
 		const found = game.combat?.combatants.find((candidate: { name: string }) => candidate.name === name);
@@ -193,7 +193,7 @@ function installCombatHelpers() {
 				answered.add(prompt);
 				if (answer === 'roll') prompt.element.querySelector<HTMLElement>('.roll-button')!.click();
 				else await prompt.close();
-				await sleep(500);
+				await settle();
 			}
 		},
 
@@ -256,6 +256,9 @@ const COMBATANTS = {
 } as const;
 
 type Name = keyof typeof COMBATANTS;
+
+// The scenario controls tokens and hovers them on the canvas.
+export const needsCanvas = true;
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -342,7 +345,8 @@ export async function run(e2e: ScenarioContext) {
 				id: Hooks.on(hook, () => fired.add(hook)),
 			}));
 			await ui.combat.render(true);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			// v12: an AppV1 window renders after render() returns.
+			await window.e2e.settle();
 			for (const { hook, id } of hooks) Hooks.off(hook, id);
 			return { className: ui.combat.constructor.name, hooks: [...fired].sort() };
 		});

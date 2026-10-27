@@ -97,7 +97,7 @@ function recordNotices() {
  * module.
  */
 function installMigrationHelpers() {
-	const { sleep, actor: actorNamed } = window.e2e;
+	const { sleep, render, actor: actorNamed } = window.e2e;
 	const randomID = () => foundry.utils.randomID() as string;
 	const scene = () => game.scenes.getName('E2E Migrations');
 	const tokenActor = (name: string) => scene().tokens.find((token: { actorId: string }) => token.actorId === actorNamed(name).id).actor;
@@ -375,12 +375,9 @@ function installMigrationHelpers() {
 
 		async effectsTab(name) {
 			const sheet = actorNamed(name).sheet;
-			await sheet.render(true);
-			await sleep(1000);
+			const root = await render(sheet, (root) => root.querySelector('.effects-view .effects-category'));
 			const none = game.i18n.localize('None');
-			const [temporary, passive, suppressed] = [
-				...(sheet.element as HTMLElement).querySelectorAll('.effects-view .effects-category'),
-			].map((section) =>
+			const [temporary, passive, suppressed] = [...root.querySelectorAll('.effects-view .effects-category')].map((section) =>
 				[...section.querySelectorAll('.effect')]
 					.map((row) => {
 						const source = row.querySelector('.source')?.textContent?.trim();

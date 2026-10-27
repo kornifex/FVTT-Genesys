@@ -107,7 +107,7 @@ const SETTINGS = [
  */
 function installCharacterHelpers() {
 	if (window.characterE2E) return;
-	const { sleep, waitFor, text, unprefixed, actor, apps, drop } = window.e2e;
+	const { settle, waitFor, text, unprefixed, htmlOf, render, actor, apps, drop } = window.e2e;
 	const ORDER = ['brawn', 'agility', 'intellect', 'cunning', 'willpower', 'presence'];
 	const HAND_IMG = 'icons/svg/mystery-man.svg';
 	const PACK = 'e2e-talents';
@@ -128,9 +128,10 @@ function installCharacterHelpers() {
 		skillName?: string;
 		difficulty?: string;
 	};
-	const findApp = async (cls: string): Promise<App> => {
+	// A prompt is ready once it shows the element the scenario reads or clicks first.
+	const findApp = async (cls: string, ready: string): Promise<App> => {
 		const app = await waitFor(`${cls} to open`, () => apps(cls).find((candidate: App) => candidate.rendered), 5000);
-		await sleep(300);
+		await render(app, (root) => root.querySelector(ready));
 		return app;
 	};
 	const characteristicField = (name: string, characteristic: string) =>
@@ -247,13 +248,13 @@ function installCharacterHelpers() {
 		},
 
 		async open(name) {
-			await actor(name).sheet.render(true);
-			await sleep(500);
+			await render(actor(name).sheet);
 		},
 
 		async reopen(name) {
-			await actor(name).sheet.close();
-			await sleep(300);
+			const app = actor(name).sheet;
+			await app.close();
+			await waitFor(`the sheet of E2E ${name} to close`, () => !app.rendered && !htmlOf(app)?.isConnected);
 			await window.characterE2E.open(name);
 		},
 
@@ -302,8 +303,13 @@ function installCharacterHelpers() {
 				);
 			if (!container) throw new Error(`No menu for ${JSON.stringify(target)}`);
 			container.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-			await sleep(200);
-			const entries = [...container.querySelectorAll(':scope > .context-menu .menu-item')];
+			// A const keeps the check above for the closure below.
+			const menu = container;
+			const menuItems = () => [...menu.querySelectorAll(':scope > .context-menu .menu-item')];
+			// A menu may offer no entry at all: only the page settling tells it apart from one still opening.
+			if (label) await waitFor(`the menu of ${JSON.stringify(target)}`, () => menuItems().length);
+			else await settle();
+			const entries = menuItems();
 			const labels = entries.map((entry) => text(entry.querySelector('.menu-label')));
 			if (label) {
 				click(
@@ -343,7 +349,7 @@ function installCharacterHelpers() {
 
 		async award(name, amount, reason) {
 			click(sheet(name).querySelector('.xp-journal .entries-header a'), 'XP Award button');
-			const app = await findApp('app-award-xp-prompt');
+			const app = await findApp('app-award-xp-prompt', '.award-xp-prompt > button');
 			const fill = (selector: string, value: string) => {
 				const field = app.element.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
 				if (!field) throw new Error(`No ${selector}`);
@@ -352,12 +358,12 @@ function installCharacterHelpers() {
 			};
 			fill('.award-xp-prompt .amount input', String(amount));
 			fill('.award-xp-prompt .reason textarea', reason);
-			await sleep(100);
+			await settle();
 			click(app.element.querySelector('.award-xp-prompt > button'), 'Add button');
 		},
 
 		async careerPrompt(name, picks) {
-			const app = await findApp('app-career-skill-prompt');
+			const app = await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
 			const buttons = [...app.element.querySelectorAll('.career-skill-prompt .select-skill')] as HTMLElement[];
 			const skillName = (button: Element) => text(button.querySelector('span')).replace(/ \([^()]*\)$/, '');
 			const offered = buttons.map(skillName);
@@ -375,11 +381,9 @@ function installCharacterHelpers() {
 				return offered;
 			}
 			for (const pick of picks) {
-				click(
-					buttons.find((button) => skillName(button) === pick),
-					`skill ${pick} in the prompt`,
-				);
-				await sleep(100);
+				const button = buttons.find((candidate) => skillName(candidate) === pick);
+				click(button, `skill ${pick} in the prompt`);
+				await waitFor(`skill ${pick} picked in the prompt`, () => button?.classList.contains('selected'));
 			}
 			click(app.element.querySelector('.career-skill-prompt footer button'), 'Confirm button');
 			await waitFor(`the Career skills of E2E ${name}`, updated, 20_000);
@@ -394,20 +398,20 @@ function installCharacterHelpers() {
 		},
 
 		async crewPrompt(member) {
-			const app = await findApp('app-select-crew-member-prompt');
+			const app = await findApp('app-select-crew-member-prompt', '.member-skill-option');
 			const options = [...app.element.querySelectorAll('.member-skill-option')];
 			const names = options.map((option) => text(option.querySelector('.member-name')));
-			click(
-				options.find((option) => text(option.querySelector('.member-name')) === `E2E ${member}`),
-				`crew member ${member}`,
-			);
-			await sleep(100);
+			const option = options.find((candidate) => text(candidate.querySelector('.member-name')) === `E2E ${member}`);
+			click(option, `crew member ${member}`);
+			await waitFor(`crew member ${member} picked in the prompt`, () => option?.classList.contains('selected-option'));
 			click(app.element.querySelector('.submit-button'), 'Select button');
 			return names;
 		},
 
 		async dicePrompt() {
-			const app = await findApp('app-dice-prompt');
+			const app = await findApp('app-dice-prompt', '.preview');
+			// The prompt builds its dice pool once mounted, in a later render.
+			await settle();
 			const read = {
 				actor: app.actor?.name ?? null,
 				skill: app.skillName ?? null,
@@ -599,8 +603,7 @@ function installCharacterHelpers() {
 
 		async talentSheetTier(uuid) {
 			const item = await load(uuid);
-			await item.sheet.render(true);
-			await sleep(500);
+			await render(item.sheet, (root) => root.querySelector('.talent-tier'));
 			const shown = text(item.sheet.element.querySelector('.talent-tier'));
 			await item.sheet.close();
 			return shown;
@@ -608,12 +611,11 @@ function installCharacterHelpers() {
 
 		async typeTier(uuid, tier) {
 			const item = await load(uuid);
-			await item.sheet.render(true);
-			await sleep(500);
+			await render(item.sheet, (root) => root.querySelector('input[name="system.tier"]'));
 			const input = item.sheet.element.querySelector('input[name="system.tier"]');
 			input.value = String(tier);
 			input.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(1000);
+			await settle();
 			const shown = item.sheet.element.querySelector('input[name="system.tier"]').value;
 			await item.sheet.close();
 			return shown;
@@ -670,7 +672,6 @@ export async function run(e2e: ScenarioContext) {
 	const notified = (key: string, data?: Record<string, unknown>) =>
 		page((args) => `info: ${window.characterE2E.format(args.key, args.data)}`, { key, data });
 	const notifications = () => gm.evaluate(() => window.characterE2E.notifications());
-	const settle = () => new Promise((resolve) => setTimeout(resolve, 1500));
 
 	try {
 		await e2e.step('setup', async () => {
@@ -689,7 +690,7 @@ export async function run(e2e: ScenarioContext) {
 
 		await archetypes(e2e, page);
 		await advancement(e2e, page, notified, notifications);
-		await careers(e2e, page, settle);
+		await careers(e2e, page);
 		await careerSkillsOnCreation(e2e, page);
 		await superCharacteristics(e2e, page, notifications);
 		await skillsTab(e2e, page);
@@ -761,7 +762,7 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 
 	await e2e.step('#137 A3 the Archetype dropped again, then an ability and a gear named like its ability added by hand', async () => {
 		await dropArchetype('Granted');
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await page((items) => window.characterE2E.createItems('Granted', items), handMade);
 	});
 	e2e.expect(
@@ -784,7 +785,7 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.create(name), 'Legacy');
 		await page((name) => window.characterE2E.open(name), 'Legacy');
 		await dropArchetype('Legacy');
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await page(async () => {
 			const legacy = game.actors.getName('E2E Legacy');
 			for (const item of legacy.items.filter((item: { flags: { genesys?: object } }) => item.flags.genesys)) {
@@ -812,7 +813,7 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.create(name), 'Renamed');
 		await page((name) => window.characterE2E.open(name), 'Renamed');
 		await dropArchetype('Renamed');
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await page(() => game.actors.getName('E2E Renamed').items.getName('E2E Tough').update({ name: 'E2E Hardy' }), undefined);
 	});
 	e2e.expect(
@@ -951,7 +952,7 @@ async function advancement(
 	);
 	await e2e.step('#114 C5 Mechanics marked then unmarked as a career skill', async () => {
 		await page((name) => window.characterE2E.menu(name, { skill: 'Mechanics' }, 'Genesys.Labels.MarkCareerSkill'), A);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((name) => window.characterE2E.menu(name, { skill: 'Mechanics' }, 'Genesys.Labels.UnmarkCareerSkill'), A);
 	});
 	e2e.expect('#114 C5 unmarking a career skill takes its star away', (await skills(['Mechanics'])).Mechanics, {
@@ -975,7 +976,7 @@ async function advancement(
 	);
 	await e2e.step('#114 C7 Free Rank down on Stealth twice', async () => {
 		await page((name) => window.characterE2E.menu(name, { skill: 'Stealth' }, 'Genesys.Labels.FreeRankDown'), A);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((name) => window.characterE2E.menu(name, { skill: 'Stealth' }, 'Genesys.Labels.FreeRankDown'), A);
 	});
 	e2e.expect(
@@ -1201,7 +1202,7 @@ async function advancement(
 		await page((name) => window.characterE2E.create(name), E);
 		await page((name) => window.characterE2E.open(name), E);
 		await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), E);
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await page(
 			() =>
 				game.actors
@@ -1250,7 +1251,7 @@ async function advancement(
 }
 
 /** §#39: a Career whose skills differ in case from the character's, removed, then replaced. */
-async function careers(e2e: ScenarioContext, page: Evaluate, settle: () => Promise<unknown>) {
+async function careers(e2e: ScenarioContext, page: Evaluate) {
 	const C = 'Careerist';
 	const listed = ['Ranged', 'Cool', 'Stealth', 'Perception', 'Charm', 'Brawl', 'Melee', 'Athletics', 'Discipline'];
 	const skills = async () => {
@@ -1302,7 +1303,7 @@ async function careers(e2e: ScenarioContext, page: Evaluate, settle: () => Promi
 	await e2e.step('#39 G3 the Career dropped again, then another Career dropped over it', async () => {
 		await dropCareer('Career');
 		await prompt(['Ranged', 'Cool', 'Stealth', 'Charm']);
-		await settle();
+		await e2e.settle();
 		await dropCareer('Other Career');
 		offered = await prompt(['Brawl', 'Melee', 'Athletics', 'Discipline']);
 	});
@@ -1352,12 +1353,12 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 			await page((name) => window.characterE2E.create(name), H);
 			await page((name) => window.characterE2E.open(name), H);
 			await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), H);
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			await e2e.settle();
 			await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Ranger')), H);
 			await page((name) => window.characterE2E.careerPrompt(name, null), H);
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			await e2e.settle();
 			await deleteSkill(H, 'Ranged');
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await e2e.settle();
 			await dropSkill(H, 'Ranged');
 		},
 	);
@@ -1374,7 +1375,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 	await e2e.step('#199 H3 Stealth, which the Career lists, created by a macro; Cool, which it does not, dropped', async () => {
 		await deleteSkill(H, 'Stealth');
 		await deleteSkill(H, 'Cool');
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((data) => window.characterE2E.createItems('Hunter', [data]), await skillSource('Stealth'));
 		await dropSkill(H, 'Cool');
 	});
@@ -1401,7 +1402,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		await page((items) => window.characterE2E.create('Imported', 'character', items), [ranger, await skillSource('Ranged')]);
 		await page((name) => window.characterE2E.create(name), 'Batch');
 		await deleteSkill('Batch', 'Ranged');
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((items) => window.characterE2E.createItems('Batch', items), [ranger, await skillSource('Ranged')]);
 	});
 	e2e.expect(
@@ -1414,7 +1415,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.open(name), 'Rival');
 		await dropSkill('Rival', 'Ranged');
 		await page((items) => window.characterE2E.createItems('Rival', items), [await worldSource('Ranger')]);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((items) => window.characterE2E.createItems('Rival', items), [await skillSource('Survival')]);
 	});
 	e2e.expect(
@@ -1427,7 +1428,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.open(name), 'Hauler');
 		await dropSkill('Hauler', 'Ranged');
 		await page((items) => window.characterE2E.createItems('Hauler', items), [await worldSource('Ranger')]);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		await page((items) => window.characterE2E.createItems('Hauler', items), [await skillSource('Survival')]);
 	});
 	// The vehicle sheet takes no skill by drop: a skill reaches a vehicle only through a macro.
@@ -1447,7 +1448,7 @@ async function superCharacteristics(e2e: ScenarioContext, page: Evaluate, notifi
 		const supers = await page((actor) => window.characterE2E.superCharacteristics(actor), actor);
 		const key = supers.stored.includes(c) ? 'Genesys.Labels.UnmarkSuperCharacteristic' : 'Genesys.Labels.MarkSuperCharacteristic';
 		await page((args) => window.characterE2E.menu(args.actor, { characteristic: args.c }, args.key), { actor, c, key });
-		await new Promise((resolve) => setTimeout(resolve, 800));
+		await e2e.settle();
 	};
 	const state = async (actor: string) => {
 		const { stored, stars } = await page((actor) => window.characterE2E.superCharacteristics(actor), actor);
@@ -1460,7 +1461,7 @@ async function superCharacteristics(e2e: ScenarioContext, page: Evaluate, notifi
 		await page((name) => window.characterE2E.create(name), S);
 		await page((name) => window.characterE2E.open(name), S);
 		await page((name) => window.characterE2E.applyArchetype(name, 'Small Archetype'), S);
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await notifications();
 		await flip(S, 'brawn');
 		e2e.expect('#114 I1 with Starting XP left, marking Brawn is allowed', await state(S), {
@@ -1492,7 +1493,7 @@ async function superCharacteristics(e2e: ScenarioContext, page: Evaluate, notifi
 	});
 	await e2e.step('#114 I4 all Starting XP spent on Brawn, then Cunning unmarked and Agility marked', async () => {
 		await page((name) => window.characterE2E.raise(name, 'brawn'), S);
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await flip(S, 'cunning');
 		await flip(S, 'agility');
 	});
@@ -1602,7 +1603,7 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.open(name), 'Rival');
 		for (const label of ['FreeRankUp', 'FreeRankUp', 'FreeRankDown', 'FreeRankDown', 'FreeRankDown']) {
 			await page((label) => window.characterE2E.menu('Rival', { adversarySkill: 'Ranged' }, `Genesys.Labels.${label}`), label);
-			await new Promise((resolve) => setTimeout(resolve, 800));
+			await e2e.settle();
 		}
 	});
 	e2e.expect(
@@ -1801,10 +1802,10 @@ async function talentTiers(
 		await page((name) => window.characterE2E.create(name), 'Buyer');
 		await page((name) => window.characterE2E.open(name), 'Buyer');
 		await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), 'Buyer');
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		await notifications();
 		await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Old Talent')), 'Buyer');
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		e2e.expect('#200 M4 the Talent Pyramid refuses a talent saved at tier 6 as a tier 5 one', await notifications(), [
 			await notified('Genesys.Notifications.CannotPurchaseTalentTier', { tier: 5, lowerTier: 4, minimum: 2 }),
 		]);

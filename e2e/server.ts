@@ -30,8 +30,8 @@ export function prepareDataDir(install: FoundryInstall, dist: string, dataDir: s
 
 	const system = systemDir(dataDir);
 	fs.cpSync(dist, system, { recursive: true });
-	// v12: v12 migrates the packs itself; later versions take the packs it migrated.
-	if (install.version === 12) return;
+	// Later versions take the packs v12 migrated.
+	if (migratesPacks(install)) return;
 
 	const migrated = migratedPacksDir(dist, packCache);
 	if (!fs.existsSync(migrated)) {
@@ -45,25 +45,42 @@ export function prepareDataDir(install: FoundryInstall, dist: string, dataDir: s
  * Keeps the LevelDB packs a stopped v12 server migrated, for the v13 runs of the same build.
  */
 export function keepMigratedPacks(install: FoundryInstall, dist: string, dataDir: string, packCache: string) {
-	// v12: the only version that migrates NeDB packs.
-	if (install.version !== 12) return;
+	if (!migratesPacks(install) || hasMigratedPacks(dist, packCache)) return;
+	// Kept once per content of the packs, and moved in place whole: another version may be copying them already.
 	const migrated = migratedPacksDir(dist, packCache);
-	fs.rmSync(migrated, { recursive: true, force: true });
+	const partial = `${migrated}.partial`;
+	fs.rmSync(partial, { recursive: true, force: true });
 	for (const pack of nedbPacks(dist)) {
 		const folder = pack.replace(/\.db$/, '');
-		fs.cpSync(path.join(systemDir(dataDir), 'packs', folder), path.join(migrated, folder), { recursive: true });
+		fs.cpSync(path.join(systemDir(dataDir), 'packs', folder), path.join(partial, folder), { recursive: true });
 	}
+	fs.renameSync(partial, migrated);
+}
+
+/**
+ * Whether this version migrates the system's NeDB packs into LevelDB, for the later versions to take.
+ */
+export function migratesPacks(install: Pick<FoundryInstall, 'version'>) {
+	// v12: the only version that reads NeDB packs.
+	return install.version === 12;
+}
+
+/**
+ * Whether a v12 run kept the migrated packs of this build's NeDB packs.
+ */
+export function hasMigratedPacks(dist: string, packCache: string) {
+	return fs.existsSync(migratedPacksDir(dist, packCache));
 }
 
 /**
  * Starts Foundry on the data dir and resolves once its world is ready to be joined.
  */
-export async function launchFoundry(install: FoundryInstall, dataDir: string, port: number): Promise<FoundryServer> {
+export async function launchFoundry(install: FoundryInstall, dataDir: string): Promise<FoundryServer> {
 	const log = path.join(dataDir, 'server.log');
 	const logFile = fs.openSync(log, 'w');
 	const server = spawn(
 		install.node,
-		[install.foundry, `--dataPath=${dataDir}`, `--port=${port}`, `--world=${install.world}`, '--noupnp'],
+		[install.foundry, `--dataPath=${dataDir}`, `--port=${install.port}`, `--world=${install.world}`, '--noupnp'],
 		{
 			stdio: ['ignore', logFile, logFile],
 		},
@@ -96,7 +113,7 @@ export async function launchFoundry(install: FoundryInstall, dataDir: string, po
 	// Joining right after the launch completes crashes it (null invitation links), and game.ready never comes.
 	await sleep(8000);
 
-	return { url: `http://localhost:${port}`, log, stop };
+	return { url: `http://localhost:${install.port}`, log, stop };
 }
 
 function systemDir(dataDir: string) {
