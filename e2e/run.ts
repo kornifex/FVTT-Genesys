@@ -1,4 +1,4 @@
-/** @file `pnpm e2e <scenario.ts> [--versions 12,13] [--dist dist] [--compare <git ref>]`: runs a scenario on each Foundry version. */
+/** @file `pnpm e2e <scenario.ts or folder>... [--versions 12,13] [--dist dist] [--compare <git ref>]`: runs scenarios on each Foundry version. */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,15 +6,16 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright-core';
 
-import { readConfig } from './config.ts';
-import { runScenario, type Scenario } from './scenario.ts';
+import { type FoundryInstall, readConfig } from './config.ts';
+import { runScenario, type ScenarioModule } from './scenario.ts';
 import { keepMigratedPacks, launchFoundry, prepareDataDir } from './server.ts';
-import { diffSteps, type Step } from './steps.ts';
+import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const envFile = path.join(import.meta.dirname, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
+const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 12,13] [--dist dist] [--compare <git ref>]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
@@ -23,15 +24,14 @@ const { values: options, positionals } = parseArgs({
 		compare: { type: 'string' },
 	},
 });
-if (positionals.length !== 1) {
-	console.error('Usage: pnpm e2e <scenario.ts> [--versions 12,13] [--dist dist] [--compare <git ref>]');
+if (!positionals.length) {
+	console.error(usage);
 	process.exit(2);
 }
 
-const scenarioFile = path.resolve(positionals[0]);
-const scenarioName = path.basename(scenarioFile).replace(/\.ts$/, '');
-const { run: scenario } = (await import(pathToFileURL(scenarioFile).href)) as { run?: Scenario };
-if (typeof scenario !== 'function') throw new Error(`${scenarioFile} exports no run function.`);
+const scenarios = await Promise.all(scenarioFiles(positionals).map(loadScenario));
+const duplicate = scenarios.find((scenario, index) => scenarios.findIndex(({ name }) => name === scenario.name) !== index);
+if (duplicate) throw new Error(`Two scenarios are named ${duplicate.name}: their results would share a folder.`);
 
 const config = readConfig(process.env, options.versions.split(',').map(Number));
 // Without --dist, the working tree is built, so that a stale dist is never tested.
@@ -44,8 +44,11 @@ const builds = [
 	{ label: 'head', dist: headDist },
 ];
 const packCache = path.join(config.workDir, 'packs');
-const resultsDir = path.join(config.workDir, 'results', scenarioName);
-fs.mkdirSync(resultsDir, { recursive: true });
+// The scenarios share one world and one launch, one after the other; an isolated scenario gets its own.
+const launches = [
+	scenarios.filter((scenario) => !scenario.isolated),
+	...scenarios.filter((scenario) => scenario.isolated).map((scenario) => [scenario]),
+].filter((group) => group.length);
 
 const browser = await chromium.launch({ executablePath: config.chromium });
 const logs = new Map<string, Step[]>();
@@ -53,25 +56,18 @@ try {
 	for (const install of config.installs) {
 		for (const build of builds) {
 			const run = runName(install.version, build.label);
-			const dataDir = path.join(config.workDir, 'runs', safeFileName(run));
-			prepareDataDir(install, build.dist, dataDir, packCache);
-			const server = await launchFoundry(install, dataDir, config.port);
-			let steps: Step[];
-			try {
-				steps = await runScenario(scenario, {
-					browser,
-					url: server.url,
-					version: install.version,
-					gmUser: config.gmUser,
-					playerUser: config.playerUser,
-					onStep: (step) => console.log(`[${run}] ${step.name} ${JSON.stringify(step.value)}`),
-				});
-			} finally {
-				await server.stop();
+			for (const group of launches) {
+				try {
+					await runLaunch(install, build, group);
+				} catch (error) {
+					// A world that fails to launch fails its scenarios, and the suite goes on to its summary.
+					for (const scenario of group.filter(({ name }) => !logs.has(logKey(run, name)))) {
+						const step = fatalStep(error);
+						console.log(stepLine(`${run} ${scenario.name}`, step));
+						logs.set(logKey(run, scenario.name), [step]);
+					}
+				}
 			}
-			keepMigratedPacks(install, build.dist, dataDir, packCache);
-			logs.set(run, steps);
-			fs.writeFileSync(path.join(resultsDir, `${safeFileName(run)}.json`), JSON.stringify(steps, null, '\t'));
 		}
 	}
 } finally {
@@ -80,18 +76,89 @@ try {
 
 if (options.compare) {
 	for (const install of config.installs) {
-		const diffs = diffSteps(
-			logs.get(runName(install.version, options.compare)) ?? [],
-			logs.get(runName(install.version, 'head')) ?? [],
-		);
-		console.log(`\n=== v${install.version}: ${diffs.length} step(s) differ between ${options.compare} and head`);
-		for (const diff of diffs) {
-			console.log(`${diff.name}\n  ${options.compare}: ${JSON.stringify(diff.base)}\n  head: ${JSON.stringify(diff.head)}`);
+		for (const scenario of scenarios) {
+			const diffs = diffSteps(
+				logs.get(logKey(runName(install.version, options.compare), scenario.name)) ?? [],
+				logs.get(logKey(runName(install.version, 'head'), scenario.name)) ?? [],
+			);
+			console.log(`\n=== v${install.version} ${scenario.name}: ${diffs.length} step(s) differ between ${options.compare} and head`);
+			for (const diff of diffs) {
+				console.log(`${diff.name}\n  ${options.compare}: ${JSON.stringify(diff.base)}\n  head: ${JSON.stringify(diff.head)}`);
+			}
 		}
 	}
 }
-console.log(`\nStep logs and server logs: ${resultsDir}, ${path.join(config.workDir, 'runs')}`);
-if ([...logs.values()].some((steps) => steps.some((step) => step.name === 'FATAL'))) process.exitCode = 1;
+
+console.log('\n=== Summary');
+for (const install of config.installs) {
+	for (const build of builds) {
+		const run = runName(install.version, build.label);
+		const runScenarios = scenarios.map(({ name }) => ({ scenario: name, steps: logs.get(logKey(run, name)) ?? [] }));
+		console.log(runSummary(run, runScenarios).join('\n'));
+	}
+}
+console.log(`\nStep logs and server logs: ${path.join(config.workDir, 'results')}, ${path.join(config.workDir, 'runs')}`);
+const failed = config.installs.some((install) =>
+	builds.some((build) =>
+		scenarios.some(({ name }) =>
+			failsRun(logs.get(logKey(runName(install.version, build.label), name)) ?? [], { compared: build.label !== 'head' }),
+		),
+	),
+);
+if (failed) process.exitCode = 1;
+
+/**
+ * Launches Foundry on a fresh copy of the world, and runs the scenarios on it one after the other.
+ */
+async function runLaunch(install: FoundryInstall, build: { label: string; dist: string }, group: LoadedScenario[]) {
+	const run = runName(install.version, build.label);
+	const dataDir = path.join(config.workDir, 'runs', safeFileName(group[0].isolated ? `${run} ${group[0].name}` : run));
+	prepareDataDir(install, build.dist, dataDir, packCache);
+	const server = await launchFoundry(install, dataDir, config.port);
+	try {
+		for (const scenario of group) {
+			const label = scenarios.length > 1 ? `${run} ${scenario.name}` : run;
+			const steps = await runScenario(scenario.run, {
+				browser,
+				url: server.url,
+				version: install.version,
+				gmUser: config.gmUser,
+				playerUser: config.playerUser,
+				onStep: (step) => console.log(stepLine(label, step)),
+			});
+			logs.set(logKey(run, scenario.name), steps);
+			const resultsDir = path.join(config.workDir, 'results', scenario.name);
+			fs.mkdirSync(resultsDir, { recursive: true });
+			fs.writeFileSync(path.join(resultsDir, `${safeFileName(run)}.json`), JSON.stringify(steps, null, '\t'));
+		}
+	} finally {
+		await server.stop();
+	}
+	keepMigratedPacks(install, build.dist, dataDir, packCache);
+}
+
+/**
+ * The scenario files given, a folder standing for the `.ts` files it holds.
+ */
+function scenarioFiles(paths: string[]) {
+	return paths.flatMap((given) => {
+		const file = path.resolve(given);
+		if (!fs.statSync(file).isDirectory()) return [file];
+		return fs
+			.readdirSync(file)
+			.filter((name) => name.endsWith('.ts'))
+			.sort()
+			.map((name) => path.join(file, name));
+	});
+}
+
+type LoadedScenario = Awaited<ReturnType<typeof loadScenario>>;
+
+async function loadScenario(file: string) {
+	const module = (await import(pathToFileURL(file).href)) as Partial<ScenarioModule>;
+	if (typeof module.run !== 'function') throw new Error(`${file} exports no run function.`);
+	return { name: path.basename(file).replace(/\.ts$/, ''), run: module.run, isolated: module.isolated === true };
+}
 
 /**
  * Builds a git ref of this repo, once per commit, and returns its `dist`.
@@ -134,6 +201,10 @@ function quietly(command: string, args: string[], cwd: string) {
 
 function runName(version: number, buildLabel: string) {
 	return `v${version} ${buildLabel}`;
+}
+
+function logKey(run: string, scenario: string) {
+	return `${run}|${scenario}`;
 }
 
 function safeFileName(name: string) {

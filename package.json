@@ -15,6 +15,7 @@
 		"build": "vite build",
 		"dev": "vite",
 		"e2e": "node e2e/run.ts",
+		"e2e:all": "node e2e/run.ts e2e/scenarios",
 		"lint": "eslint --max-warnings=0 src build e2e *.config.ts",
 		"knip": "knip",
 		"i18n": "node build/checkI18n.ts",

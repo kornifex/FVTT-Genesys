@@ -56,8 +56,8 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 ## Testing a change
 
 - Module logic: unit tests.
-- Behaviour that depends on Foundry (turns, sockets, rendering, sheets): run it in Foundry v12 and v13 before opening the PR, with a scenario for the [e2e harness](../../e2e/README.md) compared against `origin/main`, and put a before/after table in the PR's Evidence.
-- Every behaviour change goes into the release's test checklist issue (labelled `ready-for-human`; #37 for the next release): intended changes, divergences, and what to test.
+- Behaviour that depends on Foundry (turns, sockets, rendering, sheets): add or extend its domain's scenario in `e2e/scenarios/` with `expect` steps, rather than a one-off scenario out of the repo. Run it with the [e2e harness](../../e2e/README.md) on Foundry v12 and v13, compared against `origin/main`, and put a before/after table in the PR's Evidence.
+- Every behaviour change goes into the release's test checklist issue (labelled `ready-for-human`; #37 for the next release): intended changes, divergences, and what to test. An item a test proves arrives ticked, with a link to it: `src/dice/Check.test.ts › "…"` or `e2e/scenarios/combat.ts › step "…"`. Only an item no test can prove (a look, a feel, an engine-specific bug) arrives unticked.
 - Mechanical PRs (deletions, formatting, renames): CI plus a **smoke test** in v12 and v13: open each sheet type, roll a check, play a combat round. PRs that change the toolchain also compare the bundle and `system.json` before and after.
 
 ## Git and pull requests
