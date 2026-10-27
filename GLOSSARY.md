@@ -91,11 +91,11 @@ _Avoid_: Bonus rank, manual rank
 ### Equipment
 
 **Equipment State**:
-Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dropped or Used. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped, of a consumable only while it's Used, and of any other equipment only while it's Carried. Adversaries have no Equipment State: the effects of their equipment always apply.
+Where a piece of a character's or vehicle's equipment is: Equipped, Carried, Dropped or Used. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped and held in no container, of a consumable only while it's Used, and of any other equipment only while it's Carried. Adversaries have no Equipment State: the effects of their equipment always apply.
 _Avoid_: Inventory category, equipment status
 
 **Container**:
-A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. A container can't hold another container.
+A piece of equipment that holds other equipment. Its contents always share its Equipment State, go wherever it goes and are deleted with it. Equipment that can be equipped is packed away in a container: its effects never apply, whatever the container's state. A container can't hold another container.
 _Avoid_: Bag, pack
 
 **Worn Armor**:

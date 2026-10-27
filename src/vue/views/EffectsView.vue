@@ -51,6 +51,11 @@ function suppressionReason(effect: GenesysEffect) {
 		return undefined;
 	}
 
+	const container = effect.suppressingContainer;
+	if (container) {
+		return game.i18n.format('Genesys.ActiveEffects.SuppressedByContainer', { item: item.name, container: container.name });
+	}
+
 	const state = game.i18n.localize(STATE_LABELS[(item.systemData as EquipmentDataModel).state]);
 	return game.i18n.format('Genesys.ActiveEffects.SuppressedByEquipmentState', { item: item.name, state });
 }

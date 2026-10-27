@@ -252,7 +252,7 @@ function installInventoryHelpers() {
 	const marker = (name: string) => effect(name, 'flags.genesys.e2eInventory', 1);
 	const gear = (name: string, system: object = {}, effects: object[] = []) => ({ name: full(name), type: 'gear', system, effects });
 	const container = (name: string, system: object = {}) => ({ name: full(name), type: 'container', system });
-	const weapon = (name: string, system: object = {}) => ({
+	const weapon = (name: string, system: object = {}, effects: object[] = []) => ({
 		name: full(name),
 		type: 'weapon',
 		system: {
@@ -264,6 +264,7 @@ function installInventoryHelpers() {
 			encumbrance: 1,
 			...system,
 		},
+		effects,
 	});
 	const armor = (name: string, system: object, effects: object[] = []) => ({ name: full(name), type: 'armor', system, effects });
 
@@ -410,6 +411,7 @@ function installInventoryHelpers() {
 					state: 'carried',
 				},
 				{ data: container('Backpack'), state: 'carried' },
+				{ data: weapon('Dirk', {}, [effect('Dirk Effect', 'system.strain.max', 5)]), state: 'equipped' },
 			]);
 			await give(actor('Packer'), [{ data: container('Sack'), state: 'dropped' }]);
 			await give(actor('Deleter'), [
@@ -1264,13 +1266,32 @@ export async function run(e2e: ScenarioContext) {
 			drop(held('Vest', 'Wearer'), 'Wearer', { item: 'Backpack' }),
 		),
 	);
-	const { woundsMax: _, ...protectionAfterI7 } = await worn();
-	e2e.expect('I7 an armor put in an Equipped Container adds no soak or defense and leaves the worn one on', protectionAfterI7, {
-		items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:equipped@Backpack'],
-		soak: 5,
-		defense: [0, 0],
-		combatTab: ['Plate'],
-	});
+	e2e.expect(
+		'I7 an armor put in an Equipped Container adds no soak, defense or effect, and leaves the worn one on',
+		{ ...(await worn()), inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Vest')) },
+		{
+			items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:equipped@Backpack'],
+			soak: 5,
+			defense: [0, 0],
+			combatTab: ['Plate'],
+			woundsMax: 110,
+			inactive: [`Vest Effect | Inactive while E2E Vest is in E2E Backpack.`],
+		},
+	);
+	const strainBeforeI8 = (await stat('Wearer', 'strain.max')) as number;
+	await e2e.step(
+		"I8 Wearer's Equipped Dirk dragged into the Equipped Backpack",
+		drop(held('Dirk', 'Wearer'), 'Wearer', { item: 'Backpack' }),
+	);
+	e2e.expect(
+		'I8 a weapon put in an Equipped Container stops its effect, listed as inactive with the Container',
+		{
+			item: (await items('Wearer')).find((name) => name.startsWith('Dirk')),
+			strainLost: strainBeforeI8 - ((await stat('Wearer', 'strain.max')) as number),
+			inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Dirk')),
+		},
+		{ item: 'Dirk:equipped@Backpack', strainLost: 5, inactive: [`Dirk Effect | Inactive while E2E Dirk is in E2E Backpack.`] },
+	);
 
 	// #124, #39: encumbrance. Packer's threshold is 5 plus Brawn 2; Hauler's is read before the drop.
 	await e2e.step(

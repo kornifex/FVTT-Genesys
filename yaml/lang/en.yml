@@ -147,6 +147,7 @@ Genesys:
     Temporary: Temporary Effects
     Suppressed: Inactive Effects
     Source: Source
+    SuppressedByContainer: Inactive while {item} is in {container}.
     SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
     ChangeKey: Effect Target
