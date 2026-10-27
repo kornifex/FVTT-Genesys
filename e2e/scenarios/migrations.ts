@@ -393,6 +393,7 @@ function installMigrationHelpers() {
 		},
 
 		async cleanUp() {
+			// The scene first: deleting a crew member must not reach the unlinked vehicle token of a deleted scene (#219).
 			await window.e2e.deleteSetUp('Scene', 'Actor');
 			for (const label of ['E2E Migrations', 'E2E Old Actors']) {
 				await packNamed(label).configure({ locked: false });

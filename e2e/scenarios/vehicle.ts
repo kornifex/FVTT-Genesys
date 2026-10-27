@@ -409,7 +409,7 @@ function installVehicleHelpers() {
 					y: 100,
 				})),
 			);
-			// v12 returns created tokens in another order than given: pair them by position.
+			// Tokens are paired with their passengers by position, as v12 returns created tokens in another order than given.
 			for (const [index, token] of tokensOf(name).entries()) {
 				await token.actor.update({
 					'system.passengers.list': passengers[index].map((passenger, rank) => ({

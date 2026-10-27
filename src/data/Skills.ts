@@ -51,11 +51,10 @@ export function ownedSkill<S extends Skill>(ownedSkills: S[], name: string): S |
 }
 
 /**
- * Whether a dropped item is a skill the character already owns, whatever the case of its name. The character sheet
- * refuses such a drop, so a character never owns a skill twice.
+ * Whether an item is a skill among the owned skills, whatever the case of its name.
  */
-export function isOwnedSkillDrop(ownedSkills: Skill[], dropped: { type: string; name: string }) {
-	return dropped.type === 'skill' && ownedSkill(ownedSkills, dropped.name) !== undefined;
+export function isOwnedSkill(ownedSkills: Skill[], item: { type: string; name: string }) {
+	return item.type === 'skill' && ownedSkill(ownedSkills, item.name) !== undefined;
 }
 
 /**
