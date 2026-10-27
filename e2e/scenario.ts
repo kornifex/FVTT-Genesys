@@ -45,10 +45,12 @@ export type ScenarioContext = {
 	player(): Promise<Client>;
 	/** Runs `setUpCombat` as the GM, then clears every client's recorded events. */
 	setUpCombat(setup: CombatSetup): Promise<void>;
+	/** Waits until every connected client has done nothing for a while: the updates of what came before have reached them. */
+	settle(): Promise<void>;
 	/**
-	 * Runs an action, waits for the clients to receive its updates, then logs and returns each connected client's
-	 * combat state with the turn events and notifications since the previous step; its errors are logged too. Without an
-	 * action, logs the current state.
+	 * Runs an action, waits for the clients to settle, then logs and returns each connected client's combat state with the
+	 * turn events and notifications since the previous step; its errors are logged too. Without an action, logs the
+	 * current state.
 	 */
 	step(name: string, action?: () => Promise<unknown>): Promise<StepStates>;
 	/** Logs any other value. */
@@ -67,10 +69,19 @@ export type ScenarioModule = {
 	run: (e2e: ScenarioContext) => Promise<void>;
 	/** Runs the scenario on its own fresh world and Foundry launch, instead of after the other scenarios on a shared one. */
 	isolated?: boolean;
+	/**
+	 * Joins the clients with Foundry's canvas, which tokens, their HUD and targets need. Without it, the clients join in
+	 * no-canvas mode: headless Chromium draws the canvas without a GPU, which takes most of the run's CPU.
+	 */
+	needsCanvas?: boolean;
 };
 
-// Long enough for an update to reach every client and for the turn to be restored after it.
-const SETTLE_MS = 2500;
+// A client has settled once it has gone this long without a hook, a socket message, a request awaiting its answer or a
+// running CSS transition (window.e2e.idleFor). Each update an action causes reaches the clients and calls hooks, and the updates their hooks make in turn (the GM
+// restoring the turn) follow within a few ms, so a pause this long means the action's work is over.
+const QUIET_MS = 300;
+// A client still busy after this long is left to its work, with an error in its log, and the step goes on.
+const SETTLE_TIMEOUT_MS = 15_000;
 
 /**
  * Runs a scenario against a launched world and returns its step log; an error ends the log with a `FATAL` step.
@@ -83,8 +94,17 @@ export async function runScenario(
 		version,
 		gmUser,
 		playerUser,
+		needsCanvas,
 		onStep,
-	}: { browser: Browser; url: string; version: number; gmUser: string; playerUser: string; onStep: (step: Step) => void },
+	}: {
+		browser: Browser;
+		url: string;
+		version: number;
+		gmUser: string;
+		playerUser: string;
+		needsCanvas: boolean;
+		onStep: (step: Step) => void;
+	},
 ): Promise<Step[]> {
 	const steps: Step[] = [];
 	const push = (step: Step) => {
@@ -100,7 +120,7 @@ export async function runScenario(
 	const connected = () => clients.filter((client) => client.connected);
 
 	try {
-		const gm = await join(browser, url, gmUser);
+		const gm = await join(browser, url, gmUser, needsCanvas);
 		clients.push(gm);
 		await gm.evaluate(async (name) => {
 			if (!game.users.getName(name)) await User.create({ name, role: CONST.USER_ROLES.PLAYER });
@@ -117,20 +137,21 @@ export async function runScenario(
 			playerUser,
 			async player() {
 				if (!player) {
-					player = await join(browser, url, playerUser);
+					player = await join(browser, url, playerUser, needsCanvas);
 					clients.push(player);
 				}
 				return player;
 			},
 			async setUpCombat(setup) {
 				await gm.evaluate((setup) => window.e2e.setUpCombat(setup), setup);
-				await sleep(SETTLE_MS);
+				await settle(connected());
 				await resetAll();
 			},
+			settle: () => settle(connected()),
 			async step(name, action) {
 				if (action) {
 					await action();
-					await sleep(SETTLE_MS);
+					await settle(connected());
 				}
 				const states: StepStates = {};
 				const value: Record<string, unknown> = {};
@@ -155,17 +176,42 @@ export async function runScenario(
 	return steps;
 }
 
-async function join(browser: Browser, url: string, user: string): Promise<Client> {
+/**
+ * Waits until the clients have all done nothing for {@link QUIET_MS} at once, counted from the call.
+ */
+async function settle(clients: Client[]) {
+	const start = Date.now();
+	for (;;) {
+		const idle = await Promise.all(clients.map((client) => client.evaluate(() => window.e2e.idleFor())));
+		if (Math.min(Date.now() - start, ...idle) >= QUIET_MS) return;
+		if (Date.now() - start > SETTLE_TIMEOUT_MS) {
+			// Logged as the client's error, so that the step after it shows it, in the run and its step log.
+			for (const [index, client] of clients.entries()) {
+				if (idle[index] < QUIET_MS) client.errors.push(`e2e: still busy after ${SETTLE_TIMEOUT_MS} ms`);
+			}
+			return;
+		}
+		await sleep(50);
+	}
+}
+
+async function join(browser: Browser, url: string, user: string, withCanvas: boolean): Promise<Client> {
 	const errors: string[] = [];
 
 	const ready = async (page: Page) => {
 		await page.waitForFunction(() => typeof game !== 'undefined' && game.ready === true, null, { timeout: 120_000 });
-		// The system and the tracker finish rendering after the ready hook.
-		await sleep(3000);
 		await page.evaluate(installHelpers);
+		// The system and the tracker finish rendering after the ready hook.
+		await page.evaluate(() => window.e2e.settle());
 	};
 	const open = async () => {
 		const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+		// Client settings, read from the browser's storage as the game starts. The lowest frame rate Foundry offers is
+		// plenty for a client nobody watches.
+		await context.addInitScript(
+			(withCanvas) => localStorage.setItem(withCanvas ? 'core.maxFPS' : 'core.noCanvas', withCanvas ? '10' : 'true'),
+			withCanvas,
+		);
 		const page = await context.newPage();
 		page.on('console', (message) => {
 			if (message.type() === 'error') errors.push(message.text().slice(0, 300));

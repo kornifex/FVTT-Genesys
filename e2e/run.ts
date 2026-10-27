@@ -8,7 +8,7 @@ import { chromium } from 'playwright-core';
 
 import { type FoundryInstall, readConfig } from './config.ts';
 import { runScenario, type ScenarioModule } from './scenario.ts';
-import { keepMigratedPacks, launchFoundry, prepareDataDir } from './server.ts';
+import { hasMigratedPacks, keepMigratedPacks, launchFoundry, migratesPacks, prepareDataDir } from './server.ts';
 import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -50,26 +50,13 @@ const launches = [
 	...scenarios.filter((scenario) => scenario.isolated).map((scenario) => [scenario]),
 ].filter((group) => group.length);
 
+// The versions run at once, each on its own port. The versions after v12 read the packs a v12 run migrated: when no
+// earlier run left them, they wait for v12's first launch of the build.
+const migrated = new Map(builds.map((build) => [build.dist, deferred()]));
 const browser = await chromium.launch({ executablePath: config.chromium });
 const logs = new Map<string, Step[]>();
 try {
-	for (const install of config.installs) {
-		for (const build of builds) {
-			const run = runName(install.version, build.label);
-			for (const group of launches) {
-				try {
-					await runLaunch(install, build, group);
-				} catch (error) {
-					// A world that fails to launch fails its scenarios, and the suite goes on to its summary.
-					for (const scenario of group.filter(({ name }) => !logs.has(logKey(run, name)))) {
-						const step = fatalStep(error);
-						console.log(stepLine(`${run} ${scenario.name}`, step));
-						logs.set(logKey(run, scenario.name), [step]);
-					}
-				}
-			}
-		}
-	}
+	await Promise.all(config.installs.map(runVersion));
 } finally {
 	await browser.close();
 }
@@ -108,13 +95,41 @@ const failed = config.installs.some((install) =>
 if (failed) process.exitCode = 1;
 
 /**
+ * Runs every launch of one Foundry version, build after build.
+ */
+async function runVersion(install: FoundryInstall) {
+	for (const build of builds) {
+		const packs = migrated.get(build.dist)!;
+		if (!migratesPacks(install) && !hasMigratedPacks(build.dist, packCache) && config.installs.some(migratesPacks)) {
+			await packs.promise;
+		}
+		const run = runName(install.version, build.label);
+		for (const group of launches) {
+			try {
+				await runLaunch(install, build, group);
+			} catch (error) {
+				// A world that fails to launch fails its scenarios, and the suite goes on to its summary.
+				for (const scenario of group.filter(({ name }) => !logs.has(logKey(run, name)))) {
+					const step = fatalStep(error);
+					console.log(stepLine(`${run} ${scenario.name}`, step));
+					logs.set(logKey(run, scenario.name), [step]);
+				}
+			} finally {
+				// Once v12 has launched the build, the packs are migrated, or they never will be.
+				if (migratesPacks(install)) packs.resolve();
+			}
+		}
+	}
+}
+
+/**
  * Launches Foundry on a fresh copy of the world, and runs the scenarios on it one after the other.
  */
 async function runLaunch(install: FoundryInstall, build: { label: string; dist: string }, group: LoadedScenario[]) {
 	const run = runName(install.version, build.label);
 	const dataDir = path.join(config.workDir, 'runs', safeFileName(group[0].isolated ? `${run} ${group[0].name}` : run));
 	prepareDataDir(install, build.dist, dataDir, packCache);
-	const server = await launchFoundry(install, dataDir, config.port);
+	const server = await launchFoundry(install, dataDir);
 	try {
 		for (const scenario of group) {
 			const label = scenarios.length > 1 ? `${run} ${scenario.name}` : run;
@@ -124,6 +139,7 @@ async function runLaunch(install: FoundryInstall, build: { label: string; dist: 
 				version: install.version,
 				gmUser: config.gmUser,
 				playerUser: config.playerUser,
+				needsCanvas: scenario.needsCanvas,
 				onStep: (step) => console.log(stepLine(label, step)),
 			});
 			logs.set(logKey(run, scenario.name), steps);
@@ -157,7 +173,12 @@ type LoadedScenario = Awaited<ReturnType<typeof loadScenario>>;
 async function loadScenario(file: string) {
 	const module = (await import(pathToFileURL(file).href)) as Partial<ScenarioModule>;
 	if (typeof module.run !== 'function') throw new Error(`${file} exports no run function.`);
-	return { name: path.basename(file).replace(/\.ts$/, ''), run: module.run, isolated: module.isolated === true };
+	return {
+		name: path.basename(file).replace(/\.ts$/, ''),
+		run: module.run,
+		isolated: module.isolated === true,
+		needsCanvas: module.needsCanvas === true,
+	};
 }
 
 /**
@@ -197,6 +218,12 @@ function quietly(command: string, args: string[], cwd: string) {
 		console.error(`${stdout ?? ''}${stderr ?? ''}`);
 		throw error;
 	}
+}
+
+function deferred() {
+	let resolve = () => {};
+	const promise = new Promise<void>((done) => (resolve = done));
+	return { promise, resolve };
 }
 
 function runName(version: number, buildLabel: string) {

@@ -79,9 +79,19 @@ type PageHelpers = {
 	setUpCombat(setup: CombatSetup): Promise<void>;
 	/** Adds an Extra Slot for a combatant as the tracker's button does, with its token controlled. */
 	addExtraSlotFor(combatant: string): Promise<void>;
+	/**
+	 * How long the page has done nothing, in ms: no hook called, no socket message sent or received, no socket request or
+	 * fetch awaiting its answer, no CSS transition or animation running but the endless ones (0 while one does).
+	 */
+	idleFor(): number;
 
 	// The scenarios' own page helpers take the helpers below out of `window.e2e`: none of them uses `this`.
 	sleep: (ms: number) => Promise<void>;
+	/**
+	 * Resolves once the page has done nothing for 300 ms ({@link idleFor}), counted from the call, so that the work an
+	 * action started has finished; after 15 s, logs an error and resolves.
+	 */
+	settle: () => Promise<void>;
 	/** Polls `find` every 100 ms until it returns something truthy, which it returns, or throws after the timeout. */
 	waitFor: <T>(what: string, find: () => T | undefined | null | false, timeout?: number) => Promise<T>;
 	/** An element's text, its white space collapsed. */
@@ -92,6 +102,13 @@ type PageHelpers = {
 	isSetUp: (doc: { name: string }) => boolean;
 	/** The element of a window. */
 	htmlOf: (app: { element?: unknown }) => HTMLElement | undefined;
+	/**
+	 * Renders a window unless it is rendered, and returns its element once `ready` finds in it what the window shows (its
+	 * element alone by default); a window it rendered has settled.
+	 */
+	render: (app: Untyped, ready?: (root: HTMLElement) => unknown) => Promise<HTMLElement>;
+	/** Closes the open windows of the documents set up and of the documents they hold. */
+	closeSetUp: () => Promise<void>;
 	/** The actor `E2E <name>`; throws when there is none. */
 	actor: (name: string) => Untyped;
 	/** The token of the actor `E2E <name>` on the viewed scene; throws when there is none. */
@@ -100,6 +117,8 @@ type PageHelpers = {
 	target: (name: string | null) => void;
 	/** The open applications with a CSS class, as `foundry.applications.instances` holds them. */
 	apps: (cssClass: string) => Untyped[];
+	/** Starts a drag on an element, which writes its drag data as the user's drag does; returns it, for {@link drop}. */
+	dragStart: (element: Element) => DataTransfer;
 	/** Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does. */
 	drop: (element: Element, data: object | DataTransfer) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
@@ -142,6 +161,9 @@ export function installHelpers() {
 		return combatant;
 	};
 
+	// The viewed scene, once the canvas drew it; a client in no-canvas mode views a scene without drawing it.
+	const viewedScene = () => (game.settings.get('core', 'noCanvas') ? game.scenes.viewed : canvas.scene);
+
 	const randomUniform = CONFIG.Dice.randomUniform;
 	// The face count of the die being rolled, so that a fixed die given for another die type is caught.
 	let rolling: number | undefined;
@@ -154,6 +176,13 @@ export function installHelpers() {
 		} finally {
 			rolling = undefined;
 		}
+	};
+
+	// What idleFor measures: the page's last hook, socket message or answer, and the requests awaiting their answer.
+	let lastActivity = performance.now();
+	let pending = 0;
+	const touch = () => {
+		lastActivity = performance.now();
 	};
 
 	// The notifications each recordNotifications call records.
@@ -235,7 +264,7 @@ export function installHelpers() {
 					},
 				})),
 			);
-			const tokens = await canvas.scene.createEmbeddedDocuments(
+			const tokens = await viewedScene().createEmbeddedDocuments(
 				'Token',
 				await Promise.all(
 					actors.map(async (actor: { getTokenDocument(): Promise<{ toObject(): object }> }, index: number) => ({
@@ -249,12 +278,12 @@ export function installHelpers() {
 			// v12: the created documents come back in another order than they were given, so tokens find their setup by actor.
 			const setupOf = (token: { actorId: string }) =>
 				combatants.find(({ name }) => `E2E ${name}` === game.actors.get(token.actorId).name)!;
-			const combat = await Combat.create({ scene: canvas.scene.id, active: true });
+			const combat = await Combat.create({ scene: viewedScene().id, active: true });
 			await combat.createEmbeddedDocuments(
 				'Combatant',
 				tokens.map((token: { id: string; actorId: string }) => {
 					const { name, initiative } = setupOf(token);
-					return { tokenId: token.id, sceneId: canvas.scene.id, actorId: token.actorId, name, initiative: initiative ?? null };
+					return { tokenId: token.id, sceneId: viewedScene().id, actorId: token.actorId, name, initiative: initiative ?? null };
 				}),
 			);
 			if (extraSlots.length) {
@@ -283,8 +312,30 @@ export function installHelpers() {
 			await game.combat.addInitiativeSlot();
 		},
 
+		idleFor() {
+			// A sheet's rows move and leave through Vue transitions: a leaving row stays in the page until its transition ends.
+			const animating = document
+				.getAnimations()
+				.some((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations !== Infinity);
+			if (animating) touch();
+			return pending ? 0 : performance.now() - lastActivity;
+		},
+
 		sleep(ms) {
 			return new Promise((resolve) => setTimeout(resolve, ms));
+		},
+
+		async settle() {
+			// As long as QUIET_MS and SETTLE_TIMEOUT_MS of scenario.ts, which this page can't import.
+			const [quiet, timeout] = [300, 15_000];
+			const start = performance.now();
+			while (Math.min(helpers.idleFor(), performance.now() - start) < quiet) {
+				if (performance.now() - start > timeout) {
+					console.error(`e2e: the page is still busy after ${timeout} ms`);
+					return;
+				}
+				await helpers.sleep(50);
+			}
 		},
 
 		async waitFor(what, find, timeout = 10_000) {
@@ -314,6 +365,24 @@ export function installHelpers() {
 			return app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
 		},
 
+		async render(app, ready = () => true) {
+			if (!app.rendered) {
+				await app.render(true);
+				await helpers.settle();
+			}
+			return helpers.waitFor(`the window of ${app.document?.name ?? app.id}`, () => {
+				const root = helpers.htmlOf(app);
+				return root && ready(root) ? root : undefined;
+			});
+		},
+
+		async closeSetUp() {
+			for (const app of [...foundry.applications.instances.values()]) {
+				const doc = app.document;
+				if ((doc?.name && helpers.isSetUp(doc)) || (doc?.parent?.name && helpers.isSetUp(doc.parent))) await app.close();
+			}
+		},
+
 		actor(name) {
 			const found = game.actors.getName(`E2E ${name}`);
 			if (!found) throw new Error(`No actor E2E ${name}`);
@@ -339,6 +408,12 @@ export function installHelpers() {
 			);
 		},
 
+		dragStart(element) {
+			const dataTransfer = new DataTransfer();
+			element.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+			return dataTransfer;
+		},
+
 		drop(element, data) {
 			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
 			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
@@ -349,7 +424,7 @@ export function installHelpers() {
 			const ids = (documents: { filter(test: (doc: { name: string }) => boolean): { id: string }[] }) =>
 				documents.filter(helpers.isSetUp).map((doc) => doc.id);
 			const deletions: Record<SetUpCollection, () => Promise<unknown>> = {
-				Token: async () => canvas.scene?.deleteEmbeddedDocuments('Token', ids(canvas.scene.tokens)),
+				Token: async () => viewedScene()?.deleteEmbeddedDocuments('Token', ids(viewedScene().tokens)),
 				Actor: () => Actor.deleteDocuments(ids(game.actors)),
 				Item: () => Item.deleteDocuments(ids(game.items)),
 				Folder: () => CONFIG.Folder.documentClass.deleteDocuments(ids(game.folders)),
@@ -360,10 +435,10 @@ export function installHelpers() {
 		},
 
 		async ensureScene() {
-			if (canvas.scene) return;
+			if (viewedScene()) return;
 			const scene = await Scene.create({ name: 'E2E', width: 2000, height: 2000 });
 			await scene.activate();
-			while (canvas.scene?.id !== scene.id) await helpers.sleep(200);
+			await helpers.waitFor('the scene E2E', () => viewedScene()?.id === scene.id, 60_000);
 		},
 
 		createCompendium(metadata) {
@@ -415,6 +490,41 @@ export function installHelpers() {
 		helpers.notifications.push(`${type}: ${message}`);
 		for (const recorded of recorders) recorded.push(`${type}: ${message}`);
 		return notify.call(this, message, type, ...rest);
+	};
+
+	// Every document change, render and roll calls hooks; every change reaches or leaves the page through the socket.
+	for (const method of ['call', 'callAll']) {
+		const original = Hooks[method];
+		Hooks[method] = function (this: unknown, ...args: unknown[]) {
+			touch();
+			return original.apply(this, args);
+		};
+	}
+	const emit = game.socket.emit;
+	game.socket.emit = function (this: unknown, ...args: unknown[]) {
+		touch();
+		const answer = args.at(-1);
+		if (typeof answer === 'function') {
+			pending += 1;
+			args[args.length - 1] = (...response: unknown[]) => {
+				pending -= 1;
+				touch();
+				return answer(...response);
+			};
+		}
+		return emit.apply(this, args);
+	};
+	game.socket.onAny(touch);
+	const fetch = window.fetch.bind(window);
+	window.fetch = async (...args) => {
+		pending += 1;
+		touch();
+		try {
+			return await fetch(...args);
+		} finally {
+			pending -= 1;
+			touch();
+		}
 	};
 
 	window.e2e = helpers;

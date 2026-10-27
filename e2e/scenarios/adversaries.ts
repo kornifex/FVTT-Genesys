@@ -51,12 +51,9 @@ declare global {
  * module.
  */
 function installAdversariesHelpers() {
-	const { sleep, waitFor, text, unprefixed, htmlOf, actor, token, target, apps, drop, poolPreview, poolModification } = window.e2e;
-	const sheet = async (name: string) => {
-		const app = actor(name).sheet;
-		if (!app.rendered) await app.render(true);
-		return waitFor(`the sheet of ${name}`, () => htmlOf(app)?.querySelector('input') && htmlOf(app));
-	};
+	const { settle, waitFor, render, text, unprefixed, htmlOf, actor, token, target, apps, drop, poolPreview, poolModification } =
+		window.e2e;
+	const sheet = (name: string) => render(actor(name).sheet, (root) => root.querySelector('input'));
 	const itemRow = (item: { type: string; name: string; system: { rank?: number } }) =>
 		[item.type, unprefixed(item.name), item.system.rank].filter((part) => part !== undefined).join(' ');
 
@@ -67,15 +64,17 @@ function installAdversariesHelpers() {
 			if (item.parent) writes.push(`${action} ${itemRow(item).replace(`${item.type} `, '')}`);
 		});
 	}
+	// The notifications since the last call: an action's, once called before and after it.
+	const notifications = window.e2e.recordNotifications();
 	const observe = async (name: string, action: () => unknown): Promise<Observed> => {
 		writes.length = 0;
-		const notified = window.e2e.notifications.length;
+		notifications();
 		await action();
-		await sleep(1000);
+		await settle();
 		return {
 			items: window.adversariesE2E.items(name),
 			writes: [...writes],
-			notifications: window.e2e.notifications.slice(notified),
+			notifications: notifications(),
 		};
 	};
 
@@ -106,7 +105,7 @@ function installAdversariesHelpers() {
 		const app = await waitFor('the Dice Prompt', () => apps('app-dice-prompt').length === 1 && apps('app-dice-prompt')[0]);
 		const root = await waitFor('the Dice Prompt preview', () => htmlOf(app)?.querySelector('.preview') && htmlOf(app));
 		// The pool is built once the check is resolved.
-		await sleep(500);
+		await settle();
 		const state = {
 			pool: poolPreview(root),
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
@@ -196,11 +195,7 @@ function installAdversariesHelpers() {
 
 		async cleanUp() {
 			await closePrompts();
-			for (const app of [...foundry.applications.instances.values()].filter((app: { document?: { name?: string } }) =>
-				app.document?.name?.startsWith('E2E '),
-			)) {
-				await app.close();
-			}
+			await window.e2e.closeSetUp();
 			canvas.hud?.token?.clear();
 			target(null);
 			await window.e2e.deleteSetUp('Token', 'Actor', 'Item');
@@ -222,7 +217,8 @@ function installAdversariesHelpers() {
 		async menu(target) {
 			const labels = (await openMenu(target)).map((item) => text(item.querySelector('.menu-label')));
 			document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-			await sleep(200);
+			// The menu closes with an animation.
+			await settle();
 			return labels;
 		},
 
@@ -266,7 +262,7 @@ function installAdversariesHelpers() {
 			const input = await waitFor(`the field ${inputName}`, () => root.querySelector<HTMLInputElement>(`input[name="${inputName}"]`));
 			input.value = value;
 			input.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(1000);
+			await settle();
 			return foundry.utils.getProperty(actor(name), path);
 		},
 
@@ -277,7 +273,7 @@ function installAdversariesHelpers() {
 		async hud({ actor: name, bar, input: change, path }) {
 			const hud = canvas.hud.token;
 			hud.clear();
-			await sleep(300);
+			await settle();
 			const bound = token(name);
 			const current = String(bound.document.getBarAttribute(bar).value);
 			await hud.bind(bound);
@@ -290,12 +286,15 @@ function installAdversariesHelpers() {
 			// v12: the HUD submits a bar's input on jQuery's focusout, which jQuery 3.7 makes from the native blur; v13 submits
 			// it when it changes.
 			input.dispatchEvent(game.release.generation < 13 ? new FocusEvent('blur') : new Event('change', { bubbles: true }));
-			await sleep(1000);
+			await settle();
 			hud.clear();
 			return foundry.utils.getProperty(actor(name), path);
 		},
 	};
 }
+
+// The scenario edits a token's bars in its HUD, on the canvas.
+export const needsCanvas = true;
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;

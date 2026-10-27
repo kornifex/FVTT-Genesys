@@ -15,12 +15,12 @@ export type FoundryInstall = {
 	data: string;
 	/** The id of the world to copy and launch. */
 	world: string;
+	/** The port its Foundry listens on: the versions run at once, each on the port after the previous one's. */
+	port: number;
 };
 
 type HarnessConfig = {
 	installs: FoundryInstall[];
-	/** The port Foundry listens on; the versions run one after the other, so they share it. */
-	port: number;
 	/** A Chromium or headless shell binary; Playwright's own download when undefined. */
 	chromium: string | undefined;
 	/** Where the world copies, builds and results go. */
@@ -43,18 +43,19 @@ export function readConfig(env: Env, versions: number[]): HarnessConfig {
 		return value ?? '';
 	};
 
-	const installs = versions.map((version) => ({
+	const port = Number(env.E2E_PORT || 30100);
+	const installs = versions.map((version, index) => ({
 		version,
 		node: required(`E2E_V${version}_NODE`),
 		foundry: required(`E2E_V${version}_FOUNDRY`),
 		data: required(`E2E_V${version}_DATA`),
 		world: required(`E2E_V${version}_WORLD`),
+		port: port + index,
 	}));
 	if (missing.length) throw new Error(`Missing ${missing.join(', ')}: set them in e2e/.env (see e2e/README.md).`);
 
 	return {
 		installs,
-		port: Number(env.E2E_PORT || 30100),
 		chromium: env.E2E_CHROMIUM || undefined,
 		workDir: env.E2E_WORK_DIR || path.join(os.tmpdir(), 'genesys-e2e'),
 		gmUser: env.E2E_GM_USER || 'Gamemaster',

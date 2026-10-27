@@ -68,6 +68,7 @@ type VehicleHelpers = {
 	prompts(): Prompts;
 	closePrompts(): Promise<void>;
 	selectCrewMember(name: string): Promise<void>;
+	/** The notifications since the last call. */
 	notifications(): string[];
 	actorsNamed(prefix: string): string[];
 	updateItem(args: { actor: string; item: string; data: object }): Promise<void>;
@@ -107,16 +108,9 @@ const roleMemberTile = (role: number, n: number): Target => [...roleMember(role,
  * Installs `window.vehicleE2E`. Playwright sends this function's source to the page, so it uses nothing from this module.
  */
 function installVehicleHelpers() {
-	const { sleep, waitFor, text, unprefixed, htmlOf, actor, apps, drop, poolPreview } = window.e2e;
+	const { settle, waitFor, text, unprefixed, htmlOf, render, actor, apps, dragStart, drop, poolPreview } = window.e2e;
 	const nameOf = (uuid: string) => unprefixed(fromUuidSync(uuid)?.name ?? uuid);
-	const sheet = async (name: string) => {
-		const app = actor(name).sheet;
-		if (!app.rendered) {
-			await app.render(true);
-			await sleep(500);
-		}
-		return waitFor(`the sheet of ${name}`, () => htmlOf(app));
-	};
+	const sheet = (name: string) => render(actor(name).sheet);
 	const find = (root: Element, target: string[]) =>
 		target.reduce((parent, step) => {
 			const [selector, pick] = step.split('|');
@@ -149,6 +143,7 @@ function installVehicleHelpers() {
 	const tokensOf = (scene: string): SceneToken[] =>
 		[...game.scenes.getName(`E2E ${scene}`).tokens].sort((left: SceneToken, right: SceneToken) => left.x - right.x);
 
+	const takeNotifications = window.e2e.recordNotifications();
 	const crewUpdates: string[] = [];
 	Hooks.on('updateActor', (updated: { name: string }, change: { system?: { passengers?: unknown; roles?: unknown } }) => {
 		if (change.system?.passengers || change.system?.roles) crewUpdates.push(unprefixed(updated.name));
@@ -221,8 +216,7 @@ function installVehicleHelpers() {
 		},
 
 		async drag(from, to) {
-			const dataTransfer = new DataTransfer();
-			find(await sheet(from.vehicle), from.tile).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+			const dataTransfer = dragStart(find(await sheet(from.vehicle), from.tile));
 			drop(find(await sheet(to.vehicle), to.target), dataTransfer);
 		},
 
@@ -232,7 +226,8 @@ function installVehicleHelpers() {
 			);
 			try {
 				await helpers.drag(from, to);
-				await sleep(2000);
+				// The source vehicle refuses every update until the drop's work is over.
+				await settle();
 			} finally {
 				Hooks.off('preUpdateActor', hook);
 			}
@@ -251,7 +246,7 @@ function installVehicleHelpers() {
 				// What the drop meets: the Role on the sheet, and none in the vehicle's data.
 				const met = { roleShown: target.isConnected, roles: vehicleActor.system.roles.length };
 				drop(target, sidebarData({ type: 'Actor', name }));
-				await sleep(1000);
+				await settle();
 				return met;
 			} finally {
 				vehicleActor.updateSource({ 'system.roles': roles });
@@ -322,7 +317,9 @@ function installVehicleHelpers() {
 			const select = (await sheet(vehicle)).querySelector<HTMLSelectElement>('.tab-skills .grouping-mode select')!;
 			select.value = mode;
 			select.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(200);
+			await waitFor(`the Skills tab of ${vehicle} grouped by ${mode}`, () =>
+				htmlOf(actor(vehicle).sheet)?.querySelector(`.tab-skills .${mode === 'member' ? 'members' : 'skills'}-container`),
+			);
 		},
 
 		prompts() {
@@ -353,7 +350,9 @@ function installVehicleHelpers() {
 		async closePrompts() {
 			const prompts = ['app-dice-prompt', 'app-select-crew-member-prompt', 'app-clone-actor-prompt'].flatMap(apps);
 			await Promise.all(prompts.map((app: { close(): Promise<void> }) => app.close()));
-			await sleep(300);
+			await waitFor('the prompts to close', () =>
+				prompts.every((app: { id: string }) => !foundry.applications.instances.has(app.id)),
+			);
 		},
 
 		async selectCrewMember(name) {
@@ -364,13 +363,13 @@ function installVehicleHelpers() {
 			);
 			if (!row) throw new Error(`No crew member E2E ${name} in the prompt`);
 			row.click();
-			await sleep(200);
+			await waitFor(`crew member ${name} picked in the prompt`, () => row.classList.contains('selected-option'));
 			root.querySelector<HTMLButtonElement>('.submit-button')!.click();
 			// The prompt's closing transition can outlast a step's wait on a busy machine.
 			await waitFor('the crew member prompt to close', () => !foundry.applications.instances.has(app.id));
 		},
 
-		notifications: () => [...window.e2e.notifications],
+		notifications: takeNotifications,
 
 		actorsNamed: (prefix) =>
 			game.actors
@@ -466,6 +465,9 @@ const characteristics = (values: Partial<Record<string, number>> = {}) => ({
 });
 const skill = (name: string, characteristic: string, rank: number) => ({ name, type: 'skill', system: { characteristic, rank } });
 
+// Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
+export const needsCanvas = true;
+
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installVehicleHelpers);
@@ -504,7 +506,6 @@ async function crewDrops(e2e: ScenarioContext) {
 		() =>
 			vehicleE2E('dropFromSidebar', { type: 'Item', name }, { actor: vehicle, target });
 	const drag = (from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }) => () => vehicleE2E('drag', from, to);
-	const pause = () => new Promise((resolve) => setTimeout(resolve, 1000));
 
 	// Joining: on the sheet anywhere, then on the passengers' slots.
 	await step('#109 A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .section-header|1']), {
@@ -546,7 +547,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C1 two Roles added',
 		async () => {
 			await addRole('V1');
-			await pause();
+			await e2e.settle();
 			await addRole('V1');
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole(''), expectedRole('')] } },
@@ -555,7 +556,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C2 Roles renamed',
 		async () => {
 			await vehicleE2E('rename', 'V1', 1, 'Pilot');
-			await pause();
+			await e2e.settle();
 			await vehicleE2E('rename', 'V1', 2, 'Gunner');
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot'), expectedRole('Gunner')] } },
@@ -564,7 +565,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 C3 skill dropped on Pilot, then the same skill in lower case',
 		async () => {
 			await skillFromSidebar('Piloting', role(1))();
-			await pause();
+			await e2e.settle();
 			await skillFromSidebar('piloting', role(1))();
 		},
 		{ V1: { passengers: ['A', 'B', 'C'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] }), expectedRole('Gunner')] } },
@@ -639,7 +640,7 @@ async function crewDrops(e2e: ScenarioContext) {
 	);
 	// A Role saved with one skill in two cases, as worlds older than the case-insensitive Role skills may hold.
 	await vehicleE2E('setRoleSkills', { vehicle: 'V1', role: 1, skills: ['E2E Piloting', 'E2E piloting'] });
-	await pause();
+	await e2e.settle();
 	await step(
 		'#109 E2 a skill removed from its Role menu, in both its cases',
 		() => vehicleE2E('menu', { actor: 'V1', target: [...role(1), '.role-skill|1'], icon: 'fa-trash' }),
@@ -689,7 +690,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		'#109 F3 Minion Group L dropped from the sidebar on a new Role',
 		async () => {
 			await addRole('V3');
-			await pause();
+			await e2e.settle();
 			await fromSidebar('L', role(1), 'V3')();
 		},
 		{ V3: { passengers: ['N', 'R'], roles: [expectedRole('', { members: ['L'] })] } },
@@ -1095,8 +1096,10 @@ async function crewRolls(e2e: ScenarioContext) {
 	const playerRoll = async (name: string, action: () => Promise<unknown>) => {
 		let rolled: { prompts: Prompts; notifications: string[] } | undefined;
 		await e2e.step(name, async () => {
+			// Drops what the previous roll notified while its prompts closed: only this roll's notifications are read.
+			await playerE2E('notifications');
 			await action();
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			await e2e.settle();
 			rolled = { prompts: await playerE2E('prompts'), notifications: await playerE2E('notifications') };
 			await playerE2E('closePrompts');
 		});

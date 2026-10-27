@@ -106,7 +106,9 @@ declare global {
  * module.
  */
 function installDicePromptHelpers() {
-	const { sleep, waitFor, text, unprefixed, isSetUp, htmlOf, actor, token, apps, poolPreview, poolModification } = window.e2e;
+	const { sleep, settle, waitFor, render, text, unprefixed, isSetUp, htmlOf, actor, token, apps, poolPreview, poolModification } =
+		window.e2e;
+	const recorded = window.e2e.recordNotifications();
 	const documentOf = (doc: Doc) => {
 		const found =
 			'journal' in doc
@@ -119,11 +121,7 @@ function installDicePromptHelpers() {
 		if (!found) throw new Error(`No document ${JSON.stringify(doc)}`);
 		return found;
 	};
-	const sheet = async (doc: Doc) => {
-		const app = documentOf(doc).sheet;
-		if (!app.rendered) await app.render(true);
-		return waitFor('the sheet', () => htmlOf(app));
-	};
+	const sheet = (doc: Doc) => render(documentOf(doc).sheet);
 	// A path is a list of selectors, each within the previous match, separated by ` >> `; `selector|text` matches the
 	// first element whose text holds that text.
 	const findIn = (root: Element, path: string) =>
@@ -271,7 +269,7 @@ function installDicePromptHelpers() {
 			const created = async (documents: object[]) => {
 				const result = await Actor.createDocuments(documents);
 				if (result.length !== documents.length) {
-					throw new Error(`Actors not created: ${JSON.stringify(window.e2e.notifications)}`);
+					throw new Error(`Actors not created: ${JSON.stringify(recorded())}`);
 				}
 				return result;
 			};
@@ -389,12 +387,12 @@ function installDicePromptHelpers() {
 
 		async setSetting({ key, value }) {
 			await game.settings.set('genesys', key, value);
-			await sleep(500);
+			await settle();
 		},
 
 		async update({ doc, data }) {
 			await documentOf(doc).update(data);
-			await sleep(1000);
+			await settle();
 		},
 
 		openPrompts: () => apps('app-dice-prompt').length,
@@ -405,13 +403,16 @@ function installDicePromptHelpers() {
 				return open.length === 1 && htmlOf(open[0])?.querySelector('.preview');
 			});
 			// The prompt resolves its check once mounted.
-			await sleep(500);
+			await settle();
 			return promptState();
 		},
 
 		async closePrompts() {
 			await Promise.all(apps('app-dice-prompt').map((app: { close(): Promise<void> }) => app.close()));
-			await sleep(200);
+			await waitFor(
+				'the Dice Prompts to close',
+				() => !apps('app-dice-prompt').length && !document.querySelector('.app-dice-prompt'),
+			);
 		},
 
 		async promptSelect({ name, option }) {
@@ -423,7 +424,7 @@ function installDicePromptHelpers() {
 			if (!picked) throw new Error(`No ${name} option ${option}`);
 			select.value = picked.value;
 			select.dispatchEvent(new Event('change'));
-			await sleep(300);
+			await settle();
 			return promptState();
 		},
 
@@ -433,29 +434,34 @@ function installDicePromptHelpers() {
 			);
 			if (!row) throw new Error(`No Pool Modification ${name}`);
 			row.querySelector('input')!.click();
-			await sleep(300);
+			await settle();
 			return promptState();
 		},
 
 		async promptAdd(keys) {
-			const buttons = [...htmlOf(thePrompt())!.querySelectorAll('.dice-box a')];
+			const root = htmlOf(thePrompt())!;
+			const buttons = [...root.querySelectorAll('.dice-box a')];
 			for (const key of keys) {
 				const button = buttons.find((candidate) => poolModification(candidate) === key);
 				if (!button) throw new Error(`No dice box button ${key}`);
+				const before = poolPreview(root);
 				(button as HTMLElement).click();
-				await sleep(100);
+				// Each button adds or upgrades a die or a symbol, which the pool preview shows.
+				await waitFor(`the pool after ${key}`, () => poolPreview(root) !== before);
 			}
-			await sleep(300);
+			await settle();
 			return promptState();
 		},
 
 		async promptRemove(glyph) {
-			const element = [...htmlOf(thePrompt())!.querySelectorAll<HTMLElement>('.preview .positive > *, .preview .negative > *')].find(
+			const root = htmlOf(thePrompt())!;
+			const element = [...root.querySelectorAll<HTMLElement>('.preview .positive > *, .preview .negative > *')].find(
 				(candidate) => text(candidate) === glyph,
 			);
 			if (!element) throw new Error(`No ${glyph} in the pool`);
+			const before = poolPreview(root);
 			element.click();
-			await sleep(300);
+			await waitFor(`the pool without ${glyph}`, () => poolPreview(root) !== before);
 			return promptState();
 		},
 
@@ -469,7 +475,7 @@ function installDicePromptHelpers() {
 			const last = game.messages.contents.at(-1)?.id;
 			htmlOf(thePrompt())!.querySelector<HTMLElement>('.roll-button')!.click();
 			await waitFor('the roll message', () => game.messages.contents.at(-1)?.id !== last);
-			await sleep(300);
+			await settle();
 			return window.dicePromptE2E.lastMessage();
 		},
 
@@ -483,28 +489,29 @@ function installDicePromptHelpers() {
 			const select = (await find(doc, path)) as HTMLSelectElement;
 			select.value = value;
 			select.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(1000);
+			await settle();
 		},
 
 		async texts({ doc, selector }) {
 			const root = await sheet(doc);
-			await sleep(300);
 			return [...root.querySelectorAll(selector)].map(text);
 		},
 
 		async menu({ doc, path }) {
 			const container = await find(doc, path);
 			container.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-			await sleep(300);
-			const items = [...container.querySelectorAll('.context-menu > *')].map(text);
+			const items = await waitFor('the context menu', () => {
+				const entries = [...container.querySelectorAll('.context-menu > *')];
+				return entries.length ? entries.map(text) : undefined;
+			});
 			document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-			await sleep(200);
+			// The menu closes with an animation.
+			await settle();
 			return items;
 		},
 
 		async combatWeapons(name) {
 			await find({ actor: name }, '.tab-combat .weapons .weapon:not(.header)');
-			await sleep(300);
 			const root = await sheet({ actor: name });
 			return [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].map((row) => {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
@@ -519,7 +526,6 @@ function installDicePromptHelpers() {
 
 		async adversaryWeapons(name) {
 			await find({ actor: name }, '.adversary-items .weapon');
-			await sleep(300);
 			const root = await sheet({ actor: name });
 			return [...root.querySelectorAll('.adversary-items .weapon')].map((row) => {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
@@ -532,7 +538,6 @@ function installDicePromptHelpers() {
 
 		async inventoryWeapons(name) {
 			await find({ actor: name }, '.inventory-item');
-			await sleep(300);
 			const root = await sheet({ actor: name });
 			return [...root.querySelectorAll('.inventory-item')]
 				.filter((row) => row.querySelector('[data-item-type=weapon]'))
@@ -553,7 +558,7 @@ function installDicePromptHelpers() {
 			for (const doc of documents) {
 				if (doc.sheet?.rendered) await doc.sheet.close();
 			}
-			await sleep(300);
+			await settle();
 		},
 
 		async links(doc) {
@@ -601,31 +606,26 @@ function installDicePromptHelpers() {
 
 		// v12: a notification asked with `localize` is recorded before Foundry localizes it.
 		notifications: () =>
-			window.e2e.notifications.map((notification) => {
+			recorded().map((notification) => {
 				const [type, ...message] = notification.split(': ');
 				return `${type}: ${game.i18n.localize(message.join(': '))}`;
 			}),
 
 		clearNotifications() {
-			window.e2e.notifications.length = 0;
+			recorded();
 		},
 
 		async saveEffectSheet({ actor: actorName, item, effect }) {
 			const parent = item ? actor(actorName).items.getName(`E2E ${item}`) : actor(actorName);
 			const doc = parent.effects.getName(`E2E ${effect}`);
 			const app = doc.sheet;
-			await app.render(true);
-			const root = await waitFor(
-				'the effect sheet',
-				() => htmlOf(app)?.querySelector('form') ?? (htmlOf(app)?.tagName === 'FORM' && htmlOf(app)),
-			);
+			const root = await render(app, (root) => root.tagName === 'FORM' || root.querySelector('form'));
 			const form = root.tagName === 'FORM' ? (root as HTMLFormElement) : root.querySelector('form')!;
-			await sleep(500);
 			const selected = [...form.querySelectorAll<HTMLSelectElement>('select')]
 				.filter((select) => [...select.options].some((option) => option.value === 'E2E Craft'))
 				.map((select) => select.value);
 			await app.submit();
-			await sleep(1000);
+			await settle();
 			if (app.rendered) await app.close();
 			return { selected, changes: doc.changes.map((change: { key: string; value: string }) => `${change.key}=${change.value}`) };
 		},
@@ -649,7 +649,7 @@ function installDicePromptHelpers() {
 			// or for long enough to tell they don't.
 			const start = Date.now();
 			while (JSON.stringify(game.settings.get('genesys', 'storyPoints')) === before && Date.now() - start < 5000) await sleep(100);
-			await sleep(1500);
+			await settle();
 		},
 
 		async createSkillsPack() {
@@ -661,7 +661,7 @@ function installDicePromptHelpers() {
 			const pack = game.packs.get('world.e2e-skills');
 			const [skill] = await pack.getDocuments();
 			await skill.update({ name });
-			await sleep(1500);
+			await settle();
 		},
 
 		breakChanceWorker(broken) {
@@ -722,6 +722,9 @@ const unranked = (except: string[]) =>
 
 const SIX_CHARACTERISTICS = ['brawn', 'agility', 'intellect', 'cunning', 'willpower', 'presence'];
 
+// The scenario controls and targets tokens on the canvas.
+export const needsCanvas = true;
+
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const player = await e2e.player();
@@ -757,7 +760,7 @@ export async function run(e2e: ScenarioContext) {
 		await client.evaluate(() => window.dicePromptE2E.closePrompts());
 		await client.evaluate(() => window.dicePromptE2E.clearNotifications());
 		await action();
-		await new Promise((resolve) => setTimeout(resolve, 1500));
+		await e2e.settle();
 		return client.evaluate(() => ({
 			prompts: window.dicePromptE2E.openPrompts(),
 			notifications: window.dicePromptE2E.notifications(),
@@ -1226,7 +1229,7 @@ export async function run(e2e: ScenarioContext) {
 		{ face: 8, faces: 8 },
 	]);
 	await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+	await e2e.settle();
 	const unprompted = await gm.evaluate(() => ({
 		message: window.dicePromptE2E.lastMessage(),
 		initiative: game.combat.combatants.getName('Hero').initiative,
@@ -1261,7 +1264,7 @@ export async function run(e2e: ScenarioContext) {
 		await game.combat.rollInitiative([foe.id]);
 		return window.dicePromptE2E.lastMessage().id;
 	});
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+	await e2e.settle();
 	e2e.expect(
 		"#50 E4 a hidden combatant's initiative is private",
 		{
@@ -1456,7 +1459,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	await gm.evaluate((user) => game.users.getName(user).update({ character: game.actors.getName('E2E Cy').id }), e2e.playerUser);
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+	await e2e.settle();
 	await control(player, ['Bo', 'Cy']);
 	const characterTwoTokens = await playerLink(journal, 'Athletics', 'DDD');
 	await control(player, []);
@@ -1522,7 +1525,7 @@ export async function run(e2e: ScenarioContext) {
 	const skillsCompendium = async (value: string) => {
 		await gm.evaluate(() => window.dicePromptE2E.clearNotifications());
 		await setSetting('skillsCompendium', value);
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await e2e.settle();
 		return gm.evaluate(() => ({
 			compendium: CONFIG.genesys.settings.skillsCompendium,
 			skills: CONFIG.genesys.skills.length,
@@ -1554,7 +1557,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await gm.evaluate(() => window.dicePromptE2E.createSkillsPack());
 	await setSetting('skillsCompendium', 'world.e2e-skills');
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+	await e2e.settle();
 	await gm.evaluate(() => window.dicePromptE2E.renameSkill('E2E Lore Renamed'));
 	const renamed = await opened(gm, skillRoll('Cool'));
 	e2e.expect(
@@ -1634,14 +1637,17 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	const errorsBefore = player.errors.length;
+	const workerFailed = () => player.errors.slice(errorsBefore).some((error) => error.includes('Genesys | The chance worker failed.'));
 	await player.evaluate(() => window.dicePromptE2E.breakChanceWorker(true));
 	await playerGendr();
-	await new Promise((resolve) => setTimeout(resolve, 3000));
+	// The worker's error is no activity of the page that settling sees: wait for it to be logged, or long enough to tell it
+	// isn't.
+	for (const start = Date.now(); !workerFailed() && Date.now() - start < 3000; ) await e2e.settle();
 	e2e.expect(
 		'#90 K4 a worker error is logged and the prompt keeps its spinner',
 		{
 			chance: (await player.evaluate(() => window.dicePromptE2E.promptChance({ expected: 'spinner', timeout: 0 }))) ?? null,
-			logged: player.errors.slice(errorsBefore).some((error) => error.includes('Genesys | The chance worker failed.')),
+			logged: workerFailed(),
 		},
 		{ chance: 'spinner', logged: true },
 	);

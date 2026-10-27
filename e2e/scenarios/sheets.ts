@@ -108,7 +108,7 @@ declare global {
  */
 function installSheetsHelpers() {
 	if (window.sheetsE2E) return;
-	const { sleep, waitFor, text, isSetUp, htmlOf, actor, apps, drop } = window.e2e;
+	const { sleep, settle, waitFor, text, isSetUp, htmlOf, render, actor, apps, dragStart, drop } = window.e2e;
 	const ApplicationV2 = foundry.applications.api.ApplicationV2;
 	// An actor's name, a world item's name, or `Actor/Item` for an owned item.
 	const documentNamed = (name: string) => {
@@ -241,27 +241,23 @@ function installSheetsHelpers() {
 
 		async closeAll() {
 			await Promise.all(openApps().map((app: { close(): Promise<void> }) => app.close()));
-			await sleep(500);
+			await settle();
 		},
 
 		async open(name) {
 			const app = documentNamed(name).sheet;
-			if (!app.rendered) {
-				await app.render(true);
-				await waitFor(`sheet of ${name}`, () => app.rendered && htmlOf(app));
-				await sleep(300);
-			}
+			const element = await render(app);
 			return {
 				appV2: app instanceof ApplicationV2,
 				title: app.title,
-				headerTitle: text(htmlOf(app)!.querySelector('.window-header .window-title')),
+				headerTitle: text(element.querySelector('.window-header .window-title')),
 			};
 		},
 
 		async close(name) {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
-			await sleep(300);
+			await settle();
 		},
 
 		header(name) {
@@ -280,7 +276,7 @@ function installSheetsHelpers() {
 
 		async clickTab(name, tab) {
 			find(sheetElement(name), `.sheet-tabs [data-tab="${tab}"]`).click();
-			await sleep(300);
+			await waitFor(`tab ${tab} of ${name}`, () => helpers.activeTab(name) === tab);
 		},
 
 		activeTab(name) {
@@ -293,7 +289,7 @@ function installSheetsHelpers() {
 
 		async changeField(name, selector, value) {
 			setSelect(sheetElement(name), selector, value);
-			await sleep(300);
+			await settle();
 		},
 
 		isRendered(name) {
@@ -303,7 +299,7 @@ function installSheetsHelpers() {
 		async renderHooks(name) {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
-			await sleep(300);
+			await settle();
 			const names = [
 				'renderApplicationV2',
 				'renderDocumentSheetV2',
@@ -327,9 +323,7 @@ function installSheetsHelpers() {
 					htmlIsElement &&= html instanceof HTMLElement;
 				}),
 			}));
-			await app.render(true);
-			await waitFor(`sheet of ${name}`, () => app.rendered);
-			await sleep(500);
+			await render(app);
 			for (const { hook, id } of ids) Hooks.off(hook, id);
 			return { fired: names.filter((hook) => fired.includes(hook)), htmlIsElement };
 		},
@@ -359,7 +353,7 @@ function installSheetsHelpers() {
 			if (!dropped) throw new Error(`No ${document.type} E2E ${document.name}`);
 			const element = sheetElement(name);
 			drop(selector ? find(element, selector) : element, { type: document.type, uuid: dropped.uuid });
-			await sleep(1000);
+			await settle();
 		},
 
 		prompts(cssClass) {
@@ -368,7 +362,7 @@ function installSheetsHelpers() {
 
 		async closePrompts(cssClass) {
 			await Promise.all(promptsOf(cssClass).map((app: { close(): Promise<void> }) => app.close()));
-			await sleep(300);
+			await settle();
 		},
 
 		async promptResolution() {
@@ -376,7 +370,6 @@ function installSheetsHelpers() {
 			const shown = await waitFor('award XP prompt', () => promptsOf('app-award-xp-prompt')[0]);
 			const AwardXPPrompt = shown.constructor;
 			await helpers.closePrompts('app-award-xp-prompt');
-			await sleep(300);
 
 			let resolution = { resolved: false, value: null as unknown, elementStillShown: false };
 			const promise = AwardXPPrompt.promptForXPAward().then((value: unknown) => {
@@ -390,15 +383,14 @@ function installSheetsHelpers() {
 
 		async click(name, selector, which = 1) {
 			find(sheetElement(name), selector, which).click();
-			await sleep(500);
+			await settle();
 		},
 
 		async drag(name, from, which, to) {
 			const element = sheetElement(name);
-			const dataTransfer = new DataTransfer();
-			find(element, from, which).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+			const dataTransfer = dragStart(find(element, from, which));
 			drop(find(element, to), dataTransfer);
-			await sleep(1000);
+			await settle();
 		},
 
 		async menu(name, container, which, icon) {
@@ -406,7 +398,7 @@ function installSheetsHelpers() {
 			const menu = element.matches('.menu-container') ? element : element.querySelector<HTMLElement>('.menu-container')!;
 			// A menu opens on a click or a right click, and the other closes it.
 			menu.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-			await sleep(300);
+			await settle();
 			if (!menu.querySelector('.context-menu')) {
 				menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			}
@@ -414,7 +406,7 @@ function installSheetsHelpers() {
 				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) => item.querySelector(`i.${icon}`)),
 			);
 			entry.click();
-			await sleep(500);
+			await settle();
 		},
 
 		setPromptInput(cssClass, selector, value, event) {
@@ -429,7 +421,7 @@ function installSheetsHelpers() {
 			find(htmlOf(app)!, selector).click();
 			// The prompt closes once it resolves.
 			for (let tries = 0; tries < 25 && app.rendered; tries++) await sleep(200);
-			await sleep(500);
+			await settle();
 		},
 
 		async pickImage(name, path) {
@@ -444,7 +436,7 @@ function installSheetsHelpers() {
 			// The user picks a file: the picker calls back with its path.
 			await picker.callback(path);
 			await picker.close();
-			await sleep(500);
+			await settle();
 			return { pickerShown: true, img: documentNamed(name).img };
 		},
 
@@ -464,13 +456,13 @@ function installSheetsHelpers() {
 		async clickStoryPoints(selector) {
 			const tracker = foundry.applications.instances.get('story-point-tracker');
 			find(htmlOf(tracker)!, selector).click();
-			await sleep(1000);
+			await settle();
 		},
 
 		async setStoryPoints(points) {
 			await game.settings.set('genesys', 'storyPoints', points);
 			foundry.applications.instances.get('story-point-tracker')?.render(true);
-			await sleep(500);
+			await settle();
 		},
 
 		journal(name) {
@@ -488,10 +480,8 @@ function installSheetsHelpers() {
 			async open(owner) {
 				const app = editedEffect(owner).sheet;
 				if (app.rendered) await app.close();
-				await sleep(300);
-				await app.render(true);
-				await waitFor(`effect sheet on ${owner}`, () => app.rendered && htmlOf(app)?.querySelector('[name="changes.0.key"]'));
-				await sleep(300);
+				await settle();
+				await render(app, (root) => root.querySelector('[name="changes.0.key"]'));
 			},
 
 			async state(owner) {
@@ -534,20 +524,20 @@ function installSheetsHelpers() {
 				setSelect(element(), 'select[name="changes.1.char"]', 'presence');
 				setSelect(element(), 'input[name="changes.2.value"]', 'SS');
 				setSelect(element(), 'select[name="changes.3.skill"]', 'Cool');
-				await sleep(300);
+				await settle();
 				// Adding a change submits the others and renders the sheet again.
 				find(element(), '[data-action="addChange"], [data-action="add"]').click();
 				await waitFor('added change', () => element()?.querySelector('[name="changes.6.key"]'));
-				await sleep(300);
+				await settle();
 				setSelect(element(), 'select[name="changes.6.key"]', 'genesys.pool.check.target');
 				setSelect(element(), 'input[name="changes.6.value"]', 'B');
-				await sleep(300);
+				await settle();
 			},
 
 			async submit(owner) {
 				const app = editedEffect(owner).sheet;
 				await app.submit();
-				await sleep(500);
+				await settle();
 			},
 
 			changes(owner) {
@@ -606,10 +596,11 @@ function installSheetsHelpers() {
 		async sourceBeforeEnrichment(name) {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
-			await sleep(300);
+			await settle();
 			// The system enriches through the global TextEditor, on v13 as on v12.
 			const editor = (globalThis as unknown as { TextEditor: { enrichHTML: (...args: unknown[]) => Promise<string> } }).TextEditor;
 			const enrichHTML = editor.enrichHTML;
+			// The enrichment takes this long, so that the sheet shows before it ends.
 			editor.enrichHTML = async (...args: unknown[]) => {
 				await sleep(1500);
 				return enrichHTML.apply(editor, args);
@@ -618,7 +609,10 @@ function installSheetsHelpers() {
 				await app.render(true);
 				await waitFor(`source of ${name}`, () => app.rendered && htmlOf(app)?.querySelector('.source'));
 				const before = htmlOf(app)!.querySelector('.source')!.innerHTML;
-				await sleep(2500);
+				// A source never enriched leaves the step's assertion to fail, rather than the wait to stop the scenario.
+				await waitFor(`the enriched source of ${name}`, () => htmlOf(app)!.querySelector('.source a.content-link')).catch(
+					() => undefined,
+				);
 				return { before, afterLinks: htmlOf(app)!.querySelectorAll('.source a.content-link').length };
 			} finally {
 				editor.enrichHTML = enrichHTML;
@@ -627,7 +621,7 @@ function installSheetsHelpers() {
 
 		async update(name, data) {
 			await documentNamed(name).update(data);
-			await sleep(500);
+			await settle();
 		},
 
 		crewTab(vehicle) {
@@ -657,7 +651,7 @@ function installSheetsHelpers() {
 			CONFIG.genesys.skills = [];
 			try {
 				const [created] = await Actor.createDocuments([{ name: `E2E ${name}`, type: 'character' }]);
-				await sleep(500);
+				await settle();
 				return { skills: created.items.filter((item: { type: string }) => item.type === 'skill').length };
 			} finally {
 				CONFIG.genesys.skills = skills;
@@ -683,7 +677,7 @@ function installSheetsHelpers() {
 			} else {
 				await helpers.menu(name, '.inventory-item', `E2E ${item}`, 'fa-comment');
 			}
-			await sleep(1000);
+			await settle();
 		},
 
 		cards() {
@@ -703,7 +697,7 @@ function installSheetsHelpers() {
 
 		async setUserCharacter(user, character) {
 			await game.users.getName(user).update({ character: character ? actor(character).id : null });
-			await sleep(300);
+			await settle();
 		},
 
 		qualityDescription(name) {
@@ -712,10 +706,7 @@ function installSheetsHelpers() {
 
 		async settingsHintLink() {
 			const sheet = game.settings.sheet;
-			await sheet.render(true);
-			await waitFor('settings', () => sheet.rendered && htmlOf(sheet));
-			await sleep(500);
-			const link = htmlOf(sheet)!.querySelector<HTMLAnchorElement>('a[href*="kornifex/FVTT-Genesys/wiki"]');
+			const link = (await render(sheet)).querySelector<HTMLAnchorElement>('a[href*="kornifex/FVTT-Genesys/wiki"]');
 			const href = link?.href ?? null;
 			await sheet.close();
 			return href;
@@ -1105,13 +1096,16 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#85 GM opens the effect sheet from the Effects tab of a character', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
+			const { text, htmlOf, waitFor } = window.e2e;
 			await sheets.open('Hero');
 			await sheets.clickTab('Hero', 'effects');
-			const row = [...game.actors.getName('E2E Hero').sheet.element.querySelectorAll('.effects-view .effect')].find(
-				(row: Element) => row.querySelector('.name')?.textContent?.trim() === 'E2E Edited',
+			const hero = game.actors.getName('E2E Hero');
+			const row = [...htmlOf(hero.sheet)!.querySelectorAll('.effects-view .effect')].find(
+				(row) => text(row.querySelector('.name')) === 'E2E Edited',
 			) as HTMLElement;
 			row.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			const effectSheet = hero.effects.getName('E2E Edited').sheet;
+			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name="changes.0.key"]'));
 		}),
 	);
 	const englishCharacteristics = {
@@ -1465,15 +1459,17 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step("#102 GM edits and powers off an item's effect from the Rival's Effects tab", () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
+			const { text, htmlOf, settle } = window.e2e;
 			await sheets.clickTab('Rival', 'effects');
 			const row = () =>
-				[...game.actors.getName('E2E Rival').sheet.element.querySelectorAll('.effects-view .effect')].find(
-					(row: Element) => row.querySelector('.name')?.textContent?.trim() === 'E2E Kit effect',
+				[...htmlOf(game.actors.getName('E2E Rival').sheet)!.querySelectorAll('.effects-view .effect')].find(
+					(row) => text(row.querySelector('.name')) === 'E2E Kit effect',
 				) as HTMLElement;
+			// Which effect sheet opens is under test: the step waits for the click's work to end, not for a sheet.
 			row().querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await settle();
 			row().querySelector<HTMLElement>('.fa-power-off')!.parentElement!.click();
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await settle();
 		}),
 	);
 	e2e.expect(
@@ -1590,7 +1586,7 @@ export async function run(e2e: ScenarioContext) {
 			const rating = element.querySelector<HTMLInputElement>('.data-rated input')!;
 			rating.value = '3';
 			rating.dispatchEvent(new FocusEvent('blur'));
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await window.e2e.settle();
 		}),
 	);
 	e2e.expect(

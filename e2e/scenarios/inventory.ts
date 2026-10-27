@@ -96,7 +96,7 @@ function installInventoryHelpers() {
 		return;
 	}
 
-	const { sleep, text, unprefixed, isSetUp } = window.e2e;
+	const { settle, waitFor, render, text, unprefixed, isSetUp } = window.e2e;
 	const full = (name: string) => `E2E ${name}`;
 	const PACKS = { items: 'e2e-inventory-items', actors: 'e2e-inventory-actors' };
 	const pack = (key: keyof typeof PACKS) => game.packs.get(`world.${PACKS[key]}`);
@@ -112,13 +112,6 @@ function installInventoryHelpers() {
 		const found = actor(ref).items.getName(full(name));
 		if (!found) throw new Error(`No item ${name} on ${ref}`);
 		return found;
-	};
-	const render = async (app: { rendered: boolean; render(force: boolean): Promise<unknown>; element: HTMLElement }) => {
-		if (!app.rendered) {
-			await app.render(true);
-			await sleep(800);
-		}
-		return app.element;
 	};
 	const sheet = (ref: string) => render(actor(ref).sheet);
 
@@ -142,17 +135,19 @@ function installInventoryHelpers() {
 		return row as HTMLElement;
 	};
 	const rowOf = async (ref: string, name: string) => findRow(await sheet(ref), name);
+	// Opening a Container's row only changes the row's own state: no document changes, so its contents are waited for.
+	const openContainer = async (row: HTMLElement) => {
+		const toggle = row.querySelector<HTMLElement>('[data-item-type="container"] a');
+		if (toggle?.querySelector('.fa-box')) {
+			toggle.click();
+			await waitFor(`the contents of ${text(row.querySelector('.name a'))}`, () => row.querySelector('.contents'));
+		}
+	};
 	// An item held in a Container has its row in the Container's row, once opened.
 	const heldRow = async (ref: string, name: string) => {
 		const root = await sheet(ref);
 		const holder = actor(ref).items.get(item(ref, name).system.container);
-		if (holder) {
-			const toggle = findRow(root, unprefixed(holder.name)).querySelector<HTMLElement>('[data-item-type="container"] a');
-			if (toggle?.querySelector('.fa-box')) {
-				toggle.click();
-				await sleep(800);
-			}
-		}
+		if (holder) await openContainer(findRow(root, unprefixed(holder.name)));
 		return findRow(root, name);
 	};
 
@@ -174,35 +169,28 @@ function installInventoryHelpers() {
 	};
 	// A held item is dragged from its sheet, which writes the drag data as the user's drag does.
 	const dragFrom = async (source: Source) => {
-		const dataTransfer = new DataTransfer();
 		if ('held' in source) {
 			const root = await sheet(source.by);
 			const element = ['character', 'vehicle'].includes(actor(source.by).type)
 				? await heldRow(source.by, source.held)
 				: [...root.querySelectorAll('a[draggable="true"]')].find((link) => text(link).startsWith(full(source.held)));
 			if (!element) throw new Error(`No ${source.held} to drag`);
-			element.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+			const dataTransfer = window.e2e.dragStart(element);
 			element.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
-		} else {
-			dataTransfer.setData('text/plain', JSON.stringify(await dropData(source)));
+			return dataTransfer;
 		}
-		return dataTransfer;
+		return dropData(source);
 	};
-	const dropOn = async (element: Element, dataTransfer: DataTransfer) => {
-		window.e2e.drop(element, dataTransfer);
-		// The sheets handle a drop asynchronously.
-		await sleep(1200);
+	const dropOn = async (element: Element, data: object | DataTransfer) => {
+		window.e2e.drop(element, data);
+		// The sheets handle a drop asynchronously, and a refused drop changes nothing.
+		await settle();
 	};
 	const clickYes = async () => {
-		for (let tries = 0; tries < 30; tries++) {
-			const yes = document.querySelector<HTMLElement>('[data-button="yes"], [data-action="yes"]');
-			if (yes) {
-				yes.click();
-				return;
-			}
-			await sleep(100);
-		}
-		throw new Error('No confirmation dialog');
+		const yes = await waitFor('a confirmation dialog', () =>
+			document.querySelector<HTMLElement>('[data-button="yes"], [data-action="yes"]'),
+		);
+		yes.click();
 	};
 
 	const batches: string[] = [];
@@ -439,15 +427,13 @@ function installInventoryHelpers() {
 		},
 
 		async tearDown() {
-			for (const app of foundry.applications.instances.values()) {
-				if (app.document?.name?.startsWith('E2E ') || app.document?.parent?.name?.startsWith('E2E ')) await app.close();
-			}
+			await window.e2e.closeSetUp();
 			for (const key of ['items', 'actors'] as const) await pack(key)?.deleteCompendium();
 			await window.e2e.deleteSetUp('Token', 'Actor', 'Item', 'Folder');
 		},
 
 		async drop(source, ref, at) {
-			const dataTransfer = await dragFrom(source);
+			const dragged = await dragFrom(source);
 			const root = await sheet(ref);
 			let target: Element | null | undefined;
 			if ('item' in at) {
@@ -458,12 +444,12 @@ function installInventoryHelpers() {
 				target = sectionParts(root, at.section).filter((part) => part.matches('.sortTarget'))[at.slot];
 			}
 			if (!target) throw new Error(`No target ${JSON.stringify(at)} on ${ref}`);
-			await dropOn(target, dataTransfer);
+			await dropOn(target, dragged);
 		},
 
 		async dropOnItemSheet(source, name, ref) {
 			const target = ref ? item(ref, name) : game.items.getName(full(name));
-			const root = await render(target.sheet);
+			const root = await render(target.sheet, (root) => root.querySelector('.window-content'));
 			await dropOn(root.querySelector('.window-content')!, await dragFrom(source));
 		},
 
@@ -477,55 +463,62 @@ function installInventoryHelpers() {
 			};
 			const row = await rowOf(ref, name);
 			row.querySelector<HTMLElement>(':scope > .actions')!.click();
-			await sleep(300);
-			const entry = [...row.querySelectorAll<HTMLElement>(':scope > .actions .context-menu .menu-item')].find((menuItem) =>
-				menuItem.querySelector(icons[action]),
+			const entry = await waitFor(`${action} in the menu of ${name}`, () =>
+				[...row.querySelectorAll<HTMLElement>(':scope > .actions .context-menu .menu-item')].find((menuItem) =>
+					menuItem.querySelector(icons[action]),
+				),
 			);
-			if (!entry) throw new Error(`No ${action} in the menu of ${name}`);
 			entry.click();
-			await sleep(1200);
+			await settle();
 		},
 
 		async editItemSheet(ref, name, field, value) {
-			const root = await render(item(ref, name).sheet);
-			const input = root.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${field}"]`);
-			if (!input) throw new Error(`No field ${field} on the sheet of ${name}`);
+			const selector = `[name="${field}"]`;
+			const root = await render(item(ref, name).sheet, (root) => root.querySelector(selector));
+			const input = root.querySelector<HTMLInputElement | HTMLSelectElement>(selector)!;
 			input.value = value;
 			input.dispatchEvent(new Event('change', { bubbles: true }));
-			await sleep(1200);
+			await settle();
 		},
 
 		async damageToNothing(ref, name) {
 			for (let step = 0; step < 4; step++) {
 				(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!.click();
-				await sleep(1000);
+				await settle();
 			}
 			await clickYes();
-			await sleep(1200);
+			await settle();
 		},
 
 		async clickQuantityAndDamage(ref, name) {
 			(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .quantity')!.click();
-			await sleep(1000);
+			await settle();
 			(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!.click();
-			await sleep(1000);
+			await settle();
 		},
 
 		async attack(ref, name) {
 			(await rowOf(ref, name)).querySelector<HTMLElement>('button.attack')!.click();
-			await sleep(2000);
+			// The prompt shows a spinner while it counts its chance to succeed, which may roll dice, and builds its pool from
+			// the actor once open: the attack's dice are fixed after both.
+			await waitFor('the dice prompt', () => {
+				const prompt = document.querySelector('.app-dice-prompt');
+				return prompt?.querySelector('.roll-button') && !prompt.querySelector('.chance-to-succeed .fa-spinner');
+			});
+			await settle();
 		},
 
 		async rollPrompt() {
 			const roll = document.querySelector<HTMLElement>('.app-dice-prompt .roll-button');
 			if (!roll) throw new Error('No dice prompt');
 			roll.click();
-			await sleep(1500);
+			await settle();
 		},
 
 		async showTab(ref, tab) {
-			(await sheet(ref)).querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`)!.click();
-			await sleep(500);
+			const root = await sheet(ref);
+			root.querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`)!.click();
+			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
 		},
 
 		async updateItem(ref, name, changes) {
@@ -576,11 +569,7 @@ function installInventoryHelpers() {
 
 		async contents(ref, name) {
 			const row = await rowOf(ref, name);
-			const toggle = row.querySelector<HTMLElement>('[data-item-type="container"] a');
-			if (toggle?.querySelector('.fa-box')) {
-				toggle.click();
-				await sleep(800);
-			}
+			await openContainer(row);
 			return [...row.querySelectorAll('.contents .inventory-item .name a')].map((link) => unprefixed(text(link)));
 		},
 
@@ -684,6 +673,9 @@ function installInventoryHelpers() {
 
 	window.inventoryE2E = helpers;
 }
+
+// Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
+export const needsCanvas = true;
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -1067,7 +1059,8 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step(
 		"#103 G6 Hero's Pack carried by script, then the Rope in it dropped by script",
 		drops(updateItem('Hero', 'Pack', { 'system.state': 'carried' }), async () => {
-			await new Promise((resolve) => setTimeout(resolve, 1500));
+			// The Pack's contents take its state first, so that the Rope's own change comes after.
+			await e2e.settle();
 			await updateItem('Hero', 'Rope', { 'system.state': 'dropped' })();
 		}),
 	);
