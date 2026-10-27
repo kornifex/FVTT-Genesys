@@ -1,7 +1,4 @@
-/**
- * @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the
- * Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries.
- */
+/** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries. */
 import type { ScenarioContext } from '../scenario.ts';
 
 type Characteristic = 'brawn' | 'agility' | 'intellect' | 'cunning' | 'willpower' | 'presence';
@@ -12,7 +9,7 @@ type SkillState = { rank: number; career: boolean; star: boolean; canBuy: boolea
 type CharacterHelpers = {
 	/** Deletes what an earlier run left, and creates the world items the scenario drops. */
 	setUp(): Promise<void>;
-	/** Reads the house rules and other settings the scenario changes. */
+	/** Reads the Alternate Rules, House Rules and other settings the scenario changes. */
 	settings(): Promise<Record<string, unknown>>;
 	setSettings(values: Record<string, unknown>): Promise<void>;
 	/** Creates an actor named `E2E <name>`; a character gets every Skills Compendium skill. */
@@ -750,16 +747,18 @@ export async function run(e2e: ScenarioContext) {
 		await injuries(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
 	} finally {
-		await gm.evaluate(installCharacterHelpers).catch(() => undefined);
+		// The page lost the helpers if a step stopped the scenario after a reload. A failure here is no expected one: it is
+		// logged, so that the error which stopped the scenario stays the one reported.
+		await gm.evaluate(installCharacterHelpers).catch((error) => e2e.log('cleanup: the helpers could not be installed', String(error)));
 		await page((values) => window.characterE2E.setSettings(values), saved);
 		await gm.evaluate(() => window.characterE2E.deletePack());
 	}
 }
 
-type Page = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
+type Evaluate = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
 
 /** §#36, §#49, §#137: an Archetype's drop and removal, and the items it granted. */
-async function archetypes(e2e: ScenarioContext, page: Page) {
+async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 	const granted = (name: string) =>
 		page(
 			(name) => ({
@@ -886,7 +885,7 @@ async function archetypes(e2e: ScenarioContext, page: Page) {
 /** §#36, §#114, §#130, §#198: spending XP from the sheet, awarding it, and undoing each kind of entry. */
 async function advancement(
 	e2e: ScenarioContext,
-	page: Page,
+	page: Evaluate,
 	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
 	notifications: () => Promise<string[]>,
 ) {
@@ -899,7 +898,7 @@ async function advancement(
 	const drop = (item: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.item)), { actor: A, item });
 	const undo = (entry: string) => page((args) => window.characterE2E.undo(args.actor, args.entry), { actor: A, entry });
-	const setRules = (rules: Record<string, unknown>) => page((rules) => window.characterE2E.setSettings(rules), rules);
+	const setHouseRules = (rules: Record<string, unknown>) => page((rules) => window.characterE2E.setSettings(rules), rules);
 	const reopen = () => page((name) => window.characterE2E.reopen(name), A);
 
 	await e2e.step('B0 a character with an Archetype giving 1000 XP', async () => {
@@ -1039,7 +1038,7 @@ async function advancement(
 		{ rank: 0, xp: 1000 - spent, journal: journalBeforeFreeRanks },
 	);
 
-	// Talents: a new talent with an effect, undone; ranks from the tab and by drop; the house rules.
+	// Talents: a new talent with an effect, undone; ranks from the tab and by drop; the House Rules.
 	await e2e.step('D1 a talent with an Active Effect dropped', () => drop('Steady'));
 	spent += 5;
 	const steady = await page(() => {
@@ -1109,7 +1108,7 @@ async function advancement(
 		},
 	);
 	await e2e.step('D7 the ranked talent dropped again under Ignore Talent Pyramid', async () => {
-		await setRules({ ignoreTalentPyramid: true });
+		await setHouseRules({ ignoreTalentPyramid: true });
 		await drop('Grit');
 	});
 	spent += 15;
@@ -1119,7 +1118,7 @@ async function advancement(
 		{ rank: 3, xp: 1000 - spent, entry: ['TalentRank -15 E2E Grit tier 3 rank 3'] },
 	);
 	await e2e.step('D8 Talent Tier Versions turned on and the sheet reopened', async () => {
-		await setRules({ ignoreTalentPyramid: false, talentTierVersions: true });
+		await setHouseRules({ ignoreTalentPyramid: false, talentTierVersions: true });
 		await reopen();
 	});
 	e2e.expect('D8 under Talent Tier Versions, the Talents tab offers no rank', (await talent('E2E Grit'))?.canUpgrade, false);
@@ -1131,7 +1130,7 @@ async function advancement(
 		{ rank: 4, xp: 1000 - spent, entry: ['TalentRank -5 E2E Grit tier 1 rank 4'] },
 	);
 	await e2e.step('D10 Talent Tier Versions turned off, and the unranked talent dropped again', async () => {
-		await setRules({ talentTierVersions: false });
+		await setHouseRules({ talentTierVersions: false });
 		await reopen();
 		await notifications();
 		await drop('Quick');
@@ -1292,7 +1291,7 @@ async function advancement(
 }
 
 /** §#39: a Career whose skills differ in case from the character's, removed, then replaced. */
-async function careers(e2e: ScenarioContext, page: Page, settle: () => Promise<unknown>) {
+async function careers(e2e: ScenarioContext, page: Evaluate, settle: () => Promise<unknown>) {
 	const C = 'Careerist';
 	const listed = ['Ranged', 'Cool', 'Stealth', 'Perception', 'Charm', 'Brawl', 'Melee', 'Athletics', 'Discipline'];
 	const skills = async () => {
@@ -1360,7 +1359,7 @@ async function careers(e2e: ScenarioContext, page: Page, settle: () => Promise<u
 }
 
 /** §#199: a skill added to a character whose Career lists it is a career skill. */
-async function careerSkillsOnCreation(e2e: ScenarioContext, page: Page) {
+async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 	const H = 'Hunter';
 	const skill = async (actor: string, name: string) =>
 		(await page((args) => window.characterE2E.skills(args.actor, [args.name]), { actor, name }))[name];
@@ -1459,10 +1458,25 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Page) {
 		{ ranged: await career('Rival', 'Ranged'), survival: await career('Rival', 'Survival') },
 		{ ranged: false, survival: false },
 	);
+	await e2e.step('H8 Ranged dropped on a vehicle, and Survival created on a vehicle holding a Career', async () => {
+		await page((name) => window.characterE2E.create(name, 'vehicle'), 'Hauler');
+		await page((name) => window.characterE2E.open(name), 'Hauler');
+		await dropSkill('Hauler', 'Ranged');
+		await page((items) => window.characterE2E.createItems('Hauler', items), [await worldSource('Ranger')]);
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await page((items) => window.characterE2E.createItems('Hauler', items), [await skillSource('Survival')]);
+	});
+	// The vehicle sheet takes no skill by drop: a skill reaches a vehicle only through a macro.
+	e2e.expect(
+		"H8 a vehicle's skills are no career skills",
+		{ ranged: await career('Hauler', 'Ranged'), survival: await career('Hauler', 'Survival') },
+		{ ranged: null, survival: false },
+	);
+	await page((name) => window.characterE2E.close(name), 'Hauler');
 }
 
 /** §#114, §#202: marking super-characteristics through the sheet. */
-async function superCharacteristics(e2e: ScenarioContext, page: Page, notifications: () => Promise<string[]>) {
+async function superCharacteristics(e2e: ScenarioContext, page: Evaluate, notifications: () => Promise<string[]>) {
 	const S = 'Super';
 	// Marks or unmarks a characteristic from its menu, then waits for the update.
 	const flip = async (actor: string, c: Characteristic) => {
@@ -1592,7 +1606,7 @@ async function superCharacteristics(e2e: ScenarioContext, page: Page, notificati
 }
 
 /** §#114: the Skills tab's order, and a rival's Free Ranks. */
-async function skillsTab(e2e: ScenarioContext, page: Page) {
+async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 	await e2e.step('J1 a character with a skill whose name starts with an accent, and one in lower case', async () => {
 		await page((name) => window.characterE2E.create(name), 'Sorted');
 		await page(
@@ -1636,7 +1650,7 @@ async function skillsTab(e2e: ScenarioContext, page: Page) {
 }
 
 /** §#110: the Talent Pyramid summary under Ignore Talent Pyramid. */
-async function talentPyramidSummary(e2e: ScenarioContext, page: Page) {
+async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	const P = 'Pyramid';
 	const pyramid = () => page((name) => window.characterE2E.pyramid(name), P);
 	const counts = ['2/∞', '1/1', '0/0', '0/0', '0/0'];
@@ -1675,7 +1689,7 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Page) {
 }
 
 /** §#126: the severity cells of Critical Injuries and Critical Hits, and the check they open. */
-async function injuries(e2e: ScenarioContext, page: Page) {
+async function injuries(e2e: ScenarioContext, page: Evaluate) {
 	const severities = ['-', 'easy', 'average', 'hard', 'daunting', 'formidable'];
 	const injuries = severities.map((severity) => ({ name: `E2E ${severity}`, type: 'injury', system: { severity } }));
 	const cells = { '-': '', easy: 'D', average: 'DD', hard: 'DDD', daunting: 'DDDD', formidable: 'DDDDD' };
@@ -1745,7 +1759,7 @@ async function injuries(e2e: ScenarioContext, page: Page) {
 /** §#200: a talent's tier kept from 1 to 5, and one saved above 5 read as 5. */
 async function talentTiers(
 	e2e: ScenarioContext,
-	page: Page,
+	page: Evaluate,
 	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
 	notifications: () => Promise<string[]>,
 ) {
