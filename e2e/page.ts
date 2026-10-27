@@ -48,6 +48,18 @@ export type CombatState = {
  */
 export type FixedDie = { face: number; faces: number };
 
+/**
+ * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
+type Untyped = any;
+
+/**
+ * A collection of the documents a scenario sets up, which {@link PageHelpers.deleteSetUp} empties: `Token` stands for
+ * the tokens of the viewed scene.
+ */
+type SetUpCollection = 'Token' | 'Actor' | 'Item' | 'Folder' | 'Scene' | 'JournalEntry';
+
 type PageHelpers = {
 	events: string[];
 	notifications: string[];
@@ -67,6 +79,51 @@ type PageHelpers = {
 	setUpCombat(setup: CombatSetup): Promise<void>;
 	/** Adds an Extra Slot for a combatant as the tracker's button does, with its token controlled. */
 	addExtraSlotFor(combatant: string): Promise<void>;
+
+	// The scenarios' own page helpers take the helpers below out of `window.e2e`: none of them uses `this`.
+	sleep: (ms: number) => Promise<void>;
+	/** Polls `find` every 100 ms until it returns something truthy, which it returns, or throws after the timeout. */
+	waitFor: <T>(what: string, find: () => T | undefined | null | false, timeout?: number) => Promise<T>;
+	/** An element's text, its white space collapsed. */
+	text: (element: Element | null | undefined) => string;
+	/** A name without its `E2E ` prefix. */
+	unprefixed: (name: string) => string;
+	/** Whether a scenario set the document up: its name starts with `E2E `. */
+	isSetUp: (doc: { name: string }) => boolean;
+	/** The element of a window. */
+	htmlOf: (app: { element?: unknown }) => HTMLElement | undefined;
+	/** The actor `E2E <name>`; throws when there is none. */
+	actor: (name: string) => Untyped;
+	/** The token of the actor `E2E <name>` on the viewed scene; throws when there is none. */
+	token: (name: string) => Untyped;
+	/** Targets the token of the actor `E2E <name>` alone, or no token. */
+	target: (name: string | null) => void;
+	/** The open applications with a CSS class, as `foundry.applications.instances` holds them. */
+	apps: (cssClass: string) => Untyped[];
+	/** Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does. */
+	drop: (element: Element, data: object | DataTransfer) => void;
+	/** Deletes the documents set up in each collection, in the order given. */
+	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
+	/** Creates and views the scene `E2E` when no scene is viewed. */
+	ensureScene: () => Promise<void>;
+	/** Creates a world compendium. */
+	createCompendium: (metadata: { label: string; name?: string; type: string }) => Promise<Untyped>;
+	/** The system settings of these keys, by key. */
+	settings: (keys: string[]) => Record<string, unknown>;
+	/** Sets the system settings whose value differs, in the order given. */
+	setSettings: (values: Record<string, unknown>) => Promise<void>;
+	/**
+	 * Records the notifications from now on, as `<type>: <message>`: the function returned takes those recorded since its
+	 * last call.
+	 */
+	recordNotifications: () => () => string[];
+	/** The dice and symbols of a Dice Prompt's pool preview, positive then negative: `PAA|DD`. */
+	poolPreview: (root: Element) => string;
+	/**
+	 * A Pool Modification as a sheet or a prompt shows it, its glyph then the sign of its operator icon: `S+` adds a
+	 * Setback, `A^` upgrades an Ability die.
+	 */
+	poolModification: (element: Element, icon?: Element | null) => string;
 };
 
 declare global {
@@ -98,6 +155,10 @@ export function installHelpers() {
 			rolling = undefined;
 		}
 	};
+
+	// The notifications each recordNotifications call records.
+	const recorders: string[][] = [];
+	const OPERATORS: Record<string, string> = { 'fa-plus': '+', 'fa-minus': '-', 'fa-arrow-up': '^', 'fa-arrow-down': 'v' };
 
 	const helpers: PageHelpers = {
 		events: [],
@@ -157,18 +218,8 @@ export function installHelpers() {
 
 		async setUpCombat({ combatants, extraSlots = [], start = true, turnOn }) {
 			for (const combat of [...game.combats]) await combat.delete();
-			if (!canvas.scene) {
-				const scene = await Scene.create({ name: 'E2E', width: 2000, height: 2000 });
-				await scene.activate();
-				while (canvas.scene?.id !== scene.id) await new Promise((resolve) => setTimeout(resolve, 200));
-			}
-
-			const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
-			await canvas.scene.deleteEmbeddedDocuments(
-				'Token',
-				canvas.scene.tokens.filter(isSetUp).map((token: { id: string }) => token.id),
-			);
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((actor: { id: string }) => actor.id));
+			await helpers.ensureScene();
+			await helpers.deleteSetUp('Token', 'Actor');
 
 			const actors = await Actor.createDocuments(
 				combatants.map(({ name, type, disposition, owner }) => ({
@@ -231,6 +282,121 @@ export function installHelpers() {
 			canvas.tokens.get(combatantNamed(name).tokenId).control({ releaseOthers: true });
 			await game.combat.addInitiativeSlot();
 		},
+
+		sleep(ms) {
+			return new Promise((resolve) => setTimeout(resolve, ms));
+		},
+
+		async waitFor(what, find, timeout = 10_000) {
+			const start = Date.now();
+			for (;;) {
+				const found = find();
+				if (found) return found;
+				if (Date.now() - start > timeout) throw new Error(`Timed out waiting for ${what}`);
+				await helpers.sleep(100);
+			}
+		},
+
+		text(element) {
+			return (element?.textContent ?? '').replace(/\s+/g, ' ').trim();
+		},
+
+		unprefixed(name) {
+			return name.replace(/^E2E /, '');
+		},
+
+		isSetUp(doc) {
+			return doc.name.startsWith('E2E ');
+		},
+
+		htmlOf(app) {
+			// v12: an AppV1 window's element is a jQuery object.
+			return app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
+		},
+
+		actor(name) {
+			const found = game.actors.getName(`E2E ${name}`);
+			if (!found) throw new Error(`No actor E2E ${name}`);
+			return found;
+		},
+
+		token(name) {
+			const token = canvas.tokens.placeables.find(
+				(placeable: { actor?: { name: string } }) => placeable.actor?.name === `E2E ${name}`,
+			);
+			if (!token) throw new Error(`No token of E2E ${name}`);
+			return token;
+		},
+
+		target(name) {
+			for (const token of [...game.user.targets]) token.setTarget(false, { releaseOthers: false });
+			if (name) helpers.token(name).setTarget(true, { releaseOthers: true });
+		},
+
+		apps(cssClass) {
+			return [...foundry.applications.instances.values()].filter((app: { options?: { classes?: string[] } }) =>
+				app.options?.classes?.includes(cssClass),
+			);
+		},
+
+		drop(element, data) {
+			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
+			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
+			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+		},
+
+		async deleteSetUp(...collections) {
+			const ids = (documents: { filter(test: (doc: { name: string }) => boolean): { id: string }[] }) =>
+				documents.filter(helpers.isSetUp).map((doc) => doc.id);
+			const deletions: Record<SetUpCollection, () => Promise<unknown>> = {
+				Token: async () => canvas.scene?.deleteEmbeddedDocuments('Token', ids(canvas.scene.tokens)),
+				Actor: () => Actor.deleteDocuments(ids(game.actors)),
+				Item: () => Item.deleteDocuments(ids(game.items)),
+				Folder: () => CONFIG.Folder.documentClass.deleteDocuments(ids(game.folders)),
+				Scene: () => Scene.deleteDocuments(ids(game.scenes)),
+				JournalEntry: () => CONFIG.JournalEntry.documentClass.deleteDocuments(ids(game.journal)),
+			};
+			for (const collection of collections) await deletions[collection]();
+		},
+
+		async ensureScene() {
+			if (canvas.scene) return;
+			const scene = await Scene.create({ name: 'E2E', width: 2000, height: 2000 });
+			await scene.activate();
+			while (canvas.scene?.id !== scene.id) await helpers.sleep(200);
+		},
+
+		createCompendium(metadata) {
+			// v12: CompendiumCollection is declared in the scope of Foundry's scripts only, so it is reached through a pack.
+			const Compendiums = foundry.documents?.collections?.CompendiumCollection ?? game.packs.contents[0].constructor;
+			return Compendiums.createCompendium(metadata);
+		},
+
+		settings(keys) {
+			return Object.fromEntries(keys.map((key) => [key, game.settings.get('genesys', key)]));
+		},
+
+		async setSettings(values) {
+			for (const [key, value] of Object.entries(values)) {
+				if (game.settings.get('genesys', key) !== value) await game.settings.set('genesys', key, value);
+			}
+		},
+
+		recordNotifications() {
+			const recorded: string[] = [];
+			recorders.push(recorded);
+			return () => recorded.splice(0);
+		},
+
+		poolPreview(root) {
+			const pool = (side: string) => [...root.querySelectorAll(`.preview .${side} > *`)].map(helpers.text).join('');
+			return `${pool('positive')}|${pool('negative')}`;
+		},
+
+		poolModification(element, icon = element.querySelector('i')) {
+			const operator = Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?';
+			return `${helpers.text(element)}${operator}`;
+		},
 	};
 
 	Hooks.on('combatTurnChange', (_combat: unknown, prior: { turn: number }, current: { turn: number }) =>
@@ -247,6 +413,7 @@ export function installHelpers() {
 	const notify = ui.notifications.notify;
 	ui.notifications.notify = function (this: unknown, message: string, type = 'info', ...rest: unknown[]) {
 		helpers.notifications.push(`${type}: ${message}`);
+		for (const recorded of recorders) recorded.push(`${type}: ${message}`);
 		return notify.call(this, message, type, ...rest);
 	};
 

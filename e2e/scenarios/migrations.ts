@@ -97,10 +97,8 @@ function recordNotices() {
  * module.
  */
 function installMigrationHelpers() {
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
+	const { sleep, actor: actorNamed } = window.e2e;
 	const randomID = () => foundry.utils.randomID() as string;
-	const actorNamed = (name: string) => game.actors.getName(`E2E ${name}`);
 	const scene = () => game.scenes.getName('E2E Migrations');
 	const tokenActor = (name: string) => scene().tokens.find((token: { actorId: string }) => token.actorId === actorNamed(name).id).actor;
 	const packNamed = (label: string) =>
@@ -110,8 +108,6 @@ function installMigrationHelpers() {
 		);
 	const packActor = async (label: string, name: string) =>
 		(await packNamed(label).getDocuments()).find((actor: { name: string }) => actor.name === `E2E ${name}`);
-	// v12 declares its classes as global bindings, not as properties of the window: the system's own packs give it.
-	const CompendiumCollection = foundry.documents?.collections?.CompendiumCollection ?? game.packs.contents[0].constructor;
 
 	type EffectData = Record<string, unknown> & { _id: string; name: string };
 	type ItemData = { _id: string; name: string; type: string; system: Record<string, unknown>; effects: EffectData[] };
@@ -181,8 +177,7 @@ function installMigrationHelpers() {
 
 	window.migrationsE2E = {
 		async setUp() {
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Scene.deleteDocuments(game.scenes.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Actor', 'Scene');
 			for (const pack of game.packs.filter(
 				(pack: { metadata: { label: string; packageType: string } }) =>
 					pack.metadata.packageType === 'world' && pack.metadata.label.startsWith('E2E '),
@@ -248,12 +243,7 @@ function installMigrationHelpers() {
 			await tokenActor('Raider').createEmbeddedDocuments('ActiveEffect', [copyOf(raider.id, hide, { changes: change('soak', 3) })]);
 
 			// A locked world compendium holding a vehicle and a character with an edited copy.
-			const pack = await (
-				CompendiumCollection as { createCompendium(metadata: object): Promise<{ collection: string }> }
-			).createCompendium({
-				label: 'E2E Migrations',
-				type: 'Actor',
-			});
+			const pack = await window.e2e.createCompendium({ label: 'E2E Migrations', type: 'Actor' });
 			await Actor.create({ name: 'E2E V3', type: 'vehicle', system: crewWithIds() }, { pack: pack.collection });
 			const steady = item('E2E Steady', 'talent', [effect('E2E Steady', 'strain.max', 1)]);
 			const packed = await Actor.create({ name: 'E2E Packed', type: 'character', items: [steady] }, { pack: pack.collection });
@@ -263,12 +253,7 @@ function installMigrationHelpers() {
 			await packNamed('E2E Migrations').configure({ locked: true });
 
 			// An unlocked world compendium holding a character with an edited copy, as an older compendium held it.
-			const oldPack = await (
-				CompendiumCollection as { createCompendium(metadata: object): Promise<{ collection: string }> }
-			).createCompendium({
-				label: 'E2E Old Actors',
-				type: 'Actor',
-			});
+			const oldPack = await window.e2e.createCompendium({ label: 'E2E Old Actors', type: 'Actor' });
 			const focus = item('E2E Focus', 'talent', [effect('E2E Focus', 'soak', 1)]);
 			const veteran = await Actor.create({ name: 'E2E Veteran', type: 'character', items: [focus] }, { pack: oldPack.collection });
 			await veteran.createEmbeddedDocuments('ActiveEffect', [
@@ -408,8 +393,7 @@ function installMigrationHelpers() {
 		},
 
 		async cleanUp() {
-			await Scene.deleteDocuments(game.scenes.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Scene', 'Actor');
 			for (const label of ['E2E Migrations', 'E2E Old Actors']) {
 				await packNamed(label).configure({ locked: false });
 				await packNamed(label).deleteCompendium();
@@ -449,12 +433,12 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.importWithCopies());
 	});
 	e2e.expect(
-		'an actor created with copies of its items effects loses them, the edit kept and each effect applied once',
+		'#102 A1 an actor created with copies of its items effects loses them, the edit kept and each effect applied once',
 		await gm.evaluate(() => window.migrationsE2E.created('Imported')),
 		{ effects: { own: [], items: [`E2E Notch / E2E Notch (edited) | ${SHIELD} | soak +2`] }, soak: 2 },
 	);
 	e2e.expect(
-		'an actor imported from a compendium with copies loses them, the edit kept and each effect applied once',
+		'#102 A2 an actor imported from a compendium with copies loses them, the edit kept and each effect applied once',
 		await gm.evaluate(() => window.migrationsE2E.created('Veteran')),
 		{ effects: { own: [], items: [`E2E Focus / E2E Focus (edited) | ${SHIELD} | soak +2`] }, soak: 2 },
 	);
@@ -464,7 +448,7 @@ export async function run(e2e: ScenarioContext) {
 		{ effects: { own: [], items: [`E2E Hunch / E2E Hunch | ${SHIELD} | soak +1`] }, soak: 1 },
 	);
 	e2e.expect(
-		'an actor created with unpaired copies gives a permanent warning naming it and the item',
+		'#102 A3 an actor created with unpaired copies gives a permanent warning naming it and the item',
 		await gm.evaluate(() => window.migrationsE2E.unpairedNotice('E2E Stray', 'E2E Hunch')),
 		{
 			type: 'warning',
@@ -491,40 +475,40 @@ export async function run(e2e: ScenarioContext) {
 	// #56 and #102: the first load as GM runs every migration.
 	const migrated = await reload('GM loads the world at migration version 0');
 	e2e.expect(
-		'the migrations run once, each with permanent notifications, the unpaired copies warned',
+		'#56 A1 the migrations run once, each with permanent notifications, the unpaired copies warned',
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
 	e2e.expect('the migration version reaches 3', migrated.version, 3);
-	e2e.expect('a world vehicle crew holds uuids, each actor once', migrated.crew.V1, MIGRATED_CREW);
+	e2e.expect('#56 A2 a world vehicle crew holds uuids, each actor once', migrated.crew.V1, MIGRATED_CREW);
 	e2e.expect(
-		'an unlinked token vehicle crew is migrated, its base actor left alone',
+		'#56 A3 an unlinked token vehicle crew is migrated, its base actor left alone',
 		[migrated.crew['V2 token'], migrated.crew['V2 base']],
 		[MIGRATED_CREW, { passengers: [], roles: [] }],
 	);
 	e2e.expect(
-		'a vehicle in a locked world compendium is migrated, the compendium locked again',
+		'#56 A4 a vehicle in a locked world compendium is migrated, the compendium locked again',
 		[migrated.crew['V3 pack'], migrated.locked['E2E Migrations']],
 		[MIGRATED_CREW, true],
 	);
 	e2e.expect(
-		'a character loses its copies, their name, image, changes and duration written on its talent effect',
+		'#102 A4 a character loses its copies, their name, image, changes and duration written on its talent effect',
 		migrated.effects.Mira,
 		MIGRATED_MIRA,
 	);
 	e2e.expect(
-		'a disabled copy of a character equipment leaves its item effect enabled',
+		'#102 A5 a disabled copy of a character equipment leaves its item effect enabled',
 		migrated.effects.Mira.items.filter((effect) => /^E2E (Mail|Leather|Stim) /.test(effect)),
 		MIGRATED_MIRA.items.filter((effect) => /^E2E (Mail|Leather|Stim) /.test(effect)),
 	);
 	e2e.expect(
-		'a talent effect that does not transfer is not paired with a copy',
+		'#102 A6 a talent effect that does not transfer is not paired with a copy',
 		migrated.effects.Mira.items.filter((effect) => effect.startsWith('E2E Grit /')),
 		MIGRATED_MIRA.items.filter((effect) => effect.startsWith('E2E Grit /')),
 	);
 	// Grit's edited effect adds 2 to soak, Mail equipped 1 to melee defense, Lantern carried 1 to strain, Blessing 10 to
 	// wounds; Leather carried and Stim not used are suppressed.
-	e2e.expect('each effect of a migrated character applies once', migrated.applied.Mira, {
+	e2e.expect('#102 A7 each effect of a migrated character applies once', migrated.applied.Mira, {
 		soak: 2,
 		'defense.melee': 1,
 		'defense.ranged': 0,
@@ -541,7 +525,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'an unlinked token loses its copies, their edits written on its item effect, its base actor left alone',
+		'#102 A8 an unlinked token loses its copies, their edits written on its item effect, its base actor left alone',
 		[
 			migrated.effects['Raider token'],
 			migrated.effects['Raider base'],
@@ -556,7 +540,7 @@ export async function run(e2e: ScenarioContext) {
 		],
 	);
 	e2e.expect(
-		'an actor of a locked world compendium loses its copies, their edits written on its item effect',
+		'#102 A9 an actor of a locked world compendium loses its copies, their edits written on its item effect',
 		migrated.effects['Packed pack'],
 		{
 			own: [],
@@ -564,24 +548,24 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'an actor of an unlocked world compendium loses its copies, the compendium left unlocked',
+		'#56 A5 an actor of an unlocked world compendium loses its copies, the compendium left unlocked',
 		[migrated.effects['Veteran pack'], migrated.locked['E2E Old Actors']],
 		[{ own: [], items: [`E2E Focus / E2E Focus (edited) | ${SHIELD} | soak +2`] }, false],
 	);
-	e2e.expect('unpaired copies are deleted, the item effects left as they were', migrated.effects.Odd, {
+	e2e.expect('#102 A10 unpaired copies are deleted, the item effects left as they were', migrated.effects.Odd, {
 		own: [],
 		items: [`E2E Knack / E2E Knack | ${SHIELD} | soak +1`],
 	});
 	e2e.expect(
-		'the unpaired copies warning of a migration is permanent',
+		'#102 A11 the unpaired copies warning of a migration is permanent',
 		await gm.evaluate(() => window.migrationsE2E.unpairedNotice('E2E Odd', 'E2E Knack')?.permanent),
 		true,
 	);
 
 	// A second load runs nothing.
 	const reloaded = await reload('GM loads the migrated world again');
-	e2e.expect('a second load runs no migration', await gm.evaluate(() => window.migrationsE2E.permanentNotices()), []);
-	e2e.expect('a second load leaves the migrated world as it was', reloaded, migrated);
+	e2e.expect('#56 A6 a second load runs no migration', await gm.evaluate(() => window.migrationsE2E.permanentNotices()), []);
+	e2e.expect('#56 A7 a second load leaves the migrated world as it was', reloaded, migrated);
 
 	// #56: migrations that run again on migrated data change nothing.
 	await gm.evaluate(() => window.migrationsE2E.rollBack());
@@ -591,7 +575,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([])),
 	);
-	e2e.expect('the migrations run again leave the migrated world as it was', rerun, migrated);
+	e2e.expect('#56 A8 the migrations run again leave the migrated world as it was', rerun, migrated);
 
 	await e2e.step('scenario documents deleted', () => gm.evaluate(() => window.migrationsE2E.cleanUp()));
 }

@@ -1,5 +1,5 @@
-/** @file The sheet and chat card items of the test checklist (#37), each step named after its section: `#95 …` for §#95. */
-import type { ScenarioContext } from '../scenario.ts';
+/** @file The sheet and chat card items of the test checklist (#37), each step named after its section: `#95 A1 …` for §#95. */
+import type { Client, ScenarioContext } from '../scenario.ts';
 
 /**
  * A row of an Effects tab.
@@ -108,23 +108,8 @@ declare global {
  */
 function installSheetsHelpers() {
 	if (window.sheetsE2E) return;
-	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-	const until = async <T>(find: () => T | undefined | null | false, what: string): Promise<T> => {
-		for (let tries = 0; tries < 50; tries++) {
-			const found = find();
-			if (found) return found;
-			await sleep(200);
-		}
-		throw new Error(`No ${what}`);
-	};
+	const { sleep, waitFor, text, isSetUp, htmlOf, actor, apps, drop } = window.e2e;
 	const ApplicationV2 = foundry.applications.api.ApplicationV2;
-	const text = (element: Element | null | undefined) => element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-	const isSetUp = (doc: { name: string }) => doc.name.startsWith('E2E ');
-	const actor = (name: string) => {
-		const found = game.actors.getName(`E2E ${name}`);
-		if (!found) throw new Error(`No actor E2E ${name}`);
-		return found;
-	};
 	// An actor's name, a world item's name, or `Actor/Item` for an owned item.
 	const documentNamed = (name: string) => {
 		const [owner, itemName] = name.split('/');
@@ -137,12 +122,10 @@ function installSheetsHelpers() {
 		if (!found) throw new Error(`No document E2E ${name}`);
 		return found;
 	};
-	const elementOf = (app: { element: unknown }) =>
-		(app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0]) as HTMLElement;
 	const sheetElement = (name: string) => {
 		const app = documentNamed(name).sheet;
 		if (!app.rendered) throw new Error(`The sheet of ${name} is closed`);
-		return elementOf(app);
+		return htmlOf(app)!;
 	};
 	const find = (root: Element, selector: string, which: number | string = 1) => {
 		const matches = [...root.querySelectorAll<HTMLElement>(selector)];
@@ -157,15 +140,7 @@ function installSheetsHelpers() {
 			(app: { rendered: boolean; hasFrame?: boolean; id: string }) =>
 				app.rendered && (app.hasFrame ?? true) && app.id !== 'story-point-tracker',
 		);
-	const promptsOf = (cssClass: string) =>
-		[...foundry.applications.instances.values()].filter(
-			(app: { options: { classes: string[] }; rendered: boolean }) => app.options.classes.includes(cssClass) && app.rendered,
-		);
-	const dropOn = (element: Element, data: object) => {
-		const dataTransfer = new DataTransfer();
-		dataTransfer.setData('text/plain', JSON.stringify(data));
-		element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
-	};
+	const promptsOf = (cssClass: string) => apps(cssClass).filter((app: { rendered: boolean }) => app.rendered);
 	const notifications = () =>
 		[...document.querySelectorAll('#notifications .notification')].map((element) => text(element)).filter(Boolean);
 
@@ -197,8 +172,7 @@ function installSheetsHelpers() {
 	const helpers: SheetsHelpers = {
 		async setUp(player) {
 			await helpers.closeAll();
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Item.deleteDocuments(game.items.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Actor', 'Item');
 			const playerId = game.users.getName(player).id;
 			const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
 			await Actor.createDocuments([
@@ -274,13 +248,13 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			if (!app.rendered) {
 				await app.render(true);
-				await until(() => app.rendered && elementOf(app), `sheet of ${name}`);
+				await waitFor(`sheet of ${name}`, () => app.rendered && htmlOf(app));
 				await sleep(300);
 			}
 			return {
 				appV2: app instanceof ApplicationV2,
 				title: app.title,
-				headerTitle: text(elementOf(app).querySelector('.window-header .window-title')),
+				headerTitle: text(htmlOf(app)!.querySelector('.window-header .window-title')),
 			};
 		},
 
@@ -292,7 +266,7 @@ function installSheetsHelpers() {
 
 		header(name) {
 			const app = documentNamed(name).sheet;
-			const buttons = [...elementOf(app).querySelectorAll<HTMLElement>('.window-header [data-action]')].map(
+			const buttons = [...htmlOf(app)!.querySelectorAll<HTMLElement>('.window-header [data-action]')].map(
 				(button) => button.dataset.action!,
 			);
 			const controls = app
@@ -354,7 +328,7 @@ function installSheetsHelpers() {
 				}),
 			}));
 			await app.render(true);
-			await until(() => app.rendered, `sheet of ${name}`);
+			await waitFor(`sheet of ${name}`, () => app.rendered);
 			await sleep(500);
 			for (const { hook, id } of ids) Hooks.off(hook, id);
 			return { fired: names.filter((hook) => fired.includes(hook)), htmlIsElement };
@@ -384,7 +358,7 @@ function installSheetsHelpers() {
 			const dropped = collection.getName(`E2E ${document.name}`);
 			if (!dropped) throw new Error(`No ${document.type} E2E ${document.name}`);
 			const element = sheetElement(name);
-			dropOn(selector ? find(element, selector) : element, { type: document.type, uuid: dropped.uuid });
+			drop(selector ? find(element, selector) : element, { type: document.type, uuid: dropped.uuid });
 			await sleep(1000);
 		},
 
@@ -399,16 +373,16 @@ function installSheetsHelpers() {
 
 		async promptResolution() {
 			// The prompt's class, from a prompt the journal opened.
-			const shown = await until(() => promptsOf('app-award-xp-prompt')[0], 'award XP prompt');
+			const shown = await waitFor('award XP prompt', () => promptsOf('app-award-xp-prompt')[0]);
 			const AwardXPPrompt = shown.constructor;
 			await helpers.closePrompts('app-award-xp-prompt');
 			await sleep(300);
 
 			let resolution = { resolved: false, value: null as unknown, elementStillShown: false };
 			const promise = AwardXPPrompt.promptForXPAward().then((value: unknown) => {
-				resolution = { resolved: true, value: value ?? null, elementStillShown: !!elementOf(app)?.isConnected };
+				resolution = { resolved: true, value: value ?? null, elementStillShown: !!htmlOf(app)?.isConnected };
 			});
-			const app = await until(() => promptsOf('app-award-xp-prompt')[0], 'award XP prompt');
+			const app = await waitFor('award XP prompt', () => promptsOf('app-award-xp-prompt')[0]);
 			await app.close();
 			await Promise.race([promise, sleep(2000)]);
 			return resolution;
@@ -423,7 +397,7 @@ function installSheetsHelpers() {
 			const element = sheetElement(name);
 			const dataTransfer = new DataTransfer();
 			find(element, from, which).dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
-			find(element, to).dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+			drop(find(element, to), dataTransfer);
 			await sleep(1000);
 		},
 
@@ -436,24 +410,23 @@ function installSheetsHelpers() {
 			if (!menu.querySelector('.context-menu')) {
 				menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			}
-			const entry = await until(
-				() => [...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) => item.querySelector(`i.${icon}`)),
-				`menu entry ${icon}`,
+			const entry = await waitFor(`menu entry ${icon}`, () =>
+				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) => item.querySelector(`i.${icon}`)),
 			);
 			entry.click();
 			await sleep(500);
 		},
 
 		setPromptInput(cssClass, selector, value, event) {
-			const field = elementOf(promptsOf(cssClass)[0]).querySelector<HTMLInputElement>(selector);
+			const field = htmlOf(promptsOf(cssClass)[0])!.querySelector<HTMLInputElement>(selector);
 			if (!field) throw new Error(`No ${selector} in ${cssClass}`);
 			field.value = value;
 			field.dispatchEvent(new Event(event, { bubbles: true }));
 		},
 
 		async clickPrompt(cssClass, selector) {
-			const app = await until(() => promptsOf(cssClass)[0], cssClass);
-			find(elementOf(app), selector).click();
+			const app = await waitFor(cssClass, () => promptsOf(cssClass)[0]);
+			find(htmlOf(app)!, selector).click();
 			// The prompt closes once it resolves.
 			for (let tries = 0; tries < 25 && app.rendered; tries++) await sleep(200);
 			await sleep(500);
@@ -461,14 +434,12 @@ function installSheetsHelpers() {
 
 		async pickImage(name, path) {
 			const sheet = documentNamed(name).sheet;
-			const image = find(elementOf(sheet), 'img[data-edit="img"]');
+			const image = find(htmlOf(sheet)!, 'img[data-edit="img"]');
 			image.click();
-			const picker = await until(
-				() =>
-					[...Object.values(ui.windows), ...foundry.applications.instances.values()].find(
-						(app: { constructor: { name: string }; rendered: boolean }) => app.constructor.name.includes('FilePicker'),
-					),
-				'file picker',
+			const picker = await waitFor('file picker', () =>
+				[...Object.values(ui.windows), ...foundry.applications.instances.values()].find(
+					(app: { constructor: { name: string }; rendered: boolean }) => app.constructor.name.includes('FilePicker'),
+				),
 			);
 			// The user picks a file: the picker calls back with its path.
 			await picker.callback(path);
@@ -492,7 +463,7 @@ function installSheetsHelpers() {
 
 		async clickStoryPoints(selector) {
 			const tracker = foundry.applications.instances.get('story-point-tracker');
-			find(elementOf(tracker), selector).click();
+			find(htmlOf(tracker)!, selector).click();
 			await sleep(1000);
 		},
 
@@ -519,13 +490,13 @@ function installSheetsHelpers() {
 				if (app.rendered) await app.close();
 				await sleep(300);
 				await app.render(true);
-				await until(() => app.rendered && elementOf(app)?.querySelector('[name="changes.0.key"]'), `effect sheet on ${owner}`);
+				await waitFor(`effect sheet on ${owner}`, () => app.rendered && htmlOf(app)?.querySelector('[name="changes.0.key"]'));
 				await sleep(300);
 			},
 
 			async state(owner) {
 				const app = editedEffect(owner).sheet;
-				const element = elementOf(app);
+				const element = htmlOf(app)!;
 				const select = (name: string) => element.querySelector<HTMLSelectElement>(`select[name="${name}"]`)!;
 				const options = (parent: Element) => [...parent.querySelectorAll('option')];
 				const charSelect = select('changes.1.char');
@@ -557,7 +528,7 @@ function installSheetsHelpers() {
 			},
 
 			async edit(owner) {
-				const element = () => elementOf(editedEffect(owner).sheet);
+				const element = () => htmlOf(editedEffect(owner).sheet)!;
 				setSelect(element(), 'select[name="changes.0.key"]', 'system.characteristics.presence');
 				setSelect(element(), 'select[name="changes.0.mode"]', '5');
 				setSelect(element(), 'select[name="changes.1.char"]', 'presence');
@@ -566,7 +537,7 @@ function installSheetsHelpers() {
 				await sleep(300);
 				// Adding a change submits the others and renders the sheet again.
 				find(element(), '[data-action="addChange"], [data-action="add"]').click();
-				await until(() => element()?.querySelector('[name="changes.6.key"]'), 'added change');
+				await waitFor('added change', () => element()?.querySelector('[name="changes.6.key"]'));
 				await sleep(300);
 				setSelect(element(), 'select[name="changes.6.key"]', 'genesys.pool.check.target');
 				setSelect(element(), 'input[name="changes.6.value"]', 'B');
@@ -645,10 +616,10 @@ function installSheetsHelpers() {
 			};
 			try {
 				await app.render(true);
-				await until(() => app.rendered && elementOf(app)?.querySelector('.source'), `source of ${name}`);
-				const before = elementOf(app).querySelector('.source')!.innerHTML;
+				await waitFor(`source of ${name}`, () => app.rendered && htmlOf(app)?.querySelector('.source'));
+				const before = htmlOf(app)!.querySelector('.source')!.innerHTML;
 				await sleep(2500);
-				return { before, afterLinks: elementOf(app).querySelectorAll('.source a.content-link').length };
+				return { before, afterLinks: htmlOf(app)!.querySelectorAll('.source a.content-link').length };
 			} finally {
 				editor.enrichHTML = enrichHTML;
 			}
@@ -742,9 +713,9 @@ function installSheetsHelpers() {
 		async settingsHintLink() {
 			const sheet = game.settings.sheet;
 			await sheet.render(true);
-			await until(() => sheet.rendered && elementOf(sheet), 'settings');
+			await waitFor('settings', () => sheet.rendered && htmlOf(sheet));
 			await sleep(500);
-			const link = elementOf(sheet).querySelector<HTMLAnchorElement>('a[href*="kornifex/FVTT-Genesys/wiki"]');
+			const link = htmlOf(sheet)!.querySelector<HTMLAnchorElement>('a[href*="kornifex/FVTT-Genesys/wiki"]');
 			const href = link?.href ?? null;
 			await sheet.close();
 			return href;
@@ -762,8 +733,7 @@ function installSheetsHelpers() {
 
 		async cleanUp() {
 			await helpers.closeAll();
-			await Actor.deleteDocuments(game.actors.filter(isSetUp).map((doc: { id: string }) => doc.id));
-			await Item.deleteDocuments(game.items.filter(isSetUp).map((doc: { id: string }) => doc.id));
+			await window.e2e.deleteSetUp('Actor', 'Item');
 		},
 	};
 
@@ -782,7 +752,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	await gm.evaluate(installSheetsHelpers);
 	e2e.expect(
-		"#97 the welcome message's Project Documentation link opens the fork's wiki",
+		"#97 A1 the welcome message's Project Documentation link opens the fork's wiki",
 		await gm.evaluate(() => window.sheetsE2E.welcomeLink()),
 		'https://github.com/kornifex/FVTT-Genesys/wiki',
 	);
@@ -807,7 +777,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	const titled = (title: string) => ({ appV2: true, title, headerTitle: title });
 	e2e.expect(
-		'#95 every actor sheet is an ApplicationV2 window titled "<type>: <name>"',
+		'#95 A1 every actor sheet is an ApplicationV2 window titled "<type>: <name>"',
 		Object.fromEntries(actorTypes.map((name) => [name, windows[name]])),
 		{
 			Hero: titled('Character: E2E Hero'),
@@ -822,14 +792,14 @@ export async function run(e2e: ScenarioContext) {
 		itemTypes,
 	);
 	e2e.expect(
-		'#95 every item sheet is an ApplicationV2 window titled "<type>: <name>"',
+		'#95 A2 every item sheet is an ApplicationV2 window titled "<type>: <name>"',
 		Object.fromEntries(itemTypes.map((type) => [type, windows[type]])),
 		Object.fromEntries(itemTypes.map((type) => [type, titled(`${itemLabels[type]}: E2E ${type}`)])),
 	);
 	e2e.log('item type labels', itemLabels);
 
 	e2e.expect(
-		'#95 the AppV2 header holds the controls menu, with the prototype token and artwork entries, and the copy-UUID and sheet-config buttons',
+		'#95 A3 the AppV2 header holds the controls menu, with the prototype token and artwork entries, and the copy-UUID and sheet-config buttons',
 		header,
 		// v13 moves the sheet-config button into the controls menu.
 		version === 12
@@ -851,7 +821,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header a'));
 	});
 	e2e.expect(
-		'#95 every prompt and the story point tracker is an ApplicationV2 window',
+		'#95 A4 every prompt and the story point tracker is an ApplicationV2 window',
 		await gm.evaluate(() => ({
 			dicePrompt: window.sheetsE2E.prompts('app-dice-prompt'),
 			awardXP: window.sheetsE2E.prompts('app-award-xp-prompt'),
@@ -872,13 +842,13 @@ export async function run(e2e: ScenarioContext) {
 	await gm.page.focus('.app-award-xp-prompt .amount input');
 	await e2e.step('#95 GM presses Enter in the award XP prompt', () => gm.page.keyboard.press('Enter'));
 	e2e.expect(
-		'#95 Enter in a prompt submits no native form',
+		'#95 A5 Enter in a prompt submits no native form',
 		await gm.evaluate(() => (window as unknown as { e2eMarker?: boolean }).e2eMarker ?? false),
 		true,
 	);
 	e2e.log('award XP prompts open after Enter', await gm.evaluate(() => window.sheetsE2E.prompts('app-award-xp-prompt').length));
 	await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header a'));
-	e2e.expect('#95 a prompt resolves when it starts closing', await gm.evaluate(() => window.sheetsE2E.promptResolution()), {
+	e2e.expect('#95 A6 a prompt resolves when it starts closing', await gm.evaluate(() => window.sheetsE2E.promptResolution()), {
 		resolved: true,
 		value: null,
 		elementStillShown: true,
@@ -886,7 +856,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// Render hooks.
 	e2e.expect(
-		'#95 an actor sheet fires the AppV2 render hooks with an element, not renderActorSheet',
+		'#95 A7 an actor sheet fires the AppV2 render hooks with an element, not renderActorSheet',
 		await gm.evaluate(() => window.sheetsE2E.renderHooks('Hero')),
 		{
 			fired: [
@@ -900,7 +870,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'#95 an item sheet fires the AppV2 render hooks with an element, not renderItemSheet',
+		'#95 A8 an item sheet fires the AppV2 render hooks with an element, not renderItemSheet',
 		await gm.evaluate(() => window.sheetsE2E.renderHooks('gear')),
 		{ fired: ['renderApplicationV2', 'renderDocumentSheetV2', 'renderItemSheetV2', 'renderGenesysItemSheet'], htmlIsElement: true },
 	);
@@ -919,7 +889,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 	});
 	e2e.expect(
-		'#95 a reopened sheet shows the tab it was closed on',
+		'#95 A9 a reopened sheet shows the tab it was closed on',
 		await gm.evaluate(() => ({
 			Hero: window.sheetsE2E.activeTab('Hero'),
 			Vehicle: window.sheetsE2E.activeTab('Vehicle'),
@@ -941,7 +911,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 	});
 	e2e.expect(
-		'#95 a field change updates the document',
+		'#95 A10 a field change updates the document',
 		await gm.evaluate(() => ({
 			rival: game.actors.getName('E2E Rival Renamed')?.system.characteristics.brawn ?? null,
 			weaponDamage: game.items.getName('E2E weapon').system.baseDamage,
@@ -974,7 +944,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		"#95 a sheet the player can't edit has its fields disabled and its text areas read-only",
+		"#95 A11 a sheet the player can't edit has its fields disabled and its text areas read-only",
 		await player.evaluate(() => ({
 			Observed: window.sheetsE2E.editableFields('Observed'),
 			Limited: window.sheetsE2E.editableFields('Limited'),
@@ -994,7 +964,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		"#95 a drop on a sheet the player can't edit is ignored",
+		"#95 A12 a drop on a sheet the player can't edit is ignored",
 		await gm.evaluate(() => ({
 			Observed: window.sheetsE2E.itemNames('Observed'),
 			Hero: window.sheetsE2E.itemNames('Hero').includes('E2E weapon'),
@@ -1010,7 +980,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#95 GM: a picked image becomes the actor image',
+		'#95 A13 GM: a picked image becomes the actor image',
 		await gm.evaluate(() => window.sheetsE2E.pickImage('Bearer', 'icons/svg/mystery-man.svg')),
 		{ pickerShown: true, img: 'icons/svg/mystery-man.svg' },
 	);
@@ -1021,7 +991,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#95 GM: the career skill prompt opens for a dropped career',
+		'#95 A14 GM: the career skill prompt opens for a dropped career',
 		await gm.evaluate(() => window.sheetsE2E.prompts('app-career-skill-prompt')),
 		[{ appV2: true, title: 'Career Skills' }],
 	);
@@ -1037,14 +1007,18 @@ export async function run(e2e: ScenarioContext) {
 			await sheets.clickPrompt('app-award-xp-prompt', '.award-xp-prompt button');
 		}),
 	);
-	e2e.expect('#95 GM: the award adds a journal entry and 50 available XP', await gm.evaluate(() => window.sheetsE2E.journal('Bearer')), {
-		availableXP: journal.availableXP + 50,
-		entries: journal.entries + 1,
-	});
+	e2e.expect(
+		'#95 A15 GM: the award adds a journal entry and 50 available XP',
+		await gm.evaluate(() => window.sheetsE2E.journal('Bearer')),
+		{
+			availableXP: journal.availableXP + 50,
+			entries: journal.entries + 1,
+		},
+	);
 	await e2e.step('#95 GM drops a talent on the character', () =>
 		gm.evaluate(() => window.sheetsE2E.drop('Bearer', { type: 'Item', name: 'talent' })),
 	);
-	e2e.expect('#95 GM: the dropped items are on the character', await gm.evaluate(() => window.sheetsE2E.itemNames('Bearer')), [
+	e2e.expect('#95 A16 GM: the dropped items are on the character', await gm.evaluate(() => window.sheetsE2E.itemNames('Bearer')), [
 		'E2E archetype',
 		'E2E career',
 		'E2E skill',
@@ -1058,7 +1032,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#95 GM: the clone prompt opens for an actor dropped on a vehicle',
+		'#95 A17 GM: the clone prompt opens for an actor dropped on a vehicle',
 		await gm.evaluate(() => window.sheetsE2E.prompts('app-clone-actor-prompt')),
 		[{ appV2: true, title: 'Drop Confirmation' }],
 	);
@@ -1075,7 +1049,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#95 GM: the item sheets take the dropped items',
+		'#95 A18 GM: the item sheets take the dropped items',
 		await gm.evaluate(() => {
 			const system = (name: string) => game.items.getName(`E2E ${name}`).system;
 			return {
@@ -1103,7 +1077,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#95 GM: the dice prompt rolls a check from a skill and from /gendr',
+		'#95 A19 GM: the dice prompt rolls a check from a skill and from /gendr',
 		await gm.evaluate(() => window.sheetsE2E.readMessages().map(({ speaker, rolls }) => ({ speaker, rolls }))),
 		// A roll without an actor has no actor speaking.
 		[
@@ -1119,7 +1093,7 @@ export async function run(e2e: ScenarioContext) {
 	const spent = await gm.evaluate(() => window.sheetsE2E.storyPoints());
 	await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('a:has(.fa-arrows-rotate)'));
 	e2e.expect(
-		'#95 GM: spending a story point moves it from the GM pool to the players, and resetting gives one to each player',
+		'#95 A20 GM: spending a story point moves it from the GM pool to the players, and resetting gives one to each player',
 		{ spent, reset: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ spent: { gm: 2, player: 3 }, reset: { gm: 1, player: 1 } },
 	);
@@ -1165,7 +1139,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	const state = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Hero'));
 	e2e.expect(
-		'#85 the effect sheet renders from its template',
+		'#85 A1 the effect sheet renders from its template',
 		state.template,
 		{
 			12: 'systems/genesys/templates/sheets/effect-config.v12.hbs',
@@ -1173,12 +1147,12 @@ export async function run(e2e: ScenarioContext) {
 		}[version],
 	);
 	e2e.expect(
-		"#140 the dice pool characteristic select shows the characteristics' names sorted, and keeps its selection",
+		"#140 A1 the dice pool characteristic select shows the characteristics' names sorted, and keeps its selection",
 		state.charSelect,
 		englishCharacteristics,
 	);
 	e2e.expect(
-		'#140 the key select lists the six characteristics in their order, then the vehicle characteristics, and keeps its selection',
+		'#140 A2 the key select lists the six characteristics in their order, then the vehicle characteristics, and keeps its selection',
 		{ group: state.keyGroup, selected: state.keySelected },
 		{
 			group: keyGroup(
@@ -1191,7 +1165,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const skillSelect = (index: number, selected: string) => ({ index, selected, custom: true, changeCase: true, compendiumCase: false });
 	e2e.expect(
-		"#40 #49 every skill select lists the skills the effect's changes apply to, a compendium skill once with the change's case",
+		"#40 A1 every skill select lists the skills the effect's changes apply to, a compendium skill once with the change's case",
 		state.skillSelects,
 		[skillSelect(0, state.skillSelects[0]?.selected ?? ''), skillSelect(3, 'E2E Custom Skill'), skillSelect(4, 'ranged (light)')],
 	);
@@ -1213,7 +1187,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#32 #40 saving an effect sheet keeps its Pool Modification keys and values, a skill outside the compendium included, and blanks a non-glyph value',
+		'#32 A1 saving an effect sheet keeps its Pool Modification keys and values, a skill outside the compendium included, and blanks a non-glyph value',
 		await gm.evaluate(() => ({
 			actor: window.sheetsE2E.effectSheet.changes('Hero'),
 			item: window.sheetsE2E.effectSheet.changes('Bearer/Charm'),
@@ -1229,7 +1203,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#85 #140 #32 the edited changes are saved, a Pool Modification without characteristic or skill with an empty subject',
+		'#85 A2 the edited changes are saved, a Pool Modification without characteristic or skill with an empty subject',
 		await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')),
 		[
 			['system.characteristics.presence', 5, '1'],
@@ -1250,7 +1224,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const french = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Bearer/Charm'));
 	e2e.expect(
-		"#140 in French, the dice pool characteristic select shows the characteristics' French names sorted in French",
+		"#140 A3 in French, the dice pool characteristic select shows the characteristics' French names sorted in French",
 		french.charSelect,
 		{
 			options: ['Agilité', 'Intelligence', 'Présence', 'Ruse', 'Vigueur', 'Volonté'],
@@ -1259,7 +1233,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		'#140 in French, the key select lists the six characteristics in their order, then the vehicle characteristics',
+		'#140 A4 in French, the key select lists the six characteristics in their order, then the vehicle characteristics',
 		{ group: french.keyGroup, selected: french.keySelected },
 		{
 			group: keyGroup(
@@ -1285,7 +1259,7 @@ export async function run(e2e: ScenarioContext) {
 	const frenchCards = await gm.evaluate(() => window.sheetsE2E.cards().map((card) => card.content.activation));
 	const noSkills = await gm.evaluate(() => window.sheetsE2E.charactersSkillsEmptied('Skilless'));
 	e2e.expect(
-		"#82 in French, the abilities' cards read Passif and Actif, and a character created without skills is notified",
+		"#82 A1 in French, the abilities' cards read Passif and Actif, and a character created without skills is notified",
 		{ cards: frenchCards, noSkills, notification: await gm.evaluate(() => window.sheetsE2E.notification('compendium')) },
 		{
 			cards: ['Passif', 'Actif (Maneuver)'],
@@ -1337,7 +1311,7 @@ export async function run(e2e: ScenarioContext) {
 		],
 	});
 	e2e.expect(
-		'#101 Add in each section creates an effect named after the document, shown in the tab without reopening the sheet',
+		'#101 A1 Add in each section creates an effect named after the document, shown in the tab without reopening the sheet',
 		addedRows,
 		{
 			Observed: addedFor('E2E Observed'),
@@ -1364,7 +1338,7 @@ export async function run(e2e: ScenarioContext) {
 		for (const name of sources) before[name] = await gm.evaluate((name) => window.sheetsE2E.sourceBeforeEnrichment(name), name);
 	});
 	e2e.expect(
-		'#101 the source line shows its raw text before enrichment',
+		'#101 A2 the source line shows its raw text before enrichment',
 		before,
 		Object.fromEntries(sources.map((name) => [name, { before: sourceText, afterLinks: 1 }])),
 	);
@@ -1391,7 +1365,7 @@ export async function run(e2e: ScenarioContext) {
 		sources,
 	);
 	e2e.expect(
-		'#101 #82 an edited source shows enriched right away, in small italics',
+		'#101 A3 an edited source shows enriched right away, in small italics',
 		enriched,
 		Object.fromEntries(sources.map((name) => [name, { links: 1, rolls: 1, checks: 1, italic: true, smaller: true, edited: true }])),
 	);
@@ -1427,7 +1401,7 @@ export async function run(e2e: ScenarioContext) {
 			gm.evaluate(() => window.sheetsE2E.menu('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Hero', 'fa-trash')),
 		),
 	};
-	e2e.expect('#82 the Crew tab follows the passengers and role members added and removed', crewSteps, {
+	e2e.expect('#82 A2 the Crew tab follows the passengers and role members added and removed', crewSteps, {
 		passengersAdded: { passengers: ['E2E Hero', 'E2E Bearer'], members: [[]] },
 		memberAdded: { passengers: ['E2E Hero'], members: [['E2E Bearer']] },
 		memberRemoved: { passengers: ['E2E Hero'], members: [[]] },
@@ -1474,7 +1448,7 @@ export async function run(e2e: ScenarioContext) {
 	const ownerRow = { name: 'E2E Own', source: 'None', buttons: ['fa-power-off', 'fa-edit', 'fa-trash'] };
 	const kitRow = { name: 'E2E Kit effect', source: 'E2E Kit', buttons: ['fa-power-off', 'fa-edit'] };
 	e2e.expect(
-		"#102 an actor's Effects tab lists its own effects and its items', with the item as source, and Delete only for its own",
+		"#102 A1 an actor's Effects tab lists its own effects and its items', with the item as source, and Delete only for its own",
 		ownerRows,
 		{ Bearer: [ownerRow, kitRow], Rival: [ownerRow, kitRow], Vehicle: [ownerRow, kitRow] },
 	);
@@ -1503,7 +1477,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		'#102 Edit opens the effect where it lives, and the power button toggles disabled only',
+		'#102 A2 Edit opens the effect where it lives, and the power button toggles disabled only',
 		await gm
 			.evaluate(() => {
 				const kit = game.actors.getName('E2E Rival').items.getName('E2E Kit');
@@ -1519,7 +1493,7 @@ export async function run(e2e: ScenarioContext) {
 			.then(async (found) => ({ ...found, effect: await kitEffect() })),
 		{ opened: [true], rival: ['E2E Own'], effect: { disabled: true, rest: kitBefore.rest } },
 	);
-	e2e.expect("#102 the item's effect was enabled before the power button", kitBefore.disabled, false);
+	e2e.expect("#102 A3 the item's effect was enabled before the power button", kitBefore.disabled, false);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 	await e2e.step("#102 GM gives an owned item an effect with an origin and opens the item's Effects tab", () =>
@@ -1533,7 +1507,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		"#102 on an item's Effects tab, Delete shows for every effect, those with an origin included",
+		"#102 A4 on an item's Effects tab, Delete shows for every effect, those with an origin included",
 		await gm.evaluate(() => window.sheetsE2E.effectRows('Bearer/Kit').map(({ name, buttons }) => ({ name, buttons }))),
 		[
 			{ name: 'E2E Kit effect', buttons: ['fa-power-off', 'fa-edit', 'fa-trash'] },
@@ -1541,7 +1515,7 @@ export async function run(e2e: ScenarioContext) {
 		],
 	);
 	e2e.expect(
-		'#102 an owned armor out of its Equipment State lists its effects under Inactive Effects, with the tooltip',
+		'#102 A5 an owned armor out of its Equipment State lists its effects under Inactive Effects, with the tooltip',
 		await gm.evaluate(() =>
 			window.sheetsE2E.effectRows('Bearer/Mail').map(({ section, name, tooltip }) => ({ section, name, tooltip })),
 		),
@@ -1550,7 +1524,7 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 	// §#130: chat cards are spoken by the sheet's actor.
-	const sends = async (client: typeof gm, sheets: [string, string[]][]) =>
+	const sends = async (client: Client, sheets: [string, string[]][]) =>
 		client.evaluate(async (sheets) => {
 			for (const [name, items] of sheets) {
 				await window.sheetsE2E.open(name);
@@ -1580,7 +1554,7 @@ export async function run(e2e: ScenarioContext) {
 	// A ranked talent's effective tier is its tier plus its ranks above the first.
 	const swordCard = { skill: 'Melee', damage: '3 + Br', qualityTooltipLinks: '1' };
 	e2e.expect(
-		"#130 a card sent from a sheet is spoken by the sheet's actor, with the rank or N/A, damage, firing arc and quality tooltips",
+		"#130 A1 a card sent from a sheet is spoken by the sheet's actor, with the rank or N/A, damage, firing arc and quality tooltips",
 		{ gm: gmCards, assigned: assignedCards, player: playerCards },
 		{
 			gm: [
@@ -1620,7 +1594,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		"#130 after a card and an attack, a quality's rating change keeps the @UUID enricher of its description",
+		"#130 A2 after a card and an attack, a quality's rating change keeps the @UUID enricher of its description",
 		await gm.evaluate(() => ({
 			rating: game.actors.getName('E2E Nemesis').items.getName('E2E Sword').system.qualities[0].rating,
 			description: window.sheetsE2E.qualityDescription('Nemesis/Sword').replace(/Actor\.\w+/, 'Actor.<id>'),
@@ -1632,7 +1606,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// §#97: the Default Difficulty setting's hint.
 	e2e.expect(
-		"#97 the Default Difficulty hint links to the fork's wiki page of the glyphs",
+		"#97 A2 the Default Difficulty hint links to the fork's wiki page of the glyphs",
 		await gm.evaluate(() => window.sheetsE2E.settingsHintLink()),
 		'https://github.com/kornifex/FVTT-Genesys/wiki/Dice-Pool-Modification-Glyphs',
 	);

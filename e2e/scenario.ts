@@ -8,7 +8,7 @@ import { assertionStep, fatalStep, type Step } from './steps.ts';
 /**
  * A browser joined to the world as one user.
  */
-type Client = {
+export type Client = {
 	user: string;
 	page: Page;
 	/** The console errors and uncaught exceptions of the page. */

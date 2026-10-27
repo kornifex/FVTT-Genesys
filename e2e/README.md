@@ -51,7 +51,7 @@ pnpm e2e path/to/scenario.ts --versions 12 --dist path/to/dist    # an existing 
 
 `e2e/scenarios/` holds one scenario per domain, each covering the items of the release's test checklist it can prove: `combat`, `dicePrompt`, `inventory`, `character`, `vehicle`, `adversaries`, `migrations` (isolated: it needs a pristine world) and `sheets`. A checklist item an `expect` step proves is ticked with a link to it: `e2e/scenarios/combat.ts › step "#59 A1 the turn stays on Hero:-1, with no turn event"`.
 
-A Foundry-dependent change adds or extends its domain's scenario, rather than keeping a one-off scenario out of the repo. Every `.ts` file of `e2e/scenarios/` is a scenario: helpers shared by several scenarios go in `e2e/`.
+A Foundry-dependent change adds or extends its domain's scenario, rather than keeping a one-off scenario out of the repo. Every `.ts` file of `e2e/scenarios/` is a scenario: helpers shared by several scenarios go in `e2e/`, and those that run in the page in `window.e2e` ([`page.ts`](page.ts)).
 
 ## Writing a scenario
 
@@ -70,8 +70,8 @@ export async function run(e2e: ScenarioContext) {
 		turnOn: 'Boss:-1',
 	});
 	await e2e.step('before');
-	const added = await e2e.step('GM adds an extra slot for Hero', () => e2e.gm.evaluate(() => window.e2e.addExtraSlotFor('Hero')));
-	e2e.expect('the turn stays on Boss', added[e2e.playerUser]?.current, 'Boss:-1');
+	const added = await e2e.step('#57 A1 GM adds an extra slot for Hero', () => e2e.gm.evaluate(() => window.e2e.addExtraSlotFor('Hero')));
+	e2e.expect('#57 A1 the turn stays on Boss', added[e2e.playerUser]?.current, 'Boss:-1');
 	await e2e.step('GM ends the turn', () => e2e.gm.evaluate(() => game.combat.nextTurn()));
 	await player.reload();
 	await e2e.step('player reloaded');
@@ -90,7 +90,11 @@ export async function run(e2e: ScenarioContext) {
 -   Step names are unique within a scenario: a comparison matches the steps of two runs by name, and a checklist item links its step by name.
 -   `version`: the Foundry generation, for the rare step that differs.
 
+A step that proves an item of the test checklist is named `#<section> <code> <description>`: `<section>` is the number of the checklist section that holds the item (`## #57 …`), and `<code>` a letter and a number, which an action and the `expect` steps checking it share, as `#57 A1` above. An item of several sections links the step from each, and the step takes the section of the part of the scenario it sits in. A step that proves no item, such as a setup, a teardown or a state dump, keeps a free label: `before`, `player reloaded`.
+
 In the page, `window.e2e` ([`page.ts`](page.ts)) holds `combatState()`, `slotId(combatant, extraSlot)`, `name(text)` (combatant ids replaced by names), `addExtraSlotFor(combatant)`, `fixDice(dice)`, and the recorded `events` (`combatTurnChange`, `_onStartTurn`, `_onEndTurn`) and `notifications`. Slots are named `<combatant>:<extra slot index>`, `-1` for the combatant's own slot.
+
+It also holds the helpers the scenarios' own page helpers share: `sleep`, `waitFor`, `text`, `unprefixed`, `isSetUp` and `deleteSetUp` for the documents named `E2E …`, `actor`, `token`, `target`, `htmlOf`, `apps` (the open applications of a CSS class), `drop`, `ensureScene`, `createCompendium`, `settings` and `setSettings`, `recordNotifications`, and the Dice Prompt's `poolPreview` and `poolModification`. A scenario installs its own helpers with `client.evaluate(install…)`, a function that takes the shared ones from `window.e2e`, installed before the scenario runs.
 
 Scenarios in the suite share a world: each starts from its own setup (`setUpCombat`, or deleting what it created before, named `E2E …`), whatever the scenarios before it left.
 
