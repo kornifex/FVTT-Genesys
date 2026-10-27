@@ -51,7 +51,7 @@ function suppressionReason(effect: GenesysEffect) {
 		return undefined;
 	}
 
-	const container = effect.suppressingContainer;
+	const container = toRaw(effect).suppressingContainer;
 	if (container) {
 		return game.i18n.format('Genesys.ActiveEffects.SuppressedByContainer', { item: item.name, container: container.name });
 	}
