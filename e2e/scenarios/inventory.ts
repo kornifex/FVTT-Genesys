@@ -1679,36 +1679,36 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
 }
 
-/** §#205: the Used Equipment State is gone, a consumable saved in it loads as Carried, and a consumable's effects never apply. */
+/** §#239: the Used Equipment State is gone, a consumable saved in it loads as Carried, and a consumable's effects never apply. */
 async function usedState(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	// A world saved before #205, or a macro's write: the Used state in the database, past the client's data model, which no
 	// longer accepts it.
 	await e2e.step(
-		"#205 N1 consumables saved in the Used state in the Items directory, on a character, on an unlinked token's actor and in a compendium, then the world reloaded",
+		"#239 N1 consumables saved in the Used state in the Items directory, on a character, on an unlinked token's actor and in a compendium, then the world reloaded",
 		async () => {
 			await gm.evaluate(() => window.inventoryE2E.createConsumables());
 			await gm.evaluate(() => window.inventoryE2E.seedUsed());
 			const errors = gm.errors.length;
 			await gm.reload();
 			await gm.evaluate(installInventoryHelpers);
-			e2e.log('#205 N1 console errors while loading the world', gm.errors.slice(errors));
+			e2e.log('#239 N1 console errors while loading the world', gm.errors.slice(errors));
 		},
 	);
 	const asCarried = { state: 'carried', source: 'carried', database: 'used', invalid: false };
 	e2e.expect(
-		'#205 N1 a consumable saved in the Used state loads as Carried with no error, while the database keeps Used until it is saved again',
+		'#239 N1 a consumable saved in the Used state loads as Carried with no error, while the database keeps Used until it is saved again',
 		await gm.evaluate(() => window.inventoryE2E.loadedConsumables()),
 		{ world: asCarried, actor: asCarried, token: asCarried, pack: asCarried },
 	);
 	const reason = (item: string) => `Inactive: E2E ${item} is a consumable, whose effects don't apply.`;
 	e2e.expect(
-		"#205 N2 a character's consumables, the one saved as Used included, list their effects as inactive, with the consumable reason",
+		"#239 N2 a character's consumables, the one saved as Used included, list their effects as inactive, with the consumable reason",
 		(await gm.evaluate(() => window.inventoryE2E.inactive('Hero'))).filter((effect) => /^(Elixir|Potion)/.test(effect)).sort(),
 		[`Elixir Effect | ${reason('Elixir')}`, `Potion Effect | ${reason('Potion')}`],
 	);
 	e2e.expect(
-		"#205 N3 an adversary's consumable still applies its effect",
+		"#239 N3 an adversary's consumable still applies its effect",
 		(await gm.evaluate(() => window.inventoryE2E.effects('token:Token Rival'))).applied.filter((name) => name.startsWith('Tonic')),
 		['Tonic Effect'],
 	);
