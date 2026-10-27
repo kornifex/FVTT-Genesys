@@ -1,12 +1,12 @@
 # Releasing
 
-release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges it, after the release's test checklist issue is done.
+release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
 
 ## Before merging the release PR
 
 1. `pnpm e2e:all` passes on every supported Foundry version, on the release PR's head: it runs every scenario of `e2e/scenarios/` and exits with 1 on a failed assertion ([`e2e/README.md`](../../e2e/README.md)). It needs the licensed installs, so it can't run in CI.
 2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
-3. The checklist items no test proves, listed atop that issue, are tested at the table.
+3. For the final version only: the checklist items no test proves, listed atop that issue, are tested at the table, on a release candidate.
 
 ## Versions
 
@@ -18,8 +18,8 @@ release-please keeps a release PR open on `main`, titled `chore: release <versio
 
 `release-as` in `release-please-config.json` forces the next version. It has to change after every release, or the next release PR reuses a version that already exists:
 
-1. A `ci:` PR sets `release-as` to the candidate (`0.4.0-rc.1`), and release-please updates its release PR.
-2. Once that candidate is out, the next `ci:` PR sets the next one (`0.4.0-rc.2`), or the final version (`0.4.0`).
+1. A `ci:` PR sets `release-as` to the candidate (`0.4.0-rc.1`), and release-please updates its release PR. The maintainer merges that release PR once `e2e:all` passes, and the table tests run on the published candidate.
+2. Once that candidate is out, and before any other release PR is merged, the next `ci:` PR sets the next one (`0.4.0-rc.2`) when testers need to test again, or the final version (`0.4.0`).
 3. After the final version is out, a `ci:` PR removes `release-as`.
 
 ## Changelog
