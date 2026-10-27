@@ -310,4 +310,12 @@ describe('checkDescription', () => {
 			'Initiative {"skill":"Brawn","superChar":"super-char"}',
 		);
 	});
+
+	it('names the initiative skill as the actor spells it, not as the Skills Compendium does', () => {
+		const watchful = actor('character', [skill('vigilance', Characteristic.Willpower, 1)]);
+
+		expect(description(resolveCheck(watchful, { skillName: 'Vigilance' }, rules), { kind: 'initiative' })).toBe(
+			'Initiative {"skill":"vigilance","superChar":"hide-it"}',
+		);
+	});
 });

@@ -29,6 +29,14 @@ describe('newTokenAttributeValue', () => {
 		expect(newTokenAttributeValue({ current: 5, value: 30, isDelta: false, cappedThreshold: 12 })).toBe(24);
 	});
 
+	it("keeps a character's wounds at 0 when their wound threshold is 0, as before they have an Archetype", () => {
+		expect(newTokenAttributeValue({ current: 0, value: 3, isDelta: true, cappedThreshold: 0 })).toBe(0);
+	});
+
+	it("brings a character's wounds already past twice their wound threshold down to it on any change", () => {
+		expect(newTokenAttributeValue({ current: 30, value: -2, isDelta: true, cappedThreshold: 12 })).toBe(24);
+	});
+
 	it('lets a value without a cap go past its threshold (CRB p. 113, 222-223, 228)', () => {
 		expect(newTokenAttributeValue({ current: 9, value: 5, isDelta: true })).toBe(14);
 		expect(newTokenAttributeValue({ current: 8, value: 15, isDelta: true })).toBe(23);
