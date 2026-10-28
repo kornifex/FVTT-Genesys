@@ -1,6 +1,17 @@
 # Releasing
 
-release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
+release-please keeps a release PR open on each release line, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
+
+## Release lines
+
+ADR 0003 sets two lines, each with its own release PR and its own `release-please-config.json`:
+
+- `main` prepares 0.5.0, for Foundry v13 and v14.
+- `0.4.x` prepares 0.4.0 and its fixes, for Foundry v12 and v13. It was cut from the code of `0.4.0-rc.1`, so the rest of 0.4.0's candidates and the final version come from it. It only takes the fixes our table needs, and is retired once the table runs v13.
+
+A fix goes to the line of the release that needs it: a PR whose base is `0.4.x` for 0.4.0, then a cherry-pick PR to `main` when the code is still shared. A `feat` would bump `0.4.x`'s minor, so it doesn't go there.
+
+A release is marked latest, the one Foundry offers as an update, unless a higher version already is: once 0.5.0 is out, a 0.4.x fix stays off `releases/latest`, and the table installs it from its versioned manifest.
 
 ## Before merging the release PR
 
@@ -21,6 +32,8 @@ release-please keeps a release PR open on `main`, titled `chore: release <versio
 1. A `ci:` PR sets `release-as` to the candidate (`0.4.0-rc.1`), and release-please updates its release PR. The maintainer merges that release PR once `e2e:all` passes, and the table tests run on the published candidate.
 2. Once that candidate is out, and before any other release PR is merged, the next `ci:` PR sets the next one (`0.4.0-rc.2`) when testers need to test again, or the final version (`0.4.0`).
 3. After the final version is out, a `ci:` PR removes `release-as`.
+
+These PRs target the line of the release: `0.4.x` for 0.4.0's candidates.
 
 ## Changelog
 

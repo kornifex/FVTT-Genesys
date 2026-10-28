@@ -1,10 +1,11 @@
 name: Release
 
-# release-please keeps a release PR up to date on main: the changelog and the version, from the Conventional Commits.
-# Merging it creates the tag and a draft release, which the publish job checks, builds, fills and publishes.
+# release-please keeps a release PR up to date on each release line, main and 0.4.x: the changelog and the version, from
+# the Conventional Commits. Merging it creates the tag and a draft release, which the publish job checks, builds, fills
+# and publishes.
 on:
   push:
-    branches: [main]
+    branches: [main, 0.4.x]
   # Publishes a draft release made by hand, such as a pre-release. A draft gets no tag until published, so push the tag first:
   # git push origin <sha>:refs/tags/<tag>, then gh release create <tag> --verify-tag --draft --prerelease
   workflow_dispatch:
@@ -13,8 +14,9 @@ on:
         description: Tag of the draft release to publish
         required: true
 
+# One group per line: a pending run of one line must not replace the other's.
 concurrency:
-  group: release
+  group: release-${{ github.ref_name }}
 
 jobs:
   release-please:
@@ -32,6 +34,7 @@ jobs:
         with:
           # A PR opened with the GITHUB_TOKEN runs no workflow, and main requires the CI checks.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          target-branch: ${{ github.ref_name }}
 
   publish:
     needs: release-please
@@ -89,9 +92,17 @@ jobs:
 
       # A pre-release version (0.4.0-rc.1) stays out of releases/latest, which Foundry reads for updates. release-please
       # can't mark it: its prerelease option would also mark every 0.x version.
+      # A fix of an older line (0.4.1 once 0.5.0 is out) stays out too: a v13 world must not be offered it.
       - name: Publish the Release
         run: |
+          latest=$(gh release view --json tagName --jq .tagName | sed 's/^[^0-9]*//')
           case "$TAG" in
             *-*) gh release edit "$TAG" --draft=false --prerelease ;;
-            *) gh release edit "$TAG" --draft=false --latest ;;
+            *)
+              if [ "$(printf '%s\n' "$latest" "${TAG#v}" | sort -V | tail -n 1)" = "${TAG#v}" ]; then
+                gh release edit "$TAG" --draft=false --latest
+              else
+                gh release edit "$TAG" --draft=false --latest=false
+              fi
+              ;;
           esac
