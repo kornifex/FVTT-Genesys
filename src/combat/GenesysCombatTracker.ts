@@ -4,6 +4,7 @@
 
 import { GenesysCombat } from '@/combat/GenesysCombat';
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
+import { isFoundryV13 } from '@/foundryGeneration';
 
 type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
@@ -91,38 +92,56 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 		return super._createContextMenu(handler, selector === '.combatant' ? '.combatant.claimed' : selector, options);
 	}
 
-	override _getEntryContextOptions() {
+	override _getEntryContextOptions(): foundry.applications.ContextMenuEntry[] {
 		const baseEntries = super._getEntryContextOptions();
 
 		// Reroll the initiative of the slot, which may be one of the combatant's Extra Slots.
-		const rerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
-		if (rerollEntry) {
-			rerollEntry.callback = async (li: HTMLElement) => {
-				const slotId = slotIdOf(li);
-				if (slotId) {
-					await this.viewed?.rollSlotInitiative(slotId);
-				}
-			};
-		}
-
-		// Allow GMs to revoke an initiative slot claim.
-		const revokeClaim = {
-			name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
-			icon: '<i class="fas fa-broom"></i>',
-			condition: (li: HTMLElement) => {
-				const slotId = slotIdOf(li);
-				return slotId ? this.viewed?.canRevokeClaim(slotId) ?? false : false;
-			},
-			callback: async (li: HTMLElement) => {
-				const slotId = slotIdOf(li);
-				const combat = this.viewed;
-				if (slotId && combat) {
-					await combat.revokeSlot(combat.round, slotId);
-				}
-			},
+		const rerollSlot = async (li: HTMLElement) => {
+			const slotId = slotIdOf(li);
+			if (slotId) {
+				await this.viewed?.rollSlotInitiative(slotId);
+			}
 		};
 
-		return [...baseEntries, revokeClaim];
+		// Allow GMs to revoke an initiative slot claim.
+		const canRevokeClaim = (li: HTMLElement) => {
+			const slotId = slotIdOf(li);
+			return slotId ? this.viewed?.canRevokeClaim(slotId) ?? false : false;
+		};
+		const revokeClaim = async (li: HTMLElement) => {
+			const slotId = slotIdOf(li);
+			const combat = this.viewed;
+			if (slotId && combat) {
+				await combat.revokeSlot(combat.round, slotId);
+			}
+		};
+
+		// v13: the entries name their fields `name`, `condition` and `callback`, and core's reroll entry has another key.
+		if (isFoundryV13()) {
+			const v13RerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
+			if (v13RerollEntry) {
+				v13RerollEntry.callback = rerollSlot;
+			}
+			const v13RevokeEntry = {
+				name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
+				icon: '<i class="fas fa-broom"></i>',
+				condition: canRevokeClaim,
+				callback: revokeClaim,
+			};
+			return [...baseEntries, v13RevokeEntry];
+		}
+
+		const rerollEntry = baseEntries.find((e) => e.label === 'COMBATANT.ACTIONS.Reroll');
+		if (rerollEntry) {
+			rerollEntry.onClick = (_event, li) => rerollSlot(li);
+		}
+		const revokeEntry = {
+			label: 'Genesys.CombatTracker.RevokeInitiativeClaim',
+			icon: 'fa-solid fa-broom',
+			visible: canRevokeClaim,
+			onClick: (_event: PointerEvent, li: HTMLElement) => revokeClaim(li),
+		};
+		return [...baseEntries, revokeEntry];
 	}
 
 	override _onCombatantHoverIn(event: PointerEvent) {
