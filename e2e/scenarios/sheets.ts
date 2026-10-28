@@ -1068,14 +1068,34 @@ export async function run(e2e: ScenarioContext) {
 		await window.sheetsE2E.markField('Rival', 'input[name="name"]', 'rival-name');
 	});
 	await page().fill('[data-e2e="rival-name"]', 'E2E Rival Closed');
+	// Foundry's keybindings skip a focused field, so Escape can't close a sheet that way: the field keeps its text unsaved.
+	await e2e.step('#95 GM presses Escape while the name field has the focus', () => page().keyboard.press('Escape'));
+	e2e.expect(
+		'#95 A21 Escape leaves a sheet open while one of its fields has the focus, with the text typed and not yet saved',
+		await gm.evaluate(() => ({
+			open: window.sheetsE2E.isRendered('Rival'),
+			focused: document.activeElement === document.querySelector('[data-e2e="rival-name"]'),
+			typed: document.querySelector<HTMLInputElement>('[data-e2e="rival-name"]')?.value ?? null,
+			saved: !!game.actors.getName('E2E Rival Closed'),
+		})),
+		{ open: true, focused: true, typed: 'E2E Rival Closed', saved: false },
+	);
 	await e2e.step('#95 GM closes the sheet while the name field has the focus', () =>
 		gm.evaluate(() => game.actors.getName('E2E Rival').sheet.close()),
 	);
-	// Escape can't close a sheet while one of its fields has the focus: Foundry's keybindings skip a focused field.
 	e2e.expect(
-		'#95 a field edited then closed without leaving it is saved',
+		'#95 A22 a field edited then closed without leaving it is saved',
 		await gm.evaluate(() => !!game.actors.getName('E2E Rival Closed')),
 		true,
+	);
+	await e2e.step('#95 GM reopens the sheet and presses Escape with no field focused', async () => {
+		await gm.evaluate(() => window.sheetsE2E.open('Rival Closed'));
+		await page().keyboard.press('Escape');
+	});
+	e2e.expect(
+		'#95 A23 Escape closes a sheet once none of its fields has the focus',
+		await gm.evaluate(() => window.sheetsE2E.isRendered('Rival Closed')),
+		false,
 	);
 	await gm.evaluate(() => window.sheetsE2E.update('Rival Closed', { name: 'E2E Rival' }));
 
