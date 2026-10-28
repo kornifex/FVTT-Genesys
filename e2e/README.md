@@ -1,6 +1,6 @@
 # Foundry e2e harness
 
-Runs scenarios in real Foundry, v13 by default: each version is launched on a fresh copy of a world with a copy of a system build, a GM and a player join with headless Chromium (playwright-core), and each scenario's step log is printed, with its assertions. With `--compare`, the same scenarios run on another git ref's build too, and the steps that differ are listed.
+Runs scenarios in real Foundry, on v13 and v14 by default: each version is launched on a fresh copy of a world with a copy of a system build, a GM and a player join with headless Chromium (playwright-core), and each scenario's step log is printed, with its assertions. With `--compare`, the same scenarios run on another git ref's build too, and the steps that differ are listed.
 
 It needs licensed Foundry installs, so it never runs in CI. It backs the "Testing a change" rule of [`docs/agents/code-style.md`](../docs/agents/code-style.md): a Foundry-dependent PR adds or extends its domain's scenario with `expect` steps, and `pnpm e2e:all` is the release gate of [`docs/agents/releasing.md`](../docs/agents/releasing.md).
 
@@ -14,6 +14,10 @@ E2E_V13_NODE=/path/to/node22/bin/node
 E2E_V13_FOUNDRY=/path/to/foundryvtt-13/main.js
 E2E_V13_DATA=/path/to/foundrydata-13
 E2E_V13_WORLD=my-world
+E2E_V14_NODE=/path/to/node24/bin/node
+E2E_V14_FOUNDRY=/path/to/foundryvtt-14/main.js
+E2E_V14_DATA=/path/to/foundrydata-14
+E2E_V14_WORLD=my-world
 
 # Optional
 E2E_CHROMIUM=/path/to/chrome-headless-shell  # default: Playwright's download (pnpm exec playwright-core install chromium-headless-shell)
@@ -24,22 +28,23 @@ E2E_PORT=30100                               # the first version's port; each fu
 E2E_WORK_DIR=/tmp/genesys-e2e                # default: genesys-e2e in the system's temp dir
 ```
 
-Node versions: Foundry v13 needs Node 22, v14 Node 24. Any version given as `E2E_V<n>_*` can run.
+Node versions: Foundry v13 needs Node 22, v14 Node 24. Any version given as `E2E_V<n>_*` can run; without a v14 install, pass `--versions 13`.
 
 The harness only reads the data dirs: each run copies the licence and the world into `E2E_WORK_DIR/runs/`. The world needs a scene, or the first combat setup creates one.
 
 ## Running
 
 ```sh
-pnpm e2e:all                                                     # the suite: every e2e/scenarios/*.ts, on v13
-pnpm e2e e2e/scenarios/combat.ts                                 # builds the working tree, runs one scenario on v13
-pnpm e2e e2e/scenarios/combat.ts --compare origin/main           # also on origin/main's build, then the differing steps
-pnpm e2e path/to/scenario.ts --versions 13,14 --dist path/to/dist # an existing build, on v13 and v14 at once
+pnpm e2e:all                                                  # the suite: every e2e/scenarios/*.ts, on v13 and v14
+pnpm e2e e2e/scenarios/combat.ts                              # builds the working tree, runs one scenario on v13 and v14
+pnpm e2e e2e/scenarios/combat.ts --compare origin/main        # also on origin/main's build, then the differing steps
+pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14 only
 ```
 
 -   `pnpm e2e` takes scenario files and folders, a folder standing for its `.ts` files. Foundry is launched once per version and build: the scenarios run one after the other on the same world, each with newly joined clients and from its own setup. A scenario exporting `isolated = true` gets its own fresh world and launch, after the others.
 -   `--compare <ref>` builds the ref once per commit, from `git archive`, in `E2E_WORK_DIR/builds/`. Compare against `origin/main`: a local `main` may lag behind.
 -   Each step prints as `[v13 head] <step> <json>`, `[v13 head <scenario>] …` when several scenarios run, and a failed step starts with `FAILED`. The step logs are saved as JSON in `E2E_WORK_DIR/results/<scenario>/`, each launch's `server.log` in `E2E_WORK_DIR/runs/`.
+-   A launch stops at once when Foundry refuses the world, as when the system's `compatibility` excludes that version. A client's join stops when the system didn't load, as when its module throws on a global that version removed: its message quotes the page's first error.
 -   The run ends with a summary per version and build: its assertion count, then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step).
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
 -   The versions run at once, each on its own port and data dir; the builds of one version run one after the other. Each line of the output names its version, and the summary comes once all are done.

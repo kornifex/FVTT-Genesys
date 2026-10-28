@@ -4,8 +4,7 @@ description: (ALPHA) Unofficial implementation of EDGE Studio's Genesys RPG Syst
 version: 0.4.0-rc.1 # x-release-please-version
 compatibility:
   minimum: 13
-  verified: 13
-  maximum: 13
+  verified: 14
 authors:
   - name: Mezryss
   - name: Assembling Kings
