@@ -181,9 +181,6 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(sass@1.105.2)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
-      '@yeger/vue-masonry-wall':
-        specifier: ^5.0.6
-        version: 5.0.6(vue@3.5.44(typescript@6.0.3))
       dotenv:
         specifier: ^16.0.3
         version: 16.0.3
@@ -943,17 +940,6 @@ packages:
 
   '@vue/shared@3.5.44':
     resolution: {integrity: sha512-H82XLH0DjmSOdbEwO15x3QTo1f5PWEtv237eLpYKc0mqLu+B8hnq16lFWmuBmNurkeiG3wr+oM1FhOll/YVFRg==}
-
-  '@yeger/vue-lib-adapter@2.0.5':
-    resolution: {integrity: sha512-aDuhEQgk1mnL9XL0Et+VNouzPDZo2sxgOzDRTeBxwAQBj4xdJvYKChyfT92wdGgLSgDJ5qGHup3u+YA0K47bVw==}
-
-  '@yeger/vue-masonry-wall-core@5.0.5':
-    resolution: {integrity: sha512-G2sUV6t494FSEwnKIf/gFea+pyC5zcOx8fYBEsEVv7DD24Y/ktdVmyvN/Eczn6KXwRlXrdySN6IRDRLd7IBdjw==}
-
-  '@yeger/vue-masonry-wall@5.0.6':
-    resolution: {integrity: sha512-tvRE6t83JfPDKJQZMF7Aw6q0/J4NbW5dJUcI97NMsNZVOmzZjskT22yZqS5/P3ph0AxpMKCy/sz+ZU5DqiN2NA==}
-    peerDependencies:
-      vue: ^3.0.0
 
   abstract-level@3.1.1:
     resolution: {integrity: sha512-CW2gKbJFTuX1feMvOrvsVMmijAOgI9kg2Ie9Dq3gOcMt/dVVoVmqNlLcEUCT13NxHFMEajcUcVBIplbyDroDiw==}
@@ -2586,17 +2572,6 @@ snapshots:
       '@vue/shared': 3.5.44
 
   '@vue/shared@3.5.44': {}
-
-  '@yeger/vue-lib-adapter@2.0.5': {}
-
-  '@yeger/vue-masonry-wall-core@5.0.5':
-    dependencies:
-      '@yeger/vue-lib-adapter': 2.0.5
-
-  '@yeger/vue-masonry-wall@5.0.6(vue@3.5.44(typescript@6.0.3))':
-    dependencies:
-      '@yeger/vue-masonry-wall-core': 5.0.5
-      vue: 3.5.44(typescript@6.0.3)
 
   abstract-level@3.1.1:
     dependencies:

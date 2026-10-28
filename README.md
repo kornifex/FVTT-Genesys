@@ -95,9 +95,6 @@ Some components of this project are used under alternative licensing terms. Each
 #### Vue 3
 > **License:** [MIT](https://github.com/vuejs/core/blob/main/LICENSE)
 
-#### Vue-Masonry-Wall
-> **License:** [MIT](https://github.com/DerYeger/yeger/blob/main/packages/vue-masonry-wall/LICENSE)
-
 ## Copyright Disclaimer
 This project, and its maintainers, are unaffiliated with EDGE Studios and Fantasy Flight Games. This is an unofficial, third-party system implementation built freely as a hobby project. Additionally, this project is unrelated to Genesys Foundry, EDGE Studios/Fantasy Flight's community content program for the Genesys RPG.
 

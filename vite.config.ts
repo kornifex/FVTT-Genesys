@@ -20,7 +20,11 @@ const PROXY_PORT = process.env.VITE_PROXY_PORT ?? 30000;
 let releaseOnlyAliases: AliasOptions = [];
 
 if (process.env.NODE_ENV === 'production') {
-	releaseOnlyAliases = [{ find: 'vue', replacement: path.resolve(import.meta.dirname, 'node_modules/vue/dist/vue.esm-browser.prod.js') }];
+	// Library mode leaves `process.env.NODE_ENV` in the esm-bundler build of Vue, so the release bundles Vue's prebuilt
+	// production build instead. The runtime-only one is enough: @vitejs/plugin-vue compiles every template at build time.
+	releaseOnlyAliases = [
+		{ find: 'vue', replacement: path.resolve(import.meta.dirname, 'node_modules/vue/dist/vue.runtime.esm-browser.prod.js') },
+	];
 }
 
 // https://vitejs.dev/config/
