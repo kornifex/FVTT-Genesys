@@ -1,0 +1,28 @@
+name: Ranged (Light)
+type: skill
+img: icons/skills/ranged/archery-bow-attack-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.68
+  characteristic: agility
+  category: combat
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.BOtyEN0sCh4ej3OO
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838102254
+  modifiedTime: 1673852620464
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: hwOEWONHNgyHc1l2
+_key: '!items!hwOEWONHNgyHc1l2'

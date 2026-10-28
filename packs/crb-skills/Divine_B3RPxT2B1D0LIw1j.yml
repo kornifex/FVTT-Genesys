@@ -1,0 +1,28 @@
+name: Divine
+type: skill
+img: icons/magic/holy/prayer-hands-glowing-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.70
+  characteristic: willpower
+  category: magic
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.XCXG7oSDi1801kXQ
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838065830
+  modifiedTime: 1673852106228
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: B3RPxT2B1D0LIw1j
+_key: '!items!B3RPxT2B1D0LIw1j'

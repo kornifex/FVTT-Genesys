@@ -1,0 +1,28 @@
+name: Alchemy
+type: skill
+img: icons/consumables/potions/bottle-bulb-corked-green.webp
+system:
+  description: ''
+  source: Core Rulebook, p.57
+  characteristic: intellect
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.R97GsS6qLkl7En4L
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673837958776
+  modifiedTime: 1673851565413
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: qovNwR5dw2aMvq5x
+_key: '!items!qovNwR5dw2aMvq5x'

@@ -1,0 +1,28 @@
+name: Gunnery
+type: skill
+img: icons/skills/ranged/bullets-triple-ball-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.69
+  characteristic: agility
+  category: combat
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.ezqVHN8XGVUEaBIM
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838079340
+  modifiedTime: 1673852758850
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: SMlVb30HUmmkwKtJ
+_key: '!items!SMlVb30HUmmkwKtJ'

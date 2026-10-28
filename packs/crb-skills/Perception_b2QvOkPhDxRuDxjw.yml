@@ -1,0 +1,28 @@
+name: Perception
+type: skill
+img: icons/magic/perception/eye-ringed-green.webp
+system:
+  description: ''
+  source: Core Rulebook, p.62
+  characteristic: cunning
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.S3OKZMeXiGpc1joi
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838021936
+  modifiedTime: 1673852531607
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: b2QvOkPhDxRuDxjw
+_key: '!items!b2QvOkPhDxRuDxjw'

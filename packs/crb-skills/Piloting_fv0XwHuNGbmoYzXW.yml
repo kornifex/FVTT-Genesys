@@ -1,0 +1,28 @@
+name: Piloting
+type: skill
+img: icons/skills/movement/arrow-upward-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.62
+  characteristic: agility
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.WN4BqyA6fZvgdLd2
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838025969
+  modifiedTime: 1673852742390
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: fv0XwHuNGbmoYzXW
+_key: '!items!fv0XwHuNGbmoYzXW'

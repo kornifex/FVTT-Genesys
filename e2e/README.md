@@ -47,7 +47,7 @@ pnpm e2e path/to/scenario.ts --versions 12 --dist path/to/dist    # an existing 
 -   The run ends with a summary per version and build: its assertion count, then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step).
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
 -   The versions run at once, each on its own port and data dir; the builds of one version run one after the other. Each line of the output names its version, and the summary comes once all are done.
--   Foundry v13 can't read the system's NeDB packs: it gets the LevelDB packs a v12 run migrated from the same packs, kept in `E2E_WORK_DIR/packs/`. When no earlier run kept them, v13 waits for v12's first launch of the build; later runs reuse them, and both versions start at once. A v13 run without v12 needs them kept.
+-   The build compiles the packs to LevelDB, which every version reads. A ref older than that (#248) shipped a NeDB pack, which Foundry v13 and later can't read: compare it on v12 only.
 
 ## The suite
 

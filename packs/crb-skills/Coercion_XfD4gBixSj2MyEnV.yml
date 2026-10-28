@@ -1,0 +1,28 @@
+name: Coercion
+type: skill
+img: icons/skills/social/intimidation-impressing.webp
+system:
+  description: ''
+  source: Core Rulebook, p.55
+  characteristic: willpower
+  category: social
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.Pk4v52UGPt2PcPc6
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838112759
+  modifiedTime: 1673851961134
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: XfD4gBixSj2MyEnV
+_key: '!items!XfD4gBixSj2MyEnV'

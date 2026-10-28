@@ -1,0 +1,28 @@
+name: Streetwise
+type: skill
+img: icons/skills/social/theft-pickpocket-bribery-brown.webp
+system:
+  description: ''
+  source: Core Rulebook, p.65
+  characteristic: cunning
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.xDF9IBB2Qa4Teycr
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838048987
+  modifiedTime: 1673852917624
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: mxRAGPnCavFjiPWi
+_key: '!items!mxRAGPnCavFjiPWi'

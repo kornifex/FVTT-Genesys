@@ -8,7 +8,7 @@ import { chromium } from 'playwright-core';
 
 import { type FoundryInstall, readConfig } from './config.ts';
 import { runScenario, type ScenarioModule } from './scenario.ts';
-import { hasMigratedPacks, keepMigratedPacks, launchFoundry, migratesPacks, prepareDataDir } from './server.ts';
+import { launchFoundry, prepareDataDir } from './server.ts';
 import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -43,16 +43,13 @@ const builds = [
 	...(options.compare ? [{ label: options.compare, dist: buildRef(options.compare) }] : []),
 	{ label: 'head', dist: headDist },
 ];
-const packCache = path.join(config.workDir, 'packs');
 // The scenarios share one world and one launch, one after the other; an isolated scenario gets its own.
 const launches = [
 	scenarios.filter((scenario) => !scenario.isolated),
 	...scenarios.filter((scenario) => scenario.isolated).map((scenario) => [scenario]),
 ].filter((group) => group.length);
 
-// The versions run at once, each on its own port. The versions after v12 read the packs a v12 run migrated: when no
-// earlier run left them, they wait for v12's first launch of the build.
-const migrated = new Map(builds.map((build) => [build.dist, deferred()]));
+// The versions run at once, each on its own port.
 const browser = await chromium.launch({
 	executablePath: config.chromium,
 	args: config.angle ? [`--use-angle=${config.angle}`] : [],
@@ -102,10 +99,6 @@ if (failed) process.exitCode = 1;
  */
 async function runVersion(install: FoundryInstall) {
 	for (const build of builds) {
-		const packs = migrated.get(build.dist)!;
-		if (!migratesPacks(install) && !hasMigratedPacks(build.dist, packCache) && config.installs.some(migratesPacks)) {
-			await packs.promise;
-		}
 		const run = runName(install.version, build.label);
 		for (const group of launches) {
 			try {
@@ -117,9 +110,6 @@ async function runVersion(install: FoundryInstall) {
 					console.log(stepLine(`${run} ${scenario.name}`, step));
 					logs.set(logKey(run, scenario.name), [step]);
 				}
-			} finally {
-				// Once v12 has launched the build, the packs are migrated, or they never will be.
-				if (migratesPacks(install)) packs.resolve();
 			}
 		}
 	}
@@ -131,7 +121,7 @@ async function runVersion(install: FoundryInstall) {
 async function runLaunch(install: FoundryInstall, build: { label: string; dist: string }, group: LoadedScenario[]) {
 	const run = runName(install.version, build.label);
 	const dataDir = path.join(config.workDir, 'runs', safeFileName(group[0].isolated ? `${run} ${group[0].name}` : run));
-	prepareDataDir(install, build.dist, dataDir, packCache);
+	prepareDataDir(install, build.dist, dataDir);
 	const server = await launchFoundry(install, dataDir);
 	try {
 		for (const scenario of group) {
@@ -153,7 +143,6 @@ async function runLaunch(install: FoundryInstall, build: { label: string; dist: 
 	} finally {
 		await server.stop();
 	}
-	keepMigratedPacks(install, build.dist, dataDir, packCache);
 }
 
 /**
@@ -221,12 +210,6 @@ function quietly(command: string, args: string[], cwd: string) {
 		console.error(`${stdout ?? ''}${stderr ?? ''}`);
 		throw error;
 	}
-}
-
-function deferred() {
-	let resolve = () => {};
-	const promise = new Promise<void>((done) => (resolve = done));
-	return { promise, resolve };
 }
 
 function runName(version: number, buildLabel: string) {

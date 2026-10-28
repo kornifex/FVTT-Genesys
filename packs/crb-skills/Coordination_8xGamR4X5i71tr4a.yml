@@ -1,0 +1,28 @@
+name: Coordination
+type: skill
+img: icons/skills/targeting/target-glowing-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.59
+  characteristic: agility
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.v4b8j2Fdgd1yfSZo
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673837984644
+  modifiedTime: 1673853015097
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: 8xGamR4X5i71tr4a
+_key: '!items!8xGamR4X5i71tr4a'

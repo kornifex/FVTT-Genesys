@@ -1,0 +1,28 @@
+name: Knowledge
+type: skill
+img: icons/sundries/documents/document-sealed-white-red.webp
+system:
+  description: ''
+  source: Core Rulebook, p.66
+  characteristic: intellect
+  category: knowledge
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.IkHD5tMaPpKmZ6AL
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673918766296
+  modifiedTime: 1673918818039
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: Y15a1fIsznHjdm4S
+_key: '!items!Y15a1fIsznHjdm4S'
