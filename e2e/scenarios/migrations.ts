@@ -620,12 +620,16 @@ export async function run(e2e: ScenarioContext) {
 	// #280: the armor whose effect was disabled on the item applies while Equipped, and not while Carried.
 	const setEquipmentState = (state: string) =>
 		gm.evaluate((args) => window.migrationsE2E.setEquipmentState(args), { actor: 'Mira', item: 'Plate', state });
+	const equipped = await setEquipmentState('equipped');
+	const carried = await setEquipmentState('carried');
+	// The soak Plate adds, apart from the other effects' share, which #102's steps check.
 	e2e.expect(
 		'#280 A4 a migrated armor whose effect was disabled applies it once Equipped, and suppresses it once Carried again',
-		{ equipped: await setEquipmentState('equipped'), carried: await setEquipmentState('carried') },
+		{ equipped: equipped.applied, carried: carried.applied, 'soak added while Equipped': equipped.soak - carried.soak },
 		{
-			equipped: { applied: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail', 'E2E Plate'], soak: 7 },
-			carried: { applied: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail'], soak: 2 },
+			equipped: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail', 'E2E Plate'],
+			carried: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail'],
+			'soak added while Equipped': 5,
 		},
 	);
 
