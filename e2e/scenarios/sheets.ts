@@ -33,6 +33,8 @@ type Position = { left: number; top: number; width: number };
  */
 type CreateDialog = { position: Position; asked: Position; types: string[]; declaredTypes: string[]; groups: number; warnings: string[] };
 
+type Size = { width: number; height: number };
+
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
 	setUp(player: string): Promise<void>;
@@ -40,6 +42,10 @@ type SheetsHelpers = {
 	/** Renders the sheet of an actor, a world item, or an owned item (`Actor/Item`), and returns its window's state. */
 	open(name: string): Promise<{ appV2: boolean; title: string; headerTitle: string }>;
 	close(name: string): Promise<void>;
+	/** Minimizes an open sheet then maximizes it, and reads its window's size at each stage, with its header's height. */
+	minimizeAndMaximize(name: string): Promise<{ open: Size; minimized: Size; headerHeight: number; maximized: Size }>;
+	/** Asks an open sheet for a size below any minimum, and reads the size its window takes. */
+	resizeBelowMinimum(name: string): Promise<Size>;
 	/** The header buttons and controls menu entries of a sheet. */
 	header(name: string): { buttons: string[]; controls: string[] };
 	clickTab(name: string, tab: string): Promise<void>;
@@ -149,6 +155,10 @@ function installSheetsHelpers() {
 		const app = documentNamed(name).sheet;
 		if (!app.rendered) throw new Error(`The sheet of ${name} is closed`);
 		return htmlOf(app)!;
+	};
+	const sizeOf = (element: Element) => {
+		const { width, height } = element.getBoundingClientRect();
+		return { width: Math.round(width), height: Math.round(height) };
 	};
 	const find = (root: Element, selector: string, which: number | string = 1) => {
 		const matches = [...root.querySelectorAll<HTMLElement>(selector)];
@@ -281,6 +291,28 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
 			await settle();
+		},
+
+		async minimizeAndMaximize(name) {
+			const app = documentNamed(name).sheet;
+			const element = sheetElement(name);
+			const header = element.querySelector('.window-header')!;
+			const open = sizeOf(element);
+			await app.minimize();
+			// minimize() resolves on max-width's transitionend. Maximizing before max-height's comes would let maximize()
+			// resolve on that event, before its own transition, which no user can do.
+			await settle();
+			const minimized = sizeOf(element);
+			const headerHeight = sizeOf(header).height;
+			await app.maximize();
+			await settle();
+			return { open, minimized, headerHeight, maximized: sizeOf(element) };
+		},
+
+		async resizeBelowMinimum(name) {
+			documentNamed(name).sheet.setPosition({ width: 100, height: 100 });
+			await settle();
+			return sizeOf(sheetElement(name));
 		},
 
 		header(name) {
@@ -890,6 +922,38 @@ export async function run(e2e: ScenarioContext) {
 		header,
 		{ buttons: ['close', 'copyUuid', 'toggleControls'], controls: headerControls },
 	);
+
+	// #304: a minimized sheet collapses to its header, as wide as Foundry's --minimized-width (200px), and keeps its
+	// minimum size while open.
+	const sizedSheets = ['Hero', 'Rival', 'gear', 'archetype'];
+	const roundTrips: Record<string, { open: Size; minimized: Size; headerHeight: number; maximized: Size }> = {};
+	const belowMinimum: Record<string, Size> = {};
+	await e2e.step('#304 GM minimizes and maximizes a character, a rival, a gear and an archetype sheet', async () => {
+		for (const name of sizedSheets) {
+			await gm.evaluate((name) => window.sheetsE2E.open(name), name);
+			roundTrips[name] = await gm.evaluate((name) => window.sheetsE2E.minimizeAndMaximize(name), name);
+			belowMinimum[name] = await gm.evaluate((name) => window.sheetsE2E.resizeBelowMinimum(name), name);
+			await gm.evaluate((name) => window.sheetsE2E.close(name), name);
+		}
+	});
+	e2e.expect(
+		'#304 A1 a minimized sheet collapses to its header, and takes its size back once maximized',
+		Object.fromEntries(
+			sizedSheets.map((name) => [name, { minimized: roundTrips[name].minimized, maximized: roundTrips[name].maximized }]),
+		),
+		Object.fromEntries(
+			sizedSheets.map((name) => [
+				name,
+				{ minimized: { width: 200, height: roundTrips[name].headerHeight }, maximized: roundTrips[name].open },
+			]),
+		),
+	);
+	e2e.expect('#304 A2 an open sheet keeps its minimum size', belowMinimum, {
+		Hero: { width: 580, height: 600 },
+		Rival: { width: 580, height: 600 },
+		gear: { width: 320, height: 200 },
+		archetype: { width: 580, height: 600 },
+	});
 
 	// Prompts and the story point tracker.
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));

@@ -1,0 +1,8 @@
+// Gives a window a minimum size while it is open. Foundry minimizes a window by lowering its max-height, which a higher
+// min-height outweighs, and its rule unsetting the minimum size then loses to a sheet's more specific one (#304).
+@mixin min-size($width, $height) {
+	&:not(.minimizing, .minimized, .maximizing) {
+		min-width: $width;
+		min-height: $height;
+	}
+}
