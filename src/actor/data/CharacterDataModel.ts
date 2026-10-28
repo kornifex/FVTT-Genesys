@@ -236,7 +236,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 				value: new fields.NumberField({ integer: true, initial: 0 }),
 				max: new fields.NumberField({ integer: true, initial: 0 }),
 			}),
-			illustration: new fields.StringField(),
+			illustration: new fields.StringField({ initial: 'icons/svg/mystery-man.svg' }),
 			motivations: new fields.SchemaField({
 				strength: new fields.SchemaField({
 					name: new fields.StringField(),
@@ -256,13 +256,13 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 				}),
 			}),
 			details: new fields.SchemaField({
-				gender: new fields.StringField(),
-				age: new fields.StringField(),
-				height: new fields.StringField(),
-				build: new fields.StringField(),
-				hair: new fields.StringField(),
-				eyes: new fields.StringField(),
-				notableFeatures: new fields.StringField(),
+				gender: new fields.StringField({ initial: '' }),
+				age: new fields.StringField({ initial: '' }),
+				height: new fields.StringField({ initial: '' }),
+				build: new fields.StringField({ initial: '' }),
+				hair: new fields.StringField({ initial: '' }),
+				eyes: new fields.StringField({ initial: '' }),
+				notableFeatures: new fields.StringField({ initial: '' }),
 			}),
 			notes: new fields.HTMLField(),
 			experienceJournal: new fields.SchemaField({

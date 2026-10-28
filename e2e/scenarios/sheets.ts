@@ -122,6 +122,8 @@ type SheetsHelpers = {
 	 * the directory asks for, its type select, and the compatibility warnings about `createDialog` logged meanwhile.
 	 */
 	createDialog(documentName: 'Actor' | 'Item'): Promise<CreateDialog>;
+	/** Creates each type with no system data, the items on a character too, and reads back the fields `template.json` gave a default. */
+	emptyDefaults(): Promise<Record<string, unknown>>;
 	welcomeLink(): string | null;
 	cleanUp(): Promise<void>;
 };
@@ -835,6 +837,25 @@ function installSheetsHelpers() {
 			} finally {
 				logger.warn = warn;
 			}
+		},
+
+		async emptyDefaults() {
+			const holder = await Actor.create({ name: 'E2E Defaults Holder', type: 'character' });
+			const actor = async (type: string) => (await Actor.create({ name: `E2E Defaults ${type}`, type }))._source.system;
+			const item = async (type: string) => (await Item.create({ name: `E2E Defaults ${type}`, type }))._source.system;
+			const owned = async (type: string) =>
+				(await holder.createEmbeddedDocuments('Item', [{ name: `E2E Defaults ${type}`, type }]))[0]._source.system;
+			const character = await actor('character');
+			const vehicle = await actor('vehicle');
+			const equipment = ['armor', 'consumable', 'container', 'gear', 'weapon', 'vehicleWeapon'];
+			const containers: Record<string, unknown> = {};
+			for (const type of equipment) containers[type] = [(await item(type)).container, (await owned(type)).container];
+			return {
+				character: { illustration: character.illustration, details: character.details },
+				vehicle: { illustration: vehicle.illustration, complement: vehicle.complement, consumables: vehicle.consumables },
+				containers,
+				activationDetail: { ability: (await item('ability')).activation.detail, talent: (await owned('talent')).activation.detail },
+			};
 		},
 
 		welcomeLink() {
@@ -1855,6 +1876,21 @@ export async function run(e2e: ScenarioContext) {
 			{ position: asked, types: declaredTypes, groups: 0, warnings: [] },
 		);
 	}
+
+	// §#258: with no template.json, a field's initial is the only default Foundry gives a created document.
+	const blank = { gender: '', age: '', height: '', build: '', hair: '', eyes: '', notableFeatures: '' };
+	e2e.expect(
+		'#258 A1 an actor or an item created with no system data stores the defaults template.json gave, an item outside any Container',
+		await gm.evaluate(() => window.sheetsE2E.emptyDefaults()),
+		{
+			character: { illustration: 'icons/svg/mystery-man.svg', details: blank },
+			vehicle: { illustration: 'icons/svg/mystery-man.svg', complement: '', consumables: '' },
+			containers: Object.fromEntries(
+				['armor', 'consumable', 'container', 'gear', 'weapon', 'vehicleWeapon'].map((type) => [type, ['', '']]),
+			),
+			activationDetail: { ability: '', talent: '' },
+		},
+	);
 
 	// §#97: the Default Difficulty setting's hint.
 	e2e.expect(

@@ -83,7 +83,7 @@ export abstract class EquipmentDataModel extends BaseItemDataModel {
 					EquipmentDamageState.Major,
 				],
 			}),
-			container: new fields.StringField(),
+			container: new fields.StringField({ initial: '' }),
 			quantity: new fields.NumberField({ integer: true, initial: 1 }),
 			state: new fields.StringField({
 				initial: EquipmentState.Carried,

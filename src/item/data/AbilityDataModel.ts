@@ -21,7 +21,7 @@ export abstract class AbilityDataModel extends BaseItemDataModel {
 					choices: ['passive', 'active'],
 					initial: 'passive',
 				}),
-				detail: new fields.StringField(),
+				detail: new fields.StringField({ initial: '' }),
 			}),
 		};
 	}
