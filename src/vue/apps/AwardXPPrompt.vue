@@ -37,9 +37,9 @@ function awardXP(event: Event) {
 </template>
 
 <style lang="scss">
-@use 'sass:color';
 @use '@scss/mixins/backgrounds.scss';
-@use '@scss/mixins/reset.scss';
+
+// Unscoped: these rules style the Foundry window around the component.
 
 .app-award-xp-prompt {
 	min-width: 150px;
@@ -69,12 +69,9 @@ function awardXP(event: Event) {
 		padding: 0.5em;
 	}
 
-	@include reset.input;
-
 	input {
-		background: color.adjust(white, $alpha: -0.8);
+		margin: 0;
 		text-align: right;
-		font-size: 1.25em;
 	}
 
 	textarea {

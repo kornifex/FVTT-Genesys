@@ -139,7 +139,7 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 		}
 
 		// Name Input
-		@include reset.input("input[type='text']");
+		@include reset.input;
 		input[type='text'] {
 			width: 100%;
 			font-family: 'Bebas Neue', sans-serif;

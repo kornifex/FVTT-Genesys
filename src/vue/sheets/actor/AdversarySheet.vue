@@ -526,7 +526,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			height: 2.5rem;
 		}
 
-		@include reset.input("input[type='text']");
+		@include reset.input;
 		input[type='text'] {
 			width: 100%;
 			font-family: 'Bebas Neue', sans-serif;

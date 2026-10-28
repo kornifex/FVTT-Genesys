@@ -217,7 +217,7 @@ function dragLeave(event: DragEvent) {
 		font-family: 'Bebas Neue', sans-serif;
 		font-size: 1.1em;
 
-		@include reset.input();
+		@include reset.input;
 		input {
 			background: color.adjust(white, $alpha: -0.8);
 			padding: 3px;
