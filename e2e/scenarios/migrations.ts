@@ -123,16 +123,17 @@ function installMigrationHelpers() {
 		disabled: false,
 		...more,
 	});
-	const item = (name: string, type: string, effects: EffectData[], system: Record<string, unknown> = {}): ItemData => ({
-		_id: randomID(),
-		name,
-		type,
-		system,
-		effects,
-	});
+	// Foundry v14 migrates the data given to a create in place, moving an effect's `changes` to `system.changes`, where a
+	// copy's edited `changes` wouldn't override them: copies are made from the effects as written here.
+	const writtenEffects = new WeakMap<ItemData, EffectData[]>();
+	const item = (name: string, type: string, effects: EffectData[], system: Record<string, unknown> = {}): ItemData => {
+		const data = { _id: randomID(), name, type, system, effects };
+		writtenEffects.set(data, foundry.utils.deepClone(effects));
+		return data;
+	};
 	// Legacy transferral copied an item's transferred effects onto its actor, with the item as origin.
 	const copyOf = (actorId: string, of: ItemData, edits: Record<string, unknown> = {}, index = 0) => ({
-		...of.effects[index],
+		...writtenEffects.get(of)![index],
 		_id: randomID(),
 		origin: `Actor.${actorId}.Item.${of._id}`,
 		...edits,
