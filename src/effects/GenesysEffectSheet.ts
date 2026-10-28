@@ -16,56 +16,77 @@ type ChangesSchema = { fields: { changes: { element: { fields: Record<string, un
 
 // What a key applies to, shown before its label: characters and adversaries, vehicles, both, the checks of the
 // effect's actor, and the checks that target it.
-const ACTOR = '\u{1F9D1}';
-const VEHICLE = '\u{1F697}';
-const ANY_ACTOR = '\u{1F310}';
-const SELF = '\u{1F447}';
-const TARGET = '\u{1F3AF}';
+const ACTOR_GLYPH = '\u{1F9D1}';
+const VEHICLE_GLYPH = '\u{1F697}';
+const ANY_ACTOR_GLYPH = '\u{1F310}';
+const SELF_GLYPH = '\u{1F447}';
+const TARGET_GLYPH = '\u{1F3AF}';
 
 /**
- * The keys the Changes tab offers, by group: each key, what it applies to, and the localization key of its label.
+ * A key the Changes tab offers: the glyph of what it applies to, and the localization key of its label.
  */
-const CHANGE_KEYS: { group: string; keys: [string, string, string][] }[] = [
+type ChangeKey = { key: string; appliesTo: string; label: string };
+
+/**
+ * The keys the Changes tab offers, by group.
+ */
+const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyCharacteristic',
 		keys: [
-			...CHARACTERISTICS.map(({ characteristic, label }): [string, string, string] => [
-				`system.characteristics.${characteristic}`,
-				ACTOR,
+			...CHARACTERISTICS.map(({ characteristic, label }) => ({
+				key: `system.characteristics.${characteristic}`,
+				appliesTo: ACTOR_GLYPH,
 				label,
-			]),
-			['system.silhouette', VEHICLE, 'Genesys.Labels.Silhouette'],
-			['system.speed', VEHICLE, 'Genesys.Labels.Speed'],
-			['system.handling', VEHICLE, 'Genesys.Labels.Handling'],
-			['system.defense', VEHICLE, 'Genesys.Labels.Defense'],
-			['system.armor', VEHICLE, 'Genesys.Labels.Armor'],
+			})),
+			{ key: 'system.silhouette', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Silhouette' },
+			{ key: 'system.speed', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Speed' },
+			{ key: 'system.handling', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Handling' },
+			{ key: 'system.defense', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Defense' },
+			{ key: 'system.armor', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Armor' },
 		],
 	},
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyStat',
 		keys: [
-			['system.soak', ACTOR, 'Genesys.Labels.SoakValue'],
-			['system.wounds.max', ACTOR, 'Genesys.Labels.WoundThreshold'],
-			['system.strain.max', ACTOR, 'Genesys.Labels.StrainThreshold'],
-			['system.defense.melee', ACTOR, 'Genesys.Labels.MeleeDefense'],
-			['system.defense.ranged', ACTOR, 'Genesys.Labels.RangedDefense'],
-			['system.hullTrauma.max', VEHICLE, 'Genesys.Labels.HullTraumaThreshold'],
-			['system.systemStrain.max', VEHICLE, 'Genesys.Labels.SystemStrainThreshold'],
-			['system.passengers.value', VEHICLE, 'Genesys.Labels.Passengers'],
-			['system.passengers.threshold', VEHICLE, 'Genesys.Labels.PassengerCapacity'],
-			['system.encumbrance.value', ANY_ACTOR, 'Genesys.Labels.Encumbrance'],
-			['system.encumbrance.threshold', ANY_ACTOR, 'Genesys.Labels.EncumbranceThreshold'],
+			{ key: 'system.soak', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.SoakValue' },
+			{ key: 'system.wounds.max', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.WoundThreshold' },
+			{ key: 'system.strain.max', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.StrainThreshold' },
+			{ key: 'system.defense.melee', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.MeleeDefense' },
+			{ key: 'system.defense.ranged', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.RangedDefense' },
+			{ key: 'system.hullTrauma.max', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.HullTraumaThreshold' },
+			{ key: 'system.systemStrain.max', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.SystemStrainThreshold' },
+			{ key: 'system.passengers.value', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Passengers' },
+			{ key: 'system.passengers.threshold', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.PassengerCapacity' },
+			{ key: 'system.encumbrance.value', appliesTo: ANY_ACTOR_GLYPH, label: 'Genesys.Labels.Encumbrance' },
+			{ key: 'system.encumbrance.threshold', appliesTo: ANY_ACTOR_GLYPH, label: 'Genesys.Labels.EncumbranceThreshold' },
 		],
 	},
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyDicePool.GroupLabel',
 		keys: [
-			['genesys.pool.check.self', SELF, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check'],
-			['genesys.pool.char.self', SELF, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Characteristic'],
-			['genesys.pool.skill.self', SELF, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill'],
-			['genesys.pool.check.target', TARGET, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check'],
-			['genesys.pool.char.target', TARGET, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Characteristic'],
-			['genesys.pool.skill.target', TARGET, 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill'],
+			{ key: 'genesys.pool.check.self', appliesTo: SELF_GLYPH, label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check' },
+			{
+				key: 'genesys.pool.char.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Characteristic',
+			},
+			{ key: 'genesys.pool.skill.self', appliesTo: SELF_GLYPH, label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill' },
+			{
+				key: 'genesys.pool.check.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check',
+			},
+			{
+				key: 'genesys.pool.char.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Characteristic',
+			},
+			{
+				key: 'genesys.pool.skill.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill',
+			},
 		],
 	},
 ];
@@ -76,8 +97,8 @@ const CHANGE_KEYS: { group: string; keys: [string, string, string][] }[] = [
  */
 function keyOptions() {
 	return CHANGE_KEYS.flatMap(({ group, keys }) =>
-		keys.map(([value, appliesTo, label]) => ({
-			value,
+		keys.map(({ key, appliesTo, label }) => ({
+			value: key,
 			label: `${appliesTo} ${game.i18n.localize(label)}`,
 			group: game.i18n.localize(group),
 		})),
@@ -90,6 +111,24 @@ function keyOptions() {
 function changeTypes() {
 	// The vendored Foundry types predate v14, which gave changes a type.
 	return (ActiveEffect as unknown as { CHANGE_TYPES: Record<string, ChangeType> }).CHANGE_TYPES;
+}
+
+/**
+ * Where an effect keeps its changes, in its data and in the sheet's form.
+ */
+function changesPath() {
+	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
+	return isFoundryV13() ? 'changes' : 'system.changes';
+}
+
+/**
+ * The change types the type selects offer, sorted by label as Foundry's sheet lists them. A change keeps a type no
+ * module registers anymore, which Foundry's form processing then leaves as stored, rather than taking the first one.
+ */
+function changeTypeChoices(changes: EditedChange[]) {
+	const labels = Object.entries(changeTypes()).map(([type, { label }]): [string, string] => [type, game.i18n.localize(label)]);
+	const unregistered = changes.flatMap(({ type }): [string, string][] => (type && !(type in changeTypes()) ? [[type, type]] : []));
+	return Object.fromEntries([...labels.sort(([, a], [, b]) => a.localeCompare(b, game.i18n.lang)), ...unregistered]);
 }
 
 // The class keeps its name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
@@ -107,15 +146,10 @@ export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 		const partContext = await super._preparePartContext(partId, context);
 
 		if (partId === 'changes') {
-			// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
-			const v13 = isFoundryV13();
-			const source = partContext.source as { changes: EditedChange[]; system: { changes: EditedChange[] } };
-			const changes = (v13 ? source.changes : source.system.changes).map(toEditedChange);
-			const document = this.document as unknown as { schema: ChangesSchema; system: { schema: ChangesSchema } };
+			const changes = (foundry.utils.getProperty(partContext.source as object, changesPath()) as EditedChange[]).map(toEditedChange);
 
-			partContext.v13 = v13;
-			partContext.changesPath = v13 ? 'changes' : 'system.changes';
-			partContext.changeFields = (v13 ? document.schema : document.system.schema).fields.changes.element.fields;
+			partContext.changesPath = changesPath();
+			partContext.changeFields = this.#changeFields();
 			partContext.changes = changes;
 			partContext.keys = keyOptions();
 			partContext.skills = skillChoices(
@@ -123,23 +157,33 @@ export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 				changes,
 			);
 			partContext.characteristics = CHARACTERISTICS;
-			if (!v13) {
-				// The types sorted by label, as Foundry's sheet lists them.
-				const types = Object.entries(changeTypes());
-				const labels = types.map(([type, { label }]) => [type, game.i18n.localize(label)]);
-				partContext.changeTypes = Object.fromEntries(labels.sort(([, a], [, b]) => a.localeCompare(b, game.i18n.lang)));
-				partContext.priorities = Object.fromEntries(types.map(([type, { defaultPriority }]) => [type, defaultPriority]));
+			// v13: a change has a mode, whose choices and default priorities Foundry's context holds.
+			partContext.v13 = isFoundryV13();
+			if (!isFoundryV13()) {
+				partContext.changeTypes = changeTypeChoices(changes);
+				partContext.priorities = Object.fromEntries(
+					Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority]),
+				);
 			}
 		}
 
 		return partContext;
 	}
 
+	/**
+	 * The fields of a change, which the tab's inputs render.
+	 */
+	#changeFields() {
+		// v13: the document's own schema holds the changes, which v14 moved to the schema of its system.
+		const document = this.document as unknown as { schema: ChangesSchema; system: { schema: ChangesSchema } };
+		return (isFoundryV13() ? document.schema : document.system.schema).fields.changes.element.fields;
+	}
+
 	override _onChangeForm(formConfig: Record<string, unknown>, event: Event) {
 		super._onChangeForm(formConfig, event);
 
 		const target = event.target as HTMLElement;
-		if (target?.matches('select[name^="changes."][name$=".key"], select[name^="system.changes."][name$=".key"]')) {
+		if (target?.matches(`select[name^="${changesPath()}."][name$=".key"]`)) {
 			const targetSelect = target as HTMLSelectElement;
 			const targetOptionType = subjectFieldForKey(targetSelect.value);
 
@@ -155,18 +199,11 @@ export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 	}
 
 	override _processFormData(event: Event, form: HTMLElement, formData: Record<string, unknown>) {
-		const formDataExpanded = super._processFormData(event, form, formData) as {
-			changes?: EditedChange[];
-			system?: { changes?: EditedChange[] };
-		};
+		const formDataExpanded = super._processFormData(event, form, formData);
 
-		// v13: the form posts the changes as `changes`, which v14 posts as `system.changes`. v14's actions that add and
-		// delete a change read them there.
-		if (isFoundryV13()) {
-			formDataExpanded.changes = Object.values(formDataExpanded.changes || []).map(fromEditedChange);
-		} else if (formDataExpanded.system?.changes) {
-			formDataExpanded.system.changes = Object.values(formDataExpanded.system.changes).map(fromEditedChange);
-		}
+		// v14's actions that add and delete a change read the changes from the processed form data too.
+		const changes = foundry.utils.getProperty(formDataExpanded, changesPath()) as Record<string, EditedChange> | undefined;
+		foundry.utils.setProperty(formDataExpanded, changesPath(), Object.values(changes ?? {}).map(fromEditedChange));
 
 		return formDataExpanded;
 	}

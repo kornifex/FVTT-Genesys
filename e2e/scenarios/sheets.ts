@@ -23,7 +23,7 @@ type Card = {
 /**
  * A change of an effect, as stored: its key, its mode (v14: type) and its value.
  */
-type StoredChange = [string, number | string, unknown];
+type ChangeRow = [string, number | string, unknown];
 
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
@@ -85,7 +85,7 @@ type SheetsHelpers = {
 		edit(owner: string): Promise<void>;
 		submit(owner: string): Promise<void>;
 		/** Each change's key, mode (v14: type) and value, as stored. */
-		changes(owner: string): StoredChange[];
+		changes(owner: string): ChangeRow[];
 	};
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
@@ -1248,9 +1248,9 @@ export async function run(e2e: ScenarioContext) {
 		[skillSelect(0, state.skillSelects[0]?.selected ?? ''), skillSelect(3, 'E2E Custom Skill'), skillSelect(4, 'ranged (light)')],
 	);
 
-	// v14 stores a change's type where v13 stored its mode, and parses a value that holds JSON.
+	// v13: a change has a mode, which v14 replaced with a type; v14 also parses a value that holds JSON.
 	const v14Types: Record<number, string> = { 0: 'custom', 2: 'add', 5: 'override' };
-	const asStored = (changes: [string, number, string][]): StoredChange[] =>
+	const asStored = (changes: [string, number, string][]): ChangeRow[] =>
 		e2e.version < 14
 			? changes
 			: changes.map(([key, mode, value]) => [key, v14Types[mode], /^\d+$/.test(value) ? Number(value) : value]);

@@ -45,6 +45,7 @@
 			<div class="value">
 				{{formInput @root.changeFields.value name=(concat @root.changesPath "." i ".value") value=change.value elementType="input"}}
 			</div>
+			{{!-- v13: a change's default priority depends on its mode, which v14 replaced with its type. --}}
 			<div class="priority">
 				{{formInput @root.changeFields.priority name=(concat @root.changesPath "." i ".priority") value=change.priority
 				placeholder=(lookup @root.priorities (ifThen @root.v13 change.mode change.type))}}
