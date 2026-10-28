@@ -140,23 +140,22 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  *
  * The value keeps its type: v13 stores every value as a string, v14 stores a number as one.
  */
-export function scaledChangeValue<Value>(item: SourceItem | undefined, change: { key: string; value: Value }): Value {
-	const { value } = change;
-
-	if (decodeKey(change.key)) {
-		return (
-			typeof value === 'string' ? value.repeat(item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1) : value
-		) as Value;
+export function scaledChangeValue(item: SourceItem | undefined, change: { key: string; value: string }): string;
+export function scaledChangeValue(item: SourceItem | undefined, change: { key: string; value: unknown }): unknown;
+export function scaledChangeValue(item: SourceItem | undefined, { key, value }: { key: string; value: unknown }) {
+	if (decodeKey(key)) {
+		return typeof value === 'string' ? value.repeat(item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1) : value;
 	}
 
 	if (item?.type === 'talent') {
+		const rank = item.system.rank!;
 		if (typeof value === 'number') {
-			return (value * item.system.rank!) as Value;
+			return value * rank;
 		}
 
-		const scaled = parseInt(String(value)) * item.system.rank!;
+		const scaled = parseInt(String(value)) * rank;
 		if (!isNaN(scaled)) {
-			return scaled.toString() as Value;
+			return scaled.toString();
 		}
 	}
 

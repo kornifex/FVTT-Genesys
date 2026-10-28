@@ -1658,7 +1658,7 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 	const R = 'Ranked';
 	const soak = async () => (await page((name) => window.characterE2E.appliedEffects(name), R)).soak;
-	await e2e.step('#242 A1 a character without talents', () => page((name) => window.characterE2E.create(name), R));
+	await e2e.step('#242 A0 a character without talents', () => page((name) => window.characterE2E.create(name), R));
 	const before = await soak();
 	await e2e.step('#242 A1 a rank 3 talent added, whose effect adds 1 and 2 to the soak', () =>
 		page(
