@@ -586,10 +586,8 @@ function installCharacterHelpers() {
 		},
 
 		socialSkills(name) {
-			// The masonry wall lays the categories out in columns; each keeps its place in the list as its z-index.
-			const categories = ([...sheet(name).querySelectorAll('.tab-skills .skill-category')] as HTMLElement[]).sort(
-				(left, right) => Number(right.style.zIndex) - Number(left.style.zIndex),
-			);
+			// CSS columns lay the categories out, so the document keeps them in list order.
+			const categories = [...sheet(name).querySelectorAll('.tab-skills .skill-category')];
 			const names = (category: Element) =>
 				[...category.querySelectorAll('.skill.row .name span')].map((span) => text(span).replace(/ \([^()]*\)$/, ''));
 			const social = categories.find(

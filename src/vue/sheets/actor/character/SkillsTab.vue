@@ -14,7 +14,6 @@ import XPContainer from '@/vue/components/character/XPContainer.vue';
 import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import MasonryWall from '@yeger/vue-masonry-wall';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { freeRank, SkillCategory, skillsByCategory } from '@/data/Skills';
 
@@ -125,75 +124,74 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 		</div>
 
 		<div class="skills-row">
-			<MasonryWall :column-width="300" :items="skillCategories" :gap="8">
-				<template #default="{ item: skillCategory, index }">
-					<div class="skill-category" :style="`position: relative; z-index: ${skillCategories.length - index}`">
-						<div class="header">
-							<label><Localized :label="SKILL_CATEGORY_LABELS[skillCategory.category]" /></label>
-							<div class="blank" />
+			<div
+				v-for="(skillCategory, index) in skillCategories"
+				:key="skillCategory.category"
+				class="skill-category"
+				:style="`position: relative; z-index: ${skillCategories.length - index}`"
+			>
+				<div class="header">
+					<label><Localized :label="SKILL_CATEGORY_LABELS[skillCategory.category]" /></label>
+					<div class="blank" />
 
-							<label style="position: relative; left: -3px"><Localized label="Genesys.Labels.Rank" /></label>
-							<div class="blank" />
-						</div>
+					<label style="position: relative; left: -3px"><Localized label="Genesys.Labels.Rank" /></label>
+					<div class="blank" />
+				</div>
 
-						<div class="body">
-							<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
-								<template v-slot:menu-items>
-									<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
-										<template v-slot:icon
-											><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i
-										></template>
-										{{ skill.systemData.career ? unmarkCareerLabel : markCareerLabel }}
-									</MenuItem>
+				<div class="body">
+					<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
+						<template v-slot:menu-items>
+							<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
+								<template v-slot:icon><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i></template>
+								{{ skill.systemData.career ? unmarkCareerLabel : markCareerLabel }}
+							</MenuItem>
 
-									<MenuItem @click="freeSkillRank(skill, 1)" v-if="context.data.editable">
-										<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-										{{ freeRankUpLabel }}
-									</MenuItem>
+							<MenuItem @click="freeSkillRank(skill, 1)" v-if="context.data.editable">
+								<template v-slot:icon><i class="fas fa-circle-up"></i></template>
+								{{ freeRankUpLabel }}
+							</MenuItem>
 
-									<MenuItem @click="freeSkillRank(skill, -1)" v-if="context.data.editable">
-										<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-										{{ freeRankDownLabel }}
-									</MenuItem>
+							<MenuItem @click="freeSkillRank(skill, -1)" v-if="context.data.editable">
+								<template v-slot:icon><i class="fas fa-circle-down"></i></template>
+								{{ freeRankDownLabel }}
+							</MenuItem>
 
-									<MenuItem @click="editSkill(skill)">
-										<template v-slot:icon><i class="fas fa-edit"></i></template>
-										{{ editLabel }}
-									</MenuItem>
+							<MenuItem @click="editSkill(skill)">
+								<template v-slot:icon><i class="fas fa-edit"></i></template>
+								{{ editLabel }}
+							</MenuItem>
 
-									<MenuItem @click="deleteSkill(skill)" v-if="context.data.editable">
-										<template v-slot:icon><i class="fas fa-trash"></i></template>
-										{{ deleteLabel }}
-									</MenuItem>
-								</template>
+							<MenuItem @click="deleteSkill(skill)" v-if="context.data.editable">
+								<template v-slot:icon><i class="fas fa-trash"></i></template>
+								{{ deleteLabel }}
+							</MenuItem>
+						</template>
 
-								<img :src="skill.img" :alt="skill.name" />
-								<a class="name" @click="rollSkill(skill)">
-									<span
-										>{{ skill.name }} (<Localized
-											:label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]"
-										/>)</span
-									>
-									<i v-if="skill.systemData.career" class="fas fa-star"></i>
-								</a>
+						<img :src="skill.img" :alt="skill.name" />
+						<a class="name" @click="rollSkill(skill)">
+							<span
+								>{{ skill.name }} (<Localized
+									:label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]"
+								/>)</span
+							>
+							<i v-if="skill.systemData.career" class="fas fa-star"></i>
+						</a>
 
-								<span class="rank-display">
-									{{ skill.systemData.rank }}
+						<span class="rank-display">
+							{{ skill.systemData.rank }}
 
-									<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
-										<i class="fas fa-arrow-circle-up" />
-									</a>
-								</span>
+							<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
+								<i class="fas fa-arrow-circle-up" />
+							</a>
+						</span>
 
-								<SkillRanks
-									:skill-value="skill.systemData.rank"
-									:characteristic-value="system.characteristics[skill.systemData.characteristic]"
-								/>
-							</ContextMenu>
-						</div>
-					</div>
-				</template>
-			</MasonryWall>
+						<SkillRanks
+							:skill-value="skill.systemData.rank"
+							:characteristic-value="system.characteristics[skill.systemData.characteristic]"
+						/>
+					</ContextMenu>
+				</div>
+			</div>
 		</div>
 
 		<section class="experience">
@@ -260,11 +258,20 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 	width: 100%;
 	padding-left: 0.5em;
 	padding-right: 0.5em;
+	columns: 300px;
+	column-gap: 8px;
+	// Each category is one line of the row: a column may start or end with a single one.
+	orphans: 1;
+	widows: 1;
 
 	.skill-category {
 		container: skill-category / inline-size;
+		// An inline-block can't be split, so the open context menu of its last skill hangs below it. As a block, Chromium
+		// would carry that menu into the next column and rebalance the columns while it is open.
+		display: inline-block;
+		vertical-align: top;
 		width: 100%;
-		break-inside: avoid-column;
+		margin-bottom: 8px;
 		white-space: nowrap;
 		background: colors.alpha(colors.$light-blue, 0.2);
 		padding: 8px;
