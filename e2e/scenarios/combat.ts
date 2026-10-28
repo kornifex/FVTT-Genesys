@@ -106,8 +106,9 @@ function installCombatHelpers() {
 		if (!li) throw new Error(`No tracker row for ${slot}`);
 		return li;
 	};
-	// Foundry v14 renamed core's reroll entry and the fields of every entry: v13's `name`, `condition` and `callback` are
-	// `label`, `visible` and `onClick`, which v14 reads first.
+	// v13: core's reroll entry has another key, and an entry names its fields `name`, `condition` and `callback`, which v14
+	// renamed `label`, `visible` and `onClick` and reads first. The page can't import the system's types, so the shape is
+	// declared again here.
 	type ContextMenuEntry = {
 		label?: string;
 		name?: string;
@@ -117,6 +118,7 @@ function installCombatHelpers() {
 		callback?: (target: HTMLElement) => unknown;
 	};
 	const menuKeys: Record<MenuEntry, string> = {
+		// v13: core's reroll entry has another key.
 		reroll: game.release.generation < 14 ? 'COMBAT.CombatantReroll' : 'COMBATANT.ACTIONS.Reroll',
 		revokeClaim: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 	};
@@ -1047,7 +1049,8 @@ export async function run(e2e: ScenarioContext) {
 				current: bothClients('Boss:-1'),
 			},
 		);
-		// v14 still reads v13's field names, with a deprecation warning, until v16.
+		// v13: the entries name their fields `name`, `condition` and `callback`, which v14 still reads, with a deprecation
+		// warning, until v16.
 		const fields = e2e.version < 14 ? ['callback', 'condition', 'icon', 'name'] : ['icon', 'label', 'onClick', 'visible'];
 		e2e.expect(
 			"#244 A1 the tracker's menu entries the system writes or rewrites use the field names of the Foundry version",
