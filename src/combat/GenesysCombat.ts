@@ -24,6 +24,7 @@ import {
 	extraSlotsForRound,
 	InitiativeSlot,
 	initiativeWrites,
+	isExtraSlot,
 	ownSlotIds,
 	RoundClaims,
 	slotIdsOf,
@@ -137,8 +138,15 @@ export class GenesysCombat extends Combat {
 		return slot ? this.slotViewForUser(slot).controlsTurn : false;
 	}
 
+	/**
+	 * An Initiative Slot of the current round, by its id.
+	 */
+	#slot(slotId: string) {
+		return this.slots.find((slot) => slot.id === slotId);
+	}
+
 	canRevokeClaim(slotId: string) {
-		const slot = this.slots.find((candidate) => candidate.id === slotId);
+		const slot = this.#slot(slotId);
 		return slot ? this.slotViewForUser(slot).canRevoke : false;
 	}
 
@@ -147,19 +155,14 @@ export class GenesysCombat extends Combat {
 	 * slot or one of its extra slots, whoever claimed it.
 	 */
 	async rollSlotInitiative(slotId: string) {
-		const slot = this.slots.find((candidate) => candidate.id === slotId);
-		if (!slot) {
-			return this;
-		}
-
-		return this.rollSlotsInitiative([slot.id], { prompt: true });
+		return this.rollSlotsInitiative([slotId], { prompt: true });
 	}
 
 	/**
 	 * Cycle the Initiative Skill of the combatant whose initiative gave an Initiative Slot of the current round.
 	 */
 	async cycleInitiativeSkill(slotId: string) {
-		const slot = this.slots.find((candidate) => candidate.id === slotId);
+		const slot = this.#slot(slotId);
 		const combatant = slot ? this.combatants.get<GenesysCombatant>(slot.originId) : undefined;
 		if (combatant?.isOwner) {
 			await combatant.cycleInitiativeSkill();
@@ -177,20 +180,31 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
+	 * The combatant of the single token the user controls, or undefined after warning the user that there is none.
+	 */
+	#controlledCombatant() {
+		if (canvas.tokens.controlled.length !== 1) {
+			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
+			return undefined;
+		}
+
+		// Foundry finds a token's combatant in `game.combat`, which may not be this one: a macro can call on any combat, and
+		// v14's `game.combat` is the active combat until the tracker renders.
+		const combatant = canvas.tokens.controlled[0].combatant as GenesysCombatant | null;
+		if (!combatant || combatant.parent !== this) {
+			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
+			return undefined;
+		}
+
+		return combatant;
+	}
+
+	/**
 	 * Claim an Initiative Slot of the current round for the combatant of the single token the user controls.
 	 */
 	async claimSlotWithControlledToken(slotId: string) {
-		// Ensure we have a single token selected to claim this slot.
-		if (canvas.tokens.controlled.length !== 1) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
-			return;
-		}
-
-		const combatant = canvas.tokens.controlled[0].combatant as GenesysCombatant;
-
-		// No claiming initiative slots if you aren't in the combat!
-		if (!combatant || combatant.parent !== this) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
+		const combatant = this.#controlledCombatant();
+		if (!combatant) {
 			return;
 		}
 
@@ -310,9 +324,9 @@ export class GenesysCombat extends Combat {
 		let slots = slotsToRoll(this.slots, slotIds).filter((slot) => this.combatants.get(slot.originId)?.isOwner);
 
 		// Only a GM may write an extra slot's initiative: a player's roll waits for one.
-		if (!game.user.isGM && !game.users.activeGM && slots.some((slot) => slot.activationId >= 0)) {
+		if (!game.user.isGM && !game.users.activeGM && slots.some(isExtraSlot)) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NoGMForExtraSlot'));
-			slots = slots.filter((slot) => slot.activationId < 0);
+			slots = slots.filter((slot) => !isExtraSlot(slot));
 		}
 
 		const currentSlotId = this.currentSlotId;
@@ -409,16 +423,12 @@ export class GenesysCombat extends Combat {
 		return this;
 	}
 
+	/**
+	 * Add an extra slot from the current round on for the combatant of the single token the user controls.
+	 */
 	async addInitiativeSlot() {
-		const controlledTokenCount = canvas.tokens.controlled.length;
-		if (controlledTokenCount !== 1) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.SelectOneTokenForAction'));
-			return;
-		}
-
-		const combatant = canvas.tokens.controlled[0].combatant as GenesysCombatant;
+		const combatant = this.#controlledCombatant();
 		if (!combatant) {
-			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
 			return;
 		}
 
