@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.1...v0.4.0-rc.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **migration:** enable the equipment effects left disabled from 0.3.1, so the Equipment State decides ([#305](https://github.com/kornifex/FVTT-Genesys/issues/305)) ([34bee81](https://github.com/kornifex/FVTT-Genesys/commit/34bee8167b4fdc5209bc0ff775c2e3fcf95333ea))
+* **ui:** center an adversary's and a vehicle's editable characteristic values on Foundry v13 ([#306](https://github.com/kornifex/FVTT-Genesys/issues/306)) ([eaf0133](https://github.com/kornifex/FVTT-Genesys/commit/eaf01335d7b7aaec99932b8dcee93ecabd8cb1f9))
+* **ui:** collapse a minimized sheet to its header, and keep its minimum size only while open ([#315](https://github.com/kornifex/FVTT-Genesys/issues/315)) ([9810e16](https://github.com/kornifex/FVTT-Genesys/commit/9810e16d77cdf4834e8583a242da3903fb1135a4))
+
+
+### Continuous Integration
+
+* release the 0.4.x maintenance line from its own branch ([#282](https://github.com/kornifex/FVTT-Genesys/issues/282)) ([89bf988](https://github.com/kornifex/FVTT-Genesys/commit/89bf988f2c38c5a525f33e397226366a748a766b))
+* set the next release to 0.4.0-rc.2 ([#324](https://github.com/kornifex/FVTT-Genesys/issues/324)) ([8ecd89a](https://github.com/kornifex/FVTT-Genesys/commit/8ecd89ada3d3a8c209de1c88b64aaeac3eed185f))
+* set the next release to 0.4.0, and merge a release candidate before the table tests ([#278](https://github.com/kornifex/FVTT-Genesys/issues/278)) ([d11bbd3](https://github.com/kornifex/FVTT-Genesys/commit/d11bbd33d5d1b5eb4073d8efc9055c053f0f65f5))
+
+
+### Tests
+
+* **combat:** prove that a claimed row's roll and Initiative Skill buttons follow the owners of its slot's origin ([#320](https://github.com/kornifex/FVTT-Genesys/issues/320)) ([01466e3](https://github.com/kornifex/FVTT-Genesys/commit/01466e30d2b6a7cc96d141751407806c9087a601))
+* **item:** prove the state and delete paths the checklist names but no sheet offers, and read a script's Used write ([#318](https://github.com/kornifex/FVTT-Genesys/issues/318)) ([1efc157](https://github.com/kornifex/FVTT-Genesys/commit/1efc1578459205091c9f2e1ada00bcb69a85e48f))
+* **migration:** check the soak the migrated armor adds, apart from the other effects' share ([#310](https://github.com/kornifex/FVTT-Genesys/issues/310)) ([56b5337](https://github.com/kornifex/FVTT-Genesys/commit/56b5337f8b8faf8e0169b02aaefa47213986ee83))
+* **ui:** prove that Escape leaves a sheet open while a field has the focus, and closes it otherwise ([#319](https://github.com/kornifex/FVTT-Genesys/issues/319)) ([75f68f2](https://github.com/kornifex/FVTT-Genesys/commit/75f68f20e0cb633442f952221f79bc0e8144b597))
+
 ## [0.4.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.3.1...v0.4.0-rc.1) (2026-10-27)
 
 
