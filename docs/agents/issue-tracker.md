@@ -18,6 +18,8 @@ Infer the repo from `git remote -v`; `gh` does this automatically when run insid
 
 The repository is still a GitHub fork of Mezryss/FVTT-Genesys (it stays in the fork network on purpose), so `gh` may resolve to the upstream repository. Always pass `-R kornifex/FVTT-Genesys`, and `--base main` when creating a pull request.
 
+Third parties open issues through the forms in `.github/ISSUE_TEMPLATE/` (blank issues are disabled in the web UI): a bug report or a feature request, which applies its category label (`bug` or `enhancement`) and `needs-triage`. They may be written in French.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

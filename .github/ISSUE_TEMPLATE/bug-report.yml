@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in the system doesn't work as it should.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! You can write it in French (vous pouvez écrire en français).
+
+        Please search the [open issues](https://github.com/kornifex/FVTT-Genesys/issues) first: if yours is already there, add what you saw as a comment.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happens
+      description: What goes wrong, and on which sheet, window or document.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: From a world where the problem isn't there yet, what to click or type to see it.
+      placeholder: |
+        1. Open a character's sheet
+        2. Drag an armor from the sidebar onto its Inventory tab
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+      description: What you expected instead, and the version where it worked, if it did.
+    validations:
+      required: true
+  - type: input
+    id: system-version
+    attributes:
+      label: Genesys system version
+      description: Shown at the top of the Settings sidebar tab, next to the system's name.
+      placeholder: 0.4.0-rc.1
+    validations:
+      required: true
+  - type: input
+    id: foundry-version
+    attributes:
+      label: Foundry version
+      description: Shown at the top of the Settings sidebar tab, as the generation and its Build (13 and 351 give 13.351).
+      placeholder: '13.351'
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Where you play
+      multiple: true
+      options:
+        - Foundry desktop app
+        - Chrome
+        - Firefox
+        - Edge
+        - Safari
+        - Other (say which in What happens)
+    validations:
+      required: true
+  - type: textarea
+    id: modules
+    attributes:
+      label: Active modules
+      description: The modules enabled in the world. Does the problem still happen with every module disabled?
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots and console errors
+      description: Drop screenshots here. Errors in red in the browser console (F12, or Ctrl+Shift+I in the desktop app) help a lot.
