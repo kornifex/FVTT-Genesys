@@ -2,7 +2,7 @@
 
 import type { DicePool, DieName } from '@/dice/DicePool';
 
-// The dice classes extend Foundry's `Die`, which a unit-tested module like the check links can't load.
+// The dice classes extend `foundry.dice.terms.Die`, which a unit-tested module like the check links can't load.
 
 /**
  * Upgrade a die of a pool: turn a die of the base type into a die of the upgraded type, or add a die of the base type

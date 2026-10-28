@@ -9,7 +9,7 @@ export type DieCategory = 'positive' | 'negative';
 /**
  * Base type of all custom Genesys dice.
  */
-export abstract class GenesysDie extends Die {
+export abstract class GenesysDie extends foundry.dice.terms.Die {
 	/**
 	 * The text glyph used to symbolize this die.
 	 */
@@ -39,7 +39,7 @@ export abstract class GenesysDie extends Die {
 	 * Utility method for accessing the class's static denomination from the child.
 	 */
 	get denomination() {
-		return (this.constructor as typeof Die).DENOMINATION;
+		return (this.constructor as typeof GenesysDie).DENOMINATION;
 	}
 
 	constructor(termData: DiceTermData) {

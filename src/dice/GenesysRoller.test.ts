@@ -4,10 +4,10 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// The dice types extend Foundry's `Die` and the Dice So Nice! registration listens to `Hooks`; both are Foundry globals.
+// The dice types extend `foundry.dice.terms.Die` and the Dice So Nice! registration listens to `Hooks`; both are Foundry globals.
 vi.hoisted(() => {
 	Object.assign(globalThis, {
-		Die: class {},
+		foundry: { dice: { terms: { Die: class {} } } },
 		Hooks: { once: () => {}, on: () => {} },
 	});
 });
