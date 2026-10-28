@@ -2,16 +2,16 @@
  * @file System Entry Point
  */
 
-import { register as registerConfig, setup as setupConfigs, ready as readyConfigs } from '@/config';
+import { register as registerConfig } from '@/config';
 import { register as registerCombat } from '@/combat';
 import { register as registerSidebars } from '@/sidebar';
 import { register as registerDice } from '@/dice';
 import { register as registerEnrichers } from '@/enrichers';
 import { register as registerFonts } from '@/fonts';
 import { register as registerHandlebarsHelpers } from '@/handlebars';
-import { NAMESPACE as SETTINGS_NAMESPACE, register as registerSettings } from '@/settings';
+import { NAMESPACE as SETTINGS_NAMESPACE, register as registerSettings, setup as setupSettings, ready as readySettings } from '@/settings';
 import { KEY_ALPHA_VERSION } from '@/settings/alpha';
-import { KEY_DEFAULT_DIFFICULTY } from '@/settings/campaign';
+import type { SettingKey } from '@/settings/table';
 
 import { register as registerStoryPointTracker } from '@/app/StoryPointTracker';
 import { register as registerActors } from '@/actor';
@@ -92,7 +92,7 @@ Hooks.once('init', async () => {
 });
 
 Hooks.once('setup', () => {
-	setupConfigs();
+	setupSettings();
 });
 
 Hooks.once('ready', async () => {
@@ -100,7 +100,7 @@ Hooks.once('ready', async () => {
 	const lastAlpha = game.settings.get<string>(SETTINGS_NAMESPACE, KEY_ALPHA_VERSION) ?? '0.0.0';
 
 	await doAlphaNotice(lastAlpha);
-	readyConfigs();
+	readySettings();
 
 	await performMigrations(lastAlpha);
 
@@ -121,11 +121,10 @@ Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown)
 // Create wiki links in the description section of certain settings. We use a hook here since there is no way to
 // directly add links as any HTML is escaped.
 const wikiLinkPattern = /\[\[([^|\]]+)(\|([^\]]+))?\]\]/g;
+const WIKI_LINKED_SETTING: SettingKey = 'defaultDifficulty';
 // v12: the Foundry types we have are v12's, whose hook passes jQuery; v13 passes the element.
 Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
-	const note = (html as unknown as HTMLElement).querySelector(
-		`.form-fields:has(input[name='genesys.${KEY_DEFAULT_DIFFICULTY}']) + p.hint`,
-	);
+	const note = (html as unknown as HTMLElement).querySelector(`.form-fields:has(input[name='genesys.${WIKI_LINKED_SETTING}']) + p.hint`);
 
 	if (note) {
 		note.innerHTML = note.innerHTML.replaceAll(wikiLinkPattern, (_m, g1, _g2, g3) => {
