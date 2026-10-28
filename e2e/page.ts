@@ -100,6 +100,8 @@ type PageHelpers = {
 	unprefixed: (name: string) => string;
 	/** Whether a scenario set the document up: its name starts with `E2E `. */
 	isSetUp: (doc: { name: string }) => boolean;
+	/** An effect's duration in rounds, or null when it doesn't last a number of rounds. */
+	durationRounds: (effect: { duration: Record<string, unknown> }) => number | null;
 	/** The element of a window. */
 	htmlOf: (app: { element?: unknown }) => HTMLElement | undefined;
 	/**
@@ -358,6 +360,13 @@ export function installHelpers() {
 
 		isSetUp(doc) {
 			return doc.name.startsWith('E2E ');
+		},
+
+		durationRounds({ duration }) {
+			// v13: a duration holds its rounds. From v14 on it holds a value and its units, and the legacy `rounds` it shims
+			// reads null once the client prepared the duration.
+			if (game.release.generation < 14) return typeof duration.rounds === 'number' ? duration.rounds : null;
+			return duration.units === 'rounds' && typeof duration.value === 'number' ? duration.value : null;
 		},
 
 		htmlOf(app) {
