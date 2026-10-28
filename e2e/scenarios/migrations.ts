@@ -1,4 +1,4 @@
-/** @file #56 and #102: the migrations a world runs on load, over its actors, its unlinked tokens and its actor compendiums, once. */
+/** @file #56, #102 and #280: the migrations a world runs on load, over its actors, its unlinked tokens and its actor compendiums, once. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -23,7 +23,7 @@ type WorldState = {
 	version: number;
 	crew: Record<'V1' | 'V2 token' | 'V2 base' | 'V3 pack', Crew>;
 	locked: Record<'E2E Migrations' | 'E2E Old Actors', boolean>;
-	effects: Record<'Mira' | 'Odd' | 'Raider token' | 'Raider base' | 'Packed pack' | 'Veteran pack', ActorEffects>;
+	effects: Record<'Mira' | 'Recent' | 'Odd' | 'Raider token' | 'Raider base' | 'Packed pack' | 'Veteran pack', ActorEffects>;
 	/** The values the effects' changes add to, from 0: each effect that applies once adds its change once. */
 	applied: Record<'Mira' | 'Raider token' | 'Raider base', Record<string, number>>;
 };
@@ -39,6 +39,8 @@ type MigrationHelpers = {
 	importWithCopies(): Promise<void>;
 	/** The effects of a world actor and the values they add to. */
 	created(name: string): { effects: ActorEffects; soak: number };
+	/** Puts an item of a world actor in an Equipment State, then reads which of its effects apply and the soak they add to. */
+	setEquipmentState(args: { actor: string; item: string; state: string }): Promise<{ applied: string[]; soak: number }>;
 	/** Puts the world back at migration version 0, as a world that never ran the migrations. */
 	rollBack(): Promise<void>;
 	/** Waits until the migrations a load started end, if any started. */
@@ -195,7 +197,8 @@ function installMigrationHelpers() {
 			// #102: a character holding copies of its items' effects, as legacy transferral left them. The talent has an
 			// effect that doesn't transfer, which legacy transferral didn't copy. The copy of the talent's effect was edited
 			// from the character's Effects tab; those of the equipment were disabled, by hand (Mail) or by the old
-			// equipment rule (Leather, Stim).
+			// equipment rule (Leather, Stim). Plate's effect was disabled on the item, so that it applied once Equipped
+			// rather than while Carried: the old equipment rule enabled its copy on the first state change.
 			const grit = item('E2E Grit', 'talent', [
 				effect('E2E Grit', 'soak', 1),
 				effect('E2E Grit Off', 'wounds.max', 100, { transfer: false }),
@@ -204,7 +207,8 @@ function installMigrationHelpers() {
 			const leather = item('E2E Leather', 'armor', [effect('E2E Leather', 'defense.ranged', 1)], { state: 'carried' });
 			const lantern = item('E2E Lantern', 'gear', [effect('E2E Lantern', 'strain.max', 1)], { state: 'carried' });
 			const stim = item('E2E Stim', 'consumable', [effect('E2E Stim', 'wounds.max', 1)], { state: 'carried' });
-			const mira = await Actor.create({ name: 'E2E Mira', type: 'character', items: [grit, mail, leather, lantern, stim] });
+			const plate = item('E2E Plate', 'armor', [effect('E2E Plate', 'soak', 5, { disabled: true })], { state: 'carried' });
+			const mira = await Actor.create({ name: 'E2E Mira', type: 'character', items: [grit, mail, leather, lantern, stim, plate] });
 			await mira.createEmbeddedDocuments('ActiveEffect', [
 				copyOf(mira.id, grit, {
 					name: 'E2E Grit (edited)',
@@ -216,8 +220,13 @@ function installMigrationHelpers() {
 				copyOf(mira.id, leather, { disabled: true }),
 				copyOf(mira.id, lantern),
 				copyOf(mira.id, stim, { disabled: true }),
+				copyOf(mira.id, plate, { disabled: true }),
 				effect('E2E Blessing', 'wounds.max', 10),
 			]);
+
+			// A character without copies, as 0.4.0-rc.1 left it, holding an armor whose effect was disabled on the item.
+			const guard = item('E2E Guard', 'armor', [effect('E2E Guard', 'soak', 1, { disabled: true })], { state: 'equipped' });
+			await Actor.create({ name: 'E2E Recent', type: 'character', items: [guard] });
 
 			// An item with two copies of its one effect: they don't pair up.
 			const knack = item('E2E Knack', 'talent', [effect('E2E Knack', 'soak', 1)]);
@@ -277,6 +286,12 @@ function installMigrationHelpers() {
 				items: [hunch],
 				effects: [copyOf(oldId, hunch, { name: 'E2E Hunch (edited)' }), copyOf(oldId, hunch)],
 			});
+			// An armor whose effect was disabled on the item, held by an actor of 0.3.1, with its copy, and by an actor
+			// without copies, as a duplicate of a migrated actor whose GM disabled the effect.
+			const brace = () => item('E2E Brace', 'armor', [effect('E2E Brace', 'soak', 1, { disabled: true })], { state: 'equipped' });
+			const braced = brace();
+			await Actor.create({ name: 'E2E Armored', type: 'character', items: [braced], effects: [copyOf(oldId, braced)] });
+			await Actor.create({ name: 'E2E Duplicate', type: 'character', items: [brace()] });
 		},
 
 		async importWithCopies() {
@@ -288,6 +303,15 @@ function installMigrationHelpers() {
 		created(name) {
 			const actor = actorNamed(name);
 			return { effects: effectsOf(actor), soak: actor.system.soak };
+		},
+
+		async setEquipmentState({ actor: name, item: itemName, state }) {
+			const actor = actorNamed(name);
+			await actor.items.getName(`E2E ${itemName}`).update({ 'system.state': state });
+			return {
+				applied: [...actor.appliedEffects].map((effect: { name: string }) => effect.name).sort(),
+				soak: actor.system.soak,
+			};
 		},
 
 		async rollBack() {
@@ -323,6 +347,7 @@ function installMigrationHelpers() {
 				locked: { 'E2E Migrations': packNamed('E2E Migrations').locked, 'E2E Old Actors': packNamed('E2E Old Actors').locked },
 				effects: {
 					Mira: effectsOf(mira),
+					Recent: effectsOf(actorNamed('Recent')),
 					Odd: effectsOf(actorNamed('Odd')),
 					'Raider token': effectsOf(tokenActor('Raider')),
 					'Raider base': effectsOf(actorNamed('Raider')),
@@ -411,6 +436,7 @@ const MIGRATED_MIRA = {
 		`E2E Lantern / E2E Lantern | ${SHIELD} | strain.max +1`,
 		`E2E Leather / E2E Leather | ${SHIELD} | defense.ranged +1`,
 		`E2E Mail / E2E Mail | ${SHIELD} | defense.melee +1`,
+		`E2E Plate / E2E Plate | ${SHIELD} | soak +5`,
 		`E2E Stim / E2E Stim | ${SHIELD} | wounds.max +1`,
 	],
 };
@@ -458,6 +484,17 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 
+	e2e.expect(
+		'#280 A1 an actor created with copies and an armor whose effect is disabled gets the effect enabled, applied while the armor is Equipped',
+		await gm.evaluate(() => window.migrationsE2E.created('Armored')),
+		{ effects: { own: [], items: [`E2E Brace / E2E Brace | ${SHIELD} | soak +1`] }, soak: 1 },
+	);
+	e2e.expect(
+		'#280 A2 an actor created without copies keeps the disabled effect of its armor',
+		await gm.evaluate(() => window.migrationsE2E.created('Duplicate')),
+		{ effects: { own: [], items: [`E2E Brace / E2E Brace | ${SHIELD} | soak +1 | disabled`] }, soak: 0 },
+	);
+
 	const reload = async (name: string) => {
 		await e2e.step(name, async () => {
 			await gm.reload();
@@ -477,7 +514,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches 3', migrated.version, 3);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 4);
 	e2e.expect('#56 A2 a world vehicle crew holds uuids, each actor once', migrated.crew.V1, MIGRATED_CREW);
 	e2e.expect(
 		'#56 A3 an unlinked token vehicle crew is migrated, its base actor left alone',
@@ -505,7 +542,7 @@ export async function run(e2e: ScenarioContext) {
 		MIGRATED_MIRA.items.filter((effect) => effect.startsWith('E2E Grit /')),
 	);
 	// Grit's edited effect adds 2 to soak, Mail equipped 1 to melee defense, Lantern carried 1 to strain, Blessing 10 to
-	// wounds; Leather carried and Stim not used are suppressed.
+	// wounds; Leather and Plate carried, and Stim not used, are suppressed.
 	e2e.expect('#102 A7 each effect of a migrated character applies once', migrated.applied.Mira, {
 		soak: 2,
 		'defense.melee': 1,
@@ -519,8 +556,13 @@ export async function run(e2e: ScenarioContext) {
 		{
 			temporary: ['E2E Grit (edited) ← E2E Grit'],
 			passive: ['E2E Blessing ← -', 'E2E Lantern ← E2E Lantern', 'E2E Mail ← E2E Mail'],
-			suppressed: ['E2E Leather ← E2E Leather', 'E2E Stim ← E2E Stim'],
+			suppressed: ['E2E Leather ← E2E Leather', 'E2E Plate ← E2E Plate', 'E2E Stim ← E2E Stim'],
 		},
+	);
+	e2e.expect(
+		'#280 A3 a world actor without copies, as 0.4.0-rc.1 left it, gets the disabled effect of its armor enabled',
+		migrated.effects.Recent,
+		{ own: [], items: [`E2E Guard / E2E Guard | ${SHIELD} | soak +1`] },
 	);
 	e2e.expect(
 		'#102 A8 an unlinked token loses its copies, their edits written on its item effect, its base actor left alone',
@@ -574,6 +616,18 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([])),
 	);
 	e2e.expect('#56 A8 the migrations run again leave the migrated world as it was', rerun, migrated);
+
+	// #280: the armor whose effect was disabled on the item applies while Equipped, and not while Carried.
+	const setEquipmentState = (state: string) =>
+		gm.evaluate((args) => window.migrationsE2E.setEquipmentState(args), { actor: 'Mira', item: 'Plate', state });
+	e2e.expect(
+		'#280 A4 a migrated armor whose effect was disabled applies it once Equipped, and suppresses it once Carried again',
+		{ equipped: await setEquipmentState('equipped'), carried: await setEquipmentState('carried') },
+		{
+			equipped: { applied: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail', 'E2E Plate'], soak: 7 },
+			carried: { applied: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail'], soak: 2 },
+		},
+	);
 
 	await e2e.step('scenario documents deleted', () => gm.evaluate(() => window.migrationsE2E.cleanUp()));
 }

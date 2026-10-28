@@ -6,7 +6,7 @@ import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
-import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
+import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 
 export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
 	/**
@@ -31,8 +31,8 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
 
 		// An actor created with legacy copies of its items' effects, for instance imported from an older module compendium,
-		// loses them as the world's actors did in migration 3.
-		const changes = effectsStayOnItemsWithNotifications(this.toObject() as ActorSource);
+		// loses them and gets its equipment's effects enabled, as the world's actors did in migrations 3 and 4.
+		const changes = migrateCreatedActor(this.toObject() as ActorSource);
 		if (changes) {
 			this.#applyToSource(changes);
 		}
