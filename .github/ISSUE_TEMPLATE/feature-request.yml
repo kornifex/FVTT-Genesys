@@ -1,0 +1,41 @@
+name: Feature request
+description: Something the system could do, or do differently, for your table.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! You can write it in French (vous pouvez écrire en français).
+
+        Please search the [open issues](https://github.com/kornifex/FVTT-Genesys/issues) first: if yours is already there, add your use case as a comment.
+  - type: textarea
+    id: need
+    attributes:
+      label: What your table needs
+      description: What you're trying to do during a session or while preparing one, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: How the system could do it. Screenshots or sketches are welcome.
+    validations:
+      required: true
+  - type: input
+    id: rules
+    attributes:
+      label: Rulebook reference
+      description: When the request follows a rule, its book and page.
+      placeholder: Core Rulebook p. 92
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you do it today
+      description: The workaround you use meanwhile, if any.
+  - type: input
+    id: system-version
+    attributes:
+      label: Genesys system version
+      description: Shown at the top of the Settings sidebar tab, next to the system's name.
+      placeholder: 0.4.0-rc.1
