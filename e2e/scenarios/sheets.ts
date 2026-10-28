@@ -20,6 +20,11 @@ type Card = {
 	content: Record<string, string>;
 };
 
+/**
+ * A change of an effect, as stored: its key, its mode (v14: type) and its value.
+ */
+type StoredChange = [string, number | string, unknown];
+
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
 	setUp(player: string): Promise<void>;
@@ -73,11 +78,14 @@ type SheetsHelpers = {
 			charSelect: { options: string[]; values: string[]; selected: string };
 			keyGroup: { label: string; options: string[]; values: string[] };
 			keySelected: string;
+			/** The key select's options: ungrouped first, then each group's label and options. */
+			keyOptions: (string | { label: string; options: string[] })[];
 			skillSelects: { index: number; selected: string; custom: boolean; changeCase: boolean; compendiumCase: boolean }[];
 		}>;
 		edit(owner: string): Promise<void>;
 		submit(owner: string): Promise<void>;
-		changes(owner: string): [string, number, string][];
+		/** Each change's key, mode (v14: type) and value, as stored. */
+		changes(owner: string): StoredChange[];
 	};
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
@@ -492,13 +500,14 @@ function installSheetsHelpers() {
 				const app = editedEffect(owner).sheet;
 				if (app.rendered) await app.close();
 				await settle();
-				await render(app, (root) => root.querySelector('[name="changes.0.key"]'));
+				await render(app, (root) => root.querySelector('[name$="changes.0.key"]'));
 			},
 
 			async state(owner) {
 				const app = editedEffect(owner).sheet;
 				const element = htmlOf(app)!;
-				const select = (name: string) => element.querySelector<HTMLSelectElement>(`select[name="${name}"]`)!;
+				// v14 names the fields `system.changes.N.…`, v13 `changes.N.…`.
+				const select = (name: string) => element.querySelector<HTMLSelectElement>(`select[name$="${name}"]`)!;
 				const options = (parent: Element) => [...parent.querySelectorAll('option')];
 				const charSelect = select('changes.1.char');
 				const keyGroup = select('changes.0.key').querySelector('optgroup')!;
@@ -515,6 +524,11 @@ function installSheetsHelpers() {
 						values: options(keyGroup).map((option) => option.value),
 					},
 					keySelected: select('changes.0.key').value,
+					keyOptions: [...select('changes.0.key').children].map((child) =>
+						child instanceof HTMLOptGroupElement
+							? { label: child.label, options: options(child).map((option) => `${option.value}=${text(option)}`) }
+							: `${(child as HTMLOptionElement).value}=${text(child)}`,
+					),
 					skillSelects: [0, 3, 4].map((index) => {
 						const values = options(select(`changes.${index}.skill`)).map((option) => option.value);
 						return {
@@ -530,18 +544,23 @@ function installSheetsHelpers() {
 
 			async edit(owner) {
 				const element = () => htmlOf(editedEffect(owner).sheet)!;
-				setSelect(element(), 'select[name="changes.0.key"]', 'system.characteristics.presence');
-				setSelect(element(), 'select[name="changes.0.mode"]', '5');
-				setSelect(element(), 'select[name="changes.1.char"]', 'presence');
-				setSelect(element(), 'input[name="changes.2.value"]', 'SS');
-				setSelect(element(), 'select[name="changes.3.skill"]', 'Cool');
+				setSelect(element(), 'select[name$="changes.0.key"]', 'system.characteristics.presence');
+				// v13: a change has a numeric mode, which v14 replaced with a type.
+				if (game.release.generation < 14) setSelect(element(), 'select[name="changes.0.mode"]', '5');
+				else setSelect(element(), 'select[name="system.changes.0.type"]', 'override');
+				setSelect(element(), 'select[name$="changes.1.char"]', 'presence');
+				setSelect(element(), 'input[name$="changes.2.value"]', 'SS');
+				setSelect(element(), 'select[name$="changes.3.skill"]', 'Cool');
 				await settle();
-				// Adding a change submits the others and renders the sheet again.
-				find(element(), '[data-action="addChange"], [data-action="add"]').click();
-				await waitFor('added change', () => element()?.querySelector('[name="changes.6.key"]'));
+				// Adding or deleting a change submits the others and renders the sheet again.
+				find(element(), '[data-action="addChange"]').click();
+				await waitFor('added change', () => element()?.querySelector('[name$="changes.6.key"]'));
 				await settle();
-				setSelect(element(), 'select[name="changes.6.key"]', 'genesys.pool.check.target');
-				setSelect(element(), 'input[name="changes.6.value"]', 'B');
+				setSelect(element(), 'select[name$="changes.6.key"]', 'genesys.pool.check.target');
+				setSelect(element(), 'input[name$="changes.6.value"]', 'B');
+				await settle();
+				find(element(), 'li[data-index="5"] [data-action="deleteChange"]').click();
+				await waitFor('deleted change', () => !element()?.querySelector('[name$="changes.6.key"]'));
 				await settle();
 			},
 
@@ -552,9 +571,18 @@ function installSheetsHelpers() {
 			},
 
 			changes(owner) {
-				return editedEffect(owner)._source.changes.map((change: { key: string; mode: number; value: string }) => [
+				const source = editedEffect(owner)._source;
+				// v13: an effect keeps its changes in `changes`, with a numeric mode; v14 in `system.changes`, with a type.
+				if (game.release.generation < 14) {
+					return source.changes.map((change: { key: string; mode: number; value: string }) => [
+						change.key,
+						change.mode,
+						change.value,
+					]);
+				}
+				return source.system.changes.map((change: { key: string; type: string; value: unknown }) => [
 					change.key,
-					change.mode,
+					change.type,
 					change.value,
 				]);
 			},
@@ -1118,7 +1146,7 @@ export async function run(e2e: ScenarioContext) {
 			) as HTMLElement;
 			row.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
 			const effectSheet = hero.effects.getName('E2E Edited').sheet;
-			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name="changes.0.key"]'));
+			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name$="changes.0.key"]'));
 		}),
 	);
 	const englishCharacteristics = {
@@ -1167,6 +1195,52 @@ export async function run(e2e: ScenarioContext) {
 			selected: 'system.characteristics.cunning',
 		},
 	);
+	e2e.expect('#243 A1 the key select offers no key, then every key by group', state.keyOptions, [
+		'=—',
+		{
+			label: 'Modify Characteristic',
+			options: [
+				'system.characteristics.brawn=🧑 Brawn',
+				'system.characteristics.agility=🧑 Agility',
+				'system.characteristics.intellect=🧑 Intellect',
+				'system.characteristics.cunning=🧑 Cunning',
+				'system.characteristics.willpower=🧑 Willpower',
+				'system.characteristics.presence=🧑 Presence',
+				'system.silhouette=🚗 Silhouette',
+				'system.speed=🚗 Speed',
+				'system.handling=🚗 Handling',
+				'system.defense=🚗 Defense',
+				'system.armor=🚗 Armor',
+			],
+		},
+		{
+			label: 'Modify Stat',
+			options: [
+				'system.soak=🧑 Soak Value',
+				'system.wounds.max=🧑 Wound Threshold',
+				'system.strain.max=🧑 Strain Threshold',
+				'system.defense.melee=🧑 Melee Defense',
+				'system.defense.ranged=🧑 Ranged Defense',
+				'system.hullTrauma.max=🚗 Hull Trauma Threshold',
+				'system.systemStrain.max=🚗 System Strain Threshold',
+				'system.passengers.value=🚗 Passengers',
+				'system.passengers.threshold=🚗 Passenger Capacity',
+				'system.encumbrance.value=🌐 Encumbrance',
+				'system.encumbrance.threshold=🌐 Encumbrance Threshold',
+			],
+		},
+		{
+			label: 'Modify Dice Pool',
+			options: [
+				'genesys.pool.check.self=👇 Any Check',
+				'genesys.pool.char.self=👇 Uses Characteristic',
+				'genesys.pool.skill.self=👇 Uses Skill',
+				'genesys.pool.check.target=🎯 Any Check',
+				'genesys.pool.char.target=🎯 Uses Characteristic',
+				'genesys.pool.skill.target=🎯 Uses Skill',
+			],
+		},
+	]);
 	const skillSelect = (index: number, selected: string) => ({ index, selected, custom: true, changeCase: true, compendiumCase: false });
 	e2e.expect(
 		"#40 A1 every skill select lists the skills the effect's changes apply to, a compendium skill once with the change's case",
@@ -1174,14 +1248,20 @@ export async function run(e2e: ScenarioContext) {
 		[skillSelect(0, state.skillSelects[0]?.selected ?? ''), skillSelect(3, 'E2E Custom Skill'), skillSelect(4, 'ranged (light)')],
 	);
 
-	const savedChanges: [string, number, string][] = [
+	// v14 stores a change's type where v13 stored its mode, and parses a value that holds JSON.
+	const v14Types: Record<number, string> = { 0: 'custom', 2: 'add', 5: 'override' };
+	const asStored = (changes: [string, number, string][]): StoredChange[] =>
+		e2e.version < 14
+			? changes
+			: changes.map(([key, mode, value]) => [key, v14Types[mode], /^\d+$/.test(value) ? Number(value) : value]);
+	const savedChanges = asStored([
 		['system.characteristics.cunning', 2, '1'],
 		['genesys.pool.char.self.willpower', 0, 'B'],
 		['genesys.pool.check.self.', 0, 'S'],
 		['genesys.pool.skill.self.E2E Custom Skill', 0, 'A'],
 		['genesys.pool.skill.target.ranged (light)', 0, 'D'],
 		['genesys.pool.check.target.', 0, ''],
-	];
+	]);
 	await e2e.step('#32 GM saves the effect sheets of an actor and an item unchanged', () =>
 		gm.evaluate(async () => {
 			const effectSheet = window.sheetsE2E.effectSheet;
@@ -1198,7 +1278,15 @@ export async function run(e2e: ScenarioContext) {
 		})),
 		{ actor: savedChanges, item: savedChanges },
 	);
-	await e2e.step('#85 GM edits the key, mode, characteristic, skill and value of changes, and adds one', () =>
+	const editedChanges = asStored([
+		['system.characteristics.presence', 5, '1'],
+		['genesys.pool.char.self.presence', 0, 'B'],
+		['genesys.pool.check.self.', 0, 'SS'],
+		['genesys.pool.skill.self.Cool', 0, 'A'],
+		['genesys.pool.skill.target.ranged (light)', 0, 'D'],
+		['genesys.pool.check.target.', 0, 'B'],
+	]);
+	await e2e.step('#85 GM edits the key, mode, characteristic, skill and value of changes, adds one and deletes one', () =>
 		gm.evaluate(async () => {
 			const effectSheet = window.sheetsE2E.effectSheet;
 			await effectSheet.open('Hero');
@@ -1209,15 +1297,7 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect(
 		'#85 A2 the edited changes are saved, a Pool Modification without characteristic or skill with an empty subject',
 		await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')),
-		[
-			['system.characteristics.presence', 5, '1'],
-			['genesys.pool.char.self.presence', 0, 'B'],
-			['genesys.pool.check.self.', 0, 'SS'],
-			['genesys.pool.skill.self.Cool', 0, 'A'],
-			['genesys.pool.skill.target.ranged (light)', 0, 'D'],
-			['genesys.pool.check.target.', 0, ''],
-			['genesys.pool.check.target.', 0, 'B'],
-		],
+		editedChanges,
 	);
 	await e2e.step('#140 GM opens the effect sheet in French', () =>
 		gm.evaluate(async () => {
@@ -1247,6 +1327,18 @@ export async function run(e2e: ScenarioContext) {
 			),
 			selected: 'system.characteristics.cunning',
 		},
+	);
+	await e2e.step("#85 GM edits, adds and deletes the changes of an item's effect", () =>
+		gm.evaluate(async () => {
+			const effectSheet = window.sheetsE2E.effectSheet;
+			await effectSheet.edit('Bearer/Charm');
+			await effectSheet.submit('Bearer/Charm');
+		}),
+	);
+	e2e.expect(
+		"#85 A3 the edited changes of an item's effect are saved",
+		await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Bearer/Charm')),
+		editedChanges,
 	);
 
 	// §#82 in French: the abilities' activation and the notification of a character created without skills.

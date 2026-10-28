@@ -231,10 +231,24 @@ function effectModifications(
 }
 
 /**
+ * A change as an effect stores it. Foundry v14 gives it a string `type` and a `phase` where v13 gave it a numeric
+ * `mode`, and a value of any type.
+ */
+type StoredChange = {
+	key: string;
+	value: unknown;
+	priority?: number | null;
+	type?: string;
+	phase?: string;
+	// v13: the mode v14 replaced with `type`.
+	mode?: number;
+};
+
+/**
  * A change as the effect sheets edit it: a Pool Modification's key without its subject, which is edited in its own
  * field.
  */
-export type EditedChange = foundry.data.EffectChangeSource & {
+export type EditedChange = StoredChange & {
 	char?: string;
 	skill?: string;
 };
@@ -270,10 +284,12 @@ export function subjectFieldForKey(key: string) {
 }
 
 /**
- * A copy of a change, as the effect sheets edit it.
+ * A copy of a change, as the effect sheets edit it. A value of another type than a string, which v14 stores, is edited as
+ * its JSON, as Foundry's own sheet does.
  */
-export function toEditedChange(change: foundry.data.EffectChangeSource): EditedChange {
-	const editedChange: EditedChange = { ...change };
+export function toEditedChange(change: StoredChange): EditedChange {
+	const value = typeof change.value === 'string' ? change.value : JSON.stringify(change.value);
+	const editedChange: EditedChange = { ...change, value };
 	const key = decodeKey(change.key);
 
 	if (key) {
@@ -291,7 +307,7 @@ export function toEditedChange(change: foundry.data.EffectChangeSource): EditedC
 
 /**
  * Turn a change edited in the effect sheets back into a change, in place. Pool Modifications get their full key, the
- * mode that keeps Foundry from applying them, and lose their value unless it only holds glyphs.
+ * custom type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs.
  */
 export function fromEditedChange(change: EditedChange) {
 	const baseKey = change.key.match(BASE_KEY_PATTERN);
@@ -305,8 +321,13 @@ export function fromEditedChange(change: EditedChange) {
 		source: baseKey[2] as PoolModificationSource,
 		subject: (kind === 'char' ? change.char : change.skill) ?? '',
 	});
-	change.mode = CONST.ACTIVE_EFFECT_MODES.CUSTOM;
-	if (!isPoolModificationValue(change.value)) {
+	if ('type' in change) {
+		change.type = 'custom';
+	} else {
+		// v13: v14 logs a deprecation warning when CONST.ACTIVE_EFFECT_MODES is read.
+		change.mode = CONST.ACTIVE_EFFECT_MODES.CUSTOM;
+	}
+	if (typeof change.value !== 'string' || !isPoolModificationValue(change.value)) {
 		change.value = '';
 	}
 
