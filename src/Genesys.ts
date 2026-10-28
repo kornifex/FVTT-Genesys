@@ -14,15 +14,13 @@ import { KEY_ALPHA_VERSION } from '@/settings/alpha';
 import { KEY_DEFAULT_DIFFICULTY } from '@/settings/campaign';
 
 import { register as registerStoryPointTracker } from '@/app/StoryPointTracker';
-import { register as registerActors, AdversaryTypes } from '@/actor';
+import { register as registerActors } from '@/actor';
 import { register as registerToken } from '@/token';
 import { register as registerEffects } from '@/effects';
-import { register as registerItems, CharacterCreationItemTypes, EquipmentItemTypes } from '@/item';
+import { register as registerItems } from '@/item';
 import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
 import { DicePrompt } from '@/app/DicePrompt';
-import { isFoundryV13OrLater } from '@/foundryGeneration';
 
-import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysCompendium } from '@/sidebar/GenesysCompendium';
 import { performMigrations } from '@/migrations/MigrationHelper';
 
@@ -110,77 +108,6 @@ Hooks.once('ready', async () => {
 	registerVehicles();
 });
 
-// v12: only the `renderDialog` hook below uses it.
-function constructOptGroup(select: HTMLSelectElement, groupLabel: string, optValues?: string[]): HTMLOptGroupElement {
-	const options = select.querySelectorAll<HTMLOptionElement>(':scope > option');
-	const optgroup = document.createElement('optgroup');
-
-	optgroup.label = groupLabel;
-	optgroup.append(...Array.from(options).filter((option) => !optValues || optValues.includes(option.value)));
-
-	return optgroup;
-}
-
-// Add options groups to the dialog that appears when creating an actor or item.
-// v12: only v12 needs this hook. From v13 on, the create dialog is a DialogV2, which never fires `renderDialog`.
-Hooks.on('renderDialog', (_dialog: Dialog, html: JQuery<HTMLElement>, _data: object) => {
-	const container = html[0];
-
-	// Cheks if it's the item creation dialog and categorize the options from the dropdown
-	if (container.classList.contains('dialog-item-create')) {
-		const select = container.querySelector<HTMLSelectElement>('select[name=type]');
-
-		if (select) {
-			select.append(
-				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Item.CharacterCreation'), CharacterCreationItemTypes),
-				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Item.Equipment'), EquipmentItemTypes),
-				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Item.Other')),
-			);
-			select.querySelector('option')!.selected = true;
-		}
-
-		// Cheks if it's the actor creation dialog and categorize the options from the dropdown
-	} else if (container.classList.contains('dialog-actor-create')) {
-		const select = container.querySelector<HTMLSelectElement>('select[name=type]');
-
-		if (select) {
-			select.append(
-				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Adversary'), AdversaryTypes),
-				constructOptGroup(select, game.i18n.localize('Genesys.DialogGroups.Actor.Other')),
-			);
-			select.querySelector('option')!.selected = true;
-		}
-	}
-});
-
-// Makes the dice icon at the bottom of the chat to function as a shortcut to call the dice prompt.
-// v12: only v12 needs this hook, since Foundry v13's chat log has no dice icon.
-Hooks.on('renderChatLog', (_sidebar: SidebarTab, html: JQuery<HTMLElement>, _data: object) => {
-	if (isFoundryV13OrLater()) {
-		return;
-	}
-
-	const diceIcon = html.find('#chat-controls > .chat-control-icon');
-	diceIcon.on('click', () => {
-		const controlledTokens = canvas.tokens.controlled;
-
-		let targetActor;
-		if (controlledTokens.length > 1) {
-			ui.notifications.error(game.i18n.localize('Genesys.Notifications.SelectNoneOrOneTokenForAction'));
-			return;
-		} else if (controlledTokens.length === 1) {
-			if (controlledTokens[0].actor?.type === 'vehicle') {
-				ui.notifications.error(game.i18n.localize('Genesys.Notifications.InvalidTokenTypeForAction'));
-				return;
-			} else {
-				targetActor = (controlledTokens[0].actor ?? undefined) as GenesysActor | undefined;
-			}
-		}
-
-		void DicePrompt.promptForRoll(targetActor, '');
-	});
-});
-
 // Allow to open the DicePrompt on chat command /gendr (for GENesys Dice Roller), thus allowing to open it from a macro
 Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
 	const commandR = /^\/gendr(?:oll)?/i;
@@ -194,15 +121,11 @@ Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown)
 // Create wiki links in the description section of certain settings. We use a hook here since there is no way to
 // directly add links as any HTML is escaped.
 const wikiLinkPattern = /\[\[([^|\]]+)(\|([^\]]+))?\]\]/g;
+// v12: the Foundry types we have are v12's, whose hook passes jQuery; v13 passes the element.
 Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
-	// v12: the hook receives jQuery; v13 passes the element.
-	const theHtml = isFoundryV13OrLater() ? (html as unknown as HTMLElement) : html[0];
-
-	let note = theHtml.querySelector(`[data-setting-id='genesys.${KEY_DEFAULT_DIFFICULTY}'] > .notes`);
-	if (!note) {
-		// v12: Foundry v13 lays out the settings differently.
-		note = theHtml.querySelector(`.form-fields:has(input[name='genesys.${KEY_DEFAULT_DIFFICULTY}']) + p.hint`);
-	}
+	const note = (html as unknown as HTMLElement).querySelector(
+		`.form-fields:has(input[name='genesys.${KEY_DEFAULT_DIFFICULTY}']) + p.hint`,
+	);
 
 	if (note) {
 		note.innerHTML = note.innerHTML.replaceAll(wikiLinkPattern, (_m, g1, _g2, g3) => {

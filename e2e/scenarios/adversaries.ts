@@ -283,9 +283,8 @@ function installAdversariesHelpers() {
 				return found?.value === current && found;
 			});
 			input.value = change;
-			// v12: the HUD submits a bar's input on jQuery's focusout, which jQuery 3.7 makes from the native blur; v13 submits
-			// it when it changes.
-			input.dispatchEvent(game.release.generation < 13 ? new FocusEvent('blur') : new Event('change', { bubbles: true }));
+			// The HUD submits a bar's input when it changes.
+			input.dispatchEvent(new Event('change', { bubbles: true }));
 			await settle();
 			hud.clear();
 			return foundry.utils.getProperty(actor(name), path);

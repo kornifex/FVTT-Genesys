@@ -6,8 +6,8 @@ import { VehicleSheet } from '@/actor/sheets/VehicleSheet';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 
 /**
- * Registers an actor sheet of the system. The Foundry types we have only register AppV1 sheets, though v12 and v13 both take
- * ApplicationV2 ones (ADR 0005).
+ * Registers an actor sheet of the system. The Foundry types we have only register AppV1 sheets, though Foundry takes ApplicationV2
+ * ones (ADR 0005).
  */
 function registerSheet(sheetClass: ConstructorOf<GenesysActorSheet>, options: RegisterSheetOptions) {
 	Actors.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ActorSheet>, options);

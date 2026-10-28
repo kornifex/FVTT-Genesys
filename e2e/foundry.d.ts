@@ -1,4 +1,4 @@
-/** @file The Foundry globals the in-page functions use, untyped: one scenario drives v12 and v13, which no set of types describes. */
+/** @file The Foundry globals the in-page functions use, untyped: one scenario drives several Foundry versions, which no set of types describes. */
 /* eslint-disable @typescript-eslint/no-explicit-any -- the globals differ between the Foundry versions the harness drives. */
 declare const game: any;
 declare const canvas: any;

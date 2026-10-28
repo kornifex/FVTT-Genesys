@@ -408,7 +408,7 @@ function installVehicleHelpers() {
 					y: 100,
 				})),
 			);
-			// Tokens are paired with their passengers by position, as v12 returns created tokens in another order than given.
+			// Tokens are paired with their passengers by position, whatever order Foundry returns the created tokens in.
 			for (const [index, token] of tokensOf(name).entries()) {
 				await token.actor.update({
 					'system.passengers.list': passengers[index].map((passenger, rank) => ({

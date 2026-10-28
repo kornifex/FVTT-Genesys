@@ -8,8 +8,6 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysCombat } from '@/combat/GenesysCombat';
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { GenesysCombatTracker } from '@/combat/GenesysCombatTracker';
-// v12: the Foundry types we have are v12's, so `ui.combat` has the v12 Combat Tracker's type.
-import { GenesysCombatTrackerV12 } from '@/combat/GenesysCombatTracker.v12';
 import { GENESYS_CONFIG } from '@/config';
 import { GenesysActorDirectory } from '@/sidebar/GenesysActorDirectory';
 import { GenesysItemDirectory } from '@/sidebar/GenesysItemDirectory';
@@ -24,7 +22,8 @@ type FoundryConfig = Config<
 	ChatMessage,
 	GenesysCombat,
 	GenesysCombatant,
-	GenesysCombatTrackerV12,
+	// v12: the Foundry types we have are v12's, whose Combat Tracker is an Application; `GenesysConfig` declares the system's.
+	CombatTracker<GenesysCombat>,
 	CompendiumDirectory,
 	Hotbar,
 	GenesysItem,
@@ -39,27 +38,25 @@ type FoundryConfig = Config<
 >;
 
 declare global {
-	const ui: FoundryUI<
-		GenesysActor,
-		GenesysActorDirectory<GenesysActor>,
-		GenesysItem,
-		GenesysItemDirectory<GenesysItem>,
-		ChatMessage<GenesysActor>,
-		ChatLog<ChatMessage<GenesysActor>>,
-		CompendiumDirectory,
-		GenesysCombatTrackerV12<GenesysCombat>
-	>;
+	// v12: the Foundry types we have are v12's, whose `ui.combat` is the Application Combat Tracker.
+	const ui: Omit<
+		FoundryUI<
+			GenesysActor,
+			GenesysActorDirectory<GenesysActor>,
+			GenesysItem,
+			GenesysItemDirectory<GenesysItem>,
+			ChatMessage<GenesysActor>,
+			ChatLog<ChatMessage<GenesysActor>>,
+			CompendiumDirectory,
+			CombatTracker<GenesysCombat>
+		>,
+		'combat'
+	> & { combat: GenesysCombatTracker };
 	const canvas: Canvas;
 
 	interface GenesysConfig extends Omit<FoundryConfig, 'ui'> {
-		ActiveEffect: FoundryConfig['ActiveEffect'] & {
-			/** Whether an item's effects are copied onto its actor rather than applied from the item (ADR 0001). */
-			legacyTransferral: boolean;
-		};
-
 		ui: Omit<FoundryConfig['ui'], 'combat'> & {
-			// v12: the Foundry types we have are v12's, so the v13 Combat Tracker is declared beside the v12 one.
-			combat: ConstructorOf<GenesysCombatTrackerV12> | typeof GenesysCombatTracker;
+			combat: typeof GenesysCombatTracker;
 		};
 
 		genesys: typeof GENESYS_CONFIG;

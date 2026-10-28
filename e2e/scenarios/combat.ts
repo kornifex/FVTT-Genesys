@@ -71,9 +71,6 @@ type CombatHelpers = {
 	effectRemaining(combatant: string, effect: string): number | undefined;
 };
 
-// v12: Foundry passes the tracker's context menu entries a jQuery object.
-declare const $: (element: Element) => unknown;
-
 declare global {
 	interface Window {
 		combatE2E: CombatHelpers;
@@ -86,7 +83,6 @@ declare global {
 function installCombatHelpers() {
 	if (window.combatE2E) return;
 	const { settle, waitFor, unprefixed, apps } = window.e2e;
-	const v13 = game.release.generation >= 13;
 	const combatant = (name: string) => {
 		const found = game.combat?.combatants.find((candidate: { name: string }) => candidate.name === name);
 		if (!found) throw new Error(`No combatant named ${name}`);
@@ -104,7 +100,7 @@ function installCombatHelpers() {
 	const menuEntry = (slot: string, name: string) => {
 		const entry = ui.combat._getEntryContextOptions().find((candidate: { name: string }) => candidate.name === name);
 		if (!entry) throw new Error(`No context menu entry ${name}`);
-		return { entry, target: v13 ? row(slot) : $(row(slot)) };
+		return { entry, target: row(slot) };
 	};
 	const answered = new Set<unknown>();
 	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
@@ -204,11 +200,11 @@ function installCombatHelpers() {
 		hover(slot) {
 			canvas.tokens.releaseAll();
 			const li = row(slot);
-			li.dispatchEvent(v13 ? new PointerEvent('pointerover', { bubbles: true }) : new MouseEvent('mouseover', { bubbles: true }));
+			li.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
 			const hovered = canvas.tokens.placeables
 				.filter((token: { hover: boolean }) => token.hover)
 				.map((token: { document: { name: string } }) => token.document.name);
-			li.dispatchEvent(v13 ? new PointerEvent('pointerout', { bubbles: true }) : new MouseEvent('mouseout', { bubbles: true }));
+			li.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
 			return hovered;
 		},
 
@@ -335,28 +331,23 @@ export async function run(e2e: ScenarioContext) {
 	await noGM();
 	await trackerGuards();
 
-	/** §#85: the v12 tracker's class name, which Foundry names its render hook after. */
+	/** §#85: the tracker's class name, which Foundry names its render hook after. */
 	async function trackerClass() {
 		await setUp({ Hero: null, Boss: null });
 		const tracker = await gm.evaluate(async () => {
 			const fired = new Set<string>();
-			const hooks = ['renderGenesysCombatTrackerV12', 'renderGenesysCombatTracker', 'renderCombatTracker'].map((hook) => ({
+			const hooks = ['renderGenesysCombatTracker', 'renderCombatTracker'].map((hook) => ({
 				hook,
 				id: Hooks.on(hook, () => fired.add(hook)),
 			}));
 			await ui.combat.render(true);
-			// v12: an AppV1 window renders after render() returns.
-			await window.e2e.settle();
 			for (const { hook, id } of hooks) Hooks.off(hook, id);
 			return { className: ui.combat.constructor.name, hooks: [...fired].sort() };
 		});
-		e2e.expect(
-			'#85 A1 the Combat Tracker class and the render hooks it fires',
-			tracker,
-			e2e.version >= 13
-				? { className: 'GenesysCombatTracker', hooks: ['renderCombatTracker', 'renderGenesysCombatTracker'] }
-				: { className: 'GenesysCombatTrackerV12', hooks: ['renderCombatTracker', 'renderGenesysCombatTrackerV12'] },
-		);
+		e2e.expect('#85 A1 the Combat Tracker class and the render hooks it fires', tracker, {
+			className: 'GenesysCombatTracker',
+			hooks: ['renderCombatTracker', 'renderGenesysCombatTracker'],
+		});
 	}
 
 	/** §#57, from `extraSlotKeepsTurn.ts` (#54): adding an Extra Slot keeps the turn on its slot, with no turn events. */
@@ -407,16 +398,14 @@ export async function run(e2e: ScenarioContext) {
 		const effectBefore = await effectState();
 		const a3 = await e2e.step('#57 A3 GM ends the turn', () => gm.evaluate(() => game.combat.nextTurn()));
 		turnOn('A3', a3, 'Boss:1');
-		// §#96: Foundry v12 sees no turn change when the turn stays with the same combatant, v13 does.
+		// §#96: Foundry sees a turn change when the turn stays with the same combatant.
 		e2e.expect(
 			"#96 A1 Next Turn from Boss's own slot to its Extra Slot fires turn events on v13 only",
 			Object.fromEntries(Object.entries(a3).map(([user, state]) => [user, state?.events])),
-			e2e.version >= 13
-				? {
-						[gm.user]: ['_onEndTurn Boss', '_onStartTurn Boss', 'combatTurnChange 2->3'],
-						[e2e.playerUser]: ['combatTurnChange 2->3'],
-					}
-				: bothClients([]),
+			{
+				[gm.user]: ['_onEndTurn Boss', '_onStartTurn Boss', 'combatTurnChange 2->3'],
+				[e2e.playerUser]: ['combatTurnChange 2->3'],
+			},
 		);
 		// Foundry counts a turn-based duration from the combat's round and turn, not from the turn events.
 		e2e.expect(
@@ -494,12 +483,7 @@ export async function run(e2e: ScenarioContext) {
 		// The combat sounds a theme would play, and the remaining duration of the turn-based effect.
 		const noTick = async (step: string, combatant: string) => {
 			const sounds = await recorded(() => window.combatE2E.sounds);
-			if (e2e.version >= 13) {
-				e2e.expect(`#59 ${step} no combat sound`, sounds, bothClients([]));
-			} else {
-				// v12: Foundry plays "your turn" again on any update of the combat while it's the player's turn, whatever the system.
-				e2e.log(`#59 ${step} combat sounds`, sounds);
-			}
+			e2e.expect(`#59 ${step} no combat sound`, sounds, bothClients([]));
 			// Foundry counts a turn-based duration from the turn's index, which a reorder moves even when the turn stays on its slot.
 			e2e.log(
 				`#59 ${step} remaining duration of the effect on ${combatant}`,
@@ -1111,10 +1095,6 @@ export async function run(e2e: ScenarioContext) {
 
 	/** §#94: on v13, the tracker's slot actions and menu entries do nothing without a slot or a combat, and hovering a text node doesn't throw. */
 	async function trackerGuards() {
-		if (e2e.version < 13) {
-			e2e.log('#94 the guards of the v13 tracker', 'v13 only');
-			return;
-		}
 		await setUp({ Hero: null, Boss: null });
 		const tryAll = () =>
 			gm.evaluate(async () => {

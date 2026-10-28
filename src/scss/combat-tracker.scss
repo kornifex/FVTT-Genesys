@@ -1,7 +1,5 @@
 @use '@scss/vars/colors.scss';
 
-// v12: `#combat-tracker` is Foundry v12's tracker; v13's is `#combat .combat-tracker`.
-#combat-tracker,
 #combat .combat-tracker {
 	.active {
 		border-color: colors.$gold;

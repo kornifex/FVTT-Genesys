@@ -3,7 +3,6 @@
  */
 
 import { ApplicationConstructor, VueSheet } from '@/vue/VueSheet';
-import { isFoundryV12 } from '@/foundryGeneration';
 
 type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
@@ -38,11 +37,6 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 				event.preventDefault();
 				void this._onDrop(event);
 			};
-
-			// v12: v13's document sheets disable the fields of a sheet the user can't edit themselves.
-			if (isFoundryV12() && !this.isEditable) {
-				disableFields(this.element);
-			}
 		}
 
 		protected override async _preClose(options: object) {
@@ -76,24 +70,7 @@ async function editImage(sheet: DocumentSheet, event: MouseEvent) {
 		type: 'image',
 		redirectToRoot: defaultImage ? [defaultImage] : [],
 		callback: (path: string) => void sheet.document.update({ [field]: path }),
-		// v12: the file picker is an AppV1 Application, which takes its position at the top level.
-		...(isFoundryV12() ? position : { position }),
+		position,
 	});
 	await picker.browse();
-}
-
-/**
- * Disable the fields of a sheet the user can't edit, as AppV1 did: text areas stay selectable.
- */
-// v12: only v12 needs it.
-function disableFields(sheetElement: HTMLElement) {
-	for (const field of sheetElement.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-		'.window-content :is(input, select, textarea, button)',
-	)) {
-		if (field instanceof HTMLTextAreaElement) {
-			field.readOnly = true;
-		} else {
-			field.disabled = true;
-		}
-	}
 }

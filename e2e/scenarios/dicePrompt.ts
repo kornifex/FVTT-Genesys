@@ -604,12 +604,7 @@ function installDicePromptHelpers() {
 			return message.id;
 		},
 
-		// v12: a notification asked with `localize` is recorded before Foundry localizes it.
-		notifications: () =>
-			recorded().map((notification) => {
-				const [type, ...message] = notification.split(': ');
-				return `${type}: ${game.i18n.localize(message.join(': '))}`;
-			}),
+		notifications: () => recorded(),
 
 		clearNotifications() {
 			recorded();
