@@ -42,6 +42,12 @@ type StoredCombat = {
 	skills: Record<string, string | null>;
 };
 
+/**
+ * An entry the system puts in the tracker's context menu, or rewrites: core's reroll, which rerolls the slot instead of the
+ * combatant, and the Claim's revocation.
+ */
+type MenuEntry = 'reroll' | 'revokeClaim';
+
 type CombatHelpers = {
 	/** Chat messages created since the last {@link reset}. */
 	messages: RecordedMessage[];
@@ -58,9 +64,11 @@ type CombatHelpers = {
 	claim(slot: string, claimant: string): Promise<void>;
 	/** Clicks an element of a tracker row. */
 	clickRow(slot: string, selector: string): void;
-	/** Whether a row's context menu shows an entry. */
-	menuShows(slot: string, entry: string): boolean;
-	runMenuEntry(slot: string, entry: string): Promise<void>;
+	/** Whether a row's context menu shows an entry, the row given by its slot or its element. */
+	menuShows(slot: string | HTMLElement, entry: MenuEntry): boolean;
+	runMenuEntry(slot: string | HTMLElement, entry: MenuEntry): Promise<void>;
+	/** The fields of each entry the system writes or rewrites, sorted. */
+	menuFields(): Record<MenuEntry, string[]>;
 	/** Answers the Dice Prompts as they open: rolls or closes each one. */
 	answerPrompts(answers: ('roll' | 'cancel')[]): Promise<void>;
 	openPrompts(): number;
@@ -92,15 +100,39 @@ function installCombatHelpers() {
 		const [name, extraSlot] = slot.split(':');
 		return window.e2e.slotId(name, Number(extraSlot));
 	};
-	const row = (slot: string) => {
+	const row = (slot: string | HTMLElement) => {
+		if (slot instanceof HTMLElement) return slot;
 		const li = document.querySelector<HTMLElement>(`#combat li.combatant[data-slot-id="${slotId(slot)}"]`);
 		if (!li) throw new Error(`No tracker row for ${slot}`);
 		return li;
 	};
-	const menuEntry = (slot: string, name: string) => {
-		const entry = ui.combat._getEntryContextOptions().find((candidate: { name: string }) => candidate.name === name);
-		if (!entry) throw new Error(`No context menu entry ${name}`);
-		return { entry, target: row(slot) };
+	// Foundry v14 renamed core's reroll entry and the fields of every entry: v13's `name`, `condition` and `callback` are
+	// `label`, `visible` and `onClick`, which v14 reads first.
+	type ContextMenuEntry = {
+		label?: string;
+		name?: string;
+		visible?: boolean | ((target: HTMLElement) => boolean);
+		condition?: boolean | ((target: HTMLElement) => boolean);
+		onClick?: (event: PointerEvent, target: HTMLElement) => unknown;
+		callback?: (target: HTMLElement) => unknown;
+	};
+	const menuKeys: Record<MenuEntry, string> = {
+		reroll: game.release.generation < 14 ? 'COMBAT.CombatantReroll' : 'COMBATANT.ACTIONS.Reroll',
+		revokeClaim: 'Genesys.CombatTracker.RevokeInitiativeClaim',
+	};
+	const findMenuEntry = (key: MenuEntry) => {
+		const entry = (ui.combat._getEntryContextOptions() as ContextMenuEntry[]).find(
+			(candidate) => ('label' in candidate ? candidate.label : candidate.name) === menuKeys[key],
+		);
+		if (!entry) throw new Error(`No context menu entry ${menuKeys[key]}`);
+		return entry;
+	};
+	const shows = (entry: ContextMenuEntry, target: HTMLElement) => {
+		const visible = 'visible' in entry ? entry.visible : entry.condition;
+		return typeof visible === 'function' ? !!visible(target) : visible ?? true;
+	};
+	const click = async (entry: ContextMenuEntry, target: HTMLElement) => {
+		await (entry.onClick ? entry.onClick(new PointerEvent('click'), target) : entry.callback?.(target));
 	};
 	const answered = new Set<unknown>();
 	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
@@ -167,14 +199,17 @@ function installCombatHelpers() {
 			element.click();
 		},
 
-		menuShows(slot, name) {
-			const { entry, target } = menuEntry(slot, name);
-			return typeof entry.condition === 'function' ? !!entry.condition(target) : entry.condition ?? true;
+		menuShows(slot, key) {
+			return shows(findMenuEntry(key), row(slot));
 		},
 
-		async runMenuEntry(slot, name) {
-			const { entry, target } = menuEntry(slot, name);
-			await entry.callback(target);
+		async runMenuEntry(slot, key) {
+			await click(findMenuEntry(key), row(slot));
+		},
+
+		menuFields() {
+			const fields = (key: MenuEntry) => Object.keys(findMenuEntry(key)).sort();
+			return { reroll: fields('reroll'), revokeClaim: fields('revokeClaim') };
 		},
 
 		async answerPrompts(answers) {
@@ -544,9 +579,7 @@ export async function run(e2e: ScenarioContext) {
 			for (const client of clients()) {
 				shown[client.user] = await client.evaluate(() =>
 					Object.fromEntries(
-						window.combatE2E
-							.rows()
-							.map((row) => [row.slot, window.combatE2E.menuShows(row.slot, 'Genesys.CombatTracker.RevokeInitiativeClaim')]),
+						window.combatE2E.rows().map((row) => [row.slot, window.combatE2E.menuShows(row.slot, 'revokeClaim')]),
 					),
 				);
 			}
@@ -644,7 +677,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 
 		await e2e.step("#35 GM revokes Boss's Claim from the tracker's menu", () =>
-			gm.evaluate(() => window.combatE2E.runMenuEntry('Boss:-1', 'Genesys.CombatTracker.RevokeInitiativeClaim')),
+			gm.evaluate(() => window.combatE2E.runMenuEntry('Boss:-1', 'revokeClaim')),
 		);
 		e2e.expect("#35 A10 Boss's Claim is revoked", (await stored()).claims, { 'Hero:-1': 'Hero' });
 
@@ -732,7 +765,7 @@ export async function run(e2e: ScenarioContext) {
 
 		await e2e.step("#38 GM rerolls the row Hero claimed from the tracker's menu", () =>
 			gm.evaluate(async () => {
-				const reroll = window.combatE2E.runMenuEntry('Ally:-1', 'COMBAT.CombatantReroll');
+				const reroll = window.combatE2E.runMenuEntry('Ally:-1', 'reroll');
 				await window.combatE2E.answerPrompts(['roll']);
 				await reroll;
 			}),
@@ -993,7 +1026,7 @@ export async function run(e2e: ScenarioContext) {
 		await messages();
 		const reroll = await e2e.step("#53 GM rerolls Hero's Extra Slot from the tracker's menu", () =>
 			gm.evaluate(async () => {
-				const done = window.combatE2E.runMenuEntry('Hero:1', 'COMBAT.CombatantReroll');
+				const done = window.combatE2E.runMenuEntry('Hero:1', 'reroll');
 				await window.combatE2E.answerPrompts(['roll']);
 				await done;
 			}),
@@ -1002,11 +1035,24 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#53 A3 rerolling Hero's Extra Slot rolls that slot, and the turn stays on Boss",
 			{
-				hero: rerolled.initiatives.Hero,
+				initiatives: rerolled.initiatives,
+				extraSlots: rerolled.extraSlots.map((slot) => slot.replace(/=(?!null).*/, '=rolled')),
 				speakers: (await messages()).map((message) => message.speaker),
 				current: Object.fromEntries(Object.entries(reroll).map(([user, state]) => [user, state?.current])),
 			},
-			{ hero: rolls.initiatives.Hero, speakers: ['Hero'], current: bothClients('Boss:-1') },
+			{
+				initiatives: rolls.initiatives,
+				extraSlots: ['Boss@2=null', 'Hero@1=rolled'],
+				speakers: ['Hero'],
+				current: bothClients('Boss:-1'),
+			},
+		);
+		// v14 still reads v13's field names, with a deprecation warning, until v16.
+		const fields = e2e.version < 14 ? ['callback', 'condition', 'icon', 'name'] : ['icon', 'label', 'onClick', 'visible'];
+		e2e.expect(
+			"#244 A1 the tracker's menu entries the system writes or rewrites use the field names of the Foundry version",
+			await gm.evaluate(() => window.combatE2E.menuFields()),
+			{ reroll: fields, revokeClaim: fields },
 		);
 
 		counts = errorCounts();
@@ -1118,11 +1164,11 @@ export async function run(e2e: ScenarioContext) {
 							(handler.handler ?? handler).call(tracker, new PointerEvent('click'), target),
 						);
 					}
-					for (const entry of tracker._getEntryContextOptions()) {
-						if (!['COMBAT.CombatantReroll', 'Genesys.CombatTracker.RevokeInitiativeClaim'].includes(entry.name)) continue;
-						if (entry.name !== 'COMBAT.CombatantReroll')
-							await attempt(`${entry.name} condition`, () => entry.condition(target));
-						await attempt(`${entry.name} ${target.dataset.slotId ?? 'without slot'}`, () => entry.callback(target));
+					await attempt('revokeClaim condition', () => window.combatE2E.menuShows(target, 'revokeClaim'));
+					for (const entry of ['reroll', 'revokeClaim'] as const) {
+						await attempt(`${entry} ${target.dataset.slotId ?? 'without slot'}`, () =>
+							window.combatE2E.runMenuEntry(target, entry),
+						);
 					}
 				}
 				await attempt('hovering a text node', () => tracker._onCombatantHoverIn({ target: document.createTextNode('E2E') }));

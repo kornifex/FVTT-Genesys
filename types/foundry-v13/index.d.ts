@@ -64,14 +64,21 @@ declare namespace foundry {
 			forms?: Record<string, object>;
 		};
 
-		/** A v13 context menu entry, which receives the element of its row rather than a jQuery object. */
+		/**
+		 * A context menu entry, which receives the element of its row rather than a jQuery object. v14 names its fields `label`,
+		 * `visible` and `onClick`; v13 names them `name`, `condition` and `callback`, which v14 still reads until v16.
+		 */
 		type ContextMenuEntry = {
-			name: string;
+			label?: string;
 			icon?: string;
 			classes?: string;
 			group?: string;
-			callback: (target: HTMLElement) => unknown;
+			visible?: boolean | ((target: HTMLElement) => boolean);
+			onClick?: (event: PointerEvent, target: HTMLElement) => unknown;
+			// v13: the names of the fields above.
+			name?: string;
 			condition?: boolean | ((target: HTMLElement) => boolean);
+			callback?: (target: HTMLElement) => unknown;
 		};
 
 		type ContextMenuOptions = { container?: HTMLElement; hookName?: string; parentClassHooks?: boolean; fixed?: boolean };
