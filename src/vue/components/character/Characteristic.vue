@@ -135,6 +135,8 @@ const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.Unmark
 		@include reset.input;
 		input {
 			z-index: 3;
+			// An input doesn't inherit text-align, and Foundry v13's field styles leave it at the browser's start.
+			text-align: center;
 		}
 
 		&:focus-within {
