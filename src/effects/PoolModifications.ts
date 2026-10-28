@@ -137,20 +137,30 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  * - A Pool Modification counts once per rank only when its talent scales with rank. Talents opt into it so that those
  *   written before the option kept their behaviour.
  * - A numeric change counts once per rank of any talent.
+ *
+ * The value keeps its type: v13 stores every value as a string, v14 stores a number as one.
  */
-export function scaledChangeValue(item: SourceItem | undefined, change: { key: string; value: string }) {
+export function scaledChangeValue<Value>(item: SourceItem | undefined, change: { key: string; value: Value }): Value {
+	const { value } = change;
+
 	if (decodeKey(change.key)) {
-		return change.value.repeat(item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1);
+		return (
+			typeof value === 'string' ? value.repeat(item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1) : value
+		) as Value;
 	}
 
 	if (item?.type === 'talent') {
-		const value = parseInt(change.value) * item.system.rank!;
-		if (!isNaN(value)) {
-			return value.toString();
+		if (typeof value === 'number') {
+			return (value * item.system.rank!) as Value;
+		}
+
+		const scaled = parseInt(String(value)) * item.system.rank!;
+		if (!isNaN(scaled)) {
+			return scaled.toString() as Value;
 		}
 	}
 
-	return change.value;
+	return value;
 }
 
 /**

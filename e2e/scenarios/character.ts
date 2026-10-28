@@ -695,6 +695,7 @@ export async function run(e2e: ScenarioContext) {
 		await superCharacteristics(e2e, page, notifications);
 		await skillsTab(e2e, page);
 		await talentPyramidSummary(e2e, page);
+		await talentRanks(e2e, page);
 		await injuries(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
 	} finally {
@@ -1651,6 +1652,39 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	});
 	e2e.expect('#110 K4 the summary is back with its counts and limits', await pyramid(), { summary: counts, roundedTop: false });
 	await page((name) => window.characterE2E.close(name), P);
+}
+
+/** §#242: a talent's numeric changes count once per rank, on every Foundry version. */
+async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
+	const R = 'Ranked';
+	const soak = async () => (await page((name) => window.characterE2E.appliedEffects(name), R)).soak;
+	await e2e.step('#242 A1 a character without talents', () => page((name) => window.characterE2E.create(name), R));
+	const before = await soak();
+	await e2e.step('#242 A1 a rank 3 talent added, whose effect adds 1 and 2 to the soak', () =>
+		page(
+			(name) =>
+				window.characterE2E.createItems(name, [
+					{
+						name: 'E2E Hardened',
+						type: 'talent',
+						system: { activation: { type: 'passive', detail: '' }, tier: 1, ranked: 'yes', rank: 3 },
+						effects: [
+							{
+								name: 'E2E Hardened',
+								transfer: true,
+								// v14 keeps a number as a number, where v13 turns it into a string.
+								changes: [
+									{ key: 'system.soak', mode: 2, value: '1' },
+									{ key: 'system.soak', mode: 2, value: 2 },
+								],
+							},
+						],
+					},
+				]),
+			R,
+		),
+	);
+	e2e.expect('#242 A1 each numeric change of a rank 3 talent counts three times', { added: (await soak()) - before }, { added: 9 });
 }
 
 /** §#126: the severity cells of Critical Injuries and Critical Hits, and the check they open. */
