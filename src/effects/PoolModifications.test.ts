@@ -146,10 +146,16 @@ describe('scaledChangeValue', () => {
 		expect(scaledChangeValue(talent(3, 'yes'), { key: 'system.soak', value: '2' })).toBe('6');
 	});
 
+	it('multiplies a change whose value Foundry v14 stores as a number, keeping it a number', () => {
+		expect(scaledChangeValue(talent(3), { key: 'system.soak', value: 2 })).toBe(6);
+	});
+
 	it("doesn't scale a numeric change of another item, or a change that isn't a number", () => {
 		expect(scaledChangeValue({ type: 'gear', system: {} }, { key: 'system.soak', value: '1' })).toBe('1');
 		expect(scaledChangeValue(undefined, { key: 'system.soak', value: '1' })).toBe('1');
 		expect(scaledChangeValue(talent(3), { key: 'system.notes', value: 'text' })).toBe('text');
+		expect(scaledChangeValue({ type: 'gear', system: {} }, { key: 'system.soak', value: 2 })).toBe(2);
+		expect(scaledChangeValue(talent(3), { key: 'system.notes', value: null })).toBeNull();
 	});
 });
 
