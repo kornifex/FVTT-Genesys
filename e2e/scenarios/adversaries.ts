@@ -1,4 +1,4 @@
-/** @file #215: adversary drops and talent ranks, the adversary's defense cap, and token bar changes within the rules' bounds. */
+/** @file #215 and #300: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, and the characteristic values in their circle. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /** The names of the adversaries the scenario drops on, without their `E2E ` prefix. */
@@ -33,6 +33,8 @@ type AdversariesHelpers = {
 	attack(args: { actor: string; weapon: string; target: string }): Promise<PromptState>;
 	/** The values of the inputs of an actor's sheet, by name. */
 	sheetInputs(args: { actor: string; names: string[] }): Promise<Record<string, string>>;
+	/** The element and computed `text-align` of each characteristic value of an actor's sheet, by label. */
+	characteristicAlignment(args: { actor: string }): Promise<Record<string, string>>;
 	/** Types a value in a number field of an actor's sheet, then returns the value stored. */
 	typeInSheet(args: { actor: string; name: string; value: string; path: string }): Promise<unknown>;
 	update(args: { actor: string; data: object }): Promise<void>;
@@ -254,6 +256,16 @@ function installAdversariesHelpers() {
 			const root = await sheet(name);
 			return Object.fromEntries(
 				names.map((inputName) => [inputName, root.querySelector<HTMLInputElement>(`input[name="${inputName}"]`)?.value ?? '']),
+			);
+		},
+
+		async characteristicAlignment({ actor: name }) {
+			const root = await sheet(name);
+			return Object.fromEntries(
+				[...root.querySelectorAll('.characteristic-field')].map((field) => {
+					const value = field.querySelector(':scope > .value > input, :scope > .value > div')!;
+					return [text(field.querySelector('label')), `${value.localName} ${getComputedStyle(value).textAlign}`];
+				}),
 			);
 		},
 
@@ -550,6 +562,30 @@ export async function run(e2e: ScenarioContext) {
 		"#195 E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
 		{ '-3 typed on 40 wounds': await typeInSheet(WOUNDS, '-3'), '-3 typed on 14 strain': await typeInSheet(STRAIN, '-3') },
 		{ '-3 typed on 40 wounds': 0, '-3 typed on 14 strain': 0 },
+	);
+
+	// F: the characteristic values in their circle (§#300).
+	const alignment = (actor: string) => gm.evaluate((args) => window.adversariesE2E.characteristicAlignment(args), { actor });
+	const characteristics = (element: string) =>
+		Object.fromEntries(
+			['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'].map((label) => [label, `${element} center`]),
+		);
+	e2e.expect(
+		"#300 F1 an adversary's and a vehicle's editable characteristic values are centered in their circle, like a character's read-only ones",
+		{
+			Grunts: await alignment('Grunts'),
+			Rival: await alignment('Rival'),
+			Nemesis: await alignment('Nemesis'),
+			Hero: await alignment('Hero'),
+			Wagon: await alignment('Wagon'),
+		},
+		{
+			Grunts: characteristics('input'),
+			Rival: characteristics('input'),
+			Nemesis: characteristics('input'),
+			Hero: characteristics('div'),
+			Wagon: { Silhouette: 'input center', Speed: 'input center', Handling: 'input center' },
+		},
 	);
 
 	await gm.evaluate(() => window.adversariesE2E.cleanUp());
