@@ -11,6 +11,8 @@ declare const Item: any;
 declare const Combat: any;
 declare const Roll: any;
 declare const foundry: any;
+// Foundry's console, through which it logs its compatibility warnings.
+declare const logger: any;
 declare const Scene: any;
 declare const User: any;
 declare function fromUuidSync(uuid: string): any;
