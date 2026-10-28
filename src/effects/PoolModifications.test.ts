@@ -4,11 +4,11 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// The dice types extend Foundry's `Die`, the Dice So Nice! registration listens to `Hooks`, and edited changes get
+// The dice types extend `foundry.dice.terms.Die`, the Dice So Nice! registration listens to `Hooks`, and edited changes get
 // Foundry's custom effect mode; all are Foundry globals.
 vi.hoisted(() => {
 	Object.assign(globalThis, {
-		Die: class {},
+		foundry: { dice: { terms: { Die: class {} } } },
 		Hooks: { once: () => {}, on: () => {} },
 		CONST: { ACTIVE_EFFECT_MODES: { CUSTOM: 0, ADD: 2 } },
 	});

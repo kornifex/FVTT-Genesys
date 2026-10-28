@@ -3,7 +3,7 @@
 import type { DieName } from '@/dice/DicePool';
 import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
-// The dice classes extend Foundry's `Die`, which doesn't exist in a Web Worker.
+// The dice classes extend `foundry.dice.terms.Die`, which doesn't exist in a Web Worker.
 
 /**
  * The faces of each die type, as symbol glyphs.
