@@ -28,10 +28,9 @@ export class GenesysActorSheet<
 	}
 
 	/**
-	 * Handle data dropped on the sheet. v12's ActorSheetV2 handles no drop, and v13's hands the dropped document to its
-	 * handlers where the system's take the drop data, so this replaces v13's own.
+	 * Handle data dropped on the sheet. Foundry's ActorSheetV2 hands the dropped document to its handlers where the
+	 * system's take the drop data, so this replaces Foundry's own. It can go once the handlers take the documents (#271).
 	 */
-	// v12: once v12 has left, the handlers can take v13's dropped documents and this override can go.
 	protected override async _onDrop(event: DragEvent) {
 		if (!this.isEditable) {
 			return;

@@ -21,10 +21,6 @@ export function register() {
 	registerSheets();
 }
 
-export const CharacterCreationItemTypes = ['ability', 'archetype', 'career', 'skill', 'talent'];
-
-export const EquipmentItemTypes = ['armor', 'consumable', 'container', 'gear', 'quality', 'weapon', 'vehicleWeapon'];
-
 function registerDataModels() {
 	CONFIG.Item.dataModels.ability = AbilityDataModel;
 	CONFIG.Item.dataModels.archetype = ArchetypeDataModel;

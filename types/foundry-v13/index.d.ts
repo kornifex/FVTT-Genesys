@@ -5,8 +5,7 @@
  * are v13's: v12's ApplicationV2 lacks `_createContextMenu`, and v12 has no `sidebar` namespace at all. v12's ActorSheetV2 has no
  * drop handlers, so the system's actor sheets bring their own (`GenesysActorSheet`) and v13's aren't declared.
  *
- * The vendored `Config` can't be merged with, so CONFIG's v13 entries (`ActiveEffect.legacyTransferral`, the v13 Combat Tracker
- * in `ui.combat`) complete `GenesysConfig` in `src/global.d.ts` instead, and go with this layer.
+ * The vendored `Config` can't be merged with, so CONFIG's v13 entry (the v13 Combat Tracker in `ui.combat`) completes `GenesysConfig` in `src/global.d.ts` instead, and go with this layer.
  */
 
 declare namespace foundry {

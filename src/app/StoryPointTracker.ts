@@ -8,7 +8,6 @@ import { sessionStoryPoints, storyPointsAfterSpending } from '@/data/StoryPoints
 import { emit as socketEmit, SOCKET_NAME, SocketOperation, SocketPayload } from '@/socket';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
-import { isFoundryV13OrLater } from '@/foundryGeneration';
 
 export interface StoryPointTrackerContext {
 	/**
@@ -60,8 +59,8 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			throw new Error('Attempted to create multiple instances of the StoryPointTracker singleton.');
 		}
 
-		// v12: Foundry v13 lays out its interface differently, which leaves room for the tracker on the left.
-		super({ classes: isFoundryV13OrLater() ? ['move-to-left'] : [] });
+		// Foundry's interface leaves room for the tracker on the left.
+		super({ classes: ['move-to-left'] });
 
 		StoryPointTracker.#instance = this;
 	}

@@ -1,14 +1,8 @@
-import { isFoundryV12 } from '@/foundryGeneration';
-
 export function register() {
 	/** String Utilities */
 	Handlebars.registerHelper('capitalize', (value: string) => value.capitalize());
 	Handlebars.registerHelper('toLowerCase', (value: string) => value.toLowerCase());
 	Handlebars.registerHelper('toUpperCase', (value: string) => value.toUpperCase());
-	// v12: Foundry v13 registers its own `concat` helper.
-	if (isFoundryV12()) {
-		Handlebars.registerHelper('concat', (...values: unknown[]) => values.filter((v) => v && typeof v === 'string').join(''));
-	}
 	Handlebars.registerHelper('split', (value: string) => value.split(' '));
 	Handlebars.registerHelper('isSubstringOf', (substring: string, fullString: string) => fullString.includes(substring));
 

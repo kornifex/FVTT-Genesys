@@ -151,9 +151,6 @@ Genesys:
     SuppressedByContainer: Inactivo mientras {item} esté en {container}.
     SuppressedByEquipmentState: Inactivo mientras el estado de {item} sea «{state}».
     Duration: Duración
-    ChangeKey: Objetivo del efecto
-    ChangeMode: Opción
-    ChangeValue: Valor del efecto
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada
@@ -232,7 +229,6 @@ Genesys:
     CannotPurchaseTalentTier: No puedes comprar talentos de nivel {tier} - primero debes tener al menos {minimum} talentos de nivel {lowerTier}.
     NotEnoughStoryPoints: ¡No puedes gastar puntos de Historia que no tienes!
     SelectOneTokenForAction: Debes seleccionar un único token para realizar esta acción.
-    SelectNoneOrOneTokenForAction: Debes seleccionar ninguna token, o sólo uno, para realizar esta acción.
     NoActorForCheck: Selecciona un solo token o asígnate un personaje para hacer esta tirada.
     TokenIsNotCombatant: El token seleccionado no participa en el combate actual.
     CannotClaimOppositeSlot: No puedes reclamar este puesto de iniciativa con {name} - ¡está en el lado equivocado!
@@ -240,7 +236,6 @@ Genesys:
     NoGMForExtraSlot: Un DJ debe estar conectado para tirar la iniciativa de un puesto adicional.
     CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
-    InvalidTokenTypeForAction: El token seleccionado es de un tipo no válido para realizar esta acción.
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.
     TooManySuperCharacteristics: Un actor no puede tener más de dos supercaracterísticas. Desmarca una primero.
 
@@ -300,7 +295,6 @@ Genesys:
     Description: Descripción
     Data: Datos
     Details: Detalles
-    Duration: Duración
     Miscellaneous: Miscelánea
     Crew: Tripulación
 
@@ -370,16 +364,6 @@ Genesys:
     Starboard: Estribor
     All: Todos
     None: Ninguno
-
-  # Dialog Groups
-  DialogGroups:
-    Item:
-      CharacterCreation: Creación de personaje
-      Equipment: Equipo
-      Other: Otro
-    Actor:
-      Adversary: Adversario
-      Other: Otro
 
   # Equipment Data
   Equipment:

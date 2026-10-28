@@ -63,23 +63,4 @@ export class GenesysItem<ItemDataModel extends foundry.abstract.DataModel = Base
 			void this.actor.deleteEmbeddedDocuments('Item', held);
 		}
 	}
-
-	/**
-	 * Override the createDialog callback to include an unique class that identifies the created dialog.
-	 * @inheritDoc
-	 */
-	// v12: the class is for the `renderDialog` hook in Genesys.ts. v13 takes dialog options in a third parameter, so it
-	// reads these as the old signature and logs a compatibility warning.
-	static override createDialog(
-		data?: { folder?: string | undefined },
-		options?: Partial<FormApplicationOptions>,
-	): Promise<ClientDocument<foundry.documents.BaseItem> | undefined> {
-		// The 'dialog' class needs to be added explicitly, otherwise it won't be added by the super call.
-		const touchedOptions = {
-			...options,
-			classes: [...(options?.classes ?? []), 'dialog', 'dialog-item-create'],
-		};
-
-		return super.createDialog(data, touchedOptions);
-	}
 }

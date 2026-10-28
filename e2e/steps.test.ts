@@ -83,11 +83,11 @@ describe('runSummary', () => {
 		const failed = assertionStep('A2 turn kept', 'Boss:-1', 'Hero:-1');
 
 		expect(
-			runSummary('v12 head', [
+			runSummary('v13 head', [
 				{ scenario: 'combat', steps: [{ name: 'A0 before', value: { expected: 1, actual: 1 } }, passed, failed] },
 				{ scenario: 'vehicle', steps: [passed] },
 			]),
-		).toEqual(['v12 head: 1 failed of 3 assertions', '  combat › A2 turn kept', '    expected: "Hero:-1"', '    actual:   "Boss:-1"']);
+		).toEqual(['v13 head: 1 failed of 3 assertions', '  combat › A2 turn kept', '    expected: "Hero:-1"', '    actual:   "Boss:-1"']);
 	});
 
 	it('lists a scenario that stopped on an error', () => {
@@ -99,7 +99,7 @@ describe('runSummary', () => {
 
 describe('stepLine', () => {
 	it('prints a step with its run and value', () => {
-		expect(stepLine('v12 head', { name: 'A0 before', value: { turn: 1 } })).toBe('[v12 head] A0 before {"turn":1}');
+		expect(stepLine('v13 head', { name: 'A0 before', value: { turn: 1 } })).toBe('[v13 head] A0 before {"turn":1}');
 	});
 
 	it('marks a failed assertion and gives the value it expected', () => {

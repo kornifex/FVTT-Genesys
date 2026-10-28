@@ -92,11 +92,6 @@ Some components of this project are used under alternative licensing terms. Each
 #### Font: Genesys Glyphs & Dice (Magical Girl Theme)
 > Symbols provided by and used with permission from [MilkMyth](http://MilkMyth.com)!
 
-#### Container Query Polyfill
-> **License:** [Apache 2.0](public/scripts/container-query-polyfill/LICENSE)
->
-> https://github.com/GoogleChromeLabs/container-query-polyfill
-
 #### Vue 3
 > **License:** [MIT](https://github.com/vuejs/core/blob/main/LICENSE)
 

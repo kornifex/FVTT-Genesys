@@ -151,9 +151,6 @@ Genesys:
     SuppressedByContainer: Inactif tant que {item} est dans {container}.
     SuppressedByEquipmentState: Inactif tant que l'état de {item} est « {state} ».
     Duration: Durée
-    ChangeKey: Cible
-    ChangeMode: Option
-    ChangeValue: Valeur
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier
@@ -232,7 +229,6 @@ Genesys:
     CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de catégorie {tier} - vous devez avoir au moins {minimum} talents de catégorie {lowerTier} d'abord"
     NotEnoughStoryPoints: Vous ne pouvez pas dépenser de Point Narratif que vous ne possédez pas!
     SelectOneTokenForAction: Vous devez selectionner un unique token pour réaliser cette action.
-    SelectNoneOrOneTokenForAction: Vous devez selectionner aucun token, ou juste un, pour faire cette action.
     NoActorForCheck: Sélectionnez un seul token ou attribuez-vous un personnage pour faire ce test.
     TokenIsNotCombatant: Le token selectionné n'est pas dans le combat actuel.
     CannotClaimOppositeSlot: Vous ne pouvez par réclamer ce slot d'intiative avec {name} - il est du mauvais coté!
@@ -240,7 +236,6 @@ Genesys:
     NoGMForExtraSlot: Un MJ doit être connecté pour lancer l'initiative d'un slot supplémentaire.
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.
-    InvalidTokenTypeForAction: Le token selectionné est d'un type invalide pour réaliser cette action.
     NoRoleMembersWithAppropriateSkills: Aucun membre du groupe pour ce rôle ne possède les compétences appropriées pour faire cette action.
     TooManySuperCharacteristics: Un acteur ne peut pas avoir plus de deux super-caractéristiques. Retirez-en une d'abord.
 
@@ -300,7 +295,6 @@ Genesys:
     Description: Description
     Data: Données
     Details: Détails
-    Duration: Durée
     Miscellaneous: Divers
     Crew: Equipage
 
@@ -370,16 +364,6 @@ Genesys:
     Starboard: Tribord
     All: Toutes
     None: Aucune
-
-  # Dialog Groups
-  DialogGroups:
-    Item:
-      CharacterCreation: Création de personnage
-      Equipment: Equipement
-      Other: Autre
-    Actor:
-      Adversary: Adversaire
-      Other: Autre
 
   # Equipment Data
   Equipment:

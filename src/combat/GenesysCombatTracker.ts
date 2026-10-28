@@ -1,5 +1,5 @@
 /**
- * @file Combat Tracker for Foundry v13 and later, which lists Initiative Slots instead of combatants.
+ * @file Combat Tracker, which lists Initiative Slots instead of combatants.
  */
 
 import { GenesysCombat } from '@/combat/GenesysCombat';
@@ -8,18 +8,12 @@ import { GenesysCombatant } from '@/combat/GenesysCombatant';
 type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
-// v12: Foundry v12 loads this module too, but has no ApplicationV2 Combat Tracker to extend. It only registers the v12 one, so
-// the class is never built on top of this stand-in.
-const ExtendedClass =
-	foundry.applications.sidebar?.tabs.CombatTracker ??
-	(CombatTracker as unknown as typeof foundry.applications.sidebar.tabs.CombatTracker);
-
 /** The id of the Initiative Slot whose row holds the element. */
 function slotIdOf(element: HTMLElement) {
 	return element.closest<HTMLElement>('[data-slot-id]')?.dataset.slotId;
 }
 
-export class GenesysCombatTracker extends ExtendedClass<GenesysCombat> {
+export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker<GenesysCombat> {
 	static override DEFAULT_OPTIONS = {
 		actions: {
 			claimInitiativeSlot: GenesysCombatTracker.#onClaimInitiativeSlot,
@@ -29,7 +23,7 @@ export class GenesysCombatTracker extends ExtendedClass<GenesysCombat> {
 	};
 
 	static override PARTS = {
-		...ExtendedClass.PARTS,
+		...foundry.applications.sidebar.tabs.CombatTracker.PARTS,
 		header: {
 			template: 'systems/genesys/templates/sidebar/combat/header.hbs',
 		},

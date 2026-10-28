@@ -151,9 +151,6 @@ Genesys:
     SuppressedByContainer: Inactive while {item} is in {container}.
     SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
-    ChangeKey: Effect Target
-    ChangeMode: Option
-    ChangeValue: Effect Value
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
@@ -232,7 +229,6 @@ Genesys:
     CannotPurchaseTalentTier: Cannot purchase talents at tier {tier} - you must have at least {minimum} talents at rank {lowerTier} first.
     NotEnoughStoryPoints: You can't spend Story Points you don't have!
     SelectOneTokenForAction: You need to selected a single token to perform this action.
-    SelectNoneOrOneTokenForAction: You need to select no tokens, or a single token, to perform this action.
     NoActorForCheck: Select a single token or assign yourself a character to roll this check.
     TokenIsNotCombatant: The selected token is not participating on the current combat.
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
@@ -240,7 +236,6 @@ Genesys:
     NoGMForExtraSlot: A GM must be online to roll the initiative of an extra slot.
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     CannotSelectActor: You do not have sufficient permission to select this Actor.
-    InvalidTokenTypeForAction: The selected token is of an invalid type to perform this action.
     NoRoleMembersWithAppropriateSkills: There are no role members that have the appropriate skills to perform this action.
     TooManySuperCharacteristics: An actor can't have more than two super-characteristics. Unmark one first.
 
@@ -300,7 +295,6 @@ Genesys:
     Description: Description
     Data: Data
     Details: Details
-    Duration: Duration
     Miscellaneous: Miscellaneous
     Crew: Crew
 
@@ -370,16 +364,6 @@ Genesys:
     Starboard: Starboard
     All: All
     None: None
-
-  # Dialog Groups
-  DialogGroups:
-    Item:
-      CharacterCreation: Character Creation
-      Equipment: Equipment
-      Other: Other
-    Actor:
-      Adversary: Adversary
-      Other: Other
 
   # Equipment Data
   Equipment:

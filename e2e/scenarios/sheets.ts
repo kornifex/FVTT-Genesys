@@ -608,7 +608,7 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
 			await settle();
-			// The system enriches through the global TextEditor, on v13 as on v12.
+			// The system enriches through the global TextEditor.
 			const editor = (globalThis as unknown as { TextEditor: { enrichHTML: (...args: unknown[]) => Promise<string> } }).TextEditor;
 			const enrichHTML = editor.enrichHTML;
 			// The enrichment takes this long, so that the sheet shows before it ends.
@@ -743,7 +743,7 @@ function installSheetsHelpers() {
 }
 
 export async function run(e2e: ScenarioContext) {
-	const { gm, version } = e2e;
+	const { gm } = e2e;
 	const page = () => gm.page;
 
 	// §#97: a GM who updates from an older version is welcomed with the documentation link. Reloading runs the ready hook
@@ -771,8 +771,6 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#95 GM opens each actor and item sheet', async () => {
 		for (const name of [...actorTypes, ...itemTypes]) {
 			windows[name] = await gm.evaluate((name) => window.sheetsE2E.open(name), name);
-			// v12: hiding the artwork entries of an actor without artwork hides them on every actor sheet until the next
-			// reload (Foundry's ActorSheetV2 splices its default controls), so the header is read on the first one.
 			if (name === 'Hero') header = await gm.evaluate(() => window.sheetsE2E.header('Hero'));
 			await gm.evaluate((name) => window.sheetsE2E.close(name), name);
 		}
@@ -803,16 +801,10 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect(
 		'#95 A3 the AppV2 header holds the controls menu, with the prototype token and artwork entries, and the copy-UUID and sheet-config buttons',
 		header,
-		// v13 moves the sheet-config button into the controls menu.
-		version === 12
-			? {
-					buttons: ['close', 'configureSheet', 'copyUuid', 'toggleControls'],
-					controls: ['configurePrototypeToken', 'showPortraitArtwork', 'showTokenArtwork'],
-				}
-			: {
-					buttons: ['close', 'copyUuid', 'toggleControls'],
-					controls: ['configurePrototypeToken', 'configureSheet', 'showPortraitArtwork', 'showTokenArtwork'],
-				},
+		{
+			buttons: ['close', 'copyUuid', 'toggleControls'],
+			controls: ['configurePrototypeToken', 'configureSheet', 'showPortraitArtwork', 'showTokenArtwork'],
+		},
 	);
 
 	// Prompts and the story point tracker.
@@ -1156,10 +1148,7 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect(
 		'#85 A1 the effect sheet renders from its template',
 		state.template,
-		{
-			12: 'systems/genesys/templates/sheets/effect-config.v12.hbs',
-			13: 'systems/genesys/templates/sheets/effect-changes-tab.hbs',
-		}[version],
+		'systems/genesys/templates/sheets/effect-changes-tab.hbs',
 	);
 	e2e.expect(
 		"#140 A1 the dice pool characteristic select shows the characteristics' names sorted, and keeps its selection",

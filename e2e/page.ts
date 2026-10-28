@@ -211,7 +211,7 @@ export function installHelpers() {
 				if (rolling !== undefined && rolling !== die.faces) {
 					console.error(`e2e: a fixed die of ${die.faces} faces was given for a die of ${rolling} faces`);
 				}
-				// DiceTerm#mapRandomFace gives Math.ceil((1 - u) * faces), on v12 as on v13: the middle of the face's interval.
+				// DiceTerm#mapRandomFace gives Math.ceil((1 - u) * faces): the middle of the face's interval.
 				return 1 - (die.face - 0.5) / die.faces;
 			};
 		},
@@ -275,7 +275,7 @@ export function installHelpers() {
 				),
 			);
 
-			// v12: the created documents come back in another order than they were given, so tokens find their setup by actor.
+			// Tokens find their setup by actor, whatever order Foundry returns the created documents in.
 			const setupOf = (token: { actorId: string }) =>
 				combatants.find(({ name }) => `E2E ${name}` === game.actors.get(token.actorId).name)!;
 			const combat = await Combat.create({ scene: viewedScene().id, active: true });
@@ -361,7 +361,7 @@ export function installHelpers() {
 		},
 
 		htmlOf(app) {
-			// v12: an AppV1 window's element is a jQuery object.
+			// An AppV1 window's element is a jQuery object.
 			return app.element instanceof HTMLElement ? app.element : (app.element as HTMLElement[] | undefined)?.[0];
 		},
 
@@ -442,9 +442,7 @@ export function installHelpers() {
 		},
 
 		createCompendium(metadata) {
-			// v12: CompendiumCollection is declared in the scope of Foundry's scripts only, so it is reached through a pack.
-			const Compendiums = foundry.documents?.collections?.CompendiumCollection ?? game.packs.contents[0].constructor;
-			return Compendiums.createCompendium(metadata);
+			return foundry.documents.collections.CompendiumCollection.createCompendium(metadata);
 		},
 
 		settings(keys) {
