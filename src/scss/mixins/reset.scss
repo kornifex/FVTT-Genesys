@@ -1,7 +1,5 @@
-// The selector can weigh more than `input`, to outweigh the field styles of ApplicationV2 windows (`src/vue/VueSheet.scss`).
-// v12: only v12 needs the selector parameter, since `VueSheet.scss`'s field rules weigh that much only for v12.
-@mixin input($selector: input) {
-	#{$selector} {
+@mixin input {
+	input {
 		border: none;
 		background: none;
 		border-radius: 0;

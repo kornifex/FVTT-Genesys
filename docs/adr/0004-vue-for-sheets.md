@@ -6,6 +6,6 @@ AppV1 is deprecated since v13 and goes away in v16. We kept Vue and moved the mi
 
 ## Consequences
 
--   The components are styled for AppV1 windows. ApplicationV2's own styles override some of theirs (v12's sit outside a cascade layer and outweigh many component rules), so `src/vue/VueSheet.scss` restores AppV1's window content and text fields, and a component rule for a field may need a heavier selector (`reset.input`'s parameter).
+-   The components are styled for AppV1 windows. ApplicationV2's own styles override some of theirs, so `src/vue/VueSheet.scss` restores AppV1's window content and text fields. From v13 on, ApplicationV2's field styles sit in a cascade layer, so those rules weigh as little as `.vue-app` and a component's own rule for a field outweighs them. (On v12 they sat outside a cascade layer, and a component rule needed a heavier selector, which `reset.input` took as a parameter.)
 -   New sheets and prompts are Vue components mounted through the mixin. New chat cards and core-sidebar overrides stay in Handlebars.
 -   Vue, vue-tsc and `eslint-plugin-vue` stay in the toolchain.
