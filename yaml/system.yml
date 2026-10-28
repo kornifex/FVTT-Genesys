@@ -30,6 +30,31 @@ packs:
     system: genesys
     path: ./packs/crb-skills
     type: Item
+documentTypes:
+  # Each type's data is defined by its DataModel, registered in CONFIG.Actor.dataModels and CONFIG.Item.dataModels.
+  Actor:
+    character: {}
+    minion: {}
+    rival: {}
+    nemesis: {}
+    vehicle: {}
+  Item:
+    # Equipment
+    armor: {}
+    consumable: {}
+    container: {}
+    gear: {}
+    quality: {}
+    weapon: {}
+    vehicleWeapon: {}
+
+    # Character Building
+    ability: {}
+    archetype: {}
+    career: {}
+    injury: {}
+    skill: {}
+    talent: {}
 socket: true
 url: https://github.com/kornifex/FVTT-Genesys
 bugs: https://github.com/kornifex/FVTT-Genesys/issues
