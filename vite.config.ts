@@ -5,6 +5,7 @@ import pluginVue from '@vitejs/plugin-vue';
 import path from 'path';
 import process from 'process';
 
+import { packs } from './build/packs.ts';
 import { yamlData } from './build/yamlData.ts';
 
 const env = dotenv.config();
@@ -62,7 +63,7 @@ export default defineConfig({
 		// routes under a prefix.
 		renderBuiltUrl: (_, { hostType }) => (hostType === 'js' ? { relative: true } : undefined),
 	},
-	plugins: [pluginVue(), yamlData('yaml')],
+	plugins: [pluginVue(), yamlData('yaml'), packs('packs')],
 	resolve: {
 		alias: [
 			{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') },

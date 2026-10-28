@@ -1,0 +1,28 @@
+name: Brawl
+type: skill
+img: icons/skills/melee/unarmed-punch-fist-yellow-red.webp
+system:
+  description: ''
+  source: Core Rulebook, p.67
+  characteristic: brawn
+  category: combat
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.8DygCWhQcRcJe4SG
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838072934
+  modifiedTime: 1673851869533
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: gJxGWcS2UQdDHDz1
+_key: '!items!gJxGWcS2UQdDHDz1'

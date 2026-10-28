@@ -1,0 +1,28 @@
+name: Riding
+type: skill
+img: icons/creatures/mammals/deer-antlers-glowing-blue.webp
+system:
+  description: ''
+  source: Core Rulebook, p.63
+  characteristic: agility
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.KYZB11LQjDOM7vJa
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838035012
+  modifiedTime: 1673852659787
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: WjSY0thcYDj4VKFj
+_key: '!items!WjSY0thcYDj4VKFj'

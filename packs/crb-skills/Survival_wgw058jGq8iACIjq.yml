@@ -1,0 +1,28 @@
+name: Survival
+type: skill
+img: icons/commodities/flowers/buds-red.webp
+system:
+  description: ''
+  source: Core Rulebook, p.65
+  characteristic: cunning
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.Hu4p12f9fMjr4G92
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838054365
+  modifiedTime: 1673852861980
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: wgw058jGq8iACIjq
+_key: '!items!wgw058jGq8iACIjq'

@@ -1,0 +1,28 @@
+name: Athletics
+type: skill
+img: icons/skills/movement/feet-winged-boots-glowing-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.58
+  characteristic: brawn
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.niEkDMJEla2uFC9c
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673837971070
+  modifiedTime: 1673851844032
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: xmQPbOVooFQLzPO0
+_key: '!items!xmQPbOVooFQLzPO0'

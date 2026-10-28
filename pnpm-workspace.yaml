@@ -2,3 +2,5 @@
 allowBuilds:
   # Its script compiles from source only on request; the prebuilt binaries come from its optional dependencies.
   '@parcel/watcher': false
+  # Its script compiles from source only when no prebuilt binary fits; the package ships the prebuilt binaries.
+  classic-level: false

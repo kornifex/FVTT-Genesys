@@ -3,7 +3,8 @@
  * skills of the Core Rulebook's Skills Compendium.
  */
 
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
+import { load } from 'js-yaml';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -234,17 +235,15 @@ describe('skillsByCategory', () => {
 });
 
 describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
-	const crbSkills = readFileSync(path.resolve(__dirname, '../../public/packs/crb-skills.db'), 'utf8')
-		.split('\n')
-		.filter((line) => line.trim() !== '')
-		.map(
-			(line) =>
-				JSON.parse(line) as {
-					name: string;
-					type: string;
-					system: { characteristic: string; category: string; source: string; initiative?: boolean };
-				},
-		);
+	const packDir = path.resolve(__dirname, '../../packs/crb-skills');
+	const crbSkills = readdirSync(packDir).map(
+		(file) =>
+			load(readFileSync(path.join(packDir, file), 'utf8')) as {
+				name: string;
+				type: string;
+				system: { characteristic: string; category: string; source: string; initiative?: boolean };
+			},
+	);
 
 	// Table I.3–1 (CRB p. 53), with each skill's characteristic and category from its description (p. 54-70).
 	const skillTable: [name: string, characteristic: string, category: SkillCategory, page: number][] = [

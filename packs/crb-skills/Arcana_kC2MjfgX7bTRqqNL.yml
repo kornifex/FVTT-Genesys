@@ -1,0 +1,28 @@
+name: Arcana
+type: skill
+img: icons/magic/symbols/runes-star-pentagon-orange.webp
+system:
+  description: ''
+  source: Core Rulebook, p.70
+  characteristic: intellect
+  category: magic
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.up64cKPjeLZbrMSL
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838062655
+  modifiedTime: 1673851632063
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: kC2MjfgX7bTRqqNL
+_key: '!items!kC2MjfgX7bTRqqNL'

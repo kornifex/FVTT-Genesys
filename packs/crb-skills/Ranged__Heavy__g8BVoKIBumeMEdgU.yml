@@ -1,0 +1,28 @@
+name: Ranged (Heavy)
+type: skill
+img: icons/skills/ranged/cannon-barrel-firing-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.69
+  characteristic: agility
+  category: combat
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.NS8XNRtt3tRghbBI
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838099060
+  modifiedTime: 1673852608364
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: g8BVoKIBumeMEdgU
+_key: '!items!g8BVoKIBumeMEdgU'

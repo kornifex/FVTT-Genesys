@@ -1,0 +1,28 @@
+name: Operating
+type: skill
+img: icons/environment/settlement/wagon-black.webp
+system:
+  description: ''
+  source: Core Rulebook, p.62
+  characteristic: intellect
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.Wm6bP101cp68gLv9
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838017828
+  modifiedTime: 1673852513299
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: 8S0nMpObsrD7psas
+_key: '!items!8S0nMpObsrD7psas'

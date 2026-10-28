@@ -1,0 +1,29 @@
+name: Vigilance
+type: skill
+img: icons/magic/perception/third-eye-blue-red.webp
+system:
+  description: ''
+  initiative: true
+  source: Core Rulebook, p.65
+  characteristic: willpower
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.RFnQeuD4u3iKGcAf
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673838058849
+  modifiedTime: 1673852877960
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: c5jxNXUuGHdvaN8E
+_key: '!items!c5jxNXUuGHdvaN8E'

@@ -33,7 +33,7 @@ packs:
   - name: crb-skills
     label: Core Skills
     system: genesys
-    path: ./packs/crb-skills.db
+    path: ./packs/crb-skills
     type: Item
 socket: true
 url: https://github.com/kornifex/FVTT-Genesys

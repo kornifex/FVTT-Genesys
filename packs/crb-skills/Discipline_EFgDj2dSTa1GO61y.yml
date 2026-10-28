@@ -1,0 +1,28 @@
+name: Discipline
+type: skill
+img: icons/environment/people/infantry-army.webp
+system:
+  description: ''
+  source: Core Rulebook, p.60
+  characteristic: willpower
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+  SEy99EjerlMf7Z5X: 3
+flags:
+  core:
+    sourceId: Item.W2UO1qQAcDe0Mx7h
+_stats:
+  systemId: genesys
+  systemVersion: 1.0.0
+  coreVersion: '10.291'
+  createdTime: 1673837988320
+  modifiedTime: 1673853050481
+  lastModifiedBy: SEy99EjerlMf7Z5X
+folder: null
+sort: 0
+_id: EFgDj2dSTa1GO61y
+_key: '!items!EFgDj2dSTa1GO61y'
