@@ -14,6 +14,8 @@ import {
 	InitiativeSide,
 	InitiativeSlot,
 	initiativeWrites,
+	isExtraSlot,
+	OWN_SLOT,
 	ownSlotIds,
 	slotIdsOf,
 	slotsToRoll,
@@ -92,11 +94,20 @@ describe('buildSlots', () => {
 			[extraSlot('boss', 0, 3), extraSlot('boss', 1, null)],
 		);
 
-		expect(slots.map(({ id, originId, activationId, initiative }) => ({ id, originId, activationId, initiative }))).toEqual([
-			{ id: 'boss:0', originId: 'boss', activationId: 0, initiative: 3 },
-			{ id: 'hero:-1', originId: 'hero', activationId: -1, initiative: 2 },
-			{ id: 'boss:-1', originId: 'boss', activationId: -1, initiative: 1 },
-			{ id: 'boss:1', originId: 'boss', activationId: 1, initiative: null },
+		expect(slots.map(({ id, originId, extraSlotIndex, initiative }) => ({ id, originId, extraSlotIndex, initiative }))).toEqual([
+			{ id: 'boss:0', originId: 'boss', extraSlotIndex: 0, initiative: 3 },
+			{ id: 'hero:-1', originId: 'hero', extraSlotIndex: OWN_SLOT, initiative: 2 },
+			{ id: 'boss:-1', originId: 'boss', extraSlotIndex: OWN_SLOT, initiative: 1 },
+			{ id: 'boss:1', originId: 'boss', extraSlotIndex: 1, initiative: null },
+		]);
+	});
+
+	it("tells the extra slots from the combatants' own slots", () => {
+		const slots = buildSlots([combatant('boss', 1, 'npc')], [extraSlot('boss', 0, 3)]);
+
+		expect(slots.map((slot) => ({ id: slot.id, extra: isExtraSlot(slot) }))).toEqual([
+			{ id: 'boss:0', extra: true },
+			{ id: 'boss:-1', extra: false },
 		]);
 	});
 

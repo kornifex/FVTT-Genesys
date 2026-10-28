@@ -24,6 +24,9 @@ export type SlotCombatant = {
  * An extra Initiative Slot a combatant gets from a round on, as the combat stores it.
  */
 export type StoredExtraSlot = {
+	/**
+	 * The id of the combatant the extra slot is added for. Worlds store it under this name.
+	 */
 	activationSource: string;
 	initiative: number | null;
 	startingRound: number;
@@ -57,6 +60,11 @@ export type InitiativeWrites = {
  */
 export type RoundClaims = Record<string, string | undefined>;
 
+/**
+ * The {@link InitiativeSlot.extraSlotIndex} of a combatant's own slot, which comes from no extra slot.
+ */
+export const OWN_SLOT = -1;
+
 export type InitiativeSlot = {
 	/**
 	 * Identifies the slot whatever its position in the turn order.
@@ -69,9 +77,9 @@ export type InitiativeSlot = {
 	originId: string;
 
 	/**
-	 * The extra slot this slot comes from, -1 for the combatant's own slot.
+	 * The index of the extra slot this slot comes from among the combat's stored extra slots, or {@link OWN_SLOT}.
 	 */
-	activationId: number;
+	extraSlotIndex: number;
 
 	side: InitiativeSide;
 	initiative: number | null;
@@ -105,9 +113,19 @@ export function sideOf(hasPlayerOwner: boolean): InitiativeSide {
 	return hasPlayerOwner ? 'pc' : 'npc';
 }
 
-function slotId(originId: string, activationId: number) {
-	return `${originId}:${activationId}`;
+/**
+ * Whether an Initiative Slot comes from an extra slot rather than being its combatant's own.
+ */
+export function isExtraSlot(slot: InitiativeSlot) {
+	return slot.extraSlotIndex !== OWN_SLOT;
 }
+
+function slotId(originId: string, extraSlotIndex: number) {
+	return `${originId}:${extraSlotIndex}`;
+}
+
+// An initiative stores the Advantage as hundredths of a Success, so that it ranks after the Successes.
+const ADVANTAGE_SCALE = 100;
 
 /**
  * The initiative of a check, as stored on a combatant: its Successes, with its Advantage as hundredths.
@@ -115,14 +133,14 @@ function slotId(originId: string, activationId: number) {
 export function encodeInitiative(netSuccess: number, netAdvantage: number) {
 	// Initiative ranks by the Successes and Advantage left after canceling: leftover Failures and Threats count as none
 	// (CRB p. 96). This also keeps both parts from going negative, which decodeInitiative can't read back.
-	return Math.max(netSuccess, 0) + Math.max(netAdvantage, 0) / 100;
+	return Math.max(netSuccess, 0) + Math.max(netAdvantage, 0) / ADVANTAGE_SCALE;
 }
 
 export function decodeInitiative(initiative: number | null) {
 	const value = initiative ?? 0;
 	const successes = Math.floor(value);
 
-	return { successes, advantages: Math.round((value - successes) * 100) };
+	return { successes, advantages: Math.round((value - successes) * ADVANTAGE_SCALE) };
 }
 
 /**
@@ -166,21 +184,21 @@ export function extraSlotResets(storedExtraSlots: StoredExtraSlot[]): ExtraSlotI
 export function buildSlots(combatants: SlotCombatant[], extraSlots: ExtraSlot[], claims: RoundClaims = {}): InitiativeSlot[] {
 	const combatantsById = new Map(combatants.map((combatant) => [combatant.id, combatant]));
 
-	const activations = [
-		...combatants.map((combatant) => ({ combatant, activationId: -1, initiative: combatant.initiative })),
+	const unorderedSlots = [
+		...combatants.map((combatant) => ({ combatant, extraSlotIndex: OWN_SLOT, initiative: combatant.initiative })),
 		...extraSlots.flatMap((extraSlot) => {
 			const combatant = combatantsById.get(extraSlot.activationSource);
-			return combatant ? [{ combatant, activationId: extraSlot.index, initiative: extraSlot.initiative }] : [];
+			return combatant ? [{ combatant, extraSlotIndex: extraSlot.index, initiative: extraSlot.initiative }] : [];
 		}),
 	];
 
-	return activations.sort(compareActivations).map(({ combatant, activationId, initiative }) => {
-		const id = slotId(combatant.id, activationId);
-		return { id, originId: combatant.id, activationId, side: sideOf(combatant.hasPlayerOwner), initiative, claimantId: claims[id] };
+	return unorderedSlots.sort(compareSlots).map(({ combatant, extraSlotIndex, initiative }) => {
+		const id = slotId(combatant.id, extraSlotIndex);
+		return { id, originId: combatant.id, extraSlotIndex, side: sideOf(combatant.hasPlayerOwner), initiative, claimantId: claims[id] };
 	});
 }
 
-function compareActivations(
+function compareSlots(
 	first: { combatant: SlotCombatant; initiative: number | null },
 	second: { combatant: SlotCombatant; initiative: number | null },
 ) {
@@ -208,7 +226,7 @@ function compareActivations(
  * The ids of the own Initiative Slots of some combatants.
  */
 export function ownSlotIds(combatantIds: string[]) {
-	return combatantIds.map((combatantId) => slotId(combatantId, -1));
+	return combatantIds.map((combatantId) => slotId(combatantId, OWN_SLOT));
 }
 
 /**
@@ -239,10 +257,10 @@ export function initiativeWrites(rolls: { slot: InitiativeSlot; initiative: numb
 	const writes: InitiativeWrites = { combatants: [], extraSlots: [] };
 
 	for (const { slot, initiative } of rolls) {
-		if (slot.activationId < 0) {
-			writes.combatants.push({ _id: slot.originId, initiative });
+		if (isExtraSlot(slot)) {
+			writes.extraSlots.push({ index: slot.extraSlotIndex, initiative });
 		} else {
-			writes.extraSlots.push({ index: slot.activationId, initiative });
+			writes.combatants.push({ _id: slot.originId, initiative });
 		}
 	}
 
@@ -274,8 +292,8 @@ export function claimRefusal(
 
 	// A combatant acts once per round for each slot its initiative gives.
 	const claimCount = Object.values(claims).filter((claimantId) => claimantId === claimant.id).length;
-	const activationCount = slots.filter((candidate) => candidate.originId === claimant.id).length;
-	if (claimCount >= activationCount) {
+	const slotCount = slots.filter((candidate) => candidate.originId === claimant.id).length;
+	if (claimCount >= slotCount) {
 		return 'Genesys.Notifications.CombatantHasNoActivationLeft';
 	}
 
