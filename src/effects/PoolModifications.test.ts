@@ -386,3 +386,48 @@ describe('editing changes in the effect sheets', () => {
 		expect(subjectFieldForKey('system.soak')).toBe('effect-mode');
 	});
 });
+
+/**
+ * A change as Foundry v14 stores it in `system.changes`, with the extra fields the effect sheets edit.
+ */
+function v14EditedChange(
+	key: string,
+	value: unknown,
+	{ type = 'custom', char = undefined as string | undefined, skill = undefined as string | undefined } = {},
+) {
+	const change = { key, value, type, phase: 'initial', priority: null } as EditedChange;
+	if (char !== undefined) {
+		change.char = char;
+	}
+	if (skill !== undefined) {
+		change.skill = skill;
+	}
+	return change;
+}
+
+describe('editing changes in the effect sheets on Foundry v14', () => {
+	it('gives a Pool Modification the custom type, which keeps Foundry from applying it', () => {
+		expect(fromEditedChange(v14EditedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }))).toEqual(
+			v14EditedChange('genesys.pool.skill.self.Cool', 'B'),
+		);
+	});
+
+	it('splits the subject of a Pool Modification off its key, and keeps its type and phase', () => {
+		expect(toEditedChange(v14EditedChange('genesys.pool.char.target.brawn', 'S'))).toEqual(
+			v14EditedChange('genesys.pool.char.target', 'S', { char: 'brawn' }),
+		);
+	});
+
+	it('edits a value Foundry stores as another type than a string as its JSON, as Foundry does', () => {
+		expect(toEditedChange(v14EditedChange('system.soak', 1, { type: 'add' }))).toEqual(
+			v14EditedChange('system.soak', '1', { type: 'add' }),
+		);
+		expect(toEditedChange(v14EditedChange('system.armor', null, { type: 'override' })).value).toBe('null');
+	});
+
+	it('round-trips every kind of key, with the custom type', () => {
+		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
+			expect(fromEditedChange(toEditedChange(v14EditedChange(key, 'B')))).toEqual(v14EditedChange(key, 'B'));
+		}
+	});
+});
