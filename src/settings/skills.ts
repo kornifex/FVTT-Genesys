@@ -3,11 +3,11 @@ import type { GenesysItem } from '@/item/GenesysItem';
 
 /**
  * Load the skills of a Skills Compendium into `CONFIG.genesys.skills`, and report a compendium that can't provide skills.
- * @param compendiumName The value of the Skills Compendium setting.
+ * @param storedValue The value of the Skills Compendium setting, which warns the user when it is empty.
  * @param skillsCompendiumName The compendium to load: the setting's value, or the default compendium when it is empty.
  */
-export async function loadSkills(compendiumName: string | undefined, skillsCompendiumName: string): Promise<void> {
-	if (!compendiumName) {
+export async function loadSkills(storedValue: string | undefined, skillsCompendiumName: string): Promise<void> {
+	if (!storedValue) {
 		ui.notifications.warn('Genesys.Notifications.NoSkillsCompendium', { localize: true });
 	}
 

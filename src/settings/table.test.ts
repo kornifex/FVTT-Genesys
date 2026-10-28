@@ -35,7 +35,7 @@ describe('SETTINGS', () => {
 	});
 
 	it('gives each field of CONFIG.genesys.settings to one setting', () => {
-		const fields = settingEntries().flatMap(([, entry]) => (entry.field ? [entry.field] : []));
+		const fields = settingEntries().flatMap(([, entry]) => (entry.field ? [entry.field.name] : []));
 		expect(new Set(fields).size).toBe(fields.length);
 	});
 });
@@ -65,32 +65,32 @@ describe('configDefaults', () => {
 
 describe('normalize', () => {
 	it('falls back to the default Skills Compendium when the setting is emptied', () => {
-		expect(SETTINGS.skillsCompendium.normalize?.('')).toBe('genesys.crb-skills');
-		expect(SETTINGS.skillsCompendium.normalize?.(undefined)).toBe('genesys.crb-skills');
-		expect(SETTINGS.skillsCompendium.normalize?.('world.skills')).toBe('world.skills');
+		expect(SETTINGS.skillsCompendium.field?.normalize('')).toBe('genesys.crb-skills');
+		expect(SETTINGS.skillsCompendium.field?.normalize(undefined)).toBe('genesys.crb-skills');
+		expect(SETTINGS.skillsCompendium.field?.normalize('world.skills')).toBe('world.skills');
 	});
 
 	it('falls back to the default difficulty when the value is no pool modification', () => {
-		expect(SETTINGS.defaultDifficulty.normalize?.('DDD')).toBe('DDD');
-		expect(SETTINGS.defaultDifficulty.normalize?.('not a pool')).toBe('DD');
+		expect(SETTINGS.defaultDifficulty.field?.normalize('DDD')).toBe('DDD');
+		expect(SETTINGS.defaultDifficulty.field?.normalize('not a pool')).toBe('DD');
 		// An empty difficulty is a valid pool modification: checks then start with no difficulty dice.
-		expect(SETTINGS.defaultDifficulty.normalize?.(undefined)).toBe('');
+		expect(SETTINGS.defaultDifficulty.field?.normalize(undefined)).toBe('');
 	});
 
 	it('turns a typed-in number of career skill ranks into a count', () => {
-		expect(SETTINGS.careerSkillRanks.normalize?.(-3.7)).toBe(3);
-		expect(SETTINGS.careerSkillRanks.normalize?.(undefined)).toBe(0);
+		expect(SETTINGS.careerSkillRanks.field?.normalize(-3.7)).toBe(3);
+		expect(SETTINGS.careerSkillRanks.field?.normalize(undefined)).toBe(0);
 	});
 
 	it('turns the chance to succeed by simulation on with a number of rolls', () => {
-		expect(SETTINGS.dicePoolApproximation.normalize?.(250.5)).toEqual({ enabled: true, amountOfRolls: 250 });
-		expect(SETTINGS.dicePoolApproximation.normalize?.(0)).toEqual({ enabled: false, amountOfRolls: 0 });
-		expect(SETTINGS.dicePoolApproximation.normalize?.(undefined)).toEqual({ enabled: false, amountOfRolls: 0 });
+		expect(SETTINGS.dicePoolApproximation.field?.normalize(250.5)).toEqual({ enabled: true, amountOfRolls: 250 });
+		expect(SETTINGS.dicePoolApproximation.field?.normalize(0)).toEqual({ enabled: false, amountOfRolls: 0 });
+		expect(SETTINGS.dicePoolApproximation.field?.normalize(undefined)).toEqual({ enabled: false, amountOfRolls: 0 });
 	});
 
 	it('reads an unreadable text or switch as empty or off', () => {
-		expect(SETTINGS.currency.normalize?.(undefined)).toBe('');
-		expect(SETTINGS.uncoupleSkills.normalize?.(undefined)).toBe(false);
-		expect(SETTINGS.uncoupleSkills.normalize?.(true)).toBe(true);
+		expect(SETTINGS.currency.field?.normalize(undefined)).toBe('');
+		expect(SETTINGS.uncoupleSkills.field?.normalize(undefined)).toBe(false);
+		expect(SETTINGS.uncoupleSkills.field?.normalize(true)).toBe(true);
 	});
 });

@@ -13,9 +13,9 @@ export const NAMESPACE = 'genesys';
  * Write a setting's value where the system reads it, and do what else applying it does.
  */
 function apply(entry: AnySetting, value: unknown) {
-	const normalized = entry.normalize?.(value as never);
+	const normalized = entry.field?.normalize(value as never);
 	if (entry.field) {
-		(CONFIG.genesys.settings as Record<string, unknown>)[entry.field] = normalized;
+		(CONFIG.genesys.settings as Record<string, unknown>)[entry.field.name] = normalized;
 	}
 	void entry.effect?.(value as never, normalized);
 }

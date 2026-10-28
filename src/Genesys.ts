@@ -124,7 +124,9 @@ const wikiLinkPattern = /\[\[([^|\]]+)(\|([^\]]+))?\]\]/g;
 const WIKI_LINKED_SETTING: SettingKey = 'defaultDifficulty';
 // v12: the Foundry types we have are v12's, whose hook passes jQuery; v13 passes the element.
 Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
-	const note = (html as unknown as HTMLElement).querySelector(`.form-fields:has(input[name='genesys.${WIKI_LINKED_SETTING}']) + p.hint`);
+	const note = (html as unknown as HTMLElement).querySelector(
+		`.form-fields:has(input[name='${SETTINGS_NAMESPACE}.${WIKI_LINKED_SETTING}']) + p.hint`,
+	);
 
 	if (note) {
 		note.innerHTML = note.innerHTML.replaceAll(wikiLinkPattern, (_m, g1, _g2, g3) => {

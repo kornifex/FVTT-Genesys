@@ -26,9 +26,11 @@ type Setting<T extends SettingType, F extends string, C> = {
 	choices?: Record<string, string>;
 	/** The system reads these settings once, as it starts, so a new value waits for the reload Foundry asks for. */
 	requiresReload?: boolean;
-	field?: F;
-	/** The value of `field` for a stored value, which can be `undefined` when Foundry can't read it. */
-	normalize?(value: StoredValue<T> | undefined): C;
+	/**
+	 * The field of `CONFIG.genesys.settings` the system reads the setting from, and its value for a stored value, which
+	 * can be `undefined` when Foundry can't read it.
+	 */
+	field?: { name: F; normalize(value: StoredValue<T> | undefined): C };
 	/** What applying the value does besides writing `field`. */
 	effect?(value: StoredValue<T> | undefined, normalized: C): unknown;
 	/** Applied on 'setup' instead of 'ready', for a setting the user interface needs before it first renders. */
@@ -65,9 +67,11 @@ export const SETTINGS = {
 		default: DEFAULT_SKILLS_COMPENDIUM,
 		name: 'Genesys.Settings.SkillsCompendium',
 		hint: 'Genesys.Settings.SkillsCompendiumHint',
-		field: 'skillsCompendium',
-		// We always want a Skills Compendium, so fall back to the default one if the setting is ever emptied.
-		normalize: (value): string => value || DEFAULT_SKILLS_COMPENDIUM,
+		field: {
+			name: 'skillsCompendium',
+			// We always want a Skills Compendium, so fall back to the default one if the setting is ever emptied.
+			normalize: (value): string => value || DEFAULT_SKILLS_COMPENDIUM,
+		},
 		effect: loadSkills,
 	}),
 
@@ -78,10 +82,12 @@ export const SETTINGS = {
 		default: DEFAULT_DIFFICULTY,
 		name: 'Genesys.Settings.DefaultDifficulty',
 		hint: 'Genesys.Settings.DefaultDifficultyHint',
-		field: 'defaultDifficulty',
-		normalize: (value): string => {
-			const difficulty = value ?? '';
-			return isPoolModificationValue(difficulty) ? difficulty : DEFAULT_DIFFICULTY;
+		field: {
+			name: 'defaultDifficulty',
+			normalize: (value): string => {
+				const difficulty = value ?? '';
+				return isPoolModificationValue(difficulty) ? difficulty : DEFAULT_DIFFICULTY;
+			},
 		},
 	}),
 
@@ -92,8 +98,7 @@ export const SETTINGS = {
 		default: 'Resilience',
 		name: 'Genesys.Settings.SkillForInjuries',
 		hint: 'Genesys.Settings.SkillForInjuriesHint',
-		field: 'skillForHealingInjury',
-		normalize: asString,
+		field: { name: 'skillForHealingInjury', normalize: asString },
 	}),
 
 	/** The name of the skill to use for repairing Critical Hits. */
@@ -103,8 +108,7 @@ export const SETTINGS = {
 		default: 'Mechanics',
 		name: 'Genesys.Settings.SkillForRepairingVehicleHits',
 		hint: 'Genesys.Settings.SkillForRepairingVehicleHitsHint',
-		field: 'skillForRepairingHit',
-		normalize: asString,
+		field: { name: 'skillForRepairingHit', normalize: asString },
 	}),
 
 	/** Name of the currency used for the setting. */
@@ -114,8 +118,7 @@ export const SETTINGS = {
 		default: 'Money',
 		name: 'Genesys.Settings.Money',
 		hint: 'Genesys.Settings.MoneyHint',
-		field: 'currencyName',
-		normalize: asString,
+		field: { name: 'currencyName', normalize: asString },
 	}),
 
 	/** Number of free skill ranks characters gain from careers. */
@@ -125,8 +128,7 @@ export const SETTINGS = {
 		default: 4,
 		name: 'Genesys.Settings.CareerSkillRanks',
 		hint: 'Genesys.Settings.CareerSkillRanksHint',
-		field: 'freeCareerSkillRanks',
-		normalize: asCount,
+		field: { name: 'freeCareerSkillRanks', normalize: asCount },
 	}),
 
 	/** Whether to allow use of the Uncoupling Skills from Characteristics alternate rule. */
@@ -136,8 +138,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.UncoupleSkillsAlternateRule',
 		hint: 'Genesys.Settings.UncoupleSkillsAlternateRuleHint',
-		field: 'uncoupleSkillsFromCharacteristics',
-		normalize: asBoolean,
+		field: { name: 'uncoupleSkillsFromCharacteristics', normalize: asBoolean },
 	}),
 
 	/** Whether to show Damage, Critical, and Qualities on attack roll chat cards even when the roll was a failure. */
@@ -147,8 +148,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.ShowDamageOnFailure',
 		hint: 'Genesys.Settings.ShowDamageOnFailureHint',
-		field: 'showAttackDetailsOnFailure',
-		normalize: asBoolean,
+		field: { name: 'showAttackDetailsOnFailure', normalize: asBoolean },
 	}),
 
 	/** Whether to use the optional rule for super-characteristics. */
@@ -158,8 +158,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.SuperCharacteristics',
 		hint: 'Genesys.Settings.SuperCharacteristicsHint',
-		field: 'useSuperCharacteristics',
-		normalize: asBoolean,
+		field: { name: 'useSuperCharacteristics', normalize: asBoolean },
 	}),
 
 	/** Whether characters can purchase talents without respecting the talent pyramid. */
@@ -169,8 +168,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.IgnoreTalentPyramid',
 		hint: 'Genesys.Settings.IgnoreTalentPyramidHint',
-		field: 'ignoreTalentPyramid',
-		normalize: asBoolean,
+		field: { name: 'ignoreTalentPyramid', normalize: asBoolean },
 	}),
 
 	/** Whether each tier of a ranked talent is a separate item, bought as a rank at that item's tier in any order. */
@@ -180,8 +178,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.TalentTierVersions',
 		hint: 'Genesys.Settings.TalentTierVersionsHint',
-		field: 'talentTierVersions',
-		normalize: asBoolean,
+		field: { name: 'talentTierVersions', normalize: asBoolean },
 	}),
 
 	/** The Style of the system's colors, chosen by the GM for every user. */
@@ -210,8 +207,7 @@ export const SETTINGS = {
 		name: 'Genesys.Settings.UseMagicalGirlSymbols',
 		hint: 'Genesys.Settings.UseMagicalGirlSymbolsHint',
 		requiresReload: true,
-		field: 'useMagicalGirlSymbols',
-		normalize: asBoolean,
+		field: { name: 'useMagicalGirlSymbols', normalize: asBoolean },
 	}),
 
 	/** Whether to collapse the 'Pool Modifications' section when a dice prompt renders. */
@@ -221,8 +217,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.DicePoolCollapseModifications',
 		hint: 'Genesys.Settings.DicePoolCollapseModificationsHint',
-		field: 'startWithCollapsedPoolModifications',
-		normalize: asBoolean,
+		field: { name: 'startWithCollapsedPoolModifications', normalize: asBoolean },
 	}),
 
 	/** Whether to automatically apply all the pool modifications shown on the dice prompt. */
@@ -232,8 +227,7 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.DicePoolAutoApplyModifications',
 		hint: 'Genesys.Settings.DicePoolAutoApplyModificationsHint',
-		field: 'autoApplyPoolModifications',
-		normalize: asBoolean,
+		field: { name: 'autoApplyPoolModifications', normalize: asBoolean },
 	}),
 
 	/** Whether to show the chance to succeed of a dice pool by constructing its permutations on a Web Worker. */
@@ -244,8 +238,7 @@ export const SETTINGS = {
 		name: 'Genesys.Settings.DicePoolChanceToSucceedByPermutation',
 		hint: 'Genesys.Settings.DicePoolChanceToSucceedByPermutationHint',
 		requiresReload: true,
-		field: 'showChanceToSucceedFromPermutations',
-		normalize: asBoolean,
+		field: { name: 'showChanceToSucceedFromPermutations', normalize: asBoolean },
 	}),
 
 	/** Number of simulated rolls to do to calculate the dice pool success chance. A value of 0 disables the feature. */
@@ -255,10 +248,12 @@ export const SETTINGS = {
 		default: 0,
 		name: 'Genesys.Settings.DicePoolChanceToSucceedBySimulation',
 		hint: 'Genesys.Settings.DicePoolChanceToSucceedBySimulationHint',
-		field: 'showChanceToSucceedFromSimulations',
-		normalize: (value): { enabled: boolean; amountOfRolls: number } => {
-			const amountOfRolls = asCount(value);
-			return { enabled: amountOfRolls > 0, amountOfRolls };
+		field: {
+			name: 'showChanceToSucceedFromSimulations',
+			normalize: (value): { enabled: boolean; amountOfRolls: number } => {
+				const amountOfRolls = asCount(value);
+				return { enabled: amountOfRolls > 0, amountOfRolls };
+			},
 		},
 	}),
 };
@@ -282,6 +277,6 @@ export function settingEntries() {
  */
 export function configDefaults(): ConfigSettings {
 	return Object.fromEntries(
-		settingEntries().flatMap(([, entry]) => (entry.field && entry.normalize ? [[entry.field, entry.normalize(entry.default)]] : [])),
+		settingEntries().flatMap(([, { field, default: value }]) => (field ? [[field.name, field.normalize(value)]] : [])),
 	) as ConfigSettings;
 }
