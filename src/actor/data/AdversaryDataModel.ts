@@ -2,7 +2,7 @@
  * @file Base data shared by all Adversaries.
  */
 
-import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { isRelevantToAdversary } from '@/actor/data/RelevantTypes';
 import { adversaryDefense } from '@/actor/data/Protection';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
@@ -18,20 +18,6 @@ type Motivations = {
 	flaw: Motivation;
 	desire: Motivation;
 	fear: Motivation;
-};
-
-/**
- * A list of Document types that an Adversary actor cares about for different reasons.
- */
-const RELEVANT_TYPES = {
-	// Types that are related to the Skills tab.
-	SKILL: ['skill'],
-	// Types that are related to the Combat tab.
-	COMBAT: ['injury'],
-	// Types that are related to the Talents tab.
-	TALENT: ['ability', 'talent'],
-	// Types that are related to the equipment.
-	INVENTORY: ['weapon', 'armor', 'consumable', 'gear', 'container'],
 };
 
 export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
@@ -52,8 +38,11 @@ export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 		},
 	};
 
-	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
-		return isRelevantType(RELEVANT_TYPES, context, type);
+	/**
+	 * Whether a Document type is relevant to an Adversary actor in a context.
+	 */
+	static isRelevantTypeForContext(this: void, context: Parameters<typeof isRelevantToAdversary>[0], type: string) {
+		return isRelevantToAdversary(context, type);
 	}
 
 	/**

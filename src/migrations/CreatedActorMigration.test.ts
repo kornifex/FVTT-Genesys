@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// The planners read which items have an Equipment State from the data models, which extend a Foundry class.
+// The planners read `EquipmentState`, which lives in a data model, which extends a Foundry class.
 vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });

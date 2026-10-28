@@ -1,26 +1,18 @@
 /** @file Tests for the faces of each die type, against the Core Rulebook. */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-// The dice types extend `foundry.dice.terms.Die` and the Dice So Nice! registration listens to `Hooks`; both are Foundry globals.
-vi.hoisted(() => {
-	Object.assign(globalThis, {
-		foundry: { dice: { terms: { Die: class {} } } },
-		Hooks: { once: () => {}, on: () => {} },
-	});
-});
-
-import { GenesysDice } from '@/dice';
+import { DieTypes } from '@/dice/DieTypes';
 import { DieFaces } from '@/dice/DieFaces';
 
 describe('the dice', () => {
 	it('are Boost, Ability and Proficiency on the positive side, Setback, Difficulty and Challenge on the negative (CRB p. 9-10)', () => {
-		expect(GenesysDice.Boost.CATEGORY).toBe('positive');
-		expect(GenesysDice.Ability.CATEGORY).toBe('positive');
-		expect(GenesysDice.Proficiency.CATEGORY).toBe('positive');
-		expect(GenesysDice.Setback.CATEGORY).toBe('negative');
-		expect(GenesysDice.Difficulty.CATEGORY).toBe('negative');
-		expect(GenesysDice.Challenge.CATEGORY).toBe('negative');
+		expect(DieTypes.Boost.CATEGORY).toBe('positive');
+		expect(DieTypes.Ability.CATEGORY).toBe('positive');
+		expect(DieTypes.Proficiency.CATEGORY).toBe('positive');
+		expect(DieTypes.Setback.CATEGORY).toBe('negative');
+		expect(DieTypes.Difficulty.CATEGORY).toBe('negative');
+		expect(DieTypes.Challenge.CATEGORY).toBe('negative');
 	});
 
 	// Table I.1–2, face by face: s Success, a Advantage, t Triumph, f Failure, h Threat, d Despair. The Triumph is the
@@ -47,7 +39,7 @@ describe('the dice', () => {
 	it('puts Success and Advantage on the positive dice only, Failure and Threat on the negative dice only (CRB p. 11-12)', () => {
 		for (const [die, faces] of Object.entries(DieFaces)) {
 			const glyphs = faces.join('');
-			const positive = GenesysDice[die as keyof typeof DieFaces].CATEGORY === 'positive';
+			const positive = DieTypes[die as keyof typeof DieFaces].CATEGORY === 'positive';
 
 			expect(/[sat]/.test(glyphs)).toBe(positive);
 			expect(/[fhd]/.test(glyphs)).toBe(!positive);

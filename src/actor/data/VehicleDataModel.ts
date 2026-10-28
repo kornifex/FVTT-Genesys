@@ -1,6 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered } from '@/actor/data/Encumbrance';
-import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Defense } from '@/data/Actors';
 import { HasOnDelete } from '@/data/HasOnDelete';
@@ -19,29 +19,9 @@ type ValueWithThreshold = {
 	threshold: number;
 };
 
-/**
- * A list of Document types that a Vehicle actor cares about for different reasons.
- */
-const RELEVANT_TYPES = {
-	// Types that are related to the Combat tab.
-	COMBAT: ['injury'],
-	// Types that are allowed to be dropped on a role.
-	ROLE: ['character', 'minion', 'rival', 'nemesis', 'skill'],
-	// Types that are allowed to be a added as passengers.
-	PASSENGER: ['character', 'minion', 'rival', 'nemesis'],
-	// Types that are used to calculate encumbrance values.
-	ENCUMBRANCE: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
-	// Types that are listed on the Inventory tab.
-	INVENTORY: ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'],
-	// Types that can be equipped.
-	EQUIPABLE: ['vehicleWeapon'],
-	// Types that can be spent.
-	CONSUMABLE: ['consumable'],
-};
-
 // A vehicle's cargo all counts, whatever its Equipment State.
 const ENCUMBRANCE_RULES: EncumbranceRules = {
-	isRelevant: (type) => VehicleDataModel.isRelevantTypeForContext('ENCUMBRANCE', type),
+	isRelevant: (type) => isRelevantToVehicle('ENCUMBRANCE', type),
 	ignoresDropped: false,
 	reducesEquippedArmor: false,
 };
@@ -92,8 +72,11 @@ export abstract class VehicleDataModel
 		},
 	};
 
-	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
-		return isRelevantType(RELEVANT_TYPES, context, type);
+	/**
+	 * Whether a Document type is relevant to a Vehicle actor in a context.
+	 */
+	static isRelevantTypeForContext(this: void, context: Parameters<typeof isRelevantToVehicle>[0], type: string) {
+		return isRelevantToVehicle(context, type);
 	}
 
 	static readonly _GAME_VEHICLES = new Set<GenesysActor<VehicleDataModel>>();

@@ -1,3 +1,5 @@
+/// <reference types="vitest/config" />
+
 import { AliasOptions, defineConfig } from 'vite';
 import dotenv from 'dotenv';
 import dotenvExpand from 'dotenv-expand';
@@ -61,6 +63,9 @@ export default defineConfig({
 		renderBuiltUrl: (_, { hostType }) => (hostType === 'js' ? { relative: true } : undefined),
 	},
 	plugins: [pluginVue(), yamlData('yaml'), packs('packs')],
+	test: {
+		setupFiles: ['src/testSetup.ts'],
+	},
 	resolve: {
 		alias: [
 			{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') },

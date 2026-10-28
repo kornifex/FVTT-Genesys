@@ -4,7 +4,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// `EquipmentState` and the relevant types live in data models, which extend a Foundry class.
+// `EquipmentState` lives in a data model, which extends a Foundry class.
 vi.hoisted(() => {
 	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
 });

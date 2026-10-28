@@ -12,7 +12,7 @@ import {
 } from '@/actor/data/Encumbrance';
 import { totalDefense, totalSoak } from '@/actor/data/Protection';
 import { wornArmor } from '@/actor/data/Inventory';
-import { isRelevantType } from '@/actor/data/RelevantTypes';
+import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
@@ -46,31 +46,9 @@ type Details = {
 type CharacterActor = GenesysActor<CharacterDataModel>;
 type ArmorItem = GenesysItem<ArmorDataModel>;
 
-/**
- * A list of Document types that a Character actor cares about for different reasons.
- */
-const RELEVANT_TYPES = {
-	// Types of items that are used to build a character.
-	APTITUDE: ['archetype', 'career'],
-	// Types that are related to the Skills tab.
-	SKILL: ['skill'],
-	// Types that are related to the Combat tab.
-	COMBAT: ['injury'],
-	// Types that are related to the Talents tab.
-	TALENT: ['ability', 'talent'],
-	// Types that are used to calculate encumbrance values.
-	ENCUMBRANCE: ['weapon', 'armor', 'consumable', 'gear', 'container'],
-	// Types that are listed on the Inventory tab.
-	INVENTORY: ['weapon', 'armor', 'consumable', 'gear', 'container'],
-	// Types that can be equipped.
-	EQUIPABLE: ['weapon', 'armor'],
-	// Types that can be spent.
-	CONSUMABLE: ['consumable'],
-};
-
 // A character's Dropped equipment counts towards neither the value nor the threshold, and their worn armor counts 3 less.
 const ENCUMBRANCE_RULES: EncumbranceRules = {
-	isRelevant: (type) => CharacterDataModel.isRelevantTypeForContext('ENCUMBRANCE', type),
+	isRelevant: (type) => isRelevantToCharacter('ENCUMBRANCE', type),
 	ignoresDropped: true,
 	reducesEquippedArmor: true,
 };
@@ -114,8 +92,11 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 		},
 	};
 
-	static isRelevantTypeForContext(this: void, context: keyof typeof RELEVANT_TYPES, type: string) {
-		return isRelevantType(RELEVANT_TYPES, context, type);
+	/**
+	 * Whether a Document type is relevant to a Character actor in a context.
+	 */
+	static isRelevantTypeForContext(this: void, context: Parameters<typeof isRelevantToCharacter>[0], type: string) {
+		return isRelevantToCharacter(context, type);
 	}
 
 	/**
