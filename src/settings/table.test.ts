@@ -1,13 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-// The Default Difficulty reads pool modifications, whose module loads the dice types that extend
-// `foundry.dice.terms.Die` and the Dice So Nice! registration that listens to `Hooks`; both are Foundry globals.
-vi.hoisted(() => {
-	Object.assign(globalThis, {
-		foundry: { dice: { terms: { Die: class {} } } },
-		Hooks: { once: () => {}, on: () => {} },
-	});
-});
+import { describe, expect, it } from 'vitest';
 
 import { configDefaults, SETTINGS, settingEntries } from '@/settings/table';
 

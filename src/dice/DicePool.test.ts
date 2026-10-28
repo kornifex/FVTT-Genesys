@@ -2,15 +2,7 @@
  * @file Tests for building a dice pool and compiling it into a roll.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// The dice types extend `foundry.dice.terms.Die` and the Dice So Nice! registration listens to `Hooks`; both are Foundry globals.
-vi.hoisted(() => {
-	Object.assign(globalThis, {
-		foundry: { dice: { terms: { Die: class {} } } },
-		Hooks: { once: () => {}, on: () => {} },
-	});
-});
+import { describe, expect, it } from 'vitest';
 
 import {
 	applyDicePoolModifications,

@@ -2,7 +2,7 @@
  * @file Building a dice pool from a characteristic, a skill, a difficulty and pool modifications.
  */
 
-import { GenesysDice } from '@/dice';
+import { DieTypes } from '@/dice/DieTypes';
 import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
 import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
@@ -10,7 +10,7 @@ import { downgradeDie, upgradeDie } from '@/dice/DieGrades';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 
-export type DieName = keyof typeof GenesysDice;
+export type DieName = keyof typeof DieTypes;
 export type SymbolName = keyof typeof GenesysSymbol;
 export type DieGradeOperationName = keyof typeof GenesysPoolGradeOperation;
 type SimplePoolEntity = DieName | SymbolName;
@@ -155,7 +155,7 @@ export function compileDiceFormula(dicePool: DicePool) {
 		.map(([dieKey, dieAmount]) => {
 			const dieName = dieKey as DieName;
 			const explodeDice = dieName === 'Proficiency' && usesSuperCharacteristic ? 'X' : '';
-			return `${dieAmount}${GenesysDice[dieName].FORMULA}${explodeDice}`;
+			return `${dieAmount}${DieTypes[dieName].FORMULA}${explodeDice}`;
 		})
 		.join('+');
 

@@ -2,8 +2,7 @@
  * @file Effects of equipment apply only while their item is in the right Equipment State: equipped and in no Container for equipable items, and carried for any other equipment but consumables, whose effects never apply.
  */
 
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 /**
@@ -22,8 +21,8 @@ type HeldItem = {
 // The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries have none: the
 // effects of their equipment always apply.
 const EQUIPMENT_TYPES_BY_ACTOR_TYPE: Partial<Record<string, IsEquipmentType>> = {
-	character: CharacterDataModel.isRelevantTypeForContext,
-	vehicle: VehicleDataModel.isRelevantTypeForContext,
+	character: isRelevantToCharacter,
+	vehicle: isRelevantToVehicle,
 };
 
 /**

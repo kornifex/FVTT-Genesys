@@ -3,10 +3,8 @@
  * their Equipment State.
  */
 
-import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { hasEquipmentState } from '@/actor/data/EquipmentEffects';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { isRelevantToAdversary, isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
 
 /**
@@ -89,18 +87,18 @@ type InventoryTypes = {
 };
 
 const ADVERSARY_INVENTORY_TYPES: InventoryTypes = {
-	isInventory: (type) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', type),
+	isInventory: (type) => isRelevantToAdversary('INVENTORY', type),
 	isEquipable: () => false,
 };
 
 const INVENTORY_TYPES_BY_ACTOR_TYPE: Partial<Record<string, InventoryTypes>> = {
 	character: {
-		isInventory: (type) => CharacterDataModel.isRelevantTypeForContext('INVENTORY', type),
-		isEquipable: (type) => CharacterDataModel.isRelevantTypeForContext('EQUIPABLE', type),
+		isInventory: (type) => isRelevantToCharacter('INVENTORY', type),
+		isEquipable: (type) => isRelevantToCharacter('EQUIPABLE', type),
 	},
 	vehicle: {
-		isInventory: (type) => VehicleDataModel.isRelevantTypeForContext('INVENTORY', type),
-		isEquipable: (type) => VehicleDataModel.isRelevantTypeForContext('EQUIPABLE', type),
+		isInventory: (type) => isRelevantToVehicle('INVENTORY', type),
+		isEquipable: (type) => isRelevantToVehicle('EQUIPABLE', type),
 	},
 	minion: ADVERSARY_INVENTORY_TYPES,
 	rival: ADVERSARY_INVENTORY_TYPES,

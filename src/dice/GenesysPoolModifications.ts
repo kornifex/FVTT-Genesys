@@ -1,8 +1,8 @@
-import { GenesysDice } from '@/dice';
+import { DieTypes } from '@/dice/DieTypes';
 import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
 
-type PoolEntity = keyof typeof GenesysDice | keyof typeof GenesysSymbol | keyof typeof GenesysPoolGradeOperation;
+type PoolEntity = keyof typeof DieTypes | keyof typeof GenesysSymbol | keyof typeof GenesysPoolGradeOperation;
 
 type PoolModificationData = {
 	targetName: PoolEntity;
@@ -14,7 +14,7 @@ type PoolModificationData = {
 export const PoolModGlyphPattern = /(-?[BAPSDCasthfd]|[\^*_~])/g;
 
 const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
-	...Object.entries(GenesysDice).map(([dieName, dieType]): [string, PoolModificationData] => [
+	...Object.entries(DieTypes).map(([dieName, dieType]): [string, PoolModificationData] => [
 		dieType.GLYPH,
 		{
 			targetName: dieName as PoolEntity,
@@ -26,7 +26,7 @@ const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
 		GenesysPoolGradeOperation.UpgradeAbility.GLYPH,
 		{
 			targetName: 'UpgradeAbility',
-			icon: { baseType: 'dice', baseName: 'Ability', baseGlyph: GenesysDice['Ability'].GLYPH, operator: 'fa-arrow-up' },
+			icon: { baseType: 'dice', baseName: 'Ability', baseGlyph: DieTypes['Ability'].GLYPH, operator: 'fa-arrow-up' },
 			sort: 1,
 		},
 	],
@@ -34,7 +34,7 @@ const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
 		GenesysPoolGradeOperation.UpgradeDifficulty.GLYPH,
 		{
 			targetName: 'UpgradeDifficulty',
-			icon: { baseType: 'dice', baseName: 'Difficulty', baseGlyph: GenesysDice['Difficulty'].GLYPH, operator: 'fa-arrow-up' },
+			icon: { baseType: 'dice', baseName: 'Difficulty', baseGlyph: DieTypes['Difficulty'].GLYPH, operator: 'fa-arrow-up' },
 			sort: 1,
 		},
 	],
@@ -42,7 +42,7 @@ const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
 		GenesysPoolGradeOperation.DowngradeAbility.GLYPH,
 		{
 			targetName: 'DowngradeAbility',
-			icon: { baseType: 'dice', baseName: 'Proficiency', baseGlyph: GenesysDice['Proficiency'].GLYPH, operator: 'fa-arrow-down' },
+			icon: { baseType: 'dice', baseName: 'Proficiency', baseGlyph: DieTypes['Proficiency'].GLYPH, operator: 'fa-arrow-down' },
 			sort: 2,
 		},
 	],
@@ -50,11 +50,11 @@ const POOL_MODIFICATIONS: [string, PoolModificationData][] = [
 		GenesysPoolGradeOperation.DowngradeDifficulty.GLYPH,
 		{
 			targetName: 'DowngradeDifficulty',
-			icon: { baseType: 'dice', baseName: 'Challenge', baseGlyph: GenesysDice['Challenge'].GLYPH, operator: 'fa-arrow-down' },
+			icon: { baseType: 'dice', baseName: 'Challenge', baseGlyph: DieTypes['Challenge'].GLYPH, operator: 'fa-arrow-down' },
 			sort: 2,
 		},
 	],
-	...Object.entries(GenesysDice).map(([dieName, dieType]): [string, PoolModificationData] => [
+	...Object.entries(DieTypes).map(([dieName, dieType]): [string, PoolModificationData] => [
 		`-${dieType.GLYPH}`,
 		{
 			targetName: dieName as PoolEntity,

@@ -2,17 +2,7 @@
  * @file Tests for the Pool Modifications that come from effects.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// The dice types extend `foundry.dice.terms.Die`, the Dice So Nice! registration listens to `Hooks`, and edited changes get
-// Foundry's custom effect mode; all are Foundry globals.
-vi.hoisted(() => {
-	Object.assign(globalThis, {
-		foundry: { dice: { terms: { Die: class {} } } },
-		Hooks: { once: () => {}, on: () => {} },
-		CONST: { ACTIVE_EFFECT_MODES: { CUSTOM: 0, ADD: 2 } },
-	});
-});
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Characteristic } from '@/data/Characteristics';
@@ -324,6 +314,15 @@ function editedChange(
 }
 
 describe('editing changes in the effect sheets', () => {
+	// v13: an edited Pool Modification gets Foundry's custom effect mode.
+	beforeAll(() => {
+		vi.stubGlobal('CONST', { ACTIVE_EFFECT_MODES: { CUSTOM: 0, ADD: 2 } });
+	});
+
+	afterAll(() => {
+		vi.unstubAllGlobals();
+	});
+
 	it('splits the subject of a Pool Modification off its key', () => {
 		const change = editedChange('genesys.pool.skill.target.Stealth', 'S');
 

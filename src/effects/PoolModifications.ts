@@ -4,7 +4,7 @@
 
 import { Characteristic } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
-import { GenesysDice } from '@/dice';
+import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
@@ -190,7 +190,7 @@ export function poolModificationsForCheck(
 				modifications.push({
 					source: 'target',
 					from: { defense },
-					mods: Array<string>(totalDefense[defense]).fill(GenesysDice.Setback.GLYPH),
+					mods: Array<string>(totalDefense[defense]).fill(DieTypes.Setback.GLYPH),
 				});
 			}
 		}
