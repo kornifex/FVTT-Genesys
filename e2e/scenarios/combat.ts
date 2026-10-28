@@ -360,6 +360,7 @@ export async function run(e2e: ScenarioContext) {
 	await rollKeepsTurn();
 	await claims();
 	await claimedRows();
+	await originOwnerRows();
 	await initiativeSymbols();
 	await slotSides();
 	await poolModifications();
@@ -782,6 +783,47 @@ export async function run(e2e: ScenarioContext) {
 			},
 			{ rolled: { Hero: false, Ally: true, Scout: false, Boss: false }, extraSlot: extraRoll.extraSlots[0], speakers: ['Ally'] },
 		);
+	}
+
+	/** §#38: the roll and Initiative Skill buttons of a row show for the owners of its slot's origin, not of its claimant. */
+	async function originOwnerRows() {
+		await setUp({ Hero: null, Ally: null });
+		// Ally keeps a player owner, so that its slot stays a PC slot Hero can claim, but not the player of the scenario.
+		await e2e.step("#38 GM gives Ally to another player, then claims Ally's slot for Hero and Hero's slot for Ally", () =>
+			gm.evaluate(async (playerUser) => {
+				const { OWNER, NONE } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+				const other = game.users.getName('E2E Other') ?? (await User.create({ name: 'E2E Other', role: CONST.USER_ROLES.PLAYER }));
+				await game.actors
+					.getName('E2E Ally')
+					.update({ [`ownership.${game.users.getName(playerUser).id}`]: NONE, [`ownership.${other.id}`]: OWNER });
+				await window.combatE2E.claim('Ally:-1', 'Hero');
+				await window.combatE2E.claim('Hero:-1', 'Ally');
+			}, e2e.playerUser),
+		);
+		const buttons = Object.fromEntries(
+			Object.entries(await rows()).map(([user, clientRows]) => [
+				user,
+				Object.fromEntries(clientRows.map((row) => [row.slot, { claimed: row.claimed, roll: row.canRoll, skill: row.skill }])),
+			]),
+		);
+		e2e.expect(
+			"#38 A6 a player sees the roll and Initiative Skill buttons on the row of the slot they own, claimed by another player's combatant, not on the row their own combatant claimed",
+			{ claims: (await stored()).claims, buttons },
+			{
+				claims: { 'Ally:-1': 'Hero', 'Hero:-1': 'Ally' },
+				buttons: {
+					[gm.user]: {
+						'Hero:-1': { claimed: true, roll: true, skill: 'Vigilance' },
+						'Ally:-1': { claimed: true, roll: true, skill: 'Vigilance' },
+					},
+					[e2e.playerUser]: {
+						'Hero:-1': { claimed: true, roll: true, skill: 'Vigilance' },
+						'Ally:-1': { claimed: true, roll: false, skill: null },
+					},
+				},
+			},
+		);
+		await gm.evaluate(() => game.users.getName('E2E Other')?.delete());
 	}
 
 	/** §#35: the trackers show an initiative as its Successes and Advantage, decoded from the stored value. */
