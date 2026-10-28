@@ -2,7 +2,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
-import { cardResults, GenesysRollResults, rollResults } from '@/dice/RollResults';
+import { cardResults, GenesysRollResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
 import { GenesysItem } from '@/item/GenesysItem';
 import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
@@ -62,16 +62,17 @@ export class GenesysRoller {
 
 		const attackQualities = await enrichedQualities(weapon.systemData.qualities);
 
+		const card = cardResults(results);
 		const rollData = {
 			description: checkDescription(check, { kind: 'attack', weaponName: weapon.name }, game.i18n),
 			results,
-			card: cardResults(results),
+			card,
 			totalDamage,
 			damageFormula: formula,
 			critical: weapon.systemData.critical,
 			// tbh I can't be assed to implement another Handlebars helper for array length so let's just do undefined. <.<
 			qualities: weapon.systemData.qualities.length === 0 ? undefined : attackQualities,
-			showDamageOnFailure: CONFIG.genesys.settings.showAttackDetailsOnFailure,
+			showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),
 		};
 		const html = await renderTemplate('systems/genesys/templates/chat/rolls/attack.hbs', rollData);
 

@@ -45,13 +45,9 @@ type MessageSummary = {
 /**
  * The card of a roll's chat message, every part of it, as the user reads it.
  */
-type CardSummary = {
+type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 	/** The labels of the card's parts, in order. */
 	labels: string[];
-	/** The net results row: `f a` for a Failure and an Advantage. */
-	results: string;
-	/** Each summary table, as text. */
-	summaries: string[];
 	/** Each quality of an attack, with its tooltip. */
 	qualities: { text: string; tooltip: string | null }[];
 	/** The dice row: each die's letter and face, then the extra symbols. */
@@ -499,12 +495,14 @@ function installDicePromptHelpers() {
 		lastMessage: () => messageSummary(game.messages.contents.at(-1)),
 
 		lastCard() {
+			const message = game.messages.contents.at(-1);
+			const { results, summaries } = messageSummary(message);
 			const content = document.createElement('div');
-			content.innerHTML = game.messages.contents.at(-1)?.content ?? '';
+			content.innerHTML = message.content;
 			return {
 				labels: [...content.querySelectorAll('label')].map(text),
-				results: text(content.querySelector('.net-results')),
-				summaries: [...content.querySelectorAll('.summary-table')].map(text),
+				results,
+				summaries,
 				qualities: [...content.querySelectorAll('.quality')].map((quality) => ({
 					text: text(quality),
 					tooltip: quality.getAttribute('data-tooltip'),
@@ -1418,7 +1416,7 @@ export async function run(e2e: ScenarioContext) {
 	const failedAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
 	await update({ actor: 'Ada', item: 'Pistol' }, { 'system.qualities': [] });
 	e2e.expect(
-		'E7 the cards of a succeeded attack, a failed skill roll and a failed attack with qualities show each of their parts',
+		'the cards of a succeeded attack, a failed skill roll and a failed attack with qualities show each of their parts',
 		{ succeededAttack: succeededAttackCard, failedSkill: failedSkillCard, failedAttack: failedAttackCard },
 		{
 			succeededAttack: {
@@ -1435,7 +1433,8 @@ export async function run(e2e: ScenarioContext) {
 				qualities: [],
 				dice: 'P s P P a D ff D fh',
 			},
-			// The attack details are hidden on a failure, the world setting being off; the qualities are not.
+			// The damage and critical are hidden on a failure, the world setting being off. The qualities still show, as on
+			// origin/main, though the setting's hint names them among what it hides.
 			failedAttack: {
 				labels: ['Roll Results', 'Summary', 'Attack Qualities', 'Dice'],
 				results: 'f a',

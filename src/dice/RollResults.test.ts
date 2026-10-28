@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cardResults, rollResults } from '@/dice/RollResults';
+import { cardResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
 
 describe('rollResults', () => {
 	it('counts the symbols of every rolled face', () => {
@@ -104,5 +104,16 @@ describe('cardResults', () => {
 		expect(cardResults(rollResults({ p: ['t'] }, {})).succeeded).toBe(true);
 		expect(cardResults(rollResults({ p: ['t'], d: ['f'] }, {})).succeeded).toBe(false);
 		expect(cardResults(rollResults({ a: ['s'], d: ['ff'] }, {})).succeeded).toBe(false);
+	});
+});
+
+describe('showsAttackDetails', () => {
+	it("shows an attack's damage and critical when it succeeds, and on a failure only when the world setting says so", () => {
+		const succeeded = cardResults(rollResults({ a: ['s'] }, {}));
+		const failed = cardResults(rollResults({ d: ['f'] }, {}));
+
+		expect(showsAttackDetails(succeeded, false)).toBe(true);
+		expect(showsAttackDetails(failed, false)).toBe(false);
+		expect(showsAttackDetails(failed, true)).toBe(true);
 	});
 });

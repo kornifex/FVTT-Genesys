@@ -1,6 +1,6 @@
 {{!-- The card of a check, with the damage and qualities of the attack in its slots. --}}
 {{#*inline "attackDetails"}}
-	{{#if (or showDamageOnFailure card.succeeded)}}
+	{{#if showAttackDetails}}
 		<label>{{localize 'Genesys.Rolls.Attack.Label'}}</label>
 		<div class="summary-table">
 			{{!-- Damage --}}
