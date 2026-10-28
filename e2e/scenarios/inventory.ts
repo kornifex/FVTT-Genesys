@@ -32,6 +32,11 @@ type InventoryHelpers = {
 	drop(source: Source, actor: string, at: Target): Promise<void>;
 	/** Drops a drag on the sheet of an item of the sidebar (no actor) or of an actor. */
 	dropOnItemSheet(source: Source, item: string, actor?: string): Promise<void>;
+	/**
+	 * Types a rating in the n-th quality of a sidebar weapon's or armor's sheet, as leaving the field does, or deletes the
+	 * quality from its trash icon when the rating is `null`.
+	 */
+	editQuality(item: string, quality: number, rating: string | null): Promise<void>;
 	/** Picks an action in the menu of an item's inventory row. */
 	menu(actor: string, item: string, action: MenuAction): Promise<void>;
 	/** Changes a field of an item's sheet, as typing in it does. */
@@ -538,6 +543,19 @@ function installInventoryHelpers() {
 			await dropOn(root.querySelector('.window-content')!, await dragFrom(source));
 		},
 
+		async editQuality(name, index, rating) {
+			const root = await render(game.items.getName(full(name)).sheet, (root) => root.querySelectorAll('.data-rated')[index]);
+			const row = root.querySelectorAll('.data-rated')[index];
+			if (rating === null) {
+				row.querySelector<HTMLElement>('a')!.click();
+			} else {
+				const input = row.querySelector<HTMLInputElement>('input')!;
+				input.value = rating;
+				input.dispatchEvent(new FocusEvent('blur'));
+			}
+			await settle();
+		},
+
 		async menu(ref, name, action) {
 			const icons: Record<MenuAction, string> = {
 				equip: '.fa-hand-fist, .fa-shield',
@@ -846,6 +864,30 @@ export async function run(e2e: ScenarioContext) {
 		await page.evaluate(() => window.inventoryE2E.sidebarItem('Spear')),
 		{ skills: ['Melee', 'E2E Skill'], qualities: ['E2E Quality 2'] },
 	);
+
+	// #251: the qualities of a weapon's and an armor's sheet, each change written as a new list.
+	const editQuality = (item: string, rating: string | null) => () =>
+		page.evaluate((args) => window.inventoryE2E.editQuality(args.item, 0, args.rating), { item, rating });
+	const qualities = async (item: string) => (await page.evaluate((name) => window.inventoryE2E.sidebarItem(name), item)).qualities;
+	await e2e.step("#251 a rating of 3 typed for the Spear's quality in its sheet", editQuality('Spear', '3'));
+	e2e.expect("#251 a weapon's quality takes the rating typed in its sheet", await qualities('Spear'), ['E2E Quality 3']);
+	await e2e.step("#251 a rating of 0 typed for the Spear's quality in its sheet", editQuality('Spear', '0'));
+	e2e.expect("#251 a weapon's quality given a rating of 0 in its sheet is removed", await qualities('Spear'), []);
+	await e2e.step(
+		'#251 a rated quality, twice, dropped on an armor sheet',
+		drops(
+			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
+			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
+		),
+	);
+	e2e.expect('#251 an armor takes a quality dropped on its sheet, a rated quality again raising its rating', await qualities('Mail'), [
+		'E2E Quality 2',
+	]);
+	await e2e.step("#251 a rating of 4 typed for the Mail's quality in its sheet", editQuality('Mail', '4'));
+	e2e.expect("#251 an armor's quality takes the rating typed in its sheet", await qualities('Mail'), ['E2E Quality 4']);
+	await e2e.step("#251 the Mail's quality deleted from its sheet", editQuality('Mail', null));
+	e2e.expect("#251 an armor's quality deleted from its sheet is removed", await qualities('Mail'), []);
+
 	await e2e.step('#82 A2 a talent dropped on an archetype sheet', () =>
 		page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Talent' }, 'Archetype')),
 	);

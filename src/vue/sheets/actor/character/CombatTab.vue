@@ -14,7 +14,7 @@ import { severityDifficulty } from '@/item/data/Injuries';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
-import Tooltip from '@/vue/components/Tooltip.vue';
+import QualityList from '@/vue/components/QualityList.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, attackSkillName, skillToRoll } from '@/data/Skills';
 import { weaponDamage } from '@/item/Weapons';
@@ -120,13 +120,7 @@ function skillForWeapon(
 					<div class="damage">{{ weaponDamage(weapon.systemData, actor.systemData.characteristics) }}</div>
 					<div class="crit">{{ weapon.systemData.critical }}</div>
 					<div class="range"><Localized :label="`Genesys.Range.${weapon.systemData.range.capitalize()}`" /></div>
-					<div v-if="weapon.systemData.qualities.length > 0" class="qualities">
-						<Tooltip v-for="quality in weapon.systemData.qualities" :key="quality.name" :content="quality.description">
-							<div class="quality">
-								{{ quality.name }} <template v-if="quality.isRated">{{ quality.rating }}</template>
-							</div>
-						</Tooltip>
-					</div>
+					<QualityList :qualities="weapon.systemData.qualities" tags class="qualities" />
 				</div>
 			</div>
 		</div>
@@ -147,13 +141,7 @@ function skillForWeapon(
 					</div>
 					<div class="soak">{{ armor.systemData.soak }}</div>
 					<div class="defense">{{ armor.systemData.defense }}</div>
-					<div v-if="armor.systemData.qualities.length > 0" class="qualities">
-						<Tooltip v-for="quality in armor.systemData.qualities" :key="quality.name" :content="quality.description">
-							<div class="quality">
-								{{ quality.name }} <template v-if="quality.isRated">{{ quality.rating }}</template>
-							</div>
-						</Tooltip>
-					</div>
+					<QualityList :qualities="armor.systemData.qualities" tags class="qualities" />
 					<div class="description"><Enriched :value="armor.systemData.description" /></div>
 				</div>
 			</div>
@@ -274,19 +262,6 @@ function skillForWeapon(
 	.qualities {
 		justify-self: left;
 		padding-left: 1em;
-
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 0.25em;
-
-		.quality {
-			background: colors.alpha(colors.$gold, 0.3);
-			border: 1px dashed colors.$gold;
-			border-radius: 0.25em;
-			padding: 0.25em;
-			font-family: 'Bebas Neue', sans-serif;
-		}
 	}
 
 	.skill {
