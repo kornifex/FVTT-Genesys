@@ -1,10 +1,9 @@
 @use '@scss/mixins/backgrounds.scss';
+@use '@scss/mixins/window.scss';
 @use '@scss/vars/sheet.scss';
 
-// Restrict the minimum size for the sheet window.
 .application.sheet.item {
-	min-width: 320px;
-	min-height: 200px;
+	@include window.min-size(320px, 200px);
 
 	.vue-app {
 		// Base-level CSS Container.

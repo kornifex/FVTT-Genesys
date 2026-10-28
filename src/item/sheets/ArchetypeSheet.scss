@@ -1,5 +1,5 @@
-// Restrict the minimum size for the sheet window.
+@use '@scss/mixins/window.scss';
+
 .application.sheet.item.archetype {
-	min-width: 580px;
-	min-height: 600px;
+	@include window.min-size(580px, 600px);
 }
