@@ -13,6 +13,7 @@ import {
 import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
 import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
+import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';
 import * as log from '@/log';
 
 async function applyChanges(actor: Actor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
@@ -69,6 +70,7 @@ const migrations: (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)),
 	() => migrateEveryActor(actorOnlyOnceInCrew),
 	() => migrateEveryActor(effectsStayOnItemsWithNotifications),
+	() => migrateEveryActor(effectsFollowEquipmentState),
 ];
 
 export async function performMigrations(lastAlpha: string) {

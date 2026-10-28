@@ -6,6 +6,6 @@ The id is the namespace of every world setting (`genesys.*`), document flag and 
 
 ## Consequences
 
-- The system isn't listed in the Foundry registry. Tables install it by pasting the fork's manifest URL. Once installed that way, Foundry looks for updates on the fork.
-- An install made from the original author's manifest keeps checking the original release feed until it is reinstalled from the fork's manifest.
-- The registry listing for `genesys` still points to the original repository. If that listing ever shows a higher version than the fork's, Foundry v12/v13 offers to switch the install back to it, and v14 (from 14.366) switches silently on update. The fork's versions must stay ahead of the original's, hence the jump to 0.3.0 for its first release.
+-   The system isn't listed in the Foundry registry. Tables install it by pasting the fork's manifest URL. Once installed that way, Foundry looks for updates on the fork.
+-   An install made from the original author's manifest keeps checking the original release feed until it is reinstalled from the fork's manifest.
+-   The registry listing for `genesys` still points to the original repository. If that listing ever shows a higher version than the fork's, Foundry v12/v13 offers to switch the install back to it, and v14 (from 14.366) switches silently on update. The fork's versions must stay ahead of the original's, hence the jump to 0.3.0 for its first release.
