@@ -59,7 +59,15 @@ export async function launchFoundry(install: FoundryInstall, dataDir: string): P
 	};
 
 	for (let waited = 0; ; waited += 1) {
-		if (fs.readFileSync(log, 'utf8').includes('Launching World | Complete')) break;
+		const output = fs.readFileSync(log, 'utf8');
+		if (output.includes('Launching World | Complete')) break;
+		// Foundry refuses at once a world whose system doesn't declare this version compatible, and then waits on its setup page.
+		if (output.includes('is not available to auto-launch')) {
+			await stop();
+			throw new Error(
+				`Foundry v${install.version} refused to launch ${install.world}: its system's compatibility may exclude this version; see ${log}`,
+			);
+		}
 		if (exited || waited >= 180) {
 			await stop();
 			throw new Error(`Foundry v${install.version} did not launch ${install.world}; see ${log}`);

@@ -1,4 +1,4 @@
-/** @file `pnpm e2e <scenario.ts or folder>... [--versions 13] [--dist dist] [--compare <git ref>]`: runs scenarios on each Foundry version. */
+/** @file `pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>]`: runs scenarios on each Foundry version. */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,11 +15,11 @@ const root = path.resolve(import.meta.dirname, '..');
 const envFile = path.join(import.meta.dirname, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
-const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 13] [--dist dist] [--compare <git ref>]';
+const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
-		versions: { type: 'string', default: '13' },
+		versions: { type: 'string', default: '13,14' },
 		dist: { type: 'string' },
 		compare: { type: 'string' },
 	},

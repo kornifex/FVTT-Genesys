@@ -198,8 +198,15 @@ async function settle(clients: Client[]) {
 async function join(browser: Browser, url: string, user: string, withCanvas: boolean): Promise<Client> {
 	const errors: string[] = [];
 
-	const ready = async (page: Page) => {
+	// The errors before `since` came from an earlier page load.
+	const ready = async (page: Page, since: number) => {
 		await page.waitForFunction(() => typeof game !== 'undefined' && game.ready === true, null, { timeout: 120_000 });
+		// A system whose module throws as it loads (a global the Foundry version removed) leaves the game ready without
+		// it: its init hook registered no setting. Its scenarios would fail later on a missing setting or class.
+		const systemLoaded = await page.evaluate(() =>
+			[...(game.settings.settings as Map<string, unknown>).keys()].some((key) => key.startsWith(`${game.system.id}.`)),
+		);
+		if (!systemLoaded) throw new Error(`The system did not load for ${user}: ${errors[since] ?? 'no error in the page'}`);
 		await page.evaluate(installHelpers);
 		// The system and the tracker finish rendering after the ready hook.
 		await page.evaluate(() => window.e2e.settle());
@@ -218,10 +225,12 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 		});
 		page.on('pageerror', (error) => errors.push(`${error.name}: ${error.message}`.slice(0, 300)));
 
+		const since = errors.length;
 		await page.goto(`${url}/join`, { waitUntil: 'domcontentloaded' });
-		await page.selectOption('select[name=userid]', { label: user }, { timeout: 60_000 });
+		// v13: the join form names its user select userid; v14 names it userId.
+		await page.selectOption('select[name=userid i]', { label: user }, { timeout: 60_000 });
 		await page.click('button[name=join]');
-		await ready(page);
+		await ready(page, since);
 		return page;
 	};
 
@@ -232,8 +241,9 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 		evaluate: ((fn: Parameters<Page['evaluate']>[0], arg: unknown) => client.page.evaluate(fn, arg)) as Page['evaluate'],
 		combatState: () => client.page.evaluate(() => window.e2e.combatState()),
 		async reload() {
+			const since = errors.length;
 			await client.page.reload({ waitUntil: 'domcontentloaded' });
-			await ready(client.page);
+			await ready(client.page, since);
 		},
 		connected: true,
 		async leave() {
