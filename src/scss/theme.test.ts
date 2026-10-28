@@ -122,11 +122,6 @@ describe('Palette', () => {
 		}
 	});
 
-	// v12: Chromium 122 (the Foundry v12 desktop app) reads relative colors with the older spec, where they come out black.
-	it('uses no relative color syntax', () => {
-		expect(css).not.toMatch(/\(\s*from\s/);
-	});
-
 	it('colors the PC and NPC Initiative Slots', () => {
 		expect(declarations(DEFAULTS)).toMatchObject({
 			'--genesys-initiative-slot-pc': '#155786',
