@@ -118,7 +118,7 @@ declare global {
  */
 function installSheetsHelpers() {
 	if (window.sheetsE2E) return;
-	const { sleep, settle, waitFor, text, isSetUp, htmlOf, render, actor, apps, dragStart, drop } = window.e2e;
+	const { sleep, settle, waitFor, text, isSetUp, durationRounds, htmlOf, render, actor, apps, dragStart, drop } = window.e2e;
 	const ApplicationV2 = foundry.applications.api.ApplicationV2;
 	// An actor's name, a world item's name, or `Actor/Item` for an owned item.
 	const documentNamed = (name: string) => {
@@ -612,11 +612,13 @@ function installSheetsHelpers() {
 		},
 
 		effectsData(name) {
-			return [...documentNamed(name).effects].map((effect: { name: string; disabled: boolean; duration: { rounds?: number } }) => ({
-				name: effect.name,
-				disabled: effect.disabled,
-				rounds: effect.duration.rounds ?? null,
-			}));
+			return [...documentNamed(name).effects].map(
+				(effect: { name: string; disabled: boolean; duration: Record<string, unknown> }) => ({
+					name: effect.name,
+					disabled: effect.disabled,
+					rounds: durationRounds(effect),
+				}),
+			);
 		},
 
 		source(name) {

@@ -99,7 +99,7 @@ function recordNotices() {
  * module.
  */
 function installMigrationHelpers() {
-	const { sleep, render, actor: actorNamed } = window.e2e;
+	const { sleep, render, durationRounds, actor: actorNamed } = window.e2e;
 	const randomID = () => foundry.utils.randomID() as string;
 	const scene = () => game.scenes.getName('E2E Migrations');
 	const tokenActor = (name: string) => scene().tokens.find((token: { actorId: string }) => token.actorId === actorNamed(name).id).actor;
@@ -162,16 +162,18 @@ function installMigrationHelpers() {
 		img: string;
 		disabled: boolean;
 		changes: { key: string; value: string }[];
-		duration: { rounds?: number | null };
+		duration: Record<string, unknown>;
 	};
-	const shownEffect = (effect: Effect) =>
-		[
+	const shownEffect = (effect: Effect) => {
+		const rounds = durationRounds(effect);
+		return [
 			effect.name,
 			effect.img,
 			effect.changes.map(({ key, value }) => `${key.replace(/^system\./, '')} +${value}`).join(', '),
-			...(effect.duration.rounds ? [`${effect.duration.rounds} rounds`] : []),
+			...(rounds ? [`${rounds} rounds`] : []),
 			...(effect.disabled ? ['disabled'] : []),
 		].join(' | ');
+	};
 	const effectsOf = (actor: { effects: Effect[]; items: { name: string; effects: Effect[] }[] }) => ({
 		own: [...actor.effects].map(shownEffect).sort(),
 		items: [...actor.items].flatMap((item) => [...item.effects].map((effect) => `${item.name} / ${shownEffect(effect)}`)).sort(),
