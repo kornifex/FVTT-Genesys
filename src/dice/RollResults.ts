@@ -1,4 +1,4 @@
-/** @file The results of a roll: the symbols of its faces counted, then netted against each other. */
+/** @file The results of a roll: the symbols of its faces counted, then netted against each other, and what a check's card shows of them. */
 
 export type GenesysRollResults = {
 	/**
@@ -113,5 +113,44 @@ export function rollResults(faces: Record<string, string[]>, extraSymbols: Recor
 
 		faces,
 		extraSymbols,
+	};
+}
+
+/**
+ * What a check's chat card shows of the results of its roll.
+ */
+export type CardResults = {
+	/** The symbols of the card's results row, in the order it shows them. */
+	symbols: string[];
+	/** The lines of the card's summary: each symbol left over, with the localization key of its label and its count. */
+	summary: { symbol: string; label: string; count: number }[];
+	/** Whether the check succeeded: at least one Success is left over (CRB p. 23). */
+	succeeded: boolean;
+};
+
+/**
+ * The results of a check's roll, as its chat card shows them.
+ */
+export function cardResults(results: GenesysRollResults): CardResults {
+	// A Triumph counts as a Success that the summary counts, but the results row shows the Triumph alone in its place; so
+	// with a Despair and a Failure.
+	const lines = [
+		{
+			symbol: 's',
+			label: 'Genesys.Rolls.Summary.Successes',
+			count: results.netSuccess,
+			row: results.netSuccess - results.totalTriumph,
+		},
+		{ symbol: 'f', label: 'Genesys.Rolls.Summary.Failures', count: results.netFailure, row: results.netFailure - results.totalDespair },
+		{ symbol: 'a', label: 'Genesys.Rolls.Summary.Advantage', count: results.netAdvantage, row: results.netAdvantage },
+		{ symbol: 'h', label: 'Genesys.Rolls.Summary.Threat', count: results.netThreat, row: results.netThreat },
+		{ symbol: 't', label: 'Genesys.Rolls.Summary.Triumph', count: results.totalTriumph, row: results.totalTriumph },
+		{ symbol: 'd', label: 'Genesys.Rolls.Summary.Despair', count: results.totalDespair, row: results.totalDespair },
+	];
+
+	return {
+		symbols: lines.flatMap(({ symbol, row }) => Array<string>(Math.max(row, 0)).fill(symbol)),
+		summary: lines.filter(({ count }) => count > 0).map(({ symbol, label, count }) => ({ symbol, label, count })),
+		succeeded: results.netSuccess > 0,
 	};
 }

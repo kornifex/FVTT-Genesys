@@ -2,7 +2,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
-import { GenesysRollResults, rollResults } from '@/dice/RollResults';
+import { cardResults, GenesysRollResults, rollResults } from '@/dice/RollResults';
 import { GenesysItem } from '@/item/GenesysItem';
 import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
@@ -30,7 +30,7 @@ export class GenesysRoller {
 	 * The content of the chat message of a check, from its description and the results of its roll.
 	 */
 	static async checkMessageContent(description: string | undefined, results: GenesysRollResults) {
-		return await renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', { description, results });
+		return await renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', { description, results, card: cardResults(results) });
 	}
 
 	static async skillRoll({ check, dicePool }: CheckRoll) {
@@ -65,6 +65,7 @@ export class GenesysRoller {
 		const rollData = {
 			description: checkDescription(check, { kind: 'attack', weaponName: weapon.name }, game.i18n),
 			results,
+			card: cardResults(results),
 			totalDamage,
 			damageFormula: formula,
 			critical: weapon.systemData.critical,
