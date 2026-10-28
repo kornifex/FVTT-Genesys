@@ -25,6 +25,14 @@ type Card = {
  */
 type ChangeRow = [string, number | string, unknown];
 
+type Position = { left: number; top: number; width: number };
+
+/**
+ * A directory's create dialog: where it opened and where the directory asked, the types its select lists and those the
+ * system declares, its option groups, and the `createDialog` compatibility warnings logged while it opened.
+ */
+type CreateDialog = { position: Position; asked: Position; types: string[]; declaredTypes: string[]; groups: number; warnings: string[] };
+
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
 	setUp(player: string): Promise<void>;
@@ -103,6 +111,11 @@ type SheetsHelpers = {
 	setUserCharacter(user: string, character: string | null): Promise<void>;
 	qualityDescription(item: string): string;
 	settingsHintLink(): Promise<string | null>;
+	/**
+	 * Clicks the create button of the Actors or Items directory, then reads the dialog it opens: its position and the one
+	 * the directory asks for, its type select, and the compatibility warnings about `createDialog` logged meanwhile.
+	 */
+	createDialog(documentName: 'Actor' | 'Item'): Promise<CreateDialog>;
 	welcomeLink(): string | null;
 	cleanUp(): Promise<void>;
 };
@@ -749,6 +762,45 @@ function installSheetsHelpers() {
 			const href = link?.href ?? null;
 			await sheet.close();
 			return href;
+		},
+
+		async createDialog(documentName) {
+			const directory = documentName === 'Actor' ? ui.actors : ui.items;
+			await ui.sidebar.changeTab(directory.tabName, 'primary');
+			const button = await waitFor('the create button', () =>
+				htmlOf(directory)?.querySelector<HTMLElement>('[data-action="createEntry"]'),
+			);
+			const opened = new Set(foundry.applications.instances.values());
+			// Foundry logs a compatibility warning through `logger`: `foundry.utils` is a module namespace, which can't be wrapped.
+			const warnings: string[] = [];
+			const warn = logger.warn;
+			logger.warn = (...args: unknown[]) => {
+				const message = args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(' ');
+				if (message.includes('createDialog')) warnings.push(message);
+				return warn.apply(logger, args);
+			};
+			try {
+				button.click();
+				const dialog = await waitFor('the create dialog', () =>
+					[...foundry.applications.instances.values()].find(
+						(app: { element?: HTMLElement }) => !opened.has(app) && app.element?.querySelector('select[name="type"]'),
+					),
+				);
+				await settle();
+				const select = dialog.element.querySelector('select[name="type"]') as HTMLSelectElement;
+				const state = {
+					position: { left: dialog.position.left, top: dialog.position.top, width: dialog.position.width },
+					asked: { left: window.innerWidth - 630, top: button.offsetTop, width: 320 },
+					types: [...select.options].map((option) => option.value).sort(),
+					declaredTypes: game.documentTypes[documentName].filter((type: string) => type !== CONST.BASE_DOCUMENT_TYPE).sort(),
+					groups: select.querySelectorAll('optgroup').length,
+					warnings,
+				};
+				await dialog.close();
+				return state;
+			} finally {
+				logger.warn = warn;
+			}
 		},
 
 		welcomeLink() {
@@ -1703,6 +1755,20 @@ export async function run(e2e: ScenarioContext) {
 		{ rating: 3, description: '<p>@UUID[Actor.<id>]{E2E Hero} pierces.</p>', attack: [{ speaker: 'E2E Nemesis', rolls: 1 }] },
 	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	// §#262: the directories' create dialogs. Foundry's `createDialog` gets the position the directory asks for, so the
+	// dialog opens there, and the system doesn't pass a dialog option where v13 reads a database option.
+	for (const documentName of ['Actor', 'Item'] as const) {
+		const { position, asked, types, declaredTypes, groups, warnings } = await gm.evaluate(
+			(name) => window.sheetsE2E.createDialog(name),
+			documentName,
+		);
+		e2e.expect(
+			`#262 A1 the ${documentName} directory's create dialog opens where the directory asks, lists every type ungrouped, and logs no createDialog warning`,
+			{ position, types, groups, warnings },
+			{ position: asked, types: declaredTypes, groups: 0, warnings: [] },
+		);
+	}
 
 	// §#97: the Default Difficulty setting's hint.
 	e2e.expect(
