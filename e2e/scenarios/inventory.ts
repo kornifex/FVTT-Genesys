@@ -48,7 +48,14 @@ type InventoryHelpers = {
 	showTab(actor: string, tab: string): Promise<void>;
 	/** Runs a script on the setup's documents. */
 	updateItem(actor: string, item: string, changes: object): Promise<void>;
+	/** Writes an Equipment State by script, and tells whether the write threw and which state the item and the database keep. */
+	writeState(actor: string, item: string, state: string): Promise<{ threw: boolean; state: string; database: string }>;
 	deleteItem(actor: string, item: string): Promise<void>;
+	/**
+	 * The ways an item's row and sheet offer to change its Equipment State or delete it: a quantity control on its row, a
+	 * field of its sheet writing `system.state`, an action of its sheet that deletes.
+	 */
+	stateAndDeletePaths(actor: string, item: string): Promise<{ quantity: boolean; stateField: boolean; deleteAction: boolean }>;
 	createItems(actor: string, items: { name: string; type: string; system?: object; in?: string }[]): Promise<void>;
 	updateActor(actor: string, changes: object): Promise<void>;
 
@@ -603,8 +610,40 @@ function installInventoryHelpers() {
 			await item(ref, name).update(changes);
 		},
 
+		async writeState(ref, name, state) {
+			let threw = false;
+			try {
+				await item(ref, name).update({ 'system.state': state });
+			} catch {
+				// The data model refuses the state: the step reads that it threw.
+				threw = true;
+			}
+			const held = item(ref, name);
+			const response = await raw({ type: 'Actor', action: 'get', operation: { query: { _id: actor(ref).id } } });
+			const stored = response.result[0].items?.find((entry) => entry._id === held.id);
+			return { threw, state: held.system.state, database: stored?.system.state ?? '' };
+		},
+
 		async deleteItem(ref, name) {
 			await item(ref, name).delete();
+		},
+
+		async stateAndDeletePaths(ref, name) {
+			const quantity = !!(await rowOf(ref, name)).querySelector(':scope > .quantity');
+			const app = item(ref, name).sheet;
+			const root = await render(app);
+			const fields = [...root.querySelectorAll<HTMLInputElement>('[name]')].map((field) => field.name);
+			const actions = [
+				...[...root.querySelectorAll<HTMLElement>('[data-action]')].map((element) => element.dataset.action!),
+				...app._getHeaderControls().map((control: { action: string }) => control.action),
+			];
+			await app.close();
+			await settle();
+			return {
+				quantity,
+				stateField: fields.some((field) => field.endsWith('.state')),
+				deleteAction: actions.some((action) => /delete/i.test(action)),
+			};
 		},
 
 		async createItems(ref, entries) {
@@ -1549,6 +1588,17 @@ export async function run(e2e: ScenarioContext) {
 		await items('Deleter'),
 		[],
 	);
+	// The other ways the checklist names, a Container's quantity down to zero and an item's sheet, don't exist.
+	const paths = async (actor: string, item: string) =>
+		page.evaluate((args) => window.inventoryE2E.stateAndDeletePaths(args.actor, args.item), { actor, item });
+	e2e.expect(
+		"#103 L4 a Container's row has no quantity control, and no item's sheet changes its Equipment State or deletes it",
+		{ sack: await paths('Packer', 'Sack'), coat: await paths('Wearer', 'Coat') },
+		{
+			sack: { quantity: false, stateField: false, deleteAction: false },
+			coat: { quantity: true, stateField: false, deleteAction: false },
+		},
+	);
 
 	// #203, #134: inventory rows, weapon lists and chat cards. Smith has Brawn 2.
 	await e2e.step(
@@ -1711,5 +1761,13 @@ async function usedState(e2e: ScenarioContext) {
 		"#239 N3 an adversary's consumable still applies its effect",
 		(await gm.evaluate(() => window.inventoryE2E.effects('token:Token Rival'))).applied.filter((name) => name.startsWith('Tonic')),
 		['Tonic Effect'],
+	);
+	await e2e.step("#239 N4 Hero's Potion dropped by script", () =>
+		gm.evaluate(() => window.inventoryE2E.updateItem('Hero', 'Potion', { 'system.state': 'dropped' })),
+	);
+	e2e.expect(
+		'#239 N4 a script writing the Used state on a consumable gets Carried, in the database too, with no error',
+		await gm.evaluate(() => window.inventoryE2E.writeState('Hero', 'Potion', 'used')),
+		{ threw: false, state: 'carried', database: 'carried' },
 	);
 }
