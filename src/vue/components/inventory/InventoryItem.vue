@@ -386,51 +386,46 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			<template v-slot:menu-items>
 				<MenuItem
 					v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)"
+					icon="fas fa-hand-fist"
+					label="Genesys.Equipment.Dropdown.Equip"
 					@click="setItemState(EquipmentState.Equipped)"
-				>
-					<template v-slot:icon><i class="fas fa-hand-fist"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Equip" />
-				</MenuItem>
+				/>
 
 				<MenuItem
 					v-if="allowEquippedState && item.type === 'armor' && canEquipItem(item)"
+					icon="fas fa-shield"
+					label="Genesys.Equipment.Dropdown.Equip"
 					@click="setItemState(EquipmentState.Equipped)"
-				>
-					<template v-slot:icon><i class="fas fa-shield"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Equip" />
-				</MenuItem>
+				/>
 
-				<MenuItem v-if="allowEquippedState && canUnequipItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Unequip" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowEquippedState && canUnequipItem(item)"
+					icon="fas fa-suitcase"
+					label="Genesys.Equipment.Dropdown.Unequip"
+					@click="setItemState(EquipmentState.Carried)"
+				/>
 
-				<MenuItem v-if="allowDroppedState && canDropItem(item)" @click="setItemState(EquipmentState.Dropped)">
-					<template v-slot:icon><i class="fas fa-box-archive"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Drop" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowDroppedState && canDropItem(item)"
+					icon="fas fa-box-archive"
+					label="Genesys.Equipment.Dropdown.Drop"
+					@click="setItemState(EquipmentState.Dropped)"
+				/>
 
-				<MenuItem v-if="allowDroppedState && canPickupItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.PickUp" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowDroppedState && canPickupItem(item)"
+					icon="fas fa-suitcase"
+					label="Genesys.Equipment.Dropdown.PickUp"
+					@click="setItemState(EquipmentState.Carried)"
+				/>
 
 				<hr v-if="(allowEquippedState && isEquipableItem(item)) || allowDroppedState" />
 
-				<MenuItem @click="sendItemToChat">
-					<template v-slot:icon><i class="fas fa-comment"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.ToChat" />
-				</MenuItem>
+				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendItemToChat" />
 
-				<MenuItem @click="openItem">
-					<template v-slot:icon><i class="fas fa-edit"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Edit" />
-				</MenuItem>
+				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openItem" />
 
-				<MenuItem @click="deleteItem">
-					<template v-slot:icon><i class="fas fa-trash"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Delete" />
-				</MenuItem>
+				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem" />
 			</template>
 
 			<a>

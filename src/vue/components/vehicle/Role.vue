@@ -52,8 +52,6 @@ watch(
 	{ immediate: true, deep: true },
 );
 
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
 function drop(event: DragEvent, memberUnder?: MemberUUID) {
 	reset();
 
@@ -86,10 +84,7 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 				<div>
 					<ContextMenu v-for="skill in skills" :key="skill" class="role-skill">
 						<template v-slot:menu-items>
-							<MenuItem @click="emit('removeSkill', skill)">
-								<template v-slot:icon><i class="fas fa-trash"></i></template>
-								{{ deleteLabel }}
-							</MenuItem>
+							<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeSkill', skill)" />
 						</template>
 
 						<span>{{ skill }}</span>

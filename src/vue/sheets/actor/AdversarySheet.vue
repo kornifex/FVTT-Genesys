@@ -44,12 +44,6 @@ const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.
 
 const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const checkLabel = game.i18n.localize('Genesys.Labels.PerformCheck');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-const rankUpLabel = game.i18n.localize('Genesys.Labels.RankUp');
-const rankDownLabel = game.i18n.localize('Genesys.Labels.RankDown');
-
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
 }
@@ -202,26 +196,22 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
 										<template v-if="canChangeTalentRank(talent)">
-											<MenuItem @click="changeTalentRank(talent, 1)">
-												<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-												{{ rankUpLabel }}
-											</MenuItem>
+											<MenuItem
+												icon="fas fa-circle-up"
+												label="Genesys.Labels.RankUp"
+												@click="changeTalentRank(talent, 1)"
+											/>
 
-											<MenuItem @click="changeTalentRank(talent, -1)">
-												<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-												{{ rankDownLabel }}
-											</MenuItem>
+											<MenuItem
+												icon="fas fa-circle-down"
+												label="Genesys.Labels.RankDown"
+												@click="changeTalentRank(talent, -1)"
+											/>
 										</template>
 
-										<MenuItem @click="editItem(talent)">
-											<template v-slot:icon><i class="fas fa-edit"></i></template>
-											{{ editLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(talent)" />
 
-										<MenuItem @click="deleteItem(talent)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(talent)" />
 									</template>
 
 									<label>
@@ -243,10 +233,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="deleteItem(ability)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
 									</template>
 
 									<label>
@@ -269,20 +256,16 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
 							<ContextMenu v-for="item in equipment.filter((i) => i.type === 'weapon')" :key="item.id" class="weapon">
 								<template v-slot:menu-items>
-									<MenuItem @click="editItem(item)">
-										<template v-slot:icon><i class="fas fa-edit"></i></template>
-										{{ editLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
 
-									<MenuItem v-if="skillForWeapon(item)" @click="rollAttack(item)">
-										<template v-slot:icon><i class="fas fa-dice-d20"></i></template>
-										{{ checkLabel }}
-									</MenuItem>
+									<MenuItem
+										v-if="skillForWeapon(item)"
+										icon="fas fa-dice-d20"
+										label="Genesys.Labels.PerformCheck"
+										@click="rollAttack(item)"
+									/>
 
-									<MenuItem @click="deleteItem(item)">
-										<template v-slot:icon><i class="fas fa-trash"></i></template>
-										{{ deleteLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
 								<a @click="rollAttack(item)" draggable="true" @dragstart="dragStart($event, item)">
@@ -318,15 +301,9 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								:disable-menu="!context.data.editable"
 							>
 								<template v-slot:menu-items>
-									<MenuItem @click="editItem(item)">
-										<template v-slot:icon><i class="fas fa-edit"></i></template>
-										{{ editLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
 
-									<MenuItem @click="deleteItem(item)">
-										<template v-slot:icon><i class="fas fa-trash"></i></template>
-										{{ deleteLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
 								<a @click="editItem(item)" draggable="true" @dragstart="dragStart($event, item)">
@@ -354,10 +331,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="deleteItem(injury)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 									</template>
 
 									<label

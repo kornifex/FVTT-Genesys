@@ -32,9 +32,6 @@ const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const isBeingDragged = ref(false);
 const imageDom = ref<HTMLImageElement | null>(null);
 
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
 const career = props.actor.type === 'character' ? toRaw(props.actor).items.find((item) => item.type === 'career')?.name : undefined;
 
 // When we are on "tile" mode the image DOM element used to display the actor's picture is wrapped by a context menu
@@ -102,15 +99,9 @@ async function openActorSheet() {
 
 		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable">
 			<template v-slot:menu-items>
-				<MenuItem @click="openActorSheet">
-					<template v-slot:icon><i class="fas fa-edit"></i></template>
-					{{ editLabel }}
-				</MenuItem>
+				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
-				<MenuItem @click="emit('removeMember')">
-					<template v-slot:icon><i class="fas fa-trash"></i></template>
-					{{ deleteLabel }}
-				</MenuItem>
+				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
 			<a><i class="fas fa-ellipsis-vertical"></i></a>
@@ -130,15 +121,9 @@ async function openActorSheet() {
 	>
 		<ContextMenu class="actions" position="above" :disable-menu="!context.data.editable">
 			<template v-slot:menu-items>
-				<MenuItem @click="openActorSheet">
-					<template v-slot:icon><i class="fas fa-edit"></i></template>
-					Edit
-				</MenuItem>
+				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
-				<MenuItem @click="emit('removeMember')">
-					<template v-slot:icon><i class="fas fa-trash"></i></template>
-					Delete
-				</MenuItem>
+				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
 			<img ref="imageDom" :src="actor.img" :alt="actor.name" draggable="false" />

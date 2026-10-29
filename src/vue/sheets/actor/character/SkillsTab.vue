@@ -33,13 +33,6 @@ const skillCategories = computed(() => skillsByCategory(toRaw(context.data.actor
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 
-const markCareerLabel = game.i18n.localize('Genesys.Labels.MarkCareerSkill');
-const unmarkCareerLabel = game.i18n.localize('Genesys.Labels.UnmarkCareerSkill');
-const freeRankUpLabel = game.i18n.localize('Genesys.Labels.FreeRankUp');
-const freeRankDownLabel = game.i18n.localize('Genesys.Labels.FreeRankDown');
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
 }
@@ -141,30 +134,35 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				<div class="body">
 					<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
 						<template v-slot:menu-items>
-							<MenuItem @click="toggleCareerSkill(skill)" v-if="context.data.editable">
-								<template v-slot:icon><i :class="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"></i></template>
-								{{ skill.systemData.career ? unmarkCareerLabel : markCareerLabel }}
-							</MenuItem>
+							<MenuItem
+								v-if="context.data.editable"
+								:icon="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"
+								:label="skill.systemData.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill'"
+								@click="toggleCareerSkill(skill)"
+							/>
 
-							<MenuItem @click="freeSkillRank(skill, 1)" v-if="context.data.editable">
-								<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-								{{ freeRankUpLabel }}
-							</MenuItem>
+							<MenuItem
+								v-if="context.data.editable"
+								icon="fas fa-circle-up"
+								label="Genesys.Labels.FreeRankUp"
+								@click="freeSkillRank(skill, 1)"
+							/>
 
-							<MenuItem @click="freeSkillRank(skill, -1)" v-if="context.data.editable">
-								<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-								{{ freeRankDownLabel }}
-							</MenuItem>
+							<MenuItem
+								v-if="context.data.editable"
+								icon="fas fa-circle-down"
+								label="Genesys.Labels.FreeRankDown"
+								@click="freeSkillRank(skill, -1)"
+							/>
 
-							<MenuItem @click="editSkill(skill)">
-								<template v-slot:icon><i class="fas fa-edit"></i></template>
-								{{ editLabel }}
-							</MenuItem>
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editSkill(skill)" />
 
-							<MenuItem @click="deleteSkill(skill)" v-if="context.data.editable">
-								<template v-slot:icon><i class="fas fa-trash"></i></template>
-								{{ deleteLabel }}
-							</MenuItem>
+							<MenuItem
+								v-if="context.data.editable"
+								icon="fas fa-trash"
+								label="Genesys.Labels.Delete"
+								@click="deleteSkill(skill)"
+							/>
 						</template>
 
 						<img :src="skill.img" :alt="skill.name" />

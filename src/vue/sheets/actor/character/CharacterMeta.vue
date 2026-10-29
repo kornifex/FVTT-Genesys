@@ -17,9 +17,6 @@ const rootContext = inject<ActorSheetContext<CharacterDataModel, CharacterSheet>
 const archetype = ref<GenesysItem<ArchetypeDataModel> | undefined>();
 const career = ref<GenesysItem<CareerDataModel> | undefined>();
 
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
 function updateArchetypeAndCareer() {
 	const actor = toRaw(rootContext.data.actor);
 
@@ -67,18 +64,14 @@ onUpdated(updateArchetypeAndCareer);
 				<span v-if="archetype" class="archetype">
 					<ContextMenu>
 						<template v-slot:menu-items>
-							<MenuItem @click="openItemSheet(archetype)">
-								<template v-slot:icon><i class="fas fa-edit"></i></template>
-								{{ editLabel }}
-							</MenuItem>
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(archetype)" />
 
 							<MenuItem
 								v-if="rootContext.data.editable && rootContext.sheet.canRemoveArchetype()"
+								icon="fas fa-trash"
+								label="Genesys.Labels.Delete"
 								@click="removeArchetype(archetype)"
-							>
-								<template v-slot:icon><i class="fas fa-trash"></i></template>
-								{{ deleteLabel }}
-							</MenuItem>
+							/>
 						</template>
 
 						<a @click="openItemSheet(archetype)">{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
@@ -94,15 +87,14 @@ onUpdated(updateArchetypeAndCareer);
 				<span v-if="career" class="career">
 					<ContextMenu>
 						<template v-slot:menu-items>
-							<MenuItem @click="openItemSheet(career)">
-								<template v-slot:icon><i class="fas fa-edit"></i></template>
-								{{ editLabel }}
-							</MenuItem>
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(career)" />
 
-							<MenuItem @click="removeCareer(career)" v-if="rootContext.data.editable">
-								<template v-slot:icon><i class="fas fa-trash"></i></template>
-								{{ deleteLabel }}
-							</MenuItem>
+							<MenuItem
+								v-if="rootContext.data.editable"
+								icon="fas fa-trash"
+								label="Genesys.Labels.Delete"
+								@click="removeCareer(career)"
+							/>
 						</template>
 
 						<a @click="openItemSheet(career)">{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
