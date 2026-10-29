@@ -264,6 +264,28 @@ Genesys:
       {actor}: the effects of '{item}' don't match their copies on the actor. The copies were deleted, but the edits made to
       them from the actor's Effects tab weren't kept on the item.
 
+  # Alpha Notice: the welcome message a GM reads when the system runs a new version
+  AlphaNotice:
+    Title: Genesys Alpha {version}
+    Welcome: >-
+      Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
+      for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
+    Updates: Bug Fixes & Updates
+    Maintained: The system is now maintained at {repository}.
+    Fix: FIX
+    Feature: FEATURE
+    Styling: STYLING
+    RepeatedDice: >-
+      Count every term of a repeated die in roll results, so a hand-typed formula such as <code>2da + 1da</code> keeps the
+      symbols of the second term
+    StyleSetting: Add a "Style" world setting, with a Realms of Terrinoth color variant chosen by the GM for every user
+    FreeIcons: 'Use only FontAwesome Free icons: a few sheet icons change (injuries, inventory, weapons, careers)'
+    UsefulLinks: Useful Links
+    Documentation: Project Documentation
+    SourceCode: Project Source Code
+    ReportBugs: Report Bugs & Suggest Features
+    License: Licensed under the MIT License
+
   # Story Points
   StoryPoints:
     Player: Player Story Points
@@ -477,6 +499,7 @@ Genesys:
     Skill: Skill
     Crit: Crit
     GroupSize: Group Size
+    RemainingMembers: Remaining Members
     SkillNotFound: Skill Not Found
     IsInitiative: Initiative Skill?
     Equipped: Equipped

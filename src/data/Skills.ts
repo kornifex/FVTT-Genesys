@@ -11,13 +11,37 @@ export type Skill = {
 	system: { rank: number };
 };
 
-// The order a character's skills are listed in.
-const SKILL_CATEGORIES = ['general', 'magic', 'combat', 'social', 'knowledge'] as const;
+/**
+ * The categories of skills, in the order a character's skills are listed in.
+ */
+export const SKILL_CATEGORIES = ['general', 'magic', 'combat', 'social', 'knowledge'] as const;
 
 /**
  * The category a skill belongs to.
  */
 export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
+
+/**
+ * The localization key of each skill category's name.
+ */
+export const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = {
+	general: 'Genesys.SkillCategory.General',
+	magic: 'Genesys.SkillCategory.Magic',
+	combat: 'Genesys.SkillCategory.Combat',
+	social: 'Genesys.SkillCategory.Social',
+	knowledge: 'Genesys.SkillCategory.Knowledge',
+};
+
+/**
+ * The localization key of the heading a character's skills of each category are listed under.
+ */
+export const SKILL_CATEGORY_HEADINGS: Record<SkillCategory, string> = {
+	general: 'Genesys.Labels.GeneralSkills',
+	magic: 'Genesys.Labels.MagicSkills',
+	combat: 'Genesys.Labels.CombatSkills',
+	social: 'Genesys.Labels.SocialSkills',
+	knowledge: 'Genesys.Labels.KnowledgeSkills',
+};
 
 /**
  * A skill an actor rolls: one they own, or the Skills Compendium's, as an Unranked Skill Check.

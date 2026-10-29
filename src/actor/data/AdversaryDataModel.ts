@@ -34,7 +34,7 @@ export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		soak: {
-			label: 'Soak',
+			label: 'Genesys.Labels.Soak',
 			isBar: false,
 			editable: false,
 			valuePath: 'soak',

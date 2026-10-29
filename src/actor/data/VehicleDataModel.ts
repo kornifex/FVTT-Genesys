@@ -55,21 +55,21 @@ export abstract class VehicleDataModel
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		trauma: {
-			label: 'Hull Trauma',
+			label: 'Genesys.Labels.HullTrauma',
 			isBar: true,
 			editable: true,
 			valuePath: 'hullTrauma.value',
 			maxPath: 'hullTrauma.max',
 		},
 		strain: {
-			label: 'System Strain',
+			label: 'Genesys.Labels.SystemStrain',
 			isBar: true,
 			editable: true,
 			valuePath: 'systemStrain.value',
 			maxPath: 'systemStrain.max',
 		},
 		armor: {
-			label: 'Armor',
+			label: 'Genesys.Labels.Armor',
 			isBar: false,
 			editable: false,
 			valuePath: 'armor',

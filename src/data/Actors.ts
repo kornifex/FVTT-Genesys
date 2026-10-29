@@ -7,6 +7,14 @@ export type Defense = {
 };
 
 /**
+ * The localization key of each defense's name.
+ */
+export const DEFENSE_LABELS: Record<keyof Defense, string> = {
+	melee: 'Genesys.Labels.MeleeDefense',
+	ranged: 'Genesys.Labels.RangedDefense',
+};
+
+/**
  * A count with its threshold, such as wounds or strain.
  */
 export type CombatPool = {

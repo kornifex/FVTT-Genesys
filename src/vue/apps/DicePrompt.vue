@@ -4,6 +4,7 @@ import { DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
+import { DEFENSE_LABELS } from '@/data/Actors';
 import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -155,7 +156,7 @@ function poolModificationName({ source, from }: CheckPoolModification) {
 	return (
 		game.i18n.localize(
 			source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects',
-		) + ('effect' in from ? from.effect : game.i18n.localize(`Genesys.Labels.${from.defense.capitalize()}Defense`))
+		) + ('effect' in from ? from.effect : game.i18n.localize(DEFENSE_LABELS[from.defense]))
 	);
 }
 
@@ -353,7 +354,11 @@ async function onRoll() {
 			<label>
 				<i
 					class="fas fa-circle-info"
-					:data-tooltip="`Genesys.DicePrompt.ChanceToSucceedBy${USE_CHANCE_TO_SUCCEED_BY_PERMUTATION ? 'Permutation' : 'Simulation'}Disclaimer`"
+					:data-tooltip="
+						USE_CHANCE_TO_SUCCEED_BY_PERMUTATION
+							? 'Genesys.DicePrompt.ChanceToSucceedByPermutationDisclaimer'
+							: 'Genesys.DicePrompt.ChanceToSucceedBySimulationDisclaimer'
+					"
 				></i>
 				{{ '\xa0' }}
 				<Localized label="Genesys.DicePrompt.ChanceToSucceed" />

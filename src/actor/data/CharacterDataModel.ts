@@ -73,7 +73,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
-			label: 'Wounds',
+			label: 'Genesys.Labels.Wounds',
 			isBar: true,
 			editable: true,
 			valuePath: 'wounds.value',
@@ -81,14 +81,14 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 			cappedAtTwiceMax: true,
 		},
 		strain: {
-			label: 'Strain',
+			label: 'Genesys.Labels.Strain',
 			isBar: true,
 			editable: true,
 			valuePath: 'strain.value',
 			maxPath: 'strain.max',
 		},
 		soak: {
-			label: 'Soak',
+			label: 'Genesys.Labels.Soak',
 			isBar: false,
 			editable: false,
 			valuePath: 'totalSoak',

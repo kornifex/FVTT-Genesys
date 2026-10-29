@@ -17,7 +17,7 @@ import QualityList from '@/vue/components/QualityList.vue';
 
 import { rollForCrew } from '@/operations/CrewRoll';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { damageFormula, firingArcLabels } from '@/item/Weapons';
+import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
@@ -75,7 +75,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 
 					<div class="crit">{{ weapon.systemData.critical }}</div>
 
-					<div class="range"><Localized :label="`Genesys.Range.${weapon.systemData.range.capitalize()}`" /></div>
+					<div class="range"><Localized :label="RANGE_LABELS[weapon.systemData.range]" /></div>
 
 					<div class="firing-arc">
 						<span v-for="label in firingArcLabels(weapon.systemData.firingArc)" :key="label"><Localized :label="label" /></span>

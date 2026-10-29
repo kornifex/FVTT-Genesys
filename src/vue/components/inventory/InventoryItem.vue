@@ -6,7 +6,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
+import { damageStep, EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -15,6 +15,7 @@ import { constructDragTransferTypeFromData, DragTransferData, draggedGenesysType
 import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
+import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -315,7 +316,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().critical }}</div>
 
 					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().range.capitalize()}`" />]</div>
+					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="RANGE_LABELS[weaponData().range]" />]</div>
 
 					<QualityList :qualities="weaponData().qualities" class="item-qualities" />
 				</template>
@@ -363,7 +364,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			class="damage"
 			@click="changeDamageState($event, item, 1)"
 			@contextmenu="changeDamageState($event, item, -1)"
-			:data-tooltip="'Genesys.Equipment.DamageState.' + item.systemData.damage.capitalize()"
+			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.systemData.damage]"
 		>
 			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
 		</a>

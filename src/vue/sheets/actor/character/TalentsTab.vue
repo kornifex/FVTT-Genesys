@@ -9,6 +9,7 @@ import Talent from '@/vue/components/character/Talent.vue';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
+import { TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 
@@ -76,6 +77,11 @@ const passiveTalents = computed(() => {
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
 
+function tierLimitText(tier: number) {
+	const limit = tierLimit(talentTotals.value, tier);
+	return limit === Infinity ? '∞' : limit;
+}
+
 const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
 
 function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
@@ -94,26 +100,8 @@ async function openItem(item: GenesysItem) {
 <template>
 	<section class="tab-talents">
 		<div v-if="SHOW_PYRAMID_SUMMARY" class="pyramid">
-			<div><Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 1 }" />: {{ talentTotals[1] }}/∞</div>
-			<div>
-				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 2 }" />: {{ talentTotals[2] }}/{{
-					tierLimit(talentTotals, 2)
-				}}
-			</div>
-			<div>
-				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 3 }" />: {{ talentTotals[3] }}/{{
-					tierLimit(talentTotals, 3)
-				}}
-			</div>
-			<div>
-				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 4 }" />: {{ talentTotals[4] }}/{{
-					tierLimit(talentTotals, 4)
-				}}
-			</div>
-			<div>
-				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier: 5 }" />: {{ talentTotals[5] }}/{{
-					tierLimit(talentTotals, 5)
-				}}
+			<div v-for="tier in TIERS" :key="tier">
+				<Localized label="Genesys.Labels.TierCount" :format-args="{ tier }" />: {{ talentTotals[tier] }}/{{ tierLimitText(tier) }}
 			</div>
 		</div>
 

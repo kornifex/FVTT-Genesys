@@ -19,6 +19,7 @@ import {
 	isExtraSlot,
 	ownSlotIds,
 	RoundClaims,
+	SIDE_LABELS,
 	slotIdsOf,
 	slotsToRoll,
 	slotView,
@@ -128,6 +129,7 @@ export class GenesysCombat extends Combat {
 		return {
 			slotId: slot.id,
 			slotType: slot.side,
+			slotLabel: SIDE_LABELS[slot.side],
 			hasRolled: slot.initiative !== null,
 			...decodeInitiative(slot.initiative),
 			initiativeSkill: origin.initiativeSkillToRoll.skillName,
