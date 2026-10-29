@@ -1645,6 +1645,9 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 			settingsConfig.reloadConfirm = async (options: unknown) => {
 				asked = options;
 			};
+			// Only this setting is submitted: rewriting the others runs core onChanges, such as the performance mode's,
+			// that need the canvas this scenario doesn't draw.
+			for (const field of app.form.elements) field.disabled = field.name !== key;
 			try {
 				app.form[key].checked = true;
 				await app.submit();
