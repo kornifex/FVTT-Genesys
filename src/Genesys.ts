@@ -11,7 +11,7 @@ import { register as registerEnrichers } from '@/enrichers';
 import { register as registerFonts } from '@/fonts';
 import { register as registerHandlebarsHelpers } from '@/handlebars';
 import { NAMESPACE as SETTINGS_NAMESPACE, register as registerSettings, setup as setupSettings, ready as readySettings } from '@/settings';
-import { KEY_ALPHA_VERSION } from '@/settings/alpha';
+import { KEY_ALPHA_VERSION, NEW_WORLD_ALPHA_VERSION } from '@/settings/alpha';
 import type { SettingKey } from '@/settings/table';
 
 import { register as registerStoryPointTracker } from '@/app/StoryPointTracker';
@@ -99,7 +99,7 @@ Hooks.once('setup', () => {
 
 Hooks.once('ready', async () => {
 	// Get the last-acknowledged Alpha version notice.
-	const lastAlpha = game.settings.get<string>(SETTINGS_NAMESPACE, KEY_ALPHA_VERSION) ?? '0.0.0';
+	const lastAlpha = game.settings.get<string>(SETTINGS_NAMESPACE, KEY_ALPHA_VERSION) ?? NEW_WORLD_ALPHA_VERSION;
 
 	await doAlphaNotice(lastAlpha);
 	readySettings();

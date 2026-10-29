@@ -20,6 +20,26 @@ import { Notification, notify } from '@/notifications';
  */
 const MAX_CHARACTERISTIC = 5;
 
+/**
+ * Raising a characteristic costs this many XP per rating it is raised to (CRB p. 44).
+ */
+const XP_PER_CHARACTERISTIC_RATING = 10;
+
+/**
+ * A skill rank costs this many XP per rank it is bought to (CRB p. 44).
+ */
+const XP_PER_SKILL_RANK = 5;
+
+/**
+ * A rank of a non-career skill costs this many XP more than a career skill's (CRB p. 44).
+ */
+const NON_CAREER_SKILL_EXTRA_XP = 5;
+
+/**
+ * A talent, or a rank of one, costs this many XP per tier it is bought at (CRB p. 44).
+ */
+const XP_PER_TALENT_TIER = 5;
+
 type AdvancementSkill = {
 	id: string;
 	name: string;
@@ -93,6 +113,33 @@ export function availableXP(entries: Pick<Entry, 'amount'>[]) {
 }
 
 /**
+ * The XP the character has gained over their lifetime, whether spent or not.
+ */
+export function totalXP(entries: Pick<Entry, 'amount'>[]) {
+	return entries.reduce((total, entry) => total + Math.max(0, entry.amount), 0);
+}
+
+/**
+ * The actor update of the wound and strain thresholds when characteristics change by the given amounts: Brawn adds to
+ * the wound threshold and Willpower to the strain threshold (CRB p. 31, 45). A threshold whose characteristic doesn't
+ * change is left out.
+ */
+export function thresholdUpdates(thresholds: { wounds: number; strain: number }, changes: Partial<CharacteristicsContainer>) {
+	const update: Record<string, number> = {};
+	if (changes.brawn !== undefined) {
+		update['system.wounds.max'] = thresholds.wounds + changes.brawn;
+	}
+	if (changes.willpower !== undefined) {
+		update['system.strain.max'] = thresholds.strain + changes.willpower;
+	}
+	return update;
+}
+
+function thresholdsOf(character: AdvancementCharacter) {
+	return { wounds: character.woundThreshold, strain: character.strainThreshold };
+}
+
+/**
  * The Experience Journal with the Archetype's Starting XP, which is always its first entry.
  */
 export function withStartingXP(entries: Entry[], amount: number): Entry[] {
@@ -115,18 +162,16 @@ export function canReplaceCareer(entries: Pick<Entry, 'type'>[]) {
  */
 export function raiseCharacteristic(character: AdvancementCharacter, characteristic: Characteristic): AdvancementResult {
 	const value = character.characteristics[characteristic];
-	const cost = (value + 1) * 10;
+	const cost = (value + 1) * XP_PER_CHARACTERISTIC_RATING;
 
 	if (!isInCharacterCreation(character.entries) || value >= MAX_CHARACTERISTIC || availableXP(character.entries) < cost) {
 		return refuse();
 	}
 
-	const actorUpdate: Record<string, unknown> = { [`system.characteristics.${characteristic}`]: value + 1 };
-	if (characteristic === Characteristic.Brawn) {
-		actorUpdate['system.wounds.max'] = character.woundThreshold + 1;
-	} else if (characteristic === Characteristic.Willpower) {
-		actorUpdate['system.strain.max'] = character.strainThreshold + 1;
-	}
+	const actorUpdate: Record<string, unknown> = {
+		[`system.characteristics.${characteristic}`]: value + 1,
+		...thresholdUpdates(thresholdsOf(character), { [characteristic]: 1 }),
+	};
 
 	return planFor([...character.entries, { amount: -cost, type: EntryType.Characteristic, data: { characteristic, rank: value + 1 } }], {
 		actorUpdate,
@@ -134,7 +179,7 @@ export function raiseCharacteristic(character: AdvancementCharacter, characteris
 }
 
 function skillRankCost(skill: Pick<AdvancementSkill, 'rank' | 'career'>) {
-	return 5 * (skill.rank + 1) + (skill.career ? 0 : 5);
+	return XP_PER_SKILL_RANK * (skill.rank + 1) + (skill.career ? 0 : NON_CAREER_SKILL_EXTRA_XP);
 }
 
 /**
@@ -160,10 +205,10 @@ export function buySkillRank(character: AdvancementCharacter, skillId: string): 
 }
 
 /**
- * A talent, or a rank of one, costs 5 XP per tier it's bought at.
+ * The XP cost of a talent, or a rank of one, bought at a tier.
  */
 function talentCost(tier: number) {
-	return tier * 5;
+	return tier * XP_PER_TALENT_TIER;
 }
 
 function talentPyramidRefusal(character: AdvancementCharacter, tier: number) {
@@ -279,12 +324,10 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 				return refuse('Genesys.Notifications.CannotDeleteCharacteristic', entry.data);
 			}
 
-			const actorUpdate: Record<string, unknown> = { [`system.characteristics.${characteristic}`]: entry.data.rank - 1 };
-			if (characteristic === Characteristic.Brawn) {
-				actorUpdate['system.wounds.max'] = character.woundThreshold - 1;
-			} else if (characteristic === Characteristic.Willpower) {
-				actorUpdate['system.strain.max'] = character.strainThreshold - 1;
-			}
+			const actorUpdate: Record<string, unknown> = {
+				[`system.characteristics.${characteristic}`]: entry.data.rank - 1,
+				...thresholdUpdates(thresholdsOf(character), { [characteristic]: -1 }),
+			};
 
 			return planFor(entries, { actorUpdate });
 		}

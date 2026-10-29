@@ -203,7 +203,12 @@ export class GenesysEffectSheetV2 extends ActiveEffectConfig<GenesysEffect> {
 
 		// v14's actions that add and delete a change read the changes from the processed form data too.
 		const changes = foundry.utils.getProperty(formDataExpanded, changesPath()) as Record<string, EditedChange> | undefined;
-		foundry.utils.setProperty(formDataExpanded, changesPath(), Object.values(changes ?? {}).map(fromEditedChange));
+		// v13: only a change with a mode, which v14 replaced with a type, reads Foundry's custom mode.
+		foundry.utils.setProperty(
+			formDataExpanded,
+			changesPath(),
+			Object.values(changes ?? {}).map((change) => fromEditedChange(change, () => CONST.ACTIVE_EFFECT_MODES.CUSTOM)),
+		);
 
 		return formDataExpanded;
 	}

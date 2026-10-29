@@ -2,7 +2,7 @@
  * @file Tests for the Pool Modifications that come from effects.
  */
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Characteristic } from '@/data/Characteristics';
@@ -313,16 +313,10 @@ function editedChange(
 	return change;
 }
 
+// v13: Foundry's custom effect mode, which an edited Pool Modification gets.
+const customMode = () => 0;
+
 describe('editing changes in the effect sheets', () => {
-	// v13: an edited Pool Modification gets Foundry's custom effect mode.
-	beforeAll(() => {
-		vi.stubGlobal('CONST', { ACTIVE_EFFECT_MODES: { CUSTOM: 0, ADD: 2 } });
-	});
-
-	afterAll(() => {
-		vi.unstubAllGlobals();
-	});
-
 	it('splits the subject of a Pool Modification off its key', () => {
 		const change = editedChange('genesys.pool.skill.target.Stealth', 'S');
 
@@ -336,7 +330,7 @@ describe('editing changes in the effect sheets', () => {
 
 	it('leaves other changes as they are', () => {
 		expect(toEditedChange(editedChange('system.soak', '1', { mode: 2 }))).toEqual(editedChange('system.soak', '1', { mode: 2 }));
-		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }))).toEqual(
+		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }), customMode)).toEqual(
 			editedChange('system.soak', '1', { mode: 2, char: 'brawn' }),
 		);
 	});
@@ -344,22 +338,31 @@ describe('editing changes in the effect sheets', () => {
 	it('puts the subject back into the key of a Pool Modification', () => {
 		const subjects = { mode: 2, skill: 'Stealth', char: 'brawn' };
 
-		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects))).toEqual(
+		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects), customMode)).toEqual(
 			editedChange('genesys.pool.skill.target.Stealth', 'S'),
 		);
-		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects)).key).toBe('genesys.pool.char.self.brawn');
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects)).key).toBe('genesys.pool.check.self.');
+		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects), customMode).key).toBe(
+			'genesys.pool.char.self.brawn',
+		);
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects), customMode).key).toBe('genesys.pool.check.self.');
 	});
 
 	it('round-trips every kind of key', () => {
 		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
-			expect(fromEditedChange(toEditedChange(editedChange(key, 'B'))).key).toBe(key);
+			expect(fromEditedChange(toEditedChange(editedChange(key, 'B')), customMode).key).toBe(key);
 		}
 	});
 
 	it('empties the value of a Pool Modification unless it only holds glyphs', () => {
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2')).value).toBe('');
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB')).value).toBe('BB');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2'), customMode).value).toBe('');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB'), customMode).value).toBe('BB');
+	});
+
+	it('leaves the edited change as it is', () => {
+		const change = editedChange('genesys.pool.skill.target', '2', { mode: 2, skill: 'Stealth' });
+		fromEditedChange(change, customMode);
+
+		expect(change).toEqual(editedChange('genesys.pool.skill.target', '2', { mode: 2, skill: 'Stealth' }));
 	});
 
 	it('offers the skills of the Skills Compendium and those the changes apply to', () => {
@@ -411,8 +414,13 @@ function v14EditedChange(
 }
 
 describe('editing changes in the effect sheets on Foundry v14', () => {
+	// v14 logs a deprecation warning when the custom mode is read, so a v14 change never reads it.
+	const unreadMode = () => {
+		throw new Error('The custom mode was read for a v14 change.');
+	};
+
 	it('gives a Pool Modification the custom type, which keeps Foundry from applying it', () => {
-		expect(fromEditedChange(v14EditedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }))).toEqual(
+		expect(fromEditedChange(v14EditedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }), unreadMode)).toEqual(
 			v14EditedChange('genesys.pool.skill.self.Cool', 'B'),
 		);
 	});
@@ -432,7 +440,7 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 
 	it('round-trips every kind of key, with the custom type', () => {
 		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
-			expect(fromEditedChange(toEditedChange(v14EditedChange(key, 'B')))).toEqual(v14EditedChange(key, 'B'));
+			expect(fromEditedChange(toEditedChange(v14EditedChange(key, 'B')), unreadMode)).toEqual(v14EditedChange(key, 'B'));
 		}
 	});
 });

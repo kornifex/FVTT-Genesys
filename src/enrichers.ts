@@ -1,6 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { DicePrompt } from '@/app/DicePrompt';
-import { checkLinkActor, checkLinkDifficulty } from '@/app/CheckLinks';
+import { checkLinkActor, checkLinkDifficulty } from '@/dice/CheckLinks';
 import { GenesysDice } from '@/dice';
 import { DIE_GLYPHS, GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { isPoolModificationValue } from '@/effects/PoolModifications';

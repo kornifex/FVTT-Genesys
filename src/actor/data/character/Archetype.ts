@@ -8,7 +8,7 @@ import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
-import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
+import { thresholdUpdates, withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { ownedSkill, skillNamesMatch } from '@/data/Skills';
 
@@ -70,8 +70,17 @@ export function archetypeActorUpdate(character: ArchetypeHolder, archetype: Arch
 			character.characteristics[characteristic] + sign * archetype.characteristics[characteristic];
 	}
 
-	update['system.wounds.max'] = character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn);
-	update['system.strain.max'] = character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower);
+	// Each threshold is the Archetype's base, raised by its Brawn or Willpower.
+	Object.assign(
+		update,
+		thresholdUpdates(
+			{
+				wounds: character.wounds.max + sign * archetype.woundThreshold,
+				strain: character.strain.max + sign * archetype.strainThreshold,
+			},
+			{ brawn: sign * archetype.characteristics.brawn, willpower: sign * archetype.characteristics.willpower },
+		),
+	);
 
 	// Starting XP is always the first entry of the Experience Journal.
 	update['system.experienceJournal.entries'] =
