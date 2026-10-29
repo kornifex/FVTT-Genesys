@@ -7,7 +7,8 @@ import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { withQualityRating, withoutQuality } from '@/item/data/Qualities';
+import { withQualityRating } from '@/item/data/Qualities';
+import { withoutIndex } from '@/arrays';
 
 const context = inject<ItemSheetContext<ArmorDataModel>>(RootContext)!;
 
@@ -20,7 +21,7 @@ async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 }
 
 function deleteQuality(index: number) {
-	return updateQualities(withoutQuality(toRaw(system.value).qualities, index));
+	return updateQualities(withoutIndex(toRaw(system.value).qualities, index));
 }
 
 function updateQualityRating(index: number, event: Event) {

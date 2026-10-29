@@ -11,6 +11,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import { withoutIndex } from '@/arrays';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 
 const context = inject<ItemSheetContext<ArchetypeDataModel>>(RootContext)!;
@@ -21,12 +22,7 @@ const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').s
 const specialAbilities = computed(() => system.value.grantedItems.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
 
 async function deleteGrantedItem(index: number) {
-	const updatedItems = [...system.value.grantedItems];
-	updatedItems.splice(index, 1);
-
-	await context.data.item.update({
-		'system.grantedItems': updatedItems,
-	});
+	await context.data.item.update({ 'system.grantedItems': withoutIndex(system.value.grantedItems, index) });
 }
 </script>
 
