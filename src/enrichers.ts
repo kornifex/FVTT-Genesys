@@ -2,7 +2,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { DicePrompt } from '@/app/DicePrompt';
 import { checkLinkActor, checkLinkDifficulty } from '@/app/CheckLinks';
 import { GenesysDice } from '@/dice';
-import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { DIE_GLYPHS, GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 import { isPoolModificationValue } from '@/effects/PoolModifications';
 
 const DICE_COLOR_TO_GLYPH = Object.fromEntries(
@@ -43,7 +43,7 @@ export function register() {
 			for (let die of dice) {
 				// Account for both possible annotations for difficulty dice.
 				if (die === 'I') {
-					die = 'D';
+					die = DIE_GLYPHS.Difficulty;
 				}
 
 				const newI = document.createElement('i');
@@ -113,13 +113,14 @@ export function register() {
 				parseInt(match.groups?.['upgrades'] ?? '0', 10),
 			);
 
+			const dieIcon = (glyph: string) => `<span class="die die-${glyph}">${glyph}</span>`;
 			const difficultyIcons =
-				'<span class="die die-C">C</span>'.repeat(challengeDice) + '<span class="die die-D">D</span>'.repeat(difficultyDice);
+				dieIcon(DIE_GLYPHS.Challenge).repeat(challengeDice) + dieIcon(DIE_GLYPHS.Difficulty).repeat(difficultyDice);
 
 			const container = document.createElement('a');
 			container.style.fontWeight = 'bold';
 			container.dataset.skillCheck = skill;
-			container.dataset.difficulty = 'C'.repeat(challengeDice) + 'D'.repeat(difficultyDice);
+			container.dataset.difficulty = DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
 
 			container.innerHTML =
 				'<i class="fas fa-dice-d20"></i> ' +

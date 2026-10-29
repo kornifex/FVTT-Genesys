@@ -1,7 +1,6 @@
 import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { DieFaces } from '@/dice/DieFaces';
 import { DieTypes } from '@/dice/DieTypes';
-import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
  * Boost (blue) Die
@@ -12,5 +11,5 @@ export class BoostDie extends GenesysDie {
 	static override FORMULA = DieTypes.Boost.FORMULA;
 	static override CATEGORY = DieTypes.Boost.CATEGORY;
 	static override COLOR = DieTypes.Boost.COLOR;
-	static override FACES: GenesysDieFace[] = DieFaces.Boost;
+	static override FACES: string[] = DieFaces.Boost;
 }

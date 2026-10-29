@@ -1,30 +1,29 @@
+import { SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
+
 export const GenesysSymbol = {
 	Triumph: {
-		GLYPH: 't',
+		GLYPH: SYMBOL_GLYPHS.Triumph,
 		CATEGORY: 'positive',
 	},
 	Success: {
-		GLYPH: 's',
+		GLYPH: SYMBOL_GLYPHS.Success,
 		CATEGORY: 'positive',
 	},
 	Advantage: {
-		GLYPH: 'a',
+		GLYPH: SYMBOL_GLYPHS.Advantage,
 		CATEGORY: 'positive',
 	},
 
 	Despair: {
-		GLYPH: 'd',
+		GLYPH: SYMBOL_GLYPHS.Despair,
 		CATEGORY: 'negative',
 	},
 	Failure: {
-		GLYPH: 'f',
+		GLYPH: SYMBOL_GLYPHS.Failure,
 		CATEGORY: 'negative',
 	},
 	Threat: {
-		GLYPH: 'h',
+		GLYPH: SYMBOL_GLYPHS.Threat,
 		CATEGORY: 'negative',
 	},
 } as const;
-
-type SingleGlyph = (typeof GenesysSymbol)[keyof typeof GenesysSymbol]['GLYPH'] | '';
-export type GenesysDieFace = SingleGlyph | `${SingleGlyph}${SingleGlyph}` | ' ';

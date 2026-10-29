@@ -4,7 +4,7 @@ import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollDa
 import { chanceToSucceed as countChanceToSucceed } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
-import { GenesysRoller } from '@/dice/GenesysRoller';
+import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { RootContext } from '@/vue/SheetContext';
@@ -14,12 +14,19 @@ import { GenesysDice } from '@/dice';
 import { DieCategory } from '@/dice/dice/GenesysDie';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
-import { GenesysPoolModifications } from '@/dice/GenesysPoolModifications';
+import {
+	type DieGradeOperationName,
+	DIE_GLYPHS,
+	GenesysPoolModifications,
+	GRADE_GLYPHS,
+	removalGlyph,
+	SYMBOL_GLYPHS,
+} from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import {
 	type Check,
 	type CheckPoolModification,
+	type CheckPurpose,
 	type CheckRequest,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
@@ -30,11 +37,8 @@ import {
 } from '@/dice/Check';
 import {
 	type DicePool,
-	type DieGradeOperationName,
 	type DieName,
 	type SymbolName,
-	compileDiceFormula,
-	compileSymbolsData,
 	hasSameChanceToSucceed,
 	parsePoolModifications,
 	sortPoolModifications,
@@ -127,7 +131,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		toRaw(context.actor),
 		{
 			...request,
-			purpose: context.rollType === RollType.Initiative ? 'initiative' : undefined,
+			purpose: checkPurpose(),
 			target: (target?.actor as GenesysActor | null) ?? undefined,
 			attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
@@ -151,6 +155,22 @@ function resolve(request: CheckRequest<PromptSkill>) {
 	selectedCharacteristic.value = resolved.characteristic;
 
 	buildDicePool();
+}
+
+/**
+ * What the prompt rolls the check for.
+ */
+function checkPurpose(): CheckPurpose {
+	switch (context.rollType) {
+		case RollType.Attack:
+			return { kind: 'attack', weaponName: (context.rollData as AttackRollData).weapon.name };
+
+		case RollType.Initiative:
+			return { kind: 'initiative' };
+
+		default:
+			return { kind: 'check' };
+	}
 }
 
 function poolModificationName({ source, from }: CheckPoolModification) {
@@ -197,16 +217,10 @@ async function approximateProbability() {
 		const { dice, symbols } = toRaw(dicePool);
 		chanceToSucceed = await chanceToSucceedInWorker({ dice, symbols });
 	} else {
-		const formula = compileDiceFormula(currentDicePool.value);
-		const symbols = { symbols: compileSymbolsData(currentDicePool.value) };
 		const simulation = await Promise.all(
-			Array.from({ length: CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS }, async () => {
-				const roll = new Roll(formula, symbols);
-				const result = await roll.evaluate();
-				return GenesysRoller.parseRollResults(result);
-			}),
+			Array.from({ length: CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS }, () => rollPool(currentDicePool.value)),
 		);
-		const successfulRolls = simulation.filter((roll) => roll.netSuccess > 0);
+		const successfulRolls = simulation.filter(({ results }) => results.netSuccess > 0);
 		chanceToSucceed = successfulRolls.length / simulation.length;
 	}
 
@@ -242,19 +256,19 @@ function getOrderedSymbols(category: DieCategory) {
 }
 
 function addDiceOperation(dieName: DieName, isRemoval: boolean = false) {
-	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysDice[dieName].GLYPH}`);
+	manualChanges.value.push(isRemoval ? removalGlyph(GenesysDice[dieName].GLYPH) : GenesysDice[dieName].GLYPH);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function addSymbolOperation(symbolName: SymbolName, isRemoval: boolean = false) {
-	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysSymbol[symbolName].GLYPH}`);
+	manualChanges.value.push(isRemoval ? removalGlyph(GenesysSymbol[symbolName].GLYPH) : GenesysSymbol[symbolName].GLYPH);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function addPoolOperation(operationName: DieGradeOperationName) {
-	manualChanges.value.push(GenesysPoolGradeOperation[operationName].GLYPH);
+	manualChanges.value.push(GRADE_GLYPHS[operationName]);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
@@ -264,15 +278,12 @@ function removeManualChange(index: number) {
 	buildDicePool();
 }
 
-async function rollPool() {
+async function onRoll() {
 	const checkRoll = { check: check.value!, dicePool: toRaw(currentDicePool.value) };
 
 	switch (context.rollType) {
 		case RollType.Attack:
-			await GenesysRoller.attackRoll({
-				...checkRoll,
-				weapon: (context.rollData as AttackRollData).weapon,
-			});
+			await rollCheck(checkRoll, (context.rollData as AttackRollData).weapon);
 			break;
 
 		case RollType.Initiative:
@@ -280,7 +291,7 @@ async function rollPool() {
 			break;
 
 		default:
-			await GenesysRoller.skillRoll(checkRoll);
+			await rollCheck(checkRoll);
 	}
 
 	await context.app.close();
@@ -347,34 +358,48 @@ async function rollPool() {
 			<!-- Dice Box -->
 			<div class="dice-box">
 				<!-- Add Positive Dice -->
-				<a @click="addDiceOperation('Ability')" data-pool-entity="Ability">A<i class="fas fa-plus"></i></a>
-				<a @click="addDiceOperation('Proficiency')" data-pool-entity="Proficiency">P<i class="fas fa-plus"></i></a>
-				<a @click="addDiceOperation('Boost')" data-pool-entity="Boost">B<i class="fas fa-plus"></i></a>
+				<a @click="addDiceOperation('Ability')" data-pool-entity="Ability">{{ DIE_GLYPHS.Ability }}<i class="fas fa-plus"></i></a>
+				<a @click="addDiceOperation('Proficiency')" data-pool-entity="Proficiency"
+					>{{ DIE_GLYPHS.Proficiency }}<i class="fas fa-plus"></i
+				></a>
+				<a @click="addDiceOperation('Boost')" data-pool-entity="Boost">{{ DIE_GLYPHS.Boost }}<i class="fas fa-plus"></i></a>
 
 				<!-- Upgrade/Downgrade Positive Dice -->
-				<a @click="addPoolOperation('UpgradeAbility')" data-pool-entity="Ability">A<i class="fas fa-arrow-up"></i></a>
-				<a @click="addPoolOperation('DowngradeAbility')" data-pool-entity="Proficiency">P<i class="fas fa-arrow-down"></i></a>
+				<a @click="addPoolOperation('UpgradeAbility')" data-pool-entity="Ability"
+					>{{ DIE_GLYPHS.Ability }}<i class="fas fa-arrow-up"></i
+				></a>
+				<a @click="addPoolOperation('DowngradeAbility')" data-pool-entity="Proficiency"
+					>{{ DIE_GLYPHS.Proficiency }}<i class="fas fa-arrow-down"></i
+				></a>
 				<span />
 
 				<!-- Add Negative Dice -->
-				<a @click="addDiceOperation('Difficulty')" data-pool-entity="Difficulty">D<i class="fas fa-plus"></i></a>
-				<a @click="addDiceOperation('Challenge')" data-pool-entity="Challenge">C<i class="fas fa-plus"></i></a>
-				<a @click="addDiceOperation('Setback')" data-pool-entity="Setback">S<i class="fas fa-plus"></i></a>
+				<a @click="addDiceOperation('Difficulty')" data-pool-entity="Difficulty"
+					>{{ DIE_GLYPHS.Difficulty }}<i class="fas fa-plus"></i
+				></a>
+				<a @click="addDiceOperation('Challenge')" data-pool-entity="Challenge"
+					>{{ DIE_GLYPHS.Challenge }}<i class="fas fa-plus"></i
+				></a>
+				<a @click="addDiceOperation('Setback')" data-pool-entity="Setback">{{ DIE_GLYPHS.Setback }}<i class="fas fa-plus"></i></a>
 
 				<!-- Upgrade/Downgrade Negative Dice -->
-				<a @click="addPoolOperation('UpgradeDifficulty')" data-pool-entity="Difficulty">D<i class="fas fa-arrow-up"></i></a>
-				<a @click="addPoolOperation('DowngradeDifficulty')" data-pool-entity="Challenge">C<i class="fas fa-arrow-down"></i></a>
+				<a @click="addPoolOperation('UpgradeDifficulty')" data-pool-entity="Difficulty"
+					>{{ DIE_GLYPHS.Difficulty }}<i class="fas fa-arrow-up"></i
+				></a>
+				<a @click="addPoolOperation('DowngradeDifficulty')" data-pool-entity="Challenge"
+					>{{ DIE_GLYPHS.Challenge }}<i class="fas fa-arrow-down"></i
+				></a>
 				<span />
 
 				<!-- Add Positive Symbols -->
-				<a @click="addSymbolOperation('Advantage')">a<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Success')">s<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Triumph')">t<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Advantage')">{{ SYMBOL_GLYPHS.Advantage }}<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Success')">{{ SYMBOL_GLYPHS.Success }}<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Triumph')">{{ SYMBOL_GLYPHS.Triumph }}<i class="fas fa-plus"></i></a>
 
 				<!-- Add Negative Symbols -->
-				<a @click="addSymbolOperation('Threat')">h<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Failure')">f<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Despair')">d<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Threat')">{{ SYMBOL_GLYPHS.Threat }}<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Failure')">{{ SYMBOL_GLYPHS.Failure }}<i class="fas fa-plus"></i></a>
+				<a @click="addSymbolOperation('Despair')">{{ SYMBOL_GLYPHS.Despair }}<i class="fas fa-plus"></i></a>
 			</div>
 		</div>
 
@@ -481,7 +506,7 @@ async function rollPool() {
 		</div>
 
 		<!-- Roll Button -->
-		<button class="roll-button" @click.prevent="rollPool"><Localized label="Genesys.DicePrompt.Roll" /></button>
+		<button class="roll-button" @click.prevent="onRoll"><Localized label="Genesys.DicePrompt.Roll" /></button>
 	</div>
 </template>
 

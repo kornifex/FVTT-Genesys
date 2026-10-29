@@ -1,5 +1,7 @@
 /** @file Critical Injuries: their severity, and the difficulty of the check that heals or repairs them. */
 
+import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
+
 /**
  * The severities of a Critical Injury, from none to Formidable.
  */
@@ -15,5 +17,5 @@ export type Severity = (typeof SEVERITIES)[number];
  * severity, none for `-`.
  */
 export function severityDifficulty(severity: Severity) {
-	return 'D'.repeat(SEVERITIES.indexOf(severity));
+	return DIE_GLYPHS.Difficulty.repeat(SEVERITIES.indexOf(severity));
 }

@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { GenesysRoller } from '@/dice/GenesysRoller';
+import { parseRollResults } from '@/dice/CheckRoll';
 
 /**
  * A dice term as `parseRollResults` reads it: a denomination and the labels of the rolled faces.
@@ -21,9 +21,9 @@ function fakeRoll(terms: FakeTerm[], symbols?: Record<string, number>): Roll {
 	return { dice, data: { symbols } } as unknown as Roll;
 }
 
-describe('GenesysRoller.parseRollResults', () => {
+describe('parseRollResults', () => {
 	it('counts every term when the same die appears more than once', () => {
-		const results = GenesysRoller.parseRollResults(
+		const results = parseRollResults(
 			fakeRoll([
 				{ denomination: 'a', labels: ['s'] },
 				{ denomination: 'a', labels: ['s', 'a'] },
@@ -36,7 +36,7 @@ describe('GenesysRoller.parseRollResults', () => {
 	});
 
 	it('adds the extra symbols of the roll data', () => {
-		const results = GenesysRoller.parseRollResults(fakeRoll([{ denomination: 'a', labels: ['s'] }], { s: 1, h: 2 }));
+		const results = parseRollResults(fakeRoll([{ denomination: 'a', labels: ['s'] }], { s: 1, h: 2 }));
 
 		expect(results.totalSuccess).toBe(2);
 		expect(results.totalThreat).toBe(2);
