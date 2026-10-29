@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { CHARACTERISTICS } from '@/data/Characteristics';
 import { SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
 import { useSheetDocument } from '@/vue/useSheetDocument';
@@ -11,9 +9,7 @@ import DataRow from '@/vue/components/DataRow.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-const { document: item } = useSheetDocument<GenesysItem<SkillDataModel>>();
-
-const system = toRef(() => item.value.systemData);
+const { system } = useSheetDocument<GenesysItem<SkillDataModel>>();
 </script>
 
 <template>

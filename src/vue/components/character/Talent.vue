@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -32,18 +32,10 @@ const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDat
 
 const expanded = ref(false);
 
-// Foundry changes the item out of Vue's sight, and the prop stays the same item: the talent reads it again on each
-// render of the sheet, through `talent()`, which its template always calls.
-const renderedItem = useRendered(() => props.item);
-
-function talent() {
-	const item = renderedItem.value;
-	return item.type === 'talent' ? (item.systemData as TalentDataModel) : undefined;
-}
-
-function ranked() {
-	return talent()?.ranked === 'yes';
-}
+// Named as the prop, which it shadows in the template: the talent reads the item through `useRendered`.
+const item = useRendered(() => props.item);
+const talent = toRef(() => (item.value.type === 'talent' ? (item.value.systemData as TalentDataModel) : undefined));
+const ranked = computed(() => talent.value?.ranked === 'yes');
 
 async function sendToChat() {
 	await postChatCard(props.item, actor.value);
@@ -56,12 +48,12 @@ async function sendToChat() {
 		<span class="name">
 			<a @click="expanded = !expanded">
 				{{ item.name }}
-				<template v-if="ranked()">
-					{{ talent()?.rank }}
+				<template v-if="ranked">
+					{{ talent?.rank }}
 				</template>
 			</a>
 
-			<a v-if="ranked() && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
+			<a v-if="ranked && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
 		</span>
 		<div></div>
 		<span v-if="canDelete">
@@ -74,8 +66,8 @@ async function sendToChat() {
 			<a @click="sendToChat()"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
-			<div v-if="talent()" class="tier-container">
-				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent()?.effectiveTier }}</span>
+			<div v-if="talent" class="tier-container">
+				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
 			</div>
 
 			<Enriched class="desc" :value="item.systemData.description"></Enriched>

@@ -57,6 +57,8 @@ type SheetsHelpers = {
 	fieldValue(name: string, field: string): string;
 	/** The text of an element of an open sheet, in the row a selector finds whose text holds a name. */
 	rowText(name: string, row: string, which: string, selector: string): string;
+	/** The text of the first element a selector finds in an open sheet. */
+	shownText(name: string, selector: string): string;
 	isRendered(name: string): boolean;
 	/** Renders a sheet with hooks on the render events of AppV1 and AppV2, and returns the ones that fired. */
 	renderHooks(name: string): Promise<{ fired: string[]; htmlIsElement: boolean }>;
@@ -389,6 +391,10 @@ function installSheetsHelpers() {
 
 		fieldValue(name, field) {
 			return (find(sheetElement(name), `[name="${field}"]`) as HTMLInputElement).value;
+		},
+
+		shownText(name, selector) {
+			return text(find(sheetElement(name), selector));
 		},
 
 		rowText(name, row, which, selector) {
@@ -1501,6 +1507,48 @@ export async function run(e2e: ScenarioContext) {
 		editAll({ wounds: Number(editsBefore.wounds), source: '', rank: 2, quantity: 1, names: editedSheets }),
 	);
 	e2e.expect('#249 A2 GM: the open sheets show the edits put back', await gm.evaluate(shownEdits, editedSheets), editsBefore);
+
+	// §#249 from the sheet: a field changed in a sheet shows elsewhere in it at once, the source of an adversary or an
+	// item above its description, the passenger capacity of a vehicle on its Crew tab. The character, the vehicle's crew
+	// and a weapon's row have steps of their own (character.ts, inventory.ts, #82 A2 below).
+	const sourceSheets = [...actorTypes.filter((name) => !['Hero', 'Vehicle'].includes(name)), ...itemTypes];
+	const shownFromSheets = (names: string[]) => {
+		const sheets = window.sheetsE2E;
+		return {
+			sources: Object.fromEntries(
+				names.map((name) => [
+					name,
+					sheets.shownText(
+						name,
+						game.items.getName(`E2E ${name}`) ? '.tab[data-tab="description"] .source' : '.description-area .source',
+					),
+				]),
+			),
+			capacity: sheets.shownText('Vehicle', '.tab-crew .capacity-section span:last-child'),
+		};
+	};
+	const fromSheetsBefore = await gm.evaluate(shownFromSheets, sourceSheets);
+	const editInSheets = (edits: { source: string; capacity: string; names: string[] }) =>
+		gm.evaluate(async ({ source, capacity, names }) => {
+			const sheets = window.sheetsE2E;
+			for (const name of names) await sheets.changeField(name, 'input[name="system.source"]', source);
+			await sheets.changeField('Vehicle', 'input[name="system.passengers.threshold"]', capacity);
+		}, edits);
+	await e2e.step("#249 GM changes the source of each adversary and item, and a vehicle's passenger capacity, in their sheets", () =>
+		editInSheets({ source: 'E2E Sheet Source', capacity: '7', names: sourceSheets }),
+	);
+	e2e.expect(
+		'#249 A3 GM: a field changed in an adversary, item or vehicle sheet shows elsewhere in the sheet at once',
+		await gm.evaluate(shownFromSheets, sourceSheets),
+		{
+			sources: Object.fromEntries(sourceSheets.map((name) => [name, 'E2E Sheet Source'])),
+			capacity: fromSheetsBefore.capacity.replace(/\/\d+$/, '/7'),
+		},
+	);
+	await e2e.step('#249 GM puts the fields back in the sheets', () =>
+		editInSheets({ source: '', capacity: fromSheetsBefore.capacity.split('/')[1], names: sourceSheets }),
+	);
+	e2e.expect('#249 A4 GM: the sheets show the fields put back', await gm.evaluate(shownFromSheets, sourceSheets), fromSheetsBefore);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 	// §#250: a player's spend goes to the Acting GM alone, who writes it once and posts its message as the player.

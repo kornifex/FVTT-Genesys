@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { toRef } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
@@ -15,8 +14,7 @@ import DetailsTab from '@/vue/sheets/actor/vehicle/DetailsTab.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
-const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
 const { effects, addEffect } = useDocumentEffects();
 </script>

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onUpdated, ref } from 'vue';
+import { computed, onUpdated, ref } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { constructDragTransferTypeFromData, DragTransferData } from '@/data/DragTransferData';
@@ -28,14 +28,15 @@ const emit = defineEmits<{
 
 const { editable } = useSheetDocument();
 
-// Foundry changes the actor out of Vue's sight, and the prop stays the same actor: the tile reads it again on each render
-// of the sheet.
-const member = useRendered(() => props.actor);
+// Named as the prop, which it shadows in the template: the tile reads the actor through `useRendered`.
+const actor = useRendered(() => props.actor);
 
 const isBeingDragged = ref(false);
 const imageDom = ref<HTMLImageElement | null>(null);
 
-const career = props.actor.type === 'character' ? props.actor.items.find((item) => item.type === 'career')?.name : undefined;
+const career = computed(() =>
+	actor.value.type === 'character' ? actor.value.items.find((item) => item.type === 'career')?.name : undefined,
+);
 
 // When we are on "tile" mode the image DOM element used to display the actor's picture is wrapped by a context menu
 // component. Sadly, even when we force a re-render of this component sometimes said DOM element won't be re-rendered
@@ -90,11 +91,11 @@ async function openActorSheet() {
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
-		<img :src="member.img" :alt="member.name" draggable="false" />
+		<img :src="actor.img" :alt="actor.name" draggable="false" />
 
 		<div class="details">
 			<span class="name">
-				<a @click="openActorSheet">{{ member.name }}</a>
+				<a @click="openActorSheet">{{ actor.name }}</a>
 			</span>
 
 			<div v-if="career"><Localized label="Genesys.Labels.Career" />: {{ career }}</div>
@@ -118,7 +119,7 @@ async function openActorSheet() {
 			'drag-dim': props.dragging && !isBeingDragged,
 			'drag-source': isBeingDragged,
 		}"
-		:data-tooltip="member.name"
+		:data-tooltip="actor.name"
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
@@ -129,7 +130,7 @@ async function openActorSheet() {
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
-			<img ref="imageDom" :src="member.img" :alt="member.name" draggable="false" />
+			<img ref="imageDom" :src="actor.img" :alt="actor.name" draggable="false" />
 		</ContextMenu>
 	</div>
 </template>

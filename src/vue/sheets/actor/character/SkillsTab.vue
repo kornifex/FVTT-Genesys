@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
@@ -18,8 +18,7 @@ import MenuItem from '@/vue/components/MenuItem.vue';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 const advancement = computed(() => advancementCharacter(actor.value));
 
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));

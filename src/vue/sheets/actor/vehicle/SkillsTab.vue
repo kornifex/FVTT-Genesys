@@ -32,7 +32,8 @@ const groupingMode = ref<GroupingMode>('member');
 const byMember = shallowRef<MemberRow[]>([]);
 const bySkill = shallowRef<SkillRow[]>([]);
 
-// The sheet renders again after a change to the vehicle or to one of its crew, which sets its context again.
+// The sheet renders again after a change to the vehicle or to one of its crew, which sets its context again. The tab
+// watches the whole context as its render tick: a crew member's change leaves the vehicle and its system data as they were.
 watch(
 	context,
 	async ({ document: vehicle }, _oldContext, onCleanup) => {

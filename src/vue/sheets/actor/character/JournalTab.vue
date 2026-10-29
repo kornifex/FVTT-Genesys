@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { ENTRY_LABELS, Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, awardXP, undoEntry } from '@/actor/data/character/Advancement';
@@ -13,9 +11,7 @@ import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
 import Motivations from '@/vue/components/Motivations.vue';
 
-const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
-
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 async function addXPJournalEntry() {
 	const award = await AwardXPPrompt.promptForXPAward();

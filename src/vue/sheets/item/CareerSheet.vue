@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { toRef } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
@@ -9,8 +8,7 @@ import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 
-const { document: item, editable } = useSheetDocument<GenesysItem<CareerDataModel>>();
-const system = toRef(() => item.value.systemData);
+const { document: item, system, editable } = useSheetDocument<GenesysItem<CareerDataModel>>();
 
 const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 

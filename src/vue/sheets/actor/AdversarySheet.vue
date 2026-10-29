@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
@@ -31,8 +31,7 @@ import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
 
 const talents = computed(() => actor.value.items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => actor.value.items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);

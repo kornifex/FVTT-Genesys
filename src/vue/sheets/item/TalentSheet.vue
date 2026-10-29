@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -10,9 +8,7 @@ import ActivationRow from '@/vue/components/item/ActivationRow.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { MAX_TIER } from '@/item/data/Talents';
 
-const { document: item } = useSheetDocument<GenesysItem<TalentDataModel>>();
-
-const system = toRef(() => item.value.systemData);
+const { system } = useSheetDocument<GenesysItem<TalentDataModel>>();
 </script>
 
 <template>

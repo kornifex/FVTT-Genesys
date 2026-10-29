@@ -37,7 +37,8 @@ const { isHovered, enter, leave, reset } = useDragHover();
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<GenesysActor[]>([]);
 
-// Make sure to display only actors that exist.
+// Make sure to display only actors that exist. Foundry builds the vehicle's system data anew on each of its updates, so
+// a change to the members comes as another list.
 watch(
 	() => props.members,
 	async (members) => {
@@ -50,7 +51,7 @@ watch(
 		}
 		actorsInRole.value = foundActors;
 	},
-	{ immediate: true, deep: true },
+	{ immediate: true },
 );
 
 function drop(event: DragEvent, memberUnder?: MemberUUID) {

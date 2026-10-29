@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { computed, shallowRef, toRef, watch } from 'vue';
+import { computed, shallowRef, watch } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -14,8 +14,7 @@ import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRol
 import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { useDragHover } from '@/vue/useDragHover';
 
-const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));

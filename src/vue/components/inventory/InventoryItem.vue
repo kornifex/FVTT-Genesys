@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 
@@ -73,21 +73,17 @@ const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDat
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
 
-// Foundry changes the item out of Vue's sight, and the prop stays the same item: the row reads it again on each render
-// of the sheet, through `system()`, which its classes always call.
-const renderedItem = useRendered(() => props.item);
-
-function system() {
-	return renderedItem.value.systemData;
-}
+// Named as the prop, which it shadows in the template: the row reads the item through `useRendered`.
+const item = useRendered(() => props.item);
+const system = toRef(() => item.value.systemData);
 
 function armorData() {
-	return system() as ArmorDataModel;
+	return system.value as ArmorDataModel;
 }
 
 // The rows that read a weapon's data are those of a character's or a vehicle's weapon.
 function weaponData() {
-	return system() as WeaponDataModel | VehicleWeaponDataModel;
+	return system.value as WeaponDataModel | VehicleWeaponDataModel;
 }
 
 // The labels of a vehicle weapon's firing arc: a character's weapon has none.
@@ -270,7 +266,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		:class="{
 			'inventory-item': true,
 			mini: props.mini,
-			[system().state]: true,
+			[system.state]: true,
 			hover: containerDrag.isHovered.value,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
@@ -291,7 +287,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<a @click="openItem">{{ item.name }}</a>
 				<button
 					class="attack"
-					v-if="item.type === 'weapon' && system().state === EquipmentState.Equipped && skillForWeapon()"
+					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
 					@click="rollAttack"
 				>
 					<Localized label="Genesys.Labels.Attack" />
@@ -357,7 +353,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		</a>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
-			{{ system().encumbrance < 0 ? '+' : null }}{{ Math.abs(system().encumbrance) }} <i class="fas fa-weight-hanging"></i>
+			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
 		</div>
 
 		<a

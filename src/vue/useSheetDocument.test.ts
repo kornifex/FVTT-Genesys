@@ -5,7 +5,11 @@ import { computed, createApp, isProxy, shallowReactive, watch, watchEffect } fro
 import { type DocumentSheetContext, provideSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 
-type FakeDocument = { name: string };
+type FakeDocument = { name: string; systemData: { wounds: number } };
+
+function fakeDocument(name: string): FakeDocument {
+	return { name, systemData: { wounds: 0 } };
+}
 
 /**
  * A sheet's Vue app, with no component mounted: `setup` runs as a component's setup would, with the sheet's context to
@@ -23,7 +27,7 @@ function documentContext<DocumentType>(document: DocumentType, editable = true):
 
 describe('useSheetDocument', () => {
 	it('reads the document again on each render of the sheet, after Foundry changed it out of sight', () => {
-		const actor: FakeDocument = { name: 'Before' };
+		const actor = fakeDocument('Before');
 		const sheet = sheetApp(documentContext(actor));
 		const { document } = sheet.setup(() => useSheetDocument<FakeDocument>());
 		const shown: string[] = [];
@@ -37,7 +41,7 @@ describe('useSheetDocument', () => {
 	});
 
 	it('reads the document again when a render hands the same context', () => {
-		const actor: FakeDocument = { name: 'Before' };
+		const actor = fakeDocument('Before');
 		const context = documentContext(actor);
 		const sheet = sheetApp(context);
 		const { document } = sheet.setup(() => useSheetDocument<FakeDocument>());
@@ -51,7 +55,7 @@ describe('useSheetDocument', () => {
 	});
 
 	it('hands the document itself, never a reactive proxy that could write into it', () => {
-		const actor: FakeDocument = { name: 'Hero' };
+		const actor = fakeDocument('Hero');
 		const { document } = sheetApp(documentContext(actor)).setup(() => useSheetDocument<FakeDocument>());
 
 		expect(document.value).toBe(actor);
@@ -59,7 +63,7 @@ describe('useSheetDocument', () => {
 	});
 
 	it('recomputes what a computed derives from the document on each render', () => {
-		const actor = { items: [{ type: 'talent' }] };
+		const actor = { ...fakeDocument('Hero'), items: [{ type: 'talent' }] };
 		const sheet = sheetApp(documentContext(actor));
 		const talents = sheet.setup(() => {
 			const { document } = useSheetDocument<typeof actor>();
@@ -75,13 +79,26 @@ describe('useSheetDocument', () => {
 	});
 
 	it('tells whether the user can edit the document, as the latest render does', () => {
-		const actor: FakeDocument = { name: 'Hero' };
+		const actor = fakeDocument('Hero');
 		const sheet = sheetApp(documentContext(actor, true));
 		const { editable } = sheet.setup(() => useSheetDocument<FakeDocument>());
 
 		sheet.render(documentContext(actor, false));
 
 		expect(editable.value).toBe(false);
+	});
+
+	it("reads the document's system data again on each render, after Foundry changed it in place", () => {
+		const actor = fakeDocument('Hero');
+		const sheet = sheetApp(documentContext(actor));
+		const { system } = sheet.setup(() => useSheetDocument<FakeDocument>());
+		const shown: number[] = [];
+		watchEffect(() => shown.push(system.value.wounds), { flush: 'sync' });
+
+		actor.systemData.wounds = 3;
+		sheet.render(documentContext(actor));
+
+		expect(shown).toEqual([0, 3]);
 	});
 
 	it('hands the sheet the component renders in', () => {
@@ -93,7 +110,7 @@ describe('useSheetDocument', () => {
 
 describe('useRendered', () => {
 	it('reads a document a prop passes again on each render of the sheet, though the prop stays the same document', () => {
-		const item: FakeDocument = { name: 'Sword' };
+		const item = fakeDocument('Sword');
 		const props = shallowReactive({ item });
 		const sheet = sheetApp(documentContext({ name: 'Hero' }));
 		const shownItem = sheet.setup(() => useRendered(() => props.item));

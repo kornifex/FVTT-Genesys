@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -12,8 +10,7 @@ import { withQualityRating } from '@/item/data/Qualities';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { withoutIndex } from '@/arrays';
 
-const { document: item } = useSheetDocument<GenesysItem<BaseWeaponDataModel>>();
-const system = toRef(() => item.value.systemData);
+const { document: item, system } = useSheetDocument<GenesysItem<BaseWeaponDataModel>>();
 
 async function deleteSkill(index: number) {
 	await item.value.update({ 'system.skills': withoutIndex(system.value.skills, index) });

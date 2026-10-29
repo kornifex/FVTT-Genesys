@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
@@ -9,8 +7,7 @@ import DataRow from '@/vue/components/DataRow.vue';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { FIRING_ARC_LABELS } from '@/item/Weapons';
 
-const { document: item } = useSheetDocument<GenesysItem<VehicleWeaponDataModel>>();
-const system = toRef(() => item.value.systemData);
+const { system } = useSheetDocument<GenesysItem<VehicleWeaponDataModel>>();
 </script>
 
 <template>

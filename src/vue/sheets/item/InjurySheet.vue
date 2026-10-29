@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -9,9 +7,7 @@ import DataRow from '@/vue/components/DataRow.vue';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { SEVERITY_LABELS } from '@/item/data/Injuries';
 
-const { document: item } = useSheetDocument<GenesysItem<InjuryDataModel>>();
-
-const system = toRef(() => item.value.systemData);
+const { system } = useSheetDocument<GenesysItem<InjuryDataModel>>();
 </script>
 
 <template>

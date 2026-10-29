@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 
 import { CHARACTERISTIC_LABELS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { useSheetDocument } from '@/vue/useSheetDocument';
@@ -14,8 +14,7 @@ import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 
-const { document: item, editable } = useSheetDocument<GenesysItem<ArchetypeDataModel>>();
-const system = toRef(() => item.value.systemData);
+const { document: item, system, editable } = useSheetDocument<GenesysItem<ArchetypeDataModel>>();
 
 const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').split(' ');
 

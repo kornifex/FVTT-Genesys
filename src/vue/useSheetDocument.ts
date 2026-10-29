@@ -4,6 +4,8 @@
  */
 
 import { computed, type Ref, toRef } from 'vue';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { GenesysItem } from '@/item/GenesysItem';
 import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 
 /**
@@ -21,34 +23,45 @@ export function useRendered<T>(read: () => T): Readonly<Ref<T>> {
 }
 
 /**
- * The sheet's document, whether the user can edit it, and the sheet itself.
+ * What a sheet reads of its document. The refs read it again on each render of the sheet; the sheet itself never
+ * changes, so it is a plain value.
  */
-type SheetDocument<DocumentType, SheetType> = {
+type SheetDocument<DocumentType extends SheetDocumentType, SheetType> = {
 	sheet: SheetType;
 	/**
-	 * The document itself, never a reactive proxy, read again on each render of the sheet.
+	 * The document itself, never a reactive proxy.
 	 */
 	document: Readonly<Ref<DocumentType>>;
+	/**
+	 * The document's system data.
+	 */
+	system: Readonly<Ref<DocumentType['systemData']>>;
 	editable: Readonly<Ref<boolean>>;
 };
 
 /**
- * The document of the sheet the component renders in. A component reads it through `document`, which reads it again
- * on each render of the sheet: Foundry changes it out of Vue's sight.
- *
- * A part of the document (its system data, an item) is read through a getter, `toRef(() => document.value.system)`,
- * not a `computed`: a computed only tells its readers when its value is another one, and a part keeps its identity
- * while Foundry changes it.
+ * A document a sheet shows: an actor or an item, with its typed system data.
  */
-export function useSheetDocument<DocumentType, SheetType = foundry.applications.api.DocumentSheetV2>(): SheetDocument<
-	DocumentType,
-	SheetType
-> {
+type SheetDocumentType = { systemData: object };
+
+/**
+ * The document of the sheet the component renders in. A component reads it through `document` and `system`, which read
+ * it again on each render of the sheet: Foundry changes it out of Vue's sight.
+ *
+ * Another part of the document (an item, a field of its system data) is read through a getter as well,
+ * `toRef(() => document.value.items.get(id))`, not a `computed`: a computed only tells its readers when its value is
+ * another one, and a part keeps its identity while Foundry changes it.
+ */
+export function useSheetDocument<
+	DocumentType extends SheetDocumentType = GenesysActor | GenesysItem,
+	SheetType = foundry.applications.api.DocumentSheetV2,
+>(): SheetDocument<DocumentType, SheetType> {
 	const context = useSheetContext<DocumentSheetContext<DocumentType, SheetType>>();
 
 	return {
 		sheet: context.value.sheet,
 		document: toRef(() => context.value.document),
+		system: toRef(() => context.value.document.systemData),
 		editable: computed(() => context.value.editable),
 	};
 }

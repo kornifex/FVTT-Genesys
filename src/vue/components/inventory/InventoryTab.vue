@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, ref } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 
@@ -31,8 +31,7 @@ const props = defineProps<{
 
 const CURRENCY_LABEL = CONFIG.genesys.settings.currencyName;
 
-const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
 
 // The actor's data model tells which item types belong to the inventory and which of them can be equipped.
 const dataModel = actor.value.systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;

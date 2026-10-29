@@ -1,14 +1,13 @@
 <script lang="ts" setup>
 import AdversarySheet from '@/vue/sheets/actor/AdversarySheet.vue';
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import { MinionDataModel } from '@/actor/data/MinionDataModel';
 
-const { document: actor } = useSheetDocument<GenesysActor<MinionDataModel>>();
-const system = toRef(() => actor.value.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<MinionDataModel>>();
 
 // Read on each render of the sheet, which follows a change of the flag.
 const isIndependent = computed(() => actor.value.getFlag<boolean>('genesys', 'independentMinion'));

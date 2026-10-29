@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -11,9 +9,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { withoutIndex } from '@/arrays';
 
-const { document: item } = useSheetDocument<GenesysItem<ArmorDataModel>>();
-
-const system = toRef(() => item.value.systemData);
+const { document: item, system } = useSheetDocument<GenesysItem<ArmorDataModel>>();
 
 async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {

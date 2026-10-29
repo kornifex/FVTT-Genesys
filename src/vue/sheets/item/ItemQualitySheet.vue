@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
-
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -8,9 +6,7 @@ import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 
-const { document: item } = useSheetDocument<GenesysItem<ItemQualityDataModel>>();
-
-const system = toRef(() => item.value.systemData);
+const { system } = useSheetDocument<GenesysItem<ItemQualityDataModel>>();
 </script>
 
 <template>
