@@ -2,7 +2,7 @@
 import { computed, inject, toRaw } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
+import { ENTRY_LABELS, Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, awardXP, undoEntry } from '@/actor/data/character/Advancement';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
@@ -119,7 +119,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			<div class="entries">
 				<div v-for="(entry, index) in system.experienceJournal.entries" :key="index" class="entry">
 					<div>
-						<Localized :label="`Genesys.XPJournal.${entry.type}`" :format-args="journalEntryFormatArgs(entry)" enriched />
+						<Localized :label="ENTRY_LABELS[entry.type]" :format-args="journalEntryFormatArgs(entry)" enriched />
 					</div>
 					<div class="value">{{ entry.amount }}</div>
 					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(index)"><i class="fas fa-trash"></i></a>

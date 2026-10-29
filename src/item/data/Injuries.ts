@@ -13,6 +13,17 @@ export const SEVERITIES = ['-', 'easy', 'average', 'hard', 'daunting', 'formidab
 export type Severity = (typeof SEVERITIES)[number];
 
 /**
+ * The localization key of each severity's name, the difficulty of its check. `-` has none.
+ */
+export const SEVERITY_LABELS: Record<Exclude<Severity, '-'>, string> = {
+	easy: 'Genesys.Difficulty.Easy',
+	average: 'Genesys.Difficulty.Average',
+	hard: 'Genesys.Difficulty.Hard',
+	daunting: 'Genesys.Difficulty.Daunting',
+	formidable: 'Genesys.Difficulty.Formidable',
+};
+
+/**
  * The difficulty glyphs of the check that heals or repairs a Critical Injury: one difficulty die per step of its
  * severity, none for `-`.
  */

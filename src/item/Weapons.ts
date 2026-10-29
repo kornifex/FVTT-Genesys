@@ -1,4 +1,4 @@
-/** @file The damage of weapons and their attacks, and the firing arcs of vehicle weapons. */
+/** @file The damage and range of weapons and their attacks, and the firing arcs of vehicle weapons. */
 import { CHARACTERISTIC_ABBREVIATIONS, type CharacteristicsContainer } from '@/data/Characteristics';
 import type { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -38,14 +38,26 @@ export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; c
 }
 
 /**
+ * The localization key of each range band a weapon can reach, from engaged to strategic.
+ */
+export const RANGE_LABELS: Record<BaseWeaponDataModel['range'], string> = {
+	engaged: 'Genesys.Range.Engaged',
+	short: 'Genesys.Range.Short',
+	medium: 'Genesys.Range.Medium',
+	long: 'Genesys.Range.Long',
+	extreme: 'Genesys.Range.Extreme',
+	strategic: 'Genesys.Range.Strategic',
+};
+
+/**
  * An arc a vehicle weapon can fire in.
  */
 type Arc = keyof VehicleWeaponDataModel['firingArc'];
 
 /**
- * The label of each arc a vehicle weapon can fire in, from fore to starboard.
+ * The localization key of each arc a vehicle weapon can fire in, from fore to starboard.
  */
-const FIRING_ARC_LABELS: Record<Arc, string> = {
+export const FIRING_ARC_LABELS: Record<Arc, string> = {
 	fore: 'Genesys.FiringArc.Fore',
 	aft: 'Genesys.FiringArc.Aft',
 	port: 'Genesys.FiringArc.Port',

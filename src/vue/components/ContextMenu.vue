@@ -62,7 +62,7 @@ onUnmounted(removeDocumentListeners);
 				[props.position]: true,
 			}"
 		>
-			<slot name="menu-items"> IMPROPERLY-CONFIGURED MENU: NO MENU ITEMS DEFINED </slot>
+			<slot name="menu-items"></slot>
 		</div>
 		<slot></slot>
 	</div>

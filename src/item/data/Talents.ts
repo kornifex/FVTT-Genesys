@@ -6,6 +6,11 @@
 export const MAX_TIER = 5;
 
 /**
+ * The tiers a talent can have, from 1 to the highest.
+ */
+export const TIERS = Array.from({ length: MAX_TIER }, (_, index) => index + 1);
+
+/**
  * What this module reads of a talent: its own tier and its rank.
  */
 type TieredTalent = { tier: number; rank: number };

@@ -1,7 +1,7 @@
 /** @file Tests for the tier a talent's ranks are bought at. */
 
 import { describe, expect, it } from 'vitest';
-import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
+import { effectiveNextTier, effectiveTier, TIERS } from '@/item/data/Talents';
 
 describe('effectiveTier (CRB p. 72)', () => {
 	it("is the talent's tier at rank 1", () => {
@@ -27,5 +27,11 @@ describe('effectiveNextTier (CRB p. 72)', () => {
 	it('buys every rank after tier 5 at tier 5', () => {
 		expect(effectiveNextTier({ tier: 4, rank: 1 })).toBe(5);
 		expect(effectiveNextTier({ tier: 5, rank: 3 })).toBe(5);
+	});
+});
+
+describe('TIERS (CRB p. 71-72)', () => {
+	it('lists the tiers from 1 to 5', () => {
+		expect(TIERS).toEqual([1, 2, 3, 4, 5]);
 	});
 });

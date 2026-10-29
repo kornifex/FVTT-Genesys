@@ -6,6 +6,7 @@ import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
+import { SEVERITY_LABELS } from '@/item/data/Injuries';
 
 const context = inject<ItemSheetContext<InjuryDataModel>>(RootContext)!;
 
@@ -19,11 +20,9 @@ const system = computed(() => context.data.item.systemData);
 				<DataRow label="Genesys.Labels.Severity">
 					<select name="system.severity" :value="system.severity">
 						<option value="-">—</option>
-						<option value="easy"><Localized label="Genesys.Difficulty.Easy" /></option>
-						<option value="average"><Localized label="Genesys.Difficulty.Average" /></option>
-						<option value="hard"><Localized label="Genesys.Difficulty.Hard" /></option>
-						<option value="daunting"><Localized label="Genesys.Difficulty.Daunting" /></option>
-						<option value="formidable"><Localized label="Genesys.Difficulty.Formidable" /></option>
+						<option v-for="(label, severity) in SEVERITY_LABELS" :key="severity" :value="severity">
+							<Localized :label="label" />
+						</option>
 					</select>
 				</DataRow>
 

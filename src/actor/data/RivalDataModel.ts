@@ -11,7 +11,7 @@ export abstract class RivalDataModel extends AdversaryDataModel implements HasPr
 
 	static override readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
-			label: 'Wounds',
+			label: 'Genesys.Labels.Wounds',
 			isBar: true,
 			editable: true,
 			valuePath: 'wounds.value',

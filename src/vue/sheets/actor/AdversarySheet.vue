@@ -28,7 +28,7 @@ import { attackSkillChoices, attackSkillName } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
-import { weaponDamage } from '@/item/Weapons';
+import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
@@ -180,7 +180,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					</div>
 
 					<div class="stats-row">
-						<slot name="stats">Stats Row Not Populated</slot>
+						<slot name="stats" />
 					</div>
 
 					<div class="adversary-items">
@@ -287,7 +287,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
 										<span
 											><Localized label="Genesys.Labels.Range" /> [<Localized
-												:label="`Genesys.Range.${item.system.range.capitalize()}`"
+												:label="RANGE_LABELS[(item.systemData as WeaponDataModel).range]"
 											/>]</span
 										>
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span

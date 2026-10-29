@@ -19,7 +19,7 @@ import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, attackSkillName, skillToRoll } from '@/data/Skills';
-import { weaponDamage } from '@/item/Weapons';
+import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
@@ -114,7 +114,7 @@ function skillForWeapon(
 					</div>
 					<div class="damage">{{ weaponDamage(weapon.systemData, actor.systemData.characteristics) }}</div>
 					<div class="crit">{{ weapon.systemData.critical }}</div>
-					<div class="range"><Localized :label="`Genesys.Range.${weapon.systemData.range.capitalize()}`" /></div>
+					<div class="range"><Localized :label="RANGE_LABELS[weapon.systemData.range]" /></div>
 					<QualityList :qualities="weapon.systemData.qualities" tags class="qualities" />
 				</div>
 			</div>
