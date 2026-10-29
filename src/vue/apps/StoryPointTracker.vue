@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { inject, nextTick, ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { vLocalize } from '@/vue/directives';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
 import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
 import Localized from '@/vue/components/Localized.vue';
@@ -13,7 +13,7 @@ const POOLS = [
 ] as const satisfies { id: StoryPointPool; label: string }[];
 
 const isGM = game.user.isGM;
-const context = inject<StoryPointTrackerContext>(RootContext)!;
+const context = useSheetContext<StoryPointTrackerContext>();
 
 // The pool the GM types a count into, one at a time.
 const editing = ref<StoryPointPool>();
@@ -21,7 +21,7 @@ const editInputs = ref<HTMLInputElement[]>([]);
 
 function canSpend(pool: StoryPointPool) {
 	// Only the GM spends from the GM pool.
-	return (pool === 'player' || isGM) && context[pool] > 0;
+	return (pool === 'player' || isGM) && context.value[pool] > 0;
 }
 
 async function spendStoryPoint(pool: StoryPointPool) {
@@ -39,7 +39,7 @@ async function manualStoryPoints(pool: StoryPointPool, event: Event) {
 	editing.value = undefined;
 
 	const input = (event.currentTarget as HTMLInputElement).value;
-	const storyPoints = storyPointsAfterEditing(context, pool, input);
+	const storyPoints = storyPointsAfterEditing(context.value, pool, input);
 	if (storyPoints) {
 		await StoryPointTracker.resetStoryPoints(storyPoints);
 	}

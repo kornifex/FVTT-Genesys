@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, ref, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, ref } from 'vue';
+import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
@@ -68,14 +69,16 @@ const containerDrag = useDragHover((event) => {
 });
 const isBeingDragged = ref(false);
 
-const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
+const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
 
-// Foundry updates the item out of Vue's sight, so a computed reading it would lag behind: the row reads the item's data
-// on each render of the sheet instead, which replaces the context.
+// Foundry changes the item out of Vue's sight, and the prop stays the same item: the row reads it again on each render
+// of the sheet, through `system()`, which its classes always call.
+const renderedItem = useRendered(() => props.item);
+
 function system() {
-	return toRaw(props.item).systemData;
+	return renderedItem.value.systemData;
 }
 
 function armorData() {
@@ -96,16 +99,14 @@ function firingArcs() {
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
 const displayContainerContents = ref(false);
-const containedItems = computed(() =>
-	containerContents(toRaw(context.data.actor).items.contents as GenesysItem<EquipmentDataModel>[], props.item.id),
-);
+const containedItems = computed(() => containerContents(actor.value.items.contents as GenesysItem<EquipmentDataModel>[], props.item.id));
 
 function damage() {
 	const weapon = weaponData();
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
-		total: weaponDamage(weapon, (context.data.actor.systemData as Partial<CharacterDataModel>).characteristics),
+		total: weaponDamage(weapon, (actor.value.systemData as Partial<CharacterDataModel>).characteristics),
 	};
 }
 
@@ -115,7 +116,7 @@ async function rollAttack() {
 		return;
 	}
 
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), skillName, {
+	await DicePrompt.promptForRoll(actor.value, skillName, {
 		roll: {
 			type: RollType.Attack,
 			// An item with a skill to attack with is a weapon.
@@ -125,30 +126,29 @@ async function rollAttack() {
 }
 
 async function openItem() {
-	await toRaw(props.item).sheet?.render(true);
+	await props.item.sheet?.render(true);
 }
 
 async function deleteItem() {
 	// A Container's contents are deleted with it.
-	await toRaw(props.item).delete();
+	await props.item.delete();
 }
 
 async function sendItemToChat() {
-	await postChatCard(toRaw(props.item), toRaw(context.data.actor));
+	await postChatCard(props.item, actor.value);
 }
 
 async function setItemState(state: EquipmentState) {
 	// A Container's contents take its new state with it, and an armor put on takes off the one worn before.
-	const actor = toRaw(context.data.actor);
-	await actor.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.items.contents, props.item.id, state));
+	await actor.value.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.value.items.contents, props.item.id, state));
 }
 
 function skillForWeapon() {
-	return attackSkillName(toRaw(context.data.actor).skills, weaponData());
+	return attackSkillName(actor.value.skills, weaponData());
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
-	return (context.data.actor.systemData.constructor as typeof VehicleDataModel | typeof CharacterDataModel).isRelevantTypeForContext(
+	return (actor.value.systemData.constructor as typeof VehicleDataModel | typeof CharacterDataModel).isRelevantTypeForContext(
 		'EQUIPABLE',
 		item.type,
 	);
@@ -163,11 +163,11 @@ function canUnequipItem(item: GenesysItem<EquipmentDataModel>) {
 }
 
 function canDropItem(item: GenesysItem<EquipmentDataModel>) {
-	return context.data.actor.type === 'character' && item.systemData.state !== EquipmentState.Dropped;
+	return actor.value.type === 'character' && item.systemData.state !== EquipmentState.Dropped;
 }
 
 function canPickupItem(item: GenesysItem<EquipmentDataModel>) {
-	return context.data.actor.type === 'character' && item.systemData.state === EquipmentState.Dropped;
+	return actor.value.type === 'character' && item.systemData.state === EquipmentState.Dropped;
 }
 
 function dragStart(event: DragEvent) {
@@ -209,10 +209,10 @@ async function changeItemQuantity(event: MouseEvent, item: GenesysItem<Equipment
 		containerScroll = containerDiv?.scrollTop;
 
 		if (shouldDeleteItem) {
-			await toRaw(item).delete();
+			await item.delete();
 		}
 	} else {
-		await toRaw(item).update({
+		await item.update({
 			'system.quantity': newQuantity,
 		});
 	}
@@ -242,10 +242,10 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 		containerScroll = containerDiv?.scrollTop;
 
 		if (shouldDeleteItem) {
-			await toRaw(item).delete();
+			await item.delete();
 		}
 	} else {
-		await toRaw(item).update({
+		await item.update({
 			'system.damage': newDamage,
 		});
 	}
@@ -260,7 +260,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 	// Only a Container receives drops: those on other items go on to the sheet.
 	if (props.item.type === 'container') {
-		await receiveInventoryEvent(toRaw(context.data.actor), event, { kind: 'container', id: props.item.id });
+		await receiveInventoryEvent(actor.value, event, { kind: 'container', id: props.item.id });
 	}
 }
 </script>
@@ -369,7 +369,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
 		</a>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable || mini">
+		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
 					v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)"

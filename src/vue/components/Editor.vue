@@ -1,6 +1,8 @@
 <script lang="ts" setup>
-import { inject, onMounted, onUpdated, ref, toRaw } from 'vue';
-import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import { onMounted, onUpdated, ref } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
+import { GenesysItem } from '@/item/GenesysItem';
 import { enrich } from '@/enrich';
 import * as log from '@/log';
 
@@ -68,9 +70,9 @@ const enrichedContent = ref('');
 let editing = ref(false);
 
 /**
- * Get the root Vue App context, so we can access the document being modified.
+ * The document of the sheet, whose field is being modified.
  */
-const rootContext = inject<BaseSheetContext>(RootContext)!;
+const { document: sheetDocument, editable } = useSheetDocument<GenesysActor | GenesysItem>();
 
 /**
  * Ensure the base content is enriched on mount.
@@ -86,12 +88,12 @@ onMounted(enrichContent);
 onUpdated(async () => {
 	// Name should be a path split by '.' - such as system.notes.value
 	const splitName = props.name.split('.');
-	let obj: unknown = rootContext.sheet.document;
+	let obj: unknown = sheetDocument.value;
 	for (const key of splitName) {
 		// If we've still got a key to find, but it isn't present, something's messed up.
 		const value = (obj as Record<string, unknown>)[key];
 		if (value === undefined) {
-			log.warn(`Attempting to update ${rootContext.sheet.document.name} editor field but '${props.name}' is undefined!`);
+			log.warn(`Attempting to update ${sheetDocument.value.name} editor field but '${props.name}' is undefined!`);
 			obj = undefined;
 			break;
 		}
@@ -123,9 +125,7 @@ async function activate() {
 
 	// Again, this shouldn't happen - but just in case.
 	if (editing.value) {
-		log.error(
-			`Attempted to activate an editor for ${props.name} in ${rootContext.sheet.document.name}, but the editor is already active!`,
-		);
+		log.error(`Attempted to activate an editor for ${props.name} in ${sheetDocument.value.name}, but the editor is already active!`);
 		return;
 	}
 
@@ -139,7 +139,7 @@ async function activate() {
 		save_onsavecallback: save,
 		engine: 'prosemirror',
 		collaborate: props.collaborate,
-		document: props.collaborate ? rootContext.sheet.document : undefined,
+		document: props.collaborate ? sheetDocument.value : undefined,
 		height: rootDiv.value!.offsetHeight,
 		plugins: {
 			menu: ProseMirror.ProseMirrorMenu.build(ProseMirror.defaultSchema, {
@@ -167,7 +167,7 @@ async function save() {
 	}
 
 	baseContent.value = ProseMirror.dom.serializeString(editorInstance.view.state.doc.content);
-	await toRaw(rootContext.sheet.document).update({
+	await sheetDocument.value.update({
 		[props.name]: baseContent.value,
 	});
 
@@ -184,7 +184,7 @@ async function save() {
 
 <template>
 	<div class="vue-editor editor prosemirror" ref="rootDiv">
-		<a v-if="button && rootContext.data.editable && !editing" @click="activate" class="editor-edit"><i class="fas fa-edit"></i></a>
+		<a v-if="button && editable && !editing" @click="activate" class="editor-edit"><i class="fas fa-edit"></i></a>
 		<div v-if="!editing" class="editor-content" v-html="enrichedContent"></div>
 		<div class="editor-content" v-show="editing" ref="editorContainer"></div>
 	</div>

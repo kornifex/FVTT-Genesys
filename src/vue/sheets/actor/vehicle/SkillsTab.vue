@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { inject, toRaw, ref, shallowRef, watch } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { ref, shallowRef, watch } from 'vue';
+import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
@@ -26,21 +26,21 @@ type SkillRow = {
 
 type GroupingMode = 'member' | 'skill';
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
+const context = useSheetContext<DocumentSheetContext<GenesysActor<VehicleDataModel>>>();
 
 const groupingMode = ref<GroupingMode>('member');
 const byMember = shallowRef<MemberRow[]>([]);
 const bySkill = shallowRef<SkillRow[]>([]);
 
-// The sheet re-renders by assigning a new `data` object, after a change to the vehicle or to one of its crew.
+// The sheet renders again after a change to the vehicle or to one of its crew, which sets its context again.
 watch(
-	() => context.data,
-	async (_source, _oldSource, onCleanup) => {
+	context,
+	async ({ document: vehicle }, _oldContext, onCleanup) => {
 		// Resolving the members is asynchronous: a later render's tables replace the ones still being computed.
 		let stale = false;
 		onCleanup(() => (stale = true));
 
-		const crew = toRaw(context.data.actor).systemData.crew;
+		const crew = vehicle.systemData.crew;
 		const actors = await crewActors(crew.roles.flatMap((role) => role.members));
 		if (stale) {
 			return;
@@ -61,7 +61,7 @@ watch(
 );
 
 async function openActorSheet(actor: GenesysActor) {
-	await toRaw(actor).sheet.render(true);
+	await actor.sheet.render(true);
 }
 </script>
 

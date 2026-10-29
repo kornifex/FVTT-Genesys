@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { inject, ref, toRaw } from 'vue';
+import { ref } from 'vue';
 import { CloneActorPromptContext } from '@/app/CloneActorPrompt';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { cloneActor } from '@/operations/CloneActor';
 
@@ -12,15 +12,15 @@ const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
 	Clone: 'Genesys.CloneActorPrompt.CloneMethod.Description',
 };
 
-const context = inject<CloneActorPromptContext>(RootContext)!;
-const actorName = ref(context.targetActor.name);
+const context = useSheetContext<CloneActorPromptContext>();
+const actorName = ref(context.value.targetActor.name);
 const instantiationMethod = ref<InstantiationMethod>('Original');
 
 async function submitSelection(event: Event) {
 	event.preventDefault();
-	const targetActor = toRaw(context.targetActor);
+	const targetActor = context.value.targetActor;
 
-	context.answer(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
+	context.value.answer(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
 }
 </script>
 

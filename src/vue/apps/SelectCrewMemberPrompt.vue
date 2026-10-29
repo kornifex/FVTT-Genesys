@@ -1,13 +1,13 @@
 <script lang="ts" setup>
-import { inject, ref, toRaw } from 'vue';
+import { ref } from 'vue';
 
 import { SelectCrewMemberPromptContext } from '@/app/SelectCrewMemberPrompt';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 
-const context = inject<SelectCrewMemberPromptContext>(RootContext)!;
+const context = useSheetContext<SelectCrewMemberPromptContext>();
 
 const selectedIndex = ref(-1);
 
@@ -18,7 +18,7 @@ function selectOption(index: number) {
 function submitSelection(event: Event) {
 	event.preventDefault();
 
-	context.answer(toRaw(context.memberSkills[selectedIndex.value]));
+	context.value.answer(context.value.memberSkills[selectedIndex.value]);
 }
 </script>
 

@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import AdversarySheet from '@/vue/sheets/actor/AdversarySheet.vue';
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { toRef } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import { NemesisDataModel } from '@/actor/data/NemesisDataModel';
 
-const context = inject<ActorSheetContext<NemesisDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor } = useSheetDocument<GenesysActor<NemesisDataModel>>();
+const system = toRef(() => actor.value.systemData);
 </script>
 
 <template>

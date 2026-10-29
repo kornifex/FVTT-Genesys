@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
+import { computed } from 'vue';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -21,18 +22,16 @@ import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, attackSkillName, skillToRoll } from '@/data/Skills';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
-const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
-
-const actor = computed(() => toRaw(rootContext.data.actor));
+const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 const weapons = computed(
 	() =>
-		toRaw(rootContext.data.actor).items.filter(
+		actor.value.items.filter(
 			(i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
 		) as GenesysItem<WeaponDataModel>[],
 );
-const armors = computed(() => wornArmor(toRaw(rootContext.data.actor).items.contents as GenesysItem<ArmorDataModel>[]));
-const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const armors = computed(() => wornArmor(actor.value.items.contents as GenesysItem<ArmorDataModel>[]));
+const injuries = computed(() => actor.value.items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 async function openItem(item: GenesysItem) {
 	await item.sheet?.render(true);
@@ -50,7 +49,7 @@ async function rollAttack(weapon: GenesysItem<WeaponDataModel>) {
 }
 
 async function healInjury(injury: GenesysItem<InjuryDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(rootContext.data.actor), CONFIG.genesys.settings.skillForHealingInjury, {
+	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
 		difficulty: severityDifficulty(injury.systemData.severity),
 	});
 }

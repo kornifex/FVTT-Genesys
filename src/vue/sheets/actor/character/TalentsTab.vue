@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
@@ -13,12 +14,12 @@ import { TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 
-const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
+const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 const activeAbilities = computed(
 	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'active')
+		actor.value.items
+			.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'active')
 			.sort((a, b) => {
 				return a.name.localeCompare(b.name);
 			}) as GenesysItem<AbilityDataModel>[],
@@ -28,22 +29,22 @@ const activeAbilityTypes = computed(() =>
 );
 const passiveAbilities = computed(
 	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'passive')
+		actor.value.items
+			.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'passive')
 			.sort((a, b) => {
 				return a.name.localeCompare(b.name);
 			}) as GenesysItem<AbilityDataModel>[],
 );
 // The ids of the items the Archetype granted, which only go away with it.
 const grantedItemIds = computed(() => {
-	const actor = toRaw(context.data.actor);
-	const archetype = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
+	const character = actor.value;
+	const archetype = character.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
 	return new Set(
-		archetype ? heldNonSkillsGrantedBy(actor.items.contents, archetype.systemData.grantedItems, actor.id).map((i) => i.id) : [],
+		archetype ? heldNonSkillsGrantedBy(character.items.contents, archetype.systemData.grantedItems, character.id).map((i) => i.id) : [],
 	);
 });
 
-const allTalents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
+const allTalents = computed(() => actor.value.items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const activeTalents = computed(() => {
 	return allTalents.value
 		.filter((i) => i.systemData.activation.type === 'active')
@@ -75,25 +76,25 @@ const passiveTalents = computed(() => {
 });
 // Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
-const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
+const talentTotals = computed(() => actor.value.systemData.talentPyramidTotals);
 
 function tierLimitText(tier: number) {
 	const limit = tierLimit(talentTotals.value, tier);
 	return limit === Infinity ? '∞' : limit;
 }
 
-const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
+const advancement = computed(() => advancementCharacter(actor.value));
 
 function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
 	return isAllowed(buyTalentRank(advancement.value, talent.id));
 }
 
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
-	await advance(toRaw(context.data.actor), (character) => buyTalentRank(character, talent.id));
+	await advance(actor.value, (character) => buyTalentRank(character, talent.id));
 }
 
 async function openItem(item: GenesysItem) {
-	await toRaw(item).sheet?.render(true);
+	await item.sheet?.render(true);
 }
 </script>
 

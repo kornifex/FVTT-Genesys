@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { inject, ref, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { ref } from 'vue';
+import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
@@ -27,13 +28,17 @@ const emit = defineEmits<{
 	(e: 'delete'): void;
 }>();
 
-const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
+const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 const expanded = ref(false);
 
-// The item isn't reactive: the sheet re-renders this component with its context, so these read the item on each render.
+// Foundry changes the item out of Vue's sight, and the prop stays the same item: the talent reads it again on each
+// render of the sheet, through `talent()`, which its template always calls.
+const renderedItem = useRendered(() => props.item);
+
 function talent() {
-	return props.item.type === 'talent' ? (props.item.systemData as TalentDataModel) : undefined;
+	const item = renderedItem.value;
+	return item.type === 'talent' ? (item.systemData as TalentDataModel) : undefined;
 }
 
 function ranked() {
@@ -41,7 +46,7 @@ function ranked() {
 }
 
 async function sendToChat() {
-	await postChatCard(toRaw(props.item), toRaw(rootContext.data.actor));
+	await postChatCard(props.item, actor.value);
 }
 </script>
 
@@ -62,10 +67,10 @@ async function sendToChat() {
 		<span v-if="canDelete">
 			<a @click="emit('delete')"><i class="fas fa-trash"></i></a>
 		</span>
-		<span v-if="rootContext.data.editable">
+		<span v-if="editable">
 			<a @click="emit('open')"><i class="fas fa-edit"></i></a>
 		</span>
-		<span v-if="rootContext.data.editable">
+		<span v-if="editable">
 			<a @click="sendToChat()"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">

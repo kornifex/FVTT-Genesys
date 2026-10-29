@@ -1,16 +1,17 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
+import { toRef } from 'vue';
 
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS } from '@/data/Characteristics';
 
-const context = inject<ItemSheetContext<WeaponDataModel>>(RootContext)!;
+const { document: item } = useSheetDocument<GenesysItem<WeaponDataModel>>();
 
-const system = computed(() => context.data.item.systemData);
+const system = toRef(() => item.value.systemData);
 </script>
 
 <template>

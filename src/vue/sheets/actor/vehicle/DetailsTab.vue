@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { toRef } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
+const system = toRef(() => actor.value.systemData);
 </script>
 
 <template>

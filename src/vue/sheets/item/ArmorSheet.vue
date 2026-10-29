@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
+import { toRef } from 'vue';
 
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
@@ -10,23 +11,23 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { withoutIndex } from '@/arrays';
 
-const context = inject<ItemSheetContext<ArmorDataModel>>(RootContext)!;
+const { document: item } = useSheetDocument<GenesysItem<ArmorDataModel>>();
 
-const system = computed(() => context.data.item.systemData);
+const system = toRef(() => item.value.systemData);
 
 async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {
-		await toRaw(context.data.item).update({ 'system.qualities': qualities });
+		await item.value.update({ 'system.qualities': qualities });
 	}
 }
 
 function deleteQuality(index: number) {
-	return updateQualities(withoutIndex(toRaw(system.value).qualities, index));
+	return updateQualities(withoutIndex(system.value.qualities, index));
 }
 
 function updateQualityRating(index: number, event: Event) {
 	const rating = parseInt((event.target as HTMLInputElement).value, 10);
-	return updateQualities(withQualityRating(toRaw(system.value).qualities, index, rating));
+	return updateQualities(withQualityRating(system.value.qualities, index, rating));
 }
 </script>
 

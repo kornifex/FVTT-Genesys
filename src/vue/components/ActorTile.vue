@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { inject, ref, toRaw, onUpdated } from 'vue';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { onUpdated, ref } from 'vue';
+import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { constructDragTransferTypeFromData, DragTransferData } from '@/data/DragTransferData';
 
@@ -27,12 +26,16 @@ const emit = defineEmits<{
 	(e: 'removeMember'): void;
 }>();
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
+const { editable } = useSheetDocument();
+
+// Foundry changes the actor out of Vue's sight, and the prop stays the same actor: the tile reads it again on each render
+// of the sheet.
+const member = useRendered(() => props.actor);
 
 const isBeingDragged = ref(false);
 const imageDom = ref<HTMLImageElement | null>(null);
 
-const career = props.actor.type === 'character' ? toRaw(props.actor).items.find((item) => item.type === 'career')?.name : undefined;
+const career = props.actor.type === 'character' ? props.actor.items.find((item) => item.type === 'career')?.name : undefined;
 
 // When we are on "tile" mode the image DOM element used to display the actor's picture is wrapped by a context menu
 // component. Sadly, even when we force a re-render of this component sometimes said DOM element won't be re-rendered
@@ -72,7 +75,7 @@ function dragEnd(event: DragEvent) {
 }
 
 async function openActorSheet() {
-	await toRaw(props.actor).sheet.render(true);
+	await props.actor.sheet.render(true);
 }
 </script>
 
@@ -87,17 +90,17 @@ async function openActorSheet() {
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
-		<img :src="actor.img" :alt="actor.name" draggable="false" />
+		<img :src="member.img" :alt="member.name" draggable="false" />
 
 		<div class="details">
 			<span class="name">
-				<a @click="openActorSheet">{{ actor.name }}</a>
+				<a @click="openActorSheet">{{ member.name }}</a>
 			</span>
 
 			<div v-if="career"><Localized label="Genesys.Labels.Career" />: {{ career }}</div>
 		</div>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable">
+		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
@@ -115,18 +118,18 @@ async function openActorSheet() {
 			'drag-dim': props.dragging && !isBeingDragged,
 			'drag-source': isBeingDragged,
 		}"
-		:data-tooltip="actor.name"
+		:data-tooltip="member.name"
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
-		<ContextMenu class="actions" position="above" :disable-menu="!context.data.editable">
+		<ContextMenu class="actions" position="above" :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
-			<img ref="imageDom" :src="actor.img" :alt="actor.name" draggable="false" />
+			<img ref="imageDom" :src="member.img" :alt="member.name" draggable="false" />
 		</ContextMenu>
 	</div>
 </template>

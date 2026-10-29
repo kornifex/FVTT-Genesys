@@ -3,8 +3,7 @@ import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory } from '@/effects/NewEffect';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { inject, toRaw } from 'vue';
-import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
 import Localized from '@/vue/components/Localized.vue';
 
 defineProps<{
@@ -15,7 +14,7 @@ const emit = defineEmits<{
 	(e: 'addEffect', category: EffectCategory): void;
 }>();
 
-const rootContext = inject<BaseSheetContext>(RootContext)!;
+const { document: sheetDocument, editable } = useSheetDocument();
 
 type EffectSection = {
 	category: EffectCategory;
@@ -38,24 +37,24 @@ const STATE_LABELS: Record<EquipmentState, string> = {
 
 // An actor's tab also lists the effects of its items, which live on the item.
 function livesOnSheetDocument(effect: GenesysEffect) {
-	return toRaw(effect).parent === toRaw(rootContext.sheet).document;
+	return effect.parent === sheetDocument.value;
 }
 
 function sourceName(effect: GenesysEffect) {
-	return livesOnSheetDocument(effect) ? effect.sourceName : toRaw(effect).parent?.name ?? effect.sourceName;
+	return livesOnSheetDocument(effect) ? effect.sourceName : effect.parent?.name ?? effect.sourceName;
 }
 
 function suppressionReason(effect: GenesysEffect) {
-	const item = toRaw(effect).originItem;
+	const item = effect.originItem;
 	if (!item || !effect.isSuppressedByEquipmentState) {
 		return undefined;
 	}
 
-	if (toRaw(effect).isSuppressedAsConsumable) {
+	if (effect.isSuppressedAsConsumable) {
 		return game.i18n.format('Genesys.ActiveEffects.SuppressedAsConsumable', { item: item.name });
 	}
 
-	const container = toRaw(effect).suppressingContainer;
+	const container = effect.suppressingContainer;
 	if (container) {
 		return game.i18n.format('Genesys.ActiveEffects.SuppressedByContainer', { item: item.name, container: container.name });
 	}
@@ -65,17 +64,17 @@ function suppressionReason(effect: GenesysEffect) {
 }
 
 async function openEffect(effect: GenesysEffect) {
-	await toRaw(effect).sheet.render(true);
+	await effect.sheet.render(true);
 }
 
 async function toggleDisabled(effect: GenesysEffect) {
-	await toRaw(effect).update({
+	await effect.update({
 		disabled: !effect.disabled,
 	});
 }
 
 async function deleteEffect(effect: GenesysEffect) {
-	await toRaw(effect).delete();
+	await effect.delete();
 }
 </script>
 
@@ -97,7 +96,7 @@ async function deleteEffect(effect: GenesysEffect) {
 					<div class="name">{{ effect.name }}</div>
 					<div class="source">{{ sourceName(effect) }}</div>
 					<div class="duration">{{ effect.duration.label }}</div>
-					<div v-if="rootContext.data.editable" class="buttons">
+					<div v-if="editable" class="buttons">
 						<a @click="toggleDisabled(effect)" :style="effect.disabled ? 'opacity: 25%' : undefined"
 							><i class="fas fa-power-off"></i
 						></a>

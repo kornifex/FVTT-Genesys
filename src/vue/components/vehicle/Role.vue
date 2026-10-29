@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { shallowRef, watch } from 'vue';
 
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -34,7 +34,8 @@ const emit = defineEmits<{
 }>();
 
 const { isHovered, enter, leave, reset } = useDragHover();
-const actorsInRole = ref<GenesysActor[]>([]);
+// Shallow, so that Vue never wraps the actors in reactive proxies.
+const actorsInRole = shallowRef<GenesysActor[]>([]);
 
 // Make sure to display only actors that exist.
 watch(

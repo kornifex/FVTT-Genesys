@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
@@ -19,18 +20,15 @@ import { rollForCrew } from '@/operations/CrewRoll';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
-const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
+const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
-const actor = computed(() => toRaw(rootContext.data.actor));
 const weapons = computed(
 	() =>
-		toRaw(rootContext.data.actor).items.filter(
+		actor.value.items.filter(
 			(i) => i.type === 'vehicleWeapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
 		) as GenesysItem<VehicleWeaponDataModel>[],
 );
-const criticalHits = computed(
-	() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[],
-);
+const criticalHits = computed(() => actor.value.items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 async function rollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
 	await rollForCrew(crewForSkills(actor.value.systemData.crew, weapon.systemData.skills), {

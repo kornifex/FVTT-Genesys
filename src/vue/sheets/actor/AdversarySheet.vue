@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, toRef } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -30,23 +31,23 @@ import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
-const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
+const system = toRef(() => actor.value.systemData);
 
-const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
-const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
+const talents = computed(() => actor.value.items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
+const abilities = computed(() => actor.value.items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
 const equipment = computed(
 	() =>
-		toRaw(context.data.actor).items.filter((i) =>
+		actor.value.items.filter((i) =>
 			AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type),
 		) as GenesysItem<EquipmentDataModel>[],
 );
-const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const injuries = computed(() => actor.value.items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
-const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
+const { effects, addEffect } = useDocumentEffects();
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
-	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
+	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
 }
 
 async function rollAttack(weapon: GenesysItem) {
@@ -60,33 +61,32 @@ async function rollAttack(weapon: GenesysItem) {
 	}
 
 	// The type check above makes it a weapon.
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, {
+	await DicePrompt.promptForRoll(actor.value, attackSkillName, {
 		roll: { type: RollType.Attack, weapon: weapon as GenesysItem<WeaponDataModel> },
 	});
 }
 
 async function editItem(item: GenesysItem) {
-	await toRaw(item).sheet.render(true);
+	await item.sheet.render(true);
 }
 
 async function deleteItem(item: GenesysItem) {
-	await toRaw(item).delete();
+	await item.delete();
 }
 
 // A non-ranked talent offers no rank change, as on characters.
 function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
-	return talentRankChange(toRaw(talent), 1).action !== 'refuse';
+	return talentRankChange(talent, 1).action !== 'refuse';
 }
 
 async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | -1) {
-	const actor = toRaw(context.data.actor);
-	const change = talentRankChange(toRaw(talent), step);
+	const change = talentRankChange(talent, step);
 	switch (change.action) {
 		case 'update':
-			await actor.updateEmbeddedDocuments('Item', [change.update]);
+			await actor.value.updateEmbeddedDocuments('Item', [change.update]);
 			break;
 		case 'delete':
-			await actor.deleteEmbeddedDocuments('Item', [change.id]);
+			await actor.value.deleteEmbeddedDocuments('Item', [change.id]);
 			break;
 		case 'refuse':
 			if (change.refusal) {
@@ -97,7 +97,7 @@ async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | 
 }
 
 function skillForWeapon(weapon: GenesysItem) {
-	return attackSkillName(toRaw(context.data.actor).skills, weapon.systemData as WeaponDataModel);
+	return attackSkillName(actor.value.skills, weapon.systemData as WeaponDataModel);
 }
 
 function damageForWeapon(weapon: GenesysItem) {
@@ -112,13 +112,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		return;
 	}
 
-	await toRaw(context.data.actor).update({
+	await actor.value.update({
 		'system.superCharacteristics': superCharacteristics,
 	});
 }
 
 async function sendToChat(item: GenesysItem) {
-	await postChatCard(toRaw(item), toRaw(context.data.actor));
+	await postChatCard(item, actor.value);
 }
 
 function dragStart(event: DragEvent, item: GenesysItem) {
@@ -137,8 +137,8 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 <template>
 	<div class="adversary-sheet">
 		<header>
-			<img :src="context.data.actor.img" :alt="context.data.actor.name" data-edit="img" />
-			<input type="text" name="name" :value="context.data.actor.name" />
+			<img :src="actor.img" :alt="actor.name" data-edit="img" />
+			<input type="text" name="name" :value="actor.name" />
 		</header>
 
 		<nav class="sheet-tabs" data-group="primary">
@@ -194,7 +194,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 						<div class="container">
 							<Localized v-if="talents.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="talent in talents" :key="talent.id" class="talent">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<template v-if="canChangeTalentRank(talent)">
 											<MenuItem
@@ -232,7 +232,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 						<div class="container">
 							<Localized v-if="abilities.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
 									</template>
@@ -299,7 +299,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
 								:key="item.id"
 								class="inventory-item"
-								:disable-menu="!context.data.editable"
+								:disable-menu="!editable"
 							>
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
@@ -330,7 +330,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 						<div class="container">
 							<Localized v-if="injuries.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 									</template>

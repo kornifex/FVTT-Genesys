@@ -1,15 +1,15 @@
 <script lang="ts" setup>
-import { computed, inject, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
 import { toggledFreeRankChoice } from '@/actor/data/character/Career';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 
-const context = inject<CareerSkillPromptContext>(RootContext)!;
+const context = useSheetContext<CareerSkillPromptContext>();
 
 const selectedSkillIDs = ref<string[]>([]);
 const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - selectedSkillIDs.value.length);
@@ -23,7 +23,7 @@ function selectSkill(event: Event, skill: GenesysItem<SkillDataModel>) {
 function confirm(event: Event) {
 	event.preventDefault();
 
-	context.answer(selectedSkillIDs.value);
+	context.value.answer(selectedSkillIDs.value);
 }
 </script>
 

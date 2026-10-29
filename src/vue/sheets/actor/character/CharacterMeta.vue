@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import { inject, onBeforeMount, onUpdated, ref, toRaw } from 'vue';
+import { toRef } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { vLocalize } from '@/vue/directives';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -12,41 +13,31 @@ import { CharacterSheet } from '@/actor/sheets/CharacterSheet';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
-const rootContext = inject<ActorSheetContext<CharacterDataModel, CharacterSheet>>(RootContext)!;
+const { document: actor, editable, sheet } = useSheetDocument<GenesysActor<CharacterDataModel>, CharacterSheet>();
 
-const archetype = ref<GenesysItem<ArchetypeDataModel> | undefined>();
-const career = ref<GenesysItem<CareerDataModel> | undefined>();
-
-function updateArchetypeAndCareer() {
-	const actor = toRaw(rootContext.data.actor);
-
-	archetype.value = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
-	career.value = actor.items.find((i) => i.type === 'career') as GenesysItem<CareerDataModel> | undefined;
-}
+const archetype = toRef(() => actor.value.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined);
+const career = toRef(() => actor.value.items.find((i) => i.type === 'career') as GenesysItem<CareerDataModel> | undefined);
 
 async function openItemSheet(item?: GenesysItem) {
 	if (!item) {
 		return;
 	}
-	await toRaw(item).sheet?.render(true);
+	await item.sheet?.render(true);
 }
 
 async function removeArchetype(archetype?: GenesysItem<ArchetypeDataModel>) {
 	if (!archetype) {
 		return;
 	}
-	await toRaw(rootContext.sheet).removeArchetype(toRaw(archetype));
+	await sheet.removeArchetype(archetype);
 }
 
 async function removeCareer(career?: GenesysItem<CareerDataModel>) {
 	if (!career) {
 		return;
 	}
-	await toRaw(rootContext.sheet).removeCareer(toRaw(career));
+	await sheet.removeCareer(career);
 }
-
-onBeforeMount(updateArchetypeAndCareer);
-onUpdated(updateArchetypeAndCareer);
 </script>
 
 <template>
@@ -55,7 +46,7 @@ onUpdated(updateArchetypeAndCareer);
 			<div class="title"><Localized label="TYPES.Actor.character" /></div>
 
 			<label><Localized label="Genesys.Labels.CharacterName" /></label>
-			<input type="text" name="name" :value="rootContext.data.actor.name" v-localize:placeholder="'Genesys.Labels.CharacterName'" />
+			<input type="text" name="name" :value="actor.name" v-localize:placeholder="'Genesys.Labels.CharacterName'" />
 
 			<div class="underline"></div>
 
@@ -67,7 +58,7 @@ onUpdated(updateArchetypeAndCareer);
 							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(archetype)" />
 
 							<MenuItem
-								v-if="rootContext.data.editable && rootContext.sheet.canRemoveArchetype()"
+								v-if="editable && sheet.canRemoveArchetype()"
 								icon="fas fa-trash"
 								label="Genesys.Labels.Delete"
 								@click="removeArchetype(archetype)"
@@ -89,12 +80,7 @@ onUpdated(updateArchetypeAndCareer);
 						<template v-slot:menu-items>
 							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(career)" />
 
-							<MenuItem
-								v-if="rootContext.data.editable"
-								icon="fas fa-trash"
-								label="Genesys.Labels.Delete"
-								@click="removeCareer(career)"
-							/>
+							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="removeCareer(career)" />
 						</template>
 
 						<a @click="openItemSheet(career)">{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
@@ -106,7 +92,7 @@ onUpdated(updateArchetypeAndCareer);
 			<div class="underline"></div>
 		</div>
 
-		<img :src="rootContext.data.actor.img" data-edit="img" :alt="rootContext.data.actor.name" />
+		<img :src="actor.img" data-edit="img" :alt="actor.name" />
 	</header>
 </template>
 

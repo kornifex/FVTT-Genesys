@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, inject, onMounted, ref, shallowRef, toRaw } from 'vue';
+import { computed, onMounted, ref, shallowRef } from 'vue';
 import { DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
@@ -8,7 +8,7 @@ import { DEFENSE_LABELS } from '@/data/Actors';
 import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
@@ -52,25 +52,27 @@ const CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS = CONFIG.genesys.settings.showCh
 const USE_CHANCE_TO_SUCCEED_BY_PERMUTATION = CONFIG.genesys.settings.showChanceToSucceedFromPermutations;
 const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.genesys.settings.showChanceToSucceedFromSimulations.enabled;
 
-const context = inject<DicePromptContext>(RootContext)!;
-const weapon = context.roll.type === RollType.Attack ? context.roll.weapon : undefined;
+const context = useSheetContext<DicePromptContext>();
+const weapon = context.value.roll.type === RollType.Attack ? context.value.roll.weapon : undefined;
 
-const currentDicePool = ref<DicePool>({
+// Shallow, so that the dice pool reaches the chance Worker as it is: a reactive proxy can't be cloned to a Worker.
+const currentDicePool = shallowRef<DicePool>({
 	dice: {},
 	symbols: {},
 	usesSuperCharacteristic: false,
 });
 const check = shallowRef<Check<PromptSkill>>();
-const baseDifficulty = parsePoolModifications(context.difficulty);
+const baseDifficulty = parsePoolModifications(context.value.difficulty);
 const manualChanges = ref<string[]>([]);
 // The Pool Modifications of the check, each turned on or off by the roller.
 const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
-// The skills the attacking weapon lists, offered first and only there.
-const weaponSkills = ref<PromptSkill[]>([]);
-const availableSkills = ref<PromptSkill[]>([]);
+// The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
+// lists, offered first and only there.
+const weaponSkills = shallowRef<PromptSkill[]>([]);
+const availableSkills = shallowRef<PromptSkill[]>([]);
 // Skills from the Skills Compendium that the actor doesn't own; rolling one of these is an Unranked Skill Check.
-const unrankedSkills = ref<PromptSkill[]>([]);
-const selectedSkill = ref<AlsoNone<PromptSkill>>();
+const unrankedSkills = shallowRef<PromptSkill[]>([]);
+const selectedSkill = shallowRef<AlsoNone<PromptSkill>>();
 const selectedCharacteristic = ref<AlsoNone<Characteristic>>();
 const probabilityOfSuccess = ref<AlsoNone<string>>();
 
@@ -87,7 +89,7 @@ let previousDicePool: DicePool = {
 };
 
 onMounted(() => {
-	const actor = toRaw(context.actor);
+	const actor = context.value.actor;
 
 	if (actor) {
 		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
@@ -97,7 +99,7 @@ onMounted(() => {
 		unrankedSkills.value = skills.unranked;
 	}
 
-	resolve({ skillName: context.skillName, fallbackCharacteristic: context.characteristic });
+	resolve({ skillName: context.value.skillName, fallbackCharacteristic: context.value.characteristic });
 });
 
 /**
@@ -107,7 +109,7 @@ onMounted(() => {
 function resolve(request: CheckRequest<PromptSkill>) {
 	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
 	const resolved = resolveCheck(
-		toRaw(context.actor),
+		context.value.actor,
 		{
 			...request,
 			purpose: checkPurpose(),
@@ -140,9 +142,9 @@ function resolve(request: CheckRequest<PromptSkill>) {
  * What the prompt rolls the check for.
  */
 function checkPurpose(): CheckPurpose {
-	switch (context.roll.type) {
+	switch (context.value.roll.type) {
 		case RollType.Attack:
-			return { kind: 'attack', weaponName: context.roll.weapon.name };
+			return { kind: 'attack', weaponName: context.value.roll.weapon.name };
 
 		case RollType.Initiative:
 			return { kind: 'initiative' };
@@ -163,7 +165,7 @@ function poolModificationName({ source, from }: CheckPoolModification) {
 function buildDicePool() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
 	currentDicePool.value = checkDicePool(check.value!, {
-		difficulty: context.difficulty,
+		difficulty: context.value.difficulty,
 		manualChanges: manualChanges.value,
 		isEnabled: (modification) => enabledKeys.has(modification.key),
 	});
@@ -183,14 +185,14 @@ async function approximateProbability() {
 	let chance: number;
 	switch (chanceComputation(dicePool, obsoleteDicePool, USE_CHANCE_TO_SUCCEED_BY_PERMUTATION ? 'permutation' : 'simulation')) {
 		case 'count':
-			chance = chanceToSucceed(toRaw(dicePool));
+			chance = chanceToSucceed(dicePool);
 			break;
 
 		case 'unchanged':
 			return;
 
 		case 'permutation': {
-			const { dice, symbols } = toRaw(dicePool);
+			const { dice, symbols } = dicePool;
 			chance = await chanceToSucceedInWorker({ dice, symbols });
 			break;
 		}
@@ -239,22 +241,22 @@ function removeManualChange(index: number) {
 }
 
 async function onRoll() {
-	const checkRoll = { check: check.value!, dicePool: toRaw(currentDicePool.value) };
+	const checkRoll = { check: check.value!, dicePool: currentDicePool.value };
 
-	switch (context.roll.type) {
+	switch (context.value.roll.type) {
 		case RollType.Attack:
-			await rollCheck(checkRoll, context.roll.weapon);
+			await rollCheck(checkRoll, context.value.roll.weapon);
 			break;
 
 		case RollType.Initiative:
-			context.roll.resolve(checkRoll);
+			context.value.roll.resolve(checkRoll);
 			break;
 
 		default:
 			await rollCheck(checkRoll);
 	}
 
-	await context.app.close();
+	await context.value.app.close();
 }
 </script>
 

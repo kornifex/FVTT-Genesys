@@ -1,15 +1,16 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
+import { toRef } from 'vue';
 
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 
-const context = inject<ItemSheetContext<ItemQualityDataModel>>(RootContext)!;
+const { document: item } = useSheetDocument<GenesysItem<ItemQualityDataModel>>();
 
-const system = computed(() => context.data.item.systemData);
+const system = toRef(() => item.value.systemData);
 </script>
 
 <template>
