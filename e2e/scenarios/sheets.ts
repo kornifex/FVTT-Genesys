@@ -1001,9 +1001,9 @@ export async function run(e2e: ScenarioContext) {
 		0,
 	);
 
-	// §#265: the welcome message is written in the language of the GM, from the language files.
+	// §#348: the welcome message is written in the language of the GM, from the language files.
 	const language = await gm.evaluate(() => game.settings.get('core', 'language'));
-	await e2e.step('#265 A2 GM reloads in French after an update', async () => {
+	await e2e.step('#348 A2 GM reloads in French after an update', async () => {
 		await gm.evaluate(async () => {
 			await game.settings.set('core', 'language', 'fr');
 			await game.settings.set('genesys', 'alphaVersion', '0.0.0');
@@ -1012,7 +1012,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	await gm.evaluate(installSheetsHelpers);
 	e2e.expect(
-		"#265 A2 in French, the welcome message's documentation link reads Documentation du projet",
+		"#348 A2 in French, the welcome message's documentation link reads Documentation du projet",
 		await gm.evaluate(() => window.sheetsE2E.welcomeDocumentationText()),
 		'Documentation du projet',
 	);
@@ -1027,10 +1027,10 @@ export async function run(e2e: ScenarioContext) {
 	await player.evaluate(installSheetsHelpers);
 	await e2e.step('setup', () => gm.evaluate((name) => window.sheetsE2E.setUp(name), e2e.playerUser));
 
-	// §#265: the token configuration names an actor's bars and values in the game's language. Replacing their
+	// §#348: the token configuration names an actor's bars and values in the game's language. Replacing their
 	// translations tells a localized label from the English one it used to show raw.
 	e2e.expect(
-		"#265 A1 the token configuration names a Minion Group's bars and values from the language files",
+		"#348 A1 the token configuration names a Minion Group's bars and values from the language files",
 		await gm.evaluate(() =>
 			window.sheetsE2E.trackedAttributeLabels('Minion', {
 				'Genesys.Labels.Wounds': 'E2E Wounds',
