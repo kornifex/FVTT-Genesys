@@ -7,7 +7,6 @@ import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
-import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -16,6 +15,7 @@ import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDra
 import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
+import { signed } from '@/vue/format';
 
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -81,12 +81,15 @@ function armorData() {
 	return system() as ArmorDataModel;
 }
 
+// The rows that read a weapon's data are those of a character's or a vehicle's weapon.
 function weaponData() {
-	return {
-		baseWeapon: system() as BaseWeaponDataModel,
-		charWeapon: system() as WeaponDataModel,
-		vehWeapon: system() as VehicleWeaponDataModel,
-	};
+	return system() as WeaponDataModel | VehicleWeaponDataModel;
+}
+
+// The labels of a vehicle weapon's firing arc: a character's weapon has none.
+function firingArcs() {
+	const weapon = weaponData();
+	return 'firingArc' in weapon ? firingArcLabels(weapon.firingArc) : undefined;
 }
 
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
@@ -97,7 +100,7 @@ const containedItems = computed(() =>
 );
 
 function damage() {
-	const weapon = weaponData().charWeapon;
+	const weapon = weaponData();
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
@@ -140,7 +143,7 @@ async function setItemState(state: EquipmentState) {
 }
 
 function skillForWeapon() {
-	return attackSkillName(toRaw(context.data.actor).skills, weaponData().charWeapon);
+	return attackSkillName(toRaw(context.data.actor).skills, weaponData());
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
@@ -300,44 +303,41 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<!-- Weapon Details -->
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
 					<!-- Skill -->
-					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().baseWeapon.skills[0]) ?? '-' }}</div>
+					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().skills[0]) ?? '-' }}</div>
 
 					<!-- Firing Arc -->
 					<!-- prettier-ignore -->
-					<div v-if="weaponData().vehWeapon.firingArc" class="firing-arc">
-						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcLabels(weaponData().vehWeapon.firingArc)" :key="label"><Localized :label="label" /></span>
+					<div v-if="firingArcs()" class="firing-arc">
+						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcs()" :key="label"><Localized :label="label" /></span>
 					</div>
 
 					<!-- Damage -->
 					<!-- prettier-ignore -->
 					<div>
 						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage().characteristic">{{ damage().baseDamage }}</span>
-						<span v-else-if="damage().baseDamage >= 0">
-							<Localized :label="damage().characteristic!" />+{{ damage().baseDamage }} ({{ damage().total }})</span
-						>
-						<span v-else><Localized :label="damage().characteristic!" />{{ damage().baseDamage }} ({{ damage().total }})</span>
+						<span v-else><Localized :label="damage().characteristic!" />{{ signed(damage().baseDamage) }} ({{ damage().total }})</span>
 					</div>
 
 					<!-- Critical -->
-					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().baseWeapon.critical }}</div>
+					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().critical }}</div>
 
 					<!-- Range -->
 					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().baseWeapon.range.capitalize()}`" />]</div>
+					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().range.capitalize()}`" />]</div>
 
 					<!-- Qualities -->
-					<QualityList :qualities="weaponData().baseWeapon.qualities" class="item-qualities" />
+					<QualityList :qualities="weaponData().qualities" class="item-qualities" />
 				</template>
 
 				<!-- Armor Details -->
 				<template v-else-if="item.type === 'armor'">
 					<!-- Soak -->
-					<div v-if="armorData().soak > 0"><Localized label="Genesys.Labels.Soak" /> +{{ armorData().soak }}</div>
-					<div v-else-if="armorData().soak < 0"><Localized label="Genesys.Labels.Soak" /> {{ armorData().soak }}</div>
+					<div v-if="armorData().soak !== 0"><Localized label="Genesys.Labels.Soak" /> {{ signed(armorData().soak) }}</div>
 
 					<!-- Defense -->
-					<div v-if="armorData().defense > 0"><Localized label="Genesys.Labels.Defense" /> +{{ armorData().defense }}</div>
-					<div v-else-if="armorData().defense < 0"><Localized label="Genesys.Labels.Defense" /> {{ armorData().defense }}</div>
+					<div v-if="armorData().defense !== 0">
+						<Localized label="Genesys.Labels.Defense" /> {{ signed(armorData().defense) }}
+					</div>
 
 					<!-- Qualities -->
 					<QualityList :qualities="armorData().qualities" class="item-qualities" />
