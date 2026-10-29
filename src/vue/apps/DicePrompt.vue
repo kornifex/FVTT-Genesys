@@ -373,6 +373,7 @@ async function onRoll() {
 </template>
 
 <style lang="scss">
+// Unscoped: window.prompt styles the Foundry window around the component.
 @use '@scss/mixins/window.scss';
 
 .app-dice-prompt {

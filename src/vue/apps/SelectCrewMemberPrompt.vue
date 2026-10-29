@@ -48,6 +48,7 @@ function submitSelection(event: Event) {
 </template>
 
 <style lang="scss">
+// Unscoped: window.prompt styles the Foundry window around the component.
 @use '@scss/mixins/window.scss';
 
 .app-select-crew-member-prompt {
