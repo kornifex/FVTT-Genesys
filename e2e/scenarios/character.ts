@@ -1,4 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries. */
+import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
 type Characteristic = 'brawn' | 'agility' | 'intellect' | 'cunning' | 'willpower' | 'presence';
@@ -19,11 +20,14 @@ type CharacterHelpers = {
 	drop(actor: string, uuid: string): void;
 	/**
 	 * Drops the world Archetype `E2E <archetype>` on the character, and waits until the character holds it alone and its
-	 * Starting XP, the character's update coming last; or removes the character's from its menu, and waits until the
-	 * Archetype item is deleted, which comes last. A removal can take longer than a step's wait on v13.
+	 * Starting XP, the character's update coming last; or removes the character's from its menu, answers the dialog
+	 * confirming it, and on Yes waits until the Archetype item is deleted, which comes last. A removal can take longer than
+	 * a step's wait on v13. The removal gives the dialog read.
 	 */
 	applyArchetype(actor: string, archetype: string): Promise<void>;
-	removeArchetype(actor: string): Promise<void>;
+	removeArchetype(actor: string, answer?: 'yes' | 'no'): Promise<ConfirmDialog | null>;
+	/** Deletes the character's Career from its menu, answers the dialog confirming it, and gives the dialog read. */
+	removeCareer(actor: string, answer?: 'yes' | 'no'): Promise<ConfirmDialog | null>;
 	/** The uuid of the world item `E2E <name>`. */
 	worldItem(name: string): string;
 	/** The uuid of a Skills Compendium skill. */
@@ -45,6 +49,8 @@ type CharacterHelpers = {
 	careerPrompt(actor: string, picks: string[] | null): Promise<string[]>;
 	/** Clicks the severity of a Critical Injury or Hit. */
 	clickSeverity(actor: string, name: string): void;
+	/** Clicks the trash icon of a Critical Injury or Hit. */
+	trashInjury(actor: string, name: string): void;
 	crewPrompt(member: string): Promise<string[]>;
 	/** Reads the open Dice Prompt, then closes it. */
 	dicePrompt(): Promise<{ actor: string | null; skill: string | null; difficulty: string; difficultyDice: number }>;
@@ -149,6 +155,10 @@ function installCharacterHelpers() {
 	const skillRow = (name: string, skill: string) =>
 		[...sheet(name).querySelectorAll('.tab-skills .skill.row')].find(
 			(row) => text(row.querySelector('.name span')).replace(/ \([^()]*\)$/, '') === skill,
+		);
+	const injuryRow = (name: string, injury: string) =>
+		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
+			(candidate) => text(candidate.querySelector('.name')) === `E2E ${injury}`,
 		);
 	const talentRow = (name: string, talent: string) =>
 		[...sheet(name).querySelectorAll('.tab-talents .talent')].find(
@@ -295,13 +305,22 @@ function installCharacterHelpers() {
 			);
 		},
 
-		async removeArchetype(name) {
+		async removeArchetype(name, answer = 'yes') {
 			await window.characterE2E.menu(name, { meta: 'archetype' }, 'Genesys.Labels.Delete');
-			await waitFor(
-				`no Archetype on E2E ${name}`,
-				() => !actor(name).items.some((item: { type: string }) => item.type === 'archetype'),
-				20_000,
-			);
+			const asked = await window.e2e.answerConfirm(answer);
+			if (answer === 'yes') {
+				await waitFor(
+					`no Archetype on E2E ${name}`,
+					() => !actor(name).items.some((item: { type: string }) => item.type === 'archetype'),
+					20_000,
+				);
+			}
+			return asked;
+		},
+
+		async removeCareer(name, answer = 'yes') {
+			await window.characterE2E.menu(name, { meta: 'career' }, 'Genesys.Labels.Delete');
+			return window.e2e.answerConfirm(answer);
 		},
 
 		worldItem(name) {
@@ -415,10 +434,11 @@ function installCharacterHelpers() {
 		},
 
 		clickSeverity(name, injury) {
-			const row = [...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
-				(candidate) => text(candidate.querySelector('.name')) === `E2E ${injury}`,
-			);
-			click(row?.querySelector('.severity a'), `severity of ${injury}`);
+			click(injuryRow(name, injury)?.querySelector('.severity a'), `severity of ${injury}`);
+		},
+
+		trashInjury(name, injury) {
+			click(injuryRow(name, injury)?.querySelector('.actions .fa-trash')?.closest('a'), `trash icon of ${injury}`);
 		},
 
 		async crewPrompt(member) {
@@ -739,6 +759,8 @@ export async function run(e2e: ScenarioContext) {
 		await talentsTab(e2e, page);
 		await injuries(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
+		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
+		await confirmedRemovals(e2e, page);
 	} finally {
 		// The page lost the helpers if a step stopped the scenario after a reload. A failure here is no expected one: it is
 		// logged, so that the error which stopped the scenario stays the one reported.
@@ -1392,9 +1414,7 @@ async function careers(e2e: ScenarioContext, page: Evaluate) {
 			careers: ['career:E2E Career'],
 		},
 	);
-	await e2e.step('#39 G2 the Career deleted from the sheet', () =>
-		page((name) => window.characterE2E.menu(name, { meta: 'career' }, 'Genesys.Labels.Delete'), C),
-	);
+	await e2e.step('#39 G2 the Career deleted from the sheet', () => page((name) => window.characterE2E.removeCareer(name), C));
 	e2e.expect(
 		'#39 G2 deleting the Career unmarks its skills whatever their case, and takes back their Free Ranks',
 		{ skills: await skills(), careers: await careerItems() },
@@ -1528,9 +1548,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		),
 	);
 	e2e.expect('#199 H4 a skill created as a career skill stays one', await career(H, 'E2E Lore'), true);
-	await e2e.step('#199 H5 the Career removed', () =>
-		page((name) => window.characterE2E.menu(name, { meta: 'career' }, 'Genesys.Labels.Delete'), H),
-	);
+	await e2e.step('#199 H5 the Career removed', () => page((name) => window.characterE2E.removeCareer(name), H));
 	e2e.expect('#199 H5 removing the Career unmarks the dropped skill', await career(H, 'Ranged'), false);
 	await page((name) => window.characterE2E.close(name), H);
 
@@ -2100,4 +2118,182 @@ async function talentTiers(
 	);
 	await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: false });
 	await page((name) => window.characterE2E.close(name), 'Buyer');
+}
+
+/** §#373: each delete from a row of the Skills tab, an adversary's skills, the Critical Injuries and the character's header asks first. */
+async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
+	const D = 'Doubter';
+	const W = 'Wary';
+	const deletion = (name: string) => ({
+		application: 'DialogV2',
+		title: `Delete Item: ${name}`,
+		content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+		buttons: ['yes', 'no'],
+		defaultButton: 'no',
+	});
+	const held = async (actor: string, type: string, name: string) =>
+		page(
+			(args) =>
+				game.actors
+					.getName(`E2E ${args.actor}`)
+					.items.filter((item: { type: string; name: string }) => item.type === args.type && item.name === args.name).length,
+			{ actor, type, name },
+		);
+	// Deletes the rival's Survival, the character's Cool or its Sprain from its row, and answers the dialog; the dialog read.
+	const deleteFromRow = (row: 'adversarySkill' | 'skill' | 'injury', answer: 'yes' | 'no') =>
+		page(
+			async (args) => {
+				if (args.row === 'injury') window.characterE2E.trashInjury(args.D, 'Sprain');
+				else if (args.row === 'skill') await window.characterE2E.menu(args.D, { skill: 'Cool' }, 'Genesys.Labels.Delete');
+				else await window.characterE2E.menu(args.W, { adversarySkill: 'Survival' }, 'Genesys.Labels.Delete');
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ row, answer, D, W },
+		);
+	const granted = () =>
+		page(
+			(name) => ({
+				brawn: window.characterE2E.characteristic(name, 'brawn').base,
+				thresholds: window.characterE2E.thresholds(name),
+				journal: window.characterE2E.journal(name),
+				items: window.characterE2E.grants(name),
+				athletics: window.characterE2E.skills(name, ['Athletics']).Athletics?.rank,
+			}),
+			D,
+		);
+	const careerSkills = async () =>
+		Object.fromEntries(
+			Object.entries(await page((name) => window.characterE2E.skills(name, ['Ranged', 'Cool', 'Charm']), D)).map(([name, skill]) => [
+				name,
+				skill && `${skill.career ? 'career' : 'non-career'} ${skill.rank}`,
+			]),
+		);
+
+	await e2e.step(
+		'#373 A1 a character with an Archetype, a Career, a Critical Injury, and a rival with a skill, their sheets open',
+		async () => {
+			await page((name) => window.characterE2E.create(name), D);
+			await page((name) => window.characterE2E.open(name), D);
+			await page((name) => window.characterE2E.applyArchetype(name, 'Archetype'), D);
+			await e2e.settle();
+			await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Career')), D);
+			await page((name) => window.characterE2E.careerPrompt(name, ['Ranged', 'Cool', 'Stealth', 'Perception']), D);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: D,
+				items: [{ name: 'E2E Sprain', type: 'injury', system: { severity: 'easy' } }],
+			});
+			await page((name) => window.characterE2E.create(name, 'rival'), W);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: W,
+				items: [{ name: 'Survival', type: 'skill', system: { category: 'general', characteristic: 'cunning' } }],
+			});
+			await page((name) => window.characterE2E.open(name), W);
+		},
+	);
+
+	let asked: ConfirmDialog | null = null;
+	await e2e.step("#373 A2 the Delete of the rival's skill Survival clicked, and No answered", async () => {
+		asked = await deleteFromRow('adversarySkill', 'no');
+	});
+	e2e.expect(
+		"#373 A2 an adversary skill's Delete asks in Foundry's deletion dialog, which names the skill, No by default, and No keeps it",
+		{ asked, held: await held(W, 'skill', 'Survival') },
+		{ asked: deletion('Survival'), held: 1 },
+	);
+	await e2e.step("#373 A3 the Delete of the rival's skill Survival clicked, and Yes answered", async () => {
+		await deleteFromRow('adversarySkill', 'yes');
+	});
+	e2e.expect("#373 A3 Yes deletes the adversary's skill", await held(W, 'skill', 'Survival'), 0);
+
+	await e2e.step("#373 B1 the Delete of the character's skill Cool clicked, and No answered", async () => {
+		asked = await deleteFromRow('skill', 'no');
+	});
+	e2e.expect(
+		"#373 B1 a character skill's Delete asks in Foundry's deletion dialog, which names the skill, No by default, and No keeps it",
+		{ asked, held: await held(D, 'skill', 'Cool') },
+		{ asked: deletion('Cool'), held: 1 },
+	);
+	await e2e.step("#373 B2 the Delete of the character's skill Cool clicked, and Yes answered", async () => {
+		await deleteFromRow('skill', 'yes');
+	});
+	e2e.expect("#373 B2 Yes deletes the character's skill", await held(D, 'skill', 'Cool'), 0);
+
+	await e2e.step('#373 C1 the trash icon of the Critical Injury Sprain clicked, and No answered', async () => {
+		asked = await deleteFromRow('injury', 'no');
+	});
+	e2e.expect(
+		"#373 C1 a Critical Injury's trash icon asks in Foundry's deletion dialog, which names the injury, No by default, and No keeps it",
+		{ asked, held: await held(D, 'injury', 'E2E Sprain') },
+		{ asked: deletion('E2E Sprain'), held: 1 },
+	);
+	await e2e.step('#373 C2 the trash icon of the Critical Injury Sprain clicked, and Yes answered', async () => {
+		await deleteFromRow('injury', 'yes');
+	});
+	e2e.expect('#373 C2 Yes deletes the Critical Injury', await held(D, 'injury', 'E2E Sprain'), 0);
+
+	const withArchetype = await granted();
+	await e2e.step("#373 D1 the Archetype's Delete clicked, and No answered", async () => {
+		asked = await page((name) => window.characterE2E.removeArchetype(name, 'no'), D);
+	});
+	e2e.expect(
+		'#373 D1 removing the Archetype asks in a dialog saying what it takes back, No by default, and No keeps all it gave',
+		{ asked, granted: await granted() },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Remove Archetype',
+				content:
+					'Removing E2E Archetype takes back the characteristics, wound and strain thresholds and Starting XP it gave, deletes the items it granted, and lowers each skill it granted by one rank. Do you want to proceed?',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			granted: withArchetype,
+		},
+	);
+	await e2e.step("#373 D2 the Archetype's Delete clicked, and Yes answered", async () => {
+		await page((name) => window.characterE2E.removeArchetype(name, 'yes'), D);
+	});
+	e2e.expect('#373 D2 Yes takes back all the Archetype gave', await granted(), {
+		brawn: 0,
+		thresholds: { wounds: 0, strain: 0 },
+		journal: [],
+		items: ['career:E2E Career:none'],
+		athletics: 0,
+	});
+
+	const withCareer = await careerSkills();
+	await e2e.step("#373 E1 the Career's Delete clicked, and No answered", async () => {
+		asked = await page((name) => window.characterE2E.removeCareer(name, 'no'), D);
+	});
+	e2e.expect(
+		'#373 E1 removing the Career asks in a dialog saying what it takes back, No by default, and No keeps its skills marked and their Free Ranks',
+		{ asked, skills: await careerSkills(), held: await held(D, 'career', 'E2E Career') },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Remove Career',
+				content:
+					'Removing E2E Career unmarks its career skills and takes back the Free Ranks it gave them. Do you want to proceed?',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			skills: withCareer,
+			held: 1,
+		},
+	);
+	await e2e.step("#373 E2 the Career's Delete clicked, and Yes answered", async () => {
+		await page((name) => window.characterE2E.removeCareer(name, 'yes'), D);
+	});
+	e2e.expect(
+		'#373 E2 Yes deletes the Career, unmarks its skills and takes back their Free Ranks',
+		{ skills: await careerSkills(), held: await held(D, 'career', 'E2E Career') },
+		{ skills: { Ranged: 'non-career 0', Cool: null, Charm: 'non-career 0' }, held: 0 },
+	);
+
+	await page(
+		async (names) => {
+			for (const name of names) await window.characterE2E.close(name);
+		},
+		[D, W],
+	);
 }

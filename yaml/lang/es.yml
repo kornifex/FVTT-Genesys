@@ -248,6 +248,15 @@ Genesys:
     ConfirmUndoEntry:
       Title: Deshacer la entrada
       Content: Deshacer esta entrada quitará {items} del personaje. ¿Deseas continuar?
+    ConfirmRemoveArchetype:
+      Title: Quitar el arquetipo
+      Content: >-
+        Quitar {name} retira las características, los umbrales de heridas y de tensión y los PE iniciales que dio, elimina los
+        items que concedió y baja un rango cada habilidad que concedió. ¿Deseas continuar?
+    ConfirmRemoveCareer:
+      Title: Quitar la profesión
+      Content: >-
+        Quitar {name} desmarca sus habilidades profesionales y retira los rangos gratuitos que les dio. ¿Deseas continuar?
 
   # Migration Related Messages
   Migration:

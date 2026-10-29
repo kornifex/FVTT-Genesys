@@ -1,10 +1,14 @@
 /**
- * @file The actions the sheets offer on an item: attack with it, open its sheet, delete it, step its quantity, damage or
- * an adversary talent's rank, and send it to chat. Each that deletes the item asks the user first.
+ * @file The actions the sheets offer on an item: attack with it, open its sheet, delete it, remove a character's
+ * Archetype or Career, step its quantity, damage or an adversary talent's rank, and send it to chat. Each that deletes
+ * the item asks the user first.
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
+import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import * as Archetype from '@/actor/data/character/Archetype';
+import { careerSkillUpdates } from '@/actor/data/character/Career';
 import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
@@ -12,6 +16,8 @@ import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName } from '@/data/Skills';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
+import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import type { CareerDataModel } from '@/item/data/CareerDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { TalentDataModel } from '@/item/data/TalentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -60,6 +66,38 @@ export async function openSheet(document: GenesysItem | GenesysActor) {
 export async function deleteItem(item: GenesysItem) {
 	// The dialog deletes the item itself when the user answers Yes.
 	await item.deleteDialog();
+}
+
+/**
+ * Remove a character's Archetype, with what it gave them, once the user confirms in a dialog that says what is taken
+ * back.
+ */
+export async function removeArchetype(character: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
+	if (
+		await confirmDialog(
+			'Genesys.Dialogs.ConfirmRemoveArchetype.Title',
+			'Genesys.Dialogs.ConfirmRemoveArchetype.Content',
+			archetype.name,
+		)
+	) {
+		await Archetype.removeArchetype(character, archetype);
+	}
+}
+
+/**
+ * Remove a character's Career, with what it gave their skills, once the user confirms in a dialog that says what is
+ * taken back.
+ */
+export async function removeCareer(character: GenesysActor<CharacterDataModel>, career: GenesysItem<CareerDataModel>) {
+	if (!(await confirmDialog('Genesys.Dialogs.ConfirmRemoveCareer.Title', 'Genesys.Dialogs.ConfirmRemoveCareer.Content', career.name))) {
+		return;
+	}
+
+	const { careerSkills, selectedSkillIDs } = career.systemData;
+	await Promise.all(
+		careerSkillUpdates(character.items.contents, careerSkills, selectedSkillIDs, -1).map(({ skill, update }) => skill.update(update)),
+	);
+	await career.delete();
 }
 
 /**
@@ -117,13 +155,27 @@ export async function stepTalentRank(adversary: GenesysActor, talent: GenesysIte
 }
 
 /**
- * Ask the user to confirm an item's deletion. Closing the dialog keeps the item, as No does. Foundry's confirmation
- * dialog makes No its default button, as the AppV1 dialog it replaces did with `defaultYes: false`.
+ * Ask the user to confirm an item's deletion. Foundry's confirmation dialog makes No its default button, as the AppV1
+ * dialog it replaces did with `defaultYes: false`.
  */
 async function confirmDeletion() {
+	return confirmDialog('Genesys.Dialogs.ConfirmDeleteItem.Title', 'Genesys.Dialogs.ConfirmDeleteItem.Content');
+}
+
+/**
+ * Ask the user a yes-or-no question, which may name an item. No is the dialog's default button, and closing it answers
+ * No.
+ */
+async function confirmDialog(titleKey: string, contentKey: string, name?: string) {
+	// The name is the user's text: the paragraph takes it as text, never as HTML.
+	const paragraph = document.createElement('p');
+	paragraph.textContent = game.i18n.format(contentKey, { name: name ?? '' });
+	const body = document.createElement('div');
+	body.append(paragraph);
+
 	const confirmed = await foundry.applications.api.DialogV2.confirm({
-		window: { title: 'Genesys.Dialogs.ConfirmDeleteItem.Title' },
-		content: `<p>${game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content')}</p>`,
+		window: { title: titleKey },
+		content: body,
 		rejectClose: false,
 	});
 	return confirmed === true;

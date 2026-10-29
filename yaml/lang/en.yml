@@ -248,6 +248,14 @@ Genesys:
     ConfirmUndoEntry:
       Title: Undo Entry
       Content: Undoing this entry removes {items} from the character. Do you want to proceed?
+    ConfirmRemoveArchetype:
+      Title: Remove Archetype
+      Content: >-
+        Removing {name} takes back the characteristics, wound and strain thresholds and Starting XP it gave, deletes the items
+        it granted, and lowers each skill it granted by one rank. Do you want to proceed?
+    ConfirmRemoveCareer:
+      Title: Remove Career
+      Content: Removing {name} unmarks its career skills and takes back the Free Ranks it gave them. Do you want to proceed?
 
   # Migration Related Messages
   Migration:

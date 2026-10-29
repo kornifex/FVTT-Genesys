@@ -2,43 +2,20 @@
 import { toRef } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
+import { canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
-import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
-import { GenesysItem } from '@/item/GenesysItem';
-import { CareerDataModel } from '@/item/data/CareerDataModel';
-import { CharacterSheet } from '@/actor/sheets/CharacterSheet';
 import { itemsOfType } from '@/item/ItemTypes';
+import { openSheet, removeArchetype, removeCareer } from '@/operations/ItemActions';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
-const { document: actor, editable, sheet } = useSheetDocument<GenesysActor<CharacterDataModel>, CharacterSheet>();
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 const archetype = toRef(() => itemsOfType(actor.value, 'archetype').at(0));
 const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
-
-async function openItemSheet(item?: GenesysItem) {
-	if (!item) {
-		return;
-	}
-	await item.sheet?.render(true);
-}
-
-async function removeArchetype(archetype?: GenesysItem<ArchetypeDataModel>) {
-	if (!archetype) {
-		return;
-	}
-	await sheet.removeArchetype(archetype);
-}
-
-async function removeCareer(career?: GenesysItem<CareerDataModel>) {
-	if (!career) {
-		return;
-	}
-	await sheet.removeCareer(career);
-}
 </script>
 
 <template>
@@ -56,17 +33,17 @@ async function removeCareer(career?: GenesysItem<CareerDataModel>) {
 				<span v-if="archetype" class="archetype">
 					<ContextMenu>
 						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(archetype)" />
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(archetype)" />
 
 							<MenuItem
-								v-if="editable && sheet.canRemoveArchetype()"
+								v-if="editable && canRemoveArchetype(system)"
 								icon="fas fa-trash"
 								label="Genesys.Labels.Delete"
-								@click="removeArchetype(archetype)"
+								@click="removeArchetype(actor, archetype)"
 							/>
 						</template>
 
-						<a @click="openItemSheet(archetype)">{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
+						<a @click="openSheet(archetype)">{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
 					</ContextMenu>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoArchetype" /></span>
@@ -79,12 +56,17 @@ async function removeCareer(career?: GenesysItem<CareerDataModel>) {
 				<span v-if="career" class="career">
 					<ContextMenu>
 						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openItemSheet(career)" />
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(career)" />
 
-							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="removeCareer(career)" />
+							<MenuItem
+								v-if="editable"
+								icon="fas fa-trash"
+								label="Genesys.Labels.Delete"
+								@click="removeCareer(actor, career)"
+							/>
 						</template>
 
-						<a @click="openItemSheet(career)">{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
+						<a @click="openSheet(career)">{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
 					</ContextMenu>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoCareer" /></span>

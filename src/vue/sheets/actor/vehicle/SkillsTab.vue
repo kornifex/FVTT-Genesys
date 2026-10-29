@@ -7,6 +7,7 @@ import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill,
 import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations/CrewRoll';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { worldCheckRules } from '@/dice/Check';
+import { openSheet } from '@/operations/ItemActions';
 
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -60,10 +61,6 @@ watch(
 	},
 	{ immediate: true },
 );
-
-async function openActorSheet(actor: GenesysActor) {
-	await actor.sheet.render(true);
-}
 </script>
 
 <template>
@@ -79,7 +76,7 @@ async function openActorSheet(actor: GenesysActor) {
 			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
 					<img class="member-image" :src="details.actor.img" :alt="details.actor.name" draggable="false" />
-					<a class="member-name" @click="openActorSheet(details.actor)">{{ details.actor.name }}</a>
+					<a class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</a>
 					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role.name }}</div>
 
 					<div class="member-skills" v-if="details.skills.length > 0">
@@ -127,9 +124,7 @@ async function openActorSheet(actor: GenesysActor) {
 								:alt="memberSkill.actor.name"
 								draggable="false"
 							/>
-							<a class="skill-content-details-charName" @click="openActorSheet(memberSkill.actor)">{{
-								memberSkill.actor.name
-							}}</a>
+							<a class="skill-content-details-charName" @click="openSheet(memberSkill.actor)">{{ memberSkill.actor.name }}</a>
 							<div>{{ memberSkill.role.name }}</div>
 							<div class="skill-content-details-skillRank">{{ memberSkill.rank }}</div>
 							<a @click="rollForCrew([memberSkill])">
