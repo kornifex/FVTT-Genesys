@@ -18,8 +18,9 @@ type CharacterHelpers = {
 	/** Drops an item on an actor's sheet, as Foundry's drag and drop does. */
 	drop(actor: string, uuid: string): void;
 	/**
-	 * Drops the world Archetype `E2E <archetype>` on the character, or removes the character's from its menu, and waits
-	 * until the Archetype item is created or deleted: it comes last, and a removal can take longer than a step's wait on v13.
+	 * Drops the world Archetype `E2E <archetype>` on the character, and waits until the character holds it alone and its
+	 * Starting XP, the character's update coming last; or removes the character's from its menu, and waits until the
+	 * Archetype item is deleted, which comes last. A removal can take longer than a step's wait on v13.
 	 */
 	applyArchetype(actor: string, archetype: string): Promise<void>;
 	removeArchetype(actor: string): Promise<void>;
@@ -35,6 +36,8 @@ type CharacterHelpers = {
 	/** Clicks the trash of the last Experience Journal entry whose summary starts so. */
 	undo(actor: string, entry: string): void;
 	award(actor: string, amount: number, reason: string): Promise<void>;
+	/** Waits for the Career's Free Rank prompt to open. */
+	careerPromptOpen(): Promise<void>;
 	/**
 	 * Waits for the Career's Free Rank prompt, picks those skills and confirms, or closes it, then waits until the
 	 * character's skills are updated; the skills it offered.
@@ -267,10 +270,20 @@ function installCharacterHelpers() {
 		},
 
 		async applyArchetype(name, archetype) {
+			const startingXP = game.items.getName(`E2E ${archetype}`).system.startingXP;
 			window.characterE2E.drop(name, window.characterE2E.worldItem(archetype));
 			await waitFor(
 				`the Archetype of E2E ${name}`,
-				() => actor(name).items.some((item: { type: string }) => item.type === 'archetype'),
+				() => {
+					const archetypes = actor(name).items.filter((item: { type: string }) => item.type === 'archetype');
+					const [first] = actor(name).system.experienceJournal.entries;
+					return (
+						archetypes.length === 1 &&
+						archetypes[0].name === `E2E ${archetype}` &&
+						first?.type === 'Starting' &&
+						first.amount === startingXP
+					);
+				},
 				20_000,
 			);
 		},
@@ -362,6 +375,10 @@ function installCharacterHelpers() {
 			click(app.element.querySelector('.award-xp-prompt > button'), 'Add button');
 		},
 
+		async careerPromptOpen() {
+			await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
+		},
+
 		async careerPrompt(name, picks) {
 			const app = await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
 			const buttons = [...app.element.querySelectorAll('.career-skill-prompt .select-skill')] as HTMLElement[];
@@ -370,7 +387,7 @@ function installCharacterHelpers() {
 			const skill = (skillName: string) =>
 				actor(name).items.find((item: { type: string; name: string }) => item.type === 'skill' && item.name === skillName);
 			const ranks = Object.fromEntries(offered.map((offer) => [offer, skill(offer).system.rank as number]));
-			// The Career's skill updates are written one by one after the prompt: a Career dropped meanwhile would interleave.
+			// The Career's writes come after the prompt.
 			const updated = () =>
 				offered.every(
 					(offer) => skill(offer).system.career && skill(offer).system.rank === ranks[offer] + (picks?.includes(offer) ? 1 : 0),
@@ -827,8 +844,37 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 		[],
 	);
 
+	await e2e.step('#254 A9 an Archetype dropped over another, counting the writes', async () => {
+		await page((name) => window.characterE2E.create(name), 'Swapper');
+		await page((name) => window.characterE2E.open(name), 'Swapper');
+		await dropArchetype('Swapper');
+		await e2e.settle();
+		await page((name) => window.characterE2E.startCounting(name), 'Swapper');
+		await page((name) => window.characterE2E.applyArchetype(name, 'Small Archetype'), 'Swapper');
+		await e2e.settle();
+	});
+	const swapWrites = await page(() => window.characterE2E.stopCounting(), undefined);
+	e2e.log('#254 A9 sheet renders while replacing an Archetype', swapWrites.renders);
+	e2e.expect('#254 A9 the new Archetype takes back what the old one gave, and gives its own', await granted('Swapper'), {
+		characteristics: all(2),
+		thresholds: { wounds: 12, strain: 12 },
+		journal: ['Starting 30'],
+		items: ['archetype:E2E Small Archetype:none'],
+		athletics: 0,
+	});
+	e2e.expect(
+		'#254 A9 replacing an Archetype updates the character once',
+		{
+			updateActor: swapWrites.updateActor,
+			createItem: swapWrites.createItem,
+			updateItem: swapWrites.updateItem,
+			deleteItem: swapWrites.deleteItem,
+		},
+		{ updateActor: 1, createItem: 1, updateItem: 1, deleteItem: 3 },
+	);
+
 	await page(async () => {
-		for (const name of ['Granted', 'Legacy', 'Renamed']) await window.characterE2E.close(name);
+		for (const name of ['Granted', 'Legacy', 'Renamed', 'Swapper']) await window.characterE2E.close(name);
 	}, undefined);
 }
 
@@ -1312,6 +1358,40 @@ async function careers(e2e: ScenarioContext, page: Evaluate) {
 		{
 			skills: { ...untouched, Brawl: 'career 1', Melee: 'career 1', Athletics: 'career 1', Discipline: 'career 1' },
 			careers: ['career:E2E Other Career'],
+		},
+	);
+	let whilePrompted: { skills: Record<string, string | null>; careers: string[] } | undefined;
+	await e2e.step('#254 G4 the first Career dropped back over the other, counting the writes', async () => {
+		await e2e.settle();
+		await page((name) => window.characterE2E.startCounting(name), C);
+		await dropCareer('Career');
+		await page(() => window.characterE2E.careerPromptOpen(), undefined);
+		whilePrompted = { skills: await skills(), careers: await careerItems() };
+		await prompt(['Ranged', 'Cool', 'Stealth', 'Charm']);
+		await e2e.settle();
+	});
+	const careerWrites = await page(() => window.characterE2E.stopCounting(), undefined);
+	e2e.expect('#254 G4 nothing is written while the Free Rank prompt is open', whilePrompted, {
+		skills: { ...untouched, Brawl: 'career 1', Melee: 'career 1', Athletics: 'career 1', Discipline: 'career 1' },
+		careers: ['career:E2E Other Career'],
+	});
+	e2e.expect(
+		'#254 G4 the Career is replaced with its Free Ranks, each skill updated once',
+		{
+			skills: await skills(),
+			careers: await careerItems(),
+			writes: {
+				createItem: careerWrites.createItem,
+				updateItem: careerWrites.updateItem,
+				deleteItem: careerWrites.deleteItem,
+				updateActor: careerWrites.updateActor,
+			},
+		},
+		{
+			skills: { ...untouched, Ranged: 'career 1', Cool: 'career 1', Stealth: 'career 1', Perception: 'career 0', Charm: 'career 1' },
+			careers: ['career:E2E Career'],
+			// The four skills the Other Career lists and the five the Career lists; the Career is created with its Free Ranks.
+			writes: { createItem: 1, updateItem: 9, deleteItem: 1, updateActor: 0 },
 		},
 	);
 	await page((name) => window.characterE2E.close(name), C);

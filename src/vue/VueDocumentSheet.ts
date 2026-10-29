@@ -16,27 +16,10 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			form: { submitOnChange: true },
 		};
 
-		/**
-		 * Handle data dropped on the sheet.
-		 */
-		protected async _onDrop(_event: DragEvent) {}
-
 		protected override async _onFirstRender(context: RenderContext, options: RenderOptions) {
 			await super._onFirstRender(context, options);
 
 			this.element.addEventListener('click', (event) => void editImage(this, event));
-		}
-
-		protected override async _onRender(context: RenderContext, options: RenderOptions) {
-			await super._onRender(context, options);
-
-			// Foundry's DragDrop assigns the same element properties, so this replaces the handlers v13's actor sheets bind on
-			// each render.
-			this.element.ondragover = (event) => event.preventDefault();
-			this.element.ondrop = (event) => {
-				event.preventDefault();
-				void this._onDrop(event);
-			};
 		}
 
 		protected override async _preClose(options: object) {

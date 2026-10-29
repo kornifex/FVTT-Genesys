@@ -1,18 +1,12 @@
 import VueCharacterSheet from '@/vue/sheets/actor/CharacterSheet.vue';
 import { GenesysItem } from '@/item/GenesysItem';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
-import { advance, advancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
 import * as Archetype from '@/actor/data/character/Archetype';
-import { careerSkillUpdates, heldCareerSkills } from '@/actor/data/character/Career';
-import { isOwnedSkill } from '@/data/Skills';
-import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { careerSkillUpdates } from '@/actor/data/character/Career';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
-import { receiveInventoryDrop } from '@/operations/InventoryDrop';
+import { receiveCharacterDrop } from '@/operations/CharacterDrop';
 
 /**
  * Actor sheet used for Player Characters
@@ -26,118 +20,17 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 		return 'skills';
 	}
 
-	protected override async receiveItem(droppedItem: GenesysItem<BaseItemDataModel>): Promise<GenesysItem<BaseItemDataModel>[] | boolean> {
-		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
-		if (CharacterDataModel.isRelevantTypeForContext('APTITUDE', droppedItem.type)) {
-			if (droppedItem.type === 'archetype') {
-				// If it's an archetype, delete the old one and apply the new one.
-
-				if (!Archetype.canRemoveArchetype(this.actor)) {
-					return false;
-				}
-
-				const existingArchetype = this.actor.items.find((i) => i.type === 'archetype');
-				if (existingArchetype) {
-					await Archetype.removeArchetype(this.actor, existingArchetype as GenesysItem<ArchetypeDataModel>);
-				}
-
-				await Archetype.applyArchetype(this.actor, droppedItem as GenesysItem<ArchetypeDataModel>);
-
-				// Let `super` handle the rest and save a reference to it.
-				clonedDroppedItem = await super.receiveItem(droppedItem);
-			} else if (droppedItem.type === 'career') {
-				// If it's a career, delete the old one and apply the new one.
-
-				if (!canReplaceCareer(this.actor.systemData.experienceJournal.entries)) {
-					return false;
-				}
-
-				const existingCareer = this.actor.items.find((i) => i.type === 'career');
-				if (existingCareer) {
-					await this.removeCareer(existingCareer as GenesysItem<CareerDataModel>);
-				}
-
-				const career = await this.applyCareer(droppedItem as GenesysItem<CareerDataModel>);
-
-				clonedDroppedItem = [career];
-			} else {
-				// Let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super.receiveItem(droppedItem);
-			}
-		} else if (CharacterDataModel.isRelevantTypeForContext('SKILL', droppedItem.type)) {
-			// Refuse a skill the character already owns, whatever the case of its name, so that they never own a skill twice.
-			if (isOwnedSkill(this.actor.skills, droppedItem)) {
-				return false;
-			}
-
-			// Let `super` handle the drop and save a reference to it.
-			clonedDroppedItem = await super.receiveItem(droppedItem);
-		} else if (CharacterDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
-			// Let `super` handle the drop and save a reference to it.
-			clonedDroppedItem = await super.receiveItem(droppedItem);
-		} else if (CharacterDataModel.isRelevantTypeForContext('TALENT', droppedItem.type)) {
-			if (droppedItem.type === 'ability') {
-				// Let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super.receiveItem(droppedItem);
-			} else if (droppedItem.type === 'talent') {
-				const droppedTalent = droppedItem as GenesysItem<TalentDataModel>;
-				const newId = foundry.utils.randomID();
-				const bought = await advance(
-					this.actor,
-					buyDroppedTalent(
-						advancementCharacter(this.actor),
-						{ name: droppedTalent.name, tier: droppedTalent.systemData.tier, source: droppedTalent.toObject() },
-						newId,
-					),
-				);
-				if (!bought) {
-					return false;
-				}
-
-				const targetTalent =
-					this.actor.items.get(newId) ?? this.actor.items.find((i) => i.type === 'talent' && i.name === droppedTalent.name);
-				clonedDroppedItem = [targetTalent as GenesysItem<BaseItemDataModel>];
-			} else {
-				// Let `super` handle the drop and save a reference to it.
-				clonedDroppedItem = await super.receiveItem(droppedItem);
-			}
-		} else if (CharacterDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			clonedDroppedItem = await receiveInventoryDrop(this.actor, droppedItem);
-		} else {
-			// If the dropped item is not of a type that we have a default behavior then end early.
-			return false;
-		}
-
-		return clonedDroppedItem ?? false;
+	protected override async receiveItem(droppedItem: GenesysItem) {
+		return receiveCharacterDrop(this.actor, droppedItem);
 	}
 
 	// The character sheet's Vue components remove the Archetype through the sheet.
 	canRemoveArchetype() {
-		return Archetype.canRemoveArchetype(this.actor);
+		return Archetype.canRemoveArchetype(this.actor.systemData);
 	}
 
 	async removeArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
 		await Archetype.removeArchetype(this.actor, archetype);
-	}
-
-	/**
-	 * Add a Career to the character: its skills become Career skills, and those the player picks get its Free Ranks.
-	 */
-	async applyCareer(droppedCareer: GenesysItem<CareerDataModel>) {
-		const [career] = await this._onDropItemCreate(droppedCareer.toObject());
-		const careerSkills = droppedCareer.systemData.careerSkills;
-		const skills = heldCareerSkills(this.actor.items.contents, careerSkills) as GenesysItem<SkillDataModel>[];
-		const selectedSkills = await CareerSkillPrompt.promptForSkills(skills);
-
-		await career.update({
-			'system.selectedSkillIDs': selectedSkills,
-		});
-
-		await Promise.all(
-			careerSkillUpdates(skills, careerSkills, selectedSkills, 1).map(async ({ skill, update }) => await skill.update(update)),
-		);
-
-		return career;
 	}
 
 	/**

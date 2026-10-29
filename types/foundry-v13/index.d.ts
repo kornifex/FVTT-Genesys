@@ -2,8 +2,7 @@
  * @file The v13 Foundry APIs the system calls, which the vendored v12 types in `types/foundry` lack (ADR 0005).
  *
  * Only the members the system uses are declared, so the whole layer is replaced in one move when v12 leaves support. The shapes
- * are v13's: v12's ApplicationV2 lacks `_createContextMenu`, and v12 has no `sidebar` namespace at all. v12's ActorSheetV2 has no
- * drop handlers, so the system's actor sheets bring their own (`GenesysActorSheet`) and v13's aren't declared.
+ * are v13's: v12's ApplicationV2 lacks `_createContextMenu`, and v12 has no `sidebar` namespace at all.
  *
  * The vendored `Config` can't be merged with, so CONFIG's v13 entry (the v13 Combat Tracker in `ui.combat`) completes `GenesysConfig` in `src/global.d.ts` instead, and go with this layer.
  */
@@ -160,6 +159,15 @@ declare namespace foundry {
 				get actor(): TActor;
 
 				get token(): TokenDocument | null;
+
+				/**
+				 * The handlers of a document dropped on the sheet, which `_onDrop` resolves from the drag data unless the
+				 * `dropActorSheetData` hook refuses it. Each resolves to a document when the drop did something, or null.
+				 */
+				protected _onDropActiveEffect(event: DragEvent, effect: ActiveEffect): Promise<unknown>;
+				protected _onDropActor(event: DragEvent, actor: Actor): Promise<unknown>;
+				protected _onDropItem(event: DragEvent, item: Item): Promise<unknown>;
+				protected _onDropFolder(event: DragEvent, folder: Folder): Promise<unknown>;
 			}
 
 			class ItemSheetV2<TItem extends Item = Item> extends api.DocumentSheetV2<TItem> {

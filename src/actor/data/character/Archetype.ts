@@ -59,27 +59,47 @@ export type HeldItem = {
 const FLAG_ARCHETYPE_GRANT = 'archetypeGrant';
 
 /**
+ * The character with an Archetype added (sign +1) or removed (sign -1): characteristics, wound and strain thresholds, and
+ * the Starting XP entry at the head of the Experience Journal.
+ */
+function withArchetype(character: ArchetypeHolder, archetype: ArchetypeGrants, sign: ArchetypeSign): ArchetypeHolder {
+	const characteristics = { ...character.characteristics };
+	for (const characteristic of Object.values(Characteristic)) {
+		characteristics[characteristic] += sign * archetype.characteristics[characteristic];
+	}
+
+	return {
+		characteristics,
+		wounds: { max: character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn) },
+		strain: { max: character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower) },
+		// Starting XP is always the first entry of the Experience Journal.
+		experienceJournal: {
+			entries:
+				sign > 0
+					? withStartingXP(character.experienceJournal.entries, archetype.startingXP)
+					: withoutStartingXP(character.experienceJournal.entries),
+		},
+	};
+}
+
+function actorUpdate(character: ArchetypeHolder): Record<string, unknown> {
+	const update: Record<string, unknown> = {};
+	for (const characteristic of Object.values(Characteristic)) {
+		update[`system.characteristics.${characteristic}`] = character.characteristics[characteristic];
+	}
+
+	update['system.wounds.max'] = character.wounds.max;
+	update['system.strain.max'] = character.strain.max;
+	update['system.experienceJournal.entries'] = character.experienceJournal.entries;
+	return update;
+}
+
+/**
  * The actor update for adding (sign +1) or removing (sign -1) an Archetype: characteristics, wound and strain
  * thresholds, and the Starting XP entry at the head of the Experience Journal.
  */
 export function archetypeActorUpdate(character: ArchetypeHolder, archetype: ArchetypeGrants, sign: ArchetypeSign): Record<string, unknown> {
-	const update: Record<string, unknown> = {};
-
-	for (const characteristic of Object.values(Characteristic)) {
-		update[`system.characteristics.${characteristic}`] =
-			character.characteristics[characteristic] + sign * archetype.characteristics[characteristic];
-	}
-
-	update['system.wounds.max'] = character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn);
-	update['system.strain.max'] = character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower);
-
-	// Starting XP is always the first entry of the Experience Journal.
-	update['system.experienceJournal.entries'] =
-		sign > 0
-			? withStartingXP(character.experienceJournal.entries, archetype.startingXP)
-			: withoutStartingXP(character.experienceJournal.entries);
-
-	return update;
+	return actorUpdate(withArchetype(character, archetype, sign));
 }
 
 /**
@@ -162,34 +182,60 @@ export function grantedSkillRankUpdates<T extends HeldItem>(
 }
 
 /**
- * The Archetype can only be changed while the Experience Journal holds nothing but its Starting XP.
+ * The writes that give the character an Archetype, in place of the one they hold if any: what the held Archetype gave
+ * is taken back, then what the new one grants is given, and its granted non-skills and the Archetype item itself are
+ * created under the ids drawn. Each kind of write is one batch, so a granted skill both Archetypes grant keeps its rank.
  */
-export function canRemoveArchetype(actor: GenesysActor<CharacterDataModel>) {
-	return actor.systemData.experienceJournal.entries.length <= 1;
+export function archetypeChange<T extends HeldItem & { id: string }>(
+	character: { id: string | null; system: ArchetypeHolder; items: T[] },
+	held: { id: string; system: ArchetypeGrants } | undefined,
+	dropped: { system: ArchetypeGrants; source: object },
+	newId: () => string,
+) {
+	let holder = character.system;
+	let items = character.items;
+	const itemDeletes: string[] = [];
+	const ranks = new Map<string, number>();
+	const changeRanks = (archetype: ArchetypeGrants, sign: ArchetypeSign) => {
+		for (const { skill, update } of grantedSkillRankUpdates(items, archetype.grantedItems, sign)) {
+			ranks.set(skill.id, update['system.rank']);
+		}
+		items = items.map((item) =>
+			ranks.has(item.id) ? { ...item, system: { ...(item.system as object), rank: ranks.get(item.id) } } : item,
+		);
+	};
+
+	if (held) {
+		holder = withArchetype(holder, held.system, -1);
+		itemDeletes.push(
+			...heldNonSkillsGrantedBy(character.items, held.system.grantedItems, character.id).map((item) => item.id),
+			held.id,
+		);
+		changeRanks(held.system, -1);
+	}
+
+	changeRanks(dropped.system, 1);
+	const rankOf = (id: string) => (character.items.find((item) => item.id === id)?.system as { rank: number }).rank;
+
+	return {
+		itemCreates: [
+			...grantedNonSkills(dropped.system.grantedItems).map((grantedItem) => ({
+				...flaggedGrant(grantedItem, character.id),
+				_id: newId(),
+			})),
+			{ ...dropped.source, _id: newId() },
+		],
+		itemUpdates: [...ranks].filter(([id, rank]) => rank !== rankOf(id)).map(([id, rank]) => ({ _id: id, 'system.rank': rank })),
+		itemDeletes,
+		actorUpdate: actorUpdate(withArchetype(holder, dropped.system, 1)),
+	};
 }
 
 /**
- * Add an Archetype's characteristics, thresholds, granted items, skill ranks and Starting XP to the character.
- * The Archetype item itself is not created.
+ * The Archetype can only be changed while the Experience Journal holds nothing but its Starting XP.
  */
-export async function applyArchetype(actor: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
-	const archetypeData = archetype.systemData;
-	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, 1);
-
-	// Non-skills get added as embedded items.
-	await actor.createEmbeddedDocuments(
-		'Item',
-		grantedNonSkills(archetypeData.grantedItems).map((grantedItem) => flaggedGrant(grantedItem, actor.id)),
-	);
-
-	// Skills gain a rank.
-	await Promise.all(
-		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, 1).map(
-			async ({ skill, update }) => await skill.update(update),
-		),
-	);
-
-	await actor.update(actorUpdate);
+export function canRemoveArchetype(character: Pick<ArchetypeHolder, 'experienceJournal'>) {
+	return character.experienceJournal.entries.length <= 1;
 }
 
 /**

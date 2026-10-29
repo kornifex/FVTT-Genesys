@@ -48,10 +48,24 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 		};
 	}
 
+	protected override async _onRender(
+		context: foundry.applications.ApplicationRenderContext,
+		options: foundry.applications.ApplicationRenderOptions,
+	) {
+		await super._onRender(context, options);
+
+		// v13: ItemSheetV2 binds no drag and drop. v14's binds its DragDrop to `_onDrop` on each render, which this replaces.
+		this.element.ondragover = (event) => event.preventDefault();
+		this.element.ondrop = (event) => {
+			event.preventDefault();
+			void this._onDrop(event);
+		};
+	}
+
 	/**
 	 * Handle data dropped on the sheet: an item the user can edit receives the item a drop carries, and nothing else.
 	 */
-	protected override async _onDrop(event: DragEvent) {
+	protected async _onDrop(event: DragEvent) {
 		const data = dragData(event.dataTransfer);
 		if (!this.isEditable || data.type !== 'Item') {
 			return;
