@@ -2,6 +2,7 @@
 
 import { skillNamesMatch } from '@/data/Skills';
 import { SORT_DENSITY } from '@/data/Sort';
+import { type CheckActor, type CheckRules, type CheckSkill, resolveCheck } from '@/dice/Check';
 
 /**
  * An actor aboard a vehicle as a passenger.
@@ -188,7 +189,35 @@ export function crewForSkills(crew: Crew, skillNames: string[]): CrewSkill[] {
 }
 
 /**
- * The Crew's skills by member: the members of the Roles that list skills, in the Crew's order, each with the skills they
+ * A skill a crew member rolls for the vehicle, resolved as a check of their actor.
+ */
+export type CrewMemberSkill<A, S> = CrewSkill & {
+	actor: A;
+	skill: S;
+	rank: number;
+	characteristicValue: number;
+};
+
+/**
+ * The crew skills resolved as checks of their members' actors, by UUID. A skill whose member isn't among the actors,
+ * or who can roll it neither as an owned skill nor as an Unranked Skill Check, is left out.
+ */
+export function crewMemberSkills<S extends CheckSkill, A extends CheckActor<S>>(
+	crewSkills: CrewSkill[],
+	actors: Map<string, A>,
+	rules: CheckRules<S>,
+): CrewMemberSkill<A, S>[] {
+	return crewSkills.flatMap((crewSkill) => {
+		const actor = actors.get(crewSkill.member);
+		const check = actor && resolveCheck(actor, { skillName: crewSkill.skillName }, rules);
+		return actor && check?.skill
+			? [{ ...crewSkill, actor, skill: check.skill, rank: check.rank, characteristicValue: check.characteristicValue }]
+			: [];
+	});
+}
+
+/**
+ * The Crew's skills by member:the members of the Roles that list skills, in the Crew's order, each with the skills they
  * roll among the rolled skills, sorted by name in the given locale.
  */
 export function crewSkillsByMember<C extends CrewSkill>(crew: Crew, rolledSkills: C[], locale: string) {

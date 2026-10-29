@@ -3,9 +3,10 @@ import { inject, toRaw, ref, shallowRef, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { crewForSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
-import { CrewMemberSkill, crewActors, crewMemberSkills, rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
+import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations/CrewRoll';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
+import { worldCheckRules } from '@/dice/Check';
 
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -14,13 +15,13 @@ type MemberRow = {
 	member: string;
 	actor: GenesysActor;
 	role: Role;
-	skills: CrewMemberSkill[];
+	skills: ActorCrewMemberSkill[];
 };
 
 type SkillRow = {
 	skillName: string;
 	skillImage: string;
-	members: CrewMemberSkill[];
+	members: ActorCrewMemberSkill[];
 };
 
 type GroupingMode = 'member' | 'skill';
@@ -49,7 +50,7 @@ watch(
 			crew,
 			crew.roles.flatMap((role) => role.skills),
 		);
-		const memberSkills = crewMemberSkills(roleSkills, actors);
+		const memberSkills = crewMemberSkills(roleSkills, actors, worldCheckRules());
 		byMember.value = crewSkillsByMember(crew, memberSkills, game.i18n.lang).flatMap((row) => {
 			const actor = actors.get(row.member);
 			return actor ? [{ ...row, actor }] : [];

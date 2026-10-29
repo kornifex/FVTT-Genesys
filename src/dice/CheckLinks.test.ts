@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { checkLinkActor, checkLinkDifficulty } from '@/app/CheckLinks';
+import { checkLinkActor, checkLinkDifficulty } from '@/dice/CheckLinks';
 
 describe('checkLinkActor', () => {
 	it('rolls for the actor of the actor sheet the link is in', () => {

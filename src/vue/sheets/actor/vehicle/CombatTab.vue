@@ -14,7 +14,7 @@ import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 
-import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { rollForCrew } from '@/operations/CrewRoll';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels } from '@/item/Weapons';
 
