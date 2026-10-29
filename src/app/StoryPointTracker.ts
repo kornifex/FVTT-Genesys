@@ -115,23 +115,40 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 	}
 
+	static #writes: Promise<unknown> = Promise.resolve();
+
 	/**
-	 * Writes a user's spend from a pool, then posts its chat message as that user. Only a GM may write the pools.
+	 * Writes a spend from a pool, and tells whether there was a point to spend.
 	 */
-	static async #spend(pool: StoryPointPool, user: User) {
+	static async #writeSpend(pool: StoryPointPool) {
 		if (!StoryPointTracker.instance) {
-			return;
+			return false;
 		}
 
 		// The pools may have changed since the user spent the point: a player's spend reaches the GM later.
 		const spentStoryPoints = storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, pool);
 		if (!spentStoryPoints) {
-			return;
+			return false;
 		}
 
 		await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, spentStoryPoints);
 		StoryPointTracker.forceRender();
 		socketEmit(SocketOperation.UpdateStoryPointTracker);
+		return true;
+	}
+
+	/**
+	 * Writes a user's spend from a pool, then posts its chat message as that user. Only a GM may write the pools.
+	 */
+	static async #spend(pool: StoryPointPool, user: User) {
+		// Spends that reach the GM together, from a double click or two players, are written one after the other: each
+		// reads the pools the previous one wrote, so that no point is spent twice.
+		const written = StoryPointTracker.#writes.then(() => StoryPointTracker.#writeSpend(pool));
+		// The failed write rejects to its own caller; the next ones still run.
+		StoryPointTracker.#writes = written.catch(() => false);
+		if (!(await written)) {
+			return;
+		}
 
 		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', { type: pool });
 		const message = {

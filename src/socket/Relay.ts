@@ -31,16 +31,19 @@ export enum SocketOperation {
 	UpdateInitiativeForExtraSlot,
 }
 
+/**
+ * The data of {@link SocketOperation.PlayerSpendStoryPoint}.
+ */
 export type PlayerSpendStoryPointData = {
 	/**
-	 * The player who spends the Story Point.
+	 * The player who spends the Story Point: Foundry's socket doesn't tell who sent a message.
 	 */
 	userId: string;
 };
 
 type CombatSocketBaseData = {
 	/**
-	 * Combat ID to claim a slot in.
+	 * The combat the operation is for.
 	 */
 	combatId: string;
 };
@@ -117,7 +120,7 @@ export type RelayUser = {
 /**
  * What the relay needs from the clients' connection: Foundry's socket and users, or an in-memory world in the tests.
  */
-export type RelayTransport = {
+type RelayTransport = {
 	/** The user of this client. */
 	userId(): string;
 	users(): Iterable<RelayUser>;
@@ -144,7 +147,9 @@ function actingGm(users: Iterable<RelayUser>) {
 	return elected;
 }
 
-// Its functions use no `this`: the Foundry adapter exports them one by one.
+/**
+ * The system's socket as each client sees it. Its functions use no `this`: the Foundry adapter exports them one by one.
+ */
 export type Relay = {
 	/**
 	 * Sends an operation to the clients it is for. An operation for the Acting GM is sent only when a GM is connected:

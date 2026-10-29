@@ -44,7 +44,7 @@ export type ScenarioContext = {
 	/** Joins as the player user, once. */
 	player(): Promise<Client>;
 	/**
-	 * Joins as a second GM, once: the user {@link ASSISTANT_USER}, whom the GM creates, or gives the Assistant role, when the
+	 * Joins as a second GM, once: the user {@link ASSISTANT}, whom the GM creates, or gives the Assistant role, when the
 	 * world lacks it.
 	 */
 	assistantGM(): Promise<Client>;
@@ -82,9 +82,10 @@ export type ScenarioModule = {
 };
 
 /**
- * The Assistant GM user, a second GM whose operations the Gamemaster's election is tested against.
+ * The Assistant GM user, a second GM whose operations the Gamemaster's election is tested against. Its id is lower than
+ * any random one (Foundry compares ids by code point), so that only the role can elect the Gamemaster over it.
  */
-const ASSISTANT_USER = 'E2E Assistant GM';
+const ASSISTANT = { name: 'E2E Assistant GM', id: '0000E2EAssistant' };
 
 // A client has settled once it has gone this long without a hook, a socket message, a request awaiting its answer or a
 // running CSS transition (window.e2e.idleFor). Each update an action causes reaches the clients and calls hooks, and the updates their hooks make in turn (the GM
@@ -155,12 +156,15 @@ export async function runScenario(
 			},
 			async assistantGM() {
 				if (!assistant) {
-					await gm.evaluate(async (name) => {
-						const user = game.users.getName(name);
-						if (!user) await User.create({ name, role: CONST.USER_ROLES.ASSISTANT });
+					await gm.evaluate(async ({ name, id }) => {
+						const named = game.users.getName(name);
+						// User names are unique: a namesake of another id would stop the creation.
+						if (named && named.id !== id) await named.delete();
+						const user = game.users.get(id);
+						if (!user) await User.create({ _id: id, name, role: CONST.USER_ROLES.ASSISTANT }, { keepId: true });
 						else if (user.role !== CONST.USER_ROLES.ASSISTANT) await user.update({ role: CONST.USER_ROLES.ASSISTANT });
-					}, ASSISTANT_USER);
-					assistant = await join(browser, url, ASSISTANT_USER, needsCanvas);
+					}, ASSISTANT);
+					assistant = await join(browser, url, ASSISTANT.name, needsCanvas);
 					clients.push(assistant);
 				}
 				return assistant;
