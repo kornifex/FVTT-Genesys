@@ -1,3 +1,4 @@
+{{!-- The card of a check, which attack.hbs calls as a partial: it fills the attackDetails and attackQualities slots with inline partials of those names, which a check's card leaves empty. --}}
 <div class="roll roll-skill">
 	{{!-- Formatted Results --}}
 	<div class="results-row">
@@ -7,93 +8,27 @@
 
 		<label>{{localize 'Genesys.Rolls.Results'}}</label>
 		<div class="net-results">
-			{{!-- Success --}}
-			{{#repeat (sub results.netSuccess results.totalTriumph)}}
-				<span>s</span>
-			{{/repeat}}
-
-			{{!-- Failure --}}
-			{{#repeat (sub results.netFailure results.totalDespair)}}
-				<span>f</span>
-			{{/repeat}}
-
-			{{!-- Advantage --}}
-			{{#repeat results.netAdvantage}}
-				<span>a</span>
-			{{/repeat}}
-
-			{{!-- Threat --}}
-			{{#repeat results.netThreat}}
-				<span>h</span>
-			{{/repeat}}
-
-			{{!-- Triumphs --}}
-			{{#repeat results.totalTriumph}}
-				<span>t</span>
-			{{/repeat}}
-
-			{{!-- Despair --}}
-			{{#repeat results.totalDespair}}
-				<span>d</span>
-			{{/repeat}}
+			{{#each card.symbols}}
+				<span>{{this}}</span>
+			{{/each}}
 		</div>
+
+		{{#> attackDetails}}
+		{{/attackDetails}}
 
 		<label>{{localize 'Genesys.Rolls.Summary.Label'}}</label>
 		<div class="summary-table">
-			{{!-- Success --}}
-			{{#if (gt results.netSuccess 0)}}
-				<span class="symbol">s</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Successes'}}</span>
-				<span class="count">{{results.netSuccess}}</span>
+			{{#each card.summary}}
+				<span class="symbol">{{symbol}}</span>
+				<span class="label">{{localize label}}</span>
+				<span class="count">{{count}}</span>
 
 				<div class="separator"></div>
-			{{/if}}
-
-			{{!-- Failure --}}
-			{{#if (gt results.netFailure 0)}}
-				<span class="symbol">f</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Failures'}}</span>
-				<span class="count">{{results.netFailure}}</span>
-
-				<div class="separator"></div>
-			{{/if}}
-
-			{{!-- Advantage --}}
-			{{#if (gt results.netAdvantage 0)}}
-				<span class="symbol">a</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Advantage'}}</span>
-				<span class="count">{{results.netAdvantage}}</span>
-
-				<div class="separator"></div>
-			{{/if}}
-
-			{{!-- Threat --}}
-			{{#if (gt results.netThreat 0)}}
-				<span class="symbol">h</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Threat'}}</span>
-				<span class="count">{{results.netThreat}}</span>
-
-				<div class="separator"></div>
-			{{/if}}
-
-			{{!-- Triumphs --}}
-			{{#if (gt results.totalTriumph 0)}}
-				<span class="symbol">t</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Triumph'}}</span>
-				<span class="count">{{results.totalTriumph}}</span>
-
-				<div class="separator"></div>
-			{{/if}}
-
-			{{!-- Despair --}}
-			{{#if (gt results.totalDespair 0)}}
-				<span class="symbol">d</span>
-				<span class="label">{{localize 'Genesys.Rolls.Summary.Despair'}}</span>
-				<span class="count">{{results.totalDespair}}</span>
-
-				<div class="separator"></div>
-			{{/if}}
+			{{/each}}
 		</div>
+
+		{{#> attackQualities}}
+		{{/attackQualities}}
 	</div>
 
 	{{!-- Dice --}}

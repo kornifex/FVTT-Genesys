@@ -150,6 +150,11 @@ declare namespace foundry {
 			}
 		}
 
+		namespace handlebars {
+			/** Fetches and compiles templates, and registers each as a partial named by its path. */
+			function loadTemplates(paths: string[]): Promise<unknown[]>;
+		}
+
 		namespace sheets {
 			class ActorSheetV2<TActor extends Actor = Actor> extends api.DocumentSheetV2<TActor> {
 				get actor(): TActor;

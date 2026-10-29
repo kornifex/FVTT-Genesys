@@ -4,6 +4,7 @@ import { ProficiencyDie } from '@/dice/dice/ProficiencyDie';
 import { SetbackDie } from '@/dice/dice/SetbackDie';
 import { DifficultyDie } from '@/dice/dice/DifficultyDie';
 import { ChallengeDie } from '@/dice/dice/ChallengeDie';
+import * as log from '@/log';
 
 import '@/dice/diceSoNice';
 
@@ -21,10 +22,15 @@ export const GenesysDice = {
 };
 
 /**
- * Registers custom dice types.
+ * Registers custom dice types, and the check card as a partial.
  */
 export function register() {
 	Object.values(GenesysDice).forEach((dieType) => {
 		CONFIG.Dice.terms[dieType.DENOMINATION] = dieType;
 	});
+
+	// The attack card calls the check card as a partial, which Handlebars only finds once registered.
+	foundry.applications.handlebars
+		.loadTemplates(['systems/genesys/templates/chat/rolls/skill.hbs'])
+		.catch((reason: unknown) => log.error('The check card could not be loaded', reason));
 }

@@ -42,6 +42,18 @@ type MessageSummary = {
 	blind: boolean;
 };
 
+/**
+ * The card of a roll's chat message, every part of it, as the user reads it.
+ */
+type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
+	/** The labels of the card's parts, in order. */
+	labels: string[];
+	/** Each quality of an attack, with its tooltip. */
+	qualities: { text: string; tooltip: string | null }[];
+	/** The dice row: each die's letter and face, then the extra symbols. */
+	dice: string;
+};
+
 type CheckLink = { skill: string | null; difficulty: string | null; text: string };
 
 type DicePromptHelpers = {
@@ -65,6 +77,7 @@ type DicePromptHelpers = {
 	promptChance(args: { expected: string; timeout: number }): Promise<string | null>;
 	promptRoll(): Promise<MessageSummary>;
 	lastMessage(): MessageSummary;
+	lastCard(): CardSummary;
 	/** Clicks the element at a path of a document's sheet, which it renders if needed. */
 	click(args: { doc: Doc; path: string }): Promise<void>;
 	change(args: { doc: Doc; path: string; value: string }): Promise<void>;
@@ -209,7 +222,7 @@ function installDicePromptHelpers() {
 			blind: message.blind,
 		};
 	};
-	const SETTINGS = ['uncoupleSkills', 'useSuperCharacteristics', 'defaultDifficulty', 'skillsCompendium'];
+	const SETTINGS = ['uncoupleSkills', 'useSuperCharacteristics', 'defaultDifficulty', 'skillsCompendium', 'showDamageOnFailure'];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
 	window.dicePromptE2E = {
@@ -481,6 +494,23 @@ function installDicePromptHelpers() {
 
 		lastMessage: () => messageSummary(game.messages.contents.at(-1)),
 
+		lastCard() {
+			const message = game.messages.contents.at(-1);
+			const { results, summaries } = messageSummary(message);
+			const content = document.createElement('div');
+			content.innerHTML = message.content;
+			return {
+				labels: [...content.querySelectorAll('label')].map(text),
+				results,
+				summaries,
+				qualities: [...content.querySelectorAll('.quality')].map((quality) => ({
+					text: text(quality),
+					tooltip: quality.getAttribute('data-tooltip'),
+				})),
+				dice: text(content.querySelector('.dice')),
+			};
+		},
+
 		async click({ doc, path }) {
 			(await find(doc, path)).click();
 		},
@@ -740,7 +770,13 @@ export async function run(e2e: ScenarioContext) {
 	const saved = await gm.evaluate((user) => window.dicePromptE2E.settings(user), e2e.playerUser);
 	await gm.evaluate(
 		(settings) => Promise.all(Object.entries(settings).map(([key, value]) => window.dicePromptE2E.setSetting({ key, value }))),
-		{ uncoupleSkills: false, useSuperCharacteristics: false, defaultDifficulty: 'DD', skillsCompendium: 'genesys.crb-skills' },
+		{
+			uncoupleSkills: false,
+			useSuperCharacteristics: false,
+			defaultDifficulty: 'DD',
+			skillsCompendium: 'genesys.crb-skills',
+			showDamageOnFailure: false,
+		},
 	);
 	try {
 		await gm.evaluate((user) => window.dicePromptE2E.setUp(user), e2e.playerUser);
@@ -1336,6 +1372,7 @@ export async function run(e2e: ScenarioContext) {
 		{ face: 4, faces: 8 },
 	]);
 	const attackResults = await roll();
+	const succeededAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
 	e2e.expect(
 		'#157 E6 a skill roll and an attack read their net results, with Triumph and Despair apart',
 		{
@@ -1345,6 +1382,69 @@ export async function run(e2e: ScenarioContext) {
 		{
 			skill: { formula: '3dp + 0da + 2di + 1dc', results: 'h t d', summaries: ['s Successes 1 h Threat 1 t Triumph 1 d Despair 1'] },
 			attack: { formula: '2dp + 0da + 2di', results: 's a', summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'] },
+		},
+	);
+	await opened(gm, skillRoll('Melee'));
+	// Proficiency faces: 2 a Success, 1 blank, 6 an Advantage; Difficulty: 3 two Failures, 8 a Failure and a Threat.
+	await gm.fixDice([
+		{ face: 2, faces: 12 },
+		{ face: 1, faces: 12 },
+		{ face: 6, faces: 12 },
+		{ face: 3, faces: 8 },
+		{ face: 8, faces: 8 },
+	]);
+	await roll();
+	const failedSkillCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+	await update(
+		{ actor: 'Ada', item: 'Pistol' },
+		{
+			'system.qualities': [
+				{ name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 },
+				{ name: 'Pierce', description: '', isRated: false, rating: 2 },
+			],
+		},
+	);
+	await opened(gm, attack('Pistol'));
+	// Proficiency faces: 1 blank, 10 two Advantages; Difficulty: 2 a Failure, 4 a Threat.
+	await gm.fixDice([
+		{ face: 1, faces: 12 },
+		{ face: 10, faces: 12 },
+		{ face: 2, faces: 8 },
+		{ face: 4, faces: 8 },
+	]);
+	await roll();
+	const failedAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+	await update({ actor: 'Ada', item: 'Pistol' }, { 'system.qualities': [] });
+	e2e.expect(
+		'the cards of a succeeded attack, a failed skill roll and a failed attack with qualities show each of their parts',
+		{ succeededAttack: succeededAttackCard, failedSkill: failedSkillCard, failedAttack: failedAttackCard },
+		{
+			succeededAttack: {
+				labels: ['Roll Results', 'Attack Results', 'Summary', 'Dice'],
+				results: 's a',
+				summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'],
+				qualities: [],
+				dice: 'P s P aa D D h',
+			},
+			failedSkill: {
+				labels: ['Roll Results', 'Summary', 'Dice'],
+				results: 'f f',
+				summaries: ['f Failures 2'],
+				qualities: [],
+				dice: 'P s P P a D ff D fh',
+			},
+			// The damage and critical are hidden on a failure, the world setting being off. The qualities still show, as on
+			// origin/main, though the setting's hint names them among what it hides.
+			failedAttack: {
+				labels: ['Roll Results', 'Summary', 'Attack Qualities', 'Dice'],
+				results: 'f a',
+				summaries: ['f Failures 1 a Advantage 1'],
+				qualities: [
+					{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
+					{ text: 'Pierce', tooltip: 'Genesys.Tooltips.NoDescription' },
+				],
+				dice: 'P P aa D f D h',
+			},
 		},
 	);
 	await e2e.step('E end');

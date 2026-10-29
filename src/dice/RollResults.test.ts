@@ -1,9 +1,9 @@
 /**
- * @file Tests for counting the symbols of a roll.
+ * @file Tests for counting the symbols of a roll, and for what a check's card shows of them.
  */
 
 import { describe, expect, it } from 'vitest';
-import { rollResults } from '@/dice/RollResults';
+import { cardResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
 
 describe('rollResults', () => {
 	it('counts the symbols of every rolled face', () => {
@@ -74,5 +74,46 @@ describe('interpreting a roll (CRB p. 23-24)', () => {
 		expect(results.totalTriumph).toBe(1);
 		expect(results.totalDespair).toBe(1);
 		expect(results.netSuccess).toBe(0);
+	});
+});
+
+describe('cardResults', () => {
+	it('shows the net Successes and Failures besides the Triumphs and Despairs, then the net Advantages and Threats, then the Triumphs and Despairs', () => {
+		expect(cardResults(rollResults({ p: ['t', 'ss'], d: ['f', 'aa'] }, {})).symbols).toEqual(['s', 'a', 'a', 't']);
+		expect(cardResults(rollResults({ c: ['d', 'ff'], a: ['s', 'h'] }, {})).symbols).toEqual(['f', 'h', 'd']);
+	});
+
+	it('sums up each net symbol left over, the Triumphs and Despairs counted among the Successes and Failures', () => {
+		expect(cardResults(rollResults({ p: ['t', 'ss'], d: ['f', 'aa'] }, {})).summary).toEqual([
+			{ symbol: 's', label: 'Genesys.Rolls.Summary.Successes', count: 2 },
+			{ symbol: 'a', label: 'Genesys.Rolls.Summary.Advantage', count: 2 },
+			{ symbol: 't', label: 'Genesys.Rolls.Summary.Triumph', count: 1 },
+		]);
+		expect(cardResults(rollResults({ c: ['d', 'ff'], a: ['s', 'h'] }, {})).summary).toEqual([
+			{ symbol: 'f', label: 'Genesys.Rolls.Summary.Failures', count: 2 },
+			{ symbol: 'h', label: 'Genesys.Rolls.Summary.Threat', count: 1 },
+			{ symbol: 'd', label: 'Genesys.Rolls.Summary.Despair', count: 1 },
+		]);
+	});
+
+	it('shows no symbol and sums up nothing when every symbol cancels out', () => {
+		expect(cardResults(rollResults({ a: ['sa'], d: ['fh'] }, {}))).toEqual({ symbols: [], summary: [], succeeded: false });
+	});
+
+	it('succeeds with at least one net Success, which a Triumph counts as (CRB p. 23-24)', () => {
+		expect(cardResults(rollResults({ p: ['t'] }, {})).succeeded).toBe(true);
+		expect(cardResults(rollResults({ p: ['t'], d: ['f'] }, {})).succeeded).toBe(false);
+		expect(cardResults(rollResults({ a: ['s'], d: ['ff'] }, {})).succeeded).toBe(false);
+	});
+});
+
+describe('showsAttackDetails', () => {
+	it("shows an attack's damage and critical when it succeeds, and on a failure only when the world setting says so", () => {
+		const succeeded = cardResults(rollResults({ a: ['s'] }, {}));
+		const failed = cardResults(rollResults({ d: ['f'] }, {}));
+
+		expect(showsAttackDetails(succeeded, false)).toBe(true);
+		expect(showsAttackDetails(failed, false)).toBe(false);
+		expect(showsAttackDetails(failed, true)).toBe(true);
 	});
 });

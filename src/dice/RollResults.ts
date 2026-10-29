@@ -1,4 +1,4 @@
-/** @file The results of a roll: the symbols of its faces counted, then netted against each other. */
+/** @file The results of a roll: the symbols of its faces counted, then netted against each other, and what a check's card shows of them. */
 
 export type GenesysRollResults = {
 	/**
@@ -114,4 +114,63 @@ export function rollResults(faces: Record<string, string[]>, extraSymbols: Recor
 		faces,
 		extraSymbols,
 	};
+}
+
+/**
+ * The localization key of the label of each symbol a check's card sums up, in the order the card shows them.
+ */
+const SUMMARY_LABELS = {
+	s: 'Genesys.Rolls.Summary.Successes',
+	f: 'Genesys.Rolls.Summary.Failures',
+	a: 'Genesys.Rolls.Summary.Advantage',
+	h: 'Genesys.Rolls.Summary.Threat',
+	t: 'Genesys.Rolls.Summary.Triumph',
+	d: 'Genesys.Rolls.Summary.Despair',
+} as const;
+
+type CardSymbol = keyof typeof SUMMARY_LABELS;
+
+/**
+ * What a check's chat card shows of the results of its roll.
+ */
+export type CardResults = {
+	/** The symbols of the card's results row, in the order it shows them. */
+	symbols: CardSymbol[];
+	/** The lines of the card's summary: each symbol left over, with the localization key of its label and its count. */
+	summary: { symbol: CardSymbol; label: (typeof SUMMARY_LABELS)[CardSymbol]; count: number }[];
+	/** Whether the check succeeded: at least one Success is left over (CRB p. 23). */
+	succeeded: boolean;
+};
+
+/**
+ * The results of a check's roll, as its chat card shows them.
+ */
+export function cardResults(results: GenesysRollResults): CardResults {
+	// The count the summary shows of each symbol, and the count the results row shows. A Triumph counts as a Success that
+	// the summary counts, but the row shows the Triumph alone in its place, and likewise a Despair among the Failures.
+	const counts: Record<CardSymbol, { summary: number; row: number }> = {
+		s: { summary: results.netSuccess, row: results.netSuccess - results.totalTriumph },
+		f: { summary: results.netFailure, row: results.netFailure - results.totalDespair },
+		a: { summary: results.netAdvantage, row: results.netAdvantage },
+		h: { summary: results.netThreat, row: results.netThreat },
+		t: { summary: results.totalTriumph, row: results.totalTriumph },
+		d: { summary: results.totalDespair, row: results.totalDespair },
+	};
+	const symbols = Object.keys(SUMMARY_LABELS) as CardSymbol[];
+
+	return {
+		symbols: symbols.flatMap((symbol) => Array<CardSymbol>(Math.max(counts[symbol].row, 0)).fill(symbol)),
+		summary: symbols
+			.filter((symbol) => counts[symbol].summary > 0)
+			.map((symbol) => ({ symbol, label: SUMMARY_LABELS[symbol], count: counts[symbol].summary })),
+		succeeded: results.netSuccess > 0,
+	};
+}
+
+/**
+ * Whether an attack's card shows its damage and critical: when the attack succeeds, or on a failure when the world
+ * setting shows them on failure.
+ */
+export function showsAttackDetails(card: CardResults, showOnFailure: boolean): boolean {
+	return card.succeeded || showOnFailure;
 }
