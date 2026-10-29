@@ -3,6 +3,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
+import { deleteItem, openSheet } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 
@@ -26,14 +27,6 @@ const emit = defineEmits<{
 
 const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
-
-async function openItem(injury: GenesysItem<InjuryDataModel>) {
-	await injury.sheet?.render(true);
-}
-
-async function deleteItem(injury: GenesysItem<InjuryDataModel>) {
-	await injury.delete();
-}
 </script>
 
 <template>
@@ -48,10 +41,10 @@ async function deleteItem(injury: GenesysItem<InjuryDataModel>) {
 				<a @click="emit('roll', injury)">{{ severityDifficulty(injury.systemData.severity) }}</a>
 			</div>
 			<div class="name">
-				<a @click="openItem(injury)">{{ injury.name }}</a>
+				<a @click="openSheet(injury)">{{ injury.name }}</a>
 			</div>
 			<div v-if="editable" class="actions">
-				<a @click="openItem(injury)"><i class="fas fa-edit"></i></a>
+				<a @click="openSheet(injury)"><i class="fas fa-edit"></i></a>
 				<a @click="deleteItem(injury)"><i class="fas fa-trash"></i></a>
 			</div>
 			<div v-else />

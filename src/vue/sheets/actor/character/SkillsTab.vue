@@ -17,6 +17,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
+import { deleteItem, openSheet } from '@/operations/ItemActions';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 const advancement = computed(() => advancementCharacter(actor.value));
@@ -81,13 +82,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		'system.superCharacteristics': superCharacteristics,
 	});
 }
-
-async function editSkill(skill: GenesysItem<SkillDataModel>) {
-	await skill.sheet?.render(true);
-}
-async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
-	await skill.delete();
-}
 </script>
 
 <template>
@@ -147,9 +141,9 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 								@click="freeSkillRank(skill, -1)"
 							/>
 
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editSkill(skill)" />
+							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(skill)" />
 
-							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteSkill(skill)" />
+							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 						</template>
 
 						<img :src="skill.img" :alt="skill.name" />

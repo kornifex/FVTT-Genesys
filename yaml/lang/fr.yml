@@ -248,6 +248,16 @@ Genesys:
     ConfirmUndoEntry:
       Title: Annuler l'entrée
       Content: Annuler cette entrée retire {items} du personnage. Voulez-vous continuer ?
+    ConfirmRemoveArchetype:
+      Title: Retirer l'archétype
+      Content: >-
+        Retirer {name} reprend les caractéristiques, les seuils de blessures et de stress et l'XP de départ qu'il a donnés,
+        supprime les objets qu'il a accordés et baisse d'un rang chaque compétence qu'il a accordée. Voulez-vous continuer ?
+    ConfirmRemoveCareer:
+      Title: Retirer la carrière
+      Content: >-
+        Retirer {name} retire la marque de carrière de ses compétences et reprend les rangs gratuits qu'elle leur a donnés.
+        Voulez-vous continuer ?
 
   # Migration Related Messages
   Migration:

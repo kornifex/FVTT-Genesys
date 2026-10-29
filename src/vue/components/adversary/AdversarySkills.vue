@@ -7,6 +7,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt } from '@/app/DicePrompt';
 import { freeRank } from '@/data/Skills';
+import { deleteItem, openSheet } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -34,14 +35,6 @@ async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
 		'system.rank': freeRank(skill.systemData.rank, step),
 	});
 }
-
-async function editItem(skill: GenesysItem<SkillDataModel>) {
-	await skill.sheet.render(true);
-}
-
-async function deleteItem(skill: GenesysItem<SkillDataModel>) {
-	await skill.delete();
-}
 </script>
 
 <template>
@@ -56,7 +49,7 @@ async function deleteItem(skill: GenesysItem<SkillDataModel>) {
 					<MenuItem icon="fas fa-circle-down" label="Genesys.Labels.FreeRankDown" @click="freeSkillRank(skill, -1)" />
 				</template>
 
-				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(skill)" />
+				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(skill)" />
 
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 			</template>
