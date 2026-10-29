@@ -42,7 +42,7 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 }
 
 async function purchaseCharacteristic(characteristic: CharacteristicType) {
-	await advance(toRaw(context.data.actor), raiseCharacteristic(advancementCharacter(toRaw(context.data.actor)), characteristic));
+	await advance(toRaw(context.data.actor), (character) => raiseCharacteristic(character, characteristic));
 }
 
 function canPurchaseCharacteristic(characteristic: CharacteristicType) {
@@ -50,7 +50,7 @@ function canPurchaseCharacteristic(characteristic: CharacteristicType) {
 }
 
 async function purchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
-	await advance(toRaw(context.data.actor), buySkillRank(advancementCharacter(toRaw(context.data.actor)), skill.id));
+	await advance(toRaw(context.data.actor), (character) => buySkillRank(character, skill.id));
 }
 
 function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {

@@ -3,7 +3,7 @@ import { computed, inject, toRaw } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
-import { advance, advancementCharacter, awardXP, undoEntry } from '@/actor/data/character/Advancement';
+import { advance, awardXP, undoEntry } from '@/actor/data/character/Advancement';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
@@ -22,11 +22,11 @@ async function addXPJournalEntry() {
 		return;
 	}
 
-	await advance(toRaw(context.data.actor), awardXP(advancementCharacter(toRaw(context.data.actor)), award.amount, award.reason));
+	await advance(toRaw(context.data.actor), (character) => awardXP(character, award.amount, award.reason));
 }
 
 async function removeJournalEntry(index: number) {
-	await advance(toRaw(context.data.actor), undoEntry(advancementCharacter(toRaw(context.data.actor)), index));
+	await advance(toRaw(context.data.actor), (character) => undoEntry(character, index));
 }
 
 function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | number> | undefined {
