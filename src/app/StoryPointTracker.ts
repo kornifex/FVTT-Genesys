@@ -137,7 +137,9 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return;
 		}
 
-		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', { type: pool });
+		const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
+			type: pool,
+		});
 		const message = {
 			// v12 renamed the message's `user` to `author`, which the types we have don't know; v14 drops `user`.
 			author: user.id,

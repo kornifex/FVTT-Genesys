@@ -107,9 +107,9 @@ export function chatCard(item: CardSource, i18n: Localizer): AbilityCard | ItemC
 export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
 	// An item's type names its data model, which holds what its card reads.
 	const { template, data } = chatCard(item as unknown as CardSource, game.i18n);
-	const content = await renderTemplate(template, {
+	const content = await foundry.applications.handlebars.renderTemplate(template, {
 		...data,
-		description: await TextEditor.enrichHTML(data.description, { async: true }),
+		description: await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.description, { async: true }),
 		...('qualities' in data && data.qualities && { qualities: await enrichedQualities(data.qualities) }),
 	});
 
@@ -126,7 +126,10 @@ export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
  */
 export function enrichedQualities(qualities: ContainedItemQuality[]) {
 	return Promise.all(
-		qualities.map(async (quality) => ({ ...quality, description: await TextEditor.enrichHTML(quality.description, { async: true }) })),
+		qualities.map(async (quality) => ({
+			...quality,
+			description: await foundry.applications.ux.TextEditor.implementation.enrichHTML(quality.description, { async: true }),
+		})),
 	);
 }
 

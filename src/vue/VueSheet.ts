@@ -40,7 +40,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		/**
 		 * Tab controller, kept for the application's lifetime so that a reopened application shows the tab it was closed on.
 		 */
-		#tabs?: Tabs;
+		#tabs?: foundry.applications.ux.Tabs;
 
 		/**
 		 * The element the tab controller is bound to: closing the application discards its element.
@@ -104,7 +104,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 				return;
 			}
 
-			this.#tabs ??= new Tabs({ navSelector: '.sheet-tabs', contentSelector: '.sheet-body', initial });
+			this.#tabs ??= new foundry.applications.ux.Tabs({ navSelector: '.sheet-tabs', contentSelector: '.sheet-body', initial });
 			if (this.#tabsElement === this.element) {
 				this.#tabs.activate(this.#tabs.active);
 			} else {

@@ -67,7 +67,7 @@ declare global {
 
 	const game: Game<
 		GenesysActor,
-		Actors<GenesysActor>,
+		foundry.documents.collections.Actors<GenesysActor>,
 		ChatMessage<GenesysActor>,
 		GenesysCombat,
 		GenesysItem,

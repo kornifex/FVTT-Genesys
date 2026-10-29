@@ -196,7 +196,7 @@ async function changeItemQuantity(event: MouseEvent, item: GenesysItem<Equipment
 	let containerScroll = containerDiv?.scrollTop;
 
 	if (newQuantity <= 0) {
-		const shouldDeleteItem = await Dialog.confirm({
+		const shouldDeleteItem = await foundry.appv1.api.Dialog.confirm({
 			title: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Title'),
 			content: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content'),
 			yes: () => true,
@@ -229,7 +229,7 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 	if (!newDamage) {
 		return;
 	} else if (newDamage === 'destroyed') {
-		const shouldDeleteItem = await Dialog.confirm({
+		const shouldDeleteItem = await foundry.appv1.api.Dialog.confirm({
 			title: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Title'),
 			content: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content'),
 			yes: () => true,

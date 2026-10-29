@@ -22,7 +22,7 @@ export async function ready(lastAlpha: string) {
 		return;
 	}
 
-	const enrichedMessage = await TextEditor.enrichHTML(
+	const enrichedMessage = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
 		/*html*/ `
 	<h3 style="font-family: 'Bebas Neue', sans-serif">Genesys Alpha ${game.system.version}</h3>
 	<p>

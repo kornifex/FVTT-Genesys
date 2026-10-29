@@ -13,7 +13,7 @@ declare global {
 		protected _sourceName: string | null;
 
 		/** A cached reference to the ActiveEffectConfig instance which configures this effect */
-		override _sheet: ActiveEffectConfig<this> | null;
+		override _sheet: foundry.applications.sheets.ActiveEffectConfig<this> | null;
 
 		/** Summarize the active effect duration */
 		get duration(): {
@@ -53,7 +53,7 @@ declare global {
 		 * An instance of the ActiveEffectConfig sheet to use for this ActiveEffect instance.
 		 * The reference to the sheet is cached so the same sheet instance is reused.
 		 */
-		override get sheet(): ActiveEffectConfig<this>;
+		override get sheet(): foundry.applications.sheets.ActiveEffectConfig<this>;
 
 		/* -------------------------------------------- */
 		/*  Methods                                     */

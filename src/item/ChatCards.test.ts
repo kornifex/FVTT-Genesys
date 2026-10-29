@@ -177,8 +177,16 @@ describe('enrichedQualities', () => {
 	});
 
 	it('enriches copies of the qualities, leaving the qualities as they are saved', async () => {
-		vi.stubGlobal('TextEditor', {
-			enrichHTML: (html: string) => Promise.resolve(html.replace('@UUID[Item.abc]{Pierce}', '<a>Pierce</a>')),
+		vi.stubGlobal('foundry', {
+			applications: {
+				ux: {
+					TextEditor: {
+						implementation: {
+							enrichHTML: (html: string) => Promise.resolve(html.replace('@UUID[Item.abc]{Pierce}', '<a>Pierce</a>')),
+						},
+					},
+				},
+			},
 		});
 		const qualities = [{ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }];
 

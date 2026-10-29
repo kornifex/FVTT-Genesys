@@ -52,13 +52,13 @@ declare global {
 		// V10 shim
 		readonly flags: this['data']['flags'];
 
-		get collection(): Items<this>;
+		get collection(): foundry.documents.collections.Items<this>;
 
 		get uuid(): ItemUUID;
 
-		_sheet: ItemSheet<this> | null;
+		_sheet: foundry.appv1.sheets.ItemSheet<this> | null;
 
-		get sheet(): ItemSheet<this>;
+		get sheet(): foundry.appv1.sheets.ItemSheet<this>;
 	}
 
 	type EmbeddedItemUUID = `Actor.${string}.Item.${string}`;

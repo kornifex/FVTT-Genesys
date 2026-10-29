@@ -10,9 +10,11 @@ import './tour';
 declare global {
 	interface FoundryUI<
 		TActor extends Actor = Actor,
-		TActorDirectory extends ActorDirectory<TActor> = ActorDirectory<TActor>,
+		TActorDirectory extends
+			foundry.applications.sidebar.tabs.ActorDirectory<TActor> = foundry.applications.sidebar.tabs.ActorDirectory<TActor>,
 		TItem extends Item<TActor> = Item<TActor>,
-		TItemDirectory extends ItemDirectory<TItem> = ItemDirectory<TItem>,
+		TItemDirectory extends
+			foundry.applications.sidebar.tabs.ItemDirectory<TItem> = foundry.applications.sidebar.tabs.ItemDirectory<TItem>,
 		TChatMessage extends ChatMessage<TActor> = ChatMessage<TActor>,
 		TChatLog extends ChatLog<TChatMessage> = ChatLog<TChatMessage>,
 		TCompendiumDirectory extends CompendiumDirectory = CompendiumDirectory,

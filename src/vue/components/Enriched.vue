@@ -8,7 +8,7 @@ const props = defineProps<{
 const enrichedContent = ref(props.value);
 
 async function enrichContent() {
-	enrichedContent.value = await TextEditor.enrichHTML(props.value, { async: true });
+	enrichedContent.value = await foundry.applications.ux.TextEditor.implementation.enrichHTML(props.value, { async: true });
 }
 
 onMounted(enrichContent);

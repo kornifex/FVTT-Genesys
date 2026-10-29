@@ -5,7 +5,8 @@ declare global {
 		TAmbientLightDocument extends AmbientLightDocument = AmbientLightDocument,
 		TActiveEffect extends ActiveEffect = ActiveEffect,
 		TActor extends Actor = Actor,
-		TActorDirectory extends ActorDirectory<TActor> = ActorDirectory<TActor>,
+		TActorDirectory extends
+			foundry.applications.sidebar.tabs.ActorDirectory<TActor> = foundry.applications.sidebar.tabs.ActorDirectory<TActor>,
 		TChatLog extends ChatLog = ChatLog,
 		TChatMessage extends ChatMessage = ChatMessage,
 		TCombat extends Combat = Combat,
@@ -14,7 +15,8 @@ declare global {
 		TCompendiumDirectory extends CompendiumDirectory = CompendiumDirectory,
 		THotbar extends Hotbar = Hotbar,
 		TItem extends Item = Item,
-		TItemDirectory extends ItemDirectory<TItem> = ItemDirectory<TItem>,
+		TItemDirectory extends
+			foundry.applications.sidebar.tabs.ItemDirectory<TItem> = foundry.applications.sidebar.tabs.ItemDirectory<TItem>,
 		TMacro extends Macro = Macro,
 		TMeasuredTemplateDocument extends MeasuredTemplateDocument = MeasuredTemplateDocument,
 		TTileDocument extends TileDocument = TileDocument,
@@ -46,14 +48,14 @@ declare global {
 			documentClass: {
 				new (data: PreCreate<TActor['_source']>, context?: DocumentConstructionContext<TActor>): TActor;
 			};
-			collection: ConstructorOf<Actors<TActor>>;
+			collection: ConstructorOf<foundry.documents.collections.Actors<TActor>>;
 			sheetClasses: Record<
 				string,
 				Record<
 					string,
 					{
 						id: string;
-						cls: typeof ActorSheet;
+						cls: typeof foundry.appv1.sheets.ActorSheet;
 						default: boolean;
 					}
 				>
@@ -99,14 +101,14 @@ declare global {
 			documentClass: {
 				new (data: PreCreate<TItem['_source']>, context?: DocumentConstructionContext<TItem>): TItem;
 			};
-			collection: typeof Items;
+			collection: typeof foundry.documents.collections.Items;
 			sheetClasses: Record<
 				string,
 				Record<
 					string,
 					{
 						id: string;
-						cls: typeof ItemSheet;
+						cls: typeof foundry.appv1.sheets.ItemSheet;
 						default: boolean;
 					}
 				>
