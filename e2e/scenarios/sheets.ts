@@ -136,6 +136,13 @@ type SheetsHelpers = {
 	welcomeLink(): string | null;
 	/** The number of welcome messages in the chat. */
 	welcomeCount(): number;
+	/** The text of the documentation link of the last welcome message, whatever its language. */
+	welcomeDocumentationText(): string | null;
+	/**
+	 * The labels the token configuration offers for an actor's bars and values, read while some translations are replaced
+	 * by others, then put back.
+	 */
+	trackedAttributeLabels(name: string, translations: Record<string, string>): string[];
 	cleanUp(): Promise<void>;
 };
 
@@ -929,6 +936,31 @@ function installSheetsHelpers() {
 			return [...card.querySelectorAll('a')].find((link) => text(link) === 'Project Documentation')?.getAttribute('href') ?? null;
 		},
 
+		welcomeDocumentationText() {
+			const href = 'https://github.com/kornifex/FVTT-Genesys/wiki';
+			const message = game.messages.contents.findLast((candidate: { content: string }) => candidate.content.includes(`"${href}"`));
+			if (!message) return null;
+			const card = document.createElement('div');
+			card.innerHTML = message.content;
+			const link = [...card.querySelectorAll('a')].find((link) => link.getAttribute('href') === href);
+			return link ? text(link) : null;
+		},
+
+		trackedAttributeLabels(name, translations) {
+			// The token configuration reads the bars and values of the actor's system data this way (TokenApplication).
+			const TokenDocument = foundry.utils.getDocumentClass('Token');
+			// Foundry reads a key as a path in its nested translations.
+			const originals = Object.keys(translations).map((key) => [key, foundry.utils.getProperty(game.i18n.translations, key)]);
+			for (const [key, translation] of Object.entries(translations))
+				foundry.utils.setProperty(game.i18n.translations, key, translation);
+			try {
+				const attributes = TokenDocument.getTrackedAttributes(documentNamed(name).system);
+				return TokenDocument.getTrackedAttributeChoices(attributes).map((choice: { label: string }) => choice.label);
+			} finally {
+				for (const [key, original] of originals) foundry.utils.setProperty(game.i18n.translations, key, original);
+			}
+		},
+
 		async cleanUp() {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
@@ -968,11 +1000,45 @@ export async function run(e2e: ScenarioContext) {
 		(await gm.evaluate(() => window.sheetsE2E.welcomeCount())) - welcomes,
 		0,
 	);
+
+	// §#265: the welcome message is written in the language of the GM, from the language files.
+	const language = await gm.evaluate(() => game.settings.get('core', 'language'));
+	await e2e.step('#265 GM reloads in French after an update', async () => {
+		await gm.evaluate(async () => {
+			await game.settings.set('core', 'language', 'fr');
+			await game.settings.set('genesys', 'alphaVersion', '0.0.0');
+		});
+		await gm.reload();
+	});
+	await gm.evaluate(installSheetsHelpers);
+	e2e.expect(
+		"#265 A2 in French, the welcome message's documentation link reads Documentation du projet",
+		await gm.evaluate(() => window.sheetsE2E.welcomeDocumentationText()),
+		'Documentation du projet',
+	);
+	await e2e.step('GM reloads in their own language', async () => {
+		await gm.evaluate((language) => game.settings.set('core', 'language', language), language);
+		await gm.reload();
+	});
+	await gm.evaluate(installSheetsHelpers);
 	await gm.evaluate(() => game.settings.set('genesys', 'alphaVersion', game.system.version));
 
 	const player = await e2e.player();
 	await player.evaluate(installSheetsHelpers);
 	await e2e.step('setup', () => gm.evaluate((name) => window.sheetsE2E.setUp(name), e2e.playerUser));
+
+	// §#265: the token configuration names an actor's bars and values in the game's language. Replacing their
+	// translations tells a localized label from the English one it used to show raw.
+	e2e.expect(
+		"#265 A1 the token configuration names a Minion Group's bars and values from the language files",
+		await gm.evaluate(() =>
+			window.sheetsE2E.trackedAttributeLabels('Minion', {
+				'Genesys.Labels.Wounds': 'E2E Wounds',
+				'Genesys.Labels.RemainingMembers': 'E2E Remaining Members',
+			}),
+		),
+		['E2E Wounds', 'E2E Remaining Members'],
+	);
 
 	// §#95: the sheets and prompts are ApplicationV2 windows.
 	const actorTypes = ['Hero', 'Minion', 'Rival', 'Nemesis', 'Vehicle'];
