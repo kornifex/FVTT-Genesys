@@ -268,8 +268,9 @@ Genesys:
   AlphaNotice:
     Title: Genesys Alpha {version}
     Welcome: >-
-      Bonjour, et merci d'essayer le système Genesys ! Notez que ce système est encore en version alpha : il permet de premiers
-      tests et essais en partie, mais de nombreuses fonctionnalités manquent encore et des bugs sont possibles !
+      Bonjour, et merci d'essayer le système Genesys ! Notez que ce système est encore en version alpha : il est prêt pour de
+      premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
+      sont possibles !
     Updates: Corrections et nouveautés
     Maintained: Le système est désormais maintenu sur {repository}.
     Fix: CORRECTIF
@@ -281,7 +282,7 @@ Genesys:
     StyleSetting: >-
       Ajout d'un paramètre de monde « Style », avec une variante de couleurs Royaumes de Terrinoth choisie par le MJ pour tous
       les utilisateurs
-    FreeIcons: 'Seules les icônes FontAwesome Free sont utilisées : quelques icônes des fiches changent (blessures, inventaire, armes, carrières)'
+    FreeIcons: 'Seules les icônes FontAwesome Free sont utilisées : quelques icônes des fiches changent (blessures critiques, inventaire, armes, carrières)'
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
     SourceCode: Code source du projet

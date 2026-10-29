@@ -1003,7 +1003,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// §#265: the welcome message is written in the language of the GM, from the language files.
 	const language = await gm.evaluate(() => game.settings.get('core', 'language'));
-	await e2e.step('#265 GM reloads in French after an update', async () => {
+	await e2e.step('#265 A2 GM reloads in French after an update', async () => {
 		await gm.evaluate(async () => {
 			await game.settings.set('core', 'language', 'fr');
 			await game.settings.set('genesys', 'alphaVersion', '0.0.0');
