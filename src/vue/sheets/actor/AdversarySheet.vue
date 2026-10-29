@@ -10,8 +10,6 @@ import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
@@ -22,26 +20,23 @@ import Motivations from '@/vue/components/Motivations.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
 import { attackSkillChoices, attackSkillName } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { postChatCard } from '@/item/ChatCards';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
-const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
-const equipment = computed(
-	() =>
-		toRaw(context.data.actor).items.filter((i) =>
-			AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type),
-		) as GenesysItem<EquipmentDataModel>[],
+const talents = computed(() => itemsOfType(toRaw(context.data.actor), 'talent'));
+const abilities = computed(() => itemsOfType(toRaw(context.data.actor), 'ability'));
+const equipment = computed(() =>
+	itemsOfType(toRaw(context.data.actor), EQUIPMENT_TYPES).filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
-const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const injuries = computed(() => itemsOfType(toRaw(context.data.actor), 'injury'));
 
 const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 

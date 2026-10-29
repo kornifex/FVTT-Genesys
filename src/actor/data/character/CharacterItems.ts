@@ -5,8 +5,9 @@
 import { AdvancementCharacter, buyDroppedTalent, canReplaceCareer, CharacterWrites } from '@/actor/data/character/Advancement';
 import { ArchetypeGrants, archetypeChange, ArchetypeHolder, canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { careerChange, heldCareerSkills } from '@/actor/data/character/Career';
-import { isOwnedSkill, Skill } from '@/data/Skills';
+import { isOwnedSkill } from '@/data/Skills';
 import type { Notification } from '@/notifications';
+import { ofType } from '@/item/ItemTypes';
 
 /**
  * An item the character owns, as this module reads it.
@@ -86,8 +87,7 @@ export function decideCharacterDrop(
 	switch (dropped.type) {
 		case 'skill': {
 			// A character never owns a skill twice, whatever the case of its name.
-			const skills = character.items.filter((item) => item.type === 'skill') as unknown as Skill[];
-			return isOwnedSkill(skills, dropped) ? { action: 'refuse' } : copy(dropped, newId);
+			return isOwnedSkill(ofType(character.items, 'skill'), dropped) ? { action: 'refuse' } : copy(dropped, newId);
 		}
 		case 'ability':
 		case 'injury':
@@ -98,9 +98,7 @@ export function decideCharacterDrop(
 				return { action: 'refuse' };
 			}
 
-			const held = character.items.find((item) => item.type === 'archetype') as
-				| (CharacterItem & { system: ArchetypeGrants })
-				| undefined;
+			const [held] = ofType(character.items, 'archetype');
 			return writing(archetypeChange(character, held, { system: dropped.system as ArchetypeGrants, source: dropped.source }, newId));
 		}
 		case 'career': {
@@ -117,7 +115,7 @@ export function decideCharacterDrop(
 				};
 			}
 
-			const held = character.items.find((item) => item.type === 'career') as (CharacterItem & { system: CareerData }) | undefined;
+			const [held] = ofType(character.items, 'career');
 			return writing(careerChange(character.items, held, { system, source: dropped.source }, freeRankSkillIds, newId));
 		}
 		case 'talent':

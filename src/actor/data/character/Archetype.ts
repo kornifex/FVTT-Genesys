@@ -6,7 +6,7 @@ import type { GenesysActor } from '@/actor/GenesysActor';
 import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
+import { ofType } from '@/item/ItemTypes';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
@@ -171,7 +171,7 @@ export function grantedSkillRankUpdates<T extends HeldItem>(
 	grantedItems: ArchetypeGrants['grantedItems'],
 	sign: ArchetypeSign,
 ) {
-	const skills = items.filter((i) => i.type === 'skill') as (T & { system: SkillDataModel })[];
+	const skills = ofType(items, 'skill');
 	const grantedSkills = new Set(grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []));
 
 	return [...grantedSkills].map((skill) => ({

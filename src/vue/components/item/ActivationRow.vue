@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import DataRow from '@/vue/components/DataRow.vue';
 import Localized from '@/vue/components/Localized.vue';
-import type { AbilityActivation } from '@/item/data/AbilityDataModel';
+import type { AbilityActivation } from '@/data/schemaFields';
 
 defineProps<{
 	/**

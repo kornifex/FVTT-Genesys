@@ -1,5 +1,5 @@
 /** @file The damage and range of weapons and their attacks, and the firing arcs of vehicle weapons. */
-import { CHARACTERISTIC_ABBREVIATIONS, type CharacteristicsContainer } from '@/data/Characteristics';
+import { Characteristic, CHARACTERISTIC_ABBREVIATIONS, type CharacteristicsContainer } from '@/data/Characteristics';
 import type { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
@@ -38,9 +38,29 @@ export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; c
 }
 
 /**
- * The localization key of each range band a weapon can reach, from engaged to strategic.
+ * The range bands a weapon can reach, from engaged to strategic.
  */
-export const RANGE_LABELS: Record<BaseWeaponDataModel['range'], string> = {
+export const RANGES = ['engaged', 'short', 'medium', 'long', 'extreme', 'strategic'] as const;
+
+/**
+ * A range band.
+ */
+export type RangeBand = (typeof RANGES)[number];
+
+/**
+ * The characteristics a weapon's damage can add, or `-` for none.
+ */
+export const DAMAGE_CHARACTERISTICS = ['-', ...Object.values(Characteristic)] as const;
+
+/**
+ * The characteristic a weapon's damage adds, or `-` for none.
+ */
+export type DamageCharacteristic = (typeof DAMAGE_CHARACTERISTICS)[number];
+
+/**
+ * The localization key of each range band a weapon can reach.
+ */
+export const RANGE_LABELS: Record<RangeBand, string> = {
 	engaged: 'Genesys.Range.Engaged',
 	short: 'Genesys.Range.Short',
 	medium: 'Genesys.Range.Medium',

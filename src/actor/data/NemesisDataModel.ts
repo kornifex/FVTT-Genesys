@@ -1,6 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
-import { CombatPool } from '@/data/Actors';
+import { CombatPool, combatPoolField } from '@/data/schemaFields';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
@@ -45,18 +45,10 @@ export abstract class NemesisDataModel extends AdversaryDataModel implements Has
 	}
 
 	static override defineSchema() {
-		const fields = foundry.data.fields;
-
 		return {
 			...super.defineSchema(),
-			wounds: new fields.SchemaField({
-				value: new fields.NumberField({ initial: 0 }),
-				max: new fields.NumberField({ initial: 0 }),
-			}),
-			strain: new fields.SchemaField({
-				value: new fields.NumberField({ initial: 0 }),
-				max: new fields.NumberField({ initial: 0 }),
-			}),
+			wounds: combatPoolField(),
+			strain: combatPoolField(),
 		};
 	}
 }

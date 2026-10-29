@@ -1,8 +1,9 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
-import type { SkillCategory } from '@/data/Skills';
+import { SKILL_CATEGORIES, type SkillCategory } from '@/data/Skills';
+import { choiceField } from '@/data/schemaFields';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { CareerDataModel } from '@/item/data/CareerDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 import { createdSkillIsCareer } from '@/actor/data/character/Career';
 
 /**
@@ -48,7 +49,7 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 			return;
 		}
 
-		const career = skill.actor.items.find((item) => item.type === 'career') as GenesysItem<CareerDataModel> | undefined;
+		const [career] = itemsOfType(skill.actor, 'career');
 		const careerSkills = career?.systemData.careerSkills ?? [];
 		skill.updateSource({ 'system.career': createdSkillIsCareer({ name: skill.name, career: skill.systemData.career }, careerSkills) });
 	}
@@ -58,14 +59,8 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 
 		return {
 			...super.defineSchema(),
-			characteristic: new fields.StringField({
-				initial: Characteristic.Brawn,
-				choices: ['brawn', 'agility', 'intellect', 'cunning', 'willpower', 'presence'],
-			}),
-			category: new fields.StringField({
-				initial: 'general',
-				choices: ['general', 'magic', 'combat', 'social', 'knowledge'],
-			}),
+			characteristic: choiceField(Object.values(Characteristic), Characteristic.Brawn),
+			category: choiceField(SKILL_CATEGORIES, 'general'),
 			initiative: new fields.BooleanField({ initial: false }),
 			career: new fields.BooleanField({ initial: false }),
 			rank: new fields.NumberField({ integer: true, initial: 0 }),

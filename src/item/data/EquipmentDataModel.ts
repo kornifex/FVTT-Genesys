@@ -5,6 +5,7 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { EquipmentState } from '@/item/data/EquipmentState';
+import { choiceField } from '@/data/schemaFields';
 
 /**
  * The data of a piece of equipment, with its Equipment State: that of gear and consumables, and the base of the other
@@ -67,16 +68,10 @@ export abstract class EquipmentDataModel extends BaseItemDataModel {
 			rarity: new fields.NumberField({ integer: true, initial: 0 }),
 			encumbrance: new fields.NumberField({ integer: true, initial: 0 }),
 			price: new fields.NumberField({ initial: 0 }),
-			damage: new fields.StringField({
-				initial: EquipmentDamageState.Undamaged,
-				choices: Object.values(EquipmentDamageState),
-			}),
+			damage: choiceField(Object.values(EquipmentDamageState), EquipmentDamageState.Undamaged),
 			container: new fields.StringField({ initial: '' }),
 			quantity: new fields.NumberField({ integer: true, initial: 1 }),
-			state: new fields.StringField({
-				initial: EquipmentState.Carried,
-				choices: Object.values(EquipmentState),
-			}),
+			state: choiceField(Object.values(EquipmentState), EquipmentState.Carried),
 		};
 	}
 }
