@@ -2,6 +2,7 @@
  * @file Building a dice pool from a characteristic, a skill, a difficulty and pool modifications.
  */
 
+import type { DieCategory } from '@/dice/dice/GenesysDie';
 import { DieTypes } from '@/dice/DieTypes';
 import { GenesysPoolModifications, PoolModGlyphPattern, poolModificationStep, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { GenesysSymbol, symbolsNetSuccesses } from '@/dice/GenesysSymbol';
@@ -52,6 +53,32 @@ export type DicePoolInputs = {
 	 */
 	modifications: DicePoolModifications;
 };
+
+/**
+ * A die or a symbol of a dice pool, as a preview shows it.
+ */
+type PoolEntry = { kind: 'die'; name: DieName; glyph: string } | { kind: 'symbol'; name: SymbolName; glyph: string };
+
+/**
+ * The order a preview shows the symbols in.
+ */
+const PREVIEW_SYMBOLS: SymbolName[] = ['Success', 'Triumph', 'Advantage', 'Failure', 'Despair', 'Threat'];
+
+/**
+ * One side of a dice pool, one entry for each of its dice then of its symbols, in the order a preview shows them: the
+ * dice in the order of `DieTypes`, the symbols in `PREVIEW_SYMBOLS`'.
+ */
+export function poolSide(dicePool: DicePool, category: DieCategory): PoolEntry[] {
+	const dice = (Object.keys(DieTypes) as DieName[])
+		.filter((name) => DieTypes[name].CATEGORY === category)
+		.flatMap((name) =>
+			Array.from({ length: dicePool.dice[name] ?? 0 }, (): PoolEntry => ({ kind: 'die', name, glyph: DieTypes[name].GLYPH })),
+		);
+	const symbols = PREVIEW_SYMBOLS.filter((name) => GenesysSymbol[name].CATEGORY === category).flatMap((name) =>
+		Array.from({ length: dicePool.symbols[name] ?? 0 }, (): PoolEntry => ({ kind: 'symbol', name, glyph: GenesysSymbol[name].GLYPH })),
+	);
+	return [...dice, ...symbols];
+}
 
 /**
  * Compare two pool modification glyphs by the step of modifying a dice pool each one applies at.

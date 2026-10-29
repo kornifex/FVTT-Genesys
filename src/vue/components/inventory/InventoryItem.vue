@@ -103,8 +103,8 @@ async function rollAttack() {
 	}
 
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skillName, {
-		rollType: RollType.Attack,
-		rollData: {
+		roll: {
+			type: RollType.Attack,
 			// An item with a skill to attack with is a weapon.
 			weapon: props.item as GenesysItem<WeaponDataModel | VehicleWeaponDataModel>,
 		},
