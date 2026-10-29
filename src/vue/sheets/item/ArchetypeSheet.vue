@@ -1,26 +1,26 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
+import { computed } from 'vue';
 
 import { CHARACTERISTIC_LABELS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 
-const context = inject<ItemSheetContext<ArchetypeDataModel>>(RootContext)!;
-const system = computed(() => context.data.item.systemData);
+const { document: item, system, editable } = useSheetDocument<GenesysItem<ArchetypeDataModel>>();
 
 const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').split(' ');
 
 const specialAbilities = computed(() => system.value.grantedItems.filter((i) => i.type === 'ability'));
 
 async function deleteGrantedItem(index: number) {
-	await context.data.item.update({ 'system.grantedItems': withoutIndex(system.value.grantedItems, index) });
+	await item.value.update({ 'system.grantedItems': withoutIndex(system.value.grantedItems, index) });
 }
 </script>
 
@@ -105,7 +105,7 @@ async function deleteGrantedItem(index: number) {
 					<div v-for="(item, index) in system.grantedItems" :key="item.name" class="data">
 						<img :src="item.img" :alt="item.name" />
 						<span class="name">{{ item.name }}</span>
-						<div v-if="context.data.editable">
+						<div v-if="editable">
 							<a @click="deleteGrantedItem(index)"><i class="fas fa-trash"></i></a>
 						</div>
 					</div>

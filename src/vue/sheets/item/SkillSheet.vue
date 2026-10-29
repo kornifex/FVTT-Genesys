@@ -1,18 +1,15 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
-
 import { CHARACTERISTICS } from '@/data/Characteristics';
 import { SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-const context = inject<ItemSheetContext<SkillDataModel>>(RootContext)!;
-
-const system = computed(() => context.data.item.systemData);
+const { system } = useSheetDocument<GenesysItem<SkillDataModel>>();
 </script>
 
 <template>

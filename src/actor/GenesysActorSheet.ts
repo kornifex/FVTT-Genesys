@@ -4,7 +4,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
-import { ActorSheetContext } from '@/vue/SheetContext';
+import { DocumentSheetContext } from '@/vue/SheetContext';
 
 import '@/actor/GenesysActorSheet.scss';
 
@@ -22,11 +22,8 @@ export class GenesysActorSheet<
 		position: { width: 720, height: 640 },
 	};
 
-	override async getVueContext(): Promise<ActorSheetContext<ActorDataModel>> {
-		return {
-			sheet: this,
-			data: { actor: this.actor, editable: this.isEditable },
-		};
+	override async getVueContext(): Promise<DocumentSheetContext<GenesysActor<ActorDataModel>, this>> {
+		return { sheet: this, document: this.actor, editable: this.isEditable };
 	}
 
 	/**

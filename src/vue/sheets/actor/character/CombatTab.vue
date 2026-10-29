@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
+import { computed } from 'vue';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
@@ -21,18 +22,14 @@ import { attackSkillChoices, skillToRoll } from '@/data/Skills';
 import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
-const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
+const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
-const actor = computed(() => toRaw(rootContext.data.actor));
-
-const weapons = computed(() =>
-	itemsOfType(toRaw(rootContext.data.actor), 'weapon').filter((i) => i.systemData.state === EquipmentState.Equipped),
-);
-const armors = computed(() => wornArmor(itemsOfType(toRaw(rootContext.data.actor), 'armor')));
-const injuries = computed(() => itemsOfType(toRaw(rootContext.data.actor), 'injury'));
+const weapons = computed(() => itemsOfType(actor.value, 'weapon').filter((i) => i.systemData.state === EquipmentState.Equipped));
+const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
+const injuries = computed(() => itemsOfType(actor.value, 'injury'));
 
 async function healInjury(injury: GenesysItem<InjuryDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(rootContext.data.actor), CONFIG.genesys.settings.skillForHealingInjury, {
+	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
 		difficulty: severityDifficulty(injury.systemData.severity),
 	});
 }

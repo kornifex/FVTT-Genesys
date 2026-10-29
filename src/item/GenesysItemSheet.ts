@@ -2,7 +2,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
-import { ItemSheetContext } from '@/vue/SheetContext';
+import { DocumentSheetContext } from '@/vue/SheetContext';
 
 import '@/item/GenesysItemSheet.scss';
 
@@ -41,11 +41,8 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 		return 'description';
 	}
 
-	override async getVueContext(): Promise<ItemSheetContext<ItemDataModel>> {
-		return {
-			sheet: this,
-			data: { item: this.item, editable: this.isEditable },
-		};
+	override async getVueContext(): Promise<DocumentSheetContext<GenesysItem<ItemDataModel>, this>> {
+		return { sheet: this, document: this.item, editable: this.isEditable };
 	}
 
 	protected override async _onRender(

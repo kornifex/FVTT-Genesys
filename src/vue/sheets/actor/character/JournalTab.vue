@@ -1,21 +1,18 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { ENTRY_LABELS, Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, awardXP } from '@/actor/data/character/Advancement';
 import { undoJournalEntry } from '@/operations/JournalUndo';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
 import Motivations from '@/vue/components/Motivations.vue';
 
-const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
-
-const system = computed(() => context.data.actor.systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
 async function addXPJournalEntry() {
 	const award = await AwardXPPrompt.promptForXPAward();
@@ -23,11 +20,11 @@ async function addXPJournalEntry() {
 		return;
 	}
 
-	await advance(toRaw(context.data.actor), (character) => awardXP(character, award.amount, award.reason));
+	await advance(actor.value, (character) => awardXP(character, award.amount, award.reason));
 }
 
 async function removeJournalEntry(index: number) {
-	await undoJournalEntry(toRaw(context.data.actor), index);
+	await undoJournalEntry(actor.value, index);
 }
 
 function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | number> | undefined {

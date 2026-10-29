@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, ref, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, ref, toRef } from 'vue';
+import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
@@ -70,23 +71,21 @@ const containerDrag = useDragHover((event) => {
 });
 const isBeingDragged = ref(false);
 
-const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
+const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
 
-// Foundry updates the item out of Vue's sight, so a computed reading it would lag behind: the row reads the item's data
-// on each render of the sheet instead, which replaces the context.
-function system() {
-	return toRaw(props.item).systemData;
-}
+// Named as the prop, which it shadows in the template: the row reads the item through `useRendered`.
+const item = useRendered(() => props.item);
+const system = toRef(() => item.value.systemData);
 
 function armorData() {
-	return system() as ArmorDataModel;
+	return system.value as ArmorDataModel;
 }
 
 // The rows that read a weapon's data are those of a character's or a vehicle's weapon.
 function weaponData() {
-	return system() as WeaponDataModel | VehicleWeaponDataModel;
+	return system.value as WeaponDataModel | VehicleWeaponDataModel;
 }
 
 // The labels of a vehicle weapon's firing arc: a character's weapon has none.
@@ -98,31 +97,25 @@ function firingArcs() {
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
 const displayContainerContents = ref(false);
-const containedItems = computed(() =>
-	containerContents(toRaw(context.data.actor).items.contents as GenesysItem<EquipmentDataModel>[], props.item.id),
-);
+const containedItems = computed(() => containerContents(actor.value.items.contents as GenesysItem<EquipmentDataModel>[], props.item.id));
 
 function damage() {
 	const weapon = weaponData();
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
-		total: weaponDamage(weapon, (context.data.actor.systemData as Partial<CharacterDataModel>).characteristics),
+		total: weaponDamage(weapon, (actor.value.systemData as Partial<CharacterDataModel>).characteristics),
 	};
-}
-
-function actor() {
-	return toRaw(context.data.actor);
 }
 
 // The Attack Skill of a character's weapon, which offers an attack when it has one.
 function skillForWeapon() {
-	return attackSkill(actor(), props.item as GenesysItem<WeaponDataModel>);
+	return attackSkill(actor.value, item.value as GenesysItem<WeaponDataModel>);
 }
 
 // The Equipment State moves the row's menu offers.
 function stateMoves() {
-	return equipmentStateMoves(actor().type, props.item);
+	return equipmentStateMoves(actor.value.type, item.value);
 }
 
 function moveIcon(action: keyof typeof MOVE_ENTRIES) {
@@ -131,7 +124,7 @@ function moveIcon(action: keyof typeof MOVE_ENTRIES) {
 
 async function setItemState(state: EquipmentState) {
 	// A Container's contents take its new state with it, and an armor put on takes off the one worn before.
-	await actor().updateEmbeddedDocuments('Item', equipmentStateUpdates(actor().items.contents, props.item.id, state));
+	await actor.value.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.value.items.contents, props.item.id, state));
 }
 
 function dragStart(event: DragEvent) {
@@ -164,7 +157,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 	// Only a Container receives drops: those on other items go on to the sheet.
 	if (props.item.type === 'container') {
-		await receiveInventoryEvent(toRaw(context.data.actor), event, { kind: 'container', id: props.item.id });
+		await receiveInventoryEvent(actor.value, event, { kind: 'container', id: props.item.id });
 	}
 }
 </script>
@@ -174,7 +167,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		:class="{
 			'inventory-item': true,
 			mini: props.mini,
-			[system().state]: true,
+			[system.state]: true,
 			hover: containerDrag.isHovered.value,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
@@ -195,8 +188,8 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<a @click="openSheet(item)">{{ item.name }}</a>
 				<button
 					class="attack"
-					v-if="item.type === 'weapon' && system().state === EquipmentState.Equipped && skillForWeapon()"
-					@click="attackWith(actor(), item as GenesysItem<WeaponDataModel>)"
+					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
+					@click="attackWith(actor, item as GenesysItem<WeaponDataModel>)"
 				>
 					<Localized label="Genesys.Labels.Attack" />
 				</button>
@@ -261,7 +254,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		</a>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
-			{{ system().encumbrance < 0 ? '+' : null }}{{ Math.abs(system().encumbrance) }} <i class="fas fa-weight-hanging"></i>
+			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
 		</div>
 
 		<a
@@ -273,7 +266,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
 		</a>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable || mini">
+		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
 					v-for="move in stateMoves()"
@@ -285,7 +278,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 				<hr v-if="stateMoves().length > 0" />
 
-				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendToChat(item, actor())" />
+				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendToChat(item, actor)" />
 
 				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openSheet(item)" />
 

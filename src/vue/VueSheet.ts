@@ -2,8 +2,8 @@
  * @file Mixin for rendering an ApplicationV2 with a Vue component.
  */
 
-import { App, Component, createApp, markRaw, nextTick, reactive, UnwrapNestedRefs } from 'vue';
-import { RootContext } from '@/vue/SheetContext';
+import { App, Component, createApp, nextTick } from 'vue';
+import { provideSheetContext } from '@/vue/SheetContext';
 
 import '@/vue/VueSheet.scss';
 
@@ -20,7 +20,7 @@ type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
 /**
  * Mix the rendering of a Vue component into an ApplicationV2 class: the component mounts on the first render, and later
- * renders update its context.
+ * renders hand it their new context, which its components read through `useSheetContext` or `useSheetDocument`.
  */
 export function VueSheet<TBase extends ApplicationConstructor, ContextType extends object | undefined = object>(base: TBase) {
 	return class extends base {
@@ -37,9 +37,9 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		vueApp?: App;
 
 		/**
-		 * Reactive context data that is injected into the active Vue app.
+		 * Hands the active Vue app the context of a render after the first.
 		 */
-		vueContext?: UnwrapNestedRefs<ContextType>;
+		#renderContext?: (context: ContextType | undefined) => void;
 
 		/**
 		 * Tab controller, kept for the application's lifetime so that a reopened application shows the tab it was closed on.
@@ -80,20 +80,16 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 			const vueContext = result as ContextType | undefined;
 
 			if (!this.vueApp) {
-				// Vue's reactive proxies can't read the application's private fields, so the context references it as it is.
-				markRaw(this);
-				this.vueContext = vueContext && reactive(vueContext);
-
 				const mountPoint = document.createElement('div');
 				mountPoint.className = 'vue-app';
 				content.replaceChildren(mountPoint);
 
 				this.vueApp = createApp(this.vueComponent);
-				this.vueApp.provide(RootContext, this.vueContext);
+				this.#renderContext = provideSheetContext(this.vueApp, vueContext);
 				this.vueApp.mount(mountPoint);
-			} else if (this.vueContext && vueContext) {
-				// Update the context injected into the existing Vue app, which re-renders what changed.
-				Object.assign(this.vueContext, vueContext);
+			} else {
+				// Foundry changes the documents out of Vue's sight: each render signals the components to read them again.
+				this.#renderContext?.(vueContext);
 			}
 		}
 
@@ -123,7 +119,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		protected override _onClose(options: object) {
 			this.vueApp?.unmount();
 			this.vueApp = undefined;
-			this.vueContext = undefined;
+			this.#renderContext = undefined;
 
 			super._onClose(options);
 		}

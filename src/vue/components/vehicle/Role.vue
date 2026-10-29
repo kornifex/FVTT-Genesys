@@ -33,10 +33,12 @@ const emit = defineEmits<{
 }>();
 
 const { isHovered, enter, leave, reset } = useDragHover();
+// Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<GenesysActor[]>([]);
 
-// Only the members whose actor still exists are shown. Resolving them is asynchronous: a later change of the members
-// replaces the actors still being resolved.
+// Only the members whose actor still exists are shown. Foundry builds the vehicle's system data anew on each of its
+// updates, so a change to the members comes as another list. Resolving them is asynchronous: a later change of the
+// members replaces the actors still being resolved.
 watch(
 	() => props.members,
 	async (members, _oldMembers, onCleanup) => {
@@ -48,7 +50,7 @@ watch(
 			actorsInRole.value = [...actors.values()];
 		}
 	},
-	{ immediate: true, deep: true },
+	{ immediate: true },
 );
 
 function drop(event: DragEvent, memberUnder?: MemberUUID) {

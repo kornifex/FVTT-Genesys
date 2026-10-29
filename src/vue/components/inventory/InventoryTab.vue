@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, ref, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, ref } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
@@ -32,13 +33,12 @@ const props = defineProps<{
 
 const CURRENCY_LABEL = CONFIG.genesys.settings.currencyName;
 
-const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
 
 // The actor's data model tells which item types belong to the inventory and which of them can be equipped.
-const dataModel = toRaw(context.data.actor).systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
+const dataModel = actor.value.systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
 
-const isDraggable = ref(toRaw(context.data.actor).isOwner);
+const isDraggable = ref(actor.value.isOwner);
 
 // A drag over the tab opens the sort slots of the sections that take the dragged item: the Equipped section those the
 // actor can equip, the others any item of its inventory.
@@ -46,7 +46,7 @@ const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext
 const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
 const inventory = computed(() =>
-	itemsOfType(toRaw(context.data.actor), EQUIPMENT_TYPES).filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)),
+	itemsOfType(actor.value, EQUIPMENT_TYPES).filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
 const equippedItems = computed(() => sectionItems(inventory.value, EquipmentState.Equipped));
 const carriedItems = computed(() => sectionItems(inventory.value, EquipmentState.Carried));
@@ -80,7 +80,7 @@ function canTypeBeInsideContainer(type: string) {
 }
 
 async function dropInventoryToSortSlot(event: DragEvent, state: EquipmentState, after: number) {
-	await receiveInventoryEvent(toRaw(context.data.actor), event, { kind: 'section', state, after });
+	await receiveInventoryEvent(actor.value, event, { kind: 'section', state, after });
 }
 
 function isSectionDragged(state: EquipmentState) {

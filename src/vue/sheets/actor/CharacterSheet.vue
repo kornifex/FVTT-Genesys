@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
@@ -14,10 +14,9 @@ import TalentsTab from '@/vue/sheets/actor/character/TalentsTab.vue';
 import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 
-const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { system } = useSheetDocument<GenesysActor<CharacterDataModel>>();
 
-const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
+const { effects, addEffect } = useDocumentEffects();
 </script>
 
 <template>

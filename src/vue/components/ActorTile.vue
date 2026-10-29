@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { inject, ref, toRaw, onUpdated } from 'vue';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, onUpdated, ref } from 'vue';
+import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { startDocumentDrag } from '@/data/DragTransferData';
 import { openSheet } from '@/operations/ItemActions';
@@ -26,12 +25,17 @@ const emit = defineEmits<{
 	(e: 'removeMember'): void;
 }>();
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
+const { document: vehicle, editable } = useSheetDocument();
+
+// Named as the prop, which it shadows in the template: the tile reads the actor through `useRendered`.
+const actor = useRendered(() => props.actor);
 
 const isBeingDragged = ref(false);
 const imageDom = ref<HTMLImageElement | null>(null);
 
-const career = props.actor.type === 'character' ? toRaw(props.actor).items.find((item) => item.type === 'career')?.name : undefined;
+const career = computed(() =>
+	actor.value.type === 'character' ? actor.value.items.find((item) => item.type === 'career')?.name : undefined,
+);
 
 // When we are on "tile" mode the image DOM element used to display the actor's picture is wrapped by a context menu
 // component. Sadly, even when we force a re-render of this component sometimes said DOM element won't be re-rendered
@@ -53,7 +57,7 @@ onUpdated(() => {
 // vehicle moves it there, and one on this vehicle moves it within the Crew.
 function dragStart(event: DragEvent) {
 	isBeingDragged.value = true;
-	startDocumentDrag(event, props.actor, { sourceVehicleUuid: context.data.actor.uuid });
+	startDocumentDrag(event, props.actor, { sourceVehicleUuid: vehicle.value.uuid });
 }
 
 function dragEnd() {
@@ -61,7 +65,7 @@ function dragEnd() {
 }
 
 async function openActorSheet() {
-	await openSheet(toRaw(props.actor));
+	await openSheet(props.actor);
 }
 </script>
 
@@ -86,7 +90,7 @@ async function openActorSheet() {
 			<div v-if="career"><Localized label="Genesys.Labels.Career" />: {{ career }}</div>
 		</div>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable">
+		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
@@ -108,7 +112,7 @@ async function openActorSheet() {
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
-		<ContextMenu class="actions" position="above" :disable-menu="!context.data.editable">
+		<ContextMenu class="actions" position="above" :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 

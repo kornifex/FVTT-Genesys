@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
@@ -18,13 +19,10 @@ import { attackWithVehicleWeapon } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
-const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
+const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
-const actor = computed(() => toRaw(rootContext.data.actor));
-const weapons = computed(() =>
-	itemsOfType(toRaw(rootContext.data.actor), 'vehicleWeapon').filter((i) => i.systemData.state === EquipmentState.Equipped),
-);
-const criticalHits = computed(() => itemsOfType(toRaw(rootContext.data.actor), 'injury'));
+const weapons = computed(() => itemsOfType(actor.value, 'vehicleWeapon').filter((i) => i.systemData.state === EquipmentState.Equipped));
+const criticalHits = computed(() => itemsOfType(actor.value, 'injury'));
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	await rollForCrew(crewForSkills(actor.value.systemData.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {

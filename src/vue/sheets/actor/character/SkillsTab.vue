@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
+import { computed } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
 import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/data/character/CharacterCreation';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Localized from '@/vue/components/Localized.vue';
@@ -17,24 +18,23 @@ import MenuItem from '@/vue/components/MenuItem.vue';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 
-const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
-const system = computed(() => context.data.actor.systemData);
-const advancement = computed(() => advancementCharacter(toRaw(context.data.actor)));
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const advancement = computed(() => advancementCharacter(actor.value));
 
-const skillCategories = computed(() => skillsByCategory(toRaw(context.data.actor).skills, game.i18n.lang));
+const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
+	await DicePrompt.promptForRoll(actor.value, skill.name);
 }
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
-	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
+	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
 }
 
 async function purchaseCharacteristic(characteristic: CharacteristicType) {
-	await advance(toRaw(context.data.actor), (character) => raiseCharacteristic(character, characteristic));
+	await advance(actor.value, (character) => raiseCharacteristic(character, characteristic));
 }
 
 function canPurchaseCharacteristic(characteristic: CharacteristicType) {
@@ -42,7 +42,7 @@ function canPurchaseCharacteristic(characteristic: CharacteristicType) {
 }
 
 async function purchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
-	await advance(toRaw(context.data.actor), (character) => buySkillRank(character, skill.id));
+	await advance(actor.value, (character) => buySkillRank(character, skill.id));
 }
 
 function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
@@ -52,13 +52,13 @@ function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
 // A skill can be marked as a career skill by hand at any time, whatever the character's Career: a talent or the GM
 // may grant one.
 async function toggleCareerSkill(skill: GenesysItem<SkillDataModel>) {
-	await toRaw(skill).update({
+	await skill.update({
 		'system.career': !skill.systemData.career,
 	});
 }
 
 async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
-	await toRaw(skill).update({
+	await skill.update({
 		'system.rank': freeRank(skill.systemData.rank, step),
 	});
 }
@@ -77,16 +77,16 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		return;
 	}
 
-	await toRaw(context.data.actor).update({
+	await actor.value.update({
 		'system.superCharacteristics': superCharacteristics,
 	});
 }
 
 async function editSkill(skill: GenesysItem<SkillDataModel>) {
-	await toRaw(skill).sheet?.render(true);
+	await skill.sheet?.render(true);
 }
 async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
-	await toRaw(skill).delete();
+	await skill.delete();
 }
 </script>
 
@@ -127,21 +127,21 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 					<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
 						<template v-slot:menu-items>
 							<MenuItem
-								v-if="context.data.editable"
+								v-if="editable"
 								:icon="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"
 								:label="skill.systemData.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill'"
 								@click="toggleCareerSkill(skill)"
 							/>
 
 							<MenuItem
-								v-if="context.data.editable"
+								v-if="editable"
 								icon="fas fa-circle-up"
 								label="Genesys.Labels.FreeRankUp"
 								@click="freeSkillRank(skill, 1)"
 							/>
 
 							<MenuItem
-								v-if="context.data.editable"
+								v-if="editable"
 								icon="fas fa-circle-down"
 								label="Genesys.Labels.FreeRankDown"
 								@click="freeSkillRank(skill, -1)"
@@ -149,12 +149,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 
 							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editSkill(skill)" />
 
-							<MenuItem
-								v-if="context.data.editable"
-								icon="fas fa-trash"
-								label="Genesys.Labels.Delete"
-								@click="deleteSkill(skill)"
-							/>
+							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteSkill(skill)" />
 						</template>
 
 						<img :src="skill.img" :alt="skill.name" />

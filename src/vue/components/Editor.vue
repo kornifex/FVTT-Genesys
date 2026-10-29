@@ -1,6 +1,8 @@
 <script lang="ts" setup>
-import { inject, onMounted, ref, watch } from 'vue';
-import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import { onMounted, ref, watch } from 'vue';
+import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
+import type { GenesysActor } from '@/actor/GenesysActor';
+import type { GenesysItem } from '@/item/GenesysItem';
 import { enrich } from '@/enrich';
 
 type HTMLProseMirrorElement = foundry.applications.elements.HTMLProseMirrorElement;
@@ -12,7 +14,7 @@ const props = defineProps<{
 	name: string;
 }>();
 
-const context = inject<BaseSheetContext>(RootContext)!;
+const context = useSheetContext<DocumentSheetContext<GenesysActor | GenesysItem>>();
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -27,10 +29,11 @@ let shown: { text: string; editable: boolean } | undefined;
  */
 let builds = 0;
 
-// Each render of the sheet replaces its context's data. The text is read from the document rather than passed as a prop:
-// Foundry updates the document's data in place, so a parent passing the same object (the Motivations) doesn't re-render.
+// Each render of the sheet sets its context again: the editor watches it as its render tick. The text is read from the
+// document rather than passed as a prop: Foundry updates the document's data in place, so a parent passing the same
+// object (the Motivations) doesn't re-render.
 onMounted(show);
-watch(() => context.data, show);
+watch(context, show);
 
 /**
  * Show the field's stored text in a toggled `<prose-mirror>` element. The element reads its value and enriched text only
@@ -43,9 +46,9 @@ async function show() {
 		return;
 	}
 
-	const stored: unknown = foundry.utils.getProperty(context.sheet.document._source, props.name);
+	const stored: unknown = foundry.utils.getProperty(context.value.document._source, props.name);
 	const text = typeof stored === 'string' ? stored : '';
-	const editable = context.data.editable;
+	const editable = context.value.editable;
 	if (shown?.text === text && shown.editable === editable) {
 		return;
 	}

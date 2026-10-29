@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, toRef } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -20,26 +21,26 @@ const props = defineProps<{
 	groupRank?: number;
 }>();
 
-const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
-const characteristics = computed(() => toRaw(context.data.actor).systemData.characteristics);
-const skills = computed(() => toRaw(context.data.actor).skills);
+const { document: actor } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
+const characteristics = toRef(() => actor.value.systemData.characteristics);
+const skills = computed(() => actor.value.skills);
 
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
+	await DicePrompt.promptForRoll(actor.value, skill.name);
 }
 
 async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
-	await toRaw(skill).update({
+	await skill.update({
 		'system.rank': freeRank(skill.systemData.rank, step),
 	});
 }
 
 async function editItem(skill: GenesysItem<SkillDataModel>) {
-	await toRaw(skill).sheet.render(true);
+	await skill.sheet.render(true);
 }
 
 async function deleteItem(skill: GenesysItem<SkillDataModel>) {
-	await toRaw(skill).delete();
+	await skill.delete();
 }
 </script>
 

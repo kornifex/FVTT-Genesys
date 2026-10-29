@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { inject, ref } from 'vue';
+import { ref } from 'vue';
 
 import { AwardXPContext } from '@/app/AwardXPPrompt';
-import { RootContext } from '@/vue/SheetContext';
+import { useSheetContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 
-const context = inject<AwardXPContext>(RootContext)!;
+const context = useSheetContext<AwardXPContext>();
 
 const amount = ref(0);
 const reason = ref('');
@@ -13,7 +13,7 @@ const reason = ref('');
 function awardXP(event: Event) {
 	event.preventDefault();
 
-	context.answer({
+	context.value.answer({
 		amount: amount.value,
 		reason: reason.value,
 	});

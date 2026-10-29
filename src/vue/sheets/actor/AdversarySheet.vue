@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed, inject, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -28,42 +29,35 @@ import type { StepDirection } from '@/actor/data/Inventory';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
-const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
 
-const talents = computed(() => itemsOfType(toRaw(context.data.actor), 'talent'));
-const abilities = computed(() => itemsOfType(toRaw(context.data.actor), 'ability'));
+const talents = computed(() => itemsOfType(actor.value, 'talent'));
+const abilities = computed(() => itemsOfType(actor.value, 'ability'));
 const equipment = computed(() =>
-	itemsOfType(toRaw(context.data.actor), EQUIPMENT_TYPES).filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)),
+	itemsOfType(actor.value, EQUIPMENT_TYPES).filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
-const injuries = computed(() => itemsOfType(toRaw(context.data.actor), 'injury'));
+const injuries = computed(() => itemsOfType(actor.value, 'injury'));
 // The weapons, each with its Attack Skill: a weapon without one offers no attack.
 const weapons = computed(() =>
-	itemsOfType(toRaw(context.data.actor), 'weapon').map((item) => ({
+	itemsOfType(actor.value, 'weapon').map((item) => ({
 		item,
-		skill: attackSkill(actor(), item),
+		skill: attackSkill(actor.value, item),
 	})),
 );
 
-const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
-
-// Foundry rebuilds the actor's data out of Vue's sight: a computed over the actor itself would never change, so the
-// sheet reads it through the context on each use.
-function actor() {
-	return toRaw(context.data.actor);
-}
+const { effects, addEffect } = useDocumentEffects();
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
-	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
+	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
 }
 
 // A non-ranked talent offers no rank change, as on characters.
 function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
-	return talentRankChange(toRaw(talent), 1).action !== 'refuse';
+	return talentRankChange(talent, 1).action !== 'refuse';
 }
 
 async function changeTalentRank(talent: GenesysItem<TalentDataModel>, direction: StepDirection) {
-	await stepTalentRank(actor(), toRaw(talent), direction);
+	await stepTalentRank(actor.value, talent, direction);
 }
 
 function damageForWeapon(weapon: GenesysItem) {
@@ -78,7 +72,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		return;
 	}
 
-	await toRaw(context.data.actor).update({
+	await actor.value.update({
 		'system.superCharacteristics': superCharacteristics,
 	});
 }
@@ -87,8 +81,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 <template>
 	<div class="adversary-sheet">
 		<header>
-			<img :src="context.data.actor.img" :alt="context.data.actor.name" data-edit="img" />
-			<input type="text" name="name" :value="context.data.actor.name" />
+			<img :src="actor.img" :alt="actor.name" data-edit="img" />
+			<input type="text" name="name" :value="actor.name" />
 		</header>
 
 		<nav class="sheet-tabs" data-group="primary">
@@ -144,7 +138,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<Localized v-if="talents.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="talent in talents" :key="talent.id" class="talent">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<template v-if="canChangeTalentRank(talent)">
 											<MenuItem
@@ -169,7 +163,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<a @click="openSheet(talent)"
 											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
 										>
-										<a class="send-to-chat-link" @click="sendToChat(talent, actor())"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(talent, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched class="description" v-if="talent.systemData.description" :value="talent.systemData.description" />
@@ -182,16 +176,14 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<Localized v-if="abilities.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
 									</template>
 
 									<label>
 										<a @click="openSheet(ability)">{{ ability.name }}</a>
-										<a class="send-to-chat-link" @click="sendToChat(ability, actor())"
-											><i class="fas fa-comment"></i
-										></a>
+										<a class="send-to-chat-link" @click="sendToChat(ability, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched
@@ -215,13 +207,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										v-if="skill"
 										icon="fas fa-dice-d20"
 										label="Genesys.Labels.PerformCheck"
-										@click="attackWith(actor(), item)"
+										@click="attackWith(actor, item)"
 									/>
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="attackWith(actor(), item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
+								<a @click="attackWith(actor, item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
@@ -244,13 +236,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
 									>)
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor())"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 							<ContextMenu
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
 								:key="item.id"
 								class="inventory-item"
-								:disable-menu="!context.data.editable"
+								:disable-menu="!editable"
 							>
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
@@ -267,7 +259,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor())"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 						</div>
 					</div>
@@ -281,7 +273,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<Localized v-if="injuries.length === 0" label="Genesys.Adversary.None" />
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
-								<ContextMenu :disable-menu="!context.data.editable">
+								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 									</template>

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw, shallowRef, watch } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { computed, shallowRef, watch } from 'vue';
+import { useSheetDocument } from '@/vue/useSheetDocument';
 
 import Localized from '@/vue/components/Localized.vue';
 import Role from '@/vue/components/vehicle/Role.vue';
@@ -15,15 +15,15 @@ import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
 const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? ''));
+// Shallow, so that Vue never wraps the actors in reactive proxies.
 const passengersActors = shallowRef<GenesysActor[]>([]);
 
-const sortedPassengers = computed(() => [...toRaw(context.data.actor).systemData.passengers.list].sort(sortPassenger));
+const sortedPassengers = computed(() => [...actor.value.systemData.passengers.list].sort(sortPassenger));
 
 // Only the passengers whose actor still exists are shown. Resolving them is asynchronous: a later change of the
 // passengers replaces the actors still being resolved.
@@ -50,11 +50,11 @@ function addNewRole() {
 }
 
 function dropToPassengers(event: DragEvent, place: CrewPlace) {
-	void receiveCrewEvent(toRaw(context.data.actor), event, place);
+	void receiveCrewEvent(actor.value, event, place);
 }
 
 function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | TokenDocumentUUID) {
-	void receiveCrewEvent(toRaw(context.data.actor), event, { kind: 'role', roleId, before: memberUnder });
+	void receiveCrewEvent(actor.value, event, { kind: 'role', roleId, before: memberUnder });
 }
 
 function dragEnter(event: DragEvent) {

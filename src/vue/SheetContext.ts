@@ -1,62 +1,52 @@
 /**
- * @file Provides typing data for RootContext injected into Vue apps.
+ * @file The context a sheet hands its Vue app on each render, and how the app receives it.
  */
 
-import { GenesysActor } from '@/actor/GenesysActor';
-import { GenesysItem } from '@/item/GenesysItem';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { GenesysItemSheet } from '@/item/GenesysItemSheet';
-import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
+import { type App, inject, type InjectionKey, type ShallowRef, shallowRef, triggerRef } from 'vue';
 
 /**
- * This symbol is used by Vue apps in the system to inject sheet data.
+ * The key the sheet's context is provided under, read through `useSheetContext`.
  */
-export const RootContext = Symbol('Vue Root Context');
+const RootContext: InjectionKey<Readonly<ShallowRef<unknown>>> = Symbol('Vue Root Context');
 
 /**
- * Typing for context data injected into Vue sheets.
+ * What a document sheet hands its Vue app: the sheet, its document, and whether the user can edit it.
  */
-export type BaseSheetContext = {
-	/**
-	 * A reference to the Sheet instance the vue app is rendering.
-	 */
-	sheet: foundry.applications.api.DocumentSheetV2;
-
-	/**
-	 * Rendering data of the sheet.
-	 */
-	data: {
-		/**
-		 * Whether the user can edit the sheet's document.
-		 */
-		editable: boolean;
-	};
-};
-
-/**
- * Typing for context data injected into Vue Actor sheets.
- */
-export type ActorSheetContext<
-	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
-	SheetType extends GenesysActorSheet<ActorDataModel> = GenesysActorSheet<ActorDataModel>,
-> = BaseSheetContext & {
+export type DocumentSheetContext<DocumentType, SheetType = foundry.applications.api.DocumentSheetV2> = {
 	sheet: SheetType;
-
-	data: {
-		actor: GenesysActor<ActorDataModel>;
-	};
+	document: DocumentType;
+	editable: boolean;
 };
 
 /**
- * Typing for context data injected into Vue Item sheets.
+ * Provide a sheet's context to its Vue app, and return the function that hands the app the context of each later render.
+ *
+ * The context sits in a shallow ref, so that Vue never wraps the Foundry documents it holds in reactive proxies: Foundry
+ * changes them out of Vue's sight. Each render triggers the ref instead, even with the same context, and whatever read it
+ * reads again: the ref is the components' one render signal.
  */
-export type ItemSheetContext<
-	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
-	SheetType extends GenesysItemSheet<ItemDataModel> = GenesysItemSheet<ItemDataModel>,
-> = BaseSheetContext & {
-	sheet: SheetType;
+export function provideSheetContext<Context>(app: App, context: Context): (context: Context) => void {
+	const rendered = shallowRef(context);
+	app.provide(RootContext, rendered);
 
-	data: {
-		item: GenesysItem<ItemDataModel>;
+	return (next) => {
+		// Assigning another context triggers the ref; the same one doesn't, so it is triggered by hand.
+		if (rendered.value === next) {
+			triggerRef(rendered);
+		} else {
+			rendered.value = next;
+		}
 	};
-};
+}
+
+/**
+ * The context of the sheet or prompt the component renders in, set again on each of its renders.
+ */
+export function useSheetContext<Context>(): Readonly<ShallowRef<Context>> {
+	const context = inject(RootContext);
+	if (!context) {
+		throw new Error('This component renders in a Vue sheet, which provides its context');
+	}
+
+	return context as Readonly<ShallowRef<Context>>;
+}

@@ -1,29 +1,28 @@
-import { onBeforeMount, onBeforeUpdate, ref, toRaw, type Ref } from 'vue';
+import { computed } from 'vue';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory, newEffectData } from '@/effects/NewEffect';
 import { GenesysItem } from '@/item/GenesysItem';
+import { useSheetDocument } from '@/vue/useSheetDocument';
 
 /**
- * The effects of a sheet's document, for its Effects tab, and the creation of an effect in a category of the tab.
- * Call it from the sheet's setup: the list refreshes each time the sheet renders.
+ * The effects of the sheet's document, for its Effects tab, and the creation of an effect in a category of the tab.
+ * Call it from the sheet's setup: the list is read again on each render of the sheet.
  */
-export function useDocumentEffects(sheetDocument: () => GenesysActor | GenesysItem) {
-	// The sheet re-renders when its document changes, but the document's effects collection isn't reactive: the list is
-	// copied before each render instead. The reactive type of a document is also too deep for TypeScript to unwrap.
-	const effects = ref([]) as Ref<GenesysEffect[]>;
+export function useDocumentEffects() {
+	const { document } = useSheetDocument<GenesysActor | GenesysItem>();
 
-	function updateEffects() {
-		const document = toRaw(sheetDocument());
+	// The document keeps the same effects collection while Foundry changes it: the list is a new copy on each render.
+	const effects = computed(() => {
+		const sheetDocument = document.value;
 		// An actor's effects are those that apply to it: its own, and those its items transfer to it.
-		effects.value = [...(document instanceof GenesysActor ? document.allApplicableEffects() : document.effects)] as GenesysEffect[];
-	}
-
-	onBeforeMount(updateEffects);
-	onBeforeUpdate(updateEffects);
+		return [
+			...(sheetDocument instanceof GenesysActor ? sheetDocument.allApplicableEffects() : sheetDocument.effects),
+		] as GenesysEffect[];
+	});
 
 	async function addEffect(category: EffectCategory) {
-		const target = toRaw(sheetDocument());
+		const target = document.value;
 		await target.createEmbeddedDocuments('ActiveEffect', [newEffectData(target.name, category)]);
 	}
 

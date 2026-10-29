@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw } from 'vue';
-import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
@@ -14,17 +14,16 @@ import DetailsTab from '@/vue/sheets/actor/vehicle/DetailsTab.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
-const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 
-const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
+const { effects, addEffect } = useDocumentEffects();
 </script>
 
 <template>
 	<div class="vehicle-sheet">
 		<header>
-			<img :src="context.data.actor.img" :alt="context.data.actor.name" data-edit="img" />
-			<input type="text" name="name" :value="context.data.actor.name" />
+			<img :src="actor.img" :alt="actor.name" data-edit="img" />
+			<input type="text" name="name" :value="actor.name" />
 		</header>
 
 		<section class="stats-section">

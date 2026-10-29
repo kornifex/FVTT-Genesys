@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { toRaw } from 'vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
@@ -14,7 +13,7 @@ const props = defineProps<{
 }>();
 
 async function chooseAttackSkill(event: Event) {
-	await toRaw(props.weapon).update({ 'system.attackSkill': (event.currentTarget as HTMLSelectElement).value });
+	await props.weapon.update({ 'system.attackSkill': (event.currentTarget as HTMLSelectElement).value });
 }
 </script>
 

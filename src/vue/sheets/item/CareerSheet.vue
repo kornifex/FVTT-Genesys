@@ -1,20 +1,19 @@
 <script lang="ts" setup>
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { computed, inject } from 'vue';
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 
-const context = inject<ItemSheetContext<CareerDataModel>>(RootContext)!;
-const system = computed(() => context.data.item.systemData);
+const { document: item, system, editable } = useSheetDocument<GenesysItem<CareerDataModel>>();
 
 const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 
 async function removeSkill(index: number) {
-	await context.data.item.update({ 'system.careerSkills': withoutIndex(system.value.careerSkills, index) });
+	await item.value.update({ 'system.careerSkills': withoutIndex(system.value.careerSkills, index) });
 }
 </script>
 
@@ -53,7 +52,7 @@ async function removeSkill(index: number) {
 					<div v-for="(skill, index) in system.careerSkills" :key="skill.name" class="career-skill">
 						<img :src="skill.img" :alt="skill.name" />
 						<span class="name">{{ skill.name }}</span>
-						<div v-if="context.data.editable">
+						<div v-if="editable">
 							<a @click="removeSkill(index)"><i class="fas fa-trash"></i></a>
 						</div>
 					</div>

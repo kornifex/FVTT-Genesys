@@ -1,6 +1,5 @@
 <script lang="ts" setup>
-import { inject } from 'vue';
-import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
@@ -25,7 +24,7 @@ const emit = defineEmits<{
 	(e: 'roll', injury: GenesysItem<InjuryDataModel>): void;
 }>();
 
-const context = inject<BaseSheetContext>(RootContext)!;
+const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
 
 async function openItem(injury: GenesysItem<InjuryDataModel>) {
@@ -51,7 +50,7 @@ async function deleteItem(injury: GenesysItem<InjuryDataModel>) {
 			<div class="name">
 				<a @click="openItem(injury)">{{ injury.name }}</a>
 			</div>
-			<div v-if="context.data.editable" class="actions">
+			<div v-if="editable" class="actions">
 				<a @click="openItem(injury)"><i class="fas fa-edit"></i></a>
 				<a @click="deleteItem(injury)"><i class="fas fa-trash"></i></a>
 			</div>

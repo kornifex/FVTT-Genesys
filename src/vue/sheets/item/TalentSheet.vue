@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
-
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
@@ -9,9 +8,7 @@ import ActivationRow from '@/vue/components/item/ActivationRow.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { MAX_TIER } from '@/item/data/Talents';
 
-const context = inject<ItemSheetContext<TalentDataModel>>(RootContext)!;
-
-const system = computed(() => context.data.item.systemData);
+const { system } = useSheetDocument<GenesysItem<TalentDataModel>>();
 </script>
 
 <template>

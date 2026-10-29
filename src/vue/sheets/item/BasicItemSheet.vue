@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { computed, inject } from 'vue';
-
 import { vLocalize } from '@/vue/directives';
-import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItem } from '@/item/GenesysItem';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
@@ -21,17 +21,16 @@ defineProps<{
 	showEffectsTab?: boolean;
 }>();
 
-const context = inject<ItemSheetContext>(RootContext)!;
-const system = computed(() => context.data.item.systemData);
+const { document: item, system } = useSheetDocument<GenesysItem<BaseItemDataModel>>();
 
-const { effects, addEffect } = useDocumentEffects(() => context.data.item);
+const { effects, addEffect } = useDocumentEffects();
 </script>
 
 <template>
 	<div class="item-sheet-basic">
 		<header :class="hasDecoration ? 'with-decoration' : ''">
-			<img :src="context.data.item.img" data-edit="img" :title="context.data.item.name" :alt="context.data.item.name" />
-			<input type="text" name="name" :value="context.data.item.name" v-localize:placeholder="'Genesys.Labels.Name'" />
+			<img :src="item.img" data-edit="img" :title="item.name" :alt="item.name" />
+			<input type="text" name="name" :value="item.name" v-localize:placeholder="'Genesys.Labels.Name'" />
 			<slot v-if="hasDecoration" name="decoration"></slot>
 		</header>
 
