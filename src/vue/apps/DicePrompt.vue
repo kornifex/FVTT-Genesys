@@ -27,13 +27,13 @@ import {
 	resolveCheck,
 	worldCheckRules,
 } from '@/dice/Check';
-import { type DicePool, parsePoolModifications, poolSide, sortPoolModifications } from '@/dice/DicePool';
+import { type DicePool, parsePoolModifications, poolEntries, sortPoolModifications } from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
 
 type PromptSkill = GenesysItem<SkillDataModel>;
 
-const POOL_SIDES: DieCategory[] = ['positive', 'negative'];
+const DIE_CATEGORIES: DieCategory[] = ['positive', 'negative'];
 
 // The dice box's buttons, by the glyph of the manual change each one adds, in rows of three; a shorter row leaves the
 // rest of it empty.
@@ -52,6 +52,7 @@ const USE_CHANCE_TO_SUCCEED_BY_PERMUTATION = CONFIG.genesys.settings.showChanceT
 const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.genesys.settings.showChanceToSucceedFromSimulations.enabled;
 
 const context = inject<DicePromptContext>(RootContext)!;
+const weapon = context.roll.type === RollType.Attack ? context.roll.weapon : undefined;
 
 const currentDicePool = ref<DicePool>({
 	dice: {},
@@ -88,7 +89,6 @@ onMounted(() => {
 	const actor = toRaw(context.actor);
 
 	if (actor) {
-		const weapon = context.roll.type === RollType.Attack ? context.roll.weapon : undefined;
 		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
 		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.systemData.skills : []);
 		weaponSkills.value = skills.weapon;
@@ -111,7 +111,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			...request,
 			purpose: checkPurpose(),
 			target: (target?.actor as GenesysActor | null) ?? undefined,
-			attackRange: context.roll.type === RollType.Attack ? context.roll.weapon.systemData.range : undefined,
+			attackRange: weapon?.systemData.range,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -267,9 +267,9 @@ async function onRoll() {
 		<!-- Dice Pool Preview -->
 		<div class="preview">
 			<!-- Positive and Negative Pools -->
-			<div v-for="side in POOL_SIDES" :key="side" :class="side">
+			<div v-for="category in DIE_CATEGORIES" :key="category" :class="category">
 				<div
-					v-for="(entry, index) in poolSide(currentDicePool, side)"
+					v-for="(entry, index) in poolEntries(currentDicePool, category)"
 					:key="index"
 					@click="addManualChange(removalGlyph(entry.glyph))"
 					:class="entry.kind === 'die' ? `die die-${entry.name}` : 'symbol'"

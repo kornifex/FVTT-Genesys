@@ -1,5 +1,6 @@
 /**
- * @file Building a dice pool from a characteristic, a skill, a difficulty and pool modifications.
+ * @file Building a dice pool from a characteristic, a skill, a difficulty and pool modifications, and listing it as a
+ * preview shows it.
  */
 
 import type { DieCategory } from '@/dice/dice/GenesysDie';
@@ -65,10 +66,10 @@ type PoolEntry = { kind: 'die'; name: DieName; glyph: string } | { kind: 'symbol
 const PREVIEW_SYMBOLS: SymbolName[] = ['Success', 'Triumph', 'Advantage', 'Failure', 'Despair', 'Threat'];
 
 /**
- * One side of a dice pool, one entry for each of its dice then of its symbols, in the order a preview shows them: the
- * dice in the order of `DieTypes`, the symbols in `PREVIEW_SYMBOLS`'.
+ * The dice then the symbols of a dice pool in one category, positive or negative, one entry for each, in the order a
+ * preview shows them: the dice in the order of `DieTypes`, the symbols in the order of `PREVIEW_SYMBOLS`.
  */
-export function poolSide(dicePool: DicePool, category: DieCategory): PoolEntry[] {
+export function poolEntries(dicePool: DicePool, category: DieCategory): PoolEntry[] {
 	const dice = (Object.keys(DieTypes) as DieName[])
 		.filter((name) => DieTypes[name].CATEGORY === category)
 		.flatMap((name) =>
