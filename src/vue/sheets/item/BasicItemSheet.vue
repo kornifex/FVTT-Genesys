@@ -59,7 +59,7 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 			<div class="tab" data-group="primary" data-tab="description">
 				<slot name="description">
 					<section class="description">
-						<Editor name="system.description" :content="system.description" button />
+						<Editor name="system.description" />
 						<Enriched class="source" :value="system.source" />
 					</section>
 				</slot>

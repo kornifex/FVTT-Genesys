@@ -29,7 +29,7 @@ defineProps<{
 			</div>
 
 			<div class="body">
-				<Editor :name="`system.motivations.${motivation}.description`" :content="motivations[motivation].description" button />
+				<Editor :name="`system.motivations.${motivation}.description`" />
 			</div>
 		</div>
 	</div>

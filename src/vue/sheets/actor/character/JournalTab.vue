@@ -101,7 +101,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		<section class="player-notes">
 			<div class="header"><Localized label="Genesys.Labels.Notes" /></div>
 
-			<Editor name="system.notes" :content="system.notes" button />
+			<Editor name="system.notes" />
 		</section>
 
 		<section class="xp-journal">
@@ -266,10 +266,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			background: white;
 			border: 1px solid black;
 		}
-	}
-
-	.editor-content {
-		padding: 0.5em;
 	}
 
 	.xp-journal {

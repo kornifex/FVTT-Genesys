@@ -156,7 +156,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 				<section class="stats-tab">
 					<div class="description-area">
 						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
-							<Editor name="system.description" :content="system.description" button />
+							<Editor name="system.description" />
 							<Enriched class="source" :value="system.source" />
 						</div>
 					</div>
