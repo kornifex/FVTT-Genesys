@@ -1,0 +1,86 @@
+@use '@scss/vars/colors.scss';
+
+// The layout the Combat tabs of characters and vehicles share: blocks of rows under a header.
+@mixin tab {
+	display: flex;
+	flex-direction: column;
+	flex-wrap: nowrap;
+	gap: 0.5em;
+	padding: 0.5em;
+
+	.qualities {
+		justify-self: left;
+		padding-left: 1em;
+	}
+
+	.skill {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		white-space: nowrap;
+		gap: 0.25em;
+	}
+
+	.block {
+		background: colors.alpha(colors.$light-blue, 0.2);
+		padding: 0.5em;
+		border-radius: 0.5em;
+
+		.header {
+			font-family: 'Bebas Neue', sans-serif;
+		}
+
+		& > .header {
+			font-size: 1.25em;
+		}
+
+		img {
+			border: none;
+			padding: 2px;
+			border-radius: 0.25rem;
+		}
+	}
+}
+
+// A row of a weapon or an armor: its columns are the tab's, its qualities and description go below them.
+@mixin item-row {
+	display: grid;
+	grid-template-rows: auto auto;
+	border-bottom: 1px dashed colors.$blue;
+	align-items: center;
+	justify-items: center;
+
+	.name {
+		justify-self: left;
+	}
+
+	&:not(.header) > .name {
+		font-family: 'Roboto Serif', serif;
+	}
+
+	&.header > .name {
+		grid-column: 1 / span 2;
+	}
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	.description {
+		grid-column: 1 / span all;
+		justify-self: left;
+		border-left: 4px solid colors.$light-blue;
+		margin-left: 0.5em;
+		padding-left: 0.5em;
+
+		grid-row: 2 / span 1;
+		max-height: 0;
+		transition: max-height 0.5s ease-in-out;
+		overflow: hidden;
+		padding-right: 0.5em;
+
+		&.active {
+			max-height: 200px;
+		}
+	}
+}
