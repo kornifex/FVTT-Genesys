@@ -9,7 +9,7 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CrewDragTransferData, dragData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { CrewDragTransferData, dragData, draggedGenesysType } from '@/data/DragTransferData';
 import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { useDragHover } from '@/vue/useDragHover';
@@ -18,13 +18,8 @@ const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
-function draggedTypeIs(event: DragEvent, context: 'ROLE' | 'PASSENGER') {
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	return !!dragDataFromType && VehicleDataModel.isRelevantTypeForContext(context, dragDataFromType.genesysType);
-}
-
-const roleDrag = useDragHover((event) => draggedTypeIs(event, 'ROLE'));
-const passengerDrag = useDragHover((event) => draggedTypeIs(event, 'PASSENGER'));
+const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
+const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? ''));
 const passengersActors = ref<GenesysActor[]>([]);
 
 const sortedPassengers = computed(() => [...toRaw(context.data.actor).systemData.passengers.list].sort(sortPassenger));

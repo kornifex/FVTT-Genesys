@@ -75,3 +75,11 @@ export function extractDataFromDragTransferTypes(dragTransferTypes?: readonly st
 
 	return null;
 }
+
+/**
+ * The Genesys type of the document a drag carries, read from its formats while it moves over a drop target. Undefined
+ * when it carries no Genesys document.
+ */
+export function draggedGenesysType(event: DragEvent) {
+	return extractDataFromDragTransferTypes(event.dataTransfer?.types)?.genesysType;
+}

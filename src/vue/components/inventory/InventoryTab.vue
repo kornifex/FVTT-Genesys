@@ -7,7 +7,7 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
-import { extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { draggedGenesysType } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
@@ -40,13 +40,8 @@ const isDraggable = ref(toRaw(context.data.actor).isOwner);
 
 // A drag over the tab opens the sort slots of the sections that take the dragged item: the Equipped section those the
 // actor can equip, the others any item of its inventory.
-function draggedTypeIs(event: DragEvent, context: 'EQUIPABLE' | 'INVENTORY') {
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	return !!dragDataFromType && dataModel.isRelevantTypeForContext(context, dragDataFromType.genesysType);
-}
-
-const equipableDrag = useDragHover((event) => draggedTypeIs(event, 'EQUIPABLE'));
-const inventoryDrag = useDragHover((event) => draggedTypeIs(event, 'INVENTORY'));
+const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('EQUIPABLE', draggedGenesysType(event) ?? ''));
+const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
 const inventory = computed(
 	() =>

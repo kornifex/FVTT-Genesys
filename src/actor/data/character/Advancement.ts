@@ -415,8 +415,8 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
  * Apply an Advancement to a character actor, or tell the user why it's refused. The Advancement is planned on what the
  * actor is now. Whether it was applied.
  */
-export async function advance(actor: GenesysActor<CharacterDataModel>, plan: (character: AdvancementCharacter) => AdvancementResult) {
-	const result = plan(advancementCharacter(actor));
+export async function advance(actor: GenesysActor<CharacterDataModel>, change: (character: AdvancementCharacter) => AdvancementResult) {
+	const result = change(advancementCharacter(actor));
 	if (!('plan' in result)) {
 		if (result.refusal) {
 			notify(result.refusal);

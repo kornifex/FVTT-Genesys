@@ -11,7 +11,7 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { constructDragTransferTypeFromData, DragTransferData, draggedGenesysType } from '@/data/DragTransferData';
 import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
@@ -62,8 +62,8 @@ const containerDrag = useDragHover((event) => {
 		return false;
 	}
 
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	return !!dragDataFromType && (!dragDataFromType.genesysType || props.canTypeBeInsideContainer(dragDataFromType.genesysType));
+	const type = draggedGenesysType(event);
+	return type !== undefined && (!type || props.canTypeBeInsideContainer(type));
 });
 const isBeingDragged = ref(false);
 

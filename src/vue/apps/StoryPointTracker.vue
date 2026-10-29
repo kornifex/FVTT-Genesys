@@ -8,8 +8,8 @@ import Localized from '@/vue/components/Localized.vue';
 
 // The GM pool above the players' pool, with the field of the tracker's context that holds each.
 const POOLS = [
-	{ pool: 'gm', field: 'gmPool', label: 'Genesys.StoryPoints.GM' },
-	{ pool: 'player', field: 'playerPool', label: 'Genesys.StoryPoints.Player' },
+	{ id: 'gm', field: 'gmPool', label: 'Genesys.StoryPoints.GM' },
+	{ id: 'player', field: 'playerPool', label: 'Genesys.StoryPoints.Player' },
 ] as const;
 
 type Pool = (typeof POOLS)[number];
@@ -21,9 +21,9 @@ const context = inject<StoryPointTrackerContext>(RootContext)!;
 const editing = ref<StoryPointPool>();
 const editInputs = ref<HTMLInputElement[]>([]);
 
-function canSpend({ pool, field }: Pool) {
+function canSpend({ id, field }: Pool) {
 	// Only the GM spends from the GM pool.
-	return (pool === 'player' || isGM) && context[field] > 0;
+	return (id === 'player' || isGM) && context[field] > 0;
 }
 
 async function spendStoryPoint(pool: Pool) {
@@ -70,24 +70,24 @@ async function toggleEdit(pool: StoryPointPool) {
 </script>
 
 <template class="story-point-tracker">
-	<div v-for="pool in POOLS" :key="pool.pool" class="tracker">
+	<div v-for="pool in POOLS" :key="pool.id" class="tracker">
 		<header>
 			<Localized :label="pool.label" />
-			<a v-if="pool.pool === 'gm' && isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"
+			<a v-if="pool.id === 'gm' && isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"
 				><i class="fas fa-arrows-rotate"></i
 			></a>
 		</header>
 		<input
-			v-if="editing === pool.pool"
+			v-if="editing === pool.id"
 			ref="editInputs"
 			class="points"
 			:value="context[pool.field]"
-			@change="manualStoryPoints(pool.pool, $event)"
+			@change="manualStoryPoints(pool.id, $event)"
 		/>
-		<a v-else-if="canSpend(pool)" class="points" @click="spendStoryPoint(pool)" @contextmenu="toggleEdit(pool.pool)">{{
+		<a v-else-if="canSpend(pool)" class="points" @click="spendStoryPoint(pool)" @contextmenu="toggleEdit(pool.id)">{{
 			context[pool.field]
 		}}</a>
-		<div v-else class="points" @contextmenu="toggleEdit(pool.pool)">{{ context[pool.field] }}</div>
+		<div v-else class="points" @contextmenu="toggleEdit(pool.id)">{{ context[pool.field] }}</div>
 	</div>
 </template>
 
