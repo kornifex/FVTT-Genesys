@@ -1,31 +1,28 @@
 <script lang="ts" setup>
 import Localized from '@/vue/components/Localized.vue';
 
-withDefaults(
-	defineProps<{
-		hasSecondary?: boolean;
+defineProps<{
+	/**
+	 * The localization key of the stat's name.
+	 */
+	label: string;
 
-		label: string;
+	/**
+	 * The stat's value, and the field it edits: a value without a field is only shown.
+	 */
+	value: number;
+	name?: string;
 
-		primaryLabel?: string;
-		value: number;
-		name?: string;
-		editPrimary?: boolean;
+	/**
+	 * The localization key of the value's label, when the stat has a secondary value.
+	 */
+	primaryLabel?: string;
 
-		secondaryName?: string;
-		secondaryLabel?: string;
-		secondaryValue?: number;
-		secondaryReadOnly?: boolean;
-
-		readOnly?: boolean;
-	}>(),
-	{
-		hasSecondary: false,
-		editPrimary: false,
-		secondaryReadOnly: false,
-		readOnly: false,
-	},
-);
+	/**
+	 * A second value beside the first, such as the current wounds beside their threshold.
+	 */
+	secondary?: { label: string; value: number; name?: string };
+}>();
 
 function validateInput(event: Event) {
 	const newValue = parseInt((event.currentTarget as HTMLInputElement).value);
@@ -39,19 +36,27 @@ function validateInput(event: Event) {
 <template>
 	<div class="combat-stat">
 		<div class="rounded-bg-outer">
-			<div :class="`rounded-bg ${hasSecondary ? 'secondary' : ''}`">
+			<div :class="`rounded-bg ${secondary ? 'secondary' : ''}`">
 				<label v-if="primaryLabel"><Localized :label="primaryLabel" /></label>
-				<label v-if="secondaryLabel"><Localized :label="secondaryLabel" /></label>
+				<label v-if="secondary"><Localized :label="secondary.label" /></label>
 			</div>
 		</div>
 
 		<div class="value-container">
-			<input v-if="editPrimary && !readOnly" type="number" :name="name" :value="value" class="value" min="0" />
+			<input v-if="name" type="number" :name="name" :value="value" class="value" min="0" />
 			<div v-else class="value">{{ value }}</div>
-			<template v-if="hasSecondary">
+			<template v-if="secondary">
 				<div class="separator"></div>
-				<div v-if="readOnly || secondaryReadOnly" class="value">{{ secondaryValue }}</div>
-				<input v-else @change="validateInput" :name="secondaryName" type="number" class="value" :value="secondaryValue" min="0" />
+				<input
+					v-if="secondary.name"
+					@change="validateInput"
+					:name="secondary.name"
+					type="number"
+					class="value"
+					:value="secondary.value"
+					min="0"
+				/>
+				<div v-else class="value">{{ secondary.value }}</div>
 			</template>
 		</div>
 
