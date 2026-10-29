@@ -134,6 +134,12 @@ A special ability of a character or an Adversary, distinct from their talents: i
 **Talent Pyramid**:
 The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached, and every rank bought at tier 5 counts at tier 5.
 
+### Table
+
+**Acting GM**:
+The one connected GM who writes what a player's client may not, for the whole table: a player's Story Point spend, Claim or Extra Slot initiative. It is the connected Gamemaster, an Assistant GM only when no Gamemaster is connected, and the one of the lowest id among equals, as Foundry's `game.users.activeGM`.
+_Avoid_: Primary GM, GM hub, first GM
+
 ### Presentation
 
 **Palette**:

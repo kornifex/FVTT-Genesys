@@ -234,6 +234,7 @@ Genesys:
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
     SlotAlreadyClaimed: This initiative slot is already claimed.
     NoGMForExtraSlot: A GM must be online to roll the initiative of an extra slot.
+    NoGMForStoryPoint: A GM must be online to spend a Story Point.
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     CannotSelectActor: You do not have sufficient permission to select this Actor.
     NoRoleMembersWithAppropriateSkills: There are no role members that have the appropriate skills to perform this action.

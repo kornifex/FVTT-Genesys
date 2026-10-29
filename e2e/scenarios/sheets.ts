@@ -83,6 +83,11 @@ type SheetsHelpers = {
 	/** Types a count into the GM pool, as the GM does after right-clicking it. */
 	editGMStoryPoints(input: string): Promise<void>;
 	setStoryPoints(points: { gm: number; player: number }): Promise<void>;
+	/**
+	 * Since the last call: the users who wrote the Story Point pools, one entry per write, and the Story Point chat
+	 * messages, as `<author>: <text>`.
+	 */
+	storyPointLog(): { writes: string[]; messages: string[] };
 	journal(actor: string): { availableXP: number; entries: number };
 	effectSheet: {
 		create(): Promise<void>;
@@ -181,6 +186,22 @@ function installSheetsHelpers() {
 
 	const createdMessages: string[] = [];
 	Hooks.on('createChatMessage', (message: { id: string }) => createdMessages.push(message.id));
+
+	const storyPointWrites: string[] = [];
+	const storyPointMessages: string[] = [];
+	// The pools' first write creates their setting.
+	const recordStoryPointWrite = (setting: { key: string }, userId: string) => {
+		if (setting.key === 'genesys.storyPoints') storyPointWrites.push(game.users.get(userId)?.name ?? userId);
+	};
+	Hooks.on('createSetting', (setting: { key: string }, _options: unknown, userId: string) => recordStoryPointWrite(setting, userId));
+	Hooks.on('updateSetting', (setting: { key: string }, _changed: unknown, _options: unknown, userId: string) =>
+		recordStoryPointWrite(setting, userId),
+	);
+	Hooks.on('createChatMessage', (message: { content: string; author?: { name: string } }) => {
+		const content = document.createElement('div');
+		content.innerHTML = message.content;
+		if (content.querySelector('.story-point')) storyPointMessages.push(`${message.author?.name}: ${text(content)}`);
+	});
 
 	const effectChanges = [
 		{ key: 'system.characteristics.cunning', mode: 2, value: '1' },
@@ -529,6 +550,10 @@ function installSheetsHelpers() {
 			await game.settings.set('genesys', 'storyPoints', points);
 			foundry.applications.instances.get('story-point-tracker')?.render(true);
 			await settle();
+		},
+
+		storyPointLog() {
+			return { writes: storyPointWrites.splice(0), messages: storyPointMessages.splice(0) };
 		},
 
 		journal(name) {
@@ -1290,6 +1315,55 @@ export async function run(e2e: ScenarioContext) {
 		{ afterLetters, afterCount: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ afterLetters: { gm: 1, player: 1 }, afterCount: { gm: 4, player: 1 } },
 	);
+
+	// §#250: a player's spend goes to the Acting GM alone, who writes it once and posts its message as the player.
+	const assistant = await e2e.assistantGM();
+	await gm.evaluate(() => window.sheetsE2E.setStoryPoints({ gm: 1, player: 2 }));
+	// Setting the pools renders the GM's tracker alone.
+	await player.evaluate(async () => {
+		await foundry.applications.instances.get('story-point-tracker')?.render(true);
+		await window.e2e.settle();
+	});
+	await player.evaluate(() => window.sheetsE2E.storyPointLog());
+	const playerPoolMessage = await gm.evaluate(() => game.i18n.localize('Genesys.StoryPoints.ChatMessagePlayerPool'));
+	await e2e.step('#250 player spends a Story Point, with a GM and an Assistant GM online', () =>
+		player.evaluate(() => window.sheetsE2E.clickStoryPoints('a.points')),
+	);
+	e2e.expect(
+		"#250 A1 with a GM and an Assistant GM online, a player's spend moves one point to the GM pool, written once by the GM, with one message from the player",
+		{
+			pools: await player.evaluate(() => window.sheetsE2E.storyPoints()),
+			...(await player.evaluate(() => window.sheetsE2E.storyPointLog())),
+		},
+		{ pools: { gm: 2, player: 1 }, writes: [gm.user], messages: [`${e2e.playerUser}: ${playerPoolMessage}`] },
+	);
+	const noGMWarning = await player.evaluate(() => `warning: ${game.i18n.localize('Genesys.Notifications.NoGMForStoryPoint')}`);
+	await e2e.step('#250 Assistant GM and GM leave', async () => {
+		await assistant.leave();
+		await gm.leave();
+	});
+	let refusal: string[] = [];
+	await e2e.step('#250 player spends a Story Point, with no GM online', async () => {
+		refusal = await player.evaluate(async () => {
+			const notifications = window.e2e.recordNotifications();
+			await window.sheetsE2E.clickStoryPoints('a.points');
+			return notifications();
+		});
+	});
+	e2e.expect(
+		"#250 A2 with no GM online, a player's spend is refused with a warning, leaving the pools unchanged, with no message",
+		{
+			notifications: refusal,
+			pools: await player.evaluate(() => window.sheetsE2E.storyPoints()),
+			...(await player.evaluate(() => window.sheetsE2E.storyPointLog())),
+		},
+		{ notifications: [noGMWarning], pools: { gm: 2, player: 1 }, writes: [], messages: [] },
+	);
+	await e2e.step('#250 GM joins again', async () => {
+		await gm.join();
+		await gm.evaluate(installSheetsHelpers);
+	});
+
 	await gm.evaluate((points) => window.sheetsE2E.setStoryPoints(points), storyPoints);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 

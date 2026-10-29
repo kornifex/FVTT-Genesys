@@ -15,6 +15,7 @@ import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
 import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';
 import * as log from '@/log';
+import { isActingGm } from '@/socket';
 
 async function applyChanges(actor: Actor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
 	if (update) {
@@ -87,10 +88,7 @@ export async function performMigrations(lastAlpha: string) {
 		return;
 	}
 
-	const isGmHub =
-		game.users.activeGM?.isSelf ??
-		(game.user.isGM && game.users.filter((user) => user.isGM && user.active).every((candidate) => candidate.id >= game.user.id));
-	if (!isGmHub) {
+	if (!isActingGm()) {
 		ui.notifications.error('Genesys.Migration.MustPerformMigration', { localize: true, permanent: true });
 		return;
 	}

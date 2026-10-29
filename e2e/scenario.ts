@@ -43,6 +43,11 @@ export type ScenarioContext = {
 	playerUser: string;
 	/** Joins as the player user, once. */
 	player(): Promise<Client>;
+	/**
+	 * Joins as a second GM, once: the user {@link ASSISTANT_USER}, whom the GM creates, or gives the Assistant role, when the
+	 * world lacks it.
+	 */
+	assistantGM(): Promise<Client>;
 	/** Runs `setUpCombat` as the GM, then clears every client's recorded events. */
 	setUpCombat(setup: CombatSetup): Promise<void>;
 	/** Waits until every connected client has done nothing for a while: the updates of what came before have reached them. */
@@ -75,6 +80,11 @@ export type ScenarioModule = {
 	 */
 	needsCanvas?: boolean;
 };
+
+/**
+ * The Assistant GM user, a second GM whose operations the Gamemaster's election is tested against.
+ */
+const ASSISTANT_USER = 'E2E Assistant GM';
 
 // A client has settled once it has gone this long without a hook, a socket message, a request awaiting its answer or a
 // running CSS transition (window.e2e.idleFor). Each update an action causes reaches the clients and calls hooks, and the updates their hooks make in turn (the GM
@@ -128,6 +138,7 @@ export async function runScenario(
 		log('env', await gm.evaluate(() => ({ foundry: game.version as string, system: game.system.version as string })));
 
 		let player: Client | undefined;
+		let assistant: Client | undefined;
 		const resetAll = () => Promise.all(connected().map((client) => client.evaluate(() => window.e2e.reset())));
 		const loggedErrors = new Map<Client, number>();
 
@@ -141,6 +152,18 @@ export async function runScenario(
 					clients.push(player);
 				}
 				return player;
+			},
+			async assistantGM() {
+				if (!assistant) {
+					await gm.evaluate(async (name) => {
+						const user = game.users.getName(name);
+						if (!user) await User.create({ name, role: CONST.USER_ROLES.ASSISTANT });
+						else if (user.role !== CONST.USER_ROLES.ASSISTANT) await user.update({ role: CONST.USER_ROLES.ASSISTANT });
+					}, ASSISTANT_USER);
+					assistant = await join(browser, url, ASSISTANT_USER, needsCanvas);
+					clients.push(assistant);
+				}
+				return assistant;
 			},
 			async setUpCombat(setup) {
 				await gm.evaluate((setup) => window.e2e.setUpCombat(setup), setup);

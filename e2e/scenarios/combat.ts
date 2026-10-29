@@ -55,6 +55,8 @@ type CombatHelpers = {
 	sounds: string[];
 	/** Initiative writes since the last {@link reset}, in the order the client received them. */
 	writes: string[];
+	/** The users who wrote Claims since the last {@link reset}, one entry per write. */
+	claimWriters: string[];
 	reset(): void;
 	rows(): TrackerRow[];
 	stored(): StoredCombat;
@@ -143,11 +145,13 @@ function installCombatHelpers() {
 		messages: [],
 		sounds: [],
 		writes: [],
+		claimWriters: [],
 
 		reset() {
 			helpers.messages.length = 0;
 			helpers.sounds.length = 0;
 			helpers.writes.length = 0;
+			helpers.claimWriters.length = 0;
 		},
 
 		rows() {
@@ -264,8 +268,10 @@ function installCombatHelpers() {
 	Hooks.on('updateCombatant', (updated: { name: string }, changed: object) => {
 		if ('initiative' in changed) helpers.writes.push(`initiative of ${updated.name}`);
 	});
-	Hooks.on('updateCombat', (_combat: unknown, changed: object) => {
+	Hooks.on('updateCombat', (_combat: unknown, changed: object, _options: unknown, userId: string) => {
 		if (foundry.utils.hasProperty(changed, 'flags.genesys.extraSlots')) helpers.writes.push('Extra Slots');
+		if (foundry.utils.hasProperty(changed, 'flags.genesys.slotClaims'))
+			helpers.claimWriters.push(game.users.get(userId)?.name ?? userId);
 	});
 	const combatPrototype = CONFIG.Combat.documentClass.prototype;
 	const playCombatSound = combatPrototype._playCombatSound;
@@ -366,6 +372,7 @@ export async function run(e2e: ScenarioContext) {
 	await poolModifications();
 	await slotRolls();
 	await cancelledPrompt();
+	await claimWithAssistantGM();
 	await noGM();
 	await trackerGuards();
 
@@ -1141,6 +1148,22 @@ export async function run(e2e: ScenarioContext) {
 			{ messages: sent.map(({ speaker, sound }) => ({ speaker, sound })), rolled: rolled((await stored()).initiatives) },
 			{ messages: [{ speaker: 'Boss', sound: await gm.evaluate(() => CONFIG.sounds.dice) }], rolled: { Hero: false, Boss: true } },
 		);
+	}
+
+	/** §#250: with a GM and an Assistant GM online, a player's Claim is written once, by the Acting GM: the GM. */
+	async function claimWithAssistantGM() {
+		// As §#35's first Claim: before the start, Hero claims its own slot.
+		await setUp({ Hero: 3, Boss: 2 }, { start: false });
+		const assistant = await e2e.assistantGM();
+		await e2e.step("#250 player claims Hero's slot, with a GM and an Assistant GM online", () =>
+			player.evaluate(() => window.combatE2E.claim('Hero:-1', 'Hero')),
+		);
+		e2e.expect(
+			"#250 A3 with a GM and an Assistant GM online, a player's Claim is written once, by the GM",
+			{ claims: (await stored()).claims, writers: await player.evaluate(() => window.combatE2E.claimWriters) },
+			{ claims: { 'Hero:-1': 'Hero' }, writers: [gm.user] },
+		);
+		await e2e.step('#250 Assistant GM leaves', () => assistant.leave());
 	}
 
 	/** §#53: with no GM online, a player can't roll an Extra Slot, whose initiative only a GM writes. */

@@ -1,121 +1,40 @@
-import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
+import * as log from '@/log';
+import { createRelay, type SocketPayload, SocketOperation } from '@/socket/Relay';
+
+export { SocketOperation };
+
+// The socket Foundry opens for a system: `system.<id>`.
+const SOCKET_NAME = 'system.genesys';
+
+// Foundry's users are read at each call: they connect and leave during the game.
+const relay = createRelay({
+	userId: () => game.user.id,
+	users: () => game.users.map((user) => ({ id: user.id, role: user.role, active: user.active })),
+	send: (payload) => game.socket.emit(SOCKET_NAME, payload),
+});
 
 /**
- * Identifier used for Genesys-originated socket messages
+ * Sends an operation through the system's socket, to the Acting GM or to every other client; see {@link SocketOperation}.
  */
-export const SOCKET_NAME = 'system.genesys';
+export const emit = relay.emit;
 
 /**
- * Enum containing all possible socket operations.
- *
- * Every entry should have a corresponding overload specified for {@link emit}.
+ * Sets the one handler of a socket operation.
  */
-export enum SocketOperation {
-	/**
-	 * Called when a player spends a Story Point.
-	 */
-	PlayerSpendStoryPoint,
-
-	/**
-	 * Forcibly update the StoryPointTracker data.
-	 */
-	UpdateStoryPointTracker,
-
-	/**
-	 * Called when a player wants to claim an initiative slot.
-	 */
-	ClaimInitiativeSlot,
-
-	/**
-	 * Update the turns for the Combat Tracker.
-	 */
-	UpdateCombatTracker,
-
-	/**
-	 * Called when a player rolls initiative for an extra slot.
-	 */
-	UpdateInitiativeForExtraSlot,
-}
-
-export type CombatSocketBaseData = {
-	/**
-	 * Combat ID to claim a slot in.
-	 */
-	combatId: string;
-};
-
-export type ClaimInitiativeSlotData = CombatSocketBaseData & {
-	/**
-	 * Combatant ID claiming the slot.
-	 */
-	combatantId: string;
-
-	/**
-	 * Round to claim a slot in.
-	 */
-	round: number;
-
-	/**
-	 * Id of the Initiative Slot to claim.
-	 */
-	slotId: string;
-};
-
-export type UpdateInitiativeForExtraSlotData = CombatSocketBaseData & {
-	/**
-	 * An array of updates to apply to the extra initiative slots.
-	 */
-	updates: ExtraSlotInitiative[];
-
-	/**
-	 * If the combat turn should be updated after adding the new initiative values.
-	 */
-	updateTurn: boolean;
-};
+export const handle = relay.handle;
 
 /**
- * Socket Payload typing
+ * Whether this client's user is the Acting GM: the one GM who acts for the whole table.
  */
-export type SocketPayload<T extends { [key: string]: unknown }> = {
-	operation: SocketOperation;
-	data?: T;
-};
+export const isActingGm = relay.isActingGm;
 
 /**
- * Spend a Story Point.
+ * Listens to the system's socket: the only listener, which dispatches each operation to its handler.
  */
-export function emit(operation: SocketOperation.PlayerSpendStoryPoint): void;
-
-/**
- * Force the Story Point Tracker application to refresh its data.
- */
-export function emit(operation: SocketOperation.UpdateStoryPointTracker): void;
-
-/**
- * Claim an Initiative slot.
- */
-export function emit(operation: SocketOperation.ClaimInitiativeSlot, data: ClaimInitiativeSlotData): void;
-
-/**
- * Refresh the Combat Tracker's data.
- */
-export function emit(operation: SocketOperation.UpdateCombatTracker, data: CombatSocketBaseData): void;
-
-/**
- * Update the initiative value of some extra slots.
- */
-export function emit(operation: SocketOperation.UpdateInitiativeForExtraSlot, data: UpdateInitiativeForExtraSlotData): void;
-
-/**
- * Utility wrapper for the system's socket emits, providing type-safe argument checking for each operation.
- *
- * @see {@link SocketOperation}
- */
-export function emit<T extends { [key: string]: unknown }>(operation: SocketOperation, data?: T): void {
-	const payload: SocketPayload<T> = {
-		operation,
-		data,
-	};
-
-	game.socket.emit(SOCKET_NAME, payload);
+export function register() {
+	game.socket.on(SOCKET_NAME, (payload: SocketPayload) => {
+		relay
+			.receive(payload)
+			.catch((error: unknown) => log.error(`The socket operation ${SocketOperation[payload.operation]} failed`, error));
+	});
 }

@@ -234,6 +234,7 @@ Genesys:
     CannotClaimOppositeSlot: Vous ne pouvez par réclamer ce slot d'intiative avec {name} - il est du mauvais coté!
     SlotAlreadyClaimed: Ce slot d'initiative est déjà réclamé.
     NoGMForExtraSlot: Un MJ doit être connecté pour lancer l'initiative d'un slot supplémentaire.
+    NoGMForStoryPoint: Un MJ doit être connecté pour dépenser un Point Narratif.
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.
     NoRoleMembersWithAppropriateSkills: Aucun membre du groupe pour ce rôle ne possède les compétences appropriées pour faire cette action.
