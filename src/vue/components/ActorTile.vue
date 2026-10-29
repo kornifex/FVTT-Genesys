@@ -3,7 +3,8 @@ import { inject, ref, toRaw, onUpdated } from 'vue';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { constructDragTransferTypeFromData, DragTransferData } from '@/data/DragTransferData';
+import { startDocumentDrag } from '@/data/DragTransferData';
+import { openSheet } from '@/operations/ItemActions';
 
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -22,8 +23,6 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-	(e: 'dragstart', event: DragEvent): void;
-	(e: 'dragend', event: DragEvent): void;
 	(e: 'removeMember'): void;
 }>();
 
@@ -50,29 +49,19 @@ onUpdated(() => {
 	}
 });
 
+// The tile is a member of the sheet's vehicle's Crew: its drag tells which vehicle it leaves, so that a drop on another
+// vehicle moves it there, and one on this vehicle moves it within the Crew.
 function dragStart(event: DragEvent) {
 	isBeingDragged.value = true;
-	const transferData: DragTransferData = {
-		uuid: props.actor.uuid,
-		type: props.actor.documentName,
-		genesysType: props.actor.type,
-	};
-	const genesysTransferType = constructDragTransferTypeFromData(props.actor.type, props.actor.uuid);
-
-	event.dataTransfer?.setData('text/plain', JSON.stringify(transferData));
-	event.dataTransfer?.setData(genesysTransferType, '');
-
-	emit('dragstart', event);
+	startDocumentDrag(event, props.actor, { sourceVehicleUuid: context.data.actor.uuid });
 }
 
-function dragEnd(event: DragEvent) {
+function dragEnd() {
 	isBeingDragged.value = false;
-
-	emit('dragend', event);
 }
 
 async function openActorSheet() {
-	await toRaw(props.actor).sheet.render(true);
+	await openSheet(toRaw(props.actor));
 }
 </script>
 

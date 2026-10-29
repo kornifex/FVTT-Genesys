@@ -9,30 +9,14 @@ import Talent from '@/vue/components/character/Talent.vue';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
-import { TIERS } from '@/item/data/Talents';
+import { talentGroups, TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
-const activeAbilities = computed(
-	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'active')
-			.sort((a, b) => {
-				return a.name.localeCompare(b.name);
-			}) as GenesysItem<AbilityDataModel>[],
-);
-const activeAbilityTypes = computed(() =>
-	Array.from(new Set(activeAbilities.value.map((t) => t.systemData.activation.detail.toLowerCase()))).filter((t) => t !== ''),
-);
-const passiveAbilities = computed(
-	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'passive')
-			.sort((a, b) => {
-				return a.name.localeCompare(b.name);
-			}) as GenesysItem<AbilityDataModel>[],
+const abilities = computed(() =>
+	talentGroups(toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[], game.i18n.lang),
 );
 // The ids of the items the Archetype granted, which only go away with it.
 const grantedItemIds = computed(() => {
@@ -43,36 +27,9 @@ const grantedItemIds = computed(() => {
 	);
 });
 
-const allTalents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
-const activeTalents = computed(() => {
-	return allTalents.value
-		.filter((i) => i.systemData.activation.type === 'active')
-		.sort((a, b) => {
-			const tierA = a.systemData.effectiveTier;
-			const tierB = b.systemData.effectiveTier;
-			if (tierA !== tierB) return tierA - tierB;
-			return a.name.localeCompare(b.name);
-		});
-});
-const activeTalentTypes = computed(() =>
-	Array.from(
-		new Set(
-			activeTalents.value
-				.filter((t) => t.systemData.activation.detail.trim() !== '')
-				.map((t) => t.systemData.activation.detail.toLowerCase()),
-		),
-	),
+const talents = computed(() =>
+	talentGroups(toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[], game.i18n.lang),
 );
-const passiveTalents = computed(() => {
-	return allTalents.value
-		.filter((i) => i.systemData.activation.type === 'passive')
-		.sort((a, b) => {
-			const tierA = a.systemData.effectiveTier;
-			const tierB = b.systemData.effectiveTier;
-			if (tierA !== tierB) return tierA - tierB;
-			return a.name.localeCompare(b.name);
-		});
-});
 // Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);
@@ -91,10 +48,6 @@ function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
 	await advance(toRaw(context.data.actor), (character) => buyTalentRank(character, talent.id));
 }
-
-async function openItem(item: GenesysItem) {
-	await toRaw(item).sheet?.render(true);
-}
 </script>
 
 <template>
@@ -108,71 +61,66 @@ async function openItem(item: GenesysItem) {
 		<div class="block">
 			<div class="header"><Localized label="Genesys.Labels.SpecialAbilities" /></div>
 			<div class="talents-container">
-				<div v-if="activeAbilities.length > 0" class="category-header"><Localized label="Genesys.Labels.Active" /></div>
+				<div v-if="abilities.active.length + abilities.activeByDetail.length > 0" class="category-header">
+					<Localized label="Genesys.Labels.Active" />
+				</div>
 				<Talent
-					v-for="ability in activeAbilities.filter((t) => t.systemData.activation.detail === '')"
+					v-for="ability in abilities.active"
 					:key="ability.id"
 					:item="ability"
-					@open="openItem(ability)"
 					:can-delete="!grantedItemIds.has(ability.id)"
-					@delete="ability.delete()"
 				/>
 
-				<template v-for="activeType in activeAbilityTypes" :key="activeType">
-					<div class="sub-category-header">{{ activeType }}</div>
+				<template v-for="group in abilities.activeByDetail" :key="group.detail">
+					<div class="sub-category-header">{{ group.detail }}</div>
 					<Talent
-						v-for="ability in activeAbilities.filter((t) => t.systemData.activation.detail.toLowerCase() === activeType)"
+						v-for="ability in group.talents"
 						:key="ability.id"
 						:item="ability"
-						@open="openItem(ability)"
 						:can-delete="!grantedItemIds.has(ability.id)"
-						@delete="ability.delete()"
 					/>
 				</template>
 
-				<div v-if="passiveAbilities.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
+				<div v-if="abilities.passive.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
 				<Talent
-					v-for="ability in passiveAbilities"
+					v-for="ability in abilities.passive"
 					:key="ability.id"
 					:item="ability"
-					@open="openItem(ability)"
 					:can-delete="!grantedItemIds.has(ability.id)"
-					@delete="ability.delete()"
 				/>
 			</div>
 
 			<div class="header"><Localized label="Genesys.Labels.Talents" /></div>
 			<div class="talents-container">
-				<div v-if="activeTalents.length > 0" class="category-header"><Localized label="Genesys.Labels.Active" /></div>
+				<div v-if="talents.active.length + talents.activeByDetail.length > 0" class="category-header">
+					<Localized label="Genesys.Labels.Active" />
+				</div>
 				<Talent
-					v-for="talent in activeTalents.filter((t) => t.systemData.activation.detail === '')"
+					v-for="talent in talents.active"
 					:key="talent.id"
 					:item="talent"
 					:can-upgrade="canUpgradeTalent(talent)"
 					@upgrade="upgradeTalent(talent)"
-					@open="openItem(talent)"
 				/>
 
-				<template v-for="activeType in activeTalentTypes" :key="activeType">
-					<div class="sub-category-header">{{ activeType }}</div>
+				<template v-for="group in talents.activeByDetail" :key="group.detail">
+					<div class="sub-category-header">{{ group.detail }}</div>
 					<Talent
-						v-for="talent in activeTalents.filter((t) => t.systemData.activation.detail.toLowerCase() === activeType)"
+						v-for="talent in group.talents"
 						:key="talent.id"
 						:item="talent"
 						:can-upgrade="canUpgradeTalent(talent)"
 						@upgrade="upgradeTalent(talent)"
-						@open="openItem(talent)"
 					/>
 				</template>
 
-				<div v-if="passiveTalents.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
+				<div v-if="talents.passive.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
 				<Talent
-					v-for="talent in passiveTalents"
+					v-for="talent in talents.passive"
 					:key="talent.id"
 					:item="talent"
 					:can-upgrade="canUpgradeTalent(talent)"
 					@upgrade="upgradeTalent(talent)"
-					@open="openItem(talent)"
 				/>
 			</div>
 		</div>

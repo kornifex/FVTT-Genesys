@@ -14,7 +14,7 @@ import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
-import { DicePrompt, RollType } from '@/app/DicePrompt';
+import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
@@ -23,15 +23,16 @@ import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
-import { DragTransferData, constructDragTransferTypeFromData } from '@/data/DragTransferData';
-import { attackSkillChoices, attackSkillName } from '@/data/Skills';
+import { startDocumentDrag } from '@/data/DragTransferData';
+import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
-import { postChatCard } from '@/item/ChatCards';
+import { attackSkill, attackWith, deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
-const system = computed(() => toRaw(context.data.actor).systemData);
+const actor = computed(() => toRaw(context.data.actor));
+const system = computed(() => actor.value.systemData);
 
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
@@ -49,44 +50,19 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
 }
 
-async function rollAttack(weapon: GenesysItem) {
-	if (weapon.type !== 'weapon') {
-		return;
-	}
-
-	const attackSkillName = skillForWeapon(weapon);
-	if (!attackSkillName) {
-		return;
-	}
-
-	// The type check above makes it a weapon.
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, {
-		roll: { type: RollType.Attack, weapon: weapon as GenesysItem<WeaponDataModel> },
-	});
-}
-
-async function editItem(item: GenesysItem) {
-	await toRaw(item).sheet.render(true);
-}
-
-async function deleteItem(item: GenesysItem) {
-	await toRaw(item).delete();
-}
-
 // A non-ranked talent offers no rank change, as on characters.
 function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
 	return talentRankChange(toRaw(talent), 1).action !== 'refuse';
 }
 
 async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | -1) {
-	const actor = toRaw(context.data.actor);
 	const change = talentRankChange(toRaw(talent), step);
 	switch (change.action) {
 		case 'update':
-			await actor.updateEmbeddedDocuments('Item', [change.update]);
+			await actor.value.updateEmbeddedDocuments('Item', [change.update]);
 			break;
 		case 'delete':
-			await actor.deleteEmbeddedDocuments('Item', [change.id]);
+			await actor.value.deleteEmbeddedDocuments('Item', [change.id]);
 			break;
 		case 'refuse':
 			if (change.refusal) {
@@ -96,8 +72,9 @@ async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | 
 	}
 }
 
-function skillForWeapon(weapon: GenesysItem) {
-	return attackSkillName(toRaw(context.data.actor).skills, weapon.systemData as WeaponDataModel);
+// The adversary's equipment lists its weapons apart: each item of that list is a weapon.
+function asWeapon(item: GenesysItem) {
+	return item as GenesysItem<WeaponDataModel>;
 }
 
 function damageForWeapon(weapon: GenesysItem) {
@@ -115,22 +92,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	await toRaw(context.data.actor).update({
 		'system.superCharacteristics': superCharacteristics,
 	});
-}
-
-async function sendToChat(item: GenesysItem) {
-	await postChatCard(toRaw(item), toRaw(context.data.actor));
-}
-
-function dragStart(event: DragEvent, item: GenesysItem) {
-	const transferData: DragTransferData = {
-		uuid: item.uuid,
-		type: item.documentName,
-		genesysType: item.type,
-	};
-	const genesysTransferType = constructDragTransferTypeFromData(item.type, item.uuid);
-
-	event.dataTransfer?.setData('text/plain', JSON.stringify(transferData));
-	event.dataTransfer?.setData(genesysTransferType, '');
 }
 </script>
 
@@ -210,16 +171,16 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 											/>
 										</template>
 
-										<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(talent)" />
+										<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(talent)" />
 
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(talent)" />
 									</template>
 
 									<label>
-										<a @click="editItem(talent)"
+										<a @click="openSheet(talent)"
 											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
 										>
-										<a class="send-to-chat-link" @click="sendToChat(talent)"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(talent, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched class="description" v-if="talent.systemData.description" :value="talent.systemData.description" />
@@ -238,8 +199,8 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 									</template>
 
 									<label>
-										<a @click="editItem(ability)">{{ ability.name }}</a>
-										<a class="send-to-chat-link" @click="sendToChat(ability)"><i class="fas fa-comment"></i></a>
+										<a @click="openSheet(ability)">{{ ability.name }}</a>
+										<a class="send-to-chat-link" @click="sendToChat(ability, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched
@@ -257,28 +218,28 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
 							<ContextMenu v-for="item in equipment.filter((i) => i.type === 'weapon')" :key="item.id" class="weapon">
 								<template v-slot:menu-items>
-									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 
 									<MenuItem
-										v-if="skillForWeapon(item)"
+										v-if="attackSkill(actor, asWeapon(item))"
 										icon="fas fa-dice-d20"
 										label="Genesys.Labels.PerformCheck"
-										@click="rollAttack(item)"
+										@click="attackWith(actor, asWeapon(item))"
 									/>
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="rollAttack(item)" draggable="true" @dragstart="dragStart($event, item)">
+								<a @click="attackWith(actor, asWeapon(item))" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
-										<template v-for="attackSkill in [skillForWeapon(item)]" :key="attackSkill ?? 'skill'">
-											<span v-if="attackSkill">
+										<template v-for="weaponSkill in [attackSkill(actor, asWeapon(item))]" :key="weaponSkill ?? 'skill'">
+											<span v-if="weaponSkill">
 												<AttackSkillSelect
-													:weapon="item as GenesysItem<WeaponDataModel>"
+													:weapon="asWeapon(item)"
 													:choices="attackSkillChoices(item.system.skills)"
-													:attack-skill="attackSkill"
+													:attack-skill="weaponSkill"
 												/>
 											</span>
 											<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
@@ -293,7 +254,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
 									>)
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 							<ContextMenu
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
@@ -302,12 +263,12 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								:disable-menu="!context.data.editable"
 							>
 								<template v-slot:menu-items>
-									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="editItem(item)" draggable="true" @dragstart="dragStart($event, item)">
+								<a @click="openSheet(item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									{{ item.name }}
 
 									<span v-if="item.type === 'armor'" class="soak">
@@ -316,7 +277,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 						</div>
 					</div>
@@ -336,7 +297,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 									</template>
 
 									<label
-										><a @click="editItem(injury)">{{ injury.name }}</a></label
+										><a @click="openSheet(injury)">{{ injury.name }}</a></label
 									>
 								</ContextMenu>
 								<Enriched class="description" v-if="injury.systemData.description" :value="injury.systemData.description" />

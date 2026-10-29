@@ -7,7 +7,7 @@ import Enriched from '@/vue/components/Enriched.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { postChatCard } from '@/item/ChatCards';
+import { deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
 
 const props = withDefaults(
 	defineProps<{
@@ -22,9 +22,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-	(e: 'open'): void;
 	(e: 'upgrade'): void;
-	(e: 'delete'): void;
 }>();
 
 const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
@@ -40,8 +38,8 @@ function ranked() {
 	return talent()?.ranked === 'yes';
 }
 
-async function sendToChat() {
-	await postChatCard(toRaw(props.item), toRaw(rootContext.data.actor));
+function actor() {
+	return toRaw(rootContext.data.actor);
 }
 </script>
 
@@ -60,13 +58,13 @@ async function sendToChat() {
 		</span>
 		<div></div>
 		<span v-if="canDelete">
-			<a @click="emit('delete')"><i class="fas fa-trash"></i></a>
+			<a @click="deleteItem(item)"><i class="fas fa-trash"></i></a>
 		</span>
 		<span v-if="rootContext.data.editable">
-			<a @click="emit('open')"><i class="fas fa-edit"></i></a>
+			<a @click="openSheet(item)"><i class="fas fa-edit"></i></a>
 		</span>
 		<span v-if="rootContext.data.editable">
-			<a @click="sendToChat()"><i class="fas fa-comment"></i></a>
+			<a @click="sendToChat(item, actor())"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
 			<div v-if="talent()" class="tier-container">
