@@ -52,7 +52,7 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 					initial: 'passive',
 					choices: ['active', 'passive'],
 				}),
-				detail: new fields.StringField(),
+				detail: new fields.StringField({ initial: '' }),
 			}),
 			ranked: new fields.StringField({
 				initial: 'no',

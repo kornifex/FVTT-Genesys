@@ -1,4 +1,4 @@
-/** @file Serves the system's data (manifest, template, languages), written in YAML under `yaml/`, as the JSON files Foundry reads. */
+/** @file Serves the system's data (manifest, languages), written in YAML under `yaml/`, as the JSON files Foundry reads. */
 
 import fs from 'fs';
 import { load } from 'js-yaml';
