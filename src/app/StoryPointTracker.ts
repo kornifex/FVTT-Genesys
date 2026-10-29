@@ -11,17 +11,10 @@ import type { PlayerSpendStoryPointData } from '@/socket/Relay';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
 
-export type StoryPointTrackerContext = {
-	/**
-	 * Number of Story Points available to players.
-	 */
-	playerPool: number;
-
-	/**
-	 * Number of Story Points available to the GM.
-	 */
-	gmPool: number;
-};
+/**
+ * What the tracker shows: the Story Points of each pool.
+ */
+export type StoryPointTrackerContext = StoryPointData;
 
 /**
  * Singleton application used to track the current pools of Story Points.
@@ -48,12 +41,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	}
 
 	override async getVueContext(): Promise<StoryPointTrackerContext> {
-		const storyPoints = this.storyPoints;
-
-		return {
-			playerPool: storyPoints.player,
-			gmPool: storyPoints.gm,
-		};
+		return { ...this.storyPoints };
 	}
 
 	constructor() {
@@ -92,12 +80,11 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	/**
 	 * Spends a Story Point for the current user. A GM writes the spend; a player's goes to the Acting GM, who writes it.
 	 */
-	static async spendStoryPoint(targetPool: keyof StoryPointTrackerContext) {
+	static async spendStoryPoint(pool: StoryPointPool) {
 		if (!StoryPointTracker.instance) {
 			return;
 		}
 
-		const pool = targetPool === 'gmPool' ? 'gm' : 'player';
 		if (!storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, pool)) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NotEnoughStoryPoints'));
 			return;

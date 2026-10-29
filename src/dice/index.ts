@@ -10,7 +10,7 @@ import * as log from '@/log';
 /**
  * An object used to get general details of each dice type.
  */
-export const GenesysDice = {
+const GenesysDice = {
 	Proficiency: ProficiencyDie,
 	Ability: AbilityDie,
 	Boost: BoostDie,

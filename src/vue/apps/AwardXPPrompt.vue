@@ -13,7 +13,7 @@ const reason = ref('');
 function awardXP(event: Event) {
 	event.preventDefault();
 
-	context.resolvePromise({
+	context.answer({
 		amount: amount.value,
 		reason: reason.value,
 	});

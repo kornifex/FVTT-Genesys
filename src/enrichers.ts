@@ -1,175 +1,143 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { DicePrompt } from '@/app/DicePrompt';
 import { checkLinkActor, checkLinkDifficulty } from '@/dice/CheckLinks';
-import { GenesysDice } from '@/dice';
-import { DIE_GLYPHS, GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
-import { isPoolModificationValue } from '@/effects/PoolModifications';
+import { diceGlyphs, poolModificationIcons } from '@/dice/EnricherGlyphs';
+import { DIE_GLYPHS, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
 
-const DICE_COLOR_TO_GLYPH = Object.fromEntries(
-	Object.values(GenesysDice).map((die) => {
-		return [die.COLOR, die.GLYPH];
-	}),
-);
+type Enricher = (typeof CONFIG.TextEditor.enrichers)[number];
 
+/**
+ * Shows Genesys dice, from die letters (A, P, B, D or I, C, S) or from colour letters (G, Y, B, P, R, K), in any case.
+ */
+const diceEnricher: Enricher = {
+	pattern: /@dic?e\[(col(or)?s?,(?<colors>[GYBPRK]+)|(?<dice>[APBDICS]+))]/gim,
+	enricher: async (match) => {
+		const glyphs = diceGlyphs({ dice: match.groups?.['dice'], colors: match.groups?.['colors'] });
+		if (glyphs.length === 0) {
+			return null;
+		}
+
+		const container = document.createElement('span');
+		container.className = 'font-genesys-symbols';
+		for (const glyph of glyphs) {
+			const die = document.createElement('i');
+			die.className = `die die-${glyph}`;
+			die.innerText = glyph;
+			container.appendChild(die);
+		}
+
+		return container;
+	},
+};
+
+/**
+ * Shows Genesys symbols.
+ */
+const symbolsEnricher: Enricher = {
+	pattern: /@sym(bols?)?\[(?<symbols>[asthfd123]+)]/gim,
+	enricher: async (match) => {
+		const container = document.createElement('span');
+		container.className = `font-genesys-symbols nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
+		container.innerText = match.groups?.['symbols']?.toLowerCase() ?? '';
+
+		return container;
+	},
+};
+
+/**
+ * The bold anchor of a check, behind a die icon.
+ */
+function checkAnchor(html: string) {
+	const anchor = document.createElement('a');
+	anchor.style.fontWeight = 'bold';
+	anchor.innerHTML = `<i class="fas fa-dice-d20"></i> ${html}`;
+
+	return anchor;
+}
+
+/**
+ * Shows an opposed check between two skills.
+ */
+const opposedCheckEnricher: Enricher = {
+	pattern: /@(skill-)?check\[(?<skill1>[^|\]]+?)\|(?<skill2>[^|\]]+?)]/gim,
+	enricher: async (match) => {
+		const skill1 = match.groups?.['skill1'];
+		const skill2 = match.groups?.['skill2'];
+		if (!skill1 || !skill2) {
+			return null;
+		}
+
+		return checkAnchor(game.i18n.format('Genesys.Enrichers.Opposed', { skill1, skill2 }));
+	},
+};
+
+/**
+ * Shows a skill check against a difficulty, as a link that rolls it.
+ */
+const checkEnricher: Enricher = {
+	pattern: /@(skill-)?check\[(?<skill>[^,\]|]+?)(,(?<difficulty>\d+)(\^(?<upgrades>\d+))?)?]/gim,
+	enricher: async (match) => {
+		const skill = match.groups?.['skill'];
+		if (!skill) {
+			return null;
+		}
+
+		const { label, challengeDice, difficultyDice } = checkLinkDifficulty(
+			parseInt(match.groups?.['difficulty'] ?? '2', 10),
+			parseInt(match.groups?.['upgrades'] ?? '0', 10),
+		);
+
+		const dieIcon = (glyph: string) => `<span class="die die-${glyph}">${glyph}</span>`;
+		const difficultyIcons = dieIcon(DIE_GLYPHS.Challenge).repeat(challengeDice) + dieIcon(DIE_GLYPHS.Difficulty).repeat(difficultyDice);
+
+		const anchor = checkAnchor(
+			game.i18n.format('Genesys.Enrichers.Difficulty', {
+				difficulty: game.i18n.localize(label),
+				symbols: difficultyIcons || '—',
+				skill,
+			}),
+		);
+		anchor.dataset.skillCheck = skill;
+		anchor.dataset.difficulty = DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
+
+		return anchor;
+	},
+};
+
+/**
+ * Shows pool modifications.
+ */
+const poolModificationsEnricher: Enricher = {
+	pattern: new RegExp(`@pool(-mod(ifications?)?)?\\[(?<mods>${PoolModGlyphPattern.source}+)]`, 'gim'),
+	enricher: async (match) => {
+		// Returning null leaves the text of a glyph in the wrong case as it is.
+		const icons = poolModificationIcons(match.groups?.['mods'] ?? '');
+		if (!icons) {
+			return null;
+		}
+
+		const container = document.createElement('span');
+		container.className = 'font-genesys-symbols pool-modifications';
+		for (const { className, glyph, operator } of icons) {
+			const base = document.createElement('i');
+			base.className = className;
+			base.innerText = glyph;
+
+			const operation = document.createElement('i');
+			operation.className = `fas ${operator}`;
+
+			container.append(base, operation);
+		}
+
+		return container;
+	},
+};
+
+/**
+ * Register the Genesys enrichers, and roll the check of a `@check` link when it is clicked.
+ */
 export function register() {
-	/**
-	 * Enricher to easily add Genesys dice into the document.
-	 *
-	 * The string accepts any of the following characters, ignoring case sensitivity.
-	 *    Ability Die => normal: A, color: G
-	 *    Proficiency Die => normal: P, color: Y
-	 *    Boost Die => normal: B, color: B
-	 *    Difficulty Die => normal: D or I, color: P
-	 *    Challenge Die => normal: C, color: R
-	 *    Setback Die => normal: S, color: K
-	 */
-	CONFIG.TextEditor.enrichers.push({
-		pattern: /@dic?e\[(col(or)?s?,(?<colors>[GYBPRK]+)|(?<dice>[APBDICS]+))]/gim,
-		enricher: async (match, _) => {
-			let dice = match.groups?.['dice']?.toUpperCase().split('');
-
-			const colors = match.groups?.['colors']?.toUpperCase().split('');
-			if (colors) {
-				dice = colors.map((c) => DICE_COLOR_TO_GLYPH[c] ?? '');
-			}
-
-			if (!dice || dice.length === 0) {
-				return null;
-			}
-
-			const container = document.createElement('span');
-			container.className = 'font-genesys-symbols';
-
-			for (let die of dice) {
-				// Account for both possible annotations for difficulty dice.
-				if (die === 'I') {
-					die = DIE_GLYPHS.Difficulty;
-				}
-
-				const newI = document.createElement('i');
-				newI.className = `die die-${die}`;
-				newI.innerText = die;
-
-				container.appendChild(newI);
-			}
-
-			return container;
-		},
-	});
-
-	/**
-	 * Enricher to easily add Genesys symbols into the document.
-	 */
-	CONFIG.TextEditor.enrichers.push({
-		pattern: /@sym(bols?)?\[(?<symbols>[asthfd123]+)]/gim,
-		enricher: async (match, _) => {
-			const newSpan = document.createElement('span');
-			newSpan.className = `font-genesys-symbols nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
-			newSpan.innerText = match.groups?.['symbols']?.toLowerCase() ?? '';
-
-			return newSpan;
-		},
-	});
-
-	/**
-	 * Enricher to add opposed skill check links in the document.
-	 */
-	CONFIG.TextEditor.enrichers.push({
-		pattern: /@(skill-)?check\[(?<skill1>[^|\]]+?)\|(?<skill2>[^|\]]+?)]/gim,
-		enricher: async (match, _) => {
-			const skill1 = match.groups?.['skill1'];
-			const skill2 = match.groups?.['skill2'];
-			if (!skill1 || !skill2) {
-				return null;
-			}
-
-			const container = document.createElement('a');
-			container.style.fontWeight = 'bold';
-
-			container.innerHTML =
-				'<i class="fas fa-dice-d20"></i> ' +
-				game.i18n.format('Genesys.Enrichers.Opposed', {
-					skill1: skill1,
-					skill2: skill2,
-				});
-
-			return container;
-		},
-	});
-
-	/**
-	 * Enricher to add skill check links in the document.
-	 */
-	CONFIG.TextEditor.enrichers.push({
-		pattern: /@(skill-)?check\[(?<skill>[^,\]|]+?)(,(?<difficulty>\d+)(\^(?<upgrades>\d+))?)?]/gim,
-		enricher: async (match, _) => {
-			const skill = match.groups?.['skill'];
-			if (!skill) {
-				return null;
-			}
-
-			const { label, challengeDice, difficultyDice } = checkLinkDifficulty(
-				parseInt(match.groups?.['difficulty'] ?? '2', 10),
-				parseInt(match.groups?.['upgrades'] ?? '0', 10),
-			);
-
-			const dieIcon = (glyph: string) => `<span class="die die-${glyph}">${glyph}</span>`;
-			const difficultyIcons =
-				dieIcon(DIE_GLYPHS.Challenge).repeat(challengeDice) + dieIcon(DIE_GLYPHS.Difficulty).repeat(difficultyDice);
-
-			const container = document.createElement('a');
-			container.style.fontWeight = 'bold';
-			container.dataset.skillCheck = skill;
-			container.dataset.difficulty = DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
-
-			container.innerHTML =
-				'<i class="fas fa-dice-d20"></i> ' +
-				game.i18n.format('Genesys.Enrichers.Difficulty', {
-					difficulty: game.i18n.localize(label),
-					symbols: difficultyIcons || '—',
-					skill,
-				});
-
-			return container;
-		},
-	});
-
-	/**
-	 * Enricher to add pool modifications icons into a document.
-	 */
-	CONFIG.TextEditor.enrichers.push({
-		pattern: new RegExp(`@pool(-mod(ifications?)?)?\\[(?<mods>${PoolModGlyphPattern.source}+)]`, 'gim'),
-		enricher: async (match, _) => {
-			// The `i` flag keeps the prefix case-insensitive but lets the glyphs match in any case, while their case carries
-			// meaning (`A` is an Ability die, `a` an Advantage). Returning null leaves a wrong-case glyph's text as it is.
-			const glyphs = match.groups?.['mods'] ?? '';
-			if (!isPoolModificationValue(glyphs)) {
-				return null;
-			}
-
-			const mods: string[] = glyphs.match(PoolModGlyphPattern) ?? [];
-
-			const container = document.createElement('span');
-			container.className = 'font-genesys-symbols pool-modifications';
-
-			for (const mod of mods) {
-				const newIDie = document.createElement('i');
-				newIDie.className =
-					GenesysPoolModifications[mod].icon.baseType === 'dice'
-						? `die die-${GenesysPoolModifications[mod].icon.baseName}`
-						: 'symbol';
-				newIDie.innerText = GenesysPoolModifications[mod].icon.baseGlyph;
-
-				const newIOperator = document.createElement('i');
-				newIOperator.className = `fas ${GenesysPoolModifications[mod].icon.operator}`;
-
-				container.appendChild(newIDie);
-				container.appendChild(newIOperator);
-			}
-
-			return container;
-		},
-	});
+	CONFIG.TextEditor.enrichers.push(diceEnricher, symbolsEnricher, opposedCheckEnricher, checkEnricher, poolModificationsEnricher);
 
 	document.addEventListener('click', (event) => void onCheckLinkClick(event));
 }

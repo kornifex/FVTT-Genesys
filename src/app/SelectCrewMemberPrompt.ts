@@ -1,6 +1,6 @@
 /** @file The prompt that picks the crew member who rolls a skill for a vehicle, when several can. */
 
-import { VueSheet } from '@/vue/VueSheet';
+import { VuePrompt } from '@/vue/VuePrompt';
 import VueSelectCrewMemberPrompt from '@/vue/apps/SelectCrewMemberPrompt.vue';
 
 import type { ActorCrewMemberSkill } from '@/operations/CrewRoll';
@@ -10,10 +10,10 @@ import type { ActorCrewMemberSkill } from '@/operations/CrewRoll';
  */
 export type SelectCrewMemberPromptContext = {
 	memberSkills: ActorCrewMemberSkill[];
-	resolvePromise: (selected: ActorCrewMemberSkill) => void;
+	answer: (selected: ActorCrewMemberSkill) => void;
 };
 
-export class SelectCrewMemberPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
+export class SelectCrewMemberPrompt extends VuePrompt<ActorCrewMemberSkill | undefined>(undefined) {
 	override get vueComponent() {
 		return VueSelectCrewMemberPrompt;
 	}
@@ -27,17 +27,11 @@ export class SelectCrewMemberPrompt extends VueSheet(foundry.applications.api.Ap
 	/**
 	 * Ask the user to pick one of the crew members' skills. Undefined when the prompt is closed.
 	 */
-	static async prompt(memberSkills: ActorCrewMemberSkill[]) {
-		const sheet = new SelectCrewMemberPrompt(memberSkills);
-		await sheet.render(true);
-
-		return new Promise<ActorCrewMemberSkill | undefined>((resolve) => {
-			sheet.#resolvePromise = resolve;
-		});
+	static async promptForCrewMember(memberSkills: ActorCrewMemberSkill[]) {
+		return new SelectCrewMemberPrompt(memberSkills).prompt();
 	}
 
 	readonly memberSkills: ActorCrewMemberSkill[];
-	#resolvePromise?: (selected?: ActorCrewMemberSkill) => void;
 
 	constructor(memberSkills: ActorCrewMemberSkill[]) {
 		super();
@@ -48,17 +42,7 @@ export class SelectCrewMemberPrompt extends VueSheet(foundry.applications.api.Ap
 	override async getVueContext(): Promise<SelectCrewMemberPromptContext> {
 		return {
 			memberSkills: this.memberSkills,
-			resolvePromise: (selected) => {
-				this.#resolvePromise?.(selected);
-				this.#resolvePromise = undefined;
-
-				void this.close();
-			},
+			answer: (selected) => this.answer(selected),
 		};
-	}
-
-	protected override async _preClose(options: object) {
-		this.#resolvePromise?.();
-		await super._preClose(options);
 	}
 }
