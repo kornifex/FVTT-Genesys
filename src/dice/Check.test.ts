@@ -12,6 +12,7 @@ import {
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
 	carriedPoolModificationStates,
+	characteristicToRoll,
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
@@ -194,6 +195,31 @@ describe('resolveCheck', () => {
 	});
 });
 
+describe('characteristicToRoll', () => {
+	const cool = skill('Cool', Characteristic.Presence, 1);
+
+	it("rolls the skill's characteristic, or the fallback one without a skill, when none is picked", () => {
+		expect(characteristicToRoll(cool, {}, uncoupled)).toBe(Characteristic.Presence);
+		expect(characteristicToRoll(cool, { fallbackCharacteristic: Characteristic.Brawn }, rules)).toBe(Characteristic.Presence);
+		expect(characteristicToRoll(undefined, { fallbackCharacteristic: Characteristic.Brawn }, rules)).toBe(Characteristic.Brawn);
+		expect(characteristicToRoll(undefined, {}, rules)).toBeUndefined();
+	});
+
+	it('rolls the characteristic picked without a skill, or for a skill when skills are uncoupled from characteristics (CRB p. 205)', () => {
+		expect(characteristicToRoll(undefined, { characteristic: Characteristic.Agility }, rules)).toBe(Characteristic.Agility);
+		expect(characteristicToRoll(cool, { characteristic: Characteristic.Agility }, uncoupled)).toBe(Characteristic.Agility);
+		expect(characteristicToRoll(cool, { characteristic: Characteristic.Agility }, rules)).toBe(Characteristic.Presence);
+	});
+
+	it("rolls none when none is picked without a skill, and the skill's own for a skill: every skill check has one (CRB p. 205)", () => {
+		const noCharacteristic = { characteristic: null, fallbackCharacteristic: Characteristic.Brawn };
+
+		expect(characteristicToRoll(undefined, noCharacteristic, rules)).toBeUndefined();
+		expect(characteristicToRoll(cool, noCharacteristic, uncoupled)).toBe(Characteristic.Presence);
+		expect(characteristicToRoll(cool, noCharacteristic, rules)).toBe(Characteristic.Presence);
+	});
+});
+
 describe('canPickCharacteristic', () => {
 	const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)]);
 
@@ -290,7 +316,7 @@ describe('an initiative check', () => {
 			effects: [effect('Shield', [{ key: 'genesys.pool.check.target.', value: 'S' }])],
 			totalDefense: { melee: 1, ranged: 1 },
 		});
-		const check = resolveCheck(hero, { purpose: 'initiative', skillName: 'Cool', target: foe }, rules);
+		const check = resolveCheck(hero, { purpose: { kind: 'initiative' }, skillName: 'Cool', target: foe }, rules);
 
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.Alert']);
 		expect(checkDicePool(check, { difficulty: '', isEnabled: () => true }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });
@@ -303,8 +329,14 @@ describe('checkDescription', () => {
 		format: (key: string, data: Record<string, string>) => `${key.split('.').pop()} ${JSON.stringify(data)}`,
 	};
 	const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], { superCharacteristics: [Characteristic.Brawn] });
-	const description = (check: Check, purpose: Parameters<typeof checkDescription>[1] = { kind: 'check' }) =>
-		checkDescription(check, purpose, i18n);
+	const description = (check: Check) => checkDescription(check, i18n);
+	const initiative = { kind: 'initiative' } as const;
+
+	it('carries what the check is rolled for, a plain check when not given', () => {
+		expect(resolveCheck(hero, {}, rules).purpose).toEqual({ kind: 'check' });
+		expect(resolveCheck(undefined, {}, rules).purpose).toEqual({ kind: 'check' });
+		expect(resolveCheck(hero, { purpose: initiative }, rules).purpose).toEqual(initiative);
+	});
 
 	it('describes each kind of check', () => {
 		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules))).toBe(
@@ -327,24 +359,24 @@ describe('checkDescription', () => {
 	it('describes each kind of attack', () => {
 		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
 
-		expect(description(resolveCheck(hero, { skillName: 'Melee' }, rules), attack)).toBe(
+		expect(description(resolveCheck(hero, { purpose: attack, skillName: 'Melee' }, rules))).toBe(
 			'AttackSkill {"name":"Sword","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
 		);
 		// An attack is a skill check, so it always has a characteristic (CRB p. 205).
-		expect(description(resolveCheck(hero, { skillName: 'Melee', characteristic: null }, uncoupled), attack)).toBe(
+		expect(description(resolveCheck(hero, { purpose: attack, skillName: 'Melee', characteristic: null }, uncoupled))).toBe(
 			'AttackSkill {"name":"Sword","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
 		);
-		expect(description(resolveCheck(hero, { characteristic: Characteristic.Brawn }, rules), attack)).toBe(
+		expect(description(resolveCheck(hero, { purpose: attack, characteristic: Characteristic.Brawn }, rules))).toBe(
 			'AttackCharacteristic {"name":"Sword","characteristic":"Brawn"}',
 		);
-		expect(description(resolveCheck(hero, {}, rules), attack)).toBeUndefined();
+		expect(description(resolveCheck(hero, { purpose: attack }, rules))).toBeUndefined();
 	});
 
 	it('describes initiative with the skill, or the characteristic of a Characteristic Check', () => {
-		expect(description(resolveCheck(hero, { skillName: 'Vigilance' }, rules), { kind: 'initiative' })).toBe(
+		expect(description(resolveCheck(hero, { purpose: initiative, skillName: 'Vigilance' }, rules))).toBe(
 			'Initiative {"skill":"Vigilance","superChar":"hide-it"}',
 		);
-		expect(description(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules), { kind: 'initiative' })).toBe(
+		expect(description(resolveCheck(hero, { purpose: initiative, fallbackCharacteristic: Characteristic.Brawn }, rules))).toBe(
 			'Initiative {"skill":"Brawn","superChar":"super-char"}',
 		);
 	});
@@ -352,7 +384,7 @@ describe('checkDescription', () => {
 	it('names the initiative skill as the actor spells it, not as the Skills Compendium does', () => {
 		const watchful = actor('character', [skill('vigilance', Characteristic.Willpower, 1)]);
 
-		expect(description(resolveCheck(watchful, { skillName: 'Vigilance' }, rules), { kind: 'initiative' })).toBe(
+		expect(description(resolveCheck(watchful, { purpose: initiative, skillName: 'Vigilance' }, rules))).toBe(
 			'Initiative {"skill":"vigilance","superChar":"hide-it"}',
 		);
 	});

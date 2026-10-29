@@ -2,8 +2,6 @@
  * @file Root type of all the custom Die types in the Genesys system.
  */
 
-import { GenesysDieFace } from '@/dice/GenesysSymbol';
-
 export type DieCategory = 'positive' | 'negative';
 
 /**
@@ -33,7 +31,7 @@ export abstract class GenesysDie extends foundry.dice.terms.Die {
 	/**
 	 * Faces of this die type.
 	 */
-	static readonly FACES: GenesysDieFace[] = [];
+	static readonly FACES: string[] = [];
 
 	/**
 	 * Utility method for accessing the class's static denomination from the child.

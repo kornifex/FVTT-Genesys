@@ -86,7 +86,7 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	/**
 	 * What the check is rolled for. A plain check when left undefined.
 	 */
-	purpose?: CheckPurpose['kind'];
+	purpose?: CheckPurpose;
 
 	/**
 	 * The target of the check, whose effects and defense bring Pool Modifications. Initiative has none: a target given for
@@ -117,6 +117,7 @@ export type CheckPoolModification = ExternalPoolModification & {
  */
 export type Check<S extends CheckSkill = CheckSkill> = {
 	actor?: CheckActor<S>;
+	purpose: CheckPurpose;
 	kind: CheckKind;
 	skill?: S;
 	characteristic?: Characteristic;
@@ -134,8 +135,10 @@ export function resolveCheck<S extends CheckSkill>(
 	request: CheckRequest<S>,
 	rules: CheckRules<S>,
 ): Check<S> {
+	const purpose = request.purpose ?? { kind: 'check' };
 	if (!actor) {
 		return {
+			purpose,
 			kind: 'pool',
 			characteristicValue: 0,
 			rank: 0,
@@ -146,15 +149,7 @@ export function resolveCheck<S extends CheckSkill>(
 
 	const data = actor.systemData as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
-	// A skill check given no characteristic rolls the skill's, as when it is left undefined.
-	const requested =
-		request.characteristic === null && !canRollWithoutCharacteristic({ skill: rolledSkill?.skill })
-			? undefined
-			: request.characteristic;
-	const characteristic =
-		requested !== undefined && canPickCharacteristic({ skill: rolledSkill?.skill }, rules)
-			? requested ?? undefined
-			: rolledSkill?.skill.system.characteristic ?? request.fallbackCharacteristic;
+	const characteristic = characteristicToRoll(rolledSkill?.skill, request, rules);
 
 	let kind: CheckKind = characteristic ? 'characteristic' : 'pool';
 	let rank = 0;
@@ -167,7 +162,7 @@ export function resolveCheck<S extends CheckSkill>(
 	}
 
 	// Initiative never has a target.
-	const target = request.purpose === 'initiative' ? undefined : request.target;
+	const target = purpose.kind === 'initiative' ? undefined : request.target;
 	const poolModifications = poolModificationsForCheck(actor, target, {
 		characteristic,
 		skillName: rolledSkill?.skill.name,
@@ -176,6 +171,7 @@ export function resolveCheck<S extends CheckSkill>(
 
 	return {
 		actor,
+		purpose,
 		kind,
 		skill: rolledSkill?.skill,
 		characteristic,
@@ -184,6 +180,27 @@ export function resolveCheck<S extends CheckSkill>(
 		usesSuperCharacteristic: rules.useSuperCharacteristics && !!characteristic && !!data.superCharacteristics?.has(characteristic),
 		poolModifications: poolModifications.map((modification) => ({ ...modification, key: poolModificationKey(modification) })),
 	};
+}
+
+/**
+ * The characteristic a check rolls: the one the roller picks when they may pick it, otherwise the skill's, or the
+ * fallback one without a skill. Picking none rolls none without a skill, and the skill's for a skill check.
+ */
+export function characteristicToRoll(
+	skill: CheckSkill | undefined,
+	{ characteristic, fallbackCharacteristic }: Pick<CheckRequest, 'characteristic' | 'fallbackCharacteristic'>,
+	rules: Pick<CheckRules, 'uncoupleSkillsFromCharacteristics'>,
+): Characteristic | undefined {
+	const ownCharacteristic = skill?.system.characteristic ?? fallbackCharacteristic;
+	if (characteristic === undefined || !canPickCharacteristic({ skill }, rules)) {
+		return ownCharacteristic;
+	}
+
+	if (characteristic === null) {
+		return canRollWithoutCharacteristic({ skill }) ? undefined : ownCharacteristic;
+	}
+
+	return characteristic;
 }
 
 /**
@@ -267,7 +284,8 @@ export type Localizer = {
 /**
  * The description of a check in its chat message, or undefined when it has none.
  */
-export function checkDescription(check: Check, purpose: CheckPurpose, i18n: Localizer): string | undefined {
+export function checkDescription(check: Check, i18n: Localizer): string | undefined {
+	const { purpose } = check;
 	const superChar = check.usesSuperCharacteristic ? 'super-char' : 'hide-it';
 	const characteristicName = check.characteristic && i18n.localize(CHARACTERISTIC_LABELS[check.characteristic]);
 	const characteristicAbbr = check.characteristic && i18n.localize(CHARACTERISTIC_ABBREVIATIONS[check.characteristic]);

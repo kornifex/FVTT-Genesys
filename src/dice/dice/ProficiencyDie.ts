@@ -1,7 +1,6 @@
 import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { DieFaces } from '@/dice/DieFaces';
 import { DieTypes } from '@/dice/DieTypes';
-import { GenesysDieFace } from '@/dice/GenesysSymbol';
 
 /**
  * Proficiency (yellow) Die
@@ -12,5 +11,5 @@ export class ProficiencyDie extends GenesysDie {
 	static override FORMULA = DieTypes.Proficiency.FORMULA;
 	static override CATEGORY = DieTypes.Proficiency.CATEGORY;
 	static override COLOR = DieTypes.Proficiency.COLOR;
-	static override FACES: GenesysDieFace[] = DieFaces.Proficiency;
+	static override FACES: string[] = DieFaces.Proficiency;
 }

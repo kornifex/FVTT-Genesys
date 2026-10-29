@@ -1,50 +1,39 @@
-import { BoostDie } from '@/dice/dice/BoostDie';
-import { AbilityDie } from '@/dice/dice/AbilityDie';
-import { ProficiencyDie } from '@/dice/dice/ProficiencyDie';
-import { SetbackDie } from '@/dice/dice/SetbackDie';
-import { DifficultyDie } from '@/dice/dice/DifficultyDie';
-import { ChallengeDie } from '@/dice/dice/ChallengeDie';
+/** @file The Genesys dice of Dice So Nice: their faces, and their colours in each of its dice systems. */
+
+import type { DieName } from '@/dice/DicePool';
+import { DieFaces } from '@/dice/DieFaces';
+import { DieTypes } from '@/dice/DieTypes';
 import * as log from '@/log';
 
-export {};
-
 /**
- * Font scale used for the standard die faces.
+ * How Dice So Nice draws a die: its colour, the colour of its symbols and of their outline, and the scale of its
+ * symbols in the standard font and in the Magical Girl one.
  */
-const FONT_SCALE = {
-	db: 1.5, // Boost Die
-	da: 0.8, // Ability Die
-	dp: 1.2, // Proficiency Die
-	ds: 1.25, // Setback Die
-	di: 0.8, // Difficulty Die
-	dc: 1.2, // Challenge Die
+type DieLook = {
+	die: DieName;
+	color: string;
+	foreground?: string;
+	outline?: string;
+	fontScale: number;
+	magicalFontScale: number;
 };
 
-/**
- * Font scale used for the magical girl die faces.
- */
-const FONT_SCALE_MG = {
-	db: 1.5, // Boost Die
-	da: 0.7, // Ability Die
-	dp: 1.0, // Proficiency Die
-	ds: 1.5, // Setback Die
-	di: 0.8, // Difficulty Die
-	dc: 1.0, // Challenge Die
-};
+const DICE: DieLook[] = [
+	{ die: 'Boost', color: '#72cddc', fontScale: 1.5, magicalFontScale: 1.5 },
+	{ die: 'Ability', color: '#41ad49', fontScale: 0.8, magicalFontScale: 0.7 },
+	{ die: 'Proficiency', color: '#ffe800', fontScale: 1.2, magicalFontScale: 1.0 },
+	{ die: 'Setback', color: '#000000', foreground: '#ffffff', fontScale: 1.25, magicalFontScale: 1.5 },
+	{ die: 'Difficulty', color: '#6c2a84', foreground: '#ffffff', outline: '#000000', fontScale: 0.8, magicalFontScale: 0.8 },
+	{ die: 'Challenge', color: '#7d1821', foreground: '#ffffff', outline: '#000000', fontScale: 1.2, magicalFontScale: 1.0 },
+];
 
-const TYPES = {
-	Boost: { denom: 'db', labels: BoostDie.FACES },
-	Ability: { denom: 'da', labels: AbilityDie.FACES },
-	Proficiency: { denom: 'dp', labels: ProficiencyDie.FACES },
-	Setback: { denom: 'ds', labels: SetbackDie.FACES },
-	Difficulty: { denom: 'di', labels: DifficultyDie.FACES },
-	Challenge: { denom: 'dc', labels: ChallengeDie.FACES },
-};
+const FONT_SCALE = Object.fromEntries(DICE.map(({ die, fontScale }) => [DieTypes[die].FORMULA, fontScale]));
+const MAGICAL_FONT_SCALE = Object.fromEntries(DICE.map(({ die, magicalFontScale }) => [DieTypes[die].FORMULA, magicalFontScale]));
 
-function makeStandardColorSet(name: string, color: string, foreground?: string, outline?: string): ColorSet {
+function standardColorset({ die, color, foreground, outline }: DieLook): ColorSet {
 	return {
-		name: `genesys-${name.toLowerCase()}`,
-		description: `Genesys.DiceColors.${name}`,
+		name: `genesys-${die.toLowerCase()}`,
+		description: `Genesys.DiceColors.${die}`,
 		category: 'Genesys.DiceCat.Normal',
 		foreground: foreground ?? '#000000',
 		background: color,
@@ -55,146 +44,57 @@ function makeStandardColorSet(name: string, color: string, foreground?: string, 
 	};
 }
 
-function makeMagicalColorSet(name: string, color: string, foreground?: string, outline?: string): ColorSet {
+function magicalColorset(look: DieLook): ColorSet {
 	return {
-		...makeStandardColorSet(name, color, foreground, outline),
-		name: `genesys-mg-${name.toLowerCase()}`,
+		...standardColorset(look),
+		name: `genesys-mg-${look.die.toLowerCase()}`,
 		category: 'Genesys.DiceCat.MagicalGirl',
+		// The Magical Girl symbols are outlined in the die's colour unless the die gives another.
+		outline: look.outline ?? look.color,
 		font: 'Magical Girl Symbols',
-		fontScale: FONT_SCALE_MG,
+		fontScale: MAGICAL_FONT_SCALE,
 	};
 }
 
-function makeCustomizableColorSet(name: string): ColorSet {
+// The colorset a player colours as they like, for Dice So Nice's standard dice system.
+function customColorset({ die }: DieLook): ColorSet {
 	return {
-		name: `genesys-cust-${name.toLowerCase()}`,
-		description: `Genesys.DiceColors.${name}`,
+		name: `genesys-cust-${die.toLowerCase()}`,
+		description: `Genesys.DiceColors.${die}`,
 		category: 'Genesys.DiceCat.Custom',
 		fontScale: FONT_SCALE,
 	};
 }
 
-Hooks.once('diceSoNiceReady', (dice3d: Dice3d) => {
+/**
+ * The dice systems the Genesys dice are drawn in, each with the colorset of a die.
+ */
+const SYSTEMS: { system: string; colorset: (look: DieLook) => ColorSet }[] = [
+	{ system: 'genesys', colorset: standardColorset },
+	{ system: 'genesys-mg', colorset: magicalColorset },
+	{ system: 'standard', colorset: customColorset },
+];
+
+function registerDice(dice3d: Dice3d) {
 	log.info('Dice So Nice! Detected, initializing dice...');
 
-	dice3d.addSystem(
-		{
-			id: 'genesys',
-			name: 'Genesys.System.Name',
-		},
-		'preferred',
-	);
+	dice3d.addSystem({ id: 'genesys', name: 'Genesys.System.Name' }, 'preferred');
+	dice3d.addSystem({ id: 'genesys-mg', name: 'Genesys.DiceCat.MagicalGirl' }, 'default');
 
-	dice3d.addSystem(
-		{
-			id: 'genesys-mg',
-			name: 'Genesys.DiceCat.MagicalGirl',
-		},
-		'default',
-	);
-
-	// Standard System Dice
-	dice3d.addColorset(makeStandardColorSet('Boost', '#72cddc'), 'default');
-	dice3d.addColorset(makeStandardColorSet('Ability', '#41ad49'), 'default');
-	dice3d.addColorset(makeStandardColorSet('Proficiency', '#ffe800'), 'default');
-	dice3d.addColorset(makeStandardColorSet('Setback', '#000000', '#ffffff'), 'default');
-	dice3d.addColorset(makeStandardColorSet('Difficulty', '#6c2a84', '#ffffff', '#000000'), 'default');
-	dice3d.addColorset(makeStandardColorSet('Challenge', '#7d1821', '#ffffff', '#000000'), 'default');
-
-	// Magical Girl System Dice
-	dice3d.addColorset(makeMagicalColorSet('Boost', '#72cddc', '#000000', '#72cddc'), 'default');
-	dice3d.addColorset(makeMagicalColorSet('Ability', '#41ad49', '#000000', '#41ad49'), 'default');
-	dice3d.addColorset(makeMagicalColorSet('Proficiency', '#ffe800', '#000000', '#ffe800'), 'default');
-	dice3d.addColorset(makeMagicalColorSet('Setback', '#000000', '#ffffff', '#000000'), 'default');
-	dice3d.addColorset(makeMagicalColorSet('Difficulty', '#6c2a84', '#ffffff', '#000000'), 'default');
-	dice3d.addColorset(makeMagicalColorSet('Challenge', '#7d1821', '#ffffff', '#000000'), 'default');
-
-	// Customizable System Dice
-	(<(keyof typeof TYPES)[]>['Boost', 'Ability', 'Proficiency', 'Setback', 'Difficulty', 'Challenge']).forEach((die) => {
-		dice3d.addColorset(makeCustomizableColorSet(die), 'default');
-		dice3d.addDicePreset({
-			type: TYPES[die].denom,
-			labels: TYPES[die].labels,
-			system: 'standard',
-			colorset: `genesys-cust-${die.toLowerCase()}`,
-		});
-	});
-
-	// Set up default color sets for the Genesys dice.
-	dice3d.addDicePreset({
-		type: 'db',
-		labels: BoostDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-boost',
-	});
-	dice3d.addDicePreset({
-		type: 'da',
-		labels: AbilityDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-ability',
-	});
-	dice3d.addDicePreset({
-		type: 'dp',
-		labels: ProficiencyDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-proficiency',
-	});
-	dice3d.addDicePreset({
-		type: 'ds',
-		labels: SetbackDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-setback',
-	});
-	dice3d.addDicePreset({
-		type: 'di',
-		labels: DifficultyDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-difficulty',
-	});
-	dice3d.addDicePreset({
-		type: 'dc',
-		labels: ChallengeDie.FACES,
-		system: 'genesys',
-		colorset: 'genesys-challenge',
-	});
-
-	// Set up default color sets for the Magical Girl dice.
-	dice3d.addDicePreset({
-		type: 'db',
-		labels: BoostDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-boost',
-	});
-	dice3d.addDicePreset({
-		type: 'da',
-		labels: AbilityDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-ability',
-	});
-	dice3d.addDicePreset({
-		type: 'dp',
-		labels: ProficiencyDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-proficiency',
-	});
-	dice3d.addDicePreset({
-		type: 'ds',
-		labels: SetbackDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-setback',
-	});
-	dice3d.addDicePreset({
-		type: 'di',
-		labels: DifficultyDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-difficulty',
-	});
-	dice3d.addDicePreset({
-		type: 'dc',
-		labels: ChallengeDie.FACES,
-		system: 'genesys-mg',
-		colorset: 'genesys-mg-challenge',
-	});
+	for (const { system, colorset } of SYSTEMS) {
+		for (const look of DICE) {
+			const lookColorset = colorset(look);
+			dice3d.addColorset(lookColorset, 'default');
+			dice3d.addDicePreset({ type: DieTypes[look.die].FORMULA, labels: DieFaces[look.die], system, colorset: lookColorset.name });
+		}
+	}
 
 	log.info('Dice So Nice! initialization complete.');
-});
+}
+
+/**
+ * Registers the Genesys dice with Dice So Nice, once it is ready.
+ */
+export function register() {
+	Hooks.once('diceSoNiceReady', registerDice);
+}

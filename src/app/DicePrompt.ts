@@ -6,7 +6,7 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
-import type { CheckRoll } from '@/dice/GenesysRoller';
+import type { CheckRoll } from '@/dice/CheckRoll';
 
 export enum RollType {
 	Skill,

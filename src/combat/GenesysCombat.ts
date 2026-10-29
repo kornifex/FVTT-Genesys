@@ -1,7 +1,7 @@
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { InitiativeSkill } from '@/combat/InitiativeSkills';
-import { GenesysRoller, CheckRoll } from '@/dice/GenesysRoller';
-import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
+import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
+import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
@@ -354,7 +354,11 @@ export class GenesysCombat extends Combat {
 				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
 				const check = resolveCheck(
 					combatant.actor,
-					{ purpose: 'initiative', skillName: initiativeSkill.skillName, fallbackCharacteristic: initiativeSkill.skillChar },
+					{
+						purpose: { kind: 'initiative' },
+						skillName: initiativeSkill.skillName,
+						fallbackCharacteristic: initiativeSkill.skillChar,
+					},
 					worldCheckRules(),
 				);
 				checkRoll = {
@@ -363,20 +367,13 @@ export class GenesysCombat extends Combat {
 				};
 			}
 
-			const roll = GenesysRoller.rollForPool(checkRoll.dicePool);
-			await roll.evaluate();
-			const results = GenesysRoller.parseRollResults(roll);
-			rolls.push({ slot, initiative: encodeInitiative(results.netSuccess, results.netAdvantage) });
+			const poolRoll = await rollPool(checkRoll.dicePool);
+			rolls.push({ slot, initiative: encodeInitiative(poolRoll.results.netSuccess, poolRoll.results.netAdvantage) });
 
 			const chatData = {
-				user: game.user.id,
+				...(await checkMessageData(checkRoll.check, poolRoll)),
 				speaker: { actor: combatant.actorId },
-				content: await GenesysRoller.checkMessageContent(
-					checkDescription(checkRoll.check, { kind: 'initiative' }, game.i18n),
-					results,
-				),
 				sound: messages.length > 0 ? null : CONFIG.sounds.dice,
-				rolls: [roll],
 			};
 			const rollMode = (
 				'rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode

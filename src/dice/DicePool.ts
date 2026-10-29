@@ -3,8 +3,7 @@
  */
 
 import { DieTypes } from '@/dice/DieTypes';
-import { GenesysPoolGradeOperation } from '@/dice/GenesysPoolGradeOperation';
-import { GenesysPoolModifications, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { GenesysPoolModifications, PoolModGlyphPattern, poolModificationStep, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { GenesysSymbol } from '@/dice/GenesysSymbol';
 import { downgradeDie, upgradeDie } from '@/dice/DieGrades';
 
@@ -12,9 +11,6 @@ type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 
 export type DieName = keyof typeof DieTypes;
 export type SymbolName = keyof typeof GenesysSymbol;
-export type DieGradeOperationName = keyof typeof GenesysPoolGradeOperation;
-type SimplePoolEntity = DieName | SymbolName;
-type PoolEntity = SimplePoolEntity | DieGradeOperationName;
 
 export type DicePool = {
 	dice: PartialRecord<DieName, number>;
@@ -57,16 +53,11 @@ export type DicePoolInputs = {
 	modifications: DicePoolModifications;
 };
 
-// Helper function for sorting dice pool modifications. These are sorted according to the steps used for modifying a
-// dice pool:
-//  1- Adding dice
-//  2- Upgrading dice
-//  3- Downgrading dice
-//  4- Removing dice
-//  5- Adding symbols (this is not a formal step but adding it here is done for convenience since it doesn't interfere)
-//  6- Removing symbols (see above)
+/**
+ * Compare two pool modification glyphs by the step of modifying a dice pool each one applies at.
+ */
 export function sortPoolModifications(left: string, right: string) {
-	return GenesysPoolModifications[left].sort - GenesysPoolModifications[right].sort;
+	return poolModificationStep(left) - poolModificationStep(right);
 }
 
 /**
@@ -81,34 +72,33 @@ export function parsePoolModifications(text: string) {
  */
 export function applyDicePoolModifications(dicePool: DicePool, modifierTokens: string[]) {
 	for (const modifierToken of modifierTokens) {
-		if (modifierToken === '^' || modifierToken === '*') {
-			const [baseDice, upgradeDice]: DieName[] = modifierToken === '^' ? ['Ability', 'Proficiency'] : ['Difficulty', 'Challenge'];
-			upgradeDie(dicePool.dice, baseDice, upgradeDice);
-		} else if (modifierToken === '_' || modifierToken === '~') {
-			const [baseDice, downgradeDice]: DieName[] = modifierToken === '_' ? ['Proficiency', 'Ability'] : ['Challenge', 'Difficulty'];
-			downgradeDie(dicePool.dice, baseDice, downgradeDice);
-		} else {
-			// If we reach this branch then the glyph is for a dice or symbol.
-			let targetEntity = modifierToken;
-			let direction = 1;
+		const { operation } = GenesysPoolModifications[modifierToken];
+		switch (operation.kind) {
+			case 'upgrade':
+				upgradeDie(dicePool.dice, operation.from, operation.to);
+				break;
 
-			// If the glyph has two characters then the first one is signaling a removal.
-			if (modifierToken.length === 2) {
-				targetEntity = modifierToken[1];
-				direction = -1;
-			}
+			case 'downgrade':
+				downgradeDie(dicePool.dice, operation.from, operation.to);
+				break;
 
-			// Check which sub pool we want to modify. Note that dice glyphs are always uppercase letters while symbols
-			// use lowercase letters.
-			const targetSubPool: PartialRecord<PoolEntity, number> =
-				targetEntity === targetEntity.toUpperCase() ? dicePool.dice : dicePool.symbols;
-			const entityName = GenesysPoolModifications[targetEntity].targetName;
+			case 'dice':
+				changeCount(dicePool.dice, operation.name, operation.amount);
+				break;
 
-			// Do not let the number of dice or symbols be a negative value.
-			if (direction > 0 || targetSubPool[entityName]) {
-				targetSubPool[entityName] = direction + (targetSubPool[entityName] ?? 0);
-			}
+			case 'symbols':
+				changeCount(dicePool.symbols, operation.name, operation.amount);
+				break;
 		}
+	}
+}
+
+/**
+ * Add a die or a symbol to its part of a dice pool, or remove one, never leaving a negative count.
+ */
+function changeCount<K extends DieName | SymbolName>(counts: PartialRecord<K, number>, name: K, amount: 1 | -1) {
+	if (amount > 0 || counts[name]) {
+		counts[name] = amount + (counts[name] ?? 0);
 	}
 }
 
@@ -162,16 +152,13 @@ export function compileDiceFormula(dicePool: DicePool) {
 	return formula === '' ? '0' : formula;
 }
 
-// Convert the symbols object into the old format to make the GenesysRoller understand it.
-// A refactor of said class should get rid of this method.
+/**
+ * The symbols of the pool by their glyph, as a roll's data keeps them for its chat message.
+ */
 export function compileSymbolsData(dicePool: DicePool) {
-	return Object.entries(dicePool.symbols).reduce(
-		(accum, [symbolName, symbolAmount]) => {
-			accum[GenesysSymbol[symbolName as SymbolName].GLYPH] = symbolAmount;
-			return accum;
-		},
-		{} as Record<string, number>,
-	);
+	return Object.fromEntries(
+		Object.entries(dicePool.symbols).map(([symbolName, symbolAmount]) => [SYMBOL_GLYPHS[symbolName as SymbolName], symbolAmount]),
+	) as Record<string, number>;
 }
 
 /**
