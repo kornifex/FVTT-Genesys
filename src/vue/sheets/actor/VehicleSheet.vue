@@ -88,7 +88,7 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 	</div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -131,7 +131,6 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 		}
 	}
 
-	.tab-stats,
 	.stats-section {
 		display: flex;
 		gap: 1em;
