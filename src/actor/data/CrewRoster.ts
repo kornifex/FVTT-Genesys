@@ -1,6 +1,7 @@
 /** @file A vehicle's Crew: its passengers and Roles, the operations that keep an actor at most once in it, and the skills its members roll. */
 
 import { skillNamesMatch } from '@/data/Skills';
+import { SORT_DENSITY } from '@/data/Sort';
 
 /**
  * An actor aboard a vehicle as a passenger.
@@ -36,9 +37,6 @@ export type CrewPlace =
 	| { kind: 'passengers'; position: 'first' | 'last' }
 	| { kind: 'passengers'; position: 'before' | 'after'; passenger: string }
 	| { kind: 'role'; roleId: string; before?: string };
-
-// The gap Foundry leaves between the sort values of neighbouring documents.
-const SORT_DENSITY = 100000;
 
 /**
  * Whether an actor is in a Crew, as a passenger or a Role member.

@@ -1,5 +1,5 @@
 import { NAMESPACE } from '@/settings';
-import { KEY_MIGRATION_VERSION } from '@/settings/alpha';
+import { isNewWorld, KEY_MIGRATION_VERSION } from '@/settings/alpha';
 import {
 	ActorChanges,
 	ActorPlanner,
@@ -76,7 +76,7 @@ const migrations: (() => Promise<boolean>)[] = [
 
 export async function performMigrations(lastAlpha: string) {
 	const totalMigrationScripts = migrations.length;
-	if (lastAlpha === '0.0.0') {
+	if (isNewWorld(lastAlpha)) {
 		await game.settings.set(NAMESPACE, KEY_MIGRATION_VERSION, totalMigrationScripts);
 		migrations.length = 0;
 		return;

@@ -6,6 +6,7 @@
 import { hasEquipmentState } from '@/actor/data/EquipmentEffects';
 import { isRelevantToAdversary, isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { SORT_DENSITY } from '@/data/Sort';
 
 /**
  * What this module reads of a piece of equipment.
@@ -104,9 +105,6 @@ const INVENTORY_TYPES_BY_ACTOR_TYPE: Partial<Record<string, InventoryTypes>> = {
 	rival: ADVERSARY_INVENTORY_TYPES,
 	nemesis: ADVERSARY_INVENTORY_TYPES,
 };
-
-// The gap Foundry leaves between the sort values of neighbouring documents.
-const SORT_DENSITY = 100000;
 
 /**
  * Whether an actor of this type keeps items of this type in its inventory.

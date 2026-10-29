@@ -5,6 +5,16 @@
 import type { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 
+/**
+ * How much less a worn armor's encumbrance counts, to a minimum of 0 (CRB p. 84, 92).
+ */
+const WORN_ARMOR_ENCUMBRANCE_REDUCTION = 3;
+
+/**
+ * A character's encumbrance threshold before their Brawn is added (CRB p. 85).
+ */
+const BASE_ENCUMBRANCE_THRESHOLD = 5;
+
 export type HeldContainer = {
 	/**
 	 * The id of the container this one is held in, or an empty string.
@@ -68,9 +78,9 @@ export function rootContainer<T extends HeldContainer>(containerId: string, getC
  * The encumbrance an item that doesn't have a negative encumbrance adds to the value.
  */
 function addedValue(item: EncumberingItem, rules: EncumbranceRules) {
-	// When armor is worn, its encumbrance is reduced by 3, to a minimum of 0. Only one of a stack can be worn.
+	// Only one of a stack of armor can be worn.
 	if (rules.reducesEquippedArmor && item.type === 'armor' && item.state === 'equipped') {
-		return Math.max(0, item.encumbrance - 3) + Math.max(0, item.encumbrance * (item.quantity - 1));
+		return Math.max(0, item.encumbrance - WORN_ARMOR_ENCUMBRANCE_REDUCTION) + Math.max(0, item.encumbrance * (item.quantity - 1));
 	}
 
 	return item.encumbrance * item.quantity;
@@ -124,7 +134,7 @@ export type Encumbrance = {
 export function characterEncumbrance(equipment: EquipmentEncumbrance, own: Encumbrance, brawn: number): Encumbrance {
 	return {
 		value: Math.max(0, equipment.value + own.value),
-		threshold: 5 + brawn + own.threshold + equipment.thresholdBonus,
+		threshold: BASE_ENCUMBRANCE_THRESHOLD + brawn + own.threshold + equipment.thresholdBonus,
 	};
 }
 
