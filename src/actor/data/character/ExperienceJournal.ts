@@ -3,37 +3,39 @@ import { Characteristic } from '@/data/Characteristics';
 /**
  * Different sources of Experience Journal entries.
  */
-export enum EntryType {
+export const EntryType = {
 	/**
 	 * Starting XP awarded by the character's archetype.
 	 */
-	Starting = 'Starting',
+	Starting: 'Starting',
 
 	/**
 	 * XP Awarded by the GM.
 	 */
-	Award = 'Award',
+	Award: 'Award',
 
 	/**
 	 * XP spent to increase a characteristic during character creation.
 	 */
-	Characteristic = 'Characteristic',
+	Characteristic: 'Characteristic',
 
 	/**
 	 * XP spent to increase a skill rank.
 	 */
-	Skill = 'Skill',
+	Skill: 'Skill',
 
 	/**
 	 * XP spent to purchase a new talent.
 	 */
-	NewTalent = 'NewTalent',
+	NewTalent: 'NewTalent',
 
 	/**
 	 * XP spent to increase an existing talent's rank.
 	 */
-	TalentRank = 'TalentRank',
-}
+	TalentRank: 'TalentRank',
+} as const;
+
+export type EntryType = (typeof EntryType)[keyof typeof EntryType];
 
 type CharacteristicData = { characteristic: Characteristic; rank: number };
 type SkillData = { name: string; id: string; rank: number };
@@ -48,11 +50,11 @@ export type Entry = {
 	 */
 	amount: number;
 } & (
-	| { type: EntryType.Starting; data?: object }
-	| { type: EntryType.Award; data?: { reason?: string } }
-	| { type: EntryType.Characteristic; data: CharacteristicData }
-	| { type: EntryType.Skill; data: SkillData }
-	| { type: EntryType.NewTalent | EntryType.TalentRank; data: TalentData }
+	| { type: typeof EntryType.Starting; data?: object }
+	| { type: typeof EntryType.Award; data?: { reason?: string } }
+	| { type: typeof EntryType.Characteristic; data: CharacteristicData }
+	| { type: typeof EntryType.Skill; data: SkillData }
+	| { type: typeof EntryType.NewTalent | typeof EntryType.TalentRank; data: TalentData }
 );
 
 /**

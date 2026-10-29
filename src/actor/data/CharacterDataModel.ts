@@ -1,7 +1,7 @@
 import { GenesysActor } from '@/actor/GenesysActor';
-import { EntryType, ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
+import { ExperienceJournal } from '@/actor/data/character/ExperienceJournal';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
-import { availableXP } from '@/actor/data/character/Advancement';
+import { availableXP, totalXP } from '@/actor/data/character/Advancement';
 import {
 	characterEncumbrance,
 	encumberingItems,
@@ -125,22 +125,10 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	}
 
 	/**
-	 * Amount of experience the character has available to spend solely from their starting XP pool.
-	 */
-	get availableStartingXP() {
-		const startingXP = this.experienceJournal.entries[0];
-		if (!startingXP || startingXP.type !== EntryType.Starting) {
-			return 0;
-		}
-
-		return this.experienceJournal.entries.reduce((total, entry) => total + Math.min(0, entry.amount), startingXP.amount);
-	}
-
-	/**
 	 * Total amount of experience the character has gained over their lifetime.
 	 */
 	get totalXP() {
-		return this.experienceJournal.entries.reduce((total, entry) => total + Math.max(0, entry.amount), 0);
+		return totalXP(this.experienceJournal.entries);
 	}
 
 	/**

@@ -1,13 +1,15 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import VueCareerSkillPrompt from '@/vue/apps/CareerSkillPrompt.vue';
-import { ContextBase } from '@/vue/SheetContext';
 import { VueSheet } from '@/vue/VueSheet';
 
-export interface CareerSkillPromptContext extends ContextBase {
+/**
+ * What the career skill prompt shows: the skills to pick from.
+ */
+export type CareerSkillPromptContext = {
 	skills: GenesysItem<SkillDataModel>[];
 	resolvePromise: (skillIDs: string[]) => void;
-}
+};
 
 export class CareerSkillPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {

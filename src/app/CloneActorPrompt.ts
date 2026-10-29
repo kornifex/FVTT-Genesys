@@ -1,13 +1,15 @@
-import { ContextBase } from '@/vue/SheetContext';
 import { VueSheet } from '@/vue/VueSheet';
 import VueCloneActorPrompt from '@/vue/apps/CloneActorPrompt.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
 
-export interface CloneActorPromptContext extends ContextBase {
+/**
+ * What the clone prompt shows: the actor to clone.
+ */
+export type CloneActorPromptContext = {
 	targetActor: GenesysActor;
 	resolvePromise: (targetActor?: GenesysActor) => void;
-}
+};
 
 export class CloneActorPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
 	override get vueComponent() {

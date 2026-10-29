@@ -36,7 +36,7 @@ type SkillsTab =
  * The prompts open in the page: the Dice Prompts, the crew member prompts and the clone prompts.
  */
 type Prompts = {
-	dice: { actor: string | null; skill: string | null; rollType: number; difficulty: string; pool: string }[];
+	dice: { actor: string | null; skill: string | null; rollType: string; difficulty: string; pool: string }[];
 	crew: { title: string; rows: string[] }[];
 	clone: string[];
 };
@@ -67,6 +67,10 @@ type VehicleHelpers = {
 	groupBy(args: { vehicle: string; mode: 'member' | 'skill' }): Promise<void>;
 	prompts(): Prompts;
 	closePrompts(): Promise<void>;
+	/** Picks the clone in the open clone prompt, names it `E2E <name>` and submits it. */
+	submitClone(name: string): Promise<void>;
+	/** Whether the actor's tokens are linked to it, and whether it is an independent minion. */
+	linkedAndIndependent(name: string): { actorLink: boolean; independentMinion: boolean };
 	selectCrewMember(name: string): Promise<void>;
 	/** The notifications since the last call. */
 	notifications(): string[];
@@ -325,7 +329,7 @@ function installVehicleHelpers() {
 		prompts() {
 			return {
 				dice: apps('app-dice-prompt').map(
-					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: number; difficulty: string }) => {
+					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: string; difficulty: string }) => {
 						const root = htmlOf(app);
 						return {
 							actor: app.actor ? unprefixed(app.actor.name) : null,
@@ -353,6 +357,25 @@ function installVehicleHelpers() {
 			await waitFor('the prompts to close', () =>
 				prompts.every((app: { id: string }) => !foundry.applications.instances.has(app.id)),
 			);
+		},
+
+		async submitClone(name) {
+			const app = await waitFor('the clone prompt', () => apps('app-clone-actor-prompt')[0]);
+			const root = await waitFor('its choices', () => htmlOf(app)?.querySelector('#clone-actor-prompt-method-clone') && htmlOf(app));
+			const method = root.querySelector<HTMLInputElement>('#clone-actor-prompt-method-clone')!;
+			method.checked = true;
+			method.dispatchEvent(new Event('change', { bubbles: true }));
+			const input = root.querySelector<HTMLInputElement>('.clone-name input')!;
+			input.value = `E2E ${name}`;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			root.querySelector<HTMLButtonElement>('.submit-button')!.click();
+			await waitFor('the clone prompt to close', () => !foundry.applications.instances.has(app.id));
+			await settle();
+		},
+
+		linkedAndIndependent(name) {
+			const clone = actor(name);
+			return { actorLink: clone.prototypeToken.actorLink, independentMinion: clone.getFlag('genesys', 'independentMinion') ?? false };
 		},
 
 		async selectCrewMember(name) {
@@ -457,8 +480,8 @@ const expectedRole = (name: string, { skills = [], members = [] }: { skills?: st
 
 const noPrompts: Prompts = { dice: [], crew: [], clone: [] };
 // The values of the system's RollType.
-const SKILL_ROLL = 0;
-const ATTACK_ROLL = 1;
+const SKILL_ROLL = 'skill';
+const ATTACK_ROLL = 'attack';
 
 const characteristics = (values: Partial<Record<string, number>> = {}) => ({
 	characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2, ...values },
@@ -726,6 +749,22 @@ async function crewDrops(e2e: ScenarioContext) {
 	);
 	e2e.expect('#109 F9 the drop meets a Role the data no longer has', staleDrop, { roleShown: true, roles: 0 });
 	e2e.expect('#109 F9 no clone prompt opens for a Role deleted meanwhile', await vehicleE2E('prompts'), noPrompts);
+	await step(
+		'#268 F10 U dropped from the sidebar on the Role, and cloned as U2',
+		async () => {
+			await fromSidebar('U', role(1), 'V3')();
+			await vehicleE2E('submitClone', 'U2');
+		},
+		{ V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L', 'U2'] })] } },
+	);
+	e2e.expect('#268 F10 the clone U2 is an independent minion with linked tokens', await vehicleE2E('linkedAndIndependent', 'U2'), {
+		actorLink: true,
+		independentMinion: true,
+	});
+	e2e.expect('#268 F10 U itself still makes unlinked tokens', await vehicleE2E('linkedAndIndependent', 'U'), {
+		actorLink: false,
+		independentMinion: false,
+	});
 }
 
 /**

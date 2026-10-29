@@ -70,6 +70,7 @@ function withArchetype(character: ArchetypeHolder, archetype: ArchetypeGrants, s
 
 	return {
 		characteristics,
+		// Each threshold is the Archetype's base, raised by its Brawn or Willpower.
 		wounds: { max: character.wounds.max + sign * (archetype.woundThreshold + archetype.characteristics.brawn) },
 		strain: { max: character.strain.max + sign * (archetype.strainThreshold + archetype.characteristics.willpower) },
 		// Starting XP is always the first entry of the Experience Journal.

@@ -1,25 +1,30 @@
-/** @file The chance that a dice pool succeeds, counted exactly over every way its dice can land. */
+/** @file The chance that a dice pool succeeds, counted exactly over every way its dice can land, and how the dice prompt gets and shows it. */
 
 // The dice prompt runs this module in a Web Worker, where there is no Foundry: it imports nothing that needs Foundry.
 
-import type { DicePool, DieName, SymbolName } from '@/dice/DicePool';
+import { type DicePool, type DieName, hasSameChanceToSucceed } from '@/dice/DicePool';
 import { DieFaces } from '@/dice/DieFaces';
-import { GenesysSymbol } from '@/dice/GenesysSymbol';
+import { symbolOfGlyph } from '@/dice/GenesysPoolModifications';
+import { symbolsNetSuccesses } from '@/dice/GenesysSymbol';
+import type { GenesysRollResults } from '@/dice/RollResults';
 
 /**
  * The dice and symbols of a pool, as the worker receives them.
  */
 export type ChancePool = Pick<DicePool, 'dice' | 'symbols'>;
 
-// A Triumph also counts as a Success, and a Despair as a Failure.
-const SUCCESS_GLYPHS: string[] = [GenesysSymbol.Success.GLYPH, GenesysSymbol.Triumph.GLYPH];
-const FAILURE_GLYPHS: string[] = [GenesysSymbol.Failure.GLYPH, GenesysSymbol.Despair.GLYPH];
-
 /**
  * Successes left once the Failures cancel them out, on a die face.
  */
-function netSuccesses(face: string) {
-	return [...face].reduce((net, glyph) => net + Number(SUCCESS_GLYPHS.includes(glyph)) - Number(FAILURE_GLYPHS.includes(glyph)), 0);
+function faceNetSuccesses(face: string) {
+	const symbols: ChancePool['symbols'] = {};
+	for (const glyph of face) {
+		const symbol = symbolOfGlyph(glyph);
+		if (symbol) {
+			symbols[symbol] = 1 + (symbols[symbol] ?? 0);
+		}
+	}
+	return symbolsNetSuccesses(symbols);
 }
 
 /**
@@ -27,16 +32,11 @@ function netSuccesses(face: string) {
  * Proficiency die that explodes with a super characteristic counts as a plain one.
  */
 export function chanceToSucceed({ dice, symbols }: ChancePool) {
-	let symbolsNet = 0;
-	for (const [symbolName, amount] of Object.entries(symbols) as [SymbolName, number][]) {
-		symbolsNet += amount * netSuccesses(GenesysSymbol[symbolName].GLYPH);
-	}
-
 	// How many of the ways the dice can land leave each number of net Successes. The counts stay integers, so the
 	// chance is exact as long as they fit in a double.
-	let outcomes = new Map([[symbolsNet, 1]]);
+	let outcomes = new Map([[symbolsNetSuccesses(symbols), 1]]);
 	for (const [dieName, amount] of Object.entries(dice) as [DieName, number][]) {
-		const faces = DieFaces[dieName].map(netSuccesses);
+		const faces = DieFaces[dieName].map(faceNetSuccesses);
 		for (let die = 0; die < amount; die++) {
 			const rolled = new Map<number, number>();
 			for (const [net, count] of outcomes) {
@@ -58,4 +58,36 @@ export function chanceToSucceed({ dice, symbols }: ChancePool) {
 	}
 
 	return successes / total;
+}
+
+/**
+ * The chance, from 0 to 1, that a check succeeds, from the results of simulated rolls of its pool.
+ */
+export function simulatedChance(rolls: Pick<GenesysRollResults, 'netSuccess'>[]) {
+	return rolls.filter(({ netSuccess }) => netSuccess > 0).length / rolls.length;
+}
+
+/**
+ * A chance to succeed as the dice prompt shows it: a percentage with two decimals.
+ */
+export function formatChance(chance: number) {
+	return (Math.round(chance * 10000) / 100).toFixed(2);
+}
+
+/**
+ * How the chance to succeed is computed: exactly over every way the dice can land, or from simulated rolls.
+ */
+type ChanceMethod = 'permutation' | 'simulation';
+
+/**
+ * How the dice prompt gets the chance to succeed of its pool, from the pool it showed the chance of before: a pool
+ * without dice is counted at once, whatever the method; the chance shown is kept when the pool has the same; any other
+ * pool's chance is computed with the method the settings choose.
+ */
+export function chanceComputation(pool: DicePool, previousPool: DicePool, method: ChanceMethod): 'count' | 'unchanged' | ChanceMethod {
+	if (Object.values(pool.dice).every((amount) => !amount)) {
+		return 'count';
+	}
+
+	return hasSameChanceToSucceed(previousPool, pool) ? 'unchanged' : method;
 }

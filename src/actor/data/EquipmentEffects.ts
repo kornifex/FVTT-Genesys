@@ -3,7 +3,7 @@
  */
 
 import { isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 
 /**
  * The relevant-types check of an actor type, limited to the contexts this rule needs.

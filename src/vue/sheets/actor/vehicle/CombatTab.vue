@@ -7,14 +7,15 @@ import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { RollType } from '@/app/DicePrompt';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 
-import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
+import { rollForCrew } from '@/operations/CrewRoll';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels } from '@/item/Weapons';
 

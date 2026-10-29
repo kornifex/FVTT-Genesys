@@ -5,6 +5,7 @@ import {
 	addRoleSkill,
 	Crew,
 	crewForSkills,
+	crewMemberSkills,
 	crewSkillsByMember,
 	crewSkillsBySkill,
 	hasActor,
@@ -15,6 +16,8 @@ import {
 	renameRole,
 	Role,
 } from '@/actor/data/CrewRoster';
+import { Characteristic } from '@/data/Characteristics';
+import type { CheckActor, CheckSkill } from '@/dice/Check';
 
 function passengers(...uuids: string[]) {
 	return uuids.map((uuid, index) => ({ uuid, sort: (index + 1) * 100000 }));
@@ -384,6 +387,58 @@ describe('crewSkillsByMember', () => {
 			{ member: 'P', role: pilot, skills: [rolled[1], rolled[0]] },
 			{ member: 'G1', role: gunner, skills: [] },
 			{ member: 'G2', role: gunner, skills: [rolled[2]] },
+		]);
+	});
+});
+
+describe('crewMemberSkills', () => {
+	const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Cool'], members: ['A', 'B'] };
+	const compendium: CheckSkill[] = [{ name: 'Piloting', system: { characteristic: Characteristic.Agility, rank: 0 } }];
+	const rules = { compendiumSkills: compendium, useSuperCharacteristics: false, uncoupleSkillsFromCharacteristics: false };
+
+	function member(skills: CheckSkill[], agility = 3): CheckActor {
+		return {
+			type: 'character',
+			skills,
+			systemData: { characteristics: { brawn: 2, agility, intellect: 2, cunning: 2, willpower: 2, presence: 2 } },
+			allApplicableEffects: () => [],
+		};
+	}
+
+	it('resolves each crew skill as a check of its member: an owned skill at its rank, a Skills Compendium one as an Unranked Skill Check (CRB p. 19)', () => {
+		const piloting: CheckSkill = { name: 'piloting', system: { characteristic: Characteristic.Agility, rank: 2 } };
+		const actors = new Map([
+			['A', member([piloting])],
+			['B', member([], 2)],
+		]);
+
+		expect(crewMemberSkills(crewForSkills({ passengers: [], roles: [pilot] }, ['Piloting']), actors, rules)).toEqual([
+			{ member: 'A', role: pilot, skillName: 'Piloting', actor: actors.get('A'), skill: piloting, rank: 2, characteristicValue: 3 },
+			{
+				member: 'B',
+				role: pilot,
+				skillName: 'Piloting',
+				actor: actors.get('B'),
+				skill: compendium[0],
+				rank: 0,
+				characteristicValue: 2,
+			},
+		]);
+	});
+
+	it('leaves out a skill whose member has no actor, or that its member can roll neither as an owned skill nor as an Unranked Skill Check', () => {
+		const actors = new Map([['A', member([])]]);
+
+		expect(crewMemberSkills(crewForSkills({ passengers: [], roles: [pilot] }, ['Cool', 'Piloting']), actors, rules)).toEqual([
+			{
+				member: 'A',
+				role: pilot,
+				skillName: 'Piloting',
+				actor: actors.get('A'),
+				skill: compendium[0],
+				rank: 0,
+				characteristicValue: 3,
+			},
 		]);
 	});
 });

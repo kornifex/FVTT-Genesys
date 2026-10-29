@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, inject, onMounted, ref, shallowRef, toRaw } from 'vue';
 import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
-import { chanceToSucceed as countChanceToSucceed } from '@/dice/ChanceToSucceed';
+import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { rollCheck, rollPool } from '@/dice/CheckRoll';
@@ -35,14 +35,7 @@ import {
 	resolveCheck,
 	worldCheckRules,
 } from '@/dice/Check';
-import {
-	type DicePool,
-	type DieName,
-	type SymbolName,
-	hasSameChanceToSucceed,
-	parsePoolModifications,
-	sortPoolModifications,
-} from '@/dice/DicePool';
+import { type DicePool, type DieName, type SymbolName, parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
 
@@ -201,30 +194,31 @@ async function approximateProbability() {
 	const obsoleteDicePool = previousDicePool;
 	previousDicePool = dicePool;
 
-	// A pool without dice is counted at once, without a worker or a simulation.
-	if (Object.values(dicePool.dice).reduce((accum, amount) => accum + amount) === 0) {
-		probabilityOfSuccess.value = (countChanceToSucceed(toRaw(dicePool)) * 100).toFixed(2);
-		return;
+	let chance: number;
+	switch (chanceComputation(dicePool, obsoleteDicePool, USE_CHANCE_TO_SUCCEED_BY_PERMUTATION ? 'permutation' : 'simulation')) {
+		case 'count':
+			chance = chanceToSucceed(toRaw(dicePool));
+			break;
+
+		case 'unchanged':
+			return;
+
+		case 'permutation': {
+			const { dice, symbols } = toRaw(dicePool);
+			chance = await chanceToSucceedInWorker({ dice, symbols });
+			break;
+		}
+
+		case 'simulation': {
+			const simulation = await Promise.all(
+				Array.from({ length: CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS }, () => rollPool(currentDicePool.value)),
+			);
+			chance = simulatedChance(simulation.map(({ results }) => results));
+			break;
+		}
 	}
 
-	// No need to run this process again if nothing of importance has changed.
-	if (hasSameChanceToSucceed(obsoleteDicePool, dicePool)) {
-		return;
-	}
-
-	let chanceToSucceed: number;
-	if (USE_CHANCE_TO_SUCCEED_BY_PERMUTATION) {
-		const { dice, symbols } = toRaw(dicePool);
-		chanceToSucceed = await chanceToSucceedInWorker({ dice, symbols });
-	} else {
-		const simulation = await Promise.all(
-			Array.from({ length: CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS }, () => rollPool(currentDicePool.value)),
-		);
-		const successfulRolls = simulation.filter(({ results }) => results.netSuccess > 0);
-		chanceToSucceed = successfulRolls.length / simulation.length;
-	}
-
-	probabilityOfSuccess.value = (Math.round(chanceToSucceed * 10000) / 100).toFixed(2);
+	probabilityOfSuccess.value = formatChance(chance);
 }
 
 function onSkillChange(event: Event) {

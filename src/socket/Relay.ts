@@ -4,32 +4,34 @@ import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
 /**
  * Every operation the system sends through its socket. Each one carries the data {@link SocketData} gives it.
  */
-export enum SocketOperation {
+export const SocketOperation = {
 	/**
 	 * A player spends a Story Point from the player pool: the Acting GM writes it.
 	 */
-	PlayerSpendStoryPoint,
+	PlayerSpendStoryPoint: 'playerSpendStoryPoint',
 
 	/**
 	 * Every client renders the Story Point Tracker again.
 	 */
-	UpdateStoryPointTracker,
+	UpdateStoryPointTracker: 'updateStoryPointTracker',
 
 	/**
 	 * A player claims an Initiative Slot: the Acting GM writes the Claim.
 	 */
-	ClaimInitiativeSlot,
+	ClaimInitiativeSlot: 'claimInitiativeSlot',
 
 	/**
 	 * Every client orders the turns of a combat again.
 	 */
-	UpdateCombatTracker,
+	UpdateCombatTracker: 'updateCombatTracker',
 
 	/**
 	 * A player rolled the initiative of Extra Slots: the Acting GM writes it.
 	 */
-	UpdateInitiativeForExtraSlot,
-}
+	UpdateInitiativeForExtraSlot: 'updateInitiativeForExtraSlot',
+} as const;
+
+export type SocketOperation = (typeof SocketOperation)[keyof typeof SocketOperation];
 
 /**
  * The data of {@link SocketOperation.PlayerSpendStoryPoint}.
@@ -190,7 +192,7 @@ export function createRelay(transport: RelayTransport): Relay {
 
 		handle(operation, handler) {
 			if (handlers.has(operation)) {
-				throw new Error(`The socket operation ${SocketOperation[operation]} already has a handler.`);
+				throw new Error(`The socket operation ${operation} already has a handler.`);
 			}
 
 			handlers.set(operation, handler as Handler<SocketOperation>);

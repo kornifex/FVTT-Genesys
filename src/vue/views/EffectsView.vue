@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory } from '@/effects/NewEffect';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { inject, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';

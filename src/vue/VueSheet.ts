@@ -3,7 +3,7 @@
  */
 
 import { App, Component, createApp, markRaw, nextTick, reactive, UnwrapNestedRefs } from 'vue';
-import { ContextBase, RootContext } from '@/vue/SheetContext';
+import { RootContext } from '@/vue/SheetContext';
 
 import '@/vue/VueSheet.scss';
 
@@ -18,7 +18,7 @@ export type ApplicationConstructor<T extends ApplicationV2 = ApplicationV2> = ne
 type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
-export function VueSheet<TBase extends ApplicationConstructor, ContextType extends ContextBase | undefined = ContextBase>(base: TBase) {
+export function VueSheet<TBase extends ApplicationConstructor, ContextType extends object | undefined = object>(base: TBase) {
 	return class extends base {
 		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which v13 gives AppV1
 		// windows while ApplicationV2 ones follow the interface's theme.

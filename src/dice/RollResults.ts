@@ -2,6 +2,7 @@
 
 import type { SymbolName } from '@/dice/DicePool';
 import { SYMBOL_GLYPHS, symbolOfGlyph } from '@/dice/GenesysPoolModifications';
+import { countedSuccessesAndFailures } from '@/dice/GenesysSymbol';
 
 export type GenesysRollResults = {
 	/**
@@ -87,9 +88,7 @@ export function rollResults(faces: Record<string, string[]>, extraSymbols: Recor
 		}
 	}
 
-	// Triumphs & Despairs add successes & failures.
-	const successes = counts.Success + counts.Triumph;
-	const failures = counts.Failure + counts.Despair;
+	const { successes, failures } = countedSuccessesAndFailures(counts);
 
 	return {
 		totalSuccess: successes,

@@ -18,6 +18,8 @@ import {
 	canReplaceCareer,
 	isAllowed,
 	raiseCharacteristic,
+	thresholdUpdates,
+	totalXP,
 	undoEntry,
 	withoutStartingXP,
 	withStartingXP,
@@ -495,6 +497,34 @@ describe('Starting XP', () => {
 		];
 
 		expect(availableXP(entries)).toBe(90);
+	});
+});
+
+describe('totalXP', () => {
+	it('adds up the XP the character gained, leaving out the XP spent', () => {
+		const entries: Entry[] = [
+			{ amount: 100, type: EntryType.Starting },
+			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Agility, rank: 3 } },
+			AWARD,
+		];
+
+		expect(totalXP(entries)).toBe(120);
+		expect(totalXP([])).toBe(0);
+	});
+});
+
+describe('thresholdUpdates', () => {
+	it('moves the wound threshold with Brawn and the strain threshold with Willpower (CRB p. 31, 45)', () => {
+		expect(thresholdUpdates({ wounds: 12, strain: 10 }, { brawn: 1 })).toEqual({ 'system.wounds.max': 13 });
+		expect(thresholdUpdates({ wounds: 12, strain: 10 }, { willpower: -1 })).toEqual({ 'system.strain.max': 9 });
+		expect(thresholdUpdates({ wounds: 12, strain: 10 }, { brawn: 2, willpower: 3, agility: 1 })).toEqual({
+			'system.wounds.max': 14,
+			'system.strain.max': 13,
+		});
+	});
+
+	it('leaves the thresholds out when neither Brawn nor Willpower changes', () => {
+		expect(thresholdUpdates({ wounds: 12, strain: 10 }, { agility: 1 })).toEqual({});
 	});
 });
 

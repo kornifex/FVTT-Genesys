@@ -2,15 +2,10 @@
  * @file Tests for the Equipment States in which the effects of equipment apply.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// `EquipmentState` lives in a data model, which extends a Foundry class.
-vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-});
+import { describe, expect, it } from 'vitest';
 
 import { isSuppressedAsConsumable, isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 
 const ALL_STATES = [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped];
 

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type ChancePool, chanceToSucceed } from '@/dice/ChanceToSucceed';
+import { type ChancePool, chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 
 // The expected chances are the ones the former JavaScript worker computed for the same pools. No Foundry global is
 // stubbed: the module runs in a Web Worker, where there is none.
@@ -66,5 +66,47 @@ describe('chanceToSucceed against the difficulty levels (CRB p. 16-18)', () => {
 	it.each(bookChances)('gives a %s check the chances of the book', (_, difficultyDice, expectFocused, expectGeneral) => {
 		expectFocused(chanceToSucceed({ dice: { Ability: 2, Proficiency: 1, Difficulty: difficultyDice }, symbols: {} }));
 		expectGeneral(chanceToSucceed({ dice: { Ability: 2, Difficulty: difficultyDice }, symbols: {} }));
+	});
+});
+
+describe('formatChance', () => {
+	it('shows a chance as a percentage with two decimals', () => {
+		expect(formatChance(0.43505859375)).toBe('43.51');
+		expect(formatChance(0.12345)).toBe('12.35');
+		expect(formatChance(1)).toBe('100.00');
+		expect(formatChance(0)).toBe('0.00');
+	});
+
+	it('shows the chance of a pool without dice, which is 0 or 1, as the prompt showed it before', () => {
+		expect(formatChance(chanceToSucceed({ dice: {}, symbols: { Success: 1 } }))).toBe('100.00');
+		expect(formatChance(chanceToSucceed({ dice: { Ability: 0 }, symbols: { Triumph: 1, Failure: 1 } }))).toBe('0.00');
+	});
+});
+
+describe('simulatedChance', () => {
+	it('is the share of the simulated rolls with at least one net Success', () => {
+		expect(simulatedChance([{ netSuccess: 1 }, { netSuccess: 0 }, { netSuccess: -2 }, { netSuccess: 3 }])).toBe(0.5);
+	});
+});
+
+describe('chanceComputation', () => {
+	const pool = (dice: ChancePool['dice'], symbols: ChancePool['symbols'] = {}, usesSuperCharacteristic = false) => ({
+		dice,
+		symbols,
+		usesSuperCharacteristic,
+	});
+
+	it('counts the chance of a pool without dice at once, whatever the method', () => {
+		expect(chanceComputation(pool({ Proficiency: 0, Ability: 0 }, { Success: 1 }), pool({ Ability: 2 }), 'simulation')).toBe('count');
+		expect(chanceComputation(pool({}), pool({}), 'permutation')).toBe('count');
+	});
+
+	it('keeps the chance shown when the pool has the same chance as the one before', () => {
+		expect(chanceComputation(pool({ Ability: 2 }, { Advantage: 1 }), pool({ Ability: 2 }), 'permutation')).toBe('unchanged');
+	});
+
+	it('computes the chance of any other pool with the method chosen in the settings', () => {
+		expect(chanceComputation(pool({ Ability: 2 }), pool({ Ability: 1 }), 'permutation')).toBe('permutation');
+		expect(chanceComputation(pool({ Ability: 2 }), pool({ Ability: 2 }, {}, true), 'simulation')).toBe('simulation');
 	});
 });

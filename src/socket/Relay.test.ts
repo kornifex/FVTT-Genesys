@@ -119,7 +119,7 @@ describe('createRelay', () => {
 		const { relay } = world([gm, player]);
 
 		expect(() => relay('GM').handle(SocketOperation.UpdateCombatTracker, () => undefined)).toThrow(
-			'The socket operation UpdateCombatTracker already has a handler.',
+			'The socket operation updateCombatTracker already has a handler.',
 		);
 	});
 });

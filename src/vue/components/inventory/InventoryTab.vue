@@ -4,7 +4,8 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
 import { extractDataFromDragTransferTypes } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';

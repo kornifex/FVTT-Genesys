@@ -315,33 +315,24 @@ export function toEditedChange(change: StoredChange): EditedChange {
 }
 
 /**
- * Turn a change edited in the effect sheets back into a change, in place. Pool Modifications get their full key, the
- * custom type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs.
+ * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
+ * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. Any other
+ * change is returned as it is.
+ * @param customMode v13: Foundry's custom effect mode, read only for a change that has a mode, since v14 logs a
+ * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
  */
-export function fromEditedChange(change: EditedChange) {
+export function fromEditedChange(change: EditedChange, customMode: () => number): EditedChange {
 	const baseKey = change.key.match(BASE_KEY_PATTERN);
 	if (!baseKey) {
 		return change;
 	}
 
+	const { char, skill, ...stored } = change;
 	const kind = baseKey[1] as PoolModificationKind;
-	change.key = encodeKey({
-		kind,
-		source: baseKey[2] as PoolModificationSource,
-		subject: (kind === 'char' ? change.char : change.skill) ?? '',
-	});
-	if ('type' in change) {
-		change.type = 'custom';
-	} else {
-		// v13: v14 logs a deprecation warning when CONST.ACTIVE_EFFECT_MODES is read.
-		change.mode = CONST.ACTIVE_EFFECT_MODES.CUSTOM;
-	}
-	if (typeof change.value !== 'string' || !isPoolModificationValue(change.value)) {
-		change.value = '';
-	}
-
-	delete change.char;
-	delete change.skill;
-
-	return change;
+	return {
+		...stored,
+		key: encodeKey({ kind, source: baseKey[2] as PoolModificationSource, subject: (kind === 'char' ? char : skill) ?? '' }),
+		...('type' in change ? { type: 'custom' } : { mode: customMode() }),
+		value: typeof change.value === 'string' && isPoolModificationValue(change.value) ? change.value : '',
+	};
 }

@@ -1,6 +1,8 @@
 /** @file A vehicle's Crew: its passengers and Roles, the operations that keep an actor at most once in it, and the skills its members roll. */
 
 import { skillNamesMatch } from '@/data/Skills';
+import { SORT_DENSITY } from '@/data/Sort';
+import { type CheckActor, type CheckRules, type CheckSkill, resolveCheck } from '@/dice/Check';
 
 /**
  * An actor aboard a vehicle as a passenger.
@@ -36,9 +38,6 @@ export type CrewPlace =
 	| { kind: 'passengers'; position: 'first' | 'last' }
 	| { kind: 'passengers'; position: 'before' | 'after'; passenger: string }
 	| { kind: 'role'; roleId: string; before?: string };
-
-// The gap Foundry leaves between the sort values of neighbouring documents.
-const SORT_DENSITY = 100000;
 
 /**
  * Whether an actor is in a Crew, as a passenger or a Role member.
@@ -186,6 +185,34 @@ export function crewForSkills(crew: Crew, skillNames: string[]): CrewSkill[] {
 	return crew.roles.flatMap((role) => {
 		const skills = distinctSkills(role.skills).filter((roleSkill) => skillNames.some((name) => skillNamesMatch(roleSkill, name)));
 		return role.members.flatMap((member) => skills.map((skillName) => ({ member, role, skillName })));
+	});
+}
+
+/**
+ * A skill a crew member rolls for the vehicle, resolved as a check of their actor.
+ */
+export type CrewMemberSkill<A, S> = CrewSkill & {
+	actor: A;
+	skill: S;
+	rank: number;
+	characteristicValue: number;
+};
+
+/**
+ * The crew skills resolved as checks of their members' actors, by UUID. A skill whose member isn't among the actors,
+ * or who can roll it neither as an owned skill nor as an Unranked Skill Check, is left out.
+ */
+export function crewMemberSkills<S extends CheckSkill, A extends CheckActor<S>>(
+	crewSkills: CrewSkill[],
+	actors: Map<string, A>,
+	rules: CheckRules<S>,
+): CrewMemberSkill<A, S>[] {
+	return crewSkills.flatMap((crewSkill) => {
+		const actor = actors.get(crewSkill.member);
+		const check = actor && resolveCheck(actor, { skillName: crewSkill.skillName }, rules);
+		return actor && check?.skill
+			? [{ ...crewSkill, actor, skill: check.skill, rank: check.rank, characteristicValue: check.characteristicValue }]
+			: [];
 	});
 }
 

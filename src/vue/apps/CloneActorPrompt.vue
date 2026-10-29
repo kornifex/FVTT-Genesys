@@ -3,7 +3,7 @@ import { inject, ref, toRaw } from 'vue';
 import { CloneActorPromptContext } from '@/app/CloneActorPrompt';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
-import { GenesysActor } from '@/actor/GenesysActor';
+import { cloneActor } from '@/operations/CloneActor';
 
 type InstantiationMethod = 'Original' | 'Clone';
 
@@ -13,24 +13,9 @@ const instantiationMethod = ref<InstantiationMethod>('Original');
 
 async function submitSelection(event: Event) {
 	event.preventDefault();
-	let targetActor: GenesysActor | undefined = toRaw(context.targetActor);
+	const targetActor = toRaw(context.targetActor);
 
-	if (instantiationMethod.value === 'Clone') {
-		const modifiedProperties = {
-			name: actorName.value ? actorName.value : targetActor.name,
-			flags: {
-				...targetActor.flags,
-				...(targetActor.type === 'minion' && { genesys: { independentMinion: true } }),
-			},
-		};
-		targetActor = await (Actor.implementation as typeof GenesysActor).create(
-			foundry.utils.mergeObject(targetActor.toObject(), modifiedProperties),
-		);
-
-		await targetActor?.update({ 'prototypeToken.actorLink': true });
-	}
-
-	context.resolvePromise(targetActor);
+	context.resolvePromise(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
 }
 </script>
 

@@ -11,7 +11,7 @@ import type { PlayerSpendStoryPointData } from '@/socket/Relay';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
 
-export interface StoryPointTrackerContext {
+export type StoryPointTrackerContext = {
 	/**
 	 * Number of Story Points available to players.
 	 */
@@ -21,7 +21,7 @@ export interface StoryPointTrackerContext {
 	 * Number of Story Points available to the GM.
 	 */
 	gmPool: number;
-}
+};
 
 /**
  * Singleton application used to track the current pools of Story Points.
