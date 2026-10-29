@@ -5,6 +5,7 @@ import { CHARACTERISTICS } from '@/data/Characteristics';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
@@ -17,17 +18,15 @@ const system = computed(() => context.data.item.systemData);
 	<BasicItemSheet show-effects-tab>
 		<template v-slot:data>
 			<section class="data-grid">
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Characteristic" /></label>
+				<DataRow label="Genesys.Labels.Characteristic">
 					<select name="system.characteristic" :value="system.characteristic">
 						<option v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :value="characteristic">
 							<Localized :label="label" />
 						</option>
 					</select>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Category" /></label>
+				<DataRow label="Genesys.Labels.Category">
 					<select name="system.category" :value="system.category">
 						<option value="general"><Localized label="Genesys.SkillCategory.General" /></option>
 						<option value="magic"><Localized label="Genesys.SkillCategory.Magic" /></option>
@@ -35,7 +34,7 @@ const system = computed(() => context.data.item.systemData);
 						<option value="social"><Localized label="Genesys.SkillCategory.Social" /></option>
 						<option value="knowledge"><Localized label="Genesys.SkillCategory.Knowledge" /></option>
 					</select>
-				</div>
+				</DataRow>
 
 				<div class="row">
 					<label>
@@ -46,10 +45,7 @@ const system = computed(() => context.data.item.systemData);
 					<input type="checkbox" name="system.initiative" :checked="system.initiative" />
 				</div>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Source" /></label>
-					<input type="text" name="system.source" :value="system.source" />
-				</div>
+				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 			</section>
 		</template>
 	</BasicItemSheet>

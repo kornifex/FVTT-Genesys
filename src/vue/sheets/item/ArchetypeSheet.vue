@@ -5,6 +5,7 @@ import { CHARACTERISTIC_LABELS, CHARACTERISTICS, Characteristic as Characteristi
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
@@ -80,37 +81,33 @@ async function deleteGrantedItem(index: number) {
 
 		<template v-slot:data>
 			<section class="data-grid">
-				<div v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" class="row">
-					<label><Localized :label="label" /></label>
+				<DataRow v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :label="label">
 					<input
 						type="number"
 						:name="`system.characteristics.${characteristic}`"
 						:value="system.characteristics[characteristic]"
 					/>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Archetype.StartingWounds" /></label>
-					<input type="number" name="system.woundThreshold" :value="system.woundThreshold" />
-				</div>
+				<DataRow
+					label="Genesys.Archetype.StartingWounds"
+					name="system.woundThreshold"
+					:value="system.woundThreshold"
+					type="number"
+				/>
 
-				<div class="row">
-					<label><Localized label="Genesys.Archetype.StartingStrain" /></label>
-					<input type="number" name="system.strainThreshold" :value="system.strainThreshold" />
-				</div>
+				<DataRow
+					label="Genesys.Archetype.StartingStrain"
+					name="system.strainThreshold"
+					:value="system.strainThreshold"
+					type="number"
+				/>
 
-				<div class="row">
-					<label><Localized label="Genesys.Archetype.StartingXP" /></label>
-					<input type="number" name="system.startingXP" :value="system.startingXP" />
-				</div>
+				<DataRow label="Genesys.Archetype.StartingXP" name="system.startingXP" :value="system.startingXP" type="number" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Source" /></label>
-					<input type="text" name="system.source" :value="system.source" />
-				</div>
+				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Archetype.GrantedItems" /></label>
+				<DataRow label="Genesys.Archetype.GrantedItems">
 					<div v-for="(item, index) in system.grantedItems" :key="item.name" class="data">
 						<img :src="item.img" :alt="item.name" />
 						<span class="name">{{ item.name }}</span>
@@ -118,7 +115,7 @@ async function deleteGrantedItem(index: number) {
 							<a @click="deleteGrantedItem(index)"><i class="fas fa-trash"></i></a>
 						</div>
 					</div>
-				</div>
+				</DataRow>
 			</section>
 		</template>
 	</BasicItemSheet>

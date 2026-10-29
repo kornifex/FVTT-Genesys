@@ -4,6 +4,8 @@ import { computed, inject, toRaw } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { BaseWeaponDataModel, type ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating, withoutQuality } from '@/item/data/Qualities';
 
@@ -41,18 +43,11 @@ function updateQualityRating(index: number, event: Event) {
 			<section class="data-grid">
 				<slot name="extra-data" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Damage" /></label>
-					<input type="number" name="system.baseDamage" :value="system.baseDamage" />
-				</div>
+				<DataRow label="Genesys.Labels.Damage" name="system.baseDamage" :value="system.baseDamage" type="number" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Critical" /></label>
-					<input type="number" name="system.critical" :value="system.critical" />
-				</div>
+				<DataRow label="Genesys.Labels.Critical" name="system.critical" :value="system.critical" type="number" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Range" /></label>
+				<DataRow label="Genesys.Labels.Range">
 					<select name="system.range" :value="system.range">
 						<option value="engaged"><Localized label="Genesys.Range.Engaged" /></option>
 						<option value="short"><Localized label="Genesys.Range.Short" /></option>
@@ -61,40 +56,20 @@ function updateQualityRating(index: number, event: Event) {
 						<option value="extreme"><Localized label="Genesys.Range.Extreme" /></option>
 						<option value="strategic"><Localized label="Genesys.Range.Strategic" /></option>
 					</select>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Encumbrance" /></label>
-					<input type="number" name="system.encumbrance" :value="system.encumbrance" />
-				</div>
+				<EquipmentRows :system="system" />
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Price" /></label>
-					<input type="number" name="system.price" :value="system.price" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Rarity" /></label>
-					<input type="number" name="system.rarity" :value="system.rarity" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Source" /></label>
-					<input type="text" name="system.source" :value="system.source" />
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Skills" /></label>
+				<DataRow label="Genesys.Labels.Skills">
 					<div>
 						<div v-for="(skill, index) in system.skills" :key="index" class="data">
 							<div>{{ skill }}</div>
 							<a @click="deleteSkill(index)"><i class="fas fa-trash"></i></a>
 						</div>
 					</div>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Qualities" /></label>
+				<DataRow label="Genesys.Labels.Qualities">
 					<div>
 						<div v-for="(quality, index) in system.qualities" :key="index" class="data-rated">
 							<div>{{ quality.name }}</div>
@@ -106,7 +81,7 @@ function updateQualityRating(index: number, event: Event) {
 							<a @click="deleteQuality(index)"><i class="fas fa-trash"></i></a>
 						</div>
 					</div>
-				</div>
+				</DataRow>
 			</section>
 		</template>
 	</BasicItemSheet>

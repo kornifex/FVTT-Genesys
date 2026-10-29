@@ -4,6 +4,7 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 
 const context = inject<ItemSheetContext<InjuryDataModel>>(RootContext)!;
@@ -15,8 +16,7 @@ const system = computed(() => context.data.item.systemData);
 	<BasicItemSheet show-effects-tab>
 		<template v-slot:data>
 			<section class="data-grid">
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Severity" /></label>
+				<DataRow label="Genesys.Labels.Severity">
 					<select name="system.severity" :value="system.severity">
 						<option value="-">—</option>
 						<option value="easy"><Localized label="Genesys.Difficulty.Easy" /></option>
@@ -25,12 +25,9 @@ const system = computed(() => context.data.item.systemData);
 						<option value="daunting"><Localized label="Genesys.Difficulty.Daunting" /></option>
 						<option value="formidable"><Localized label="Genesys.Difficulty.Formidable" /></option>
 					</select>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Source" /></label>
-					<input type="text" name="system.source" :value="system.source" />
-				</div>
+				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 			</section>
 		</template>
 	</BasicItemSheet>

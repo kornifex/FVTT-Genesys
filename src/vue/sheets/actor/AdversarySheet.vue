@@ -19,6 +19,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import Motivations from '@/vue/components/Motivations.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
@@ -346,10 +347,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
 					<Motivations :motivations="system.motivations" />
 
-					<div class="data-row">
-						<label><Localized label="Genesys.Labels.Source" /></label>
-						<input type="text" name="system.source" :value="system.source" />
-					</div>
+					<DataRow class="data-row" label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 				</section>
 			</div>
 
