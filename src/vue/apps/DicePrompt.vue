@@ -19,6 +19,7 @@ import {
 	DIE_GLYPHS,
 	GenesysPoolModifications,
 	GRADE_GLYPHS,
+	removalGlyph,
 	SYMBOL_GLYPHS,
 } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
@@ -255,13 +256,13 @@ function getOrderedSymbols(category: DieCategory) {
 }
 
 function addDiceOperation(dieName: DieName, isRemoval: boolean = false) {
-	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysDice[dieName].GLYPH}`);
+	manualChanges.value.push(isRemoval ? removalGlyph(GenesysDice[dieName].GLYPH) : GenesysDice[dieName].GLYPH);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
 
 function addSymbolOperation(symbolName: SymbolName, isRemoval: boolean = false) {
-	manualChanges.value.push(`${isRemoval ? '-' : ''}${GenesysSymbol[symbolName].GLYPH}`);
+	manualChanges.value.push(isRemoval ? removalGlyph(GenesysSymbol[symbolName].GLYPH) : GenesysSymbol[symbolName].GLYPH);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }

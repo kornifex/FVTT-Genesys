@@ -88,7 +88,7 @@ type PoolModification = {
 /**
  * The grade operations: the die each one upgrades or downgrades, into which die.
  */
-const GRADES: Record<DieGradeOperationName, { kind: 'upgrade' | 'downgrade'; from: DieName; to: DieName }> = {
+const GRADES: Record<DieGradeOperationName, Extract<PoolOperation, { kind: 'upgrade' | 'downgrade' }>> = {
 	UpgradeAbility: { kind: 'upgrade', from: 'Ability', to: 'Proficiency' },
 	DowngradeAbility: { kind: 'downgrade', from: 'Proficiency', to: 'Ability' },
 	UpgradeDifficulty: { kind: 'upgrade', from: 'Difficulty', to: 'Challenge' },
@@ -110,7 +110,7 @@ const POOL_MODIFICATIONS: [string, PoolModification][] = [
 			},
 		],
 		[
-			`${REMOVAL}${glyph}`,
+			removalGlyph(glyph),
 			{
 				operation: { kind: 'dice', name, amount: -1 },
 				step: 'removeDice',
@@ -141,7 +141,7 @@ const POOL_MODIFICATIONS: [string, PoolModification][] = [
 			},
 		],
 		[
-			`${REMOVAL}${glyph}`,
+			removalGlyph(glyph),
 			{
 				operation: { kind: 'symbols', name, amount: -1 },
 				step: 'removeSymbols',
@@ -155,6 +155,13 @@ const POOL_MODIFICATIONS: [string, PoolModification][] = [
  * Every pool modification, by its glyph.
  */
 export const GenesysPoolModifications: Record<string, PoolModification> = Object.fromEntries(POOL_MODIFICATIONS);
+
+/**
+ * The glyph of the pool modification that removes a die or a symbol, from the glyph that adds it.
+ */
+export function removalGlyph(glyph: string) {
+	return `${REMOVAL}${glyph}`;
+}
 
 /**
  * The order of a pool modification's step among the steps of modifying a dice pool.

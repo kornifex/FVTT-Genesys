@@ -75,7 +75,7 @@ async function attackCardData(check: Check, weapon: AttackWeapon, results: Genes
 		totalDamage: attackDamage(weapon.systemData, characteristics, results.netSuccess),
 		damageFormula: characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString(),
 		critical: weapon.systemData.critical,
-		// tbh I can't be assed to implement another Handlebars helper for array length so let's just do undefined. <.<
+		// Handlebars has no helper for an array's length, so the card tells a weapon without qualities by undefined.
 		qualities: weapon.systemData.qualities.length === 0 ? undefined : attackQualities,
 		showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),
 	};
