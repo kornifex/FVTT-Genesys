@@ -8,6 +8,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { enrich } from '@/enrich';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
 /**
@@ -109,7 +110,7 @@ export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
 	const { template, data } = chatCard(item as unknown as CardSource, game.i18n);
 	const content = await foundry.applications.handlebars.renderTemplate(template, {
 		...data,
-		description: await foundry.applications.ux.TextEditor.implementation.enrichHTML(data.description, { async: true }),
+		description: await enrich(data.description),
 		...('qualities' in data && data.qualities && { qualities: await enrichedQualities(data.qualities) }),
 	});
 
@@ -128,7 +129,7 @@ export function enrichedQualities(qualities: ContainedItemQuality[]) {
 	return Promise.all(
 		qualities.map(async (quality) => ({
 			...quality,
-			description: await foundry.applications.ux.TextEditor.implementation.enrichHTML(quality.description, { async: true }),
+			description: await enrich(quality.description),
 		})),
 	);
 }

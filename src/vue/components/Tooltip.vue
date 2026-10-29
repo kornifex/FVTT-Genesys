@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { enrich } from '@/enrich';
+
 const props = withDefaults(
 	defineProps<{
 		/**
@@ -19,7 +21,7 @@ const props = withDefaults(
 
 async function showTooltip(event: Event) {
 	const sourceText = props.localized ? game.i18n.localize(props.content) : props.content;
-	const enriched = await foundry.applications.ux.TextEditor.implementation.enrichHTML(sourceText, { async: true });
+	const enriched = await enrich(sourceText);
 	const content = document.createRange().createContextualFragment(enriched);
 
 	game.tooltip.activate(event.currentTarget as HTMLElement, {

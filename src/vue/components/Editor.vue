@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { inject, onMounted, onUpdated, ref, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
+import { enrich } from '@/enrich';
 import * as log from '@/log';
 
 const props = withDefaults(
@@ -57,7 +58,7 @@ let editorInstance: ProseMirrorEditor | null = null;
 const baseContent = ref(props.content);
 
 /**
- * A reference to the enriched-HTML version of {@link baseContent}, which is wrapped in order to handle asynchronous `TextEditor.enrichHTML`.
+ * A reference to the enriched-HTML version of {@link baseContent}, which is wrapped because {@link enrich} is asynchronous.
  */
 const enrichedContent = ref('');
 
@@ -107,7 +108,7 @@ onUpdated(async () => {
  * Asynchronously updates the enriched HTML wrapper.
  */
 async function enrichContent() {
-	enrichedContent.value = await foundry.applications.ux.TextEditor.implementation.enrichHTML(baseContent.value, { async: true });
+	enrichedContent.value = await enrich(baseContent.value);
 }
 
 /**

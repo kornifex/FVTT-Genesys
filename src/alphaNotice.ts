@@ -1,5 +1,6 @@
 /** @file The Alpha notice: the welcome message a GM reads in the chat when the system runs a new version. */
 
+import { enrich } from '@/enrich';
 import { NAMESPACE } from '@/settings';
 import { KEY_ALPHA_VERSION, NEW_WORLD_ALPHA_VERSION } from '@/settings/alpha';
 
@@ -25,7 +26,7 @@ export async function ready(lastAlpha: string) {
 	const message = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/alpha-notice.hbs', {
 		version: game.system.version,
 	});
-	const enrichedMessage = await foundry.applications.ux.TextEditor.implementation.enrichHTML(message, { async: true });
+	const enrichedMessage = await enrich(message);
 
 	await ChatMessage.create({
 		user: game.user.id,
