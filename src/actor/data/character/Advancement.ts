@@ -135,6 +135,10 @@ export function thresholdUpdates(thresholds: { wounds: number; strain: number },
 	return update;
 }
 
+function thresholdsOf(character: AdvancementCharacter) {
+	return { wounds: character.woundThreshold, strain: character.strainThreshold };
+}
+
 /**
  * The Experience Journal with the Archetype's Starting XP, which is always its first entry.
  */
@@ -166,7 +170,7 @@ export function raiseCharacteristic(character: AdvancementCharacter, characteris
 
 	const actorUpdate: Record<string, unknown> = {
 		[`system.characteristics.${characteristic}`]: value + 1,
-		...thresholdUpdates({ wounds: character.woundThreshold, strain: character.strainThreshold }, { [characteristic]: 1 }),
+		...thresholdUpdates(thresholdsOf(character), { [characteristic]: 1 }),
 	};
 
 	return planFor([...character.entries, { amount: -cost, type: EntryType.Characteristic, data: { characteristic, rank: value + 1 } }], {
@@ -322,7 +326,7 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 
 			const actorUpdate: Record<string, unknown> = {
 				[`system.characteristics.${characteristic}`]: entry.data.rank - 1,
-				...thresholdUpdates({ wounds: character.woundThreshold, strain: character.strainThreshold }, { [characteristic]: -1 }),
+				...thresholdUpdates(thresholdsOf(character), { [characteristic]: -1 }),
 			};
 
 			return planFor(entries, { actorUpdate });

@@ -217,7 +217,7 @@ export function crewMemberSkills<S extends CheckSkill, A extends CheckActor<S>>(
 }
 
 /**
- * The Crew's skills by member:the members of the Roles that list skills, in the Crew's order, each with the skills they
+ * The Crew's skills by member: the members of the Roles that list skills, in the Crew's order, each with the skills they
  * roll among the rolled skills, sorted by name in the given locale.
  */
 export function crewSkillsByMember<C extends CrewSkill>(crew: Crew, rolledSkills: C[], locale: string) {
