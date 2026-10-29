@@ -64,36 +64,16 @@ async function show() {
 		toggled: true,
 		disabled: !editable,
 	});
-	element.addEventListener('close', onClose);
+	// Once a toggled editor saves and closes, show what the document stores now.
+	element.addEventListener('close', () => void show());
 	container.value.replaceChildren(element);
 	editor = element;
 	shown = { text, editable };
 }
-
-/**
- * Keep the height the editor shows when its toggle opens it. Closed, its enriched text sets its height, and the wrapper
- * scrolls what its box can't show; open, ProseMirror fills whatever height the element has, and scrolls itself, so the
- * element would otherwise shrink to its minimum.
- */
-function keepHeight(event: MouseEvent) {
-	if (editor && container.value && (event.target as Element | null)?.closest('button.toggle')) {
-		editor.style.minHeight = `${container.value.clientHeight}px`;
-	}
-}
-
-/**
- * Once a toggled editor saves and closes, let its text set its height again, and show what the document stores now.
- */
-function onClose() {
-	if (editor) {
-		editor.style.minHeight = '';
-	}
-	void show();
-}
 </script>
 
 <template>
-	<div class="editor" ref="container" @click.capture="keepHeight"></div>
+	<div class="editor" ref="container"></div>
 </template>
 
 <style lang="scss" scoped>
@@ -107,21 +87,30 @@ function onClose() {
 	height: 100%;
 	max-width: 100%;
 	max-height: 100%;
-	// Foundry's `--min-height` of its editors, which the previous editor took through its `prosemirror` class.
+	// Foundry's `--min-height` of its editors, which the previous editor took through its `prosemirror` class, its border
+	// included.
 	min-height: 150px;
 	overflow: auto;
 }
 
 :deep(prose-mirror) {
-	// The element grows with its text and never shrinks below it: the wrapper scrolls instead.
+	// The element grows with its text and never shrinks below it: the wrapper scrolls instead. The wrapper holds the
+	// minimum height, which would otherwise count a call site's border twice.
 	flex: 1 0 auto;
+	min-height: 0;
 
 	.editor-content * {
 		user-select: text;
 	}
 
-	// Foundry positions the text in a box of the element's height, which it scrolls. Closed, the text flows instead, so that
-	// the editor grows with it, its blocks spaced by the editor's gap as the previous editor laid them out.
+	// Foundry positions the text in a box of the element's height, which it scrolls. The text flows instead, closed or open,
+	// so that the editor takes the height of its text, as the previous editor did. Closed, its blocks are spaced by the
+	// editor's gap, as the previous editor laid them out.
+	&.active .editor-content {
+		position: static;
+		overflow: visible;
+	}
+
 	&.inactive > .editor-content {
 		position: static;
 		display: flex;
