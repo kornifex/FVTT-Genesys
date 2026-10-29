@@ -1711,10 +1711,35 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.open(name), P);
 	});
 	e2e.expect('#110 K1 the Talents tab shows the tier counts and limits', await pyramid(), { summary: counts, roundedTop: false });
-	await e2e.step('#110 K2 Ignore Talent Pyramid turned on with the sheet open', () =>
-		page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: true }),
-	);
-	e2e.expect('#110 K2 a sheet already open keeps its summary', await pyramid(), { summary: counts, roundedTop: false });
+	// The open sheet keeps its summary until the reload Foundry asks for; the purchase checks read the new value at once.
+	let reload = { reloadAsked: null as unknown, applied: false };
+	await e2e.step('#110 K2 Ignore Talent Pyramid turned on in the game settings, with the sheet open', async () => {
+		reload = await page(async (key) => {
+			const app = game.settings.sheet;
+			await window.e2e.render(app, () => app.form?.[key]);
+			// Confirming the reload would reload every client and end the scenario: the step records the request instead.
+			const settingsConfig = app.constructor;
+			const reloadConfirm = settingsConfig.reloadConfirm;
+			let asked: unknown = null;
+			settingsConfig.reloadConfirm = async (options: unknown) => {
+				asked = options;
+			};
+			// Only this setting is submitted: rewriting the others runs core onChanges, such as the performance mode's,
+			// that need the canvas this scenario doesn't draw.
+			for (const field of app.form.elements) field.disabled = field.name !== key;
+			try {
+				app.form[key].checked = true;
+				await app.submit();
+			} finally {
+				settingsConfig.reloadConfirm = reloadConfirm;
+			}
+			await app.close();
+			await window.e2e.settle();
+			return { reloadAsked: asked, applied: CONFIG.genesys.settings.ignoreTalentPyramid as boolean };
+		}, 'genesys.ignoreTalentPyramid');
+	});
+	e2e.expect('#110 K2 the game settings ask to reload every client', reload.reloadAsked, { world: true });
+	e2e.expect('#110 K2 the purchase checks read the new value at once', reload.applied, true);
 	await e2e.step('#110 K3 the sheet reopened', () => page((name) => window.characterE2E.reopen(name), P));
 	e2e.expect(
 		'#110 K3 under Ignore Talent Pyramid, the Talents tab shows no summary, and the block below takes its rounded top',

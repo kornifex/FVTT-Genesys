@@ -24,8 +24,13 @@ type Setting<T extends SettingType, F extends string, C> = {
 	hint: string;
 	/** Localization keys of the choices' labels, by stored value. */
 	choices?: Record<string, string>;
-	/** The system reads these settings once, as it starts, so a new value waits for the reload Foundry asks for. */
+	/**
+	 * Some of the system reads the setting once, as it starts or as a window opens, so Foundry asks for a reload when the
+	 * value changes. Unless `readLive`, the new value waits for that reload.
+	 */
 	requiresReload?: boolean;
+	/** With `requiresReload`, the rest of the system reads the value live, so a new value is applied at once too. */
+	readLive?: boolean;
 	/**
 	 * The field of `CONFIG.genesys.settings` the system reads the setting from, and its value for a stored value, which
 	 * can be `undefined` when Foundry can't read it.
@@ -168,6 +173,9 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.IgnoreTalentPyramid',
 		hint: 'Genesys.Settings.IgnoreTalentPyramidHint',
+		// The Talents tab reads it as it opens, to show the pyramid's summary; the purchase checks read it live.
+		requiresReload: true,
+		readLive: true,
 		field: { name: 'ignoreTalentPyramid', normalize: asBoolean },
 	}),
 
