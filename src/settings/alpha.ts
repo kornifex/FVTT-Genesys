@@ -1,4 +1,10 @@
+/**
+ * The setting of the last Alpha version the world acknowledged.
+ */
 export const KEY_ALPHA_VERSION = 'alphaVersion';
+/**
+ * The setting of the last migration the world ran.
+ */
 export const KEY_MIGRATION_VERSION = 'migrationVersion';
 
 /**
@@ -13,6 +19,9 @@ export function isNewWorld(lastAlpha: string) {
 	return lastAlpha === NEW_WORLD_ALPHA_VERSION;
 }
 
+/**
+ * Register the world settings of the Alpha notice and the migrations.
+ */
 export function register(namespace: string) {
 	game.settings.register(namespace, KEY_ALPHA_VERSION, {
 		name: 'Alpha Version',

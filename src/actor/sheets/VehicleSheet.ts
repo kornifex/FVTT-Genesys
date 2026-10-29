@@ -12,6 +12,9 @@ import { receiveInventoryDrop } from '@/operations/InventoryDrop';
  */
 const crewDrops = new WeakMap<DragEvent, CrewDragTransferData>();
 
+/**
+ * Actor sheet used for vehicles.
+ */
 export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 	override get vueComponent() {
 		return VueVehicleSheet;
@@ -26,10 +29,8 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 		if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 			clonedDroppedItem = await receiveInventoryDrop(this.actor, droppedItem);
 		} else if (VehicleDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
-			// Let `super` handle the drop and save a reference to it.
 			clonedDroppedItem = await super.receiveItem(droppedItem);
 		} else {
-			// If the dropped item is not of a type that we have a default behavior then end early.
 			return false;
 		}
 

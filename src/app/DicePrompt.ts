@@ -37,11 +37,17 @@ export type DicePromptContext = {
 	app: DicePrompt;
 };
 
+/**
+ * What a Dice Prompt opens with, besides its actor and skill.
+ */
 export type DicePromptOptions = {
 	/**
 	 * The check rolled, a skill check by default.
 	 */
 	roll?: DicePromptRoll;
+	/**
+	 * The difficulty's Pool Modification glyphs, the world's default difficulty when left out.
+	 */
 	difficulty?: string;
 	/**
 	 * Characteristic rolled when no skill is selected: the characteristic of a Characteristic Check, or of a skill the
@@ -64,15 +70,25 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 		window: { title: 'Genesys.DicePrompt.Title' },
 	};
 
+	/**
+	 * Open a Dice Prompt for an actor's check with a skill, or a bare one without an actor.
+	 */
 	static async promptForRoll(actor: GenesysActor | undefined, skillName: string, options: DicePromptOptions = {}) {
 		const app = new DicePrompt(actor, skillName, options);
 		await app.render(true);
 	}
 
+	/**
+	 * Open a Dice Prompt for an actor's Characteristic Check.
+	 */
 	static async promptForCharacteristicCheck(actor: GenesysActor, characteristic: Characteristic) {
 		await DicePrompt.promptForRoll(actor, '', { characteristic });
 	}
 
+	/**
+	 * Open a Dice Prompt for an actor's initiative, and wait for the check rolled. Rejects when the prompt is closed
+	 * without a roll.
+	 */
 	static async promptForInitiative(actor: GenesysActor, skillName: string, options: Omit<DicePromptOptions, 'roll'> = {}) {
 		return new Promise<CheckRoll>((resolve, reject) => {
 			const app = new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative, resolve, reject } });

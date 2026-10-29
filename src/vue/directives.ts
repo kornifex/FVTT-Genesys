@@ -19,6 +19,10 @@ function doLocalize(el: HTMLInputElement, binding: DirectiveBinding<unknown, str
 	});
 }
 
+/**
+ * Set the attributes its argument names, comma-separated, to the localization of its key:
+ * `v-localize:title="'Genesys.StoryPoints.Reset'"`.
+ */
 export const vLocalize = {
 	beforeMount: doLocalize,
 	updated: doLocalize,

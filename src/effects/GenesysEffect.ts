@@ -4,6 +4,9 @@ import { isSuppressedAsConsumable, isSuppressedByContainer, isSuppressedByEquipm
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
+/**
+ * An Active Effect, which the Equipment State of its item suppresses, and whose changes the rank of its talent scales.
+ */
 export class GenesysEffect extends ActiveEffect {
 	/**
 	 * An effect is suppressed when it's disabled, or when the Equipment State of the item it comes from keeps it from
@@ -42,6 +45,9 @@ export class GenesysEffect extends ActiveEffect {
 		return item.actor.items.get((item.systemData as EquipmentDataModel).container) as GenesysItem | undefined;
 	}
 
+	/**
+	 * The item this effect comes from, if any.
+	 */
 	get originItem(): GenesysItem | undefined {
 		return sourceItem<GenesysItem>(this);
 	}

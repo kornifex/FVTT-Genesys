@@ -3,6 +3,9 @@ import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
+/**
+ * The data of a rival, who suffers wounds but no strain.
+ */
 export abstract class RivalDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<RivalDataModel>> {
 	abstract wounds: {
 		value: number;

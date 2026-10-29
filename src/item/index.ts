@@ -14,6 +14,9 @@ import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
+/**
+ * Register the item document, its data models and its sheets with Foundry.
+ */
 export function register() {
 	CONFIG.Item.documentClass = GenesysItem;
 

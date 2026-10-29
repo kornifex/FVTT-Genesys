@@ -5,6 +5,9 @@ import type { GenesysItem } from '@/item/GenesysItem';
 import type { CareerDataModel } from '@/item/data/CareerDataModel';
 import { createdSkillIsCareer } from '@/actor/data/character/Career';
 
+/**
+ * The data of a skill.
+ */
 export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
 	 * Characteristic tied to the skill.

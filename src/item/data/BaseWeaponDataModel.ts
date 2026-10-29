@@ -1,5 +1,8 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
+/**
+ * A quality as a weapon or an armor holds it: a copy of the quality item, with its rating.
+ */
 export type ContainedItemQuality = {
 	/**
 	 * Quality's Display name
@@ -22,6 +25,9 @@ export type ContainedItemQuality = {
 	rating: number;
 };
 
+/**
+ * The data a character's weapon and a vehicle weapon share.
+ */
 export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 	/**
 	 * Base damage for the weapon.

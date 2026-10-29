@@ -13,6 +13,9 @@ function registerSheet(sheetClass: ConstructorOf<GenesysActorSheet>, options: Re
 	Actors.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ActorSheet>, options);
 }
 
+/**
+ * Register the actor sheets in place of Foundry's own.
+ */
 export function register() {
 	Actors.unregisterSheet('core', ActorSheet);
 

@@ -14,6 +14,9 @@ function slotIdOf(element: HTMLElement) {
 	return element.closest<HTMLElement>('[data-slot-id]')?.dataset.slotId;
 }
 
+/**
+ * The Combat Tracker, whose rows are the Initiative Slots of the round and the combatants that Claim them.
+ */
 export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker<GenesysCombat> {
 	static override DEFAULT_OPTIONS = {
 		actions: {

@@ -27,6 +27,9 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 	reducesEquippedArmor: false,
 };
 
+/**
+ * The data of a vehicle, with its Crew and its cargo.
+ */
 export abstract class VehicleDataModel
 	extends foundry.abstract.DataModel
 	implements HasPreCreate<GenesysActor<VehicleDataModel>>, HasOnDelete<GenesysActor<VehicleDataModel>>
@@ -121,6 +124,9 @@ export abstract class VehicleDataModel
 		};
 	}
 
+	/**
+	 * Whether the vehicle's cargo exceeds its encumbrance threshold.
+	 */
 	get isEncumbered() {
 		return isEncumbered(this.currentEncumbrance);
 	}
@@ -142,6 +148,9 @@ export abstract class VehicleDataModel
 		};
 	}
 
+	/**
+	 * Whether the vehicle carries more passengers than its capacity.
+	 */
 	get isOverCapacity() {
 		const currentPassengers = this.currentPassengers;
 		return currentPassengers.value > currentPassengers.threshold;
@@ -154,6 +163,9 @@ export abstract class VehicleDataModel
 		return { passengers: this.passengers.list, roles: this.roles };
 	}
 
+	/**
+	 * Whether an actor is in the vehicle's Crew, as a passenger or in a Role.
+	 */
 	hasCrew(actorUuid: string) {
 		return hasActor(this.crew, actorUuid);
 	}
@@ -277,6 +289,10 @@ function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
 	return !!scene && game.scenes.has(scene.id) && scene.tokens.has(token.id);
 }
 
+/**
+ * Render the sheets of the vehicles an actor crews when the actor or one of its skills changes, and remove a deleted
+ * actor from every Crew.
+ */
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
 

@@ -98,7 +98,6 @@ onUpdated(async () => {
 		obj = value;
 	}
 
-	// Update our base content tracking.
 	baseContent.value = obj as string;
 
 	await enrichContent();
@@ -129,7 +128,6 @@ async function activate() {
 		return;
 	}
 
-	// Create a div element to contain the ProseMirror editor.
 	const editorDiv = document.createElement('div');
 	editorContainer.value.appendChild(editorDiv);
 
@@ -167,7 +165,6 @@ async function save() {
 		return;
 	}
 
-	// Get a string value for the ProseMirror document structure
 	baseContent.value = ProseMirror.dom.serializeString(editorInstance.view.state.doc.content);
 	await toRaw(rootContext.sheet.document).update({
 		[props.name]: baseContent.value,
@@ -176,7 +173,6 @@ async function save() {
 	// Enrich the base content so our non-editor view displays the updated data.
 	await enrichContent();
 
-	// Destroy our existing editor instance and empty the containing div.
 	editorInstance.destroy();
 	editorInstance = null;
 	editorContainer.value.innerText = '';

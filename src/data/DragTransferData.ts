@@ -1,9 +1,15 @@
+/**
+ * The drag data of a drop: Foundry's, with the dragged document's own type that the system adds.
+ */
 export type DragTransferData = {
 	uuid?: string;
 	type?: string;
 	genesysType?: string;
 };
 
+/**
+ * The drag data of an actor dragged out of a vehicle's Crew.
+ */
 export type CrewDragTransferData = DragTransferData & {
 	sourceVehicleUuid?: string;
 };
@@ -20,6 +26,10 @@ function decodeUpperCase(text: string) {
 	return text.replace(ENCODED_UPPER_CASE_PATTERN, (_match, group1: string) => String.fromCodePoint(parseInt(group1, 10)));
 }
 
+/**
+ * The drag format that carries a document's type and uuid. Browsers lowercase a drag's formats, so the uppercase
+ * letters of the uuid are encoded.
+ */
 export function constructDragTransferTypeFromData(genesysType: string, uuid: DocumentUUID) {
 	return `${GENESYS_DRAG_TYPE_PREFIX}/${encodeUpperCase(genesysType)}/${encodeUpperCase(uuid)}`;
 }
@@ -57,6 +67,10 @@ export function addGenesysDragType(event: DragEvent, acceptedTypes: readonly ('A
 	}
 }
 
+/**
+ * The type and uuid of the dragged document, from the drag format {@link constructDragTransferTypeFromData} added, or
+ * undefined without one.
+ */
 export function extractDataFromDragTransferTypes(dragTransferTypes?: readonly string[]) {
 	if (dragTransferTypes) {
 		const genesysDragType = dragTransferTypes.find((transferType) => transferType.indexOf(GENESYS_DRAG_TYPE_PREFIX) === 0);

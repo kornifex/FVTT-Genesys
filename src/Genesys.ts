@@ -25,13 +25,11 @@ import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
 import '@scss/index.scss';
 
 Hooks.once('init', async () => {
-	// System Documents
 	registerActors();
 	registerToken();
 	registerEffects();
 	registerItems();
 
-	// Misc. modules with one-time registrations
 	registerSocket();
 	registerCombat();
 	registerSidebars();

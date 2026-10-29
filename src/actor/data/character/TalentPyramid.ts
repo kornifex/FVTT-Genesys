@@ -31,7 +31,6 @@ export function countTalentsPerTier(talents: PyramidTalent[]): TalentPyramidTota
 					// ranked talents that are at tier 5 remain at that tier for any future purchases.
 					accumulator[k] += talent.rank - (talentEffectiveTier - talent.tier);
 				} else if (talent.tier === k) {
-					// Count the talent if it matches the desired tier.
 					accumulator[k]++;
 				} else if (talent.tier < k && talentEffectiveTier >= k) {
 					// Count the talent if it's from a lower tier but it has been purchased enough times that at some point it was

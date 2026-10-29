@@ -2,6 +2,9 @@
 
 import { SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
 
+/**
+ * Each symbol, with its glyph and the side of the check it counts for.
+ */
 export const GenesysSymbol = {
 	Triumph: {
 		GLYPH: SYMBOL_GLYPHS.Triumph,

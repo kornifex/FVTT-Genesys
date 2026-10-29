@@ -12,6 +12,9 @@ import '@/item/sheets/ArchetypeSheet.scss';
  */
 const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
 
+/**
+ * Item sheet used for Archetypes, which receives the items the Archetype grants.
+ */
 export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 	static override DEFAULT_OPTIONS = {
 		classes: ['archetype'],
@@ -23,12 +26,10 @@ export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 	}
 
 	protected override async receiveItem(droppedItem: GenesysItem): Promise<void> {
-		// Prevent dropping certain item types.
 		if (BLOCK_GRANTED_ITEM_TYPES.includes(droppedItem.type)) {
 			return;
 		}
 
-		// Prevent adding a granted item that's already present.
 		if (grantsItem(this.item.systemData.grantedItems, droppedItem)) {
 			return;
 		}

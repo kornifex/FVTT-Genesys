@@ -29,17 +29,15 @@ export const actorOnlyOnceInCrew: ActorPlanner = (source) => {
 		return kept;
 	};
 
-	// Check all the roles first and remove any actor that appears more than once from subsequent roles.
+	// An actor kept in a role leaves the later roles and the passengers.
 	const roles = system.roles ?? [];
 	const migratedRoles = roles.map((role) => ({ ...role, members: keepUnseen(role.members, (member) => member) }));
 	const updateRoles = migratedRoles.some((role, index) => role.members.length !== roles[index].members.length);
 
-	// Check the passengers and make sure all of them are not in any role.
 	const passengers = system.passengers?.list ?? [];
 	const migratedPassengers = keepUnseen(passengers, (passenger) => passenger.uuid);
 	const updatePassengers = migratedPassengers.length !== passengers.length;
 
-	// Update the vehicle if we found at least one actor repeated.
 	if (!updateRoles && !updatePassengers) {
 		return undefined;
 	}

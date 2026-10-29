@@ -282,11 +282,9 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 	>
 		<img :src="item.img" :alt="item.name" />
 
-		<!-- Basic, single-row item -->
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<a @click="openItem">{{ item.name }}</a>
 		</span>
-		<!-- Complex item with additional details row -->
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
 				<a @click="openItem">{{ item.name }}</a>
@@ -300,50 +298,38 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			</span>
 
 			<div :data-item-type="item.type">
-				<!-- Weapon Details -->
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
-					<!-- Skill -->
 					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().skills[0]) ?? '-' }}</div>
 
-					<!-- Firing Arc -->
 					<!-- prettier-ignore -->
 					<div v-if="firingArcs()" class="firing-arc">
 						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcs()" :key="label"><Localized :label="label" /></span>
 					</div>
 
-					<!-- Damage -->
 					<!-- prettier-ignore -->
 					<div>
 						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage().characteristic">{{ damage().baseDamage }}</span>
 						<span v-else><Localized :label="damage().characteristic!" />{{ signed(damage().baseDamage) }} ({{ damage().total }})</span>
 					</div>
 
-					<!-- Critical -->
 					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().critical }}</div>
 
-					<!-- Range -->
 					<!-- prettier-ignore -->
 					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().range.capitalize()}`" />]</div>
 
-					<!-- Qualities -->
 					<QualityList :qualities="weaponData().qualities" class="item-qualities" />
 				</template>
 
-				<!-- Armor Details -->
 				<template v-else-if="item.type === 'armor'">
-					<!-- Soak -->
 					<div v-if="armorData().soak !== 0"><Localized label="Genesys.Labels.Soak" /> {{ signed(armorData().soak) }}</div>
 
-					<!-- Defense -->
 					<div v-if="armorData().defense !== 0">
 						<Localized label="Genesys.Labels.Defense" /> {{ signed(armorData().defense) }}
 					</div>
 
-					<!-- Qualities -->
 					<QualityList :qualities="armorData().qualities" class="item-qualities" />
 				</template>
 
-				<!-- Container Details -->
 				<template v-else-if="item.type === 'container'">
 					<a v-if="displayContainerContents" @click="displayContainerContents = false"
 						><i class="fas fa-box-open"></i> <Localized label="Genesys.Labels.CloseContainer"

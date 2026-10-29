@@ -18,6 +18,10 @@ export type ApplicationConstructor<T extends ApplicationV2 = ApplicationV2> = ne
 type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
 
+/**
+ * Mix the rendering of a Vue component into an ApplicationV2 class: the component mounts on the first render, and later
+ * renders update its context.
+ */
 export function VueSheet<TBase extends ApplicationConstructor, ContextType extends object | undefined = object>(base: TBase) {
 	return class extends base {
 		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which v13 gives AppV1

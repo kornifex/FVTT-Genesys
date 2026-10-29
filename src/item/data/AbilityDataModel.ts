@@ -8,6 +8,9 @@ export type AbilityActivation = {
 	detail: string;
 };
 
+/**
+ * The data of an Ability.
+ */
 export abstract class AbilityDataModel extends BaseItemDataModel {
 	/**
 	 * Details on what is required to activate the Special Ability.

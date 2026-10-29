@@ -22,6 +22,9 @@ export type StoryPointData = {
 	player: number;
 };
 
+/**
+ * Register the world setting that stores the Story Points.
+ */
 export function register(namespace: string) {
 	game.settings.register(namespace, KEY_STORY_POINTS, {
 		name: 'StoryPoints',

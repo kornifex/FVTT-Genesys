@@ -3,6 +3,9 @@ import { GenesysCombat } from '@/combat/GenesysCombat';
 import { chosenInitiativeSkill, InitiativeSkill, initiativeSkillToRoll, nextInitiativeSkill } from '@/combat/InitiativeSkills';
 import { InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
 
+/**
+ * A combatant, which rolls its initiative with the Initiative Skill chosen for it.
+ */
 export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	/**
 	 * The Initiative Skill chosen for this combatant, if it's still one of the combat's Initiative Skills.

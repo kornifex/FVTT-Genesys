@@ -1,6 +1,9 @@
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { Characteristic } from '@/data/Characteristics';
 
+/**
+ * The data of a character's weapon.
+ */
 export abstract class WeaponDataModel extends BaseWeaponDataModel {
 	/**
 	 * Characteristic that is added to the damage value.

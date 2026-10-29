@@ -10,6 +10,9 @@ type CharacteristicsContainer = {
 	presence: number;
 };
 
+/**
+ * The data of an Archetype: what it gives a character, and the items it grants.
+ */
 export abstract class ArchetypeDataModel extends BaseItemDataModel {
 	/**
 	 * Characteristics values granted by the Archetype.

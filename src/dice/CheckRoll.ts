@@ -69,14 +69,12 @@ async function attackCardData(check: Check, weapon: AttackWeapon, results: Genes
 	// A vehicle has no characteristics to add to its weapons' damage.
 	const characteristics = (check.actor?.systemData as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
 	const { baseDamage, characteristic } = damageFormula(weapon.systemData);
-	const attackQualities = await enrichedQualities(weapon.systemData.qualities);
 
 	return {
 		totalDamage: attackDamage(weapon.systemData, characteristics, results.netSuccess),
 		damageFormula: characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString(),
 		critical: weapon.systemData.critical,
-		// Handlebars has no helper for an array's length, so the card tells a weapon without qualities by undefined.
-		qualities: weapon.systemData.qualities.length === 0 ? undefined : attackQualities,
+		qualities: await enrichedQualities(weapon.systemData.qualities),
 		showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),
 	};
 }

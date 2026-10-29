@@ -1,5 +1,8 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 
+/**
+ * An attribute a data model offers a token: a bar with its maximum, or a value.
+ */
 export type TokenAttributeDetails =
 	| {
 			label: string;
@@ -17,12 +20,18 @@ export type TokenAttributeDetails =
 			valuePath: string;
 	  };
 
+/**
+ * A data model class that lists its token attributes, by attribute key.
+ */
 export type DataModelWithTokenAttributes = { tokenAttributes?: Record<string, TokenAttributeDetails> };
 
 type TrackedAttributes = TokenAttributes & {
 	source?: Record<string, TokenAttributeDetails>;
 };
 
+/**
+ * A token, whose bars and attributes come from its actor's data model.
+ */
 export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 	override getBarAttribute(barName: string, options: { alternative?: string } = {}) {
 		// The types we have lack the token's bars.

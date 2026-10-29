@@ -4,6 +4,9 @@ import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysItem } from '@/item/GenesysItem';
 import { isCareerSkill } from '@/actor/data/character/Career';
 
+/**
+ * Item sheet used for Careers, which receives their career skills.
+ */
 export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
 	static override DEFAULT_OPTIONS = {
 		classes: ['career'],
@@ -19,7 +22,6 @@ export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
 			return;
 		}
 
-		// Prevent adding a skill that's already present.
 		if (isCareerSkill(droppedItem.name, this.item.systemData.careerSkills)) {
 			return;
 		}

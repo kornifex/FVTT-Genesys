@@ -89,6 +89,9 @@ const KEY_PATTERN = /^genesys\.pool\.(check|char|skill)\.(self|target)\.(.*)$/;
 const BASE_KEY_PATTERN = /^genesys\.pool\.(check|char|skill)\.(self|target)$/;
 const VALUE_PATTERN = new RegExp(`^${PoolModGlyphPattern.source}*$`);
 
+/**
+ * The change key of a Pool Modification, which {@link decodeKey} reads back.
+ */
 export function encodeKey({ kind, source, subject }: PoolModificationKey) {
 	return `${KEY_PREFIX}.${kind}.${source}.${kind === 'check' ? '' : subject}`;
 }

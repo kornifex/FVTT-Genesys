@@ -22,6 +22,9 @@ export type StoryPointTrackerContext = StoryPointData;
 export class StoryPointTracker extends VueSheet(foundry.applications.api.ApplicationV2) {
 	static #instance?: StoryPointTracker;
 
+	/**
+	 * The tracker, once registered.
+	 */
 	static get instance(): StoryPointTracker | undefined {
 		return StoryPointTracker.#instance;
 	}
@@ -36,6 +39,9 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		return VueStoryPointTracker;
 	}
 
+	/**
+	 * The Story Points of each pool, as the world stores them.
+	 */
 	get storyPoints() {
 		return <StoryPointData>game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS);
 	}
@@ -55,10 +61,17 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		StoryPointTracker.#instance = this;
 	}
 
+	/**
+	 * Render the tracker again on this client.
+	 */
 	static forceRender() {
 		void StoryPointTracker.#instance?.render(true);
 	}
 
+	/**
+	 * Set the Story Point pools, by default to those of a new session: one point per active player in the player pool,
+	 * one in the GM pool. Only a GM may.
+	 */
 	static async resetStoryPoints({ player, gm }: { player?: number; gm?: number } = {}) {
 		// Players can only Spend story points, they cannot set them.
 		if (!game.user.isGM) {
@@ -73,7 +86,6 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 
 		StoryPointTracker.forceRender();
 
-		// Inform other connected clients to update the story point count.
 		socketEmit(SocketOperation.UpdateStoryPointTracker);
 	}
 
