@@ -1,22 +1,12 @@
-import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
-
-import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { GenesysItemSheet } from '@/item/GenesysItemSheet';
+import { GenesysItem } from '@/item/GenesysItem';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 import { withQualityAdded } from '@/item/data/Qualities';
 
 export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
-	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
-		if (!this.isEditable || !data.uuid) {
-			return;
-		}
-
-		const droppedItem = await itemFromDrop<SkillDataModel | ItemQualityDataModel>(data);
-		if (!droppedItem) {
-			return;
-		}
-
+	protected override async receiveItem(droppedItem: GenesysItem): Promise<void> {
 		const systemData = this.item.systemData;
 		switch (droppedItem.type) {
 			// Skill Drop

@@ -6,7 +6,6 @@ import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { DragTransferData } from '@/data/DragTransferData';
 import { decideAdversaryDrop } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
@@ -23,29 +22,9 @@ export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
 		return 'stats';
 	}
 
-	protected override async _onDropItem(event: DragEvent, data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>) {
-		// Regardless of what was dropped this is the last spot to process it.
-		event.stopPropagation();
-
-		// Check that the we have the UUID of the item that was dropped.
-		const dragData = data as DragTransferData;
-		if (!dragData.uuid) {
-			return false;
-		}
-
-		// Make sure that the item in question exists and this actor doesn't own it.
-		const droppedItem = await fromUuid<GenesysItem<BaseItemDataModel>>(dragData.uuid);
-		if (!droppedItem || droppedItem.actor?.uuid === this.actor.uuid) {
-			return false;
-		}
-
-		// We must be able to edit the actor to proceed.
-		if (!this.isEditable) {
-			return false;
-		}
-
+	protected override async receiveItem(droppedItem: GenesysItem<BaseItemDataModel>) {
 		if (AdversaryDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			return receiveInventoryDrop(this.actor, data);
+			return receiveInventoryDrop(this.actor, droppedItem);
 		}
 
 		const items = this.actor.items.contents;

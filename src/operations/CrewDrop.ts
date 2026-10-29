@@ -4,7 +4,7 @@ import { addRoleSkill, CrewPlace, placeActor, removeActor } from '@/actor/data/C
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
-import type { CrewDragTransferData } from '@/data/DragTransferData';
+import { CrewDragTransferData, dragData } from '@/data/DragTransferData';
 
 /**
  * Whether a drop carries an actor the Crew takes as a passenger.
@@ -18,7 +18,7 @@ export function isPassengerDrop(data: CrewDragTransferData) {
  * stopped at once, before the Role or the sheet around the target receives it too; anything else goes on to them.
  */
 export async function receiveCrewEvent(vehicle: GenesysActor<VehicleDataModel>, event: DragEvent, place: CrewPlace) {
-	const data = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}') as CrewDragTransferData;
+	const data: CrewDragTransferData = dragData(event.dataTransfer);
 	const entity = droppedEntity(data, place.kind === 'passengers' ? 'PASSENGER' : 'ROLE');
 	if (!entity) {
 		return false;
