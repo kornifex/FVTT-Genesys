@@ -1,5 +1,7 @@
 # Keep the vendored Foundry types until v12 leaves support
 
+Superseded by ADR 0006: `main` dropped v12, and the measurement was repeated.
+
 `types/foundry` holds 309 files of pre-v13 Foundry types taken from the pf2e system. We measured a swap to the League of Foundry Developers' `fvtt-types` and keep the vendored types for now: the swap costs about 900 type errors, can only target one Foundry version while we support two (ADR 0003), and its v13 types are still in beta. What the vendored types lack for v13 we declare ourselves, in a thin layer beside them. We measure again once v12 leaves support and the sheets are on ApplicationV2.
 
 ## Measurements (2026-10-22)

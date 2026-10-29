@@ -28,4 +28,4 @@ The branch is named `0.4.x`, not `release/0.4.x`: the old `release` branch alrea
 -   Until 0.4.0, each Foundry-dependent change is tested on v12 and v13, and some features ship twice (the combat tracker and the effect sheet have a v12 template and a v13 one). From 0.5.0 on, `main` tests on v13 and v14.
 -   A fix goes to the line of the release that needs it, and is ported to the other while the two lines share the code.
 -   Dropping a version is a search for its marker, not an archaeology session.
--   The vendored Foundry types are replaced when v12 leaves `main` (ADR 0005).
+-   The vendored Foundry types are replaced once v12 has left `main`, by `fvtt-types` for the newest supported version (ADR 0006).
