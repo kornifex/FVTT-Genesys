@@ -4,7 +4,7 @@
 
 import { DieTypes } from '@/dice/DieTypes';
 import { GenesysPoolModifications, PoolModGlyphPattern, poolModificationStep, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
-import { GenesysSymbol } from '@/dice/GenesysSymbol';
+import { GenesysSymbol, symbolsNetSuccesses } from '@/dice/GenesysSymbol';
 import { downgradeDie, upgradeDie } from '@/dice/DieGrades';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
@@ -179,16 +179,5 @@ export function hasSameChanceToSucceed(firstDicePool: DicePool, secondDicePool: 
 	}
 
 	// Advantages and threats do not impact the chance to succeed so we ignore them.
-	const firstPoolNetSuccesses =
-		(firstDicePool.symbols.Success ?? 0) +
-		(firstDicePool.symbols.Triumph ?? 0) -
-		(firstDicePool.symbols.Failure ?? 0) -
-		(firstDicePool.symbols.Despair ?? 0);
-	const secondPoolNetSuccesses =
-		(secondDicePool.symbols.Success ?? 0) +
-		(secondDicePool.symbols.Triumph ?? 0) -
-		(secondDicePool.symbols.Failure ?? 0) -
-		(secondDicePool.symbols.Despair ?? 0);
-
-	return firstPoolNetSuccesses === secondPoolNetSuccesses;
+	return symbolsNetSuccesses(firstDicePool.symbols) === symbolsNetSuccesses(secondDicePool.symbols);
 }
