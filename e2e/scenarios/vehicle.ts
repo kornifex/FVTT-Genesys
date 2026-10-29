@@ -329,12 +329,18 @@ function installVehicleHelpers() {
 		prompts() {
 			return {
 				dice: apps('app-dice-prompt').map(
-					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: string; difficulty: string }) => {
+					(app: {
+						element?: unknown;
+						actor?: { name: string };
+						skillName?: string;
+						roll: { type: string };
+						difficulty: string;
+					}) => {
 						const root = htmlOf(app);
 						return {
 							actor: app.actor ? unprefixed(app.actor.name) : null,
 							skill: app.skillName ?? null,
-							rollType: app.rollType,
+							rollType: app.roll.type,
 							difficulty: app.difficulty,
 							pool: root ? poolPreview(root) : '|',
 						};
