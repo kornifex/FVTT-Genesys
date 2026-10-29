@@ -1,6 +1,6 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { choiceField, qualitiesField } from '@/data/schemaFields';
-import { Range, RANGES } from '@/item/Weapons';
+import { RangeBand, RANGES } from '@/item/Weapons';
 
 /**
  * A quality as a weapon or an armor holds it: a copy of the quality item, with its rating.
@@ -44,7 +44,7 @@ export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 	/**
 	 * Weapon's effective range.
 	 */
-	abstract range: Range;
+	abstract range: RangeBand;
 
 	/**
 	 * Names of skills that can be used to wield the weapon.

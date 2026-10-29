@@ -218,9 +218,7 @@ export abstract class VehicleDataModel
 			price: new fields.NumberField({ initial: 0 }),
 			rarity: new fields.NumberField({ integer: true, initial: 0 }),
 			currency: new fields.NumberField({ initial: 0 }),
-			passengers: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				threshold: new fields.NumberField({ integer: true, initial: 0 }),
+			passengers: valueWithThresholdField({
 				list: new fields.ArrayField(
 					new fields.SchemaField({
 						uuid: new fields.StringField(),

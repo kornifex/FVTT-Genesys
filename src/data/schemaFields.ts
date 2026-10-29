@@ -61,8 +61,8 @@ export function defenseField() {
 }
 
 /**
- * A {@link CombatPool}. Wounds and strain are whole numbers: a fraction typed in, or stored before the field asked for
- * integers, is rounded when Foundry cleans the data.
+ * A {@link CombatPool}. Wounds and strain, like a vehicle's hull trauma and system strain, are whole numbers: a fraction
+ * typed in, or stored before the field asked for integers, is rounded when Foundry cleans the data.
  */
 export function combatPoolField() {
 	return new foundry.data.fields.SchemaField({
@@ -72,12 +72,13 @@ export function combatPoolField() {
 }
 
 /**
- * A {@link ValueWithThreshold}.
+ * A {@link ValueWithThreshold}, with the other fields given beside the value and its threshold.
  */
-export function valueWithThresholdField() {
+export function valueWithThresholdField(fields: Record<string, foundry.data.fields.DataField> = {}) {
 	return new foundry.data.fields.SchemaField({
 		value: integerField(0),
 		threshold: integerField(0),
+		...fields,
 	});
 }
 

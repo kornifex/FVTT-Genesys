@@ -1,6 +1,4 @@
-/**
- * @file Tests for the schema shapes the DataModels share: each field reads as the options Foundry builds it with.
- */
+/** @file Tests for the schema shapes the DataModels share: each field reads as the options Foundry builds it with. */
 
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,6 +1,4 @@
-/**
- * @file Tests for the schemas of the Adversaries: their wounds and strain are whole numbers, as a character's are.
- */
+/** @file Tests for the schemas of the Adversaries: their wounds and strain are whole numbers, as a character's are. */
 
 import { describe, expect, it, vi } from 'vitest';
 

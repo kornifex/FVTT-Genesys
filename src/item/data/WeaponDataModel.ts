@@ -1,5 +1,5 @@
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
-import { Characteristic } from '@/data/Characteristics';
+import { DAMAGE_CHARACTERISTICS, DamageCharacteristic } from '@/item/Weapons';
 import { choiceField } from '@/data/schemaFields';
 
 /**
@@ -9,7 +9,7 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 	/**
 	 * Characteristic that is added to the damage value.
 	 */
-	abstract damageCharacteristic: Characteristic | '-';
+	abstract damageCharacteristic: DamageCharacteristic;
 
 	/**
 	 * Attack Skill chosen by the actor wielding the weapon, among the skills it lists. Empty when none is chosen.
@@ -21,7 +21,7 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 
 		return {
 			...super.defineSchema(),
-			damageCharacteristic: choiceField(['-', ...Object.values(Characteristic)], '-'),
+			damageCharacteristic: choiceField(DAMAGE_CHARACTERISTICS, '-'),
 			attackSkill: new fields.StringField({ initial: '' }),
 		};
 	}

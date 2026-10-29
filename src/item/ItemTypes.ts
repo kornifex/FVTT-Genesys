@@ -39,11 +39,23 @@ export type ItemDataModels = {
  */
 export type ItemType = keyof ItemDataModels;
 
+// Whether a member of a type is read-only. A DataModel's getters are, having no setter, and its stored fields never are.
+type IsReadonly<O, K extends keyof O> =
+	(<V>() => V extends Pick<O, K> ? 1 : 2) extends <V>() => V extends { -readonly [P in K]: O[P] } ? 1 : 2 ? false : true;
+
 /**
- * The data a DataModel stores: its fields, without the methods and the members every DataModel has.
+ * The data a DataModel stores: its fields, without its methods, the values its getters derive from the fields, and the
+ * members every DataModel has. A getter is told from a field by being read-only, so a DataModel declares no read-only
+ * field.
  */
 export type SystemSource<DataModel extends foundry.abstract.DataModel> = Omit<
-	{ [K in keyof DataModel as DataModel[K] extends (...args: never[]) => unknown ? never : K]: DataModel[K] },
+	{
+		[K in keyof DataModel as DataModel[K] extends (...args: never[]) => unknown
+			? never
+			: IsReadonly<DataModel, K> extends true
+				? never
+				: K]: DataModel[K];
+	},
 	keyof foundry.abstract.DataModel
 >;
 
@@ -77,11 +89,20 @@ export const EQUIPMENT_TYPES = [
 ] as const satisfies readonly EquipmentType[];
 
 /**
+ * The items of a type, or of any of several types, among items read as plain data, in item order: each keeps its own
+ * members, and its `system` holds the data of its type's DataModel.
+ */
+export function ofType<I extends { type: string }, T extends ItemType>(items: Iterable<I>, type: T | readonly T[]) {
+	const types: readonly string[] = typeof type === 'string' ? [type] : type;
+
+	// Foundry builds each item's data with the DataModel registered for its type, so the type tells the data.
+	return Array.from(items).filter((item) => types.includes(item.type)) as (I & { system: SystemSource<ItemDataModels[T]> })[];
+}
+
+/**
  * The items an actor holds of a type, or of any of several types, in item order.
  */
 export function itemsOfType<T extends ItemType>(actor: { items: Iterable<Item> }, type: T | readonly T[]) {
-	const types: readonly string[] = typeof type === 'string' ? [type] : type;
-
 	// Foundry builds each item's data with the DataModel registered for its type, so the type tells the DataModel.
-	return Array.from(actor.items).filter((item) => types.includes(item.type)) as GenesysItem<ItemDataModels[T]>[];
+	return ofType(actor.items, type) as unknown as GenesysItem<ItemDataModels[T]>[];
 }
