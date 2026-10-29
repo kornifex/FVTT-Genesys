@@ -1035,9 +1035,10 @@ export async function run(e2e: ScenarioContext) {
 			window.sheetsE2E.trackedAttributeLabels('Minion', {
 				'Genesys.Labels.Wounds': 'E2E Wounds',
 				'Genesys.Labels.RemainingMembers': 'E2E Remaining Members',
+				'Genesys.Labels.Soak': 'E2E Soak',
 			}),
 		),
-		['E2E Wounds', 'E2E Remaining Members'],
+		['E2E Wounds', 'E2E Remaining Members', 'E2E Soak'],
 	);
 
 	// §#95: the sheets and prompts are ApplicationV2 windows.
