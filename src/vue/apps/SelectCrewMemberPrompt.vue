@@ -48,16 +48,11 @@ function submitSelection(event: Event) {
 </template>
 
 <style lang="scss">
-// Unscoped: these rules style the Foundry window around the component.
-@use '@scss/mixins/backgrounds.scss';
+// Unscoped: window.prompt styles the Foundry window around the component.
+@use '@scss/mixins/window.scss';
 
 .app-select-crew-member-prompt {
-	min-width: 28rem;
-	min-height: 15rem;
-
-	.window-content {
-		@include backgrounds.crossboxes();
-	}
+	@include window.prompt(28rem, 15rem);
 }
 </style>
 

@@ -53,16 +53,11 @@ function confirm(event: Event) {
 </template>
 
 <style lang="scss">
-// Unscoped: these rules style the Foundry window around the component.
-@use '@scss/mixins/backgrounds.scss';
+// Unscoped: window.prompt styles the Foundry window around the component.
+@use '@scss/mixins/window.scss';
 
 .app-career-skill-prompt {
-	min-width: 150px;
-	min-height: 200px;
-
-	.window-content {
-		@include backgrounds.crossboxes();
-	}
+	@include window.prompt(150px, 200px);
 }
 </style>
 
