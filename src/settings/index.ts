@@ -36,7 +36,8 @@ function registerTable() {
 			...(entry.choices && {
 				choices: Object.fromEntries(Object.entries(entry.choices).map(([value, label]) => [value, game.i18n.localize(label)])),
 			}),
-			...(entry.requiresReload ? { requiresReload: true } : { onChange: (value: unknown) => apply(entry, value) }),
+			...(entry.requiresReload && { requiresReload: true }),
+			...((!entry.requiresReload || entry.readLive) && { onChange: (value: unknown) => apply(entry, value) }),
 		});
 	}
 

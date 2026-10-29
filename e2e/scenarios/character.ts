@@ -1714,7 +1714,18 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	await e2e.step('#110 K2 Ignore Talent Pyramid turned on with the sheet open', () =>
 		page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: true }),
 	);
-	e2e.expect('#110 K2 a sheet already open keeps its summary', await pyramid(), { summary: counts, roundedTop: false });
+	// The open sheet keeps its summary until the reload Foundry asks for; the purchase checks read the new value at once.
+	e2e.expect(
+		'#110 K2 the setting asks for a reload, and applies at once to the purchase checks',
+		await page(
+			(key) => ({
+				requiresReload: game.settings.settings.get(key)?.requiresReload === true,
+				applied: CONFIG.genesys.settings.ignoreTalentPyramid,
+			}),
+			'genesys.ignoreTalentPyramid',
+		),
+		{ requiresReload: true, applied: true },
+	);
 	await e2e.step('#110 K3 the sheet reopened', () => page((name) => window.characterE2E.reopen(name), P));
 	e2e.expect(
 		'#110 K3 under Ignore Talent Pyramid, the Talents tab shows no summary, and the block below takes its rounded top',

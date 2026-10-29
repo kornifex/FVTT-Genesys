@@ -25,6 +25,13 @@ describe('SETTINGS', () => {
 		]);
 	});
 
+	it('asks for a reload for the settings some of the system reads once, and applies those the rest reads live at once', () => {
+		const reloaded = settingEntries().flatMap(([key, entry]) =>
+			entry.requiresReload ? [`${key}${entry.readLive ? ' (live)' : ''}`] : [],
+		);
+		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'useMagicalGirlSymbols', 'dicePoolChanceToSucceedByPermutation']);
+	});
+
 	it('gives each field of CONFIG.genesys.settings to one setting', () => {
 		const fields = settingEntries().flatMap(([, entry]) => (entry.field ? [entry.field.name] : []));
 		expect(new Set(fields).size).toBe(fields.length);
