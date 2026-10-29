@@ -4,8 +4,8 @@ import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
 export function register() {
 	CONFIG.ActiveEffect.documentClass = GenesysEffect;
 
-	DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', ActiveEffectConfig);
-	DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {
+	foundry.applications.apps.DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', foundry.applications.sheets.ActiveEffectConfig);
+	foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {
 		makeDefault: true,
 	});
 }

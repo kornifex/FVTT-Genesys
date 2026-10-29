@@ -748,8 +748,10 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
 			await settle();
-			// The system enriches through the global TextEditor.
-			const editor = (globalThis as unknown as { TextEditor: { enrichHTML: (...args: unknown[]) => Promise<string> } }).TextEditor;
+			// The system enriches through the configured TextEditor class, which a module may replace.
+			const editor = foundry.applications.ux.TextEditor.implementation as unknown as {
+				enrichHTML: (...args: unknown[]) => Promise<string>;
+			};
 			const enrichHTML = editor.enrichHTML;
 			// The enrichment takes this long, so that the sheet shows before it ends.
 			editor.enrichHTML = async (...args: unknown[]) => {

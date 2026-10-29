@@ -108,7 +108,7 @@ onUpdated(async () => {
  * Asynchronously updates the enriched HTML wrapper.
  */
 async function enrichContent() {
-	enrichedContent.value = await TextEditor.enrichHTML(baseContent.value, { async: true });
+	enrichedContent.value = await foundry.applications.ux.TextEditor.implementation.enrichHTML(baseContent.value, { async: true });
 }
 
 /**
@@ -154,7 +154,7 @@ async function activate() {
 		initial: baseContent.value,
 	};
 
-	const editor: unknown = await TextEditor.create(options, baseContent.value);
+	const editor: unknown = await foundry.applications.ux.TextEditor.implementation.create(options, baseContent.value);
 	editorInstance = editor as ProseMirrorEditor;
 	editing.value = true;
 }

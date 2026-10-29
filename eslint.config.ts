@@ -6,6 +6,33 @@ import tseslint from 'typescript-eslint';
 
 const noEnum = { selector: 'TSEnumDeclaration', message: 'Use an as-const object and the union of its values.' };
 
+// The globals Foundry deprecated, each with the namespaced class v13 and v14 both have: v14 removed `Die`, and v15 removes
+// the others. The vendored types declare them under their namespace only (ADR 0005), so the compiler rejects them too;
+// this rule names the replacement.
+//
+// v13: v14 also deprecates the roll modes, whose replacements v13 lacks, so they stay until v13 leaves support:
+// `game.settings.get('core', 'rollMode')` (GenesysCombat.ts, CheckRoll.ts), `ChatMessage.applyRollMode` (→ `applyMode`),
+// `CONST.DICE_ROLL_MODES`, and the `rollMode` option of `ChatMessage.create`.
+const deprecatedGlobals = Object.entries({
+	Die: 'foundry.dice.terms.Die',
+	getTemplate: 'foundry.applications.handlebars.getTemplate',
+	loadTemplates: 'foundry.applications.handlebars.loadTemplates',
+	renderTemplate: 'foundry.applications.handlebars.renderTemplate',
+	TextEditor: 'foundry.applications.ux.TextEditor.implementation',
+	Tabs: 'foundry.applications.ux.Tabs',
+	FilePicker: 'foundry.applications.apps.FilePicker.implementation',
+	DocumentSheetConfig: 'foundry.applications.apps.DocumentSheetConfig',
+	ActiveEffectConfig: 'foundry.applications.sheets.ActiveEffectConfig',
+	Dialog: 'foundry.applications.api.DialogV2, or foundry.appv1.api.Dialog until v16',
+	Actors: 'foundry.documents.collections.Actors',
+	Items: 'foundry.documents.collections.Items',
+	ActorSheet: 'foundry.appv1.sheets.ActorSheet',
+	ItemSheet: 'foundry.appv1.sheets.ItemSheet',
+	ActorDirectory: 'foundry.applications.sidebar.tabs.ActorDirectory',
+	ItemDirectory: 'foundry.applications.sidebar.tabs.ItemDirectory',
+	Compendium: 'foundry.applications.sidebar.apps.Compendium',
+}).map(([name, replacement]) => ({ name, message: `Foundry deprecated this global: use ${replacement}.` }));
+
 export default defineConfig(
 	js.configs.recommended,
 	tseslint.configs.recommendedTypeChecked,
@@ -54,6 +81,10 @@ export default defineConfig(
 		ignores: ['src/log.ts'],
 		// src/log.ts prefixes the system's messages.
 		rules: { 'no-console': 'error' },
+	},
+	{
+		files: ['src/**'],
+		rules: { 'no-restricted-globals': ['error', ...deprecatedGlobals] },
 	},
 	{
 		// A declaration file may need an interface, to merge into one of Foundry's.
