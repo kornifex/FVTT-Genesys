@@ -290,8 +290,8 @@ function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
 }
 
 /**
- * Render the sheets of the vehicles an actor crews when the actor or one of its skills changes, and remove a deleted
- * actor from every Crew.
+ * Render the sheets of the vehicles an actor crews when one of the actor's items changes, and remove a deleted actor
+ * from the Crew of every vehicle in the world.
  */
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
@@ -311,10 +311,9 @@ export function register() {
 		const targetActor = actor as GenesysActor;
 
 		if (targetActor.type === 'vehicle') {
-			// Whenever a vehicle is deleted remove it from the updates array.
 			VehicleDataModel._GAME_VEHICLES.delete(targetActor as GenesysActor<VehicleDataModel>);
 		} else {
-			// Whenever a non-vehicle actor is deleted let the Acting GM remove it from all the vehicles in the world.
+			// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
 			if (isActingGm()) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {

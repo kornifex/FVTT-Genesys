@@ -735,7 +735,6 @@ async function onRoll() {
 			text-stroke: 2px black;
 			font-size: 2.5rem;
 
-			// Ability & Difficulty Die
 			&.die-Ability {
 				color: colors.$die-ability;
 			}
@@ -744,7 +743,6 @@ async function onRoll() {
 				color: colors.$die-difficulty;
 			}
 
-			// Proficiency Die
 			&.die-Proficiency {
 				color: colors.$die-proficiency;
 			}
@@ -753,7 +751,6 @@ async function onRoll() {
 				color: colors.$die-challenge;
 			}
 
-			// Boost Die
 			&.die-Boost {
 				color: colors.$die-boost;
 			}

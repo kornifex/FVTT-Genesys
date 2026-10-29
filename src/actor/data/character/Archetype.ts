@@ -246,12 +246,10 @@ export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, a
 	const archetypeData = archetype.systemData;
 	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, -1);
 
-	// Non-skills are embedded items & need to be deleted.
 	await Promise.all(
 		heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems, actor.id).map(async (i) => await i.delete()),
 	);
 
-	// Skills get reduced by 1 rank.
 	await Promise.all(
 		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(
 			async ({ skill, update }) => await skill.update(update),

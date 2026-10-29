@@ -21,7 +21,7 @@ type Motivations = {
 };
 
 /**
- * The data that every Adversary shares: minions, rivals and nemeses.
+ * The data that every Adversary shares: Minion Groups, Rivals and Nemeses.
  */
 export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 	abstract characteristics: CharacteristicsContainer;

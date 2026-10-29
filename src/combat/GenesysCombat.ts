@@ -54,7 +54,7 @@ export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
 };
 
 /**
- * A combat whose turns are Initiative Slots, which the combatants of their side Claim (CRB p. 95).
+ * A combat whose turns are Initiative Slots, which the combatants of their side Claim (CRB p. 96).
  */
 export class GenesysCombat extends Combat {
 	/**
@@ -153,7 +153,7 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
-	 * Whether the user may revoke the Claim on an Initiative Slot of the current round: a GM may, once the combat
+	 * Whether the user may revoke the Claim on a claimed Initiative Slot of the current round: a GM may, once the combat
 	 * started.
 	 */
 	canRevokeClaim(slotId: string) {
