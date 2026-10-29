@@ -74,6 +74,8 @@ type CharacterHelpers = {
 	 * header as `[[maneuver]]`, a row as its name.
 	 */
 	talentsTab(actor: string): { abilities: string[]; talents: string[] };
+	/** Clicks the trash icon of a row of the Talents tab. */
+	trashTalentRow(actor: string, name: string): void;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
@@ -582,6 +584,13 @@ function installCharacterHelpers() {
 				}),
 			);
 			return { abilities: abilities ?? [], talents: talents ?? [] };
+		},
+
+		trashTalentRow(name, item) {
+			const row = [...sheet(name).querySelectorAll('.tab-talents .talent')].find(
+				(candidate) => unprefixed(text(candidate.querySelector('.name a'))) === item,
+			);
+			click(row?.querySelector('.fa-trash')?.closest('a'), `trash icon of ${item}`);
 		},
 
 		superCharacteristics(name) {
@@ -1858,6 +1867,38 @@ async function talentsTab(e2e: ScenarioContext, page: Evaluate) {
 			],
 		},
 	);
+
+	const trash = (answer: 'yes' | 'no') =>
+		page(
+			async (args) => {
+				window.characterE2E.trashTalentRow(args.actor, 'Rally');
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ actor: L, answer },
+		);
+	const rally = async () => (await page((name) => window.characterE2E.items(name), L)).filter((item) => item.endsWith(':E2E Rally'));
+	let asked: Awaited<ReturnType<typeof trash>> = null;
+	await e2e.step("#252 C2 the trash icon of Lister's ability Rally clicked, and No answered", async () => {
+		asked = await trash('no');
+	});
+	e2e.expect(
+		"#252 C2 the Talents tab's trash icon asks in Foundry's deletion dialog, which names the ability, No by default, and No keeps it",
+		{ asked, rally: await rally() },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Delete Item: E2E Rally',
+				content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			rally: ['ability:E2E Rally'],
+		},
+	);
+	await e2e.step("#252 C3 the trash icon of Lister's ability Rally clicked, and Yes answered", async () => {
+		asked = await trash('yes');
+	});
+	e2e.expect('#252 C3 Yes deletes the ability', await rally(), []);
 	await page((name) => window.characterE2E.close(name), L);
 }
 

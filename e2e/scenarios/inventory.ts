@@ -1,4 +1,5 @@
 /** @file The inventory of #37: drops on actor and item sheets, Containers, Equipment States and their effects, armor, encumbrance and inventory rows. */
+import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
 type EquipmentState = 'equipped' | 'carried' | 'dropped';
@@ -21,12 +22,6 @@ type Source =
 type Target = { section: EquipmentState; slot: number } | { item: string } | { on: string };
 
 type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
-
-/**
- * A dialog asking to confirm a deletion: the class of its application, its title and text, its buttons by action, and
- * its default one.
- */
-type DeletionDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
 
 /**
  * The helpers name an actor of the setup by its name without `E2E `, or `token:<name>` for the actor of an unlinked token.
@@ -53,7 +48,7 @@ type InventoryHelpers = {
 	 * Steps an item's quantity down or its damage up once from its row, which asks to confirm its deletion, reads the
 	 * dialog, and answers it.
 	 */
-	stepToDeletion(actor: string, item: string, kind: 'quantity' | 'damage', answer: 'yes' | 'no'): Promise<DeletionDialog>;
+	stepToDeletion(actor: string, item: string, kind: 'quantity' | 'damage', answer: 'yes' | 'no'): Promise<ConfirmDialog | null>;
 	/** Damages an item from its row until it's destroyed, and confirms its deletion. */
 	damageToNothing(actor: string, item: string): Promise<void>;
 	/** Clicks the quantity and the damage state of an item's row once. */
@@ -223,12 +218,6 @@ function installInventoryHelpers() {
 		window.e2e.drop(element, data);
 		// The sheets handle a drop asynchronously, and a refused drop changes nothing.
 		await settle();
-	};
-	const clickYes = async () => {
-		const yes = await waitFor('a confirmation dialog', () =>
-			document.querySelector<HTMLElement>('[data-button="yes"], [data-action="yes"]'),
-		);
-		yes.click();
 	};
 
 	const batches: string[] = [];
@@ -621,29 +610,7 @@ function installInventoryHelpers() {
 			const control = (await rowOf(ref, name)).querySelector<HTMLElement>(`:scope > .${kind}`)!;
 			// The quantity steps down on a right click, the damage up on a left one.
 			control.dispatchEvent(new MouseEvent(kind === 'quantity' ? 'contextmenu' : 'click', { bubbles: true, cancelable: true }));
-			// An ApplicationV2 dialog names its buttons by action, an AppV1 one by button.
-			const dialog = await waitFor('a confirmation dialog', () =>
-				document.querySelector('[data-action="yes"], [data-button="yes"]')?.closest<HTMLElement>('.application, .app'),
-			);
-			const buttons = [...dialog.querySelectorAll<HTMLElement>('.form-footer [data-action], .dialog-buttons [data-button]')];
-			const buttonName = (button: Element) => button.getAttribute('data-action') ?? button.getAttribute('data-button') ?? '';
-			const application = foundry.applications.instances.get(dialog.id) ?? ui.windows[Number(dialog.dataset.appid)];
-			const read: DeletionDialog = {
-				application:
-					application instanceof foundry.applications.api.DialogV2
-						? 'DialogV2'
-						: application instanceof foundry.appv1.api.Dialog
-							? 'Dialog'
-							: String(application?.constructor.name),
-				title: text(dialog.querySelector('.window-title')),
-				content: text(dialog.querySelector('.dialog-content')),
-				buttons: buttons.map(buttonName),
-				defaultButton: buttonName(buttons.find((button) => button.matches('[autofocus], .default')) ?? document.body),
-			};
-			buttons.find((button) => buttonName(button) === answer)!.click();
-			await waitFor('the dialog to close', () => !dialog.isConnected);
-			await settle();
-			return read;
+			return window.e2e.answerConfirm(answer);
 		},
 
 		async editItemSheet(ref, name, field, value) {
@@ -660,8 +627,7 @@ function installInventoryHelpers() {
 				(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!.click();
 				await settle();
 			}
-			await clickYes();
-			await settle();
+			await window.e2e.answerConfirm('yes');
 		},
 
 		async clickQuantityAndDamage(ref, name) {
@@ -898,6 +864,8 @@ export async function run(e2e: ScenarioContext) {
 		};
 	const menu = (actor: string, item: string, action: MenuAction) => () =>
 		page.evaluate((args) => window.inventoryE2E.menu(args.actor, args.item, args.action), { actor, item, action });
+	// Answers the dialog an action opened: the menu's Delete asks to confirm.
+	const answer = (yesOrNo: 'yes' | 'no') => () => page.evaluate((value) => window.e2e.answerConfirm(value), yesOrNo);
 	const updateItem = (actor: string, item: string, changes: object) => () =>
 		page.evaluate((args) => window.inventoryE2E.updateItem(args.actor, args.item, args.changes), { actor, item, changes });
 	const items = (actor: string) => page.evaluate((ref) => window.inventoryE2E.items(ref), actor);
@@ -1692,7 +1660,10 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step("#103 L1 Deleter's Box1 deleted by script", () =>
 		page.evaluate(() => window.inventoryE2E.deleteItem('Deleter', 'Box1')),
 	);
-	await e2e.step("#103 L2 Deleter's Box2 deleted from its menu", menu('Deleter', 'Box2', 'delete'));
+	await e2e.step(
+		"#103 L2 Deleter's Box2 deleted from its menu, and Yes answered",
+		drops(menu('Deleter', 'Box2', 'delete'), answer('yes')),
+	);
 	await e2e.step("#103 L3 Deleter's Box3 damaged to nothing from its row", () =>
 		page.evaluate(() => window.inventoryE2E.damageToNothing('Deleter', 'Box3')),
 	);
@@ -1844,7 +1815,7 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
 }
 
-/** §#252: the Equipment State moves an inventory row's menu offers, and the dialog confirming a deletion from its row. */
+/** §#252: the Equipment State moves an inventory row's menu offers, and the dialogs confirming a deletion from its row and its menu. */
 async function itemActions(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const entries = (actor: string, item: string) =>
@@ -1889,7 +1860,7 @@ async function itemActions(e2e: ScenarioContext) {
 		buttons: ['yes', 'no'],
 		defaultButton: 'no',
 	};
-	let asked: DeletionDialog | undefined;
+	let asked: ConfirmDialog | null = null;
 	await e2e.step("#252 A1 Stepper's Pebble stepped down to a quantity of 0 from its row, and No answered", async () => {
 		asked = await stepToDeletion('Stepper', 'Pebble', 'quantity', 'no');
 	});
@@ -1910,6 +1881,31 @@ async function itemActions(e2e: ScenarioContext) {
 			items: [],
 		},
 	);
+
+	const deleteFromMenu = (item: string, yesOrNo: 'yes' | 'no') =>
+		gm.evaluate(
+			async (args) => {
+				await window.inventoryE2E.menu('Stepper', args.item, 'delete');
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ item, answer: yesOrNo },
+		);
+	const twine = async () => (await gm.evaluate(() => window.inventoryE2E.items('Stepper'))).filter((name) => name.startsWith('Twine'));
+	await e2e.step("#252 D1 Stepper's Twine deleted from its menu, and No answered", async () => {
+		asked = await deleteFromMenu('Twine', 'no');
+	});
+	e2e.expect("#252 D1 an inventory row's Delete asks in Foundry's deletion dialog, which names the item, No by default", asked, {
+		application: 'DialogV2',
+		title: 'Delete Item: E2E Twine',
+		content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+		buttons: ['yes', 'no'],
+		defaultButton: 'no',
+	});
+	e2e.expect('#252 D1 No keeps the item', await twine(), ['Twine:dropped']);
+	await e2e.step("#252 D2 Stepper's Twine deleted from its menu, and Yes answered", async () => {
+		asked = await deleteFromMenu('Twine', 'yes');
+	});
+	e2e.expect("#252 D2 Yes deletes the item from the row's Delete", await twine(), []);
 }
 
 /** §#239: the Used Equipment State is gone, a consumable saved in it loads as Carried, and a consumable's effects never apply. */

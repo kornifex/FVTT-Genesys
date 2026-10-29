@@ -48,10 +48,12 @@ export async function openSheet(document: GenesysItem | GenesysActor) {
 }
 
 /**
- * Delete an item. A Container's contents are deleted with it.
+ * Delete an item once the user confirms, in Foundry's own dialog, which names the item. No is its default button, and
+ * closing it keeps the item. A Container's contents are deleted with it.
  */
 export async function deleteItem(item: GenesysItem) {
-	await item.delete();
+	// The dialog deletes the item itself when the user answers Yes.
+	await item.deleteDialog();
 }
 
 /**
@@ -78,7 +80,8 @@ export async function stepEquipment(
 
 	beforeWrite?.();
 	if (step.action === 'delete') {
-		await deleteItem(item);
+		// Already confirmed, in the step's own words.
+		await item.delete();
 	} else {
 		await item.update(step.update);
 	}

@@ -451,6 +451,35 @@ export async function run(e2e: ScenarioContext) {
 		})),
 	);
 
+	// §#252: the Delete of an adversary's menus asks first.
+	const answer = (yesOrNo: 'yes' | 'no') => gm.evaluate((value) => window.e2e.answerConfirm(value), yesOrNo);
+	const rivalTalents = async () =>
+		(await gm.evaluate(() => window.adversariesE2E.items('Rival'))).filter((item) => item.startsWith('talent'));
+	let asked: Awaited<ReturnType<typeof answer>> = null;
+	await e2e.step("#252 E1 the Rival's Grit deleted from its menu, and No answered", async () => {
+		await clickMenu('Rival', 'talent', 'Grit', 'Delete');
+		asked = await answer('no');
+	});
+	e2e.expect(
+		"#252 E1 an adversary talent's Delete asks in Foundry's deletion dialog, which names the talent, No by default, and No keeps it",
+		{ asked, talents: await rivalTalents() },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Delete Item: E2E Grit',
+				content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			talents: ['talent Grit 1'],
+		},
+	);
+	await e2e.step("#252 E2 the Rival's Grit deleted from its menu, and Yes answered", async () => {
+		await clickMenu('Rival', 'talent', 'Grit', 'Delete');
+		asked = await answer('yes');
+	});
+	e2e.expect("#252 E2 Yes deletes the adversary's talent", await rivalTalents(), []);
+
 	// The Grunts have Agility 3, three members of wound threshold 5, and the skill Stealth at rank 3 of its own.
 	const rollStealth = () => gm.evaluate(() => window.adversariesE2E.rollSkill({ actor: 'Grunts', skill: 'Stealth' }));
 	const threeStanding = await rollStealth();
