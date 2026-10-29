@@ -1,8 +1,21 @@
+@use '@scss/mixins/backgrounds.scss';
+
 // Gives a window a minimum size while it is open. Foundry minimizes a window by lowering its max-height, which a higher
 // min-height outweighs, and its rule unsetting the minimum size then loses to a sheet's more specific one (#304).
 @mixin min-size($width, $height) {
 	&:not(.minimizing, .minimized, .maximizing) {
 		min-width: $width;
 		min-height: $height;
+	}
+}
+
+// The window of a prompt: its minimum size and the books' background. A prompt includes it from an unscoped style,
+// since these rules style the Foundry window around the Vue component, which scoped rules can't reach.
+@mixin prompt($min-width, $min-height) {
+	min-width: $min-width;
+	min-height: $min-height;
+
+	.window-content {
+		@include backgrounds.crossboxes();
 	}
 }
