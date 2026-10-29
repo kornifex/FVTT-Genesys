@@ -40,7 +40,7 @@ async function hideTooltip() {
 	</div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 div {
 	display: inline;
 }

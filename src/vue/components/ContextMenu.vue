@@ -68,7 +68,7 @@ onUnmounted(removeDocumentListeners);
 	</div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use '@scss/mixins/backgrounds.scss';
 @use '@scss/vars/colors.scss';
 
@@ -105,7 +105,8 @@ onUnmounted(removeDocumentListeners);
 		right: 0;
 	}
 
-	hr {
+	// The menu's items and separators come from the slot.
+	:slotted(hr) {
 		width: calc(100% + 0.5em);
 		margin: 0;
 		margin-left: -0.25em;

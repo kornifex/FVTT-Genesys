@@ -110,7 +110,7 @@ async function deleteEffect(effect: GenesysEffect) {
 	</section>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
 
 .effects-view {
@@ -141,15 +141,6 @@ async function deleteEffect(effect: GenesysEffect) {
 			background: colors.$gold-shade;
 			border: 1px solid colors.$gold;
 			border-radius: 0.25em;
-		}
-
-		.separator {
-			height: 1px;
-			border-top: 1px dashed black;
-			grid-column: 1 / span all;
-			grid-row: 1 / span 1;
-			margin-top: 0.25em;
-			margin-bottom: 0.25em;
 		}
 
 		.effect {

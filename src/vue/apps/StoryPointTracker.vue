@@ -67,7 +67,7 @@ async function toggleEdit(pool: StoryPointPool) {
 }
 </script>
 
-<template class="story-point-tracker">
+<template>
 	<div v-for="pool in POOLS" :key="pool.id" class="tracker">
 		<header>
 			<Localized :label="pool.label" />
@@ -90,9 +90,7 @@ async function toggleEdit(pool: StoryPointPool) {
 </template>
 
 <style lang="scss">
-@use '@scss/mixins/backgrounds.scss';
-@use '@scss/vars/colors.scss';
-
+// Unscoped: these rules place the tracker's application element, which Foundry renders around the component.
 .story-point-tracker {
 	position: absolute;
 	bottom: 20px;
@@ -107,7 +105,14 @@ async function toggleEdit(pool: StoryPointPool) {
 		left: 250px;
 		right: auto;
 	}
+}
+</style>
 
+<style lang="scss" scoped>
+@use '@scss/mixins/backgrounds.scss';
+@use '@scss/vars/colors.scss';
+
+.story-point-tracker {
 	.tracker {
 		@include backgrounds.crossboxes;
 

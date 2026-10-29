@@ -113,13 +113,13 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				v-for="(skillCategory, index) in skillCategories"
 				:key="skillCategory.category"
 				class="skill-category"
-				:style="`position: relative; z-index: ${skillCategories.length - index}`"
+				:style="{ zIndex: skillCategories.length - index }"
 			>
 				<div class="header">
 					<label><Localized :label="SKILL_CATEGORY_HEADINGS[skillCategory.category]" /></label>
 					<div class="blank" />
 
-					<label style="position: relative; left: -3px"><Localized label="Genesys.Labels.Rank" /></label>
+					<label class="rank-label"><Localized label="Genesys.Labels.Rank" /></label>
 					<div class="blank" />
 				</div>
 
@@ -265,6 +265,9 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 		white-space: nowrap;
 		background: colors.alpha(colors.$light-blue, 0.2);
 		padding: 8px;
+		// The template gives each category a z-index that falls with its position, so the open context menu of a category's
+		// last skill hangs over the categories after it instead of under them.
+		position: relative;
 	}
 
 	.header,
@@ -280,6 +283,12 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 		font-family: 'Bebas Neue', sans-serif;
 		font-size: 1em;
 		color: colors.$gray;
+
+		// The label sits 3px to the left, so that it lines up over the rank inputs of the rows below.
+		.rank-label {
+			position: relative;
+			left: -3px;
+		}
 	}
 
 	.body {
