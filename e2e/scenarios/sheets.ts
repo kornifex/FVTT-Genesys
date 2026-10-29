@@ -35,6 +35,12 @@ type CreateDialog = { position: Position; asked: Position; types: string[]; decl
 
 type Size = { width: number; height: number };
 
+/**
+ * A `<prose-mirror>` editor of a sheet: its toggle button (`null` when it has none), whether it is open, the text it
+ * shows, and the document links in it.
+ */
+type EditorState = { toggle: 'enabled' | 'disabled' | null; open: boolean; text: string; links: number };
+
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
 	setUp(player: string): Promise<void>;
@@ -53,6 +59,17 @@ type SheetsHelpers = {
 	/** Marks a field of a sheet so that the scenario can type in it with Playwright. */
 	markField(name: string, selector: string, mark: string): Promise<void>;
 	changeField(name: string, selector: string, value: string): Promise<void>;
+	/**
+	 * The `<prose-mirror>` editor of a field on an open sheet, once it shows: its toggle button, whether it is open, its text,
+	 * and the document links in it.
+	 */
+	editor(name: string, field: string): Promise<EditorState>;
+	/** Opens the editor of a field with its toggle button, and marks its text so that the scenario can type in it with Playwright. */
+	openEditor(name: string, field: string, mark: string): Promise<void>;
+	/** Saves an open editor with the save button of its menu, and waits for it to close. */
+	saveEditor(name: string, field: string): Promise<void>;
+	/** A field of a document, as stored. */
+	stored(name: string, field: string): unknown;
 	isRendered(name: string): boolean;
 	/** Renders a sheet with hooks on the render events of AppV1 and AppV2, and returns the ones that fired. */
 	renderHooks(name: string): Promise<{ fired: string[]; htmlIsElement: boolean }>;
@@ -188,6 +205,13 @@ function installSheetsHelpers() {
 		if (!found) throw new Error(`No ${selector} ${which}`);
 		return found;
 	};
+	// The editor of a field, which the sheet builds once it has enriched its text.
+	const editorOf = (name: string, field: string) =>
+		waitFor(`the editor ${field} of ${name}`, () =>
+			sheetElement(name).querySelector<HTMLElement & { open: boolean }>(`prose-mirror[name="${field}"]`),
+		);
+	// The button that opens a toggled editor.
+	const toggleOf = (editor: Element) => editor.querySelector<HTMLButtonElement>(':scope > button.toggle');
 	const openApps = () =>
 		[...foundry.applications.instances.values(), ...Object.values(ui.windows)].filter(
 			(app: { rendered: boolean; hasFrame?: boolean; id: string }) =>
@@ -381,6 +405,42 @@ function installSheetsHelpers() {
 		async changeField(name, selector, value) {
 			setSelect(sheetElement(name), selector, value);
 			await settle();
+		},
+
+		async editor(name, field) {
+			const element = await editorOf(name, field);
+			const toggle = toggleOf(element);
+			return {
+				toggle: toggle ? (toggle.disabled ? 'disabled' : 'enabled') : null,
+				open: element.open,
+				text: text(element.querySelector('.editor-content')),
+				links: element.querySelectorAll('.editor-content a.content-link').length,
+			};
+		},
+
+		async openEditor(name, field, mark) {
+			const element = await editorOf(name, field);
+			const toggle = toggleOf(element);
+			if (!toggle) throw new Error(`The editor ${field} of ${name} has no toggle button`);
+			// The toggle only shows while the pointer is over the editor.
+			toggle.click();
+			const content = await waitFor(`the open editor ${field} of ${name}`, () =>
+				element.querySelector<HTMLElement>('.ProseMirror[contenteditable="true"]'),
+			);
+			content.dataset.e2e = mark;
+		},
+
+		async saveEditor(name, field) {
+			const element = await editorOf(name, field);
+			const save = element.querySelector<HTMLButtonElement>('menu [data-action="save"]');
+			if (!save) throw new Error(`The editor ${field} of ${name} has no save button`);
+			save.click();
+			await waitFor(`the editor ${field} of ${name} closed`, () => !element.open);
+			await settle();
+		},
+
+		stored(name, field) {
+			return foundry.utils.getProperty(documentNamed(name)._source, field);
 		},
 
 		isRendered(name) {
@@ -1265,6 +1325,78 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await gm.evaluate(() => window.sheetsE2E.update('Rival Closed', { name: 'E2E Rival' }));
 
+	// §#260: the sheets edit their enriched text in Foundry's `<prose-mirror>` element, which their form submits.
+	const editors = [
+		{ sheet: 'Hero', tab: 'journal', field: 'system.notes' },
+		{ sheet: 'Hero', tab: 'journal', field: 'system.motivations.strength.description' },
+		{ sheet: 'Nemesis', tab: 'stats', field: 'system.description' },
+		{ sheet: 'Nemesis', tab: 'miscellaneous', field: 'system.motivations.fear.description' },
+		{ sheet: 'Vehicle', tab: 'details', field: 'system.description' },
+		{ sheet: 'weapon', tab: 'description', field: 'system.description' },
+		{ sheet: 'career', tab: 'description', field: 'system.description' },
+		{ sheet: 'archetype', tab: 'description', field: 'system.description' },
+	];
+	const bearerLink = await gm.evaluate(() => `@UUID[${game.actors.getName('E2E Bearer').uuid}]{E2E Bearer}`);
+	await e2e.step('#260 GM writes a link in each editor with the keyboard, and saves it', async () => {
+		for (const [index, { sheet, tab, field }] of editors.entries()) {
+			const mark = `editor-${index}`;
+			await gm.evaluate(
+				async ({ sheet, tab, field, mark }) => {
+					await window.sheetsE2E.open(sheet);
+					await window.sheetsE2E.clickTab(sheet, tab);
+					await window.sheetsE2E.openEditor(sheet, field, mark);
+				},
+				{ sheet, tab, field, mark },
+			);
+			await page().click(`[data-e2e="${mark}"]`);
+			await page().keyboard.type(`E2E ${index} ${bearerLink}`);
+			await gm.evaluate(({ sheet, field }) => window.sheetsE2E.saveEditor(sheet, field), { sheet, field });
+		}
+	});
+	e2e.expect(
+		'#260 A1 an editor saves its text to its field, a nested one included',
+		await gm.evaluate((editors) => editors.map(({ sheet, field }) => window.sheetsE2E.stored(sheet, field)), editors),
+		editors.map((_, index) => `<p>E2E ${index} ${bearerLink}</p>`),
+	);
+	e2e.expect(
+		'#260 A2 a saved editor closes and shows its new text enriched, with its toggle button',
+		await gm.evaluate((editors) => Promise.all(editors.map(({ sheet, field }) => window.sheetsE2E.editor(sheet, field))), editors),
+		editors.map((_, index) => ({ toggle: 'enabled', open: false, text: `E2E ${index} E2E Bearer`, links: 1 })),
+	);
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	await gm.evaluate(async () => {
+		await window.sheetsE2E.open('Nemesis');
+		// The sheet reopens on the tab it was closed on.
+		await window.sheetsE2E.clickTab('Nemesis', 'stats');
+		await window.sheetsE2E.openEditor('Nemesis', 'system.description', 'nemesis-description');
+	});
+	await page().click('[data-e2e="nemesis-description"]');
+	await page().keyboard.press('ControlOrMeta+a');
+	await page().keyboard.type('E2E typing');
+	await e2e.step('#260 GM changes another field of the sheet while an editor is open', () =>
+		gm.evaluate(() => window.sheetsE2E.changeField('Nemesis', 'input[name="system.characteristics.brawn"]', '3')),
+	);
+	e2e.expect(
+		'#260 A3 the open editor stays open with its text, which the form saves with the other field',
+		await gm.evaluate(async () => ({
+			open: (await window.sheetsE2E.editor('Nemesis', 'system.description')).open,
+			typed: window.e2e.text(document.querySelector('[data-e2e="nemesis-description"]')),
+			stored: window.sheetsE2E.stored('Nemesis', 'system.description'),
+			brawn: window.sheetsE2E.stored('Nemesis', 'system.characteristics.brawn'),
+		})),
+		{ open: true, typed: 'E2E typing', stored: '<p>E2E typing</p>', brawn: 3 },
+	);
+	await page().click('[data-e2e="nemesis-description"]');
+	await page().keyboard.press('ControlOrMeta+a');
+	await page().keyboard.type('E2E closed');
+	await e2e.step('#260 GM closes the sheet while an editor is open', () => gm.evaluate(() => window.sheetsE2E.close('Nemesis')));
+	e2e.expect(
+		'#260 A4 closing a sheet saves the text of its open editor',
+		await gm.evaluate(() => window.sheetsE2E.stored('Nemesis', 'system.description')),
+		'<p>E2E closed</p>',
+	);
+
 	// §#95 as a player who can't edit the sheet.
 	await e2e.step('#95 player opens a sheet they observe, one they see limited, and their own', () =>
 		player.evaluate(async () => {
@@ -1284,6 +1416,11 @@ export async function run(e2e: ScenarioContext) {
 			};
 			return { Observed: counts('Observed'), Limited: counts('Limited') };
 		}),
+	);
+	e2e.expect(
+		"#260 A5 the editor of a sheet the player can't edit has its toggle button disabled",
+		await player.evaluate(() => window.sheetsE2E.editor('Observed', 'system.notes')),
+		{ toggle: 'disabled', open: false, text: '', links: 0 },
 	);
 	await e2e.step('#95 player drops a weapon on the sheet they observe and on their own', () =>
 		player.evaluate(async () => {
