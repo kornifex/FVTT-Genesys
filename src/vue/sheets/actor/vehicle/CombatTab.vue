@@ -15,7 +15,7 @@ import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 
 import { rollForCrew } from '@/operations/CrewRoll';
-import { attackWith } from '@/operations/ItemActions';
+import { attackWithVehicleWeapon } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
@@ -57,7 +57,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 					<img :src="weapon.img" :alt="weapon.name" />
 
 					<div class="name">
-						<a @click="attackWith(actor, weapon)">{{ weapon.name }}</a>
+						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>
 					</div>
 
 					<div class="skill" v-if="weapon.systemData.skills.length > 0">

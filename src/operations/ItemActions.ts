@@ -3,7 +3,7 @@
 import type { GenesysActor } from '@/actor/GenesysActor';
 import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { equipmentStep } from '@/actor/data/Inventory';
+import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName } from '@/data/Skills';
 import { postChatCard } from '@/item/ChatCards';
@@ -22,27 +22,26 @@ export function attackSkill(actor: GenesysActor, weapon: GenesysItem<WeaponDataM
 }
 
 /**
- * Open the dice prompt of an attack with a weapon: an actor's weapon rolls its Attack Skill, and a vehicle weapon one of
- * its skills, by the crew member of a role that has it.
+ * Open the dice prompt of an attack with an actor's weapon, which rolls its Attack Skill. A weapon that lists no skill
+ * offers no attack.
  */
-export async function attackWith(actor: GenesysActor, weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>) {
-	const roll = { type: RollType.Attack, weapon };
-	if (weapon.type === 'vehicleWeapon') {
-		// Only a vehicle holds vehicle weapons.
-		const crew = (actor.systemData as VehicleDataModel).crew;
-		await rollForCrew(crewForSkills(crew, weapon.systemData.skills), { roll });
-		return;
-	}
-
-	// An item that isn't a vehicle weapon is an actor's weapon here.
-	const skillName = attackSkill(actor, weapon as GenesysItem<WeaponDataModel>);
+export async function attackWith(actor: GenesysActor, weapon: GenesysItem<WeaponDataModel>) {
+	const skillName = attackSkill(actor, weapon);
 	if (skillName) {
-		await DicePrompt.promptForRoll(actor, skillName, { roll });
+		await DicePrompt.promptForRoll(actor, skillName, { roll: { type: RollType.Attack, weapon } });
 	}
 }
 
 /**
- * Open the sheet of an item, or of an actor.
+ * Open the dice prompt of an attack with a vehicle weapon, which one of its skills rolls, by the crew member of a role
+ * that has it.
+ */
+export async function attackWithVehicleWeapon(vehicle: GenesysActor<VehicleDataModel>, weapon: GenesysItem<VehicleWeaponDataModel>) {
+	await rollForCrew(crewForSkills(vehicle.systemData.crew, weapon.systemData.skills), { roll: { type: RollType.Attack, weapon } });
+}
+
+/**
+ * Open the sheet of any document: an item, or an actor.
  */
 export async function openSheet(document: GenesysItem | GenesysActor) {
 	await document.sheet?.render(true);
@@ -68,8 +67,8 @@ export async function sendToChat(item: GenesysItem, actor: GenesysActor) {
  */
 export async function stepEquipment(
 	item: GenesysItem<EquipmentDataModel>,
-	kind: 'quantity' | 'damage',
-	direction: 1 | -1,
+	kind: SteppedValue,
+	direction: StepDirection,
 	beforeWrite?: () => void,
 ) {
 	const step = equipmentStep({ system: item.systemData }, kind, direction);
@@ -86,7 +85,8 @@ export async function stepEquipment(
 }
 
 /**
- * Ask the user to confirm an item's deletion. Closing the dialog keeps the item, as No does.
+ * Ask the user to confirm an item's deletion. Closing the dialog keeps the item, as No does. Foundry's confirmation
+ * dialog makes No its default button, as the AppV1 dialog it replaces did with `defaultYes: false`.
  */
 async function confirmDeletion() {
 	const confirmed = await foundry.applications.api.DialogV2.confirm({

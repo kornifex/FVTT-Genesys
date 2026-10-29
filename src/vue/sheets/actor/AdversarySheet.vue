@@ -43,6 +43,13 @@ const equipment = computed(
 		) as GenesysItem<EquipmentDataModel>[],
 );
 const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+// The weapons, each with its Attack Skill: a weapon without one offers no attack.
+const weapons = computed(() =>
+	(equipment.value.filter((i) => i.type === 'weapon') as GenesysItem<WeaponDataModel>[]).map((item) => ({
+		item,
+		skill: attackSkill(actor.value, item),
+	})),
+);
 
 const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 
@@ -70,11 +77,6 @@ async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | 
 			}
 			break;
 	}
-}
-
-// The adversary's equipment lists its weapons apart: each item of that list is a weapon.
-function asWeapon(item: GenesysItem) {
-	return item as GenesysItem<WeaponDataModel>;
 }
 
 function damageForWeapon(weapon: GenesysItem) {
@@ -216,39 +218,38 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<span class="header"><Localized label="Genesys.Adversary.Equipment" />:</span>
 						<div class="container">
 							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
-							<ContextMenu v-for="item in equipment.filter((i) => i.type === 'weapon')" :key="item.id" class="weapon">
+							<ContextMenu v-for="{ item, skill } in weapons" :key="item.id" class="weapon">
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 
 									<MenuItem
-										v-if="attackSkill(actor, asWeapon(item))"
+										v-if="skill"
 										icon="fas fa-dice-d20"
 										label="Genesys.Labels.PerformCheck"
-										@click="attackWith(actor, asWeapon(item))"
+										@click="attackWith(actor, item)"
 									/>
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="attackWith(actor, asWeapon(item))" draggable="true" @dragstart="startDocumentDrag($event, item)">
+								<a @click="attackWith(actor, item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
-										<template v-for="weaponSkill in [attackSkill(actor, asWeapon(item))]" :key="weaponSkill ?? 'skill'">
-											<span v-if="weaponSkill">
-												<AttackSkillSelect
-													:weapon="asWeapon(item)"
-													:choices="attackSkillChoices(item.system.skills)"
-													:attack-skill="weaponSkill"
-												/>
-											</span>
-											<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
-										</template>
+										<span v-if="skill">
+											<AttackSkillSelect
+												:key="skill"
+												:weapon="item"
+												:choices="attackSkillChoices(item.systemData.skills)"
+												:attack-skill="skill"
+											/>
+										</span>
+										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
 										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
 										<span
 											><Localized label="Genesys.Labels.Range" /> [<Localized
-												:label="RANGE_LABELS[(item.systemData as WeaponDataModel).range]"
+												:label="RANGE_LABELS[item.systemData.range]"
 											/>]</span
 										>
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span

@@ -142,8 +142,6 @@ declare namespace foundry {
 					config?: DeepPartial<ApplicationConfiguration> & {
 						content?: string;
 						rejectClose?: boolean;
-						yes?: { default?: boolean };
-						no?: { default?: boolean };
 					},
 				): Promise<boolean | null>;
 			}

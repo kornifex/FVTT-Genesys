@@ -12,7 +12,7 @@ import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { draggedGenesysType, startDocumentDrag } from '@/data/DragTransferData';
-import { containerContents, equipmentStateMoves, equipmentStateUpdates } from '@/actor/data/Inventory';
+import { containerContents, equipmentStateMoves, equipmentStateUpdates, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
@@ -147,7 +147,7 @@ function dragEnd(event: DragEvent) {
 	emit('dragend', event);
 }
 
-async function step(event: MouseEvent, kind: 'quantity' | 'damage', direction: 1 | -1) {
+async function step(event: MouseEvent, kind: SteppedValue, direction: StepDirection) {
 	// The row of an item in a Container sits in the Container's scrolling list of contents, whose scroll the re-render
 	// after the write can lose: the list gets back the scroll it has when the write starts, once a deletion is confirmed.
 	const contents = (event.currentTarget as HTMLElement | null)?.parentElement?.parentElement;

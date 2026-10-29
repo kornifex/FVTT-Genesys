@@ -209,6 +209,16 @@ export function equipmentStateMoves(actorType: string, item: PlacedItem): Equipm
 }
 
 /**
+ * What an item's row steps: its quantity or its damage.
+ */
+export type SteppedValue = 'quantity' | 'damage';
+
+/**
+ * The direction of a step: one up or one down.
+ */
+export type StepDirection = 1 | -1;
+
+/**
  * What a step of an item's quantity or damage on its row does: update it, delete it, or nothing.
  */
 type EquipmentStep =
@@ -222,8 +232,8 @@ type EquipmentStep =
  */
 export function equipmentStep(
 	item: { system: { quantity: number; damage: EquipmentDamageState } },
-	kind: 'quantity' | 'damage',
-	direction: 1 | -1,
+	kind: SteppedValue,
+	direction: StepDirection,
 ): EquipmentStep {
 	if (kind === 'quantity') {
 		const quantity = item.system.quantity + direction;
