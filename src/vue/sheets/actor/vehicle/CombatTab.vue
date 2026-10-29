@@ -6,16 +6,15 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
-import { RollType } from '@/app/DicePrompt';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 
 import { rollForCrew } from '@/operations/CrewRoll';
+import { attackWithVehicleWeapon } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
@@ -26,12 +25,6 @@ const weapons = computed(() =>
 	itemsOfType(toRaw(rootContext.data.actor), 'vehicleWeapon').filter((i) => i.systemData.state === EquipmentState.Equipped),
 );
 const criticalHits = computed(() => itemsOfType(toRaw(rootContext.data.actor), 'injury'));
-
-async function rollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
-	await rollForCrew(crewForSkills(actor.value.systemData.crew, weapon.systemData.skills), {
-		roll: { type: RollType.Attack, weapon },
-	});
-}
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	await rollForCrew(crewForSkills(actor.value.systemData.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
@@ -58,7 +51,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 					<img :src="weapon.img" :alt="weapon.name" />
 
 					<div class="name">
-						<a @click="rollAttack(weapon)">{{ weapon.name }}</a>
+						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>
 					</div>
 
 					<div class="skill" v-if="weapon.systemData.skills.length > 0">

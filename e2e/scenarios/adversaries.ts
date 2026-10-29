@@ -1,4 +1,5 @@
 /** @file #215, #269, #300 and #343: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
+import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
 /** The names of the adversaries the scenario drops on, without their `E2E ` prefix. */
@@ -26,7 +27,11 @@ type AdversariesHelpers = {
 	drop(args: { actor: string; item: string }): Promise<Observed>;
 	/** The labels of the context menu of an adversary's skill or talent. */
 	menu(target: MenuTarget): Promise<string[]>;
-	clickMenu(args: MenuTarget & { label: string }): Promise<Observed>;
+	/**
+	 * Clicks an entry of the context menu of an adversary's skill or talent, and answers the dialog it opens when an
+	 * answer is given; the dialog read, null when none opened.
+	 */
+	clickMenu(args: MenuTarget & { label: string; answer?: 'yes' | 'no' }): Promise<Observed & { dialog?: ConfirmDialog | null }>;
 	/** Clicks a skill of an adversary's sheet and reads the Dice Prompt it opens. */
 	rollSkill(args: { actor: string; skill: string }): Promise<PromptState>;
 	/** Targets an actor's token, clicks a weapon of the attacker's sheet and reads the Dice Prompt it opens. */
@@ -224,10 +229,18 @@ function installAdversariesHelpers() {
 			return labels;
 		},
 
-		async clickMenu({ label, ...target }) {
+		async clickMenu({ label, answer, ...target }) {
 			const item = (await openMenu(target)).find((element) => text(element.querySelector('.menu-label')) === label);
 			if (!item) throw new Error(`No menu item ${label} for ${JSON.stringify(target)}`);
-			return observe(target.actor, () => item.click());
+			let dialog: ConfirmDialog | null = null;
+			const observed = await observe(target.actor, async () => {
+				item.click();
+				if (answer) {
+					await settle();
+					dialog = await window.e2e.answerConfirm(answer);
+				}
+			});
+			return answer ? { ...observed, dialog } : observed;
 		},
 
 		async rollSkill({ actor: name, skill }) {
@@ -316,8 +329,8 @@ export async function run(e2e: ScenarioContext) {
 	const drop = (actor: string, item: string) => gm.evaluate((args) => window.adversariesE2E.drop(args), { actor, item });
 	const menu = (actor: string, kind: 'skill' | 'talent', name: string) =>
 		gm.evaluate((args) => window.adversariesE2E.menu(args), { actor, kind, name });
-	const clickMenu = (actor: string, kind: 'skill' | 'talent', name: string, label: string) =>
-		gm.evaluate((args) => window.adversariesE2E.clickMenu(args), { actor, kind, name, label });
+	const clickMenu = (actor: string, kind: 'skill' | 'talent', name: string, label: string, answer?: 'yes' | 'no') =>
+		gm.evaluate((args) => window.adversariesE2E.clickMenu(args), { actor, kind, name, label, ...(answer ? { answer } : {}) });
 	const update = (actor: string, data: object) => gm.evaluate((args) => window.adversariesE2E.update(args), { actor, data });
 	const byAdversary = async <T>(names: Adversary[], action: (name: Adversary) => Promise<T>) => {
 		const results: Partial<Record<Adversary, T>> = {};
@@ -437,7 +450,8 @@ export async function run(e2e: ScenarioContext) {
 		const writes: string[][] = [(await clickMenu(name, 'talent', 'Toughened', 'Rank Up')).writes];
 		let last: Observed | undefined;
 		for (let step = 0; step < 3; step++) {
-			last = await clickMenu(name, 'talent', 'Toughened', 'Rank Down');
+			// The last Rank Down deletes the talent, once Yes is answered (§#252).
+			last = await clickMenu(name, 'talent', 'Toughened', 'Rank Down', step === 2 ? 'yes' : undefined);
 			writes.push(last.writes);
 		}
 		return { writes, talents: last!.items.filter((item) => item.startsWith('talent')) };
@@ -449,6 +463,65 @@ export async function run(e2e: ScenarioContext) {
 			writes: [['update Toughened 3'], ['update Toughened 2'], ['update Toughened 1'], ['delete Toughened 1']],
 			talents: ['talent Grit 1'],
 		})),
+	);
+
+	// §#252: the Delete of an adversary's menus asks first.
+	const answer = (yesOrNo: 'yes' | 'no') => gm.evaluate((value) => window.e2e.answerConfirm(value), yesOrNo);
+	const rivalTalents = async () =>
+		(await gm.evaluate(() => window.adversariesE2E.items('Rival'))).filter((item) => item.startsWith('talent'));
+	let asked: Awaited<ReturnType<typeof answer>> = null;
+	await e2e.step("#252 E1 the Rival's Grit deleted from its menu, and No answered", async () => {
+		await clickMenu('Rival', 'talent', 'Grit', 'Delete');
+		asked = await answer('no');
+	});
+	e2e.expect(
+		"#252 E1 an adversary talent's Delete asks in Foundry's deletion dialog, which names the talent, No by default, and No keeps it",
+		{ asked, talents: await rivalTalents() },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Delete Item: E2E Grit',
+				content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			talents: ['talent Grit 1'],
+		},
+	);
+	await e2e.step("#252 E2 the Rival's Grit deleted from its menu, and Yes answered", async () => {
+		await clickMenu('Rival', 'talent', 'Grit', 'Delete');
+		asked = await answer('yes');
+	});
+	e2e.expect("#252 E2 Yes deletes the adversary's talent", await rivalTalents(), []);
+
+	// §#252: a Rank Down that deletes a talent asks first, as the inventory's step down to deletion does.
+	let rankDown: Awaited<ReturnType<typeof clickMenu>> | undefined;
+	await e2e.step('#252 E3 Toughened dropped on the Nemesis at rank 1, then its Rank Down clicked, and No answered', async () => {
+		await drop('Nemesis', 'Toughened');
+		rankDown = await clickMenu('Nemesis', 'talent', 'Toughened', 'Rank Down', 'no');
+	});
+	e2e.expect(
+		"#252 E3 an adversary talent's Rank Down below rank 1 asks in the step's own dialog, No by default, and No keeps the talent at rank 1",
+		{ dialog: rankDown?.dialog, writes: rankDown?.writes, talents: rankDown?.items.filter((item) => item.startsWith('talent')) },
+		{
+			dialog: {
+				application: 'DialogV2',
+				title: 'Confirm Removal',
+				content: 'This will remove the item. Do you want to proceed?',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			writes: [],
+			talents: ['talent Grit 1', 'talent Toughened 1'],
+		},
+	);
+	await e2e.step("#252 E4 the Nemesis's Toughened Rank Down clicked again, and Yes answered", async () => {
+		rankDown = await clickMenu('Nemesis', 'talent', 'Toughened', 'Rank Down', 'yes');
+	});
+	e2e.expect(
+		'#252 E4 Yes deletes the talent below rank 1',
+		{ writes: rankDown?.writes, talents: rankDown?.items.filter((item) => item.startsWith('talent')) },
+		{ writes: ['delete Toughened 1'], talents: ['talent Grit 1'] },
 	);
 
 	// The Grunts have Agility 3, three members of wound threshold 5, and the skill Stealth at rank 3 of its own.

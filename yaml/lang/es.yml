@@ -245,6 +245,9 @@ Genesys:
     ConfirmDeleteItem:
       Title: Confirmar la eliminación
       Content: Esto eliminará el item. ¿Deseas continuar?
+    ConfirmUndoEntry:
+      Title: Deshacer la entrada
+      Content: Deshacer esta entrada quitará {items} del personaje. ¿Deseas continuar?
 
   # Migration Related Messages
   Migration:

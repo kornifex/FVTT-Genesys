@@ -132,6 +132,21 @@ declare namespace foundry {
 				): ContextMenu | null;
 			}
 
+			/** A dialog with buttons, whose factory methods resolve once one is pressed or the dialog is closed. */
+			class DialogV2 extends ApplicationV2 {
+				/**
+				 * Asks a yes-or-no question: resolves to true for yes, false for no, and null when the dialog is closed without
+				 * an answer, unless `rejectClose` is true. The window's title is a localization key; `content` is HTML, or a
+				 * `<div>` without attributes, which Foundry takes as it is.
+				 */
+				static confirm(
+					config?: DeepPartial<ApplicationConfiguration> & {
+						content?: string | HTMLDivElement;
+						rejectClose?: boolean;
+					},
+				): Promise<boolean | null>;
+			}
+
 			class DocumentSheetV2<TDocument extends foundry.abstract.Document = foundry.abstract.Document> extends ApplicationV2 {
 				constructor(options: DeepPartial<ApplicationConfiguration> & { document: TDocument });
 

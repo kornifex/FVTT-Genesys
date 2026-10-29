@@ -6,14 +6,15 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { damageStep, EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
+import { EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { constructDragTransferTypeFromData, DragTransferData, draggedGenesysType } from '@/data/DragTransferData';
-import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
+import { draggedGenesysType, startDocumentDrag } from '@/data/DragTransferData';
+import { containerContents, equipmentStateMoves, equipmentStateUpdates, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
+import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
@@ -22,9 +23,6 @@ import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import { DicePrompt, RollType } from '@/app/DicePrompt';
-import { attackSkillName } from '@/data/Skills';
-import { postChatCard } from '@/item/ChatCards';
 import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
 
 const props = withDefaults(
@@ -32,15 +30,11 @@ const props = withDefaults(
 		item: GenesysItem<EquipmentDataModel>;
 		dragging?: boolean;
 		mini?: boolean;
-		allowEquippedState?: boolean;
-		allowDroppedState?: boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
 	}>(),
 	{
 		dragging: false,
 		mini: false,
-		allowEquippedState: true,
-		allowDroppedState: true,
 		canTypeBeInsideContainer: () => false,
 	},
 );
@@ -56,6 +50,14 @@ const damageStateToIcon = new Map([
 	[EquipmentDamageState.Moderate, 'fa-face-frown'],
 	[EquipmentDamageState.Major, 'fa-face-dizzy'],
 ]);
+
+// The menu entry of each Equipment State move. Equipping is drawn as a fist for weapons, and as a shield for armor.
+const MOVE_ENTRIES = {
+	equip: { icon: 'fas fa-hand-fist', label: 'Genesys.Equipment.Dropdown.Equip' },
+	unequip: { icon: 'fas fa-suitcase', label: 'Genesys.Equipment.Dropdown.Unequip' },
+	drop: { icon: 'fas fa-box-archive', label: 'Genesys.Equipment.Dropdown.Drop' },
+	pickUp: { icon: 'fas fa-suitcase', label: 'Genesys.Equipment.Dropdown.PickUp' },
+} as const;
 
 // Only a Container lights up under a drag, and only for an item it can hold.
 const containerDrag = useDragHover((event) => {
@@ -109,78 +111,32 @@ function damage() {
 	};
 }
 
-async function rollAttack() {
-	const skillName = skillForWeapon();
-	if (!skillName) {
-		return;
-	}
-
-	await DicePrompt.promptForRoll(toRaw(context.data.actor), skillName, {
-		roll: {
-			type: RollType.Attack,
-			// An item with a skill to attack with is a weapon.
-			weapon: props.item as GenesysItem<WeaponDataModel | VehicleWeaponDataModel>,
-		},
-	});
+function actor() {
+	return toRaw(context.data.actor);
 }
 
-async function openItem() {
-	await toRaw(props.item).sheet?.render(true);
+// The Attack Skill of a character's weapon, which offers an attack when it has one.
+function skillForWeapon() {
+	return attackSkill(actor(), props.item as GenesysItem<WeaponDataModel>);
 }
 
-async function deleteItem() {
-	// A Container's contents are deleted with it.
-	await toRaw(props.item).delete();
+// The Equipment State moves the row's menu offers.
+function stateMoves() {
+	return equipmentStateMoves(actor().type, props.item);
 }
 
-async function sendItemToChat() {
-	await postChatCard(toRaw(props.item), toRaw(context.data.actor));
+function moveIcon(action: keyof typeof MOVE_ENTRIES) {
+	return action === 'equip' && props.item.type === 'armor' ? 'fas fa-shield' : MOVE_ENTRIES[action].icon;
 }
 
 async function setItemState(state: EquipmentState) {
 	// A Container's contents take its new state with it, and an armor put on takes off the one worn before.
-	const actor = toRaw(context.data.actor);
-	await actor.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.items.contents, props.item.id, state));
-}
-
-function skillForWeapon() {
-	return attackSkillName(toRaw(context.data.actor).skills, weaponData());
-}
-
-function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
-	return (context.data.actor.systemData.constructor as typeof VehicleDataModel | typeof CharacterDataModel).isRelevantTypeForContext(
-		'EQUIPABLE',
-		item.type,
-	);
-}
-
-function canEquipItem(item: GenesysItem<EquipmentDataModel>) {
-	return isEquipableItem(item) && item.systemData.state !== EquipmentState.Equipped;
-}
-
-function canUnequipItem(item: GenesysItem<EquipmentDataModel>) {
-	return isEquipableItem(item) && item.systemData.state === EquipmentState.Equipped;
-}
-
-function canDropItem(item: GenesysItem<EquipmentDataModel>) {
-	return context.data.actor.type === 'character' && item.systemData.state !== EquipmentState.Dropped;
-}
-
-function canPickupItem(item: GenesysItem<EquipmentDataModel>) {
-	return context.data.actor.type === 'character' && item.systemData.state === EquipmentState.Dropped;
+	await actor().updateEmbeddedDocuments('Item', equipmentStateUpdates(actor().items.contents, props.item.id, state));
 }
 
 function dragStart(event: DragEvent) {
 	isBeingDragged.value = true;
-	const transferData: DragTransferData = {
-		uuid: props.item.uuid,
-		type: props.item.documentName,
-		genesysType: props.item.type,
-	};
-	const genesysTransferType = constructDragTransferTypeFromData(props.item.type, props.item.uuid);
-
-	event.dataTransfer?.setData('text/plain', JSON.stringify(transferData));
-	event.dataTransfer?.setData(genesysTransferType, '');
+	startDocumentDrag(event, props.item);
 
 	emit('dragstart', event);
 }
@@ -191,67 +147,15 @@ function dragEnd(event: DragEvent) {
 	emit('dragend', event);
 }
 
-async function changeItemQuantity(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: number) {
-	const newQuantity = item.systemData.quantity + direction;
-	const containerDiv = (event.currentTarget as HTMLAnchorElement | null)?.parentElement?.parentElement;
-	let containerScroll = containerDiv?.scrollTop;
+async function step(event: MouseEvent, kind: SteppedValue, direction: StepDirection) {
+	// The row of an item in a Container sits in the Container's scrolling list of contents, whose scroll the re-render
+	// after the write can lose: the list gets back the scroll it has when the write starts, once a deletion is confirmed.
+	const contents = (event.currentTarget as HTMLElement | null)?.parentElement?.parentElement;
+	let scroll: number | undefined;
+	await stepEquipment(props.item, kind, direction, () => (scroll = contents?.scrollTop));
 
-	if (newQuantity <= 0) {
-		const shouldDeleteItem = await foundry.appv1.api.Dialog.confirm({
-			title: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Title'),
-			content: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content'),
-			yes: () => true,
-			no: () => false,
-			defaultYes: false,
-		});
-
-		// Make sure we have the latest for this value since it's possible that it has changed while we waited.
-		containerScroll = containerDiv?.scrollTop;
-
-		if (shouldDeleteItem) {
-			await toRaw(item).delete();
-		}
-	} else {
-		await toRaw(item).update({
-			'system.quantity': newQuantity,
-		});
-	}
-
-	if (containerDiv && containerScroll !== undefined) {
-		containerDiv.scrollTop = containerScroll;
-	}
-}
-
-async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: 1 | -1) {
-	const newDamage = damageStep(item.systemData.damage, direction);
-	const containerDiv = (event.currentTarget as HTMLAnchorElement | null)?.parentElement?.parentElement;
-	let containerScroll = containerDiv?.scrollTop;
-
-	if (!newDamage) {
-		return;
-	} else if (newDamage === 'destroyed') {
-		const shouldDeleteItem = await foundry.appv1.api.Dialog.confirm({
-			title: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Title'),
-			content: game.i18n.localize('Genesys.Dialogs.ConfirmDeleteItem.Content'),
-			yes: () => true,
-			no: () => false,
-			defaultYes: false,
-		});
-
-		// Make sure we have the latest for this value since it's possible that it has changed while we waited.
-		containerScroll = containerDiv?.scrollTop;
-
-		if (shouldDeleteItem) {
-			await toRaw(item).delete();
-		}
-	} else {
-		await toRaw(item).update({
-			'system.damage': newDamage,
-		});
-	}
-
-	if (containerDiv && containerScroll !== undefined) {
-		containerDiv.scrollTop = containerScroll;
+	if (contents && scroll !== undefined) {
+		contents.scrollTop = scroll;
 	}
 }
 
@@ -284,15 +188,15 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<img :src="item.img" :alt="item.name" />
 
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
-			<a @click="openItem">{{ item.name }}</a>
+			<a @click="openSheet(item)">{{ item.name }}</a>
 		</span>
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
-				<a @click="openItem">{{ item.name }}</a>
+				<a @click="openSheet(item)">{{ item.name }}</a>
 				<button
 					class="attack"
 					v-if="item.type === 'weapon' && system().state === EquipmentState.Equipped && skillForWeapon()"
-					@click="rollAttack"
+					@click="attackWith(actor(), item as GenesysItem<WeaponDataModel>)"
 				>
 					<Localized label="Genesys.Labels.Attack" />
 				</button>
@@ -348,8 +252,8 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<a
 			v-if="item.type !== 'container'"
 			class="quantity"
-			@click="changeItemQuantity($event, item, +1)"
-			@contextmenu="changeItemQuantity($event, item, -1)"
+			@click="step($event, 'quantity', 1)"
+			@contextmenu="step($event, 'quantity', -1)"
 			data-tooltip="Genesys.Labels.Quantity"
 		>
 			{{ item.systemData.quantity }}
@@ -362,8 +266,8 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 		<a
 			class="damage"
-			@click="changeDamageState($event, item, 1)"
-			@contextmenu="changeDamageState($event, item, -1)"
+			@click="step($event, 'damage', 1)"
+			@contextmenu="step($event, 'damage', -1)"
 			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.systemData.damage]"
 		>
 			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
@@ -372,47 +276,20 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!context.data.editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
-					v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)"
-					icon="fas fa-hand-fist"
-					label="Genesys.Equipment.Dropdown.Equip"
-					@click="setItemState(EquipmentState.Equipped)"
+					v-for="move in stateMoves()"
+					:key="move.action"
+					:icon="moveIcon(move.action)"
+					:label="MOVE_ENTRIES[move.action].label"
+					@click="setItemState(move.state)"
 				/>
 
-				<MenuItem
-					v-if="allowEquippedState && item.type === 'armor' && canEquipItem(item)"
-					icon="fas fa-shield"
-					label="Genesys.Equipment.Dropdown.Equip"
-					@click="setItemState(EquipmentState.Equipped)"
-				/>
+				<hr v-if="stateMoves().length > 0" />
 
-				<MenuItem
-					v-if="allowEquippedState && canUnequipItem(item)"
-					icon="fas fa-suitcase"
-					label="Genesys.Equipment.Dropdown.Unequip"
-					@click="setItemState(EquipmentState.Carried)"
-				/>
+				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendToChat(item, actor())" />
 
-				<MenuItem
-					v-if="allowDroppedState && canDropItem(item)"
-					icon="fas fa-box-archive"
-					label="Genesys.Equipment.Dropdown.Drop"
-					@click="setItemState(EquipmentState.Dropped)"
-				/>
+				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openSheet(item)" />
 
-				<MenuItem
-					v-if="allowDroppedState && canPickupItem(item)"
-					icon="fas fa-suitcase"
-					label="Genesys.Equipment.Dropdown.PickUp"
-					@click="setItemState(EquipmentState.Carried)"
-				/>
-
-				<hr v-if="(allowEquippedState && isEquipableItem(item)) || allowDroppedState" />
-
-				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendItemToChat" />
-
-				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openItem" />
-
-				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem" />
+				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem(item)" />
 			</template>
 
 			<a>
@@ -428,8 +305,6 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					:key="item.id"
 					mini
 					draggable="true"
-					:allow-equipped-state="allowEquippedState"
-					:allow-dropped-state="allowDroppedState"
 					@dragstart="
 						$event.stopPropagation();
 						emit('dragstart', $event);

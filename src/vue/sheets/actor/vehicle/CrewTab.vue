@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { inject, computed, toRaw, ref, watch } from 'vue';
+import { inject, computed, toRaw, shallowRef, watch } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -9,9 +9,10 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CrewDragTransferData, dragData, draggedGenesysType } from '@/data/DragTransferData';
+import { draggedGenesysType } from '@/data/DragTransferData';
 import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
+import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
 
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
@@ -20,22 +21,22 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
 const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? ''));
-const passengersActors = ref<GenesysActor[]>([]);
+const passengersActors = shallowRef<GenesysActor[]>([]);
 
 const sortedPassengers = computed(() => [...toRaw(context.data.actor).systemData.passengers.list].sort(sortPassenger));
 
-// Make sure to display only actors that exist.
+// Only the passengers whose actor still exists are shown. Resolving them is asynchronous: a later change of the
+// passengers replaces the actors still being resolved.
 watch(
 	sortedPassengers,
-	async (passengers) => {
-		const foundActors: GenesysActor[] = [];
-		for (const passenger of passengers) {
-			const actor = await fromUuid<GenesysActor>(passenger.uuid);
-			if (actor) {
-				foundActors.push(actor);
-			}
+	async (passengers, _oldPassengers, onCleanup) => {
+		let stale = false;
+		onCleanup(() => (stale = true));
+
+		const actors = await crewActors(passengers.map((passenger) => passenger.uuid));
+		if (!stale) {
+			passengersActors.value = [...actors.values()];
 		}
-		passengersActors.value = foundActors;
 	},
 	{ immediate: true },
 );
@@ -54,15 +55,6 @@ function dropToPassengers(event: DragEvent, place: CrewPlace) {
 
 function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | TokenDocumentUUID) {
 	void receiveCrewEvent(toRaw(context.data.actor), event, { kind: 'role', roleId, before: memberUnder });
-}
-
-function dragStart(event: DragEvent) {
-	const crewDragData: CrewDragTransferData = {
-		...dragData(event.dataTransfer),
-		sourceVehicleUuid: context.data.actor.uuid,
-	};
-
-	event.dataTransfer?.setData('text/plain', JSON.stringify(crewDragData));
 }
 
 function dragEnter(event: DragEvent) {
@@ -101,7 +93,6 @@ function resetDrags() {
 						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
 						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
 						@remove-member="(memberId) => system.updateCrew((crew) => removeActor(crew, memberId))"
-						@actor-drag-start="dragStart"
 						@entity-drop="(event, memberUnder) => dropToRole(event, role.id, memberUnder)"
 					/>
 				</template>
@@ -133,7 +124,6 @@ function resetDrags() {
 						:dragging="passengerDrag.isHovered.value"
 						draggable="true"
 						@remove-member="system.updateCrew((crew) => removeActor(crew, passenger.uuid))"
-						@dragstart="dragStart"
 					/>
 
 					<SortSlot

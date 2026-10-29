@@ -7,6 +7,7 @@ import {
 	dragData,
 	draggedGenesysType,
 	extractDataFromDragTransferTypes,
+	startDocumentDrag,
 } from '@/data/DragTransferData';
 
 /** A drag's DataTransfer, holding text and the types set on it. */
@@ -96,5 +97,42 @@ describe('draggedGenesysType', () => {
 			'vehicleWeapon',
 		);
 		expect(draggedGenesysType(types('text/plain'))).toBeUndefined();
+	});
+});
+
+describe('startDocumentDrag', () => {
+	/** A drag's DataTransfer that keeps the data set on it, by format. */
+	function recordingEvent() {
+		const data = new Map<string, string>();
+		const dataTransfer = {
+			get types() {
+				return [...data.keys()];
+			},
+			getData: (format: string) => data.get(format) ?? '',
+			setData: (format: string, value: string) => void data.set(format, value),
+		};
+		return { dataTransfer } as unknown as DragEvent;
+	}
+
+	it("carries a dragged document's drag data, with its Genesys type, readable during the drag and on the drop", () => {
+		const event = recordingEvent();
+
+		startDocumentDrag(event, { uuid: 'Actor.pc.Item.sword', documentName: 'Item', type: 'weapon' });
+
+		expect(dragData(event.dataTransfer)).toEqual({ uuid: 'Actor.pc.Item.sword', type: 'Item', genesysType: 'weapon' });
+		expect(draggedGenesysType(event)).toBe('weapon');
+	});
+
+	it('adds what the drag source gives, such as the vehicle a crew member is dragged out of', () => {
+		const event = recordingEvent();
+
+		startDocumentDrag(event, { uuid: 'Actor.pilot', documentName: 'Actor', type: 'character' }, { sourceVehicleUuid: 'Actor.ship' });
+
+		expect(dragData(event.dataTransfer)).toEqual({
+			uuid: 'Actor.pilot',
+			type: 'Actor',
+			genesysType: 'character',
+			sourceVehicleUuid: 'Actor.ship',
+		});
 	});
 });

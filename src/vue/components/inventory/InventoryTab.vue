@@ -19,7 +19,8 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 
 const props = defineProps<{
 	/**
-	 * Whether items can be dropped, which adds the `Dropped` section and the drop/pick up actions.
+	 * Whether items can be dropped, which adds the `Dropped` section. The rows' drop and pick up actions follow the actor
+	 * type on their own.
 	 */
 	allowDroppedState?: boolean;
 
@@ -133,7 +134,6 @@ function resetDrags() {
 								:draggable="isDraggable"
 								:dragging="inventoryDrag.isHovered.value"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
-								:allow-dropped-state="allowDroppedState"
 							/>
 
 							<SortSlot

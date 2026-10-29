@@ -10,10 +10,13 @@ import {
 	heldByDeletedContainers,
 	InventoryItem,
 	containerStateUpdates,
+	equipmentStateMoves,
 	equipmentStateUpdates,
+	equipmentStep,
 	sectionItems,
 	wornArmor,
 } from '@/actor/data/Inventory';
+import { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
 function item(id: string, type: string, state: EquipmentState = EquipmentState.Carried, sort = 0, container = ''): InventoryItem {
@@ -524,5 +527,73 @@ describe('wornArmor', () => {
 		];
 
 		expect(wornArmor(items)).toEqual([jacket]);
+	});
+});
+
+describe('equipmentStateMoves', () => {
+	const actions = (actorType: string, held: InventoryItem) => equipmentStateMoves(actorType, held).map((move) => move.action);
+
+	it('offers a character to equip a weapon or an armor and to drop it, and to put an equipped one back to Carried', () => {
+		expect(equipmentStateMoves('character', item('sword', 'weapon', EquipmentState.Carried))).toEqual([
+			{ action: 'equip', state: EquipmentState.Equipped },
+			{ action: 'drop', state: EquipmentState.Dropped },
+		]);
+		expect(equipmentStateMoves('character', item('coat', 'armor', EquipmentState.Equipped))).toEqual([
+			{ action: 'unequip', state: EquipmentState.Carried },
+			{ action: 'drop', state: EquipmentState.Dropped },
+		]);
+	});
+
+	it('offers a character to pick up a dropped item, and to equip it at once when it can be equipped', () => {
+		expect(actions('character', item('rope', 'gear', EquipmentState.Dropped))).toEqual(['pickUp']);
+		expect(actions('character', item('sword', 'weapon', EquipmentState.Dropped))).toEqual(['equip', 'pickUp']);
+		expect(equipmentStateMoves('character', item('rope', 'gear', EquipmentState.Dropped))).toEqual([
+			{ action: 'pickUp', state: EquipmentState.Carried },
+		]);
+	});
+
+	it('offers a vehicle to equip and unequip its vehicle weapons, but nothing to drop', () => {
+		expect(actions('vehicle', item('turret', 'vehicleWeapon', EquipmentState.Carried))).toEqual(['equip']);
+		expect(actions('vehicle', item('turret', 'vehicleWeapon', EquipmentState.Equipped))).toEqual(['unequip']);
+		expect(actions('vehicle', item('rifle', 'weapon', EquipmentState.Carried))).toEqual([]);
+	});
+
+	it('offers an Adversary nothing: it has no Equipment State', () => {
+		expect(actions('rival', item('sword', 'weapon', EquipmentState.Carried))).toEqual([]);
+	});
+
+	it('offers nothing for an item held in a Container, which shares its state', () => {
+		expect(actions('character', item('knife', 'weapon', EquipmentState.Carried, 0, 'bag'))).toEqual([]);
+	});
+});
+
+describe('equipmentStep', () => {
+	const held = (quantity: number, damage: EquipmentDamageState) => ({ system: { quantity, damage } });
+
+	it("raises and lowers an item's quantity by one", () => {
+		expect(equipmentStep(held(2, EquipmentDamageState.Undamaged), 'quantity', 1)).toEqual({
+			action: 'update',
+			update: { system: { quantity: 3 } },
+		});
+		expect(equipmentStep(held(2, EquipmentDamageState.Undamaged), 'quantity', -1)).toEqual({
+			action: 'update',
+			update: { system: { quantity: 1 } },
+		});
+	});
+
+	it('deletes an item whose quantity goes down to 0', () => {
+		expect(equipmentStep(held(1, EquipmentDamageState.Undamaged), 'quantity', -1)).toEqual({ action: 'delete' });
+	});
+
+	it("steps an item's damage, and deletes it once destroyed past major damage", () => {
+		expect(equipmentStep(held(1, EquipmentDamageState.Minor), 'damage', 1)).toEqual({
+			action: 'update',
+			update: { system: { damage: EquipmentDamageState.Moderate } },
+		});
+		expect(equipmentStep(held(1, EquipmentDamageState.Major), 'damage', 1)).toEqual({ action: 'delete' });
+	});
+
+	it('does nothing below undamaged', () => {
+		expect(equipmentStep(held(1, EquipmentDamageState.Undamaged), 'damage', -1)).toEqual({ action: 'none' });
 	});
 });
