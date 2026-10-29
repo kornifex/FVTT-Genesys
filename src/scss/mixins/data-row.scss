@@ -1,0 +1,28 @@
+// Lays out a data row, a DataRow or markup shaped like one: its label in a first column as wide as it needs, up to 30%,
+// and whatever follows in the second. The item sheets' data sections and the adversary's Source row share it; each adds
+// its own border. Its rules reach the row's children, which DataRow or a slot renders, so a scoped style includes it
+// under :deep().
+@mixin grid {
+	display: grid;
+	grid-template-columns: minmax(min-content, 30%) 1fr;
+	align-items: center;
+	padding: 0.25em;
+	row-gap: 0.1em;
+
+	input:not([type='checkbox']),
+	select {
+		width: 100%;
+	}
+
+	input[type='checkbox'] {
+		justify-self: right;
+	}
+
+	& > * {
+		grid-column: 2 / span 1;
+	}
+
+	& > label {
+		grid-column: 1 / span 1;
+	}
+}

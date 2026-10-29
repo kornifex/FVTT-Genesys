@@ -359,6 +359,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/data-row.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -595,31 +596,12 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			min-height: 4rem;
 		}
 
-		.data-row {
-			display: grid;
-			grid-template-columns: minmax(min-content, 30%) 1fr;
-			align-items: center;
+		// DataRow renders the Source row's label and input, so the row is reached with :deep(): the mixin's rules on them
+		// then carry no scope attribute.
+		:deep(.data-row) {
 			border-top: 1px dashed black;
-			padding: 0.25em;
-			row-gap: 0.1em;
 			margin-top: 1rem;
-
-			:deep(input:not([type='checkbox'])),
-			:deep(select) {
-				width: 100%;
-			}
-
-			:deep(input[type='checkbox']) {
-				justify-self: right;
-			}
-
-			& > :deep(*) {
-				grid-column: 2 / span 1;
-			}
-
-			& > :deep(label) {
-				grid-column: 1 / span 1;
-			}
+			@include data-row.grid;
 		}
 	}
 }

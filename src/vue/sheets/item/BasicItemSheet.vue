@@ -77,6 +77,8 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 </template>
 
 <style lang="scss">
+@use '@scss/mixins/data-row.scss';
+
 // Unscoped: the item sheets pass their own description and data sections through the slots, which these rules lay out.
 .item-sheet-basic {
 	.editor-content {
@@ -110,29 +112,8 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 		flex-direction: column;
 
 		.row {
-			display: grid;
-			grid-template-columns: minmax(min-content, 30%) 1fr;
-			align-items: center;
 			border-bottom: 1px dashed black;
-			padding: 0.25em;
-			row-gap: 0.1em;
-
-			input:not([type='checkbox']),
-			select {
-				width: 100%;
-			}
-
-			input[type='checkbox'] {
-				justify-self: right;
-			}
-
-			& > * {
-				grid-column: 2 / span 1;
-			}
-
-			& > label {
-				grid-column: 1 / span 1;
-			}
+			@include data-row.grid;
 		}
 	}
 }
