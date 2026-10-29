@@ -7,6 +7,9 @@ type FiringArc = {
 	starboard: boolean;
 };
 
+/**
+ * The data of a vehicle weapon, with its firing arcs.
+ */
 export abstract class VehicleWeaponDataModel extends BaseWeaponDataModel {
 	/**
 	 * Directions a weapon can be fired, based on its mounting.

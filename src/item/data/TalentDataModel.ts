@@ -2,6 +2,9 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import * as Talents from '@/item/data/Talents';
 import type { AbilityActivation } from '@/item/data/AbilityDataModel';
 
+/**
+ * The data of a talent.
+ */
 export abstract class TalentDataModel extends BaseItemDataModel {
 	abstract tier: number;
 	abstract activation: AbilityActivation;

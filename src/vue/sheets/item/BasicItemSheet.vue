@@ -32,7 +32,6 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 		<header :class="hasDecoration ? 'with-decoration' : ''">
 			<img :src="context.data.item.img" data-edit="img" :title="context.data.item.name" :alt="context.data.item.name" />
 			<input type="text" name="name" :value="context.data.item.name" v-localize:placeholder="'Genesys.Labels.Name'" />
-			<!-- Decoration -->
 			<slot v-if="hasDecoration" name="decoration"></slot>
 		</header>
 

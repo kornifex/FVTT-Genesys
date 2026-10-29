@@ -6,6 +6,9 @@ import { RivalDataModel } from '@/actor/data/RivalDataModel';
 import { NemesisDataModel } from '@/actor/data/NemesisDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 
+/**
+ * Register the actor document, its data models and its sheets with Foundry.
+ */
 export function register() {
 	CONFIG.Actor.documentClass = GenesysActor;
 

@@ -11,15 +11,27 @@ import { downgradeDie, upgradeDie } from '@/dice/DieGrades';
 
 type PartialRecord<K extends PropertyKey, T> = Partial<Record<K, T>>;
 
+/**
+ * The name of a die type, such as `Ability`.
+ */
 export type DieName = keyof typeof DieTypes;
+/**
+ * The name of a symbol, such as `Success`.
+ */
 export type SymbolName = keyof typeof GenesysSymbol;
 
+/**
+ * The dice and symbols of a check, before they are rolled.
+ */
 export type DicePool = {
 	dice: PartialRecord<DieName, number>;
 	symbols: PartialRecord<SymbolName, number>;
 	usesSuperCharacteristic: boolean;
 };
 
+/**
+ * The Pool Modification glyphs a dice pool is built with, by where they come from.
+ */
 export type DicePoolModifications = {
 	baseDifficulty: string[];
 	manualChanges: string[];

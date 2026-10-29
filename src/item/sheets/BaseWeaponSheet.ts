@@ -5,13 +5,14 @@ import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 import { withQualityAdded } from '@/item/data/Qualities';
 
+/**
+ * Item sheet shared by the weapons, which receives their skills and qualities.
+ */
 export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 	protected override async receiveItem(droppedItem: GenesysItem): Promise<void> {
 		const systemData = this.item.systemData;
 		switch (droppedItem.type) {
-			// Skill Drop
 			case 'skill':
-				// Don't allow duplicates of the same skill.
 				if (systemData.skills.some((s) => skillNamesMatch(s, droppedItem.name))) {
 					return;
 				}
@@ -24,7 +25,6 @@ export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 
 				return;
 
-			// Item Quality Drop
 			case 'quality': {
 				const quality = droppedItem.systemData as ItemQualityDataModel;
 				const qualities = withQualityAdded(systemData.qualities, {

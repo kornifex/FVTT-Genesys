@@ -21,7 +21,6 @@ export function useUuidForVehicles(worldActorUuid: (id: string) => string | unde
 		const system = source.system as VehicleSource;
 		const changes: Record<string, unknown> = {};
 
-		// If the vehicle has passengers on them then we need to update their references from id's to UUID's.
 		const passengersList = system.passengers?.list ?? [];
 		const passengers = passengersList.flatMap((passenger) => {
 			const uuid = toUuid(passenger.uuid);
@@ -31,7 +30,6 @@ export function useUuidForVehicles(worldActorUuid: (id: string) => string | unde
 			changes['system.passengers.list'] = passengers;
 		}
 
-		// If a role has any members then we need to update their references from id's to UUID's.
 		const roles = system.roles ?? [];
 		const migratedRoles = roles.map((role) => ({ ...role, members: role.members.flatMap((member) => toUuid(member) ?? []) }));
 		if (migratedRoles.some((role, index) => role.members.join() !== roles[index].members.join())) {

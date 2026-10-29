@@ -108,7 +108,6 @@ async function openItem(item: GenesysItem) {
 		<div class="block">
 			<div class="header"><Localized label="Genesys.Labels.SpecialAbilities" /></div>
 			<div class="talents-container">
-				<!-- Active Abilities -->
 				<div v-if="activeAbilities.length > 0" class="category-header"><Localized label="Genesys.Labels.Active" /></div>
 				<Talent
 					v-for="ability in activeAbilities.filter((t) => t.systemData.activation.detail === '')"
@@ -119,7 +118,6 @@ async function openItem(item: GenesysItem) {
 					@delete="ability.delete()"
 				/>
 
-				<!-- Active Abilities w/Description -->
 				<template v-for="activeType in activeAbilityTypes" :key="activeType">
 					<div class="sub-category-header">{{ activeType }}</div>
 					<Talent
@@ -132,7 +130,6 @@ async function openItem(item: GenesysItem) {
 					/>
 				</template>
 
-				<!-- Passive Abilities -->
 				<div v-if="passiveAbilities.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
 				<Talent
 					v-for="ability in passiveAbilities"
@@ -146,7 +143,6 @@ async function openItem(item: GenesysItem) {
 
 			<div class="header"><Localized label="Genesys.Labels.Talents" /></div>
 			<div class="talents-container">
-				<!-- Active Talents -->
 				<div v-if="activeTalents.length > 0" class="category-header"><Localized label="Genesys.Labels.Active" /></div>
 				<Talent
 					v-for="talent in activeTalents.filter((t) => t.systemData.activation.detail === '')"
@@ -157,7 +153,6 @@ async function openItem(item: GenesysItem) {
 					@open="openItem(talent)"
 				/>
 
-				<!-- Active Talents w/Description -->
 				<template v-for="activeType in activeTalentTypes" :key="activeType">
 					<div class="sub-category-header">{{ activeType }}</div>
 					<Talent
@@ -170,7 +165,6 @@ async function openItem(item: GenesysItem) {
 					/>
 				</template>
 
-				<!-- Passive Talents -->
 				<div v-if="passiveTalents.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
 				<Talent
 					v-for="talent in passiveTalents"

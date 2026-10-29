@@ -4,6 +4,9 @@
 
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 
+/**
+ * The data of a Container.
+ */
 export abstract class ContainerDataModel extends EquipmentDataModel {
 	/**
 	 * Whether the container is open or not.

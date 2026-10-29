@@ -4,6 +4,9 @@ import { CombatPool } from '@/data/Actors';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
+/**
+ * The data of a nemesis, who suffers wounds and strain.
+ */
 export abstract class NemesisDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<NemesisDataModel>> {
 	abstract wounds: CombatPool;
 	abstract strain: CombatPool;

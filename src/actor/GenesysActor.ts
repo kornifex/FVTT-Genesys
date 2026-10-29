@@ -8,6 +8,9 @@ import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 
+/**
+ * An actor of the system, typed by its data model.
+ */
 export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
 	/**
 	 * Specialized property for accessing `actor.system` in a typed manner.

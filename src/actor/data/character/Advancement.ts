@@ -47,6 +47,9 @@ type AdvancementSkill = {
 	career: boolean;
 };
 
+/**
+ * What Advancement needs to know about a talent the character owns.
+ */
 export type AdvancementTalent = {
 	id: string;
 	name: string;
@@ -105,10 +108,16 @@ function planFor(
 	};
 }
 
+/**
+ * Whether an Advancement is allowed, with a plan to write, rather than refused.
+ */
 export function isAllowed(result: AdvancementResult) {
 	return 'plan' in result;
 }
 
+/**
+ * The XP the character can still spend: what the Experience Journal gained, less what it spent.
+ */
 export function availableXP(entries: Pick<Entry, 'amount'>[]) {
 	return entries.reduce((total, entry) => total + entry.amount, 0);
 }
@@ -147,6 +156,9 @@ export function withStartingXP(entries: Entry[], amount: number): Entry[] {
 	return [{ amount, type: EntryType.Starting }, ...entries];
 }
 
+/**
+ * The Experience Journal without the Archetype's Starting XP, its first entry.
+ */
 export function withoutStartingXP(entries: Entry[]): Entry[] {
 	return entries.slice(1);
 }
@@ -294,6 +306,9 @@ export function buyDroppedTalent(
 	);
 }
 
+/**
+ * Award XP to the character, with the reason the Experience Journal records.
+ */
 export function awardXP(character: AdvancementCharacter, amount: number, reason: string): AdvancementResult {
 	return planFor([...character.entries, { amount, type: EntryType.Award, data: { reason } }]);
 }

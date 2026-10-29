@@ -2,6 +2,9 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 
+/**
+ * The data of a Career: its career skills, and those that gained a free rank.
+ */
 export abstract class CareerDataModel extends BaseItemDataModel {
 	/**
 	 * Career skills offered by the Career.

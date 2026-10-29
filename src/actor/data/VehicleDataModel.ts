@@ -27,6 +27,9 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 	reducesEquippedArmor: false,
 };
 
+/**
+ * The data of a vehicle, with its Crew and its cargo.
+ */
 export abstract class VehicleDataModel
 	extends foundry.abstract.DataModel
 	implements HasPreCreate<GenesysActor<VehicleDataModel>>, HasOnDelete<GenesysActor<VehicleDataModel>>
@@ -121,6 +124,9 @@ export abstract class VehicleDataModel
 		};
 	}
 
+	/**
+	 * Whether the vehicle's cargo exceeds its encumbrance threshold.
+	 */
 	get isEncumbered() {
 		return isEncumbered(this.currentEncumbrance);
 	}
@@ -142,6 +148,9 @@ export abstract class VehicleDataModel
 		};
 	}
 
+	/**
+	 * Whether the vehicle carries more passengers than its capacity.
+	 */
 	get isOverCapacity() {
 		const currentPassengers = this.currentPassengers;
 		return currentPassengers.value > currentPassengers.threshold;
@@ -154,6 +163,9 @@ export abstract class VehicleDataModel
 		return { passengers: this.passengers.list, roles: this.roles };
 	}
 
+	/**
+	 * Whether an actor is in the vehicle's Crew, as a passenger or in a Role.
+	 */
 	hasCrew(actorUuid: string) {
 		return hasActor(this.crew, actorUuid);
 	}
@@ -277,6 +289,10 @@ function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
 	return !!scene && game.scenes.has(scene.id) && scene.tokens.has(token.id);
 }
 
+/**
+ * Render the sheets of the vehicles an actor crews when one of the actor's items changes, and remove a deleted actor
+ * from the Crew of every vehicle in the world.
+ */
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
 
@@ -295,10 +311,9 @@ export function register() {
 		const targetActor = actor as GenesysActor;
 
 		if (targetActor.type === 'vehicle') {
-			// Whenever a vehicle is deleted remove it from the updates array.
 			VehicleDataModel._GAME_VEHICLES.delete(targetActor as GenesysActor<VehicleDataModel>);
 		} else {
-			// Whenever a non-vehicle actor is deleted let the Acting GM remove it from all the vehicles in the world.
+			// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
 			if (isActingGm()) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {

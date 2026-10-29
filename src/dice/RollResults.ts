@@ -4,6 +4,9 @@ import type { SymbolName } from '@/dice/DicePool';
 import { SYMBOL_GLYPHS, symbolOfGlyph } from '@/dice/GenesysPoolModifications';
 import { countedSuccessesAndFailures } from '@/dice/GenesysSymbol';
 
+/**
+ * The symbols of a roll, counted and netted against each other.
+ */
 export type GenesysRollResults = {
 	/**
 	 * Total number of successes that were rolled, including the one added by Triumphs. Always >= 0.
@@ -72,7 +75,6 @@ export type GenesysRollResults = {
 export function rollResults(faces: Record<string, string[]>, extraSymbols: Record<string, number>): GenesysRollResults {
 	const counts: Record<SymbolName, number> = { Triumph: 0, Success: 0, Advantage: 0, Despair: 0, Failure: 0, Threat: 0 };
 
-	// Count the symbols of the faces rolled, ignoring the blank ones.
 	for (const glyph of Object.values(faces).flat().join('')) {
 		const symbol = symbolOfGlyph(glyph);
 		if (symbol) {
@@ -80,7 +82,6 @@ export function rollResults(faces: Record<string, string[]>, extraSymbols: Recor
 		}
 	}
 
-	// Add the extra symbols of the roll.
 	for (const [glyph, amount] of Object.entries(extraSymbols ?? {})) {
 		const symbol = symbolOfGlyph(glyph);
 		if (symbol) {

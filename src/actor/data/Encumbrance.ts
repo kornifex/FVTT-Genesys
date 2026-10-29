@@ -16,6 +16,9 @@ const WORN_ARMOR_ENCUMBRANCE_REDUCTION = 3;
  */
 const BASE_ENCUMBRANCE_THRESHOLD = 5;
 
+/**
+ * What this module reads of an item to tell the Container it is held in.
+ */
 export type HeldContainer = {
 	/**
 	 * The id of the container this one is held in, or an empty string.

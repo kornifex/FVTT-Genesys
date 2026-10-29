@@ -20,6 +20,9 @@ type Motivations = {
 	fear: Motivation;
 };
 
+/**
+ * The data that every Adversary shares: Minion Groups, Rivals and Nemeses.
+ */
 export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;

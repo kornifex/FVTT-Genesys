@@ -51,6 +51,9 @@ export const GRADE_GLYPHS = {
  */
 const REMOVAL = '-';
 
+/**
+ * The name of a grade operation, such as `UpgradeAbility`.
+ */
 export type DieGradeOperationName = keyof typeof GRADE_GLYPHS;
 
 /**

@@ -73,6 +73,9 @@ export type RoundClaims = Record<string, string | undefined>;
  */
 export const OWN_SLOT = -1;
 
+/**
+ * A turn of a round, given by a combatant's initiative, which a combatant of its side Claims.
+ */
 export type InitiativeSlot = {
 	/**
 	 * Identifies the slot whatever its position in the turn order.
@@ -144,6 +147,9 @@ export function encodeInitiative(netSuccess: number, netAdvantage: number) {
 	return Math.max(netSuccess, 0) + Math.max(netAdvantage, 0) / ADVANTAGE_SCALE;
 }
 
+/**
+ * The Successes and Advantage of an initiative as {@link encodeInitiative} stores it, none without one.
+ */
 export function decodeInitiative(initiative: number | null) {
 	const value = initiative ?? 0;
 	const successes = Math.floor(value);

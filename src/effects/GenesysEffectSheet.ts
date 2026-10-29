@@ -131,7 +131,10 @@ function changeTypeChoices(changes: EditedChange[]) {
 	return Object.fromEntries([...labels.sort(([, a], [, b]) => a.localeCompare(b, game.i18n.lang)), ...unregistered]);
 }
 
-// The class keeps its name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
+/**
+ * The sheet of an Active Effect, whose Changes tab offers the system's keys and Pool Modifications. The class keeps its
+ * name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
+ */
 export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffectConfig<GenesysEffect> {
 	static DEFAULT_OPTIONS = {
 		classes: ['effect-sheet-v2'],

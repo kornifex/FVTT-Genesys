@@ -8,6 +8,9 @@ type RenderContext = foundry.applications.ApplicationRenderContext;
 type RenderOptions = foundry.applications.ApplicationRenderOptions;
 type DocumentSheet = foundry.applications.api.DocumentSheetV2;
 
+/**
+ * Mix the rendering of a document sheet with a Vue component into an ApplicationV2 document sheet class.
+ */
 export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSheet>>(base: TBase) {
 	return class extends VueSheet(base) {
 		// Like AppV1's document sheets, a change to a field updates the document.

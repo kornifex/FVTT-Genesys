@@ -6,6 +6,10 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
+/**
+ * The data of a piece of equipment, with its Equipment State: that of gear and consumables, and the base of the other
+ * equipment.
+ */
 export abstract class EquipmentDataModel extends BaseItemDataModel {
 	/**
 	 * Rarity value for the item.

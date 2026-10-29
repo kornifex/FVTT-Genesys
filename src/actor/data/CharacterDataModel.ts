@@ -53,6 +53,9 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 	reducesEquippedArmor: true,
 };
 
+/**
+ * The data of a player character.
+ */
 export abstract class CharacterDataModel extends foundry.abstract.DataModel implements HasPreCreate<CharacterActor> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
@@ -147,6 +150,9 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 		return isEncumbered(this.currentEncumbrance);
 	}
 
+	/**
+	 * How many talents the character holds at each tier of the Talent Pyramid, counting the tiers their ranks reached.
+	 */
 	get talentPyramidTotals() {
 		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter(
 			(i) => i.type === 'talent',

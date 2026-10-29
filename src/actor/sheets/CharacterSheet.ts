@@ -24,11 +24,17 @@ export class CharacterSheet extends GenesysActorSheet<CharacterDataModel> {
 		return receiveCharacterDrop(this.actor, droppedItem);
 	}
 
-	// The character sheet's Vue components remove the Archetype through the sheet.
+	/**
+	 * Whether the Archetype can be removed: only while the Experience Journal holds nothing but its Starting XP. The
+	 * character sheet's Vue components remove the Archetype through the sheet.
+	 */
 	canRemoveArchetype() {
 		return Archetype.canRemoveArchetype(this.actor.systemData);
 	}
 
+	/**
+	 * Remove the Archetype from the character, with what it gave them.
+	 */
 	async removeArchetype(archetype: GenesysItem<ArchetypeDataModel>) {
 		await Archetype.removeArchetype(this.actor, archetype);
 	}

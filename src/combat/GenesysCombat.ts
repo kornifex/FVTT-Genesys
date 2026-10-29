@@ -33,6 +33,9 @@ const FLAG_EXTRA_SLOTS = 'extraSlots';
 
 type ClaimData = Record<number, RoundClaims>;
 
+/**
+ * Foundry's options for rolling initiative, with the system's own.
+ */
 export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
 	/**
 	 * Roll the Initiative Slots that the combatants' initiative gives this round, all of them or only those without
@@ -41,10 +44,19 @@ export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
 	slotsOfCombatants?: 'all' | 'unrolled';
 };
 
+/**
+ * The options of a roll of Initiative Slots, which roll each slot's Initiative Skill rather than a formula.
+ */
 export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
+	/**
+	 * Open the Dice Prompt for each slot, rather than rolling its Initiative Skill at once.
+	 */
 	prompt?: boolean;
 };
 
+/**
+ * A combat whose turns are Initiative Slots, which the combatants of their side Claim (CRB p. 96).
+ */
 export class GenesysCombat extends Combat {
 	/**
 	 * Skills from the Skills Compendium that can be used for initiative.
@@ -62,6 +74,9 @@ export class GenesysCombat extends Combat {
 		return initiativeSkills;
 	}
 
+	/**
+	 * The Claims on the Initiative Slots of a round, by slot id.
+	 */
 	claimsForRound(round: number): RoundClaims {
 		return this.getFlag<ClaimData | undefined>('genesys', FLAG_CLAIMS)?.[round] ?? {};
 	}
@@ -139,6 +154,10 @@ export class GenesysCombat extends Combat {
 		return this.slots.find((slot) => slot.id === slotId);
 	}
 
+	/**
+	 * Whether the user may revoke the Claim on a claimed Initiative Slot of the current round: a GM may, once the combat
+	 * started.
+	 */
 	canRevokeClaim(slotId: string) {
 		const slot = this.#slot(slotId);
 		return slot ? this.slotViewForUser(slot).canRevoke : false;
@@ -211,6 +230,10 @@ export class GenesysCombat extends Combat {
 		await this.claimSlot(this.round, slotId, combatant.id);
 	}
 
+	/**
+	 * Claim an Initiative Slot of a round for a combatant. A player's Claim goes to the Acting GM, who checks it again
+	 * and writes it.
+	 */
 	async claimSlot(round: number, slotId: string, combatantId: string) {
 		if (!game.user.isGM) {
 			socketEmit(SocketOperation.ClaimInitiativeSlot, {
@@ -231,6 +254,9 @@ export class GenesysCombat extends Combat {
 		await this.update({ [`flags.genesys.${FLAG_CLAIMS}.${round}.${slotId}`]: combatantId });
 	}
 
+	/**
+	 * Revoke the Claim on an Initiative Slot of a round. Only a GM may, once the combat started.
+	 */
 	async revokeSlot(round: number, slotId: string) {
 		if (!game.user.isGM || !this.started) {
 			return;
@@ -239,10 +265,16 @@ export class GenesysCombat extends Combat {
 		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}`);
 	}
 
+	/**
+	 * Every extra slot the combat stores, whatever round it starts from.
+	 */
 	get storedExtraSlots() {
 		return this.getFlag<StoredExtraSlot[] | undefined>('genesys', FLAG_EXTRA_SLOTS) ?? [];
 	}
 
+	/**
+	 * Give a combatant an Extra Slot from a round on, keeping the turn on the current slot.
+	 */
 	async addExtraSlot(combatantId: string, round: number) {
 		// The new slot may sort before the current one.
 		await this.updateExtraSlots(
@@ -259,6 +291,9 @@ export class GenesysCombat extends Combat {
 		this.refreshTurns();
 	}
 
+	/**
+	 * Write the stored extra slots, keeping the turn on an Initiative Slot of the current round when one is given.
+	 */
 	async updateExtraSlots(extraSlots: StoredExtraSlot[], keepTurnOn: string | undefined) {
 		const changes = { flags: { genesys: { [FLAG_EXTRA_SLOTS]: extraSlots } } };
 		const turn = this.turnOfSlotAfter(keepTurnOn, changes);
@@ -290,6 +325,9 @@ export class GenesysCombat extends Combat {
 		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.id });
 	}
 
+	/**
+	 * Order the turns again and render the tracker, on this client only.
+	 */
 	refreshLocalTurns() {
 		this.setupTurns();
 		this.debounceTrackerRender();
@@ -331,7 +369,6 @@ export class GenesysCombat extends Combat {
 		for (const slot of slots) {
 			const combatant = this.combatants.get(slot.originId) as Embedded<GenesysCombatant>;
 
-			// Initiative roll result
 			const initiativeSkill = combatant.initiativeSkillToRoll;
 			let checkRoll: CheckRoll;
 

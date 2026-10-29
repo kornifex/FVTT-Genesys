@@ -1,12 +1,13 @@
+/**
+ * Register the Handlebars helpers the system's templates use.
+ */
 export function register() {
-	/** String Utilities */
 	Handlebars.registerHelper('capitalize', (value: string) => value.capitalize());
 	Handlebars.registerHelper('toLowerCase', (value: string) => value.toLowerCase());
 	Handlebars.registerHelper('toUpperCase', (value: string) => value.toUpperCase());
 	Handlebars.registerHelper('split', (value: string) => value.split(' '));
 	Handlebars.registerHelper('isSubstringOf', (substring: string, fullString: string) => fullString.includes(substring));
 
-	/** Math Utilities */
 	Handlebars.registerHelper('add', (lhs: number, rhs: number) => lhs + rhs);
 	Handlebars.registerHelper('sub', (lhs: number, rhs: number) => lhs - rhs);
 	Handlebars.registerHelper('mul', (lhs: number, rhs: number) => lhs * rhs);
@@ -17,12 +18,10 @@ export function register() {
 	Handlebars.registerHelper('floor', (val: number) => Math.floor(val));
 	Handlebars.registerHelper('toFixed', (val: number, fractionDigits: number) => val.toFixed(fractionDigits));
 
-	/** Logic Utilities */
 	Handlebars.registerHelper('and', (lhs: boolean, rhs: boolean) => lhs && rhs);
 	Handlebars.registerHelper('or', (lhs: boolean, rhs: boolean) => lhs || rhs);
 	Handlebars.registerHelper('not', (val: boolean) => !val);
 
-	/** Iteration utilities */
 	Handlebars.registerHelper('repeat', (times: number, options: { fn: (time: number) => string | number }) => {
 		const results = [];
 

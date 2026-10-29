@@ -260,14 +260,11 @@ async function onRoll() {
 
 <template>
 	<div class="genesys dice-prompt">
-		<!-- Header Text -->
 		<header>
 			<span class="hint"><Localized label="Genesys.DicePrompt.Hint" /></span>
 		</header>
 
-		<!-- Dice Pool Preview -->
 		<div class="preview">
-			<!-- Positive and Negative Pools -->
 			<div v-for="category in DIE_CATEGORIES" :key="category" :class="category">
 				<div
 					v-for="(entry, index) in poolEntries(currentDicePool, category)"
@@ -279,7 +276,6 @@ async function onRoll() {
 				</div>
 			</div>
 
-			<!-- Dice Box -->
 			<div class="dice-box">
 				<template v-for="(row, index) in DICE_BOX" :key="index">
 					<PoolModificationIcon v-for="glyph in row" :key="glyph" :glyph @click="addManualChange(glyph)" />
@@ -289,7 +285,6 @@ async function onRoll() {
 		</div>
 
 		<div v-if="context.actor" class="characteristic-skill-row">
-			<!-- Characteristic Selection -->
 			<select
 				name="characteristic"
 				:value="selectedCharacteristic ?? '-'"
@@ -302,7 +297,6 @@ async function onRoll() {
 				</option>
 			</select>
 
-			<!-- Skill Selection -->
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
 				<optgroup v-if="weaponSkills.length > 0" v-localize:label="'Genesys.DicePrompt.WeaponSkills'">
@@ -374,7 +368,6 @@ async function onRoll() {
 			<span v-else>{{ probabilityOfSuccess }}%</span>
 		</div>
 
-		<!-- Roll Button -->
 		<button class="roll-button" @click.prevent="onRoll"><Localized label="Genesys.DicePrompt.Roll" /></button>
 	</div>
 </template>
@@ -747,7 +740,6 @@ async function onRoll() {
 			text-stroke: 2px black;
 			font-size: 2.5rem;
 
-			// Ability & Difficulty Die
 			&.die-Ability {
 				color: colors.$die-ability;
 			}
@@ -756,7 +748,6 @@ async function onRoll() {
 				color: colors.$die-difficulty;
 			}
 
-			// Proficiency Die
 			&.die-Proficiency {
 				color: colors.$die-proficiency;
 			}
@@ -765,7 +756,6 @@ async function onRoll() {
 				color: colors.$die-challenge;
 			}
 
-			// Boost Die
 			&.die-Boost {
 				color: colors.$die-boost;
 			}

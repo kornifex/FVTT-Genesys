@@ -13,6 +13,9 @@ export type SelectCrewMemberPromptContext = {
 	answer: (selected: ActorCrewMemberSkill) => void;
 };
 
+/**
+ * Prompt the user for the crew member who rolls a skill for a vehicle.
+ */
 export class SelectCrewMemberPrompt extends VuePrompt<ActorCrewMemberSkill | undefined>(undefined) {
 	override get vueComponent() {
 		return VueSelectCrewMemberPrompt;
