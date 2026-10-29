@@ -9,16 +9,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
 import { isActingGm } from '@/socket';
-
-type ValueWithMax = {
-	value: number;
-	max: number;
-};
-
-type ValueWithThreshold = {
-	value: number;
-	threshold: number;
-};
+import { CombatPool, combatPoolField, ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
 // A vehicle's cargo all counts, whatever its Equipment State.
 const ENCUMBRANCE_RULES: EncumbranceRules = {
@@ -39,8 +30,8 @@ export abstract class VehicleDataModel
 	abstract handling: number;
 	abstract defense: number;
 	abstract armor: number;
-	abstract hullTrauma: ValueWithMax;
-	abstract systemStrain: ValueWithMax;
+	abstract hullTrauma: CombatPool;
+	abstract systemStrain: CombatPool;
 	abstract illustration: string;
 	abstract description: string;
 	abstract complement: string;
@@ -217,14 +208,8 @@ export abstract class VehicleDataModel
 			handling: new fields.NumberField({ integer: true, initial: 0 }),
 			defense: new fields.NumberField({ integer: true, initial: 0 }),
 			armor: new fields.NumberField({ integer: true, initial: 0 }),
-			hullTrauma: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				max: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
-			systemStrain: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				max: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
+			hullTrauma: combatPoolField(),
+			systemStrain: combatPoolField(),
 			illustration: new fields.StringField({ initial: 'icons/svg/mystery-man.svg' }),
 			description: new fields.HTMLField(),
 			complement: new fields.StringField({ initial: '' }),
@@ -243,10 +228,7 @@ export abstract class VehicleDataModel
 					}),
 				),
 			}),
-			encumbrance: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				threshold: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
+			encumbrance: valueWithThresholdField(),
 			roles: new fields.ArrayField(
 				new fields.SchemaField({
 					id: new fields.StringField(),

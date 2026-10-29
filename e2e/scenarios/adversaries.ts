@@ -1,4 +1,4 @@
-/** @file #215, #300 and #343: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, the characteristic values in their circle, and a minion's sheet following its independence. */
+/** @file #215, #269, #300 and #343: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /** The names of the adversaries the scenario drops on, without their `E2E ` prefix. */
@@ -561,6 +561,35 @@ export async function run(e2e: ScenarioContext) {
 		"#195 E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
 		{ '-3 typed on 40 wounds': await typeInSheet(WOUNDS, '-3'), '-3 typed on 14 strain': await typeInSheet(STRAIN, '-3') },
 		{ '-3 typed on 40 wounds': 0, '-3 typed on 14 strain': 0 },
+	);
+
+	// Rivals' and nemeses' wounds and strain are whole numbers, as a character's are (§#269).
+	const typeInAdversary = (actor: Adversary, path: string, value: string) =>
+		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), { actor, name: path, value, path });
+	e2e.expect(
+		"#269 E5 a fraction typed in a rival's or a nemesis's wounds or strain field is stored rounded to a whole number",
+		{
+			'rival wound threshold 12.4': await typeInAdversary('Rival', 'system.wounds.max', '12.4'),
+			'nemesis current strain 2.6': await typeInAdversary('Nemesis', STRAIN, '2.6'),
+		},
+		{ 'rival wound threshold 12.4': 12, 'nemesis current strain 2.6': 3 },
+	);
+	e2e.expect(
+		"#269 E6 a rival's or a nemesis's wounds and strain stored as fractions, before they were whole numbers, read rounded",
+		await gm.evaluate(() => {
+			const read = (type: string, system: object) => {
+				const { wounds, strain } = new Actor.implementation({ name: 'E2E Fractions', type, system }).system;
+				return { wounds: { ...wounds }, ...(strain && { strain: { ...strain } }) };
+			};
+			return {
+				rival: read('rival', { wounds: { value: 2.6, max: 10.4 } }),
+				nemesis: read('nemesis', { wounds: { value: 1.2, max: 12.6 }, strain: { value: 0.4, max: 13.2 } }),
+			};
+		}),
+		{
+			rival: { wounds: { value: 3, max: 10 } },
+			nemesis: { wounds: { value: 1, max: 13 }, strain: { value: 0, max: 13 } },
+		},
 	);
 
 	// F: the characteristic values in their circle (§#300).

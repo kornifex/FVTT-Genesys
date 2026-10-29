@@ -1,5 +1,6 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { qualitiesField } from '@/data/schemaFields';
 
 /**
  * The data of an armor.
@@ -27,14 +28,7 @@ export abstract class ArmorDataModel extends EquipmentDataModel {
 			...super.defineSchema(),
 			defense: new fields.NumberField({ integer: true, initial: 0 }),
 			soak: new fields.NumberField({ integer: true, initial: 0 }),
-			qualities: new fields.ArrayField(
-				new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-					isRated: new fields.BooleanField({ initial: true }),
-					rating: new fields.NumberField({ initial: 1, integer: true }),
-				}),
-			),
+			qualities: qualitiesField(),
 		};
 	}
 }

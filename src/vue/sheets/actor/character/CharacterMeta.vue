@@ -9,6 +9,7 @@ import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import { CharacterSheet } from '@/actor/sheets/CharacterSheet';
+import { itemsOfType } from '@/item/ItemTypes';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
@@ -20,8 +21,8 @@ const career = ref<GenesysItem<CareerDataModel> | undefined>();
 function updateArchetypeAndCareer() {
 	const actor = toRaw(rootContext.data.actor);
 
-	archetype.value = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
-	career.value = actor.items.find((i) => i.type === 'career') as GenesysItem<CareerDataModel> | undefined;
+	[archetype.value] = itemsOfType(actor, 'archetype');
+	[career.value] = itemsOfType(actor, 'career');
 }
 
 async function openItemSheet(item?: GenesysItem) {

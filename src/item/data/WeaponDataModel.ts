@@ -1,5 +1,6 @@
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { Characteristic } from '@/data/Characteristics';
+import { choiceField } from '@/data/schemaFields';
 
 /**
  * The data of a character's weapon.
@@ -20,18 +21,7 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 
 		return {
 			...super.defineSchema(),
-			damageCharacteristic: new fields.StringField({
-				initial: '-',
-				choices: [
-					'-',
-					Characteristic.Brawn,
-					Characteristic.Agility,
-					Characteristic.Intellect,
-					Characteristic.Cunning,
-					Characteristic.Willpower,
-					Characteristic.Presence,
-				],
-			}),
+			damageCharacteristic: choiceField(['-', ...Object.values(Characteristic)], '-'),
 			attackSkill: new fields.StringField({ initial: '' }),
 		};
 	}

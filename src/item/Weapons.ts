@@ -38,9 +38,19 @@ export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; c
 }
 
 /**
- * The localization key of each range band a weapon can reach, from engaged to strategic.
+ * The range bands a weapon can reach, from engaged to strategic.
  */
-export const RANGE_LABELS: Record<BaseWeaponDataModel['range'], string> = {
+export const RANGES = ['engaged', 'short', 'medium', 'long', 'extreme', 'strategic'] as const;
+
+/**
+ * A range band.
+ */
+export type Range = (typeof RANGES)[number];
+
+/**
+ * The localization key of each range band a weapon can reach.
+ */
+export const RANGE_LABELS: Record<Range, string> = {
 	engaged: 'Genesys.Range.Engaged',
 	short: 'Genesys.Range.Short',
 	medium: 'Genesys.Range.Medium',

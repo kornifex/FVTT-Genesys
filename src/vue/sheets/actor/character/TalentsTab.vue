@@ -6,44 +6,41 @@ import Localized from '@/vue/components/Localized.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
 import { TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
-import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
-const activeAbilities = computed(
-	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'active')
-			.sort((a, b) => {
-				return a.name.localeCompare(b.name);
-			}) as GenesysItem<AbilityDataModel>[],
+const activeAbilities = computed(() =>
+	itemsOfType(toRaw(context.data.actor), 'ability')
+		.filter((i) => i.systemData.activation.type === 'active')
+		.sort((a, b) => {
+			return a.name.localeCompare(b.name);
+		}),
 );
 const activeAbilityTypes = computed(() =>
 	Array.from(new Set(activeAbilities.value.map((t) => t.systemData.activation.detail.toLowerCase()))).filter((t) => t !== ''),
 );
-const passiveAbilities = computed(
-	() =>
-		toRaw(context.data.actor)
-			.items.filter((i) => i.type === 'ability' && (i.system as AbilityDataModel).activation.type === 'passive')
-			.sort((a, b) => {
-				return a.name.localeCompare(b.name);
-			}) as GenesysItem<AbilityDataModel>[],
+const passiveAbilities = computed(() =>
+	itemsOfType(toRaw(context.data.actor), 'ability')
+		.filter((i) => i.systemData.activation.type === 'passive')
+		.sort((a, b) => {
+			return a.name.localeCompare(b.name);
+		}),
 );
 // The ids of the items the Archetype granted, which only go away with it.
 const grantedItemIds = computed(() => {
 	const actor = toRaw(context.data.actor);
-	const archetype = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
+	const [archetype] = itemsOfType(actor, 'archetype');
 	return new Set(
 		archetype ? heldNonSkillsGrantedBy(actor.items.contents, archetype.systemData.grantedItems, actor.id).map((i) => i.id) : [],
 	);
 });
 
-const allTalents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
+const allTalents = computed(() => itemsOfType(toRaw(context.data.actor), 'talent'));
 const activeTalents = computed(() => {
 	return allTalents.value
 		.filter((i) => i.systemData.activation.type === 'active')

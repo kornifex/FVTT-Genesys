@@ -14,24 +14,19 @@ import { totalDefense, totalSoak } from '@/actor/data/Protection';
 import { wornArmor } from '@/actor/data/Inventory';
 import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
 import { HasPreCreate } from '@/data/HasPreCreate';
-import { GenesysItem } from '@/item/GenesysItem';
-import { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import { CombatPool, Defense } from '@/data/Actors';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { Defense } from '@/data/Actors';
+import {
+	characteristicsField,
+	CombatPool,
+	combatPoolField,
+	defenseField,
+	Motivations,
+	motivationsField,
+	valueWithThresholdField,
+} from '@/data/schemaFields';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-
-type Motivation = {
-	name: string;
-	description: string;
-};
-
-type Motivations = {
-	strength: Motivation;
-	flaw: Motivation;
-	desire: Motivation;
-	fear: Motivation;
-};
 
 type Details = {
 	gender: string;
@@ -44,7 +39,6 @@ type Details = {
 };
 
 type CharacterActor = GenesysActor<CharacterDataModel>;
-type ArmorItem = GenesysItem<ArmorDataModel>;
 
 // A character's Dropped equipment counts towards neither the value nor the threshold, and their worn armor counts 3 less.
 const ENCUMBRANCE_RULES: EncumbranceRules = {
@@ -117,7 +111,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	}
 
 	#wornArmor() {
-		return wornArmor((<CharacterActor>(<unknown>this.parent)).items.contents as ArmorItem[]).map((armor) => armor.systemData);
+		return wornArmor(itemsOfType(<CharacterActor>(<unknown>this.parent), 'armor')).map((armor) => armor.systemData);
 	}
 
 	/**
@@ -154,9 +148,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 	 * How many talents the character holds at each tier of the Talent Pyramid, counting the tiers their ranks reached.
 	 */
 	get talentPyramidTotals() {
-		const allTalents = (<CharacterActor>(<unknown>this.parent)).items.filter(
-			(i) => i.type === 'talent',
-		) as GenesysItem<TalentDataModel>[];
+		const allTalents = itemsOfType(<CharacterActor>(<unknown>this.parent), 'talent');
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
 	}
 
@@ -190,46 +182,13 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 		const fields = foundry.data.fields;
 
 		return {
-			characteristics: new fields.SchemaField({
-				brawn: new fields.NumberField({ integer: true, initial: 0 }),
-				agility: new fields.NumberField({ integer: true, initial: 0 }),
-				intellect: new fields.NumberField({ integer: true, initial: 0 }),
-				cunning: new fields.NumberField({ integer: true, initial: 0 }),
-				willpower: new fields.NumberField({ integer: true, initial: 0 }),
-				presence: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
+			characteristics: characteristicsField(0),
 			soak: new fields.NumberField({ integer: true, initial: 0 }),
-			defense: new fields.SchemaField({
-				melee: new fields.NumberField({ integer: true, initial: 0 }),
-				ranged: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
-			wounds: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				max: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
-			strain: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				max: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
+			defense: defenseField(),
+			wounds: combatPoolField(),
+			strain: combatPoolField(),
 			illustration: new fields.StringField({ initial: 'icons/svg/mystery-man.svg' }),
-			motivations: new fields.SchemaField({
-				strength: new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-				}),
-				flaw: new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-				}),
-				desire: new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-				}),
-				fear: new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-				}),
-			}),
+			motivations: motivationsField(),
 			details: new fields.SchemaField({
 				gender: new fields.StringField({ initial: '' }),
 				age: new fields.StringField({ initial: '' }),
@@ -249,10 +208,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 					}),
 				),
 			}),
-			encumbrance: new fields.SchemaField({
-				value: new fields.NumberField({ integer: true, initial: 0 }),
-				threshold: new fields.NumberField({ integer: true, initial: 0 }),
-			}),
+			encumbrance: valueWithThresholdField(),
 			currency: new fields.NumberField({ initial: 500 }),
 			superCharacteristics: new fields.SetField(new fields.StringField()),
 		};
