@@ -71,12 +71,13 @@ async function show() {
 }
 
 /**
- * Keep the height the editor has when its toggle opens it. Closed, its enriched text sets its height; open, ProseMirror
- * fills whatever height it has, which would otherwise shrink to its minimum.
+ * Keep the height the editor shows when its toggle opens it. Closed, its enriched text sets its height, and the wrapper
+ * scrolls what its box can't show; open, ProseMirror fills whatever height the element has, and scrolls itself, so the
+ * element would otherwise shrink to its minimum.
  */
 function keepHeight(event: MouseEvent) {
-	if (editor && (event.target as Element | null)?.closest('button.toggle')) {
-		editor.style.minHeight = `${editor.offsetHeight}px`;
+	if (editor && container.value && (event.target as Element | null)?.closest('button.toggle')) {
+		editor.style.minHeight = `${container.value.clientHeight}px`;
 	}
 }
 
@@ -96,25 +97,56 @@ function onClose() {
 </template>
 
 <style lang="scss" scoped>
+// The wrapper keeps the box of the previous editor: it fills the call site, which may bound its height (the vehicle's
+// description), and scrolls the text that box can't show.
 .editor {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
+	max-width: 100%;
+	max-height: 100%;
+	// Foundry's `--min-height` of its editors, which the previous editor took through its `prosemirror` class.
+	min-height: 150px;
+	overflow: auto;
 }
 
 :deep(prose-mirror) {
-	flex: 1;
+	// The element grows with its text and never shrinks below it: the wrapper scrolls instead.
+	flex: 1 0 auto;
 
-	// Foundry positions the text in a box of the editor's height. Closed, the text flows instead, so that the editor grows
-	// with it as the sheets lay it out.
+	.editor-content * {
+		user-select: text;
+	}
+
+	// Foundry positions the text in a box of the element's height, which it scrolls. Closed, the text flows instead, so that
+	// the editor grows with it, its blocks spaced by the editor's gap as the previous editor laid them out.
 	&.inactive > .editor-content {
 		position: static;
-		padding: 0 0.5em;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem 0;
+		padding: 0;
+		overflow: visible;
+
+		> * {
+			padding-left: 0.5em;
+			padding-right: 0.5em;
+		}
+
+		> :is(ul, ol) {
+			padding-left: 2em;
+		}
+	}
+
+	.editor-container {
+		margin: 0 0 1em;
 	}
 
 	.ProseMirror {
-		padding: 0 0.5em;
+		padding-left: 0.5em;
+		padding-right: 0.5em;
 	}
 }
 </style>

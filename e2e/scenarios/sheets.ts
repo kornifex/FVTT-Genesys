@@ -59,7 +59,10 @@ type SheetsHelpers = {
 	/** Marks a field of a sheet so that the scenario can type in it with Playwright. */
 	markField(name: string, selector: string, mark: string): Promise<void>;
 	changeField(name: string, selector: string, value: string): Promise<void>;
-	/** The `<prose-mirror>` editor of a field on an open sheet, once it shows: its toggle button, whether it is open, and its text. */
+	/**
+	 * The `<prose-mirror>` editor of a field on an open sheet, once it shows: its toggle button, whether it is open, its text,
+	 * and the document links in it.
+	 */
 	editor(name: string, field: string): Promise<EditorState>;
 	/** Opens the editor of a field with its toggle button, and marks its text so that the scenario can type in it with Playwright. */
 	openEditor(name: string, field: string, mark: string): Promise<void>;
@@ -207,6 +210,8 @@ function installSheetsHelpers() {
 		waitFor(`the editor ${field} of ${name}`, () =>
 			sheetElement(name).querySelector<HTMLElement & { open: boolean }>(`prose-mirror[name="${field}"]`),
 		);
+	// The button that opens a toggled editor.
+	const toggleOf = (editor: Element) => editor.querySelector<HTMLButtonElement>(':scope > button.toggle');
 	const openApps = () =>
 		[...foundry.applications.instances.values(), ...Object.values(ui.windows)].filter(
 			(app: { rendered: boolean; hasFrame?: boolean; id: string }) =>
@@ -404,7 +409,7 @@ function installSheetsHelpers() {
 
 		async editor(name, field) {
 			const element = await editorOf(name, field);
-			const toggle = element.querySelector<HTMLButtonElement>(':scope > button.toggle');
+			const toggle = toggleOf(element);
 			return {
 				toggle: toggle ? (toggle.disabled ? 'disabled' : 'enabled') : null,
 				open: element.open,
@@ -415,7 +420,7 @@ function installSheetsHelpers() {
 
 		async openEditor(name, field, mark) {
 			const element = await editorOf(name, field);
-			const toggle = element.querySelector<HTMLButtonElement>(':scope > button.toggle');
+			const toggle = toggleOf(element);
 			if (!toggle) throw new Error(`The editor ${field} of ${name} has no toggle button`);
 			// The toggle only shows while the pointer is over the editor.
 			toggle.click();

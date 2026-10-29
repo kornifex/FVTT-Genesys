@@ -16,7 +16,7 @@ defineProps<{
 	/**
 	 * The actor's `system.motivations`.
 	 */
-	motivations: Record<Motivation, { name: string; description: string }>;
+	motivations: Record<Motivation, { name: string }>;
 }>();
 </script>
 
