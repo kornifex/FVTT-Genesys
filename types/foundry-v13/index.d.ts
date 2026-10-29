@@ -149,6 +149,34 @@ declare namespace foundry {
 			}
 		}
 
+		namespace elements {
+			/**
+			 * The `<prose-mirror>` element: a form field editing enriched text in ProseMirror, whose form submits it. A toggled
+			 * editor shows its enriched text until its button opens it, and closes when it saves.
+			 */
+			class HTMLProseMirrorElement extends HTMLElement {
+				/**
+				 * Creates the element. Its constructor reads the value, the enriched text and whether it is toggled, so an
+				 * element made with `document.createElement` and given attributes afterwards misses them.
+				 */
+				static create(config: {
+					name: string;
+					value: string;
+					enriched?: string;
+					toggled?: boolean;
+					disabled?: boolean;
+				}): HTMLProseMirrorElement;
+
+				get name(): string;
+
+				/** The edited text, while the editor is open. */
+				get value(): string;
+
+				/** Whether the editor is open: always, unless it is toggled. */
+				get open(): boolean;
+			}
+		}
+
 		namespace handlebars {
 			/** Fetches and compiles templates, and registers each as a partial named by its path. */
 			function loadTemplates(paths: string[]): Promise<unknown[]>;
