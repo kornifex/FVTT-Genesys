@@ -394,6 +394,20 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 }
 
 /**
+ * The names of the items undoing an entry of the Experience Journal deletes, for the user to confirm first: the talent
+ * its purchase brought. Empty when the undo deletes nothing, or is refused.
+ */
+export function itemsRemovedByUndo(character: AdvancementCharacter, index: number) {
+	const result = undoEntry(character, index);
+	if (!('plan' in result)) {
+		return [];
+	}
+
+	const items = [...character.talents, ...character.skills];
+	return result.plan.itemDeletes.flatMap((id) => items.find((item) => item.id === id)?.name ?? []);
+}
+
+/**
  * What Advancement needs to know about a character actor.
  */
 export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {

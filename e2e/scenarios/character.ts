@@ -920,6 +920,15 @@ async function advancement(
 	const drop = (item: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.item)), { actor: A, item });
 	const undo = (entry: string) => page((args) => window.characterE2E.undo(args.actor, args.entry), { actor: A, entry });
+	// Undoes an entry whose undo deletes an item, which asks first, and answers the dialog; the dialog read.
+	const undoAndAnswer = (entry: string, answer: 'yes' | 'no') =>
+		page(
+			async (args) => {
+				window.characterE2E.undo(args.actor, args.entry);
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ actor: A, entry, answer },
+		);
 	const setHouseRules = (rules: Record<string, unknown>) => page((rules) => window.e2e.setSettings(rules), rules);
 	const reopen = () => page((name) => window.characterE2E.reopen(name), A);
 
@@ -1073,7 +1082,30 @@ async function advancement(
 		{ ...steady, ...(await page((name) => window.characterE2E.appliedEffects(name), A)), xp: await xp(), entry: await journalTail(1) },
 		{ idInJournal: true, effects: ['E2E Steady'], soak: 1, xp: 1000 - spent, entry: ['NewTalent -5 E2E Steady tier 1 rank 1'] },
 	);
-	await e2e.step('#36 D2 the new talent undone from the Experience Journal', () => undo('NewTalent -5 E2E Steady'));
+	// §#252: an undo that deletes an item asks first.
+	let asked: Awaited<ReturnType<typeof undoAndAnswer>> = null;
+	await e2e.step("#252 C4 the new talent's entry undone from the Experience Journal, and No answered", async () => {
+		asked = await undoAndAnswer('NewTalent -5 E2E Steady', 'no');
+	});
+	e2e.expect(
+		'#252 C4 undoing a new talent asks in a dialog naming the talent, No by default, and No keeps the talent, its entry and its XP',
+		{ asked, rank: (await talent('E2E Steady'))?.rank, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Undo Entry',
+				content: 'Undoing this entry removes E2E Steady from the character. Do you want to proceed?',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			rank: 1,
+			xp: 1000 - spent,
+			entry: ['NewTalent -5 E2E Steady tier 1 rank 1'],
+		},
+	);
+	await e2e.step('#36 D2 the new talent undone from the Experience Journal, and Yes answered', async () => {
+		asked = await undoAndAnswer('NewTalent -5 E2E Steady', 'yes');
+	});
 	spent -= 5;
 	e2e.expect(
 		'#36 D2 undoing a new talent deletes it, with its effect, and gives its XP back',

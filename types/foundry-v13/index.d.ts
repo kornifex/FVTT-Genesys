@@ -136,11 +136,12 @@ declare namespace foundry {
 			class DialogV2 extends ApplicationV2 {
 				/**
 				 * Asks a yes-or-no question: resolves to true for yes, false for no, and null when the dialog is closed without
-				 * an answer, unless `rejectClose` is true. The window's title is a localization key; `content` is HTML.
+				 * an answer, unless `rejectClose` is true. The window's title is a localization key; `content` is HTML, or a
+				 * `<div>` without attributes, which Foundry takes as it is.
 				 */
 				static confirm(
 					config?: DeepPartial<ApplicationConfiguration> & {
-						content?: string;
+						content?: string | HTMLDivElement;
 						rejectClose?: boolean;
 					},
 				): Promise<boolean | null>;
