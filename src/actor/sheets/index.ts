@@ -10,11 +10,15 @@ import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
  * ones (ADR 0005).
  */
 function registerSheet(sheetClass: ConstructorOf<GenesysActorSheet>, options: RegisterSheetOptions) {
-	Actors.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ActorSheet>, options);
+	foundry.documents.collections.Actors.registerSheet(
+		'genesys',
+		sheetClass as unknown as ConstructorOf<foundry.appv1.sheets.ActorSheet>,
+		options,
+	);
 }
 
 export function register() {
-	Actors.unregisterSheet('core', ActorSheet);
+	foundry.documents.collections.Actors.unregisterSheet('core', foundry.appv1.sheets.ActorSheet);
 
 	registerSheet(CharacterSheet, {
 		types: ['character'],

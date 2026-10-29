@@ -32,14 +32,18 @@ function basicSheet(vueComponent: Component, sheetType: typeof GenesysItemSheet<
  * ones (ADR 0005).
  */
 function registerSheet(sheetClass: ConstructorOf<GenesysItemSheet>, options: RegisterSheetOptions) {
-	Items.registerSheet('genesys', sheetClass as unknown as ConstructorOf<ItemSheet>, options);
+	foundry.documents.collections.Items.registerSheet(
+		'genesys',
+		sheetClass as unknown as ConstructorOf<foundry.appv1.sheets.ItemSheet>,
+		options,
+	);
 }
 
 /**
  * Registers Item sheets used by the system.
  */
 export function register() {
-	Items.unregisterSheet('core', ItemSheet);
+	foundry.documents.collections.Items.unregisterSheet('core', foundry.appv1.sheets.ItemSheet);
 
 	registerSheet(basicSheet(AbilitySheet), {
 		types: ['ability'],
