@@ -1,5 +1,6 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { register as registerSheets } from '@/item/sheets';
+import type { ItemDataModels, ItemType } from '@/item/ItemTypes';
 
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
@@ -24,18 +25,24 @@ export function register() {
 	registerSheets();
 }
 
+// Typed by the item type → DataModel map that `itemsOfType` reads items with: an item type left out here, or registered
+// with a DataModel that lacks the data the map promises, fails to compile.
+const DATA_MODELS: { [T in ItemType]: abstract new (...args: never[]) => ItemDataModels[T] } = {
+	ability: AbilityDataModel,
+	archetype: ArchetypeDataModel,
+	armor: ArmorDataModel,
+	career: CareerDataModel,
+	consumable: EquipmentDataModel,
+	container: ContainerDataModel,
+	injury: InjuryDataModel,
+	gear: EquipmentDataModel,
+	skill: SkillDataModel,
+	talent: TalentDataModel,
+	quality: ItemQualityDataModel,
+	weapon: WeaponDataModel,
+	vehicleWeapon: VehicleWeaponDataModel,
+};
+
 function registerDataModels() {
-	CONFIG.Item.dataModels.ability = AbilityDataModel;
-	CONFIG.Item.dataModels.archetype = ArchetypeDataModel;
-	CONFIG.Item.dataModels.armor = ArmorDataModel;
-	CONFIG.Item.dataModels.career = CareerDataModel;
-	CONFIG.Item.dataModels.consumable = EquipmentDataModel;
-	CONFIG.Item.dataModels.container = ContainerDataModel;
-	CONFIG.Item.dataModels.injury = InjuryDataModel;
-	CONFIG.Item.dataModels.gear = EquipmentDataModel;
-	CONFIG.Item.dataModels.skill = SkillDataModel;
-	CONFIG.Item.dataModels.talent = TalentDataModel;
-	CONFIG.Item.dataModels.quality = ItemQualityDataModel;
-	CONFIG.Item.dataModels.weapon = WeaponDataModel;
-	CONFIG.Item.dataModels.vehicleWeapon = VehicleWeaponDataModel;
+	Object.assign(CONFIG.Item.dataModels, DATA_MODELS);
 }

@@ -8,11 +8,10 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import type { CombatPool } from '@/data/Actors';
+import type { CombatPool } from '@/data/schemaFields';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
-import type { TalentDataModel } from '@/item/data/TalentDataModel';
 import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
+import { itemsOfType } from '@/item/ItemTypes';
 import { Notification, notify } from '@/notifications';
 
 /**
@@ -394,6 +393,20 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 }
 
 /**
+ * The names of the items undoing an entry of the Experience Journal deletes, for the user to confirm first: the talent
+ * its purchase brought. Empty when the undo deletes nothing, or is refused.
+ */
+export function itemsRemovedByUndo(character: AdvancementCharacter, index: number) {
+	const result = undoEntry(character, index);
+	if (!('plan' in result)) {
+		return [];
+	}
+
+	const items = [...character.talents, ...character.skills];
+	return result.plan.itemDeletes.flatMap((id) => items.find((item) => item.id === id)?.name ?? []);
+}
+
+/**
  * What Advancement needs to know about a character actor.
  */
 export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {
@@ -406,13 +419,13 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
 		characteristics: system._source.characteristics as CharacteristicsContainer,
 		woundThreshold: (system._source.wounds as CombatPool).max,
 		strainThreshold: (system._source.strain as CombatPool).max,
-		skills: (actor.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[]).map((skill) => ({
+		skills: itemsOfType(actor, 'skill').map((skill) => ({
 			id: skill.id,
 			name: skill.name,
 			rank: skill.systemData.rank,
 			career: skill.systemData.career,
 		})),
-		talents: (actor.items.filter((item) => item.type === 'talent') as GenesysItem<TalentDataModel>[]).map((talent) => ({
+		talents: itemsOfType(actor, 'talent').map((talent) => ({
 			id: talent.id,
 			name: talent.name,
 			ranked: talent.systemData.ranked,

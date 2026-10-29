@@ -10,13 +10,14 @@ import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import { CharacterSheet } from '@/actor/sheets/CharacterSheet';
+import { itemsOfType } from '@/item/ItemTypes';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
 const { document: actor, editable, sheet } = useSheetDocument<GenesysActor<CharacterDataModel>, CharacterSheet>();
 
-const archetype = toRef(() => actor.value.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined);
-const career = toRef(() => actor.value.items.find((i) => i.type === 'career') as GenesysItem<CareerDataModel> | undefined);
+const archetype = toRef(() => itemsOfType(actor.value, 'archetype').at(0));
+const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 
 async function openItemSheet(item?: GenesysItem) {
 	if (!item) {

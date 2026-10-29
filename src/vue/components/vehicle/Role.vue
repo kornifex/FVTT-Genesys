@@ -7,6 +7,7 @@ import MenuItem from '@/vue/components/MenuItem.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { useDragHover } from '@/vue/useDragHover';
+import { crewActors } from '@/operations/CrewRoll';
 
 type MemberUUID = ActorUUID | TokenDocumentUUID;
 
@@ -28,8 +29,6 @@ const emit = defineEmits<{
 	(e: 'updateName', newName: string): void;
 	(e: 'removeSkill', skillName: string): void;
 	(e: 'removeMember', memberUuid: string): void;
-	(e: 'actorDragStart', event: DragEvent): void;
-	(e: 'actorDragEnd'): void;
 	(e: 'entityDrop', event: DragEvent, memberUnder?: MemberUUID): void;
 }>();
 
@@ -37,19 +36,19 @@ const { isHovered, enter, leave, reset } = useDragHover();
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<GenesysActor[]>([]);
 
-// Make sure to display only actors that exist. Foundry builds the vehicle's system data anew on each of its updates, so
-// a change to the members comes as another list.
+// Only the members whose actor still exists are shown. Foundry builds the vehicle's system data anew on each of its
+// updates, so a change to the members comes as another list. Resolving them is asynchronous: a later change of the
+// members replaces the actors still being resolved.
 watch(
 	() => props.members,
-	async (members) => {
-		const foundActors: GenesysActor[] = [];
-		for (const member of members) {
-			const actor = await fromUuid<GenesysActor>(member);
-			if (actor) {
-				foundActors.push(actor);
-			}
+	async (members, _oldMembers, onCleanup) => {
+		let stale = false;
+		onCleanup(() => (stale = true));
+
+		const actors = await crewActors(members);
+		if (!stale) {
+			actorsInRole.value = [...actors.values()];
 		}
-		actorsInRole.value = foundActors;
 	},
 	{ immediate: true },
 );
@@ -101,8 +100,6 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 						<ActorTile
 							:actor="member as GenesysActor"
 							draggable="true"
-							@dragstart="emit('actorDragStart', $event)"
-							@dragend="emit('actorDragEnd')"
 							:dragging="dragging"
 							@remove-member="emit('removeMember', member.uuid)"
 						/>

@@ -35,6 +35,20 @@ export function constructDragTransferTypeFromData(genesysType: string, uuid: Doc
 }
 
 /**
+ * Start the drag of an actor or an item from a sheet: its drag data as text, with what the drag source adds, and the
+ * format that carries its Genesys type, which drop targets read during the drag.
+ */
+export function startDocumentDrag(
+	event: DragEvent,
+	document: { uuid: string; documentName: string; type: string },
+	added: Omit<CrewDragTransferData, keyof DragTransferData> = {},
+) {
+	const data: CrewDragTransferData = { uuid: document.uuid, type: document.documentName, genesysType: document.type, ...added };
+	event.dataTransfer?.setData('text/plain', JSON.stringify(data));
+	event.dataTransfer?.setData(constructDragTransferTypeFromData(document.type, document.uuid as DocumentUUID), '');
+}
+
+/**
  * The drag data a drag carries as text: Foundry's, or the system's, which adds the dragged document's own type. Empty
  * when the drag carries no JSON object.
  */

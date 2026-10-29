@@ -3,16 +3,14 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { groupSkillRank, groupWoundThreshold, remainingMembers } from '@/actor/data/MinionGroup';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
+import { ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
 /**
  * The data of a Minion Group.
  */
 export abstract class MinionDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<MinionDataModel>> {
 	abstract groupSize: number;
-	abstract wounds: {
-		value: number;
-		threshold: number;
-	};
+	abstract wounds: ValueWithThreshold;
 
 	static override readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
@@ -72,10 +70,7 @@ export abstract class MinionDataModel extends AdversaryDataModel implements HasP
 		return {
 			...super.defineSchema(),
 			groupSize: new fields.NumberField({ initial: 4, integer: true }),
-			wounds: new fields.SchemaField({
-				value: new fields.NumberField({ initial: 0, integer: true }),
-				threshold: new fields.NumberField({ initial: 0, integer: true }),
-			}),
+			wounds: valueWithThresholdField(),
 		};
 	}
 }

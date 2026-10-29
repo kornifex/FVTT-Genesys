@@ -8,6 +8,7 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import { draggedGenesysType } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
@@ -19,7 +20,8 @@ import SortSlot from '@/vue/components/inventory/SortSlot.vue';
 
 const props = defineProps<{
 	/**
-	 * Whether items can be dropped, which adds the `Dropped` section and the drop/pick up actions.
+	 * Whether items can be dropped, which adds the `Dropped` section. The rows' drop and pick up actions follow the actor
+	 * type on their own.
 	 */
 	allowDroppedState?: boolean;
 
@@ -43,8 +45,8 @@ const isDraggable = ref(actor.value.isOwner);
 const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('EQUIPABLE', draggedGenesysType(event) ?? ''));
 const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
-const inventory = computed(
-	() => actor.value.items.filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)) as GenesysItem<EquipmentDataModel>[],
+const inventory = computed(() =>
+	itemsOfType(actor.value, EQUIPMENT_TYPES).filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
 const equippedItems = computed(() => sectionItems(inventory.value, EquipmentState.Equipped));
 const carriedItems = computed(() => sectionItems(inventory.value, EquipmentState.Carried));
@@ -132,7 +134,6 @@ function resetDrags() {
 								:draggable="isDraggable"
 								:dragging="inventoryDrag.isHovered.value"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
-								:allow-dropped-state="allowDroppedState"
 							/>
 
 							<SortSlot

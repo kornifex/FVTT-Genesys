@@ -22,7 +22,7 @@ async function removeSkill(index: number) {
 		<template v-slot:description>
 			<section class="overview">
 				<section class="description">
-					<Editor name="system.description" :content="system.description" button />
+					<Editor name="system.description" />
 					<Enriched class="source" :value="system.source" />
 				</section>
 

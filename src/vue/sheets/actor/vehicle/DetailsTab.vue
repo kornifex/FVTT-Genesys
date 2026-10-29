@@ -13,7 +13,7 @@ const { system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
 		<div class="description-section">
 			<section class="description">
 				<div class="header"><Localized label="Genesys.Tabs.Description" /></div>
-				<Editor name="system.description" :content="system.description" button />
+				<Editor name="system.description" />
 			</section>
 
 			<section class="illustration">

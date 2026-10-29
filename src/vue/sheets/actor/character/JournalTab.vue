@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { ENTRY_LABELS, Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
-import { advance, awardXP, undoEntry } from '@/actor/data/character/Advancement';
+import { advance, awardXP } from '@/actor/data/character/Advancement';
+import { undoJournalEntry } from '@/operations/JournalUndo';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -23,7 +24,7 @@ async function addXPJournalEntry() {
 }
 
 async function removeJournalEntry(index: number) {
-	await advance(actor.value, (character) => undoEntry(character, index));
+	await undoJournalEntry(actor.value, index);
 }
 
 function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | number> | undefined {
@@ -98,7 +99,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		<section class="player-notes">
 			<div class="header"><Localized label="Genesys.Labels.Notes" /></div>
 
-			<Editor name="system.notes" :content="system.notes" button />
+			<Editor name="system.notes" />
 		</section>
 
 		<section class="xp-journal">
@@ -263,10 +264,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			background: white;
 			border: 1px solid black;
 		}
-	}
-
-	.editor-content {
-		padding: 0.5em;
 	}
 
 	.xp-journal {

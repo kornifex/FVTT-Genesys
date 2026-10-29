@@ -49,6 +49,12 @@ export type CombatState = {
 export type FixedDie = { face: number; faces: number };
 
 /**
+ * A yes-or-no dialog, AppV1 or ApplicationV2: the class of its application, its title and text, its buttons by action,
+ * and its default one.
+ */
+export type ConfirmDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
+
+/**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
@@ -141,6 +147,11 @@ type PageHelpers = {
 	 * last call.
 	 */
 	recordNotifications: () => () => string[];
+	/**
+	 * Waits up to 2 s for a yes-or-no dialog, reads it, answers it and waits for it to close; null when none opens, as on
+	 * a build that doesn't ask.
+	 */
+	answerConfirm: (answer: 'yes' | 'no') => Promise<ConfirmDialog | null>;
 	/** The dice and symbols of a Dice Prompt's pool preview, positive then negative: `PAA|DD`. */
 	poolPreview: (root: Element) => string;
 	/**
@@ -472,6 +483,38 @@ export function installHelpers() {
 			const recorded: string[] = [];
 			recorders.push(recorded);
 			return () => recorded.splice(0);
+		},
+
+		async answerConfirm(answer) {
+			const find = () =>
+				document.querySelector('[data-action="yes"], [data-button="yes"]')?.closest<HTMLElement>('.application, .app');
+			let dialog: HTMLElement;
+			try {
+				dialog = await helpers.waitFor('a confirmation dialog', find, 2000);
+			} catch {
+				// No dialog opened: the build under test doesn't ask, which the step's assertion reads as null.
+				return null;
+			}
+			// An ApplicationV2 dialog names its buttons by action, an AppV1 one by button.
+			const buttons = [...dialog.querySelectorAll<HTMLElement>('.form-footer [data-action], .dialog-buttons [data-button]')];
+			const buttonName = (button: Element) => button.getAttribute('data-action') ?? button.getAttribute('data-button') ?? '';
+			const application = foundry.applications.instances.get(dialog.id) ?? ui.windows[Number(dialog.dataset.appid)];
+			const read: ConfirmDialog = {
+				application:
+					application instanceof foundry.applications.api.DialogV2
+						? 'DialogV2'
+						: application instanceof foundry.appv1.api.Dialog
+							? 'Dialog'
+							: String(application?.constructor.name),
+				title: helpers.text(dialog.querySelector('.window-title')),
+				content: helpers.text(dialog.querySelector('.dialog-content')),
+				buttons: buttons.map(buttonName),
+				defaultButton: buttonName(buttons.find((button) => button.matches('[autofocus], .default')) ?? document.body),
+			};
+			buttons.find((button) => buttonName(button) === answer)!.click();
+			await helpers.waitFor('the dialog to close', () => !dialog.isConnected);
+			await helpers.settle();
+			return read;
 		},
 
 		poolPreview(root) {

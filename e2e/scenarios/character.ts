@@ -69,6 +69,13 @@ type CharacterHelpers = {
 	grants(actor: string): string[];
 	/** The Talents tab's rows of the abilities of that name: whether each was added by hand, and can be deleted. */
 	abilityRows(actor: string, name: string): { handMade: boolean; canDelete: boolean }[];
+	/**
+	 * The Talents tab's lists of abilities and of talents, in order: a category header as `[Active]`, an activation detail
+	 * header as `[[maneuver]]`, a row as its name.
+	 */
+	talentsTab(actor: string): { abilities: string[]; talents: string[] };
+	/** Clicks the trash icon of a row of the Talents tab. */
+	trashTalentRow(actor: string, name: string): void;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
@@ -568,6 +575,24 @@ function installCharacterHelpers() {
 				.sort((left, right) => Number(left.handMade) - Number(right.handMade));
 		},
 
+		talentsTab(name) {
+			const [abilities, talents] = [...sheet(name).querySelectorAll('.tab-talents .talents-container')].map((container) =>
+				[...container.children].map((child) => {
+					if (child.matches('.category-header')) return `[${text(child)}]`;
+					if (child.matches('.sub-category-header')) return `[[${text(child)}]]`;
+					return unprefixed(text(child.querySelector('.name a')));
+				}),
+			);
+			return { abilities: abilities ?? [], talents: talents ?? [] };
+		},
+
+		trashTalentRow(name, item) {
+			const row = [...sheet(name).querySelectorAll('.tab-talents .talent')].find(
+				(candidate) => unprefixed(text(candidate.querySelector('.name a'))) === item,
+			);
+			click(row?.querySelector('.fa-trash')?.closest('a'), `trash icon of ${item}`);
+		},
+
 		superCharacteristics(name) {
 			const fields = [...sheet(name).querySelectorAll('.characteristic-field')];
 			return {
@@ -711,6 +736,7 @@ export async function run(e2e: ScenarioContext) {
 		await skillsTab(e2e, page);
 		await talentPyramidSummary(e2e, page);
 		await talentRanks(e2e, page);
+		await talentsTab(e2e, page);
 		await injuries(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
 	} finally {
@@ -894,6 +920,15 @@ async function advancement(
 	const drop = (item: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.item)), { actor: A, item });
 	const undo = (entry: string) => page((args) => window.characterE2E.undo(args.actor, args.entry), { actor: A, entry });
+	// Undoes an entry whose undo deletes an item, which asks first, and answers the dialog; the dialog read.
+	const undoAndAnswer = (entry: string, answer: 'yes' | 'no') =>
+		page(
+			async (args) => {
+				window.characterE2E.undo(args.actor, args.entry);
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ actor: A, entry, answer },
+		);
 	const setHouseRules = (rules: Record<string, unknown>) => page((rules) => window.e2e.setSettings(rules), rules);
 	const reopen = () => page((name) => window.characterE2E.reopen(name), A);
 
@@ -1047,7 +1082,30 @@ async function advancement(
 		{ ...steady, ...(await page((name) => window.characterE2E.appliedEffects(name), A)), xp: await xp(), entry: await journalTail(1) },
 		{ idInJournal: true, effects: ['E2E Steady'], soak: 1, xp: 1000 - spent, entry: ['NewTalent -5 E2E Steady tier 1 rank 1'] },
 	);
-	await e2e.step('#36 D2 the new talent undone from the Experience Journal', () => undo('NewTalent -5 E2E Steady'));
+	// §#252: an undo that deletes an item asks first.
+	let asked: Awaited<ReturnType<typeof undoAndAnswer>> = null;
+	await e2e.step("#252 C4 the new talent's entry undone from the Experience Journal, and No answered", async () => {
+		asked = await undoAndAnswer('NewTalent -5 E2E Steady', 'no');
+	});
+	e2e.expect(
+		'#252 C4 undoing a new talent asks in a dialog naming the talent, No by default, and No keeps the talent, its entry and its XP',
+		{ asked, rank: (await talent('E2E Steady'))?.rank, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Undo Entry',
+				content: 'Undoing this entry removes E2E Steady from the character. Do you want to proceed?',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			rank: 1,
+			xp: 1000 - spent,
+			entry: ['NewTalent -5 E2E Steady tier 1 rank 1'],
+		},
+	);
+	await e2e.step('#36 D2 the new talent undone from the Experience Journal, and Yes answered', async () => {
+		asked = await undoAndAnswer('NewTalent -5 E2E Steady', 'yes');
+	});
 	spent -= 5;
 	e2e.expect(
 		'#36 D2 undoing a new talent deletes it, with its effect, and gives its XP back',
@@ -1788,6 +1846,92 @@ async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 		),
 	);
 	e2e.expect('#242 A1 each numeric change of a rank 3 talent counts three times', { added: (await soak()) - before }, { added: 9 });
+}
+
+/** §#252: the Talents tab's groups, and their order. */
+async function talentsTab(e2e: ScenarioContext, page: Evaluate) {
+	const L = 'Lister';
+	const entry = (name: string, type: 'talent' | 'ability', activation: string, detail = '', tier = 1) => ({
+		name: `E2E ${name}`,
+		type,
+		system: { activation: { type: activation, detail }, ...(type === 'talent' ? { tier } : {}) },
+	});
+	await e2e.step(
+		'#252 C1 a character with active and passive talents and abilities of several tiers and details, its sheet open',
+		async () => {
+			await page((name) => window.characterE2E.create(name), L);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: L,
+				items: [
+					entry('Toughened', 'talent', 'passive', '', 2),
+					entry('Quick Strike', 'talent', 'active', 'Maneuver', 2),
+					entry('Parry', 'talent', 'active', 'Incidental, Out of Turn', 1),
+					entry('Dodge', 'talent', 'active', '', 3),
+					entry('Brace', 'talent', 'active', 'maneuver', 1),
+					entry('Rapid Reaction', 'talent', 'active', '', 1),
+					entry('Grit', 'talent', 'passive', '', 1),
+					entry('Sturdy', 'ability', 'passive'),
+					entry('Nimble', 'ability', 'active', 'Maneuver'),
+					entry('Keen Eyes', 'ability', 'passive'),
+					entry('Rally', 'ability', 'active'),
+				],
+			});
+			await page((name) => window.characterE2E.open(name), L);
+		},
+	);
+	e2e.expect(
+		'#252 C1 the Talents tab lists active then passive ones, those with an activation detail under it whatever its case, each by tier then name',
+		await page((name) => window.characterE2E.talentsTab(name), L),
+		{
+			abilities: ['[Active]', 'Rally', '[[maneuver]]', 'Nimble', '[Passive]', 'Keen Eyes', 'Sturdy'],
+			talents: [
+				'[Active]',
+				'Rapid Reaction',
+				'Dodge',
+				'[[maneuver]]',
+				'Brace',
+				'Quick Strike',
+				'[[incidental, out of turn]]',
+				'Parry',
+				'[Passive]',
+				'Grit',
+				'Toughened',
+			],
+		},
+	);
+
+	const trash = (answer: 'yes' | 'no') =>
+		page(
+			async (args) => {
+				window.characterE2E.trashTalentRow(args.actor, 'Rally');
+				return window.e2e.answerConfirm(args.answer);
+			},
+			{ actor: L, answer },
+		);
+	const rally = async () => (await page((name) => window.characterE2E.items(name), L)).filter((item) => item.endsWith(':E2E Rally'));
+	let asked: Awaited<ReturnType<typeof trash>> = null;
+	await e2e.step("#252 C2 the trash icon of Lister's ability Rally clicked, and No answered", async () => {
+		asked = await trash('no');
+	});
+	e2e.expect(
+		"#252 C2 the Talents tab's trash icon asks in Foundry's deletion dialog, which names the ability, No by default, and No keeps it",
+		{ asked, rally: await rally() },
+		{
+			asked: {
+				application: 'DialogV2',
+				title: 'Delete Item: E2E Rally',
+				content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			rally: ['ability:E2E Rally'],
+		},
+	);
+	await e2e.step("#252 C3 the trash icon of Lister's ability Rally clicked, and Yes answered", async () => {
+		asked = await trash('yes');
+	});
+	e2e.expect('#252 C3 Yes deletes the ability', await rally(), []);
+	await page((name) => window.characterE2E.close(name), L);
 }
 
 /** §#126: the severity cells of Critical Injuries and Critical Hits, and the check they open. */

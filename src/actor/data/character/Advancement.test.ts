@@ -17,6 +17,7 @@ import {
 	buyTalentRank,
 	canReplaceCareer,
 	isAllowed,
+	itemsRemovedByUndo,
 	raiseCharacteristic,
 	thresholdUpdates,
 	totalXP,
@@ -421,6 +422,35 @@ describe('undoEntry', () => {
 
 	it('refuses an entry that does not exist', () => {
 		expect(refusal(undoEntry(character(), 3))).toBeUndefined();
+	});
+});
+
+describe('itemsRemovedByUndo', () => {
+	const newTalent: Entry = { amount: -5, type: EntryType.NewTalent, data: { name: 'Grit', id: 'grit', tier: 1, rank: 1 } };
+
+	it('names the talent that undoing its purchase deletes', () => {
+		const grit = { ...talent('grit', 1), name: 'Grit' };
+
+		expect(itemsRemovedByUndo(character({ entries: [newTalent], talents: [grit] }), 0)).toEqual(['Grit']);
+	});
+
+	it("removes nothing when the undo only lowers a rank: a characteristic's, a skill's or a talent's", () => {
+		const entries: Entry[] = [
+			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } },
+			{ amount: -10, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 1 } },
+			{ amount: -10, type: EntryType.TalentRank, data: { name: 'Grit', id: 'grit', tier: 2, rank: 2 } },
+		];
+		const grit = talent('grit', 1, 2);
+		const parry = talent('parry', 1);
+
+		expect([0, 1, 2].map((index) => itemsRemovedByUndo(character({ entries, talents: [grit, parry] }), index))).toEqual([[], [], []]);
+	});
+
+	it('removes nothing when the undo is refused, or the talent is already gone', () => {
+		const later: Entry = { amount: -10, type: EntryType.TalentRank, data: { name: 'Grit', id: 'grit', tier: 2, rank: 2 } };
+
+		expect(itemsRemovedByUndo(character({ entries: [newTalent, later], talents: [talent('grit', 1, 2)] }), 0)).toEqual([]);
+		expect(itemsRemovedByUndo(character({ entries: [newTalent] }), 0)).toEqual([]);
 	});
 });
 

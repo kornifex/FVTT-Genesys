@@ -5,6 +5,7 @@ import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/Gen
 import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 
@@ -23,7 +24,7 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 	 * The skills the actor owns, in item order.
 	 */
 	get skills(): GenesysItem<SkillDataModel>[] {
-		return this.items.filter((item) => item.type === 'skill') as GenesysItem<SkillDataModel>[];
+		return itemsOfType(this, 'skill');
 	}
 
 	/**

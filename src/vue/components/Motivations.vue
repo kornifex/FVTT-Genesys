@@ -16,7 +16,7 @@ defineProps<{
 	/**
 	 * The actor's `system.motivations`.
 	 */
-	motivations: Record<Motivation, { name: string; description: string }>;
+	motivations: Record<Motivation, { name: string }>;
 }>();
 </script>
 
@@ -29,7 +29,7 @@ defineProps<{
 			</div>
 
 			<div class="body">
-				<Editor :name="`system.motivations.${motivation}.description`" :content="motivations[motivation].description" button />
+				<Editor :name="`system.motivations.${motivation}.description`" />
 			</div>
 		</div>
 	</div>

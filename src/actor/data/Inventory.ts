@@ -1,10 +1,11 @@
 /**
- * @file An actor's inventory: the drops it receives, the armor a character wears, and its Containers, whose contents share
- * their Equipment State.
+ * @file An actor's inventory: the drops it receives, the armor a character wears, its Containers, whose contents share
+ * their Equipment State, and what its rows offer: Equipment State moves and steps of an item's quantity and damage.
  */
 
 import { hasEquipmentState } from '@/actor/data/EquipmentEffects';
 import { isRelevantToAdversary, isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
+import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { SORT_DENSITY } from '@/data/Sort';
 
@@ -80,26 +81,39 @@ type ItemUpdate = { _id: string; sort?: number; system?: { state: EquipmentState
 type DropDecision = { action: 'refuse' } | { action: 'copy' | 'move'; create: CreatedItem[]; update: ItemUpdate[]; delete: string[] };
 
 /**
- * The item types an actor type keeps in its inventory, and those of them it can equip.
+ * A change of Equipment State an inventory row offers, and the state it puts the item in.
+ */
+type EquipmentStateMove =
+	| { action: 'equip'; state: typeof EquipmentState.Equipped }
+	| { action: 'unequip' | 'pickUp'; state: typeof EquipmentState.Carried }
+	| { action: 'drop'; state: typeof EquipmentState.Dropped };
+
+/**
+ * The item types an actor type keeps in its inventory, those of them it can equip, and whether it can drop them.
  */
 type InventoryTypes = {
 	isInventory(type: string): boolean;
 	isEquipable(type: string): boolean;
+	canDrop: boolean;
 };
 
 const ADVERSARY_INVENTORY_TYPES: InventoryTypes = {
 	isInventory: (type) => isRelevantToAdversary('INVENTORY', type),
 	isEquipable: () => false,
+	canDrop: false,
 };
 
 const INVENTORY_TYPES_BY_ACTOR_TYPE: Partial<Record<string, InventoryTypes>> = {
 	character: {
 		isInventory: (type) => isRelevantToCharacter('INVENTORY', type),
 		isEquipable: (type) => isRelevantToCharacter('EQUIPABLE', type),
+		canDrop: true,
 	},
+	// A vehicle's equipment is aboard: it is never Dropped.
 	vehicle: {
 		isInventory: (type) => isRelevantToVehicle('INVENTORY', type),
 		isEquipable: (type) => isRelevantToVehicle('EQUIPABLE', type),
+		canDrop: false,
 	},
 	minion: ADVERSARY_INVENTORY_TYPES,
 	rival: ADVERSARY_INVENTORY_TYPES,
@@ -161,6 +175,77 @@ export function equipmentStateUpdates(items: InventoryItem[], id: string, state:
 	}
 
 	return [{ _id: id, system: { state } }, ...takeOffWornArmor(items, { ...item, system: { ...item.system, state } })];
+}
+
+/**
+ * The changes of Equipment State an actor's inventory row offers for an item: to equip it or put it back to Carried
+ * when the actor can equip it, and to drop it or pick it up when the actor can drop it. An item held in a Container
+ * shares its state, and Adversaries have none.
+ */
+export function equipmentStateMoves(actorType: string, item: PlacedItem): EquipmentStateMove[] {
+	const types = INVENTORY_TYPES_BY_ACTOR_TYPE[actorType];
+	if (!types || item.system.container !== '') {
+		return [];
+	}
+
+	const moves: EquipmentStateMove[] = [];
+	if (types.isEquipable(item.type)) {
+		moves.push(
+			item.system.state === EquipmentState.Equipped
+				? { action: 'unequip', state: EquipmentState.Carried }
+				: { action: 'equip', state: EquipmentState.Equipped },
+		);
+	}
+
+	if (types.canDrop) {
+		moves.push(
+			item.system.state === EquipmentState.Dropped
+				? { action: 'pickUp', state: EquipmentState.Carried }
+				: { action: 'drop', state: EquipmentState.Dropped },
+		);
+	}
+
+	return moves;
+}
+
+/**
+ * What an item's row steps: its quantity or its damage.
+ */
+export type SteppedValue = 'quantity' | 'damage';
+
+/**
+ * The direction of a step: one up or one down.
+ */
+export type StepDirection = 1 | -1;
+
+/**
+ * What a step of an item's quantity or damage on its row does: update it, delete it, or nothing.
+ */
+type EquipmentStep =
+	| { action: 'update'; update: { system: { quantity: number } | { damage: EquipmentDamageState } } }
+	| { action: 'delete' }
+	| { action: 'none' };
+
+/**
+ * The step of an item's quantity or damage one up or down: an item whose quantity goes down to 0, or destroyed past
+ * major damage, is deleted.
+ */
+export function equipmentStep(
+	item: { system: { quantity: number; damage: EquipmentDamageState } },
+	kind: SteppedValue,
+	direction: StepDirection,
+): EquipmentStep {
+	if (kind === 'quantity') {
+		const quantity = item.system.quantity + direction;
+		return quantity <= 0 ? { action: 'delete' } : { action: 'update', update: { system: { quantity } } };
+	}
+
+	const damage = damageStep(item.system.damage, direction);
+	if (!damage) {
+		return { action: 'none' };
+	}
+
+	return damage === 'destroyed' ? { action: 'delete' } : { action: 'update', update: { system: { damage } } };
 }
 
 /**

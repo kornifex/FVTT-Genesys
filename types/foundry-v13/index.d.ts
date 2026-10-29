@@ -132,6 +132,21 @@ declare namespace foundry {
 				): ContextMenu | null;
 			}
 
+			/** A dialog with buttons, whose factory methods resolve once one is pressed or the dialog is closed. */
+			class DialogV2 extends ApplicationV2 {
+				/**
+				 * Asks a yes-or-no question: resolves to true for yes, false for no, and null when the dialog is closed without
+				 * an answer, unless `rejectClose` is true. The window's title is a localization key; `content` is HTML, or a
+				 * `<div>` without attributes, which Foundry takes as it is.
+				 */
+				static confirm(
+					config?: DeepPartial<ApplicationConfiguration> & {
+						content?: string | HTMLDivElement;
+						rejectClose?: boolean;
+					},
+				): Promise<boolean | null>;
+			}
+
 			class DocumentSheetV2<TDocument extends foundry.abstract.Document = foundry.abstract.Document> extends ApplicationV2 {
 				constructor(options: DeepPartial<ApplicationConfiguration> & { document: TDocument });
 
@@ -146,6 +161,34 @@ declare namespace foundry {
 					form: HTMLFormElement,
 					formData: FormDataExtended,
 				): Record<string, unknown>;
+			}
+		}
+
+		namespace elements {
+			/**
+			 * The `<prose-mirror>` element: a form field editing enriched text in ProseMirror, whose form submits it. A toggled
+			 * editor shows its enriched text until its button opens it, and closes when it saves.
+			 */
+			class HTMLProseMirrorElement extends HTMLElement {
+				/**
+				 * Creates the element. Its constructor reads the value, the enriched text and whether it is toggled, so an
+				 * element made with `document.createElement` and given attributes afterwards misses them.
+				 */
+				static create(config: {
+					name: string;
+					value: string;
+					enriched?: string;
+					toggled?: boolean;
+					disabled?: boolean;
+				}): HTMLProseMirrorElement;
+
+				get name(): string;
+
+				/** The edited text, while the editor is open. */
+				get value(): string;
+
+				/** Whether the editor is open: always, unless it is toggled. */
+				get open(): boolean;
 			}
 		}
 

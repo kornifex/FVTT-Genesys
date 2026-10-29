@@ -245,6 +245,9 @@ Genesys:
     ConfirmDeleteItem:
       Title: Confirmer la suppression
       Content: L'objet va être supprimé. Êtes-vous sûr ?
+    ConfirmUndoEntry:
+      Title: Annuler l'entrée
+      Content: Annuler cette entrée retire {items} du personnage. Voulez-vous continuer ?
 
   # Migration Related Messages
   Migration:

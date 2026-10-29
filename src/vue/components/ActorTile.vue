@@ -2,7 +2,8 @@
 import { computed, onUpdated, ref } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { constructDragTransferTypeFromData, DragTransferData } from '@/data/DragTransferData';
+import { startDocumentDrag } from '@/data/DragTransferData';
+import { openSheet } from '@/operations/ItemActions';
 
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -21,12 +22,10 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-	(e: 'dragstart', event: DragEvent): void;
-	(e: 'dragend', event: DragEvent): void;
 	(e: 'removeMember'): void;
 }>();
 
-const { editable } = useSheetDocument();
+const { document: vehicle, editable } = useSheetDocument();
 
 // Named as the prop, which it shadows in the template: the tile reads the actor through `useRendered`.
 const actor = useRendered(() => props.actor);
@@ -54,29 +53,19 @@ onUpdated(() => {
 	}
 });
 
+// The tile is a member of the sheet's vehicle's Crew: its drag tells which vehicle it leaves, so that a drop on another
+// vehicle moves it there, and one on this vehicle moves it within the Crew.
 function dragStart(event: DragEvent) {
 	isBeingDragged.value = true;
-	const transferData: DragTransferData = {
-		uuid: props.actor.uuid,
-		type: props.actor.documentName,
-		genesysType: props.actor.type,
-	};
-	const genesysTransferType = constructDragTransferTypeFromData(props.actor.type, props.actor.uuid);
-
-	event.dataTransfer?.setData('text/plain', JSON.stringify(transferData));
-	event.dataTransfer?.setData(genesysTransferType, '');
-
-	emit('dragstart', event);
+	startDocumentDrag(event, props.actor, { sourceVehicleUuid: vehicle.value.uuid });
 }
 
-function dragEnd(event: DragEvent) {
+function dragEnd() {
 	isBeingDragged.value = false;
-
-	emit('dragend', event);
 }
 
 async function openActorSheet() {
-	await props.actor.sheet.render(true);
+	await openSheet(props.actor);
 }
 </script>
 
