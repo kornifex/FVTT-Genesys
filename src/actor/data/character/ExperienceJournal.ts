@@ -37,6 +37,18 @@ export const EntryType = {
 
 export type EntryType = (typeof EntryType)[keyof typeof EntryType];
 
+/**
+ * The localization key of each type of entry, which formats the entry's data.
+ */
+export const ENTRY_LABELS: Record<EntryType, string> = {
+	Starting: 'Genesys.XPJournal.Starting',
+	Award: 'Genesys.XPJournal.Award',
+	Characteristic: 'Genesys.XPJournal.Characteristic',
+	Skill: 'Genesys.XPJournal.Skill',
+	NewTalent: 'Genesys.XPJournal.NewTalent',
+	TalentRank: 'Genesys.XPJournal.TalentRank',
+};
+
 type CharacteristicData = { characteristic: Characteristic; rank: number };
 type SkillData = { name: string; id: string; rank: number };
 type TalentData = { name: string; id: string; tier: number; rank: number };

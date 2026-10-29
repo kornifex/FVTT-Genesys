@@ -16,14 +16,14 @@ export abstract class MinionDataModel extends AdversaryDataModel implements HasP
 
 	static override readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
-			label: 'Wounds',
+			label: 'Genesys.Labels.Wounds',
 			isBar: true,
 			editable: true,
 			valuePath: 'wounds.value',
 			maxPath: 'groupWoundThreshold',
 		},
 		members: {
-			label: 'Remaining Members',
+			label: 'Genesys.Labels.RemainingMembers',
 			isBar: false,
 			editable: false,
 			valuePath: 'remainingMembers',

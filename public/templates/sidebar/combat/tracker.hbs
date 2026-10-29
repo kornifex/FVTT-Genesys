@@ -52,7 +52,7 @@
 					{{#if (and canClaim active)}}
 						<button type="button" class="claim-slot" data-action="claimInitiativeSlot">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</button>
 					{{else}}
-						<strong class="name">{{localize (concat "Genesys.CombatTracker.InitiativeSlot." slotType)}}</strong>
+						<strong class="name">{{localize slotLabel}}</strong>
 					{{/if}}
 				</div>
 

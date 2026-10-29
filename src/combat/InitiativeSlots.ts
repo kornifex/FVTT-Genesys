@@ -8,6 +8,14 @@
 export type InitiativeSide = 'pc' | 'npc';
 
 /**
+ * The localization key of the name the combat tracker gives an unclaimed Initiative Slot of each side.
+ */
+export const SIDE_LABELS: Record<InitiativeSide, string> = {
+	pc: 'Genesys.CombatTracker.InitiativeSlot.pc',
+	npc: 'Genesys.CombatTracker.InitiativeSlot.npc',
+};
+
+/**
  * What this module needs of a combatant.
  */
 export type SlotCombatant = {

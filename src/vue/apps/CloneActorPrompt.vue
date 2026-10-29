@@ -7,6 +7,11 @@ import { cloneActor } from '@/operations/CloneActor';
 
 type InstantiationMethod = 'Original' | 'Clone';
 
+const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
+	Original: 'Genesys.CloneActorPrompt.OriginalMethod.Description',
+	Clone: 'Genesys.CloneActorPrompt.CloneMethod.Description',
+};
+
 const context = inject<CloneActorPromptContext>(RootContext)!;
 const actorName = ref(context.targetActor.name);
 const instantiationMethod = ref<InstantiationMethod>('Original');
@@ -33,7 +38,7 @@ async function submitSelection(event: Event) {
 			</div>
 		</div>
 		<div class="instantiation-description">
-			<Localized :label="`Genesys.CloneActorPrompt.${instantiationMethod}Method.Description`" />
+			<Localized :label="METHOD_DESCRIPTIONS[instantiationMethod]" />
 		</div>
 		<div :class="{ 'clone-name': true, hidden: instantiationMethod !== 'Clone' }">
 			<label><Localized label="Genesys.CloneActorPrompt.CloneMethod.ActorNameLabel" /></label>

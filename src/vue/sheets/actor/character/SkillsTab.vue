@@ -15,15 +15,7 @@ import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
-import { freeRank, SkillCategory, skillsByCategory } from '@/data/Skills';
-
-const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = {
-	general: 'Genesys.Labels.GeneralSkills',
-	magic: 'Genesys.Labels.MagicSkills',
-	combat: 'Genesys.Labels.CombatSkills',
-	social: 'Genesys.Labels.SocialSkills',
-	knowledge: 'Genesys.Labels.KnowledgeSkills',
-};
+import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 const system = computed(() => context.data.actor.systemData);
@@ -124,7 +116,7 @@ async function deleteSkill(skill: GenesysItem<SkillDataModel>) {
 				:style="{ zIndex: skillCategories.length - index }"
 			>
 				<div class="header">
-					<label><Localized :label="SKILL_CATEGORY_LABELS[skillCategory.category]" /></label>
+					<label><Localized :label="SKILL_CATEGORY_HEADINGS[skillCategory.category]" /></label>
 					<div class="blank" />
 
 					<label class="rank-label"><Localized label="Genesys.Labels.Rank" /></label>

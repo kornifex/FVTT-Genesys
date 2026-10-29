@@ -8,7 +8,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
-import { damageFormula, firingArcLabels } from '@/item/Weapons';
+import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
 /**
  * The label of each activation type of an ability or a talent.
@@ -64,7 +64,7 @@ export type ItemCard = {
 		type: ItemSource['type'];
 		system: ItemSource['systemData'];
 		description: string;
-		weapon?: { skill: string; damage: string; firingArc?: string };
+		weapon?: { skill: string; range: string; damage: string; firingArc?: string };
 		qualities?: ContainedItemQuality[];
 	};
 };
@@ -141,12 +141,14 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 		const { baseDamage, characteristic } = damageFormula(item.systemData);
 		card.data.weapon = {
 			skill: skills[0] ?? '-',
+			range: i18n.localize(RANGE_LABELS[item.systemData.range]),
 			damage: baseDamage.toString() + (characteristic ? ' + ' + i18n.localize(characteristic) : ''),
 		};
 	} else if (item.type === 'vehicleWeapon') {
 		const { skills, firingArc } = item.systemData;
 		card.data.weapon = {
 			skill: skills[0] ?? '-',
+			range: i18n.localize(RANGE_LABELS[item.systemData.range]),
 			damage: damageFormula(item.systemData).baseDamage.toString(),
 			firingArc: firingArcLabels(firingArc)
 				.map((label) => i18n.localize(label))

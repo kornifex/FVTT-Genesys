@@ -67,7 +67,7 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 			</div>
 
 			<div class="tab" data-group="primary" data-tab="data">
-				<slot name="data"> DATA </slot>
+				<slot name="data" />
 			</div>
 
 			<div v-if="showEffectsTab" class="tab" data-group="primary" data-tab="effects">
