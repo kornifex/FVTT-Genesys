@@ -2,6 +2,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 
 export type TokenAttributeDetails =
 	| {
+			/** The localization key of the attribute's name. */
 			label: string;
 			isBar: true;
 			editable: boolean;
@@ -11,6 +12,7 @@ export type TokenAttributeDetails =
 			cappedAtTwiceMax?: boolean;
 	  }
 	| {
+			/** The localization key of the attribute's name. */
 			label: string;
 			isBar: false;
 			editable: boolean;
@@ -92,7 +94,7 @@ export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 			const trackedAttributes = Object.entries(attributes.source).reduce((accum, [attributeId, attributeDetails]) => {
 				accum.push({
 					group: attributeDetails.isBar ? barGroup : valueGroup,
-					label: attributeDetails.label,
+					label: game.i18n.localize(attributeDetails.label),
 					value: attributeId,
 				});
 				return accum;

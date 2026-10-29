@@ -7,6 +7,7 @@ import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import ActivationRow from '@/vue/components/item/ActivationRow.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
+import { MAX_TIER } from '@/item/data/Talents';
 
 const context = inject<ItemSheetContext<TalentDataModel>>(RootContext)!;
 
@@ -22,7 +23,7 @@ const system = computed(() => context.data.item.systemData);
 		<template v-slot:data>
 			<section class="data-grid">
 				<DataRow label="Genesys.Labels.Tier">
-					<input type="number" name="system.tier" :value="system.tier" :min="1" :max="5" />
+					<input type="number" name="system.tier" :value="system.tier" :min="1" :max="MAX_TIER" />
 				</DataRow>
 
 				<ActivationRow :activation="system.activation" />

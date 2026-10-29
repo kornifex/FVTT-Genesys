@@ -264,6 +264,30 @@ Genesys:
       {actor}: los efectos de «{item}» no coinciden con sus copias en el actor. Las copias se han eliminado, pero los cambios
       que se les hicieron desde la pestaña Efectos del actor no se han conservado en el objeto.
 
+  # Alpha Notice: the welcome message a GM reads when the system runs a new version
+  AlphaNotice:
+    Title: Genesys Alpha {version}
+    Welcome: >-
+      ¡Hola, y gracias por probar el sistema Genesys! Ten en cuenta que este sistema está todavía en fase alfa: está listo para
+      las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
+    Updates: Correcciones y novedades
+    Maintained: El sistema se mantiene ahora en {repository}.
+    Fix: CORRECCIÓN
+    Feature: NOVEDAD
+    Styling: ESTILO
+    RepeatedDice: >-
+      Los resultados de una tirada cuentan cada término de un dado repetido, así que una fórmula escrita a mano como
+      <code>2da + 1da</code> conserva los símbolos del segundo término
+    StyleSetting: >-
+      Nuevo ajuste de mundo «Estilo», con una variante de colores de Realms of Terrinoth que el DJ elige para todos los
+      usuarios
+    FreeIcons: 'Solo se usan iconos de FontAwesome Free: cambian algunos iconos de las hojas (heridas, inventario, armas, profesiones)'
+    UsefulLinks: Enlaces útiles
+    Documentation: Documentación del proyecto
+    SourceCode: Código fuente del proyecto
+    ReportBugs: Informar de errores y sugerir funciones
+    License: Con licencia MIT
+
   # Story Points
   StoryPoints:
     Player: Puntos de Historia de los PJ
@@ -468,6 +492,7 @@ Genesys:
     Skill: Habilidad
     Crit: Crítico
     GroupSize: Tamaño del grupo
+    RemainingMembers: Miembros restantes
     SkillNotFound: Habilidad no encontrada
     IsInitiative: ¿Habilidad de iniciativa?
     Equipped: Equipado

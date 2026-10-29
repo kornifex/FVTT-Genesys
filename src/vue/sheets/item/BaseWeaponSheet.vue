@@ -8,6 +8,7 @@ import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { BaseWeaponDataModel, type ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
+import { RANGE_LABELS } from '@/item/Weapons';
 import { withoutIndex } from '@/arrays';
 
 const context = inject<ItemSheetContext<BaseWeaponDataModel>>(RootContext)!;
@@ -45,12 +46,9 @@ function updateQualityRating(index: number, event: Event) {
 
 				<DataRow label="Genesys.Labels.Range">
 					<select name="system.range" :value="system.range">
-						<option value="engaged"><Localized label="Genesys.Range.Engaged" /></option>
-						<option value="short"><Localized label="Genesys.Range.Short" /></option>
-						<option value="medium"><Localized label="Genesys.Range.Medium" /></option>
-						<option value="long"><Localized label="Genesys.Range.Long" /></option>
-						<option value="extreme"><Localized label="Genesys.Range.Extreme" /></option>
-						<option value="strategic"><Localized label="Genesys.Range.Strategic" /></option>
+						<option v-for="(label, range) in RANGE_LABELS" :key="range" :value="range">
+							<Localized :label="label" />
+						</option>
 					</select>
 				</DataRow>
 

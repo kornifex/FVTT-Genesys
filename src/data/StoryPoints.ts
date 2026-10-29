@@ -8,6 +8,14 @@ import type { StoryPointData } from '@/settings/storyPoints';
 export type StoryPointPool = keyof StoryPointData;
 
 /**
+ * The localization key of the chat message that announces a point spent from each pool.
+ */
+export const SPEND_MESSAGES: Record<StoryPointPool, string> = {
+	player: 'Genesys.StoryPoints.ChatMessagePlayerPool',
+	gm: 'Genesys.StoryPoints.ChatMessageGmPool',
+};
+
+/**
  * The pools at the start of a session: one point per player in the player pool, one in the GM pool.
  */
 export function sessionStoryPoints(playerCount: number): StoryPointData {

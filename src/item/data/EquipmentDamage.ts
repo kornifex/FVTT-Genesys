@@ -12,6 +12,16 @@ export const EquipmentDamageState = {
 
 export type EquipmentDamageState = (typeof EquipmentDamageState)[keyof typeof EquipmentDamageState];
 
+/**
+ * The localization key of each damage an item can have.
+ */
+export const EQUIPMENT_DAMAGE_LABELS: Record<EquipmentDamageState, string> = {
+	undamaged: 'Genesys.Equipment.DamageState.Undamaged',
+	minor: 'Genesys.Equipment.DamageState.Minor',
+	moderate: 'Genesys.Equipment.DamageState.Moderate',
+	major: 'Genesys.Equipment.DamageState.Major',
+};
+
 // An item's damage goes one step at a time, and an item with major damage is destroyed by the next step.
 const DAMAGE_STEPS: EquipmentDamageState[] = Object.values(EquipmentDamageState);
 
