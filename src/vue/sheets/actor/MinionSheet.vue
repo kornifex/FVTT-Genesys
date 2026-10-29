@@ -10,7 +10,8 @@ const context = inject<ActorSheetContext<MinionDataModel>>(RootContext)!;
 const actor = computed(() => toRaw(context.data.actor));
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const isIndependent = actor.value.getFlag<boolean>('genesys', 'independentMinion');
+// Read on each render of the sheet, which follows a change of the flag.
+const isIndependent = computed(() => toRaw(context.data.actor).getFlag<boolean>('genesys', 'independentMinion'));
 </script>
 
 <template>

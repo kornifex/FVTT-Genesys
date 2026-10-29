@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 
 const props = withDefaults(
 	defineProps<{
@@ -36,9 +36,16 @@ function closeContextMenu(event: Event) {
 	event.preventDefault();
 	showMenu.value = false;
 
+	removeDocumentListeners();
+}
+
+function removeDocumentListeners() {
 	document.removeEventListener('click', closeContextMenu, { capture: true });
 	document.removeEventListener('contextmenu', closeContextMenu, { capture: true });
 }
+
+// A menu still open when its sheet closes would otherwise swallow the next click anywhere.
+onUnmounted(removeDocumentListeners);
 </script>
 
 <template>
