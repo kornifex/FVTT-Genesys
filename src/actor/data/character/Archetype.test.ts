@@ -8,7 +8,6 @@ import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import {
-	applyArchetype,
 	archetypeActorUpdate,
 	ArchetypeGrants,
 	ArchetypeHolder,
@@ -211,7 +210,6 @@ describe('granted items', () => {
  */
 function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 	const operations: string[] = [];
-	const created: object[] = [];
 	const item = (name: string, type: string, system: object = {}) => ({
 		name,
 		type,
@@ -229,10 +227,6 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 		id: 'hero',
 		systemData: { ...character(), experienceJournal: { entries } },
 		items: { contents: items },
-		createEmbeddedDocuments: async (_type: string, data: { name: string }[]) => {
-			operations.push(`create ${data.map((d) => d.name).join(', ')}`);
-			created.push(...data);
-		},
 		update: async (changes: Record<string, unknown>) => {
 			operations.push(`update actor ${JSON.stringify(changes['system.experienceJournal.entries'])}`);
 		},
@@ -240,35 +234,8 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 
 	const archetype = { systemData: archetypeGrants(), ...item('Brute', 'archetype') } as unknown as GenesysItem<ArchetypeDataModel>;
 
-	return { actor, archetype, operations, created };
+	return { actor, archetype, operations };
 }
-
-describe('applyArchetype', () => {
-	it('embeds the granted items, ranks up the granted skills, then updates the character', async () => {
-		const { actor, archetype, operations } = fakeActor();
-		await applyArchetype(actor, archetype);
-
-		expect(operations).toEqual([
-			'create Tough, Grit',
-			'update Athletics {"system.rank":2}',
-			'update actor [{"amount":110,"type":"Starting"}]',
-		]);
-	});
-
-	it('flags the granted items with the id of the character, keeping their other flags', async () => {
-		const { actor, archetype, created } = fakeActor();
-		archetype.systemData.grantedItems = [
-			{ name: 'Tough', type: 'ability', flags: { core: { sourceId: 'Item.tough' }, genesys: { archetypeGrant: 'stale', other: 1 } } },
-			{ name: 'Grit', type: 'talent' },
-		] as unknown as typeof archetype.systemData.grantedItems;
-		await applyArchetype(actor, archetype);
-
-		expect(created).toEqual([
-			{ name: 'Tough', type: 'ability', flags: { core: { sourceId: 'Item.tough' }, genesys: { archetypeGrant: 'hero', other: 1 } } },
-			{ name: 'Grit', type: 'talent', flags: { genesys: { archetypeGrant: 'hero' } } },
-		]);
-	});
-});
 
 describe('removeArchetype', () => {
 	it('deletes the granted items, ranks down the granted skills, updates the character, then deletes the Archetype', async () => {
@@ -281,14 +248,16 @@ describe('removeArchetype', () => {
 
 describe('canRemoveArchetype', () => {
 	it('only allows it while the Experience Journal holds no more than the Starting XP', () => {
-		expect(canRemoveArchetype(fakeActor([{ amount: 110, type: EntryType.Starting }]).actor)).toBe(true);
+		expect(canRemoveArchetype({ experienceJournal: { entries: [{ amount: 110, type: EntryType.Starting }] } })).toBe(true);
 		expect(
-			canRemoveArchetype(
-				fakeActor([
-					{ amount: 110, type: EntryType.Starting },
-					{ amount: 5, type: EntryType.Award },
-				]).actor,
-			),
+			canRemoveArchetype({
+				experienceJournal: {
+					entries: [
+						{ amount: 110, type: EntryType.Starting },
+						{ amount: 5, type: EntryType.Award },
+					],
+				},
+			}),
 		).toBe(false);
 	});
 });

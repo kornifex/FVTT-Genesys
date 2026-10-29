@@ -49,6 +49,49 @@ export function careerSkillUpdates<T extends { id: string; name: string; type: s
 }
 
 /**
+ * The writes that give the character a Career, in place of the one they hold if any: the held Career's skills stop being
+ * career skills and lose its Free Ranks, then the new Career's skills become career skills and the chosen ones gain a
+ * rank. The new Career is created under the id drawn, with the skills chosen for its Free Ranks. Each kind of write is
+ * one batch, so a skill both Careers list gets its final rank in one update.
+ */
+export function careerChange<T extends { id: string; name: string; type: string; system: unknown }>(
+	items: T[],
+	held: { id: string; system: { careerSkills: { name: string }[]; selectedSkillIDs: string[] } } | undefined,
+	dropped: { system: { careerSkills: { name: string }[] }; source: { system?: object } },
+	freeRankSkillIds: string[],
+	newId: () => string,
+) {
+	let current = items;
+	const updates = new Map<string, { 'system.career': boolean; 'system.rank': number }>();
+	const change = (careerSkills: { name: string }[], chosen: string[], sign: 1 | -1) => {
+		for (const { skill, update } of careerSkillUpdates(current, careerSkills, chosen, sign)) {
+			updates.set(skill.id, update);
+		}
+		current = current.map((item) =>
+			updates.has(item.id) ? { ...item, system: { ...(item.system as object), rank: updates.get(item.id)!['system.rank'] } } : item,
+		);
+	};
+
+	if (held) {
+		change(held.system.careerSkills, held.system.selectedSkillIDs, -1);
+	}
+	change(dropped.system.careerSkills, freeRankSkillIds, 1);
+
+	return {
+		itemCreates: [
+			{
+				...dropped.source,
+				_id: newId(),
+				system: { ...dropped.source.system, selectedSkillIDs: freeRankSkillIds },
+			},
+		],
+		itemUpdates: [...updates].map(([id, update]) => ({ _id: id, ...update })),
+		itemDeletes: held ? [held.id] : [],
+		actorUpdate: {},
+	};
+}
+
+/**
  * The skills chosen for a Career's Free Ranks after one is picked: a chosen skill is unpicked, another is added while
  * Free Ranks are left, so each skill gets one rank at most.
  */
