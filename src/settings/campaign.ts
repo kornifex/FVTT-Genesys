@@ -235,6 +235,8 @@ export function register(namespace: string) {
 		config: true,
 		default: GENESYS_CONFIG.settings.ignoreTalentPyramid,
 		type: Boolean,
+		// The Talents tab reads it as it opens, to show the pyramid's summary; the purchase checks read it live.
+		requiresReload: true,
 		onChange: (value) => {
 			const valueAsBool = (value as unknown as boolean) ?? false;
 			CONFIG.genesys.settings.ignoreTalentPyramid = valueAsBool;
