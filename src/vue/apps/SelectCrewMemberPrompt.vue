@@ -18,7 +18,7 @@ function selectOption(index: number) {
 function submitSelection(event: Event) {
 	event.preventDefault();
 
-	context.resolvePromise(toRaw(context.memberSkills[selectedIndex.value]));
+	context.answer(toRaw(context.memberSkills[selectedIndex.value]));
 }
 </script>
 

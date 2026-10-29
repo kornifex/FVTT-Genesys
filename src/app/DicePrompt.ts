@@ -116,3 +116,16 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 		};
 	}
 }
+
+/**
+ * Open a bare Dice Prompt on the `/gendr` chat command (GENesys Dice Roller), which a macro can send.
+ */
+export function register() {
+	Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
+		if (/^\/gendr(?:oll)?/i.test(message)) {
+			void DicePrompt.promptForRoll(undefined, '');
+			return false;
+		}
+		return true;
+	});
+}

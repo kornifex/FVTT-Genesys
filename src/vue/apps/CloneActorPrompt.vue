@@ -15,7 +15,7 @@ async function submitSelection(event: Event) {
 	event.preventDefault();
 	const targetActor = toRaw(context.targetActor);
 
-	context.resolvePromise(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
+	context.answer(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
 }
 </script>
 

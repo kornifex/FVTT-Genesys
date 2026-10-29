@@ -1,17 +1,17 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import VueCareerSkillPrompt from '@/vue/apps/CareerSkillPrompt.vue';
-import { VueSheet } from '@/vue/VueSheet';
+import { VuePrompt } from '@/vue/VuePrompt';
 
 /**
  * What the career skill prompt shows: the skills to pick from.
  */
 export type CareerSkillPromptContext = {
 	skills: GenesysItem<SkillDataModel>[];
-	resolvePromise: (skillIDs: string[]) => void;
+	answer: (skillIDs: string[]) => void;
 };
 
-export class CareerSkillPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
+export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	override get vueComponent() {
 		return VueCareerSkillPrompt;
 	}
@@ -22,16 +22,10 @@ export class CareerSkillPrompt extends VueSheet(foundry.applications.api.Applica
 		window: { title: 'Genesys.CareerSkillPrompt.Title' },
 	};
 
-	static async promptForSkills(skills: GenesysItem<SkillDataModel>[]): Promise<string[]> {
-		const sheet = new CareerSkillPrompt(skills);
-		await sheet.render(true);
-
-		return new Promise((resolve) => {
-			sheet.#resolvePromise = resolve;
-		});
+	static async promptForSkills(skills: GenesysItem<SkillDataModel>[]) {
+		return new CareerSkillPrompt(skills).prompt();
 	}
 
-	#resolvePromise?: (value: string[]) => void;
 	readonly #skills: GenesysItem<SkillDataModel>[];
 
 	constructor(skills: GenesysItem<SkillDataModel>[]) {
@@ -42,18 +36,8 @@ export class CareerSkillPrompt extends VueSheet(foundry.applications.api.Applica
 
 	override async getVueContext(): Promise<CareerSkillPromptContext> {
 		return {
-			resolvePromise: (skillIDs) => {
-				this.#resolvePromise?.(skillIDs);
-				this.#resolvePromise = undefined;
-
-				void this.close();
-			},
+			answer: (skillIDs) => this.answer(skillIDs),
 			skills: this.#skills,
 		};
-	}
-
-	protected override async _preClose(options: object) {
-		this.#resolvePromise?.([]);
-		await super._preClose(options);
 	}
 }

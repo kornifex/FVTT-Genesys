@@ -1,4 +1,4 @@
-import { VueSheet } from '@/vue/VueSheet';
+import { VuePrompt } from '@/vue/VuePrompt';
 import VueCloneActorPrompt from '@/vue/apps/CloneActorPrompt.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -8,10 +8,10 @@ import { GenesysActor } from '@/actor/GenesysActor';
  */
 export type CloneActorPromptContext = {
 	targetActor: GenesysActor;
-	resolvePromise: (targetActor?: GenesysActor) => void;
+	answer: (targetActor?: GenesysActor) => void;
 };
 
-export class CloneActorPrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
+export class CloneActorPrompt extends VuePrompt<GenesysActor | undefined>(undefined) {
 	override get vueComponent() {
 		return VueCloneActorPrompt;
 	}
@@ -23,16 +23,10 @@ export class CloneActorPrompt extends VueSheet(foundry.applications.api.Applicat
 	};
 
 	static async promptForInstantiation(targetActor: GenesysActor) {
-		const sheet = new CloneActorPrompt(targetActor);
-		await sheet.render(true);
-
-		return new Promise<GenesysActor | undefined>((resolve) => {
-			sheet.#resolvePromise = resolve;
-		});
+		return new CloneActorPrompt(targetActor).prompt();
 	}
 
 	readonly targetActor: GenesysActor;
-	#resolvePromise?: (targetActor?: GenesysActor) => void;
 
 	constructor(targetActor: GenesysActor) {
 		super();
@@ -43,17 +37,7 @@ export class CloneActorPrompt extends VueSheet(foundry.applications.api.Applicat
 	override async getVueContext(): Promise<CloneActorPromptContext> {
 		return {
 			targetActor: this.targetActor,
-			resolvePromise: (targetActor) => {
-				this.#resolvePromise?.(targetActor);
-				this.#resolvePromise = undefined;
-
-				void this.close();
-			},
+			answer: (targetActor) => this.answer(targetActor),
 		};
-	}
-
-	protected override async _preClose(options: object) {
-		this.#resolvePromise?.();
-		await super._preClose(options);
 	}
 }

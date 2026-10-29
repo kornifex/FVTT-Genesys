@@ -142,7 +142,7 @@ export type MigrationReport = {
  * Run the migrations after a version, in order, stopping at the first that fails. Migration ids start at 1. Returns the
  * version reached: the id of the last migration that succeeded.
  */
-export async function runMigrationChain(migrations: (() => Promise<boolean>)[], fromVersion: number, report: MigrationReport) {
+export async function runMigrationChain(migrations: readonly (() => Promise<boolean>)[], fromVersion: number, report: MigrationReport) {
 	let version = fromVersion;
 
 	for (; version < migrations.length; version++) {

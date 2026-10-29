@@ -67,24 +67,26 @@ async function migrateEveryActor(plan: ActorPlanner) {
 	return failures.length === 0;
 }
 
-const migrations: (() => Promise<boolean>)[] = [
+const migrations: readonly (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)),
 	() => migrateEveryActor(actorOnlyOnceInCrew),
 	() => migrateEveryActor(effectsStayOnItemsWithNotifications),
 	() => migrateEveryActor(effectsFollowEquipmentState),
 ];
 
-export async function performMigrations(lastAlpha: string) {
+/**
+ * Run the migrations the world hasn't run yet, from the version of the last Alpha notice it showed: a new world has
+ * nothing to migrate, and records every migration as run.
+ */
+export async function ready(lastAlpha: string) {
 	const totalMigrationScripts = migrations.length;
 	if (isNewWorld(lastAlpha)) {
 		await game.settings.set(NAMESPACE, KEY_MIGRATION_VERSION, totalMigrationScripts);
-		migrations.length = 0;
 		return;
 	}
 
 	const currentMigrationVersion = game.settings.get<number>(NAMESPACE, KEY_MIGRATION_VERSION) ?? 0;
 	if (currentMigrationVersion === totalMigrationScripts) {
-		migrations.length = 0;
 		return;
 	}
 
@@ -119,6 +121,4 @@ export async function performMigrations(lastAlpha: string) {
 	} else {
 		ui.notifications.info('Genesys.Migration.CompletedMigration', { localize: true, permanent: true });
 	}
-
-	migrations.length = 0;
 }

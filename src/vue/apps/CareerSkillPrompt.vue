@@ -23,7 +23,7 @@ function selectSkill(event: Event, skill: GenesysItem<SkillDataModel>) {
 function confirm(event: Event) {
 	event.preventDefault();
 
-	context.resolvePromise(selectedSkillIDs.value);
+	context.answer(selectedSkillIDs.value);
 }
 </script>
 
