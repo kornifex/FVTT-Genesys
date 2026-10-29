@@ -15,6 +15,7 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
 import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
+import { useDragHover } from '@/vue/useDragHover';
 
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -55,7 +56,15 @@ const damageStateToIcon = new Map([
 	[EquipmentDamageState.Major, 'fa-face-dizzy'],
 ]);
 
-const dragCounter = ref(0);
+// Only a Container lights up under a drag, and only for an item it can hold.
+const containerDrag = useDragHover((event) => {
+	if (props.item.type !== 'container') {
+		return false;
+	}
+
+	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
+	return !!dragDataFromType && (!dragDataFromType.genesysType || props.canTypeBeInsideContainer(dragDataFromType.genesysType));
+});
 const isBeingDragged = ref(false);
 
 const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
@@ -178,24 +187,6 @@ function dragEnd(event: DragEvent) {
 	emit('dragend', event);
 }
 
-function dragEnter(event: DragEvent) {
-	// Only containers should be highlighted on hover.
-	if (props.item.type !== 'container') {
-		return;
-	}
-
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	if (!dragDataFromType || (dragDataFromType.genesysType && !props.canTypeBeInsideContainer(dragDataFromType.genesysType))) {
-		return;
-	}
-
-	dragCounter.value += 1;
-}
-
-function dragLeave() {
-	dragCounter.value = Math.max(0, dragCounter.value - 1);
-}
-
 async function changeItemQuantity(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: number) {
 	const newQuantity = item.systemData.quantity + direction;
 	const containerDiv = (event.currentTarget as HTMLAnchorElement | null)?.parentElement?.parentElement;
@@ -261,7 +252,7 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 }
 
 async function dropInventoryIntoContainer(event: DragEvent) {
-	dragCounter.value = 0;
+	containerDrag.reset();
 
 	// Only a Container receives drops: those on other items go on to the sheet.
 	if (props.item.type === 'container') {
@@ -276,12 +267,12 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			'inventory-item': true,
 			mini: props.mini,
 			[system().state]: true,
-			hover: dragCounter > 0,
+			hover: containerDrag.isHovered.value,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
 		}"
-		@dragenter="dragEnter"
-		@dragleave="dragLeave"
+		@dragenter="containerDrag.enter"
+		@dragleave="containerDrag.leave"
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 		@drop="dropInventoryIntoContainer"
@@ -289,11 +280,11 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<img :src="item.img" :alt="item.name" />
 
 		<!-- Basic, single-row item -->
-		<span v-if="mini || isBasicItem" class="name" @dragenter="dragEnter" @dragleave="dragLeave">
+		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<a @click="openItem">{{ item.name }}</a>
 		</span>
 		<!-- Complex item with additional details row -->
-		<div v-else class="details" @dragenter="dragEnter" @dragleave="dragLeave">
+		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
 				<a @click="openItem">{{ item.name }}</a>
 				<button

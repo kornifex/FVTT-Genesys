@@ -12,14 +12,19 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { CrewDragTransferData, dragData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
 import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
+import { useDragHover } from '@/vue/useDragHover';
 
 const context = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const dragCounters = ref({
-	role: 0,
-	passenger: 0,
-});
+// A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
+function draggedTypeIs(event: DragEvent, context: 'ROLE' | 'PASSENGER') {
+	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
+	return !!dragDataFromType && VehicleDataModel.isRelevantTypeForContext(context, dragDataFromType.genesysType);
+}
+
+const roleDrag = useDragHover((event) => draggedTypeIs(event, 'ROLE'));
+const passengerDrag = useDragHover((event) => draggedTypeIs(event, 'PASSENGER'));
 const passengersActors = ref<GenesysActor[]>([]);
 
 const sortedPassengers = computed(() => [...toRaw(context.data.actor).systemData.passengers.list].sort(sortPassenger));
@@ -56,25 +61,6 @@ function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | 
 	void receiveCrewEvent(toRaw(context.data.actor), event, { kind: 'role', roleId, before: memberUnder });
 }
 
-async function resetDragCounters(_event: DragEvent) {
-	dragCounters.value.role = 0;
-	dragCounters.value.passenger = 0;
-}
-
-function modifyDragCounters(event: DragEvent, direction: number) {
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	if (!dragDataFromType) {
-		return;
-	}
-
-	if (VehicleDataModel.isRelevantTypeForContext('ROLE', dragDataFromType.genesysType)) {
-		dragCounters.value.role += direction;
-	}
-	if (VehicleDataModel.isRelevantTypeForContext('PASSENGER', dragDataFromType.genesysType)) {
-		dragCounters.value.passenger += direction;
-	}
-}
-
 function dragStart(event: DragEvent) {
 	const crewDragData: CrewDragTransferData = {
 		...dragData(event.dataTransfer),
@@ -85,16 +71,23 @@ function dragStart(event: DragEvent) {
 }
 
 function dragEnter(event: DragEvent) {
-	modifyDragCounters(event, 1);
+	roleDrag.enter(event);
+	passengerDrag.enter(event);
 }
 
 function dragLeave(event: DragEvent) {
-	modifyDragCounters(event, -1);
+	roleDrag.leave(event);
+	passengerDrag.leave(event);
+}
+
+function resetDrags() {
+	roleDrag.reset();
+	passengerDrag.reset();
 }
 </script>
 
 <template>
-	<section class="tab-crew" @drop.capture="resetDragCounters" @dragenter="dragEnter" @dragleave="dragLeave">
+	<section class="tab-crew" @drop.capture="resetDrags" @dragenter="dragEnter" @dragleave="dragLeave">
 		<div class="section-header">
 			<span><Localized label="Genesys.Labels.Roles" /></span>
 			<a @click="addNewRole"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
@@ -108,7 +101,7 @@ function dragLeave(event: DragEvent) {
 						:name="role.name"
 						:skills="role.skills"
 						:members="role.members"
-						:dragging="dragCounters.role > 0"
+						:dragging="roleDrag.isHovered.value"
 						@delete="system.updateCrew((crew) => removeRole(crew, role.id))"
 						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
 						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
@@ -135,21 +128,21 @@ function dragLeave(event: DragEvent) {
 		</div>
 
 		<section class="passengers">
-			<SortSlot :active="dragCounters.passenger > 0" @drop="dropToPassengers($event, { kind: 'passengers', position: 'first' })" />
+			<SortSlot :active="passengerDrag.isHovered.value" @drop="dropToPassengers($event, { kind: 'passengers', position: 'first' })" />
 
 			<TransitionGroup name="crew-trans">
 				<template v-for="passenger in passengersActors" :key="passenger.uuid">
 					<ActorTile
 						:actor="passenger as GenesysActor"
 						:mini="true"
-						:dragging="dragCounters.passenger > 0"
+						:dragging="passengerDrag.isHovered.value"
 						draggable="true"
 						@remove-member="system.updateCrew((crew) => removeActor(crew, passenger.uuid))"
 						@dragstart="dragStart"
 					/>
 
 					<SortSlot
-						:active="dragCounters.passenger > 0"
+						:active="passengerDrag.isHovered.value"
 						@drop="dropToPassengers($event, { kind: 'passengers', position: 'after', passenger: passenger.uuid })"
 					/>
 				</template>
