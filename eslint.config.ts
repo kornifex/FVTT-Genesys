@@ -32,6 +32,10 @@ const deprecatedGlobals = Object.entries({
 	ItemDirectory: 'foundry.applications.sidebar.tabs.ItemDirectory',
 	Compendium: 'foundry.applications.sidebar.apps.Compendium',
 }).map(([name, replacement]) => ({ name, message: `Foundry deprecated this global: use ${replacement}.` }));
+// Reaching one through the global object is the same use, which no-restricted-globals doesn't see.
+const deprecatedGlobalProperties = deprecatedGlobals.flatMap(({ name, message }) =>
+	['globalThis', 'window', 'self'].map((object) => ({ object, property: name, message })),
+);
 
 export default defineConfig(
 	js.configs.recommended,
@@ -83,8 +87,12 @@ export default defineConfig(
 		rules: { 'no-console': 'error' },
 	},
 	{
-		files: ['src/**'],
-		rules: { 'no-restricted-globals': ['error', ...deprecatedGlobals] },
+		// The e2e harness runs its page helpers and the functions its scenarios evaluate in the Foundry page too.
+		files: ['src/**', 'e2e/**'],
+		rules: {
+			'no-restricted-globals': ['error', ...deprecatedGlobals],
+			'no-restricted-properties': ['error', ...deprecatedGlobalProperties],
+		},
 	},
 	{
 		// A declaration file may need an interface, to merge into one of Foundry's.
