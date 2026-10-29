@@ -18,7 +18,7 @@ export function isPassengerDrop(data: CrewDragTransferData) {
  * stopped at once, before the Role or the sheet around the target receives it too; anything else goes on to them.
  */
 export async function receiveCrewEvent(vehicle: GenesysActor<VehicleDataModel>, event: DragEvent, place: CrewPlace) {
-	const data = dragData<CrewDragTransferData>(event.dataTransfer);
+	const data: CrewDragTransferData = dragData(event.dataTransfer);
 	const entity = droppedEntity(data, place.kind === 'passengers' ? 'PASSENGER' : 'ROLE');
 	if (!entity) {
 		return false;

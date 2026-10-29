@@ -46,12 +46,12 @@ describe('addGenesysDragType', () => {
 		vi.unstubAllGlobals();
 	});
 
-	function documents(byUuid: Record<string, { type: string }>) {
+	function stubDocuments(byUuid: Record<string, { type: string }>) {
 		vi.stubGlobal('fromUuidSync', (uuid: string) => byUuid[uuid] ?? null);
 	}
 
 	it('marks the drag of a document of an accepted type with its Genesys type and uuid', () => {
-		documents({ 'Compendium.world.gear.Item.AbC': { type: 'weapon' } });
+		stubDocuments({ 'Compendium.world.gear.Item.AbC': { type: 'weapon' } });
 		const { event, types } = dragEvent('{"type":"Item","uuid":"Compendium.world.gear.Item.AbC"}');
 
 		addGenesysDragType(event, ['Actor', 'Item']);
@@ -60,7 +60,7 @@ describe('addGenesysDragType', () => {
 	});
 
 	it('leaves the drag of a document of another type unmarked', () => {
-		documents({ 'Actor.abc': { type: 'character' } });
+		stubDocuments({ 'Actor.abc': { type: 'character' } });
 		const { event, types } = dragEvent('{"type":"Actor","uuid":"Actor.abc"}');
 
 		addGenesysDragType(event, ['Item']);
@@ -69,7 +69,7 @@ describe('addGenesysDragType', () => {
 	});
 
 	it('leaves a drag unmarked when it names no document, or one that is gone', () => {
-		documents({});
+		stubDocuments({});
 		const withoutUuid = dragEvent('{"type":"Item"}');
 		const gone = dragEvent('{"type":"Item","uuid":"Item.gone"}');
 		const notJson = dragEvent('Some selected text');

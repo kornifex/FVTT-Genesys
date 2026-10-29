@@ -28,16 +28,16 @@ export function constructDragTransferTypeFromData(genesysType: string, uuid: Doc
  * The drag data a drag carries as text: Foundry's, or the system's, which adds the dragged document's own type. Empty
  * when the drag carries no JSON object.
  */
-export function dragData<Data extends DragTransferData = DragTransferData>(dataTransfer?: Pick<DataTransfer, 'getData'> | null) {
+export function dragData(dataTransfer?: Pick<DataTransfer, 'getData'> | null): DragTransferData {
 	let data: unknown;
 	try {
 		data = JSON.parse(dataTransfer?.getData('text/plain') || '{}');
 	} catch {
 		// Text dragged from outside Foundry, such as a selection of a web page, isn't JSON: it carries no drag data.
-		return {} as Data;
+		return {};
 	}
 
-	return (typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {}) as Data;
+	return typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {};
 }
 
 /**

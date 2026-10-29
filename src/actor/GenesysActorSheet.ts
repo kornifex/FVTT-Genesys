@@ -37,7 +37,7 @@ export class GenesysActorSheet<
 			return;
 		}
 
-		const data = dragData<DropCanvasData>(event.dataTransfer);
+		const data = dragData(event.dataTransfer) as DropCanvasData;
 		if (Hooks.call('dropActorSheetData', this.actor, this, data) === false) {
 			return;
 		}
