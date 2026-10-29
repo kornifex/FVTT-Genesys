@@ -83,7 +83,8 @@ export default defineConfig(
 		rules: { 'no-console': 'error' },
 	},
 	{
-		files: ['src/**'],
+		// The e2e harness runs its page helpers and the functions its scenarios evaluate in the Foundry page too.
+		files: ['src/**', 'e2e/**'],
 		rules: { 'no-restricted-globals': ['error', ...deprecatedGlobals] },
 	},
 	{
