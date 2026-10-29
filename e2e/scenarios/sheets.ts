@@ -134,6 +134,8 @@ type SheetsHelpers = {
 	/** Creates each type with no system data, the items on a character too, and reads back the fields `template.json` gave a default. */
 	emptyDefaults(): Promise<Record<string, unknown>>;
 	welcomeLink(): string | null;
+	/** The number of welcome messages in the chat. */
+	welcomeCount(): number;
 	cleanUp(): Promise<void>;
 };
 
@@ -912,6 +914,11 @@ function installSheetsHelpers() {
 			};
 		},
 
+		welcomeCount() {
+			return game.messages.contents.filter((candidate: { content: string }) => candidate.content.includes('Project Documentation'))
+				.length;
+		},
+
 		welcomeLink() {
 			const message = game.messages.contents.findLast((candidate: { content: string }) =>
 				candidate.content.includes('Project Documentation'),
@@ -947,6 +954,21 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.sheetsE2E.welcomeLink()),
 		'https://github.com/kornifex/FVTT-Genesys/wiki',
 	);
+
+	// §#347: the welcome shows for a version newer than the last one welcomed only. A GM back on an older version, as
+	// after a downgrade, isn't welcomed again.
+	const welcomes = await gm.evaluate(() => window.sheetsE2E.welcomeCount());
+	await e2e.step('#347 GM reloads on a version older than the last one welcomed', async () => {
+		await gm.evaluate(() => game.settings.set('genesys', 'alphaVersion', '99.0.0'));
+		await gm.reload();
+	});
+	await gm.evaluate(installSheetsHelpers);
+	e2e.expect(
+		'#347 A1 a GM back on an older version is not welcomed again',
+		(await gm.evaluate(() => window.sheetsE2E.welcomeCount())) - welcomes,
+		0,
+	);
+	await gm.evaluate(() => game.settings.set('genesys', 'alphaVersion', game.system.version));
 
 	const player = await e2e.player();
 	await player.evaluate(installSheetsHelpers);
