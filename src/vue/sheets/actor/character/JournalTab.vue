@@ -10,6 +10,7 @@ import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
+import Motivations from '@/vue/components/Motivations.vue';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
@@ -46,55 +47,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		<section class="motivations">
 			<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
 
-			<div class="container">
-				<!-- Strength -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Strength" /></span>
-						<input type="text" name="system.motivations.strength.name" :value="system.motivations.strength.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.strength.description" :content="system.motivations.strength.description" button />
-					</div>
-				</div>
-
-				<!-- Flaw -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Flaw" /></span>
-						<input type="text" name="system.motivations.flaw.name" :value="system.motivations.flaw.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.flaw.description" :content="system.motivations.flaw.description" button />
-					</div>
-				</div>
-
-				<!-- Desire -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Desire" /></span>
-						<input type="text" name="system.motivations.desire.name" :value="system.motivations.desire.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.desire.description" :content="system.motivations.desire.description" button />
-					</div>
-				</div>
-
-				<!-- Fear -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Fear" /></span>
-						<input type="text" name="system.motivations.fear.name" :value="system.motivations.fear.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.fear.description" :content="system.motivations.fear.description" button />
-					</div>
-				</div>
-			</div>
+			<Motivations :motivations="system.motivations" />
 		</section>
 
 		<section class="description">
@@ -243,54 +196,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		grid-column: 1 / span 1;
 		grid-row: 1 / span 1;
 		height: 100%;
-
-		.container {
-			display: flex;
-			flex-direction: column;
-			gap: 0.5em;
-			width: 100%;
-			height: 100%;
-
-			@container motivations (min-width: 900px) {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-			}
-		}
-
-		.motivation {
-			display: flex;
-			flex-direction: column;
-			flex-wrap: nowrap;
-			border: 1px solid black;
-			background: white;
-
-			@include reset.input;
-			input {
-				font-family: 'Roboto', sans-serif;
-			}
-
-			.header {
-				display: flex;
-				flex-direction: row;
-				flex-wrap: nowrap;
-				align-items: center;
-				gap: 0.5em;
-				padding: 0.25em;
-				padding-left: 0.5em;
-				border-bottom: 1px solid black;
-				clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1px), 80% calc(100% - 1px), 80% 100%, 0% 100%);
-
-				span {
-					font-size: 1.1em;
-				}
-			}
-
-			.body {
-				display: flex;
-				height: 100%;
-				min-height: 120px;
-			}
-		}
 	}
 
 	.description {
