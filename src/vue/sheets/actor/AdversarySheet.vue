@@ -582,8 +582,11 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			color: colors.$blue;
 		}
 
-		// An adversary's motivations share their tab with its Critical Injuries, so they start shorter.
+		// An adversary's motivations share their tab with its Critical Injuries, so they start shorter, their editor filling
+		// the height they take.
 		.motivation .body {
+			display: grid;
+			grid-template-rows: 1fr;
 			min-height: 4rem;
 		}
 
