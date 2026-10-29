@@ -26,8 +26,8 @@ import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { startDocumentDrag } from '@/data/DragTransferData';
 import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
-import { notify } from '@/notifications';
-import { attackSkill, attackWith, deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
+import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
+import type { StepDirection } from '@/actor/data/Inventory';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
@@ -67,21 +67,8 @@ function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
 	return talentRankChange(toRaw(talent), 1).action !== 'refuse';
 }
 
-async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | -1) {
-	const change = talentRankChange(toRaw(talent), step);
-	switch (change.action) {
-		case 'update':
-			await actor().updateEmbeddedDocuments('Item', [change.update]);
-			break;
-		case 'delete':
-			await actor().deleteEmbeddedDocuments('Item', [change.id]);
-			break;
-		case 'refuse':
-			if (change.refusal) {
-				notify(change.refusal);
-			}
-			break;
-	}
+async function changeTalentRank(talent: GenesysItem<TalentDataModel>, direction: StepDirection) {
+	await stepTalentRank(actor(), toRaw(talent), direction);
 }
 
 function damageForWeapon(weapon: GenesysItem) {

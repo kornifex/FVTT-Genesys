@@ -1,6 +1,10 @@
-/** @file The actions the sheets offer on an item: attack with it, open its sheet, delete it, step its quantity or damage, and send it to chat. */
+/**
+ * @file The actions the sheets offer on an item: attack with it, open its sheet, delete it, step its quantity, damage or
+ * an adversary talent's rank, and send it to chat. Each that deletes the item asks the user first.
+ */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
+import { talentRankChange } from '@/actor/data/AdversaryItems';
 import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
@@ -9,9 +13,11 @@ import { attackSkillName } from '@/data/Skills';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import type { TalentDataModel } from '@/item/data/TalentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { rollForCrew } from '@/operations/CrewRoll';
+import { notify } from '@/notifications';
 
 /**
  * The name of the Attack Skill an actor rolls a weapon with. Undefined when the weapon lists no skill, and it offers no
@@ -84,6 +90,29 @@ export async function stepEquipment(
 		await item.delete();
 	} else {
 		await item.update(step.update);
+	}
+}
+
+/**
+ * Raise or lower the rank of an adversary's talent from its menu. Lowering it below rank 1 deletes it once the user
+ * confirms, as a step of an item's quantity down to 0 does; a refused change tells the user why, when there is a reason.
+ */
+export async function stepTalentRank(adversary: GenesysActor, talent: GenesysItem<TalentDataModel>, direction: StepDirection) {
+	const change = talentRankChange(talent, direction);
+	switch (change.action) {
+		case 'update':
+			await adversary.updateEmbeddedDocuments('Item', [change.update]);
+			break;
+		case 'delete':
+			if (await confirmDeletion()) {
+				await adversary.deleteEmbeddedDocuments('Item', [change.id]);
+			}
+			break;
+		case 'refuse':
+			if (change.refusal) {
+				notify(change.refusal);
+			}
+			break;
 	}
 }
 
