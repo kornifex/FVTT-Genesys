@@ -12,7 +12,7 @@ import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
-import Tooltip from '@/vue/components/Tooltip.vue';
+import QualityList from '@/vue/components/QualityList.vue';
 
 import { rollForCrew } from '@/app/SelectCrewMemberPrompt';
 import { crewForSkills } from '@/actor/data/CrewRoster';
@@ -89,13 +89,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 						<span v-for="label in firingArcLabels(weapon.systemData.firingArc)" :key="label"><Localized :label="label" /></span>
 					</div>
 
-					<div class="qualities" v-if="weapon.systemData.qualities.length > 0">
-						<Tooltip v-for="quality in weapon.systemData.qualities" :key="quality.name" :content="quality.description">
-							<div class="quality">
-								{{ quality.name }} <template v-if="quality.isRated">{{ quality.rating }}</template>
-							</div>
-						</Tooltip>
-					</div>
+					<QualityList :qualities="weapon.systemData.qualities" tags class="qualities" />
 				</div>
 			</div>
 		</div>
@@ -217,19 +211,6 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	.qualities {
 		justify-self: left;
 		padding-left: 1em;
-
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 0.25em;
-
-		.quality {
-			background: colors.alpha(colors.$gold, 0.3);
-			border: 1px dashed colors.$gold;
-			border-radius: 0.25em;
-			padding: 0.25em;
-			font-family: 'Bebas Neue', sans-serif;
-		}
 	}
 
 	.skill {

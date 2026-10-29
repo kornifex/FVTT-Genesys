@@ -16,7 +16,7 @@ import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 
 import Localized from '@/vue/components/Localized.vue';
-import Tooltip from '@/vue/components/Tooltip.vue';
+import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
@@ -334,16 +334,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().baseWeapon.range.capitalize()}`" />]</div>
 
 					<!-- Qualities -->
-					<div v-if="weaponData().baseWeapon.qualities.length > 0" class="item-qualities">
-						<Tooltip
-							v-for="quality in weaponData().baseWeapon.qualities"
-							:key="quality.name"
-							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
-							:localized="quality.description === ''"
-						>
-							{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : '' }}
-						</Tooltip>
-					</div>
+					<QualityList :qualities="weaponData().baseWeapon.qualities" class="item-qualities" />
 				</template>
 
 				<!-- Armor Details -->
@@ -357,16 +348,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 					<div v-else-if="armorData().defense < 0"><Localized label="Genesys.Labels.Defense" /> {{ armorData().defense }}</div>
 
 					<!-- Qualities -->
-					<div v-if="armorData().qualities.length > 0" class="item-qualities">
-						<Tooltip
-							v-for="quality in armorData().qualities"
-							:key="quality.name"
-							:content="quality.description === '' ? 'Genesys.Tooltips.NoDescription' : quality.description"
-							:localized="quality.description === ''"
-						>
-							{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : '' }}
-						</Tooltip>
-					</div>
+					<QualityList :qualities="armorData().qualities" class="item-qualities" />
 				</template>
 
 				<!-- Container Details -->
@@ -664,24 +646,11 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		}
 	}
 
+	// The commas of the qualities space them out on a line.
 	.item-qualities {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25em;
-
-		& > div {
-			cursor: help;
-			white-space: nowrap;
-
-			&:after {
-				display: inline;
-				content: ',';
-			}
-
-			&:last-child:after {
-				display: none;
-			}
-		}
+		row-gap: 0.25em;
 	}
 
 	.weight,

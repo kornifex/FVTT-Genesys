@@ -3,6 +3,7 @@ import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import Localized from '@/vue/components/Localized.vue';
+import QualityList from '@/vue/components/QualityList.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
@@ -305,11 +306,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 												:label="`Genesys.Range.${item.system.range.capitalize()}`"
 											/>]</span
 										>
-										<span v-if="item.system.qualities.length > 0" class="weapon-qualities">
-											<span v-for="quality in item.system.qualities" :key="quality.name"
-												>{{ quality.name }}{{ quality.isRated ? ` ${quality.rating}` : null }}</span
-											>
-										</span> </span
+										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
 									>)
 								</a>
 								<a class="send-to-chat-link" @click="sendToChat(item)"><i class="fas fa-comment"></i></a>
@@ -627,18 +624,6 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			content: ',';
 			margin-right: 0.25em;
 			margin-left: -0.4em;
-		}
-
-		&:last-of-type::after {
-			display: none;
-		}
-	}
-
-	.weapon-qualities span {
-		&::after {
-			display: inline;
-			content: ',';
-			margin-right: 0.25em;
 		}
 
 		&:last-of-type::after {

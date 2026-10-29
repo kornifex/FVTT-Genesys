@@ -4,6 +4,7 @@ import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
+import { withQualityAdded } from '@/item/data/Qualities';
 
 export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
@@ -35,32 +36,14 @@ export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 
 			// Item Quality Drop
 			case 'quality': {
-				const existingIndex = systemData.qualities.findIndex((i) => i.name.toLowerCase() === droppedItem.name.toLowerCase());
-				const qualities = systemData.qualities;
-
-				if (existingIndex >= 0) {
-					// Do nothing if it's not a rated quality.
-					if (!qualities[existingIndex].isRated) {
-						return;
-					}
-
-					qualities[existingIndex].rating += 1;
-					await this.item.update({
-						'system.qualities': qualities,
-					});
-				} else {
-					// New Quality
-					await this.item.update({
-						'system.qualities': [
-							...qualities,
-							{
-								name: droppedItem.name,
-								description: droppedItem.systemData.description,
-								isRated: (droppedItem.systemData as ItemQualityDataModel).isRated,
-								rating: 1,
-							},
-						],
-					});
+				const quality = droppedItem.systemData as ItemQualityDataModel;
+				const qualities = withQualityAdded(systemData.qualities, {
+					name: droppedItem.name,
+					description: quality.description,
+					isRated: quality.isRated,
+				});
+				if (qualities) {
+					await this.item.update({ 'system.qualities': qualities });
 				}
 
 				return;

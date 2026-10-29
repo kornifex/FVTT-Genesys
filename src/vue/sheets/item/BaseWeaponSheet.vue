@@ -4,7 +4,8 @@ import { computed, inject, toRaw } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
-import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
+import { BaseWeaponDataModel, type ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { withQualityRating, withoutQuality } from '@/item/data/Qualities';
 
 const context = inject<ItemSheetContext<BaseWeaponDataModel>>(RootContext)!;
 const system = computed(() => context.data.item.systemData);
@@ -18,30 +19,19 @@ async function deleteSkill(index: number) {
 	});
 }
 
-async function deleteQuality(index: number) {
-	const updatedQualities = [...system.value.qualities];
-	updatedQualities.splice(index, 1);
-
-	await toRaw(context.data.item).update({
-		'system.qualities': updatedQualities,
-	});
+async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
+	if (qualities) {
+		await toRaw(context.data.item).update({ 'system.qualities': qualities });
+	}
 }
 
-async function updateQualityRating(index: number, event: Event) {
-	const value = parseInt((event.target as HTMLInputElement).value, 10);
+function deleteQuality(index: number) {
+	return updateQualities(withoutQuality(toRaw(system.value).qualities, index));
+}
 
-	if (isNaN(value)) {
-		return;
-	} else if (value <= 0) {
-		return deleteQuality(index);
-	} else if (system.value.qualities[index].rating !== value) {
-		const qualities = system.value.qualities;
-		qualities[index].rating = value;
-
-		await toRaw(context.data.item).update({
-			'system.qualities': qualities,
-		});
-	}
+function updateQualityRating(index: number, event: Event) {
+	const rating = parseInt((event.target as HTMLInputElement).value, 10);
+	return updateQualities(withQualityRating(toRaw(system.value).qualities, index, rating));
 }
 </script>
 
