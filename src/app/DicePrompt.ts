@@ -16,7 +16,14 @@ export const RollType = {
 	Initiative: 'initiative',
 } as const;
 
-export type RollType = (typeof RollType)[keyof typeof RollType];
+/**
+ * A check the Dice Prompt rolls, and what its roll type needs on top of the dice pool: the weapon of an attack, the
+ * promise of an initiative, settled when the check is rolled or the prompt closed.
+ */
+export type DicePromptRoll =
+	| { type: typeof RollType.Skill }
+	| { type: typeof RollType.Attack; weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel> }
+	| { type: typeof RollType.Initiative; resolve: (checkRoll: CheckRoll) => void; reject: () => void };
 
 /**
  * What the Dice Prompt shows and rolls.
@@ -24,36 +31,23 @@ export type RollType = (typeof RollType)[keyof typeof RollType];
 export type DicePromptContext = {
 	actor?: GenesysActor;
 	skillName?: string;
-	rollType: RollType;
+	roll: DicePromptRoll;
 	difficulty: string;
 	characteristic?: Characteristic;
-	rollData?: RollData;
 	app: DicePrompt;
 };
 
-export type AttackRollData = {
-	weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;
-};
-
-export type InitiativeRollData = {
-	resolvePromise: (checkRoll: CheckRoll) => void;
-	rejectPromise: () => void;
-};
-
-/**
- * What a roll type needs on top of the dice pool.
- */
-type RollData = AttackRollData | InitiativeRollData;
-
 export type DicePromptOptions = {
-	rollType?: RollType;
+	/**
+	 * The check rolled, a skill check by default.
+	 */
+	roll?: DicePromptRoll;
 	difficulty?: string;
 	/**
 	 * Characteristic rolled when no skill is selected: the characteristic of a Characteristic Check, or of a skill the
 	 * actor can't roll.
 	 */
 	characteristic?: Characteristic;
-	rollData?: RollData;
 };
 
 /**
@@ -79,13 +73,9 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 		await DicePrompt.promptForRoll(actor, '', { characteristic });
 	}
 
-	static async promptForInitiative(actor: GenesysActor, skillName: string, options: DicePromptOptions = {}) {
+	static async promptForInitiative(actor: GenesysActor, skillName: string, options: Omit<DicePromptOptions, 'roll'> = {}) {
 		return new Promise<CheckRoll>((resolve, reject) => {
-			const app = new DicePrompt(actor, skillName, {
-				...options,
-				rollType: RollType.Initiative,
-				rollData: { resolvePromise: resolve, rejectPromise: reject },
-			});
+			const app = new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative, resolve, reject } });
 
 			void app.render(true);
 		});
@@ -93,25 +83,23 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 
 	actor?: GenesysActor;
 	skillName?: string;
-	rollType: RollType;
+	roll: DicePromptRoll;
 	difficulty: string;
 	characteristic?: Characteristic;
-	rollData?: RollData;
 
-	constructor(actor?: GenesysActor, skillName?: string, { rollType, difficulty, characteristic, rollData }: DicePromptOptions = {}) {
+	constructor(actor?: GenesysActor, skillName?: string, { roll, difficulty, characteristic }: DicePromptOptions = {}) {
 		super();
 
 		this.actor = actor;
 		this.skillName = skillName;
-		this.rollType = rollType ?? RollType.Skill;
+		this.roll = roll ?? { type: RollType.Skill };
 		this.difficulty = difficulty ?? CONFIG.genesys.settings.defaultDifficulty;
 		this.characteristic = characteristic;
-		this.rollData = rollData;
 	}
 
 	protected override async _preClose(options: object) {
-		if (this.rollType === RollType.Initiative) {
-			(this.rollData as InitiativeRollData).rejectPromise();
+		if (this.roll.type === RollType.Initiative) {
+			this.roll.reject();
 		}
 
 		await super._preClose(options);
@@ -121,10 +109,9 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 		return {
 			actor: this.actor,
 			skillName: this.skillName,
-			rollType: this.rollType,
+			roll: this.roll,
 			difficulty: this.difficulty,
 			characteristic: this.characteristic,
-			rollData: this.rollData,
 			app: this,
 		};
 	}

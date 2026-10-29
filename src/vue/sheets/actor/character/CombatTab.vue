@@ -48,10 +48,7 @@ async function rollAttack(weapon: GenesysItem<WeaponDataModel>) {
 	}
 
 	await DicePrompt.promptForRoll(actor.value, skillName, {
-		rollType: RollType.Attack,
-		rollData: {
-			weapon,
-		},
+		roll: { type: RollType.Attack, weapon },
 	});
 }
 

@@ -42,8 +42,7 @@ async function deleteItem(item: GenesysItem) {
 
 async function rollAttack(weapon: GenesysItem<VehicleWeaponDataModel>) {
 	await rollForCrew(crewForSkills(actor.value.systemData.crew, weapon.systemData.skills), {
-		rollType: RollType.Attack,
-		rollData: { weapon },
+		roll: { type: RollType.Attack, weapon },
 	});
 }
 

@@ -65,8 +65,7 @@ async function rollAttack(weapon: GenesysItem) {
 
 	// The type check above makes it a weapon.
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), attackSkillName, {
-		rollType: RollType.Attack,
-		rollData: { weapon: weapon as GenesysItem<WeaponDataModel> },
+		roll: { type: RollType.Attack, weapon: weapon as GenesysItem<WeaponDataModel> },
 	});
 }
 

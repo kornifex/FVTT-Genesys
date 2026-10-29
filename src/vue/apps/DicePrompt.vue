@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, inject, onMounted, ref, shallowRef, toRaw } from 'vue';
-import { DicePromptContext, type AttackRollData, RollType, type InitiativeRollData } from '@/app/DicePrompt';
+import { DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
@@ -9,19 +9,11 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
+import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
-import { GenesysDice } from '@/dice';
-import { DieCategory } from '@/dice/dice/GenesysDie';
-import { GenesysSymbol } from '@/dice/GenesysSymbol';
+import type { DieCategory } from '@/dice/dice/GenesysDie';
 import { GenesysActor } from '@/actor/GenesysActor';
-import {
-	type DieGradeOperationName,
-	DIE_GLYPHS,
-	GenesysPoolModifications,
-	GRADE_GLYPHS,
-	removalGlyph,
-	SYMBOL_GLYPHS,
-} from '@/dice/GenesysPoolModifications';
+import { DIE_GLYPHS, GRADE_GLYPHS, removalGlyph, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import {
 	type Check,
@@ -35,31 +27,24 @@ import {
 	resolveCheck,
 	worldCheckRules,
 } from '@/dice/Check';
-import { type DicePool, type DieName, type SymbolName, parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
+import { type DicePool, parsePoolModifications, poolEntries, sortPoolModifications } from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
 
-type SimplePoolEntity = DieName | SymbolName;
-
 type PromptSkill = GenesysItem<SkillDataModel>;
 
-const SORT_ORDER: Record<SimplePoolEntity, number> = {
-	Proficiency: 0,
-	Ability: 1,
-	Boost: 2,
+const DIE_CATEGORIES: DieCategory[] = ['positive', 'negative'];
 
-	Success: 3,
-	Triumph: 4,
-	Advantage: 5,
-
-	Challenge: 0,
-	Difficulty: 1,
-	Setback: 2,
-
-	Failure: 3,
-	Despair: 4,
-	Threat: 5,
-};
+// The dice box's buttons, by the glyph of the manual change each one adds, in rows of three; a shorter row leaves the
+// rest of it empty.
+const DICE_BOX = [
+	[DIE_GLYPHS.Ability, DIE_GLYPHS.Proficiency, DIE_GLYPHS.Boost],
+	[GRADE_GLYPHS.UpgradeAbility, GRADE_GLYPHS.DowngradeAbility],
+	[DIE_GLYPHS.Difficulty, DIE_GLYPHS.Challenge, DIE_GLYPHS.Setback],
+	[GRADE_GLYPHS.UpgradeDifficulty, GRADE_GLYPHS.DowngradeDifficulty],
+	[SYMBOL_GLYPHS.Advantage, SYMBOL_GLYPHS.Success, SYMBOL_GLYPHS.Triumph],
+	[SYMBOL_GLYPHS.Threat, SYMBOL_GLYPHS.Failure, SYMBOL_GLYPHS.Despair],
+];
 
 const USE_SUPER_CHARACTERISTICS = CONFIG.genesys.settings.useSuperCharacteristics;
 const CHANCE_TO_SUCCEED_BY_SIMULATION_NUM_ROLLS = CONFIG.genesys.settings.showChanceToSucceedFromSimulations.amountOfRolls;
@@ -67,6 +52,7 @@ const USE_CHANCE_TO_SUCCEED_BY_PERMUTATION = CONFIG.genesys.settings.showChanceT
 const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.genesys.settings.showChanceToSucceedFromSimulations.enabled;
 
 const context = inject<DicePromptContext>(RootContext)!;
+const weapon = context.roll.type === RollType.Attack ? context.roll.weapon : undefined;
 
 const currentDicePool = ref<DicePool>({
 	dice: {},
@@ -103,7 +89,6 @@ onMounted(() => {
 	const actor = toRaw(context.actor);
 
 	if (actor) {
-		const weapon = context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon : undefined;
 		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
 		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.systemData.skills : []);
 		weaponSkills.value = skills.weapon;
@@ -126,7 +111,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			...request,
 			purpose: checkPurpose(),
 			target: (target?.actor as GenesysActor | null) ?? undefined,
-			attackRange: context.rollType === RollType.Attack ? (context.rollData as AttackRollData).weapon.systemData.range : undefined,
+			attackRange: weapon?.systemData.range,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -154,9 +139,9 @@ function resolve(request: CheckRequest<PromptSkill>) {
  * What the prompt rolls the check for.
  */
 function checkPurpose(): CheckPurpose {
-	switch (context.rollType) {
+	switch (context.roll.type) {
 		case RollType.Attack:
-			return { kind: 'attack', weaponName: (context.rollData as AttackRollData).weapon.name };
+			return { kind: 'attack', weaponName: context.roll.weapon.name };
 
 		case RollType.Initiative:
 			return { kind: 'initiative' };
@@ -237,32 +222,12 @@ function onCharacteristicChange(event: Event) {
 	});
 }
 
-function getOrderedDice(category: DieCategory) {
-	return Object.entries(currentDicePool.value.dice)
-		.filter(([dieName]) => GenesysDice[dieName as DieName].CATEGORY === category)
-		.sort(([left], [right]) => SORT_ORDER[left as DieName] - SORT_ORDER[right as DieName]);
+function skillLabel(skill: { name: string; systemData: { characteristic: Characteristic } }) {
+	return `${skill.name} (${game.i18n.localize(CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic])})`;
 }
 
-function getOrderedSymbols(category: DieCategory) {
-	return Object.entries(currentDicePool.value.symbols)
-		.filter(([symbolName]) => GenesysSymbol[symbolName as SymbolName].CATEGORY === category)
-		.sort(([left], [right]) => SORT_ORDER[left as SymbolName] - SORT_ORDER[right as SymbolName]);
-}
-
-function addDiceOperation(dieName: DieName, isRemoval: boolean = false) {
-	manualChanges.value.push(isRemoval ? removalGlyph(GenesysDice[dieName].GLYPH) : GenesysDice[dieName].GLYPH);
-	manualChanges.value.sort(sortPoolModifications);
-	buildDicePool();
-}
-
-function addSymbolOperation(symbolName: SymbolName, isRemoval: boolean = false) {
-	manualChanges.value.push(isRemoval ? removalGlyph(GenesysSymbol[symbolName].GLYPH) : GenesysSymbol[symbolName].GLYPH);
-	manualChanges.value.sort(sortPoolModifications);
-	buildDicePool();
-}
-
-function addPoolOperation(operationName: DieGradeOperationName) {
-	manualChanges.value.push(GRADE_GLYPHS[operationName]);
+function addManualChange(glyph: string) {
+	manualChanges.value.push(glyph);
 	manualChanges.value.sort(sortPoolModifications);
 	buildDicePool();
 }
@@ -275,13 +240,13 @@ function removeManualChange(index: number) {
 async function onRoll() {
 	const checkRoll = { check: check.value!, dicePool: toRaw(currentDicePool.value) };
 
-	switch (context.rollType) {
+	switch (context.roll.type) {
 		case RollType.Attack:
-			await rollCheck(checkRoll, (context.rollData as AttackRollData).weapon);
+			await rollCheck(checkRoll, context.roll.weapon);
 			break;
 
 		case RollType.Initiative:
-			(context.rollData as InitiativeRollData).resolvePromise(checkRoll);
+			context.roll.resolve(checkRoll);
 			break;
 
 		default:
@@ -301,99 +266,24 @@ async function onRoll() {
 
 		<!-- Dice Pool Preview -->
 		<div class="preview">
-			<!-- Positive Pool -->
-			<div class="positive">
-				<template v-for="[dieName, amount] in getOrderedDice('positive')" :key="dieName">
-					<div
-						v-for="index in amount"
-						:key="`${dieName}-${index}`"
-						@click="addDiceOperation(dieName as DieName, true)"
-						:class="`die die-${dieName}`"
-					>
-						{{ GenesysDice[dieName as DieName].GLYPH }}
-					</div>
-				</template>
-				<template v-for="[symbolName, amount] in getOrderedSymbols('positive')" :key="symbolName">
-					<div
-						v-for="index in amount"
-						:key="`${symbolName}-${index}`"
-						@click="addSymbolOperation(symbolName as SymbolName, true)"
-						class="symbol"
-					>
-						{{ GenesysSymbol[symbolName as SymbolName].GLYPH }}
-					</div>
-				</template>
-			</div>
-
-			<!-- Negative Pool -->
-			<div class="negative">
-				<template v-for="[dieName, amount] in getOrderedDice('negative')" :key="dieName">
-					<div
-						v-for="index in amount"
-						:key="`${dieName}-${index}`"
-						@click="addDiceOperation(dieName as DieName, true)"
-						:class="`die die-${dieName}`"
-					>
-						{{ GenesysDice[dieName as DieName].GLYPH }}
-					</div>
-				</template>
-				<template v-for="[symbolName, amount] in getOrderedSymbols('negative')" :key="symbolName">
-					<div
-						v-for="index in amount"
-						:key="`${symbolName}-${index}`"
-						@click="addSymbolOperation(symbolName as SymbolName, true)"
-						class="symbol"
-					>
-						{{ GenesysSymbol[symbolName as SymbolName].GLYPH }}
-					</div>
-				</template>
+			<!-- Positive and Negative Pools -->
+			<div v-for="category in DIE_CATEGORIES" :key="category" :class="category">
+				<div
+					v-for="(entry, index) in poolEntries(currentDicePool, category)"
+					:key="index"
+					@click="addManualChange(removalGlyph(entry.glyph))"
+					:class="entry.kind === 'die' ? `die die-${entry.name}` : 'symbol'"
+				>
+					{{ entry.glyph }}
+				</div>
 			</div>
 
 			<!-- Dice Box -->
 			<div class="dice-box">
-				<!-- Add Positive Dice -->
-				<a @click="addDiceOperation('Ability')" data-pool-entity="Ability">{{ DIE_GLYPHS.Ability }}<i class="fas fa-plus"></i></a>
-				<a @click="addDiceOperation('Proficiency')" data-pool-entity="Proficiency"
-					>{{ DIE_GLYPHS.Proficiency }}<i class="fas fa-plus"></i
-				></a>
-				<a @click="addDiceOperation('Boost')" data-pool-entity="Boost">{{ DIE_GLYPHS.Boost }}<i class="fas fa-plus"></i></a>
-
-				<!-- Upgrade/Downgrade Positive Dice -->
-				<a @click="addPoolOperation('UpgradeAbility')" data-pool-entity="Ability"
-					>{{ DIE_GLYPHS.Ability }}<i class="fas fa-arrow-up"></i
-				></a>
-				<a @click="addPoolOperation('DowngradeAbility')" data-pool-entity="Proficiency"
-					>{{ DIE_GLYPHS.Proficiency }}<i class="fas fa-arrow-down"></i
-				></a>
-				<span />
-
-				<!-- Add Negative Dice -->
-				<a @click="addDiceOperation('Difficulty')" data-pool-entity="Difficulty"
-					>{{ DIE_GLYPHS.Difficulty }}<i class="fas fa-plus"></i
-				></a>
-				<a @click="addDiceOperation('Challenge')" data-pool-entity="Challenge"
-					>{{ DIE_GLYPHS.Challenge }}<i class="fas fa-plus"></i
-				></a>
-				<a @click="addDiceOperation('Setback')" data-pool-entity="Setback">{{ DIE_GLYPHS.Setback }}<i class="fas fa-plus"></i></a>
-
-				<!-- Upgrade/Downgrade Negative Dice -->
-				<a @click="addPoolOperation('UpgradeDifficulty')" data-pool-entity="Difficulty"
-					>{{ DIE_GLYPHS.Difficulty }}<i class="fas fa-arrow-up"></i
-				></a>
-				<a @click="addPoolOperation('DowngradeDifficulty')" data-pool-entity="Challenge"
-					>{{ DIE_GLYPHS.Challenge }}<i class="fas fa-arrow-down"></i
-				></a>
-				<span />
-
-				<!-- Add Positive Symbols -->
-				<a @click="addSymbolOperation('Advantage')">{{ SYMBOL_GLYPHS.Advantage }}<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Success')">{{ SYMBOL_GLYPHS.Success }}<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Triumph')">{{ SYMBOL_GLYPHS.Triumph }}<i class="fas fa-plus"></i></a>
-
-				<!-- Add Negative Symbols -->
-				<a @click="addSymbolOperation('Threat')">{{ SYMBOL_GLYPHS.Threat }}<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Failure')">{{ SYMBOL_GLYPHS.Failure }}<i class="fas fa-plus"></i></a>
-				<a @click="addSymbolOperation('Despair')">{{ SYMBOL_GLYPHS.Despair }}<i class="fas fa-plus"></i></a>
+				<template v-for="(row, index) in DICE_BOX" :key="index">
+					<PoolModificationIcon v-for="glyph in row" :key="glyph" :glyph @click="addManualChange(glyph)" />
+					<span v-if="row.length < 3" />
+				</template>
 			</div>
 		</div>
 
@@ -415,14 +305,11 @@ async function onRoll() {
 			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
 				<optgroup v-if="weaponSkills.length > 0" v-localize:label="'Genesys.DicePrompt.WeaponSkills'">
-					<!-- prettier-ignore -->
-					<option v-for="skill in weaponSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
+					<option v-for="skill in weaponSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
 				</optgroup>
-				<!-- prettier-ignore -->
-				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
+				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
 				<optgroup v-if="unrankedSkills.length > 0" v-localize:label="'Genesys.DicePrompt.UnrankedSkills'">
-					<!-- prettier-ignore -->
-					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</option>
+					<option v-for="skill in unrankedSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
 				</optgroup>
 			</select>
 		</div>
@@ -442,28 +329,18 @@ async function onRoll() {
 				<div>
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.DefaultDifficulty" /></span>
 					<div>
-						<a
-							v-for="(modification, index) in baseDifficulty"
-							:key="index"
-							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
-						>
-							{{ GenesysPoolModifications[modification].icon.baseGlyph
-							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
-						</a>
+						<PoolModificationIcon v-for="(modification, index) in baseDifficulty" :key="index" :glyph="modification" />
 					</div>
 				</div>
 				<div class="pool-modifications-manual">
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
 					<div>
-						<a
+						<PoolModificationIcon
 							v-for="(modification, index) in manualChanges"
 							:key="index"
+							:glyph="modification"
 							@click="removeManualChange(index)"
-							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
-						>
-							{{ GenesysPoolModifications[modification].icon.baseGlyph
-							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
-						</a>
+						/>
 					</div>
 				</div>
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
@@ -472,14 +349,7 @@ async function onRoll() {
 						<label>{{ '\xa0' + effect.name }}</label>
 					</span>
 					<div>
-						<a
-							v-for="(modification, index) in effect.mods"
-							:key="index"
-							:data-pool-entity="GenesysPoolModifications[modification].icon.baseName"
-						>
-							{{ GenesysPoolModifications[modification].icon.baseGlyph
-							}}<i :class="`fas ${GenesysPoolModifications[modification].icon.operator}`"></i>
-						</a>
+						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
 					</div>
 				</div>
 			</div>
@@ -644,7 +514,7 @@ async function onRoll() {
 			margin-right: 0.2rem;
 			cursor: default;
 
-			&[data-pool-entity] > i.fas {
+			&[data-pool-entity] > :deep(i.fas) {
 				-webkit-text-stroke: 0 transparent;
 				text-stroke: 0 transparent;
 			}
@@ -686,7 +556,7 @@ async function onRoll() {
 			}
 		}
 
-		i {
+		:deep(i) {
 			color: black;
 			position: relative;
 			font-size: 0.5em;
@@ -807,7 +677,7 @@ async function onRoll() {
 					text-stroke: 0.5px white;
 					color: colors.$die-difficulty;
 
-					i {
+					:deep(i) {
 						-webkit-text-stroke: 0 transparent;
 						text-stroke: 0 transparent;
 					}
@@ -818,7 +688,7 @@ async function onRoll() {
 					text-stroke: 0.5px white;
 					color: colors.$die-challenge;
 
-					i {
+					:deep(i) {
 						-webkit-text-stroke: 0 transparent;
 						text-stroke: 0 transparent;
 					}
@@ -829,14 +699,14 @@ async function onRoll() {
 					text-stroke: 0.5px white;
 					color: colors.$die-setback;
 
-					i {
+					:deep(i) {
 						-webkit-text-stroke: 0 transparent;
 						text-stroke: 0 transparent;
 					}
 				}
 			}
 
-			i {
+			:deep(i) {
 				color: white;
 				position: relative;
 				font-size: 0.5em;

@@ -14,6 +14,7 @@ import {
 	DicePoolModifications,
 	hasSameChanceToSucceed,
 	parsePoolModifications,
+	poolEntries,
 	sortPoolModifications,
 } from '@/dice/DicePool';
 
@@ -359,5 +360,42 @@ describe('hasSameChanceToSucceed', () => {
 		expect(hasSameChanceToSucceed(pool({ manualChanges: ['A', 's'] }), pool({ manualChanges: ['A', 't'] }))).toBe(true);
 		expect(hasSameChanceToSucceed(pool({ manualChanges: ['A', 's', 'f'] }), pool({ manualChanges: ['A'] }))).toBe(true);
 		expect(hasSameChanceToSucceed(pool({ manualChanges: ['A', 's'] }), pool({ manualChanges: ['A', 'd'] }))).toBe(false);
+	});
+});
+
+describe('poolEntries', () => {
+	it("lists each die of the category, then each symbol, in the order the Dice Prompt's preview shows them", () => {
+		const dicePool: DicePool = {
+			dice: { Boost: 1, Ability: 2, Proficiency: 1, Difficulty: 1 },
+			symbols: { Advantage: 1, Triumph: 1, Success: 2, Threat: 1 },
+			usesSuperCharacteristic: false,
+		};
+
+		expect(poolEntries(dicePool, 'positive')).toEqual([
+			{ kind: 'die', name: 'Proficiency', glyph: 'P' },
+			{ kind: 'die', name: 'Ability', glyph: 'A' },
+			{ kind: 'die', name: 'Ability', glyph: 'A' },
+			{ kind: 'die', name: 'Boost', glyph: 'B' },
+			{ kind: 'symbol', name: 'Success', glyph: 's' },
+			{ kind: 'symbol', name: 'Success', glyph: 's' },
+			{ kind: 'symbol', name: 'Triumph', glyph: 't' },
+			{ kind: 'symbol', name: 'Advantage', glyph: 'a' },
+		]);
+	});
+
+	it('orders the negative dice and symbols as the positive ones: Challenge, Difficulty, Setback, then Failure, Despair, Threat', () => {
+		const dicePool: DicePool = {
+			dice: { Setback: 1, Difficulty: 1, Challenge: 1, Ability: 1 },
+			symbols: { Threat: 1, Despair: 1, Failure: 1, Success: 1 },
+			usesSuperCharacteristic: false,
+		};
+
+		expect(poolEntries(dicePool, 'negative').map(({ glyph }) => glyph)).toEqual(['C', 'D', 'S', 'f', 'd', 'h']);
+	});
+
+	it('shows nothing of a die or a symbol whose count is zero', () => {
+		const dicePool: DicePool = { dice: { Ability: 0 }, symbols: { Success: 0 }, usesSuperCharacteristic: false };
+
+		expect(poolEntries(dicePool, 'positive')).toEqual([]);
 	});
 });
