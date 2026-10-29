@@ -4,24 +4,25 @@
 
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { decideDrop, DropTarget, isInventoryType } from '@/actor/data/Inventory';
-import type { DragTransferData } from '@/data/DragTransferData';
+import { dragData } from '@/data/DragTransferData';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
-import { DropData, itemFromDrop } from '@/item/GenesysItemSheet';
+import { itemFromDrop } from '@/item/GenesysItemSheet';
 
 /**
  * Receive an item dropped on an inventory component. The event is stopped at once, before the sheet receives it too;
  * anything else, an item of a type the actor doesn't keep in its inventory included, goes on to the sheet.
  */
 export async function receiveInventoryEvent(actor: GenesysActor, event: DragEvent, at: DropTarget) {
-	const data = TextEditor.getDragEventData(event as ElementDragEvent) as DragTransferData;
+	const data = dragData(event.dataTransfer);
 	const type = data.type === 'Item' && data.uuid ? data.genesysType ?? droppedType(data.uuid) : undefined;
 	if (!type || !isInventoryType(actor.type, type)) {
 		return false;
 	}
 
 	event.stopPropagation();
-	return receiveInventoryDrop(actor, data as DropData, at);
+	const item = await itemFromDrop<EquipmentDataModel>(data);
+	return item ? receiveInventoryDrop(actor, item, at) : false;
 }
 
 function droppedType(uuid: string) {
@@ -34,13 +35,12 @@ function droppedType(uuid: string) {
 }
 
 /**
- * Receive an item dropped on an actor's inventory: one from an actor the user owns is moved with its contents, one from
- * an actor they don't own is refused, and one from a compendium or the sidebar is copied. Returns the created items, or
- * false when the drop is refused.
+ * Receive the item a drop on an actor's inventory carries: one from an actor the user owns is moved with its contents,
+ * one from an actor they don't own is refused, and one from a compendium or the sidebar is copied. Returns the created
+ * items, or false when the drop is refused.
  */
-export async function receiveInventoryDrop(actor: GenesysActor, data: DropData | DropCanvasData, at: DropTarget = { kind: 'sheet' }) {
-	const item = await itemFromDrop<EquipmentDataModel>(data);
-	if (!actor.isOwner || !item) {
+export async function receiveInventoryDrop(actor: GenesysActor, item: GenesysItem, at: DropTarget = { kind: 'sheet' }) {
+	if (!actor.isOwner) {
 		return false;
 	}
 

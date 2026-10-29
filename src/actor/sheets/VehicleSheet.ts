@@ -4,7 +4,7 @@ import VueVehicleSheet from '@/vue/sheets/actor/VehicleSheet.vue';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CrewDragTransferData, DragTransferData } from '@/data/DragTransferData';
+import { CrewDragTransferData } from '@/data/DragTransferData';
 import { isPassengerDrop, receiveCrewDrop } from '@/operations/CrewDrop';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 
@@ -17,33 +17,13 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 		return 'skills';
 	}
 
-	protected override async _onDropItem(event: DragEvent, data: DropCanvasData<'Item', GenesysItem<BaseItemDataModel>>) {
-		// Regardless of what was dropped this is the last spot to process it.
-		event.stopPropagation();
-
-		// Check that the we have the UUID of the item that was dropped.
-		const dragData = data as DragTransferData;
-		if (!dragData.uuid) {
-			return false;
-		}
-
-		// Make sure that the item in question exists and this actor doesn't own it.
-		const droppedItem = await fromUuid<GenesysItem<BaseItemDataModel>>(dragData.uuid);
-		if (!droppedItem || droppedItem.actor?.uuid === this.actor.uuid) {
-			return false;
-		}
-
-		// We must be able to edit the actor to proceed.
-		if (!this.isEditable) {
-			return false;
-		}
-
+	protected override async receiveItem(droppedItem: GenesysItem<BaseItemDataModel>) {
 		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
 		if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
-			clonedDroppedItem = await receiveInventoryDrop(this.actor, data);
+			clonedDroppedItem = await receiveInventoryDrop(this.actor, droppedItem);
 		} else if (VehicleDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {
 			// Let `super` handle the drop and save a reference to it.
-			clonedDroppedItem = await super._onDropItem(event, data);
+			clonedDroppedItem = await super.receiveItem(droppedItem);
 		} else {
 			// If the dropped item is not of a type that we have a default behavior then end early.
 			return false;

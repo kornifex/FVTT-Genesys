@@ -1,7 +1,7 @@
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import VueCareerSheet from '@/vue/sheets/item/CareerSheet.vue';
-import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { GenesysItemSheet } from '@/item/GenesysItemSheet';
+import { GenesysItem } from '@/item/GenesysItem';
 import { isCareerSkill } from '@/actor/data/character/Career';
 
 export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
@@ -14,13 +14,8 @@ export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
 		return VueCareerSheet;
 	}
 
-	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
-		if (!this.isEditable || !data.uuid) {
-			return;
-		}
-
-		const droppedItem = await itemFromDrop<SkillDataModel>(data);
-		if (!droppedItem || droppedItem.type !== 'skill') {
+	protected override async receiveItem(droppedItem: GenesysItem): Promise<void> {
+		if (droppedItem.type !== 'skill') {
 			return;
 		}
 

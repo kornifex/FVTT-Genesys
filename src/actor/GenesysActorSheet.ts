@@ -3,6 +3,7 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
 import { GenesysEffect } from '@/effects/GenesysEffect';
+import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
 import { ActorSheetContext } from '@/vue/SheetContext';
 
@@ -29,14 +30,14 @@ export class GenesysActorSheet<
 
 	/**
 	 * Handle data dropped on the sheet. Foundry's ActorSheetV2 hands the dropped document to its handlers where the
-	 * system's take the drop data, so this replaces Foundry's own. It can go once the handlers take the documents (#271).
+	 * system's take the drop data, so this replaces Foundry's own. It can go once the handlers take the documents (#254).
 	 */
 	protected override async _onDrop(event: DragEvent) {
 		if (!this.isEditable) {
 			return;
 		}
 
-		const data = TextEditor.getDragEventData(event as ElementDragEvent) as DropCanvasData;
+		const data = dragData<DropCanvasData>(event.dataTransfer);
 		if (Hooks.call('dropActorSheetData', this.actor, this, data) === false) {
 			return;
 		}
@@ -49,7 +50,7 @@ export class GenesysActorSheet<
 				await this._onDropActor(event, data as DropCanvasData<'Actor', GenesysActor<ActorDataModel>>);
 				break;
 			case 'Item':
-				await this._onDropItem(event, data as DropCanvasData<'Item', GenesysItem<ItemDataModel>>);
+				await this._onDropItem(event, data);
 				break;
 			case 'Folder':
 				await this._onDropFolder(event, data as DropCanvasData<'Folder', Folder>);
@@ -78,14 +79,13 @@ export class GenesysActorSheet<
 	}
 
 	/**
-	 * Called when an Item is dropped on the sheet: the actor gets a copy of it. An item the actor already owns stays as it
-	 * is, since the sheets' Vue components sort their own items.
+	 * Called when an Item is dropped on the sheet: an actor the user can edit receives the item the drop carries. An item
+	 * the actor already owns stays as it is, since the sheets' Vue components sort their own items.
 	 */
-	protected async _onDropItem(
-		_event: DragEvent,
-		data: DropCanvasData<'Item', GenesysItem<ItemDataModel>>,
-	): Promise<GenesysItem<ItemDataModel>[] | boolean> {
-		if (!this.actor.isOwner) {
+	protected async _onDropItem(event: DragEvent, data: DragTransferData): Promise<GenesysItem<ItemDataModel>[] | boolean> {
+		// The sheet is the last to receive the drop: it is stopped now, before the first await lets it bubble on.
+		event.stopPropagation();
+		if (!this.isEditable) {
 			return false;
 		}
 
@@ -94,6 +94,14 @@ export class GenesysActorSheet<
 			return false;
 		}
 
+		return this.receiveItem(item);
+	}
+
+	/**
+	 * Receive an item dropped on the sheet, which the actor doesn't own: by default, the actor gets a copy of it. Returns
+	 * the items created, or false when the drop is refused.
+	 */
+	protected async receiveItem(item: GenesysItem<ItemDataModel>): Promise<GenesysItem<ItemDataModel>[] | boolean> {
 		return this._onDropItemCreate(item.toObject());
 	}
 
@@ -110,11 +118,7 @@ export class GenesysActorSheet<
 
 		const folderContent = folder.contents;
 		for (const item of folderContent) {
-			const creationResult = await this._onDropItem(new DragEvent(event.type), {
-				uuid: item.uuid,
-				x: data.x,
-				y: data.y,
-			});
+			const creationResult = await this._onDropItem(new DragEvent(event.type), { uuid: item.uuid });
 
 			if (!creationResult) {
 				continue;

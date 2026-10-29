@@ -1,8 +1,8 @@
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
-import { GenesysItemSheet, DropData, itemFromDrop } from '@/item/GenesysItemSheet';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { GenesysItemSheet } from '@/item/GenesysItemSheet';
+import { GenesysItem } from '@/item/GenesysItem';
 import { grantsItem } from '@/actor/data/character/Archetype';
 
 import '@/item/sheets/ArchetypeSheet.scss';
@@ -22,16 +22,7 @@ export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 		return VueArchetypeSheet;
 	}
 
-	protected override async _onDropItem(_event: DragEvent, data: DropData): Promise<void> {
-		if (!this.isEditable || !data.uuid) {
-			return;
-		}
-
-		const droppedItem = await itemFromDrop<BaseItemDataModel>(data);
-		if (!droppedItem) {
-			return;
-		}
-
+	protected override async receiveItem(droppedItem: GenesysItem): Promise<void> {
 		// Prevent dropping certain item types.
 		if (BLOCK_GRANTED_ITEM_TYPES.includes(droppedItem.type)) {
 			return;

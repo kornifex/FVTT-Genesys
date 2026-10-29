@@ -24,6 +24,39 @@ export function constructDragTransferTypeFromData(genesysType: string, uuid: Doc
 	return `${GENESYS_DRAG_TYPE_PREFIX}/${encodeUpperCase(genesysType)}/${encodeUpperCase(uuid)}`;
 }
 
+/**
+ * The drag data a drag carries as text: Foundry's, or the system's, which adds the dragged document's own type. Empty
+ * when the drag carries no JSON object.
+ */
+export function dragData<Data extends DragTransferData = DragTransferData>(dataTransfer?: Pick<DataTransfer, 'getData'> | null) {
+	let data: unknown;
+	try {
+		data = JSON.parse(dataTransfer?.getData('text/plain') || '{}');
+	} catch {
+		// Text dragged from outside Foundry, such as a selection of a web page, isn't JSON: it carries no drag data.
+		return {} as Data;
+	}
+
+	return (typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {}) as Data;
+}
+
+/**
+ * Mark the drag of an actor or an item of the given document types with its Genesys type, as the sidebar and the
+ * compendiums start it. A drop target reads the type during the drag to light up for what it takes: browsers only let a
+ * drag's formats be read before the drop, not its data.
+ */
+export function addGenesysDragType(event: DragEvent, acceptedTypes: readonly ('Actor' | 'Item')[]) {
+	const { type, uuid } = dragData(event.dataTransfer);
+	if (!uuid || !acceptedTypes.some((accepted) => accepted === type)) {
+		return;
+	}
+
+	const dragged = fromUuidSync(uuid) as { type: string } | null;
+	if (dragged) {
+		event.dataTransfer?.setData(constructDragTransferTypeFromData(dragged.type, uuid as DocumentUUID), '');
+	}
+}
+
 export function extractDataFromDragTransferTypes(dragTransferTypes?: readonly string[]) {
 	if (dragTransferTypes) {
 		const genesysDragType = dragTransferTypes.find((transferType) => transferType.indexOf(GENESYS_DRAG_TYPE_PREFIX) === 0);

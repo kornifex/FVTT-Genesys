@@ -1,23 +1,29 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
 import { ItemSheetContext } from '@/vue/SheetContext';
 
 import '@/item/GenesysItemSheet.scss';
 
-export type DropData = {
-	type: 'ActiveEffect' | 'Actor' | 'Item' | 'Folder';
-	uuid: string;
-};
-
 /**
- * The item a drop on a sheet carries, of the data model the sheet expects.
+ * The item a drop carries by its uuid, of the data model the receiver expects; undefined when it carries no item.
  */
-export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DropData | DropCanvasData) {
+export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DragTransferData) {
+	if (!data.uuid) {
+		return undefined;
+	}
+
 	// The types we have lack the configured item class's own methods, read the drop data of a canvas, and return an item
 	// of any data model.
 	const itemClass = GenesysItem.implementation as typeof GenesysItem;
-	return (await itemClass.fromDropData(data as DropCanvasData<'Item'>)) as GenesysItem<ItemDataModel> | undefined;
+	try {
+		return (await itemClass.fromDropData(data as DropCanvasData<'Item'>)) as GenesysItem<ItemDataModel> | undefined;
+	} catch {
+		// Foundry throws when the uuid names no document, as once it is deleted, or one that isn't an item: the drop
+		// carries no item.
+		return undefined;
+	}
 }
 
 /**
@@ -43,45 +49,22 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 	}
 
 	/**
-	 * Add support for drop data on Item sheets.
+	 * Handle data dropped on the sheet: an item the user can edit receives the item a drop carries, and nothing else.
 	 */
 	protected override async _onDrop(event: DragEvent) {
-		if (!this.isEditable) {
+		const data = dragData(event.dataTransfer);
+		if (!this.isEditable || data.type !== 'Item') {
 			return;
 		}
 
-		const data: DropData = <DropData>TextEditor.getDragEventData(event as ElementDragEvent);
-
-		switch (data.type) {
-			case 'ActiveEffect':
-				await this._onDropActiveEffect(event, data);
-				break;
-			case 'Actor':
-				await this._onDropActor(event, data);
-				break;
-			case 'Item':
-				await this._onDropItem(event, data);
-				break;
-			case 'Folder':
-				await this._onDropFolder(event, data);
-				break;
+		const item = await itemFromDrop(data);
+		if (item) {
+			await this.receiveItem(item);
 		}
 	}
 
 	/**
-	 * Called when an ActiveEffect is dropped on the item sheet.
+	 * Receive an item dropped on the sheet. An item takes none, unless its sheet says what it does with one.
 	 */
-	protected async _onDropActiveEffect(_event: DragEvent, _data: DropData) {}
-	/**
-	 * Called when an Actor is dropped on the item sheet.
-	 */
-	protected async _onDropActor(_event: DragEvent, _data: DropData) {}
-	/**
-	 * Called when an Item is dropped on the item sheet.
-	 */
-	protected async _onDropItem(_event: DragEvent, _data: DropData) {}
-	/**
-	 * Called when a Folder is dropped on the item sheet.
-	 */
-	protected async _onDropFolder(_event: DragEvent, _data: DropData) {}
+	protected async receiveItem(_item: GenesysItem): Promise<void> {}
 }
