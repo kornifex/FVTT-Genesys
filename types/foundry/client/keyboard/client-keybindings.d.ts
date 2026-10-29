@@ -154,7 +154,10 @@ declare global {
 		 * @param {} context    The context data of the event
 		 * @private
 		 */
-		private static _onToggleCharacterSheet(event: KeyboardEvent, context: KeyboardEventContext): ActorSheet | Promise<ActorSheet>;
+		private static _onToggleCharacterSheet(
+			event: KeyboardEvent,
+			context: KeyboardEventContext,
+		): foundry.appv1.sheets.ActorSheet | Promise<foundry.appv1.sheets.ActorSheet>;
 
 		/**
 		 * Handle action to target the currently hovered token.

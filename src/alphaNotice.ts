@@ -22,8 +22,10 @@ export async function ready(lastAlpha: string) {
 		return;
 	}
 
-	const message = await renderTemplate('systems/genesys/templates/chat/alpha-notice.hbs', { version: game.system.version });
-	const enrichedMessage = await TextEditor.enrichHTML(message, { async: true });
+	const message = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/alpha-notice.hbs', {
+		version: game.system.version,
+	});
+	const enrichedMessage = await foundry.applications.ux.TextEditor.implementation.enrichHTML(message, { async: true });
 
 	await ChatMessage.create({
 		user: game.user.id,

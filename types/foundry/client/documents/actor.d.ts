@@ -182,11 +182,11 @@ declare global {
 
 		prototypeToken: foundry.data.PrototypeToken;
 
-		get collection(): Actors<this>;
+		get collection(): foundry.documents.collections.Actors<this>;
 
-		_sheet: ActorSheet<this, Item> | null;
+		_sheet: foundry.appv1.sheets.ActorSheet<this, Item> | null;
 
-		get sheet(): ActorSheet<this, Item>;
+		get sheet(): foundry.appv1.sheets.ActorSheet<this, Item>;
 
 		get folder(): Folder<this> | null;
 

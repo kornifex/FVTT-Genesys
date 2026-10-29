@@ -51,8 +51,11 @@ export async function checkMessageData(check: Check, { roll, results }: PoolRoll
 	const card = cardResults(results);
 	const data = { description: checkDescription(check, game.i18n), results, card };
 	const content = weapon
-		? await renderTemplate(ATTACK_TEMPLATE, { ...data, ...(await attackCardData(check, weapon, results, card)) })
-		: await renderTemplate(CHECK_TEMPLATE, data);
+		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {
+				...data,
+				...(await attackCardData(check, weapon, results, card)),
+			})
+		: await foundry.applications.handlebars.renderTemplate(CHECK_TEMPLATE, data);
 
 	return {
 		user: game.user.id,

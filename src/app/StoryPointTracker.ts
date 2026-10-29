@@ -149,7 +149,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return;
 		}
 
-		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
+		const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
 			type: pool,
 			message: SPEND_MESSAGES[pool],
 		});

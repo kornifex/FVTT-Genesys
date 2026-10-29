@@ -1,7 +1,7 @@
 /** Render the Sidebar container, and after rendering insert Sidebar tabs */
 declare class Sidebar extends Application {
 	/** Singleton application instances for each sidebar tab */
-	tabs: Tabs;
+	tabs: foundry.applications.ux.Tabs;
 
 	/** Track whether the sidebar container is currently collapsed */
 	_collapsed: boolean;

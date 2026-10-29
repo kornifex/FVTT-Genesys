@@ -24,7 +24,7 @@ declare global {
 		protected _dragDrop: DragDrop[];
 
 		/** Tab navigation handlers which are active for this Application */
-		protected _tabs: Tabs[];
+		protected _tabs: foundry.applications.ux.Tabs[];
 
 		/** SearchFilter handlers which are active for this Application */
 		protected _searchFilters: SearchFilter[];
@@ -60,7 +60,7 @@ declare global {
 		 * Create tabbed navigation handlers for this Application
 		 * @return An array of Tabs handlers
 		 */
-		protected _createTabHandlers(): Tabs[];
+		protected _createTabHandlers(): foundry.applications.ux.Tabs[];
 
 		/**
 		 * Assign the default options which are supported by all Application classes.
@@ -196,7 +196,7 @@ declare global {
 		 * @param tabs      The TabsV2 controller
 		 * @param active    The new active tab name
 		 */
-		protected _onChangeTab(event: MouseEvent, tabs: Tabs, active: string): void;
+		protected _onChangeTab(event: MouseEvent, tabs: foundry.applications.ux.Tabs, active: string): void;
 
 		/**
 		 * Handle changes to search filtering controllers which are bound to the Application

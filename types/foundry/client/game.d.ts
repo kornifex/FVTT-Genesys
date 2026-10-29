@@ -15,7 +15,7 @@ declare global {
 	 */
 	class Game<
 		TActor extends Actor = Actor,
-		TActors extends Actors<TActor> = Actors<TActor>,
+		TActors extends foundry.documents.collections.Actors<TActor> = foundry.documents.collections.Actors<TActor>,
 		TChatMessage extends ChatMessage<TActor> = ChatMessage<TActor>,
 		TCombat extends Combat = Combat,
 		TItem extends Item<TActor> = Item<TActor>,
@@ -141,7 +141,7 @@ declare global {
 
 		combats: CombatEncounters<TCombat>;
 		folders: Folders<Folder>;
-		items: Items<TItem>;
+		items: foundry.documents.collections.Items<TItem>;
 		journal: Journal;
 		macros: Macros<TMacro>;
 		messages: Messages<TChatMessage>;

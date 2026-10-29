@@ -51,7 +51,7 @@ async function editImage(sheet: DocumentSheet, event: MouseEvent) {
 	const defaultImage = foundry.utils.getProperty(documentClass.getDefaultArtwork?.(source) ?? {}, field);
 	const position = { top: sheet.position.top + 40, left: sheet.position.left + 10 };
 
-	const picker = new FilePicker({
+	const picker = new foundry.applications.apps.FilePicker.implementation({
 		current: foundry.utils.getProperty(source, field),
 		type: 'image',
 		redirectToRoot: defaultImage ? [defaultImage] : [],

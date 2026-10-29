@@ -29,7 +29,7 @@ declare global {
 
 		override activateListeners(html: JQuery): void;
 
-		protected override _onChangeTab(event: MouseEvent | null, tabs: Tabs, active: string): void;
+		protected override _onChangeTab(event: MouseEvent | null, tabs: foundry.applications.ux.Tabs, active: string): void;
 
 		protected override _onSearchFilter(event: KeyboardEvent, query: string, rgx: RegExp, html: HTMLElement): void;
 

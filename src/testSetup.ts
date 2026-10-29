@@ -14,7 +14,6 @@ const FOUNDRY_GLOBALS = [
 	'Die',
 	'Roll',
 	'ChatMessage',
-	'TextEditor',
 	'Handlebars',
 	'Actor',
 	'Item',
