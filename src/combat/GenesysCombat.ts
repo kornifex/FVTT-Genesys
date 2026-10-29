@@ -5,15 +5,7 @@ import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
-import {
-	ClaimInitiativeSlotData,
-	emit as socketEmit,
-	SOCKET_NAME,
-	SocketOperation,
-	SocketPayload,
-	CombatSocketBaseData,
-	UpdateInitiativeForExtraSlotData,
-} from '@/socket';
+import { emit as socketEmit, handle as handleSocket, SocketOperation } from '@/socket';
 import {
 	buildSlots,
 	claimRefusal,
@@ -528,52 +520,27 @@ export class GenesysCombat extends Combat {
 }
 
 /**
- * Register socket listener for Genesys Combats
+ * Handle the combat's socket operations: the Acting GM writes the players' Claims and Extra Slot initiatives.
  */
 export function register() {
-	// Helper function to determine if the code is being executed by only one GM.
-	const isGmHub = () => {
-		return game.user.isGM && game.users.filter((user) => user.isGM && user.active).every((candidate) => candidate.id >= game.user.id);
+	const combatOf = (operation: SocketOperation, combatId: string) => {
+		const combat = game.combats.get<GenesysCombat>(combatId);
+		if (!combat) {
+			log.error(`Socket received ${SocketOperation[operation]} payload with invalid combat ID ${combatId}`);
+		}
+		return combat;
 	};
 
-	game.socket.on(SOCKET_NAME, async (payload: SocketPayload<CombatSocketBaseData>) => {
-		if (!payload.data) {
-			return;
-		}
+	handleSocket(SocketOperation.ClaimInitiativeSlot, async ({ combatId, round, slotId, combatantId }) => {
+		await combatOf(SocketOperation.ClaimInitiativeSlot, combatId)?.claimSlot(round, slotId, combatantId);
+	});
 
-		const combat = game.combats.get<GenesysCombat>(payload.data.combatId);
-		if (!combat) {
-			log.error(`Socket received ${SocketOperation[payload.operation]} payload with invalid combat ID ${payload.data.combatId}`);
-			return;
-		}
+	handleSocket(SocketOperation.UpdateCombatTracker, ({ combatId }) => {
+		combatOf(SocketOperation.UpdateCombatTracker, combatId)?.refreshLocalTurns();
+	});
 
-		switch (payload.operation) {
-			case SocketOperation.ClaimInitiativeSlot: {
-				if (!isGmHub()) {
-					return;
-				}
-
-				const cisData = payload.data as ClaimInitiativeSlotData;
-				await combat.claimSlot(cisData.round, cisData.slotId, cisData.combatantId);
-				break;
-			}
-
-			case SocketOperation.UpdateCombatTracker:
-				combat.refreshLocalTurns();
-				break;
-
-			case SocketOperation.UpdateInitiativeForExtraSlot: {
-				if (!isGmHub()) {
-					return;
-				}
-
-				const uifesData = payload.data as UpdateInitiativeForExtraSlotData;
-				await combat.writeExtraSlotsInitiative(uifesData.updates, uifesData.updateTurn ? combat.currentSlotId : undefined);
-				break;
-			}
-
-			default:
-				return;
-		}
+	handleSocket(SocketOperation.UpdateInitiativeForExtraSlot, async ({ combatId, updates, updateTurn }) => {
+		const combat = combatOf(SocketOperation.UpdateInitiativeForExtraSlot, combatId);
+		await combat?.writeExtraSlotsInitiative(updates, updateTurn ? combat.currentSlotId : undefined);
 	});
 }

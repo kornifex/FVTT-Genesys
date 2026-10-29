@@ -234,6 +234,7 @@ Genesys:
     CannotClaimOppositeSlot: No puedes reclamar este puesto de iniciativa con {name} - ¡está en el lado equivocado!
     SlotAlreadyClaimed: Este puesto de iniciativa ya está reclamado.
     NoGMForExtraSlot: Un DJ debe estar conectado para tirar la iniciativa de un puesto adicional.
+    NoGMForStoryPoint: Un DJ debe estar conectado para gastar un punto de Historia.
     CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.

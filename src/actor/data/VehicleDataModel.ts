@@ -8,6 +8,7 @@ import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
+import { isActingGm } from '@/socket';
 
 type ValueWithMax = {
 	value: number;
@@ -297,9 +298,8 @@ export function register() {
 			// Whenever a vehicle is deleted remove it from the updates array.
 			VehicleDataModel._GAME_VEHICLES.delete(targetActor as GenesysActor<VehicleDataModel>);
 		} else {
-			// Whenever a non-vehicle actor is deleted let the primary GM remove it from all the vehicles in the world.
-			const isGmHub = game.users.activeGM?.isSelf;
-			if (isGmHub) {
+			// Whenever a non-vehicle actor is deleted let the Acting GM remove it from all the vehicles in the world.
+			if (isActingGm()) {
 				const genesysActorUuid = targetActor.uuid;
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
 					if (!isInWorld(vehicle)) {
