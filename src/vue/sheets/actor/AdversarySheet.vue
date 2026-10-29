@@ -31,8 +31,7 @@ import { attackSkill, attackWith, deleteItem, openSheet, sendToChat } from '@/op
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
-const actor = computed(() => toRaw(context.data.actor));
-const system = computed(() => actor.value.systemData);
+const system = computed(() => toRaw(context.data.actor).systemData);
 
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
@@ -47,11 +46,17 @@ const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.
 const weapons = computed(() =>
 	(equipment.value.filter((i) => i.type === 'weapon') as GenesysItem<WeaponDataModel>[]).map((item) => ({
 		item,
-		skill: attackSkill(actor.value, item),
+		skill: attackSkill(actor(), item),
 	})),
 );
 
 const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
+
+// Foundry rebuilds the actor's data out of Vue's sight: a computed over the actor itself would never change, so the
+// sheet reads it through the context on each use.
+function actor() {
+	return toRaw(context.data.actor);
+}
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
@@ -66,10 +71,10 @@ async function changeTalentRank(talent: GenesysItem<TalentDataModel>, step: 1 | 
 	const change = talentRankChange(toRaw(talent), step);
 	switch (change.action) {
 		case 'update':
-			await actor.value.updateEmbeddedDocuments('Item', [change.update]);
+			await actor().updateEmbeddedDocuments('Item', [change.update]);
 			break;
 		case 'delete':
-			await actor.value.deleteEmbeddedDocuments('Item', [change.id]);
+			await actor().deleteEmbeddedDocuments('Item', [change.id]);
 			break;
 		case 'refuse':
 			if (change.refusal) {
@@ -182,7 +187,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<a @click="openSheet(talent)"
 											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
 										>
-										<a class="send-to-chat-link" @click="sendToChat(talent, actor)"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(talent, actor())"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
 								<Enriched class="description" v-if="talent.systemData.description" :value="talent.systemData.description" />
@@ -202,7 +207,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 									<label>
 										<a @click="openSheet(ability)">{{ ability.name }}</a>
-										<a class="send-to-chat-link" @click="sendToChat(ability, actor)"><i class="fas fa-comment"></i></a>
+										<a class="send-to-chat-link" @click="sendToChat(ability, actor())"
+											><i class="fas fa-comment"></i
+										></a>
 									</label>
 								</ContextMenu>
 								<Enriched
@@ -226,13 +233,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										v-if="skill"
 										icon="fas fa-dice-d20"
 										label="Genesys.Labels.PerformCheck"
-										@click="attackWith(actor, item)"
+										@click="attackWith(actor(), item)"
 									/>
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="attackWith(actor, item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
+								<a @click="attackWith(actor(), item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<i class="fas fa-dice-d20"></i>
 									{{ item.name }}
 									(<span class="weapon-details">
@@ -255,7 +262,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
 									>)
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor())"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 							<ContextMenu
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
@@ -278,7 +285,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
+								<a class="send-to-chat-link" @click="sendToChat(item, actor())"><i class="fas fa-comment"></i></a>
 							</ContextMenu>
 						</div>
 					</div>
