@@ -33,8 +33,6 @@ export const isActingGm = relay.isActingGm;
  */
 export function register() {
 	game.socket.on(SOCKET_NAME, (payload: SocketPayload) => {
-		relay
-			.receive(payload)
-			.catch((error: unknown) => log.error(`The socket operation ${SocketOperation[payload.operation]} failed`, error));
+		relay.receive(payload).catch((error: unknown) => log.error(`The socket operation ${payload.operation} failed`, error));
 	});
 }

@@ -526,7 +526,7 @@ export function register() {
 	const combatOf = (operation: SocketOperation, combatId: string) => {
 		const combat = game.combats.get<GenesysCombat>(combatId);
 		if (!combat) {
-			log.error(`Socket received ${SocketOperation[operation]} payload with invalid combat ID ${combatId}`);
+			log.error(`Socket received ${operation} payload with invalid combat ID ${combatId}`);
 		}
 		return combat;
 	};

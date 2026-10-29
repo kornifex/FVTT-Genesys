@@ -1,11 +1,6 @@
 /** @file Tests for the migrations an actor gets when it is created. */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// The planners read `EquipmentState`, which lives in a data model, which extends a Foundry class.
-vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-});
+import { describe, expect, it } from 'vitest';
 
 import { ActorSource } from '@/migrations/ActorMigration';
 import { effectsStayOnItems } from '@/migrations/3-effects-stay-on-items';

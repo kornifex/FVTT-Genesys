@@ -1,6 +1,5 @@
 /** @file The prompt that picks the crew member who rolls a skill for a vehicle, when several can. */
 
-import { ContextBase } from '@/vue/SheetContext';
 import { VueSheet } from '@/vue/VueSheet';
 import VueSelectCrewMemberPrompt from '@/vue/apps/SelectCrewMemberPrompt.vue';
 
@@ -9,7 +8,7 @@ import type { ActorCrewMemberSkill } from '@/operations/CrewRoll';
 /**
  * What the crew member prompt shows: the crew members' skills to pick from.
  */
-export type SelectCrewMemberPromptContext = ContextBase & {
+export type SelectCrewMemberPromptContext = {
 	memberSkills: ActorCrewMemberSkill[];
 	resolvePromise: (selected: ActorCrewMemberSkill) => void;
 };

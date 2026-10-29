@@ -1,6 +1,5 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysItem } from '@/item/GenesysItem';
-import { ContextBase } from '@/vue/SheetContext';
 import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -8,13 +7,21 @@ import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/CheckRoll';
 
-export enum RollType {
-	Skill,
-	Attack,
-	Initiative,
-}
+/**
+ * What the Dice Prompt rolls the check for.
+ */
+export const RollType = {
+	Skill: 'skill',
+	Attack: 'attack',
+	Initiative: 'initiative',
+} as const;
 
-export interface DicePromptContext extends ContextBase {
+export type RollType = (typeof RollType)[keyof typeof RollType];
+
+/**
+ * What the Dice Prompt shows and rolls.
+ */
+export type DicePromptContext = {
 	actor?: GenesysActor;
 	skillName?: string;
 	rollType: RollType;
@@ -22,7 +29,7 @@ export interface DicePromptContext extends ContextBase {
 	characteristic?: Characteristic;
 	rollData?: RollData;
 	app: DicePrompt;
-}
+};
 
 export type AttackRollData = {
 	weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;

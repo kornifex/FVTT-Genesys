@@ -5,7 +5,7 @@
 
 import { hasEquipmentState } from '@/actor/data/EquipmentEffects';
 import { isRelevantToAdversary, isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { SORT_DENSITY } from '@/data/Sort';
 
 /**

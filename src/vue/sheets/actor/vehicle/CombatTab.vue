@@ -7,7 +7,8 @@ import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { RollType } from '@/app/DicePrompt';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';

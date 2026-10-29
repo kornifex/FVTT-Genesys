@@ -1,10 +1,6 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import * as Talents from '@/item/data/Talents';
-
-interface AbilityActivation {
-	type: 'passive' | 'active';
-	detail: string;
-}
+import type { AbilityActivation } from '@/item/data/AbilityDataModel';
 
 export abstract class TalentDataModel extends BaseItemDataModel {
 	abstract tier: number;

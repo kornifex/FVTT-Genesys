@@ -2,7 +2,8 @@
  * @file Encumbrance of a character's or vehicle's equipment, including the equipment held in containers, and a character's threshold.
  */
 
-import type { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import type { GenesysItem } from '@/item/GenesysItem';
 
 /**
@@ -23,15 +24,14 @@ export type HeldContainer = {
 };
 
 /**
- * What this module reads of an item. The Equipment State is read as its value so that this module doesn't load the
- * DataModel, a Foundry class.
+ * What this module reads of an item.
  */
 export type EncumberingItem = HeldContainer & {
 	id: string;
 	type: string;
 	encumbrance: number;
 	quantity: number;
-	state: `${EquipmentState}`;
+	state: EquipmentState;
 };
 
 /**
@@ -79,7 +79,7 @@ export function rootContainer<T extends HeldContainer>(containerId: string, getC
  */
 function addedValue(item: EncumberingItem, rules: EncumbranceRules) {
 	// Only one of a stack of armor can be worn.
-	if (rules.reducesEquippedArmor && item.type === 'armor' && item.state === 'equipped') {
+	if (rules.reducesEquippedArmor && item.type === 'armor' && item.state === EquipmentState.Equipped) {
 		return Math.max(0, item.encumbrance - WORN_ARMOR_ENCUMBRANCE_REDUCTION) + Math.max(0, item.encumbrance * (item.quantity - 1));
 	}
 
@@ -102,7 +102,8 @@ export function equipmentEncumbrance(items: EncumberingItem[], rules: Encumbranc
 
 	// The contents of a container share its Equipment State, so they are Dropped when its outermost container is.
 	const isDropped = (item: EncumberingItem) =>
-		item.state === 'dropped' || (item.container !== '' && rootContainer(item.container, (id) => byId.get(id))?.state === 'dropped');
+		item.state === EquipmentState.Dropped ||
+		(item.container !== '' && rootContainer(item.container, (id) => byId.get(id))?.state === EquipmentState.Dropped);
 
 	return items
 		.filter((item) => rules.isRelevant(item.type) && !(rules.ignoresDropped && isDropped(item)))

@@ -36,7 +36,7 @@ type SkillsTab =
  * The prompts open in the page: the Dice Prompts, the crew member prompts and the clone prompts.
  */
 type Prompts = {
-	dice: { actor: string | null; skill: string | null; rollType: number; difficulty: string; pool: string }[];
+	dice: { actor: string | null; skill: string | null; rollType: string; difficulty: string; pool: string }[];
 	crew: { title: string; rows: string[] }[];
 	clone: string[];
 };
@@ -329,7 +329,7 @@ function installVehicleHelpers() {
 		prompts() {
 			return {
 				dice: apps('app-dice-prompt').map(
-					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: number; difficulty: string }) => {
+					(app: { element?: unknown; actor?: { name: string }; skillName?: string; rollType: string; difficulty: string }) => {
 						const root = htmlOf(app);
 						return {
 							actor: app.actor ? unprefixed(app.actor.name) : null,
@@ -480,8 +480,8 @@ const expectedRole = (name: string, { skills = [], members = [] }: { skills?: st
 
 const noPrompts: Prompts = { dice: [], crew: [], clone: [] };
 // The values of the system's RollType.
-const SKILL_ROLL = 0;
-const ATTACK_ROLL = 1;
+const SKILL_ROLL = 'skill';
+const ATTACK_ROLL = 'attack';
 
 const characteristics = (values: Partial<Record<string, number>> = {}) => ({
 	characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2, ...values },

@@ -4,8 +4,9 @@ import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
-import { EquipmentDataModel, EquipmentDamageState, EquipmentState } from '@/item/data/EquipmentDataModel';
-import { damageStep } from '@/item/data/EquipmentDamage';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
+import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
@@ -149,7 +150,7 @@ function canUnequipItem(item: GenesysItem<EquipmentDataModel>) {
 }
 
 function canDropItem(item: GenesysItem<EquipmentDataModel>) {
-	return context.data.actor.type === 'character' && [EquipmentState.Carried, EquipmentState.Equipped].includes(item.systemData.state);
+	return context.data.actor.type === 'character' && item.systemData.state !== EquipmentState.Dropped;
 }
 
 function canPickupItem(item: GenesysItem<EquipmentDataModel>) {

@@ -4,11 +4,6 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// The planner reads `EquipmentState`, which lives in a data model, which extends a Foundry class.
-vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-});
-
 import { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { effectsStayOnItems } from '@/migrations/3-effects-stay-on-items';
 

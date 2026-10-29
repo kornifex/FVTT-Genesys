@@ -1,5 +1,4 @@
 import VueAwardXPPrompt from '@/vue/apps/AwardXPPrompt.vue';
-import { ContextBase } from '@/vue/SheetContext';
 import { VueSheet } from '@/vue/VueSheet';
 
 type AwardData = {
@@ -14,9 +13,12 @@ type AwardData = {
 	reason: string;
 };
 
-export interface AwardXPContext extends ContextBase {
+/**
+ * What the XP award prompt resolves with.
+ */
+export type AwardXPContext = {
 	resolvePromise: (value: AwardData) => void;
-}
+};
 
 /**
  * Prompt the user for an XP Award.

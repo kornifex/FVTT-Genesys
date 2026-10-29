@@ -3,19 +3,8 @@
  */
 
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-
-export enum EquipmentState {
-	Carried = 'carried',
-	Dropped = 'dropped',
-	Equipped = 'equipped',
-}
-
-export enum EquipmentDamageState {
-	Undamaged = 'undamaged',
-	Minor = 'minor',
-	Moderate = 'moderate',
-	Major = 'major',
-}
+import { EquipmentDamageState } from '@/item/data/EquipmentDamage';
+import { EquipmentState } from '@/item/data/EquipmentState';
 
 export abstract class EquipmentDataModel extends BaseItemDataModel {
 	/**
@@ -76,18 +65,13 @@ export abstract class EquipmentDataModel extends BaseItemDataModel {
 			price: new fields.NumberField({ initial: 0 }),
 			damage: new fields.StringField({
 				initial: EquipmentDamageState.Undamaged,
-				choices: [
-					EquipmentDamageState.Undamaged,
-					EquipmentDamageState.Minor,
-					EquipmentDamageState.Moderate,
-					EquipmentDamageState.Major,
-				],
+				choices: Object.values(EquipmentDamageState),
 			}),
 			container: new fields.StringField({ initial: '' }),
 			quantity: new fields.NumberField({ integer: true, initial: 1 }),
 			state: new fields.StringField({
 				initial: EquipmentState.Carried,
-				choices: [EquipmentState.Carried, EquipmentState.Dropped, EquipmentState.Equipped],
+				choices: Object.values(EquipmentState),
 			}),
 		};
 	}

@@ -1,9 +1,12 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 
-interface AbilityActivation {
+/**
+ * How a Special Ability or a talent is activated.
+ */
+export type AbilityActivation = {
 	type: 'passive' | 'active';
 	detail: string;
-}
+};
 
 export abstract class AbilityDataModel extends BaseItemDataModel {
 	/**
