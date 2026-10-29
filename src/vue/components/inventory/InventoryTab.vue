@@ -7,6 +7,7 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import { draggedGenesysType } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
@@ -44,11 +45,8 @@ const isDraggable = ref(toRaw(context.data.actor).isOwner);
 const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('EQUIPABLE', draggedGenesysType(event) ?? ''));
 const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
-const inventory = computed(
-	() =>
-		toRaw(context.data.actor).items.filter((i) =>
-			dataModel.isRelevantTypeForContext('INVENTORY', i.type),
-		) as GenesysItem<EquipmentDataModel>[],
+const inventory = computed(() =>
+	itemsOfType(toRaw(context.data.actor), EQUIPMENT_TYPES).filter((i) => dataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
 const equippedItems = computed(() => sectionItems(inventory.value, EquipmentState.Equipped));
 const carriedItems = computed(() => sectionItems(inventory.value, EquipmentState.Carried));

@@ -1,14 +1,13 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
+import { itemsOfType } from '@/item/ItemTypes';
 import Localized from '@/vue/components/Localized.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
-import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import Enriched from '@/vue/components/Enriched.vue';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
@@ -26,14 +25,11 @@ const rootContext = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
 
-const weapons = computed(
-	() =>
-		toRaw(rootContext.data.actor).items.filter(
-			(i) => i.type === 'weapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
-		) as GenesysItem<WeaponDataModel>[],
+const weapons = computed(() =>
+	itemsOfType(toRaw(rootContext.data.actor), 'weapon').filter((i) => i.systemData.state === EquipmentState.Equipped),
 );
-const armors = computed(() => wornArmor(toRaw(rootContext.data.actor).items.contents as GenesysItem<ArmorDataModel>[]));
-const injuries = computed(() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const armors = computed(() => wornArmor(itemsOfType(toRaw(rootContext.data.actor), 'armor')));
+const injuries = computed(() => itemsOfType(toRaw(rootContext.data.actor), 'injury'));
 
 async function healInjury(injury: GenesysItem<InjuryDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(rootContext.data.actor), CONFIG.genesys.settings.skillForHealingInjury, {

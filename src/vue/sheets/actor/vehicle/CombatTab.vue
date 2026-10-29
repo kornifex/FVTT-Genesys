@@ -3,12 +3,11 @@ import { computed, inject, toRaw } from 'vue';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 
 import { GenesysItem } from '@/item/GenesysItem';
+import { itemsOfType } from '@/item/ItemTypes';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 import Localized from '@/vue/components/Localized.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
@@ -22,15 +21,10 @@ import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 const rootContext = inject<ActorSheetContext<VehicleDataModel>>(RootContext)!;
 
 const actor = computed(() => toRaw(rootContext.data.actor));
-const weapons = computed(
-	() =>
-		toRaw(rootContext.data.actor).items.filter(
-			(i) => i.type === 'vehicleWeapon' && (i.system as EquipmentDataModel).state === EquipmentState.Equipped,
-		) as GenesysItem<VehicleWeaponDataModel>[],
+const weapons = computed(() =>
+	itemsOfType(toRaw(rootContext.data.actor), 'vehicleWeapon').filter((i) => i.systemData.state === EquipmentState.Equipped),
 );
-const criticalHits = computed(
-	() => toRaw(rootContext.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[],
-);
+const criticalHits = computed(() => itemsOfType(toRaw(rootContext.data.actor), 'injury'));
 
 async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 	await rollForCrew(crewForSkills(actor.value.systemData.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {

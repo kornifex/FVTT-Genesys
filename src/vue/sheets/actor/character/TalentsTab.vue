@@ -6,30 +6,25 @@ import Localized from '@/vue/components/Localized.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
 import { talentGroups, TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
-import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
-const abilities = computed(() =>
-	talentGroups(toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[], game.i18n.lang),
-);
+const abilities = computed(() => talentGroups(itemsOfType(toRaw(context.data.actor), 'ability'), game.i18n.lang));
 // The ids of the items the Archetype granted, which only go away with it.
 const grantedItemIds = computed(() => {
 	const actor = toRaw(context.data.actor);
-	const archetype = actor.items.find((i) => i.type === 'archetype') as GenesysItem<ArchetypeDataModel> | undefined;
+	const [archetype] = itemsOfType(actor, 'archetype');
 	return new Set(
 		archetype ? heldNonSkillsGrantedBy(actor.items.contents, archetype.systemData.grantedItems, actor.id).map((i) => i.id) : [],
 	);
 });
 
-const talents = computed(() =>
-	talentGroups(toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[], game.i18n.lang),
-);
+const talents = computed(() => talentGroups(itemsOfType(toRaw(context.data.actor), 'talent'), game.i18n.lang));
 // Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
 const talentTotals = computed(() => toRaw(context.data.actor).systemData.talentPyramidTotals);

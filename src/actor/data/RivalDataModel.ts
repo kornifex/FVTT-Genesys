@@ -2,15 +2,13 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
+import { CombatPool, combatPoolField } from '@/data/schemaFields';
 
 /**
  * The data of a rival, who suffers wounds but no strain.
  */
 export abstract class RivalDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<RivalDataModel>> {
-	abstract wounds: {
-		value: number;
-		max: number;
-	};
+	abstract wounds: CombatPool;
 
 	static override readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
@@ -37,14 +35,9 @@ export abstract class RivalDataModel extends AdversaryDataModel implements HasPr
 	}
 
 	static override defineSchema() {
-		const fields = foundry.data.fields;
-
 		return {
 			...super.defineSchema(),
-			wounds: new fields.SchemaField({
-				value: new fields.NumberField({ initial: 0 }),
-				max: new fields.NumberField({ initial: 0 }),
-			}),
+			wounds: combatPoolField(),
 		};
 	}
 }

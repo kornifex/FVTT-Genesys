@@ -1,6 +1,6 @@
-import { GenesysItem } from '@/item/GenesysItem';
+import type { StoredItem, SystemSource } from '@/item/ItemTypes';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
+import type { SkillDataModel } from '@/item/data/SkillDataModel';
 
 /**
  * The data of a Career: its career skills, and those that gained a free rank.
@@ -9,7 +9,7 @@ export abstract class CareerDataModel extends BaseItemDataModel {
 	/**
 	 * Career skills offered by the Career.
 	 */
-	abstract careerSkills: GenesysItem<SkillDataModel>[];
+	abstract careerSkills: StoredItem<SystemSource<SkillDataModel>>[];
 
 	/**
 	 * (Owned Only) The list of skills the player selected as their Career Skills to take ranks in.

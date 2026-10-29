@@ -1,5 +1,6 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { SEVERITIES, Severity } from '@/item/data/Injuries';
+import { choiceField } from '@/data/schemaFields';
 
 /**
  * The data of a Critical Injury, or of a vehicle's Critical Hit.
@@ -11,14 +12,9 @@ export abstract class InjuryDataModel extends BaseItemDataModel {
 	abstract severity: Severity;
 
 	static override defineSchema() {
-		const fields = foundry.data.fields;
-
 		return {
 			...super.defineSchema(),
-			severity: new fields.StringField({
-				initial: 'average',
-				choices: [...SEVERITIES],
-			}),
+			severity: choiceField(SEVERITIES, 'average'),
 		};
 	}
 }

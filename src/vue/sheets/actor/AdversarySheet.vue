@@ -10,8 +10,6 @@ import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -22,29 +20,26 @@ import Motivations from '@/vue/components/Motivations.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { startDocumentDrag } from '@/data/DragTransferData';
 import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
 import type { StepDirection } from '@/actor/data/Inventory';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
 
-const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
-const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
-const equipment = computed(
-	() =>
-		toRaw(context.data.actor).items.filter((i) =>
-			AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type),
-		) as GenesysItem<EquipmentDataModel>[],
+const talents = computed(() => itemsOfType(toRaw(context.data.actor), 'talent'));
+const abilities = computed(() => itemsOfType(toRaw(context.data.actor), 'ability'));
+const equipment = computed(() =>
+	itemsOfType(toRaw(context.data.actor), EQUIPMENT_TYPES).filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
-const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
+const injuries = computed(() => itemsOfType(toRaw(context.data.actor), 'injury'));
 // The weapons, each with its Attack Skill: a weapon without one offers no attack.
 const weapons = computed(() =>
-	(equipment.value.filter((i) => i.type === 'weapon') as GenesysItem<WeaponDataModel>[]).map((item) => ({
+	itemsOfType(toRaw(context.data.actor), 'weapon').map((item) => ({
 		item,
 		skill: attackSkill(actor(), item),
 	})),

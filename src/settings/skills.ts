@@ -1,5 +1,6 @@
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
+import { itemsOfType } from '@/item/ItemTypes';
 
 /**
  * Load the skills of a Skills Compendium into `CONFIG.genesys.skills`, and report a compendium that can't provide skills.
@@ -23,7 +24,8 @@ export async function loadSkills(storedValue: string | undefined, skillsCompendi
 	} else if (!pack.index.some((item) => item.type === 'skill')) {
 		ui.notifications.warn(game.i18n.format('Genesys.Notifications.NoSkillsInCompendium', { name: skillsCompendiumName }));
 	} else {
-		skills = (await pack.getDocuments()).filter((item) => (item as GenesysItem).type === 'skill') as GenesysItem<SkillDataModel>[];
+		// The compendium was checked to hold Items above.
+		skills = itemsOfType({ items: (await pack.getDocuments()) as Item[] }, 'skill');
 	}
 
 	CONFIG.genesys.skills = skills;

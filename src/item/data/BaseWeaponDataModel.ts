@@ -1,4 +1,6 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { choiceField, qualitiesField } from '@/data/schemaFields';
+import { RangeBand, RANGES } from '@/item/Weapons';
 
 /**
  * A quality as a weapon or an armor holds it: a copy of the quality item, with its rating.
@@ -42,7 +44,7 @@ export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 	/**
 	 * Weapon's effective range.
 	 */
-	abstract range: 'engaged' | 'short' | 'medium' | 'long' | 'extreme' | 'strategic';
+	abstract range: RangeBand;
 
 	/**
 	 * Names of skills that can be used to wield the weapon.
@@ -61,19 +63,9 @@ export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 			...super.defineSchema(),
 			baseDamage: new fields.NumberField({ initial: 0, integer: true }),
 			critical: new fields.NumberField({ initial: 0, integer: true }),
-			range: new fields.StringField({
-				initial: 'engaged',
-				choices: ['engaged', 'short', 'medium', 'long', 'extreme', 'strategic'],
-			}),
+			range: choiceField(RANGES, 'engaged'),
 			skills: new fields.ArrayField(new fields.StringField()),
-			qualities: new fields.ArrayField(
-				new fields.SchemaField({
-					name: new fields.StringField(),
-					description: new fields.HTMLField(),
-					isRated: new fields.BooleanField({ initial: true }),
-					rating: new fields.NumberField({ initial: 1, integer: true }),
-				}),
-			),
+			qualities: qualitiesField(),
 		};
 	}
 }

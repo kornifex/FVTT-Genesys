@@ -1,11 +1,13 @@
 /** @file A Minion Group: its wound threshold, its remaining members and its group skill rank. */
 
+import type { ValueWithThreshold } from '@/data/schemaFields';
+
 /**
  * What this module reads of a Minion Group: its group size, its wounds, and the wound threshold of each member.
  */
 type MinionGroup = {
 	groupSize: number;
-	wounds: { value: number; threshold: number };
+	wounds: ValueWithThreshold;
 };
 
 /**
