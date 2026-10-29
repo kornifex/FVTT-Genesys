@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, inject, toRaw } from 'vue';
-import { EquipmentDataModel, EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { wornArmor } from '@/actor/data/Inventory';

@@ -8,8 +8,6 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 
-export type ContextBase = object;
-
 /**
  * This symbol is used by Vue apps in the system to inject sheet data.
  */
@@ -18,7 +16,7 @@ export const RootContext = Symbol('Vue Root Context');
 /**
  * Typing for context data injected into Vue sheets.
  */
-export interface BaseSheetContext extends ContextBase {
+export type BaseSheetContext = {
 	/**
 	 * A reference to the Sheet instance the vue app is rendering.
 	 */
@@ -33,32 +31,32 @@ export interface BaseSheetContext extends ContextBase {
 		 */
 		editable: boolean;
 	};
-}
+};
 
 /**
  * Typing for context data injected into Vue Actor sheets.
  */
-export interface ActorSheetContext<
+export type ActorSheetContext<
 	ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel,
 	SheetType extends GenesysActorSheet<ActorDataModel> = GenesysActorSheet<ActorDataModel>,
-> extends BaseSheetContext {
+> = BaseSheetContext & {
 	sheet: SheetType;
 
-	data: BaseSheetContext['data'] & {
+	data: {
 		actor: GenesysActor<ActorDataModel>;
 	};
-}
+};
 
 /**
  * Typing for context data injected into Vue Item sheets.
  */
-export interface ItemSheetContext<
+export type ItemSheetContext<
 	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
 	SheetType extends GenesysItemSheet<ItemDataModel> = GenesysItemSheet<ItemDataModel>,
-> extends BaseSheetContext {
+> = BaseSheetContext & {
 	sheet: SheetType;
 
-	data: BaseSheetContext['data'] & {
+	data: {
 		item: GenesysItem<ItemDataModel>;
 	};
-}
+};

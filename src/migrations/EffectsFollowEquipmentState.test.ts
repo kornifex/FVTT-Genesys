@@ -1,11 +1,6 @@
 /** @file Tests for the planner of the migration that leaves the effects of equipment to its Equipment State. */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// The planner reads `EquipmentState`, which lives in a data model, which extends a Foundry class.
-vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-});
+import { describe, expect, it } from 'vitest';
 
 import { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';

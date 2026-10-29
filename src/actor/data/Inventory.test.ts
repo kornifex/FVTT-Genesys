@@ -2,12 +2,7 @@
  * @file Tests for the drops an actor's inventory receives and for its Containers.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-
-// `EquipmentState` lives in a data model, which extends a Foundry class.
-vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-});
+import { describe, expect, it } from 'vitest';
 
 import {
 	containerContents,
@@ -19,9 +14,9 @@ import {
 	sectionItems,
 	wornArmor,
 } from '@/actor/data/Inventory';
-import { EquipmentState } from '@/item/data/EquipmentDataModel';
+import { EquipmentState } from '@/item/data/EquipmentState';
 
-function item(id: string, type: string, state = EquipmentState.Carried, sort = 0, container = ''): InventoryItem {
+function item(id: string, type: string, state: EquipmentState = EquipmentState.Carried, sort = 0, container = ''): InventoryItem {
 	return { id, type, sort, system: { state, container } };
 }
 

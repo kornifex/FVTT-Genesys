@@ -1,20 +1,21 @@
-export enum Characteristic {
-	Brawn = 'brawn',
-	Agility = 'agility',
-	Intellect = 'intellect',
-	Cunning = 'cunning',
-	Willpower = 'willpower',
-	Presence = 'presence',
-}
+/**
+ * The six characteristics of a character or adversary.
+ */
+export const Characteristic = {
+	Brawn: 'brawn',
+	Agility: 'agility',
+	Intellect: 'intellect',
+	Cunning: 'cunning',
+	Willpower: 'willpower',
+	Presence: 'presence',
+} as const;
 
-export type CharacteristicsContainer = {
-	brawn: number;
-	agility: number;
-	intellect: number;
-	cunning: number;
-	willpower: number;
-	presence: number;
-};
+export type Characteristic = (typeof Characteristic)[keyof typeof Characteristic];
+
+/**
+ * A value for each characteristic.
+ */
+export type CharacteristicsContainer = Record<Characteristic, number>;
 
 /**
  * The characteristics in the order the sheets show them, with the localization keys of their name and abbreviation.

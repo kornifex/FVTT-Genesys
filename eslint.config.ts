@@ -4,6 +4,8 @@ import vue from 'eslint-plugin-vue';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
+const noEnum = { selector: 'TSEnumDeclaration', message: 'Use an as-const object and the union of its values.' };
+
 export default defineConfig(
 	js.configs.recommended,
 	tseslint.configs.recommendedTypeChecked,
@@ -54,11 +56,20 @@ export default defineConfig(
 		rules: { 'no-console': 'error' },
 	},
 	{
+		// A declaration file may need an interface, to merge into one of Foundry's.
+		files: ['src/**/*.ts', 'src/**/*.vue'],
+		ignores: ['src/**/*.d.ts'],
+		rules: {
+			'@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+			'no-restricted-syntax': ['error', noEnum],
+		},
+	},
+	{
 		// A Vue component is its file's default export, which sfc.d.ts declares.
 		files: ['src/**/*.ts'],
 		ignores: ['src/vue/sfc.d.ts'],
 		rules: {
-			'no-restricted-syntax': ['error', { selector: 'ExportDefaultDeclaration', message: 'Use a named export.' }],
+			'no-restricted-syntax': ['error', noEnum, { selector: 'ExportDefaultDeclaration', message: 'Use a named export.' }],
 		},
 	},
 	prettier,

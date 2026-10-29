@@ -1,20 +1,25 @@
 /** @file The steps of an item's damage, from undamaged to destroyed. */
 
-import type { EquipmentDamageState } from '@/item/data/EquipmentDataModel';
-
 /**
- * An item's damage, read as its value so that this module doesn't load the DataModel, a Foundry class.
+ * An item's damage, listed in order from undamaged to major.
  */
-type DamageState = `${EquipmentDamageState}`;
+export const EquipmentDamageState = {
+	Undamaged: 'undamaged',
+	Minor: 'minor',
+	Moderate: 'moderate',
+	Major: 'major',
+} as const;
+
+export type EquipmentDamageState = (typeof EquipmentDamageState)[keyof typeof EquipmentDamageState];
 
 // An item's damage goes one step at a time, and an item with major damage is destroyed by the next step.
-const DAMAGE_STEPS: DamageState[] = ['undamaged', 'minor', 'moderate', 'major'];
+const DAMAGE_STEPS: EquipmentDamageState[] = Object.values(EquipmentDamageState);
 
 /**
  * The damage an item has one step up or down from its damage: destroyed past major damage, and undefined below
  * undamaged or from a damage this module doesn't know.
  */
-export function damageStep(damage: DamageState, direction: 1 | -1): DamageState | 'destroyed' | undefined {
+export function damageStep(damage: EquipmentDamageState, direction: 1 | -1): EquipmentDamageState | 'destroyed' | undefined {
 	const index = DAMAGE_STEPS.indexOf(damage);
 	if (index === -1) {
 		return undefined;
