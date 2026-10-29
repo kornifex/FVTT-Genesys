@@ -3,13 +3,14 @@ import { computed, inject, toRaw } from 'vue';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
-import { advance, advancementCharacter, awardXP, undoEntry } from '@/actor/data/character/Advancement';
+import { advance, awardXP, undoEntry } from '@/actor/data/character/Advancement';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { ActorSheetContext, RootContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
+import Motivations from '@/vue/components/Motivations.vue';
 
 const context = inject<ActorSheetContext<CharacterDataModel>>(RootContext)!;
 
@@ -21,11 +22,11 @@ async function addXPJournalEntry() {
 		return;
 	}
 
-	await advance(toRaw(context.data.actor), awardXP(advancementCharacter(toRaw(context.data.actor)), award.amount, award.reason));
+	await advance(toRaw(context.data.actor), (character) => awardXP(character, award.amount, award.reason));
 }
 
 async function removeJournalEntry(index: number) {
-	await advance(toRaw(context.data.actor), undoEntry(advancementCharacter(toRaw(context.data.actor)), index));
+	await advance(toRaw(context.data.actor), (character) => undoEntry(character, index));
 }
 
 function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | number> | undefined {
@@ -46,55 +47,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		<section class="motivations">
 			<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
 
-			<div class="container">
-				<!-- Strength -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Strength" /></span>
-						<input type="text" name="system.motivations.strength.name" :value="system.motivations.strength.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.strength.description" :content="system.motivations.strength.description" button />
-					</div>
-				</div>
-
-				<!-- Flaw -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Flaw" /></span>
-						<input type="text" name="system.motivations.flaw.name" :value="system.motivations.flaw.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.flaw.description" :content="system.motivations.flaw.description" button />
-					</div>
-				</div>
-
-				<!-- Desire -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Desire" /></span>
-						<input type="text" name="system.motivations.desire.name" :value="system.motivations.desire.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.desire.description" :content="system.motivations.desire.description" button />
-					</div>
-				</div>
-
-				<!-- Fear -->
-				<div class="motivation">
-					<div class="header">
-						<span><Localized label="Genesys.Labels.Fear" /></span>
-						<input type="text" name="system.motivations.fear.name" :value="system.motivations.fear.name" />
-					</div>
-
-					<div class="body">
-						<Editor name="system.motivations.fear.description" :content="system.motivations.fear.description" button />
-					</div>
-				</div>
-			</div>
+			<Motivations :motivations="system.motivations" />
 		</section>
 
 		<section class="description">
@@ -243,54 +196,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		grid-column: 1 / span 1;
 		grid-row: 1 / span 1;
 		height: 100%;
-
-		.container {
-			display: flex;
-			flex-direction: column;
-			gap: 0.5em;
-			width: 100%;
-			height: 100%;
-
-			@container motivations (min-width: 900px) {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-			}
-		}
-
-		.motivation {
-			display: flex;
-			flex-direction: column;
-			flex-wrap: nowrap;
-			border: 1px solid black;
-			background: white;
-
-			@include reset.input;
-			input {
-				font-family: 'Roboto', sans-serif;
-			}
-
-			.header {
-				display: flex;
-				flex-direction: row;
-				flex-wrap: nowrap;
-				align-items: center;
-				gap: 0.5em;
-				padding: 0.25em;
-				padding-left: 0.5em;
-				border-bottom: 1px solid black;
-				clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1px), 80% calc(100% - 1px), 80% 100%, 0% 100%);
-
-				span {
-					font-size: 1.1em;
-				}
-			}
-
-			.body {
-				display: flex;
-				height: 100%;
-				min-height: 120px;
-			}
-		}
 	}
 
 	.description {

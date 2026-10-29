@@ -83,7 +83,7 @@ function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
 }
 
 async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
-	await advance(toRaw(context.data.actor), buyTalentRank(advancementCharacter(toRaw(context.data.actor)), talent.id));
+	await advance(toRaw(context.data.actor), (character) => buyTalentRank(character, talent.id));
 }
 
 async function openItem(item: GenesysItem) {

@@ -4,6 +4,7 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 const context = inject<ItemSheetContext<VehicleWeaponDataModel>>(RootContext)!;
@@ -13,8 +14,7 @@ const system = computed(() => context.data.item.systemData);
 <template>
 	<BaseWeaponSheet>
 		<template v-slot:extra-data>
-			<div class="row">
-				<label><Localized label="Genesys.Labels.FiringArc" /></label>
+			<DataRow label="Genesys.Labels.FiringArc">
 				<div class="firing-arc-options">
 					<div>
 						<input type="checkbox" name="system.firingArc.fore" :checked="system.firingArc.fore" />
@@ -33,7 +33,7 @@ const system = computed(() => context.data.item.systemData);
 						<label><Localized label="Genesys.FiringArc.Starboard" /></label>
 					</div>
 				</div>
-			</div>
+			</DataRow>
 		</template>
 	</BaseWeaponSheet>
 </template>

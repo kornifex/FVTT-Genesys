@@ -4,6 +4,8 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
+import ActivationRow from '@/vue/components/item/ActivationRow.vue';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 
 const context = inject<ItemSheetContext<TalentDataModel>>(RootContext)!;
@@ -19,43 +21,27 @@ const system = computed(() => context.data.item.systemData);
 
 		<template v-slot:data>
 			<section class="data-grid">
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Tier" /></label>
+				<DataRow label="Genesys.Labels.Tier">
 					<input type="number" name="system.tier" :value="system.tier" :min="1" :max="5" />
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Activation" /></label>
-					<div class="activation-field">
-						<select name="system.activation.type" :value="system.activation.type">
-							<option value="active"><Localized label="Genesys.Labels.Active" /></option>
-							<option value="passive"><Localized label="Genesys.Labels.Passive" /></option>
-						</select>
+				<ActivationRow :activation="system.activation" />
 
-						<input type="text" name="system.activation.detail" :value="system.activation.detail" />
-					</div>
-				</div>
-
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Ranked" /></label>
+				<DataRow label="Genesys.Labels.Ranked">
 					<select name="system.ranked" :value="system.ranked">
 						<option value="yes"><Localized label="Genesys.Labels.Yes" /></option>
 						<option value="no"><Localized label="Genesys.Labels.No" /></option>
 					</select>
-				</div>
+				</DataRow>
 
-				<div class="row" v-if="system.ranked === 'yes'">
-					<label><Localized label="Genesys.Labels.EffectsScaleWithRank" /></label>
+				<DataRow v-if="system.ranked === 'yes'" label="Genesys.Labels.EffectsScaleWithRank">
 					<select name="system.scalesWithRank" :value="system.scalesWithRank">
 						<option value="yes"><Localized label="Genesys.Labels.Yes" /></option>
 						<option value="no"><Localized label="Genesys.Labels.No" /></option>
 					</select>
-				</div>
+				</DataRow>
 
-				<div class="row">
-					<label><Localized label="Genesys.Labels.Source" /></label>
-					<input type="text" name="system.source" :value="system.source" />
-				</div>
+				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 			</section>
 		</template>
 	</BasicItemSheet>
@@ -63,12 +49,6 @@ const system = computed(() => context.data.item.systemData);
 
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
-
-.activation-field {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: 0.25em;
-}
 
 .talent-tier {
 	display: flex;

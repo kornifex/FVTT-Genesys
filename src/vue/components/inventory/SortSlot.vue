@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { useDragHover } from '@/vue/useDragHover';
 
 defineProps<{
 	/**
@@ -15,25 +15,17 @@ const emit = defineEmits<{
 	(e: 'drop', event: DragEvent): void;
 }>();
 
-const dragCounter = ref(0);
-
-function dragEnter() {
-	dragCounter.value += 1;
-}
-
-function dragLeave() {
-	dragCounter.value = Math.max(0, dragCounter.value - 1);
-}
+const { isHovered, enter, leave, reset } = useDragHover();
 
 function drop(event: DragEvent) {
-	dragCounter.value = 0;
+	reset();
 
 	emit('drop', event);
 }
 </script>
 
 <template>
-	<div :class="{ sortTarget: true, active, hover: dragCounter > 0 }" @dragenter="dragEnter" @dragleave="dragLeave" @drop="drop">
+	<div :class="{ sortTarget: true, active, hover: isHovered }" @dragenter="enter" @dragleave="leave" @drop="drop">
 		<div class="inner"></div>
 	</div>
 </template>

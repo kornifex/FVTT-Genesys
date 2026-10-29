@@ -1,13 +1,27 @@
+<script lang="ts" setup>
+import Localized from '@/vue/components/Localized.vue';
+
+defineProps<{
+	/**
+	 * The Font Awesome classes of the item's icon.
+	 */
+	icon: string;
+
+	/**
+	 * The localization key of the item's label.
+	 */
+	label: string;
+}>();
+</script>
+
 <template>
 	<a class="menu-item">
 		<div class="menu-icon">
-			<slot name="icon">
-				<i class="fas fa-caret-right"></i>
-			</slot>
+			<i :class="icon"></i>
 		</div>
 
 		<div class="menu-label">
-			<slot>Unlabeled</slot>
+			<Localized :label="label" />
 		</div>
 	</a>
 </template>

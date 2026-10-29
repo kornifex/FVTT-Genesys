@@ -61,8 +61,6 @@ const emit = defineEmits<{
 }>();
 
 const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristics;
-const markSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.MarkSuperCharacteristic');
-const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.UnmarkSuperCharacteristic');
 </script>
 
 <template>
@@ -73,10 +71,11 @@ const unmarkSuperCharacteristicLabel = game.i18n.localize('Genesys.Labels.Unmark
 
 		<ContextMenu :disable-menu="!(allowSuperCharacteristics && canMarkSuper)" class="super-char">
 			<template v-slot:menu-items>
-				<MenuItem @click="emit('toggleSuper')">
-					<template v-slot:icon><i :class="`${isSuper ? 'far' : 'fas'} fa-star`"></i></template>
-					{{ isSuper ? unmarkSuperCharacteristicLabel : markSuperCharacteristicLabel }}
-				</MenuItem>
+				<MenuItem
+					:icon="`${isSuper ? 'far' : 'fas'} fa-star`"
+					:label="isSuper ? 'Genesys.Labels.UnmarkSuperCharacteristic' : 'Genesys.Labels.MarkSuperCharacteristic'"
+					@click="emit('toggleSuper')"
+				/>
 			</template>
 
 			<label>

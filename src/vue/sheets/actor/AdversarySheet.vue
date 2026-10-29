@@ -18,6 +18,8 @@ import { DicePrompt, RollType } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import Motivations from '@/vue/components/Motivations.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
@@ -42,12 +44,6 @@ const equipment = computed(
 const injuries = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'injury') as GenesysItem<InjuryDataModel>[]);
 
 const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
-
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const checkLabel = game.i18n.localize('Genesys.Labels.PerformCheck');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-const rankUpLabel = game.i18n.localize('Genesys.Labels.RankUp');
-const rankDownLabel = game.i18n.localize('Genesys.Labels.RankDown');
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(toRaw(context.data.actor), characteristic);
@@ -201,26 +197,22 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
 										<template v-if="canChangeTalentRank(talent)">
-											<MenuItem @click="changeTalentRank(talent, 1)">
-												<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-												{{ rankUpLabel }}
-											</MenuItem>
+											<MenuItem
+												icon="fas fa-circle-up"
+												label="Genesys.Labels.RankUp"
+												@click="changeTalentRank(talent, 1)"
+											/>
 
-											<MenuItem @click="changeTalentRank(talent, -1)">
-												<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-												{{ rankDownLabel }}
-											</MenuItem>
+											<MenuItem
+												icon="fas fa-circle-down"
+												label="Genesys.Labels.RankDown"
+												@click="changeTalentRank(talent, -1)"
+											/>
 										</template>
 
-										<MenuItem @click="editItem(talent)">
-											<template v-slot:icon><i class="fas fa-edit"></i></template>
-											{{ editLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(talent)" />
 
-										<MenuItem @click="deleteItem(talent)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(talent)" />
 									</template>
 
 									<label>
@@ -242,10 +234,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="deleteItem(ability)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
 									</template>
 
 									<label>
@@ -268,20 +257,16 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
 							<ContextMenu v-for="item in equipment.filter((i) => i.type === 'weapon')" :key="item.id" class="weapon">
 								<template v-slot:menu-items>
-									<MenuItem @click="editItem(item)">
-										<template v-slot:icon><i class="fas fa-edit"></i></template>
-										{{ editLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
 
-									<MenuItem v-if="skillForWeapon(item)" @click="rollAttack(item)">
-										<template v-slot:icon><i class="fas fa-dice-d20"></i></template>
-										{{ checkLabel }}
-									</MenuItem>
+									<MenuItem
+										v-if="skillForWeapon(item)"
+										icon="fas fa-dice-d20"
+										label="Genesys.Labels.PerformCheck"
+										@click="rollAttack(item)"
+									/>
 
-									<MenuItem @click="deleteItem(item)">
-										<template v-slot:icon><i class="fas fa-trash"></i></template>
-										{{ deleteLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
 								<a @click="rollAttack(item)" draggable="true" @dragstart="dragStart($event, item)">
@@ -317,15 +302,9 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								:disable-menu="!context.data.editable"
 							>
 								<template v-slot:menu-items>
-									<MenuItem @click="editItem(item)">
-										<template v-slot:icon><i class="fas fa-edit"></i></template>
-										{{ editLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(item)" />
 
-									<MenuItem @click="deleteItem(item)">
-										<template v-slot:icon><i class="fas fa-trash"></i></template>
-										{{ deleteLabel }}
-									</MenuItem>
+									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
 								<a @click="editItem(item)" draggable="true" @dragstart="dragStart($event, item)">
@@ -353,10 +332,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
 								<ContextMenu :disable-menu="!context.data.editable">
 									<template v-slot:menu-items>
-										<MenuItem @click="deleteItem(injury)">
-											<template v-slot:icon><i class="fas fa-trash"></i></template>
-											{{ deleteLabel }}
-										</MenuItem>
+										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 									</template>
 
 									<label
@@ -369,68 +345,9 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					</div>
 
 					<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
-					<div class="container">
-						<!-- Strength -->
-						<div class="motivation">
-							<div class="header">
-								<span><Localized label="Genesys.Labels.Strength" /></span>
-								<input type="text" name="system.motivations.strength.name" :value="system.motivations.strength.name" />
-							</div>
+					<Motivations :motivations="system.motivations" />
 
-							<div class="body">
-								<Editor
-									name="system.motivations.strength.description"
-									:content="system.motivations.strength.description"
-									button
-								/>
-							</div>
-						</div>
-
-						<!-- Flaw -->
-						<div class="motivation">
-							<div class="header">
-								<span><Localized label="Genesys.Labels.Flaw" /></span>
-								<input type="text" name="system.motivations.flaw.name" :value="system.motivations.flaw.name" />
-							</div>
-
-							<div class="body">
-								<Editor name="system.motivations.flaw.description" :content="system.motivations.flaw.description" button />
-							</div>
-						</div>
-
-						<!-- Desire -->
-						<div class="motivation">
-							<div class="header">
-								<span><Localized label="Genesys.Labels.Desire" /></span>
-								<input type="text" name="system.motivations.desire.name" :value="system.motivations.desire.name" />
-							</div>
-
-							<div class="body">
-								<Editor
-									name="system.motivations.desire.description"
-									:content="system.motivations.desire.description"
-									button
-								/>
-							</div>
-						</div>
-
-						<!-- Fear -->
-						<div class="motivation">
-							<div class="header">
-								<span><Localized label="Genesys.Labels.Fear" /></span>
-								<input type="text" name="system.motivations.fear.name" :value="system.motivations.fear.name" />
-							</div>
-
-							<div class="body">
-								<Editor name="system.motivations.fear.description" :content="system.motivations.fear.description" button />
-							</div>
-						</div>
-					</div>
-
-					<div class="data-row">
-						<label><Localized label="Genesys.Labels.Source" /></label>
-						<input type="text" name="system.source" :value="system.source" />
-					</div>
+					<DataRow class="data-row" label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 				</section>
 			</div>
 
@@ -665,50 +582,12 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			color: colors.$blue;
 		}
 
-		.container {
-			display: flex;
-			flex-direction: column;
-			gap: 0.5em;
-			width: 100%;
-			height: 100%;
-		}
-
-		.motivation {
-			display: flex;
-			flex-direction: column;
-			flex-wrap: nowrap;
-			border: 1px solid black;
-			background: white;
-
-			@include reset.input;
-			input {
-				font-family: 'Roboto', sans-serif;
-			}
-
-			.header {
-				display: flex;
-				flex-direction: row;
-				flex-wrap: nowrap;
-				align-items: center;
-				font-family: 'Bebas Neue', sans-serif;
-				width: 100%;
-				gap: 0.5em;
-				padding: 0.25em;
-				padding-left: 0.5em;
-				border-bottom: 1px solid black;
-				clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1px), 80% calc(100% - 1px), 80% 100%, 0% 100%);
-
-				span {
-					font-size: 1.1em;
-				}
-			}
-
-			.body {
-				display: grid;
-				grid-template-rows: 1fr;
-				height: 100%;
-				min-height: 4rem;
-			}
+		// An adversary's motivations share their tab with its Critical Injuries, so they start shorter, their editor filling
+		// the height they take.
+		.motivation .body {
+			display: grid;
+			grid-template-rows: 1fr;
+			min-height: 4rem;
 		}
 
 		.data-row {

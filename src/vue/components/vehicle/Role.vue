@@ -6,6 +6,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 import { GenesysActor } from '@/actor/GenesysActor';
+import { useDragHover } from '@/vue/useDragHover';
 
 type MemberUUID = ActorUUID | TokenDocumentUUID;
 
@@ -32,7 +33,7 @@ const emit = defineEmits<{
 	(e: 'entityDrop', event: DragEvent, memberUnder?: MemberUUID): void;
 }>();
 
-const dragCounter = ref(0);
+const { isHovered, enter, leave, reset } = useDragHover();
 const actorsInRole = ref<GenesysActor[]>([]);
 
 // Make sure to display only actors that exist.
@@ -51,18 +52,8 @@ watch(
 	{ immediate: true, deep: true },
 );
 
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
-function dragEnter() {
-	dragCounter.value += 1;
-}
-
-function dragLeave() {
-	dragCounter.value -= 1;
-}
-
 function drop(event: DragEvent, memberUnder?: MemberUUID) {
-	dragCounter.value = 0;
+	reset();
 
 	emit('entityDrop', event, memberUnder);
 }
@@ -73,11 +64,11 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 		:class="{
 			'role-section': true,
 			'drop-target': props.dragging,
-			'drop-hover': props.dragging && dragCounter > 0,
+			'drop-hover': props.dragging && isHovered,
 		}"
 		:data-role-id="props.id"
-		@dragenter="dragEnter"
-		@dragleave="dragLeave"
+		@dragenter="enter"
+		@dragleave="leave"
 		@drop="drop($event)"
 	>
 		<div class="role-data">
@@ -93,10 +84,7 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 				<div>
 					<ContextMenu v-for="skill in skills" :key="skill" class="role-skill">
 						<template v-slot:menu-items>
-							<MenuItem @click="emit('removeSkill', skill)">
-								<template v-slot:icon><i class="fas fa-trash"></i></template>
-								{{ deleteLabel }}
-							</MenuItem>
+							<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeSkill', skill)" />
 						</template>
 
 						<span>{{ skill }}</span>

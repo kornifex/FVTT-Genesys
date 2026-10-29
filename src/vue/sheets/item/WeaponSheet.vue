@@ -4,6 +4,7 @@ import { computed, inject } from 'vue';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
+import DataRow from '@/vue/components/DataRow.vue';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS } from '@/data/Characteristics';
 
@@ -15,15 +16,14 @@ const system = computed(() => context.data.item.systemData);
 <template>
 	<BaseWeaponSheet>
 		<template v-slot:extra-data>
-			<div class="row">
-				<label><Localized label="Genesys.Labels.DamageCharacteristic" /></label>
+			<DataRow label="Genesys.Labels.DamageCharacteristic">
 				<select name="system.damageCharacteristic" :value="system.damageCharacteristic">
 					<option value="-">-</option>
 					<option v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :value="characteristic">
 						<Localized :label="label" />
 					</option>
 				</select>
-			</div>
+			</DataRow>
 		</template>
 	</BaseWeaponSheet>
 </template>

@@ -24,11 +24,6 @@ const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const characteristics = computed(() => toRaw(context.data.actor).systemData.characteristics);
 const skills = computed(() => toRaw(context.data.actor).skills);
 
-const freeRankUpLabel = game.i18n.localize('Genesys.Labels.FreeRankUp');
-const freeRankDownLabel = game.i18n.localize('Genesys.Labels.FreeRankDown');
-const editLabel = game.i18n.localize('Genesys.Labels.Edit');
-const deleteLabel = game.i18n.localize('Genesys.Labels.Delete');
-
 async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 	await DicePrompt.promptForRoll(toRaw(context.data.actor), skill.name);
 }
@@ -55,26 +50,14 @@ async function deleteItem(skill: GenesysItem<SkillDataModel>) {
 		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
 			<template v-slot:menu-items>
 				<template v-if="props.groupRank === undefined">
-					<MenuItem @click="freeSkillRank(skill, 1)">
-						<template v-slot:icon><i class="fas fa-circle-up"></i></template>
-						{{ freeRankUpLabel }}
-					</MenuItem>
+					<MenuItem icon="fas fa-circle-up" label="Genesys.Labels.FreeRankUp" @click="freeSkillRank(skill, 1)" />
 
-					<MenuItem @click="freeSkillRank(skill, -1)">
-						<template v-slot:icon><i class="fas fa-circle-down"></i></template>
-						{{ freeRankDownLabel }}
-					</MenuItem>
+					<MenuItem icon="fas fa-circle-down" label="Genesys.Labels.FreeRankDown" @click="freeSkillRank(skill, -1)" />
 				</template>
 
-				<MenuItem @click="editItem(skill)">
-					<template v-slot:icon><i class="fas fa-edit"></i></template>
-					{{ editLabel }}
-				</MenuItem>
+				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="editItem(skill)" />
 
-				<MenuItem @click="deleteItem(skill)">
-					<template v-slot:icon><i class="fas fa-trash"></i></template>
-					{{ deleteLabel }}
-				</MenuItem>
+				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 			</template>
 
 			<a @click="rollSkill(skill)">

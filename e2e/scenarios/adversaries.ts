@@ -1,4 +1,4 @@
-/** @file #215 and #300: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, and the characteristic values in their circle. */
+/** @file #215, #300 and #343: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, the characteristic values in their circle, and a minion's sheet following its independence. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /** The names of the adversaries the scenario drops on, without their `E2E ` prefix. */
@@ -585,6 +585,22 @@ export async function run(e2e: ScenarioContext) {
 			Hero: characteristics('div'),
 			Wagon: { Silhouette: 'input center', Speed: 'input center', Handling: 'input center' },
 		},
+	);
+
+	// G: a minion's open sheet follows its independentMinion flag (§#343).
+	const woundFields = async () => {
+		const names = ['system.wounds.threshold', 'system.wounds.value'];
+		const fields = await gm.evaluate((args) => window.adversariesE2E.sheetInputs(args), { actor: 'Grunts', names });
+		return names.filter((name) => fields[name] !== '');
+	};
+	const dependent = await woundFields();
+	await e2e.step('#343 GM marks the minion of an open sheet as independent', () =>
+		update('Grunts', { 'flags.genesys.independentMinion': true }),
+	);
+	e2e.expect(
+		"#343 A3 a minion's open sheet follows its independentMinion flag: an independent minion's wounds take a current value",
+		{ dependent, independent: await woundFields() },
+		{ dependent: ['system.wounds.threshold'], independent: ['system.wounds.value'] },
 	);
 
 	await gm.evaluate(() => window.adversariesE2E.cleanUp());

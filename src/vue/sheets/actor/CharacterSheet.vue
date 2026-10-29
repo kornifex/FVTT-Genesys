@@ -31,30 +31,21 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 				label="Genesys.Labels.Wounds"
 				primary-label="Genesys.Labels.Threshold"
 				:value="system.wounds.max"
-				has-secondary
-				secondary-label="Genesys.Labels.Current"
-				secondary-name="system.wounds.value"
-				:secondary-value="system.wounds.value"
+				:secondary="{ label: 'Genesys.Labels.Current', value: system.wounds.value, name: 'system.wounds.value' }"
 			/>
 
 			<CombatStat
 				label="Genesys.Labels.Strain"
 				primary-label="Genesys.Labels.Threshold"
 				:value="system.strain.max"
-				has-secondary
-				secondary-label="Genesys.Labels.Current"
-				secondary-name="system.strain.value"
-				:secondary-value="system.strain.value"
+				:secondary="{ label: 'Genesys.Labels.Current', value: system.strain.value, name: 'system.strain.value' }"
 			/>
 
 			<CombatStat
 				label="Genesys.Labels.Defense"
 				primary-label="Genesys.Labels.DefenseRanged"
 				:value="system.totalDefense.ranged"
-				has-secondary
-				secondary-label="Genesys.Labels.DefenseMelee"
-				:secondary-value="system.totalDefense.melee"
-				read-only
+				:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.totalDefense.melee }"
 			/>
 		</section>
 

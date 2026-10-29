@@ -1,6 +1,7 @@
 /** @file The qualities of a weapon or an armor: adding a dropped one, raising and changing its rating, removing it. */
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { withoutIndex } from '@/arrays';
 
 /**
  * The qualities with a quality item dropped on the weapon or armor: added at rating 1, or, when the item already has a
@@ -32,20 +33,13 @@ export function withQualityRating(
 	rating: number,
 ): ContainedItemQuality[] | undefined {
 	if (rating <= 0) {
-		return withoutQuality(qualities, index);
+		return withoutIndex(qualities, index);
 	}
 	if (isNaN(rating) || qualities[index].rating === rating) {
 		return undefined;
 	}
 
 	return qualities.map((quality, i) => (i === index ? { ...quality, rating } : quality));
-}
-
-/**
- * The qualities without the one at an index.
- */
-export function withoutQuality(qualities: readonly ContainedItemQuality[], index: number) {
-	return qualities.filter((_, i) => i !== index);
 }
 
 /**

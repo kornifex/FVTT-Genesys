@@ -1,38 +1,44 @@
 <script lang="ts" setup>
-import { computed, inject, nextTick, Ref, ref } from 'vue';
+import { inject, nextTick, ref } from 'vue';
 import { vLocalize } from '@/vue/directives';
 import { RootContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
 import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
 import Localized from '@/vue/components/Localized.vue';
 
+// The GM pool above the players' pool, with the field of the tracker's context that holds each.
+const POOLS = [
+	{ id: 'gm', field: 'gmPool', label: 'Genesys.StoryPoints.GM' },
+	{ id: 'player', field: 'playerPool', label: 'Genesys.StoryPoints.Player' },
+] as const;
+
+type Pool = (typeof POOLS)[number];
+
 const isGM = game.user.isGM;
 const context = inject<StoryPointTrackerContext>(RootContext)!;
 
-const canSpend = computed(() => ({
-	gmPool: game.user.isGM && context.gmPool > 0,
-	playerPool: context.playerPool > 0,
-}));
+// The pool the GM types a count into, one at a time.
+const editing = ref<StoryPointPool>();
+const editInputs = ref<HTMLInputElement[]>([]);
 
-const editingGM = ref(false);
-const editingPlayer = ref(false);
-const gmInput = ref<HTMLInputElement>();
-const playerInput = ref<HTMLInputElement>();
+function canSpend({ id, field }: Pool) {
+	// Only the GM spends from the GM pool.
+	return (id === 'player' || isGM) && context[field] > 0;
+}
 
-async function spendStoryPoint(targetPool: keyof typeof canSpend.value) {
-	if (!canSpend.value[targetPool]) {
+async function spendStoryPoint(pool: Pool) {
+	if (!canSpend(pool)) {
 		return;
 	}
-	await StoryPointTracker.spendStoryPoint(targetPool);
+	await StoryPointTracker.spendStoryPoint(pool.field);
 }
 
 async function manualStoryPoints(pool: StoryPointPool, event: Event) {
-	if (!game.user.isGM) {
+	if (!isGM) {
 		return;
 	}
 
-	editingGM.value = false;
-	editingPlayer.value = false;
+	editing.value = undefined;
 
 	const input = (event.currentTarget as HTMLInputElement).value;
 	const storyPoints = storyPointsAfterEditing({ player: context.playerPool, gm: context.gmPool }, pool, input);
@@ -42,61 +48,46 @@ async function manualStoryPoints(pool: StoryPointPool, event: Event) {
 }
 
 async function resetStoryPoints() {
-	if (!game.user.isGM) {
+	if (!isGM) {
 		return;
 	}
 
 	await StoryPointTracker.resetStoryPoints();
 }
 
-async function toggleEdit(which: 'gm' | 'player') {
-	if (!game.user.isGM) {
+async function toggleEdit(pool: StoryPointPool) {
+	if (!isGM) {
 		return;
 	}
 
-	let inputRef: Ref<HTMLInputElement | undefined>;
-
-	if (which === 'gm') {
-		editingGM.value = true;
-		inputRef = gmInput;
-	} else {
-		editingPlayer.value = true;
-		inputRef = playerInput;
-	}
-
+	editing.value = pool;
 	await nextTick();
 
-	inputRef.value?.focus();
-	inputRef.value?.select();
+	// Only the edited pool shows an input.
+	editInputs.value[0]?.focus();
+	editInputs.value[0]?.select();
 }
 </script>
 
 <template class="story-point-tracker">
-	<div class="tracker">
+	<div v-for="pool in POOLS" :key="pool.id" class="tracker">
 		<header>
-			<Localized label="Genesys.StoryPoints.GM" />
-			<a v-if="isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"><i class="fas fa-arrows-rotate"></i></a>
+			<Localized :label="pool.label" />
+			<a v-if="pool.id === 'gm' && isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"
+				><i class="fas fa-arrows-rotate"></i
+			></a>
 		</header>
-		<input v-if="editingGM" class="points" :value="context.gmPool" @change="manualStoryPoints('gm', $event)" ref="gmInput" />
-		<a v-else-if="canSpend.gmPool" class="points" @click="spendStoryPoint('gmPool')" @contextmenu="toggleEdit('gm')">{{
-			context.gmPool
-		}}</a>
-		<div v-else class="points" @contextmenu="toggleEdit('gm')">{{ context.gmPool }}</div>
-	</div>
-
-	<div class="tracker">
-		<header><Localized label="Genesys.StoryPoints.Player" /></header>
 		<input
-			v-if="editingPlayer"
+			v-if="editing === pool.id"
+			ref="editInputs"
 			class="points"
-			:value="context.playerPool"
-			@change="manualStoryPoints('player', $event)"
-			ref="playerInput"
+			:value="context[pool.field]"
+			@change="manualStoryPoints(pool.id, $event)"
 		/>
-		<a v-else-if="canSpend.playerPool" class="points" @click="spendStoryPoint('playerPool')" @contextmenu="toggleEdit('player')">{{
-			context.playerPool
+		<a v-else-if="canSpend(pool)" class="points" @click="spendStoryPoint(pool)" @contextmenu="toggleEdit(pool.id)">{{
+			context[pool.field]
 		}}</a>
-		<div v-else class="points" @contextmenu="toggleEdit('player')">{{ context.playerPool }}</div>
+		<div v-else class="points" @contextmenu="toggleEdit(pool.id)">{{ context[pool.field] }}</div>
 	</div>
 </template>
 

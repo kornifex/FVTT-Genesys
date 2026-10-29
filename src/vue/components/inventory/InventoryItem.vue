@@ -7,14 +7,15 @@ import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
-import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { constructDragTransferTypeFromData, DragTransferData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { constructDragTransferTypeFromData, DragTransferData, draggedGenesysType } from '@/data/DragTransferData';
 import { containerContents, equipmentStateUpdates } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
+import { useDragHover } from '@/vue/useDragHover';
+import { signed } from '@/vue/format';
 
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -55,7 +56,15 @@ const damageStateToIcon = new Map([
 	[EquipmentDamageState.Major, 'fa-face-dizzy'],
 ]);
 
-const dragCounter = ref(0);
+// Only a Container lights up under a drag, and only for an item it can hold.
+const containerDrag = useDragHover((event) => {
+	if (props.item.type !== 'container') {
+		return false;
+	}
+
+	const type = draggedGenesysType(event);
+	return type !== undefined && (!type || props.canTypeBeInsideContainer(type));
+});
 const isBeingDragged = ref(false);
 
 const context = inject<ActorSheetContext<CharacterDataModel | VehicleDataModel>>(RootContext)!;
@@ -72,12 +81,15 @@ function armorData() {
 	return system() as ArmorDataModel;
 }
 
+// The rows that read a weapon's data are those of a character's or a vehicle's weapon.
 function weaponData() {
-	return {
-		baseWeapon: system() as BaseWeaponDataModel,
-		charWeapon: system() as WeaponDataModel,
-		vehWeapon: system() as VehicleWeaponDataModel,
-	};
+	return system() as WeaponDataModel | VehicleWeaponDataModel;
+}
+
+// The labels of a vehicle weapon's firing arc: a character's weapon has none.
+function firingArcs() {
+	const weapon = weaponData();
+	return 'firingArc' in weapon ? firingArcLabels(weapon.firingArc) : undefined;
 }
 
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
@@ -88,7 +100,7 @@ const containedItems = computed(() =>
 );
 
 function damage() {
-	const weapon = weaponData().charWeapon;
+	const weapon = weaponData();
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
@@ -131,7 +143,7 @@ async function setItemState(state: EquipmentState) {
 }
 
 function skillForWeapon() {
-	return attackSkillName(toRaw(context.data.actor).skills, weaponData().charWeapon);
+	return attackSkillName(toRaw(context.data.actor).skills, weaponData());
 }
 
 function isEquipableItem(item: GenesysItem<EquipmentDataModel>) {
@@ -176,24 +188,6 @@ function dragEnd(event: DragEvent) {
 	isBeingDragged.value = false;
 
 	emit('dragend', event);
-}
-
-function dragEnter(event: DragEvent) {
-	// Only containers should be highlighted on hover.
-	if (props.item.type !== 'container') {
-		return;
-	}
-
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	if (!dragDataFromType || (dragDataFromType.genesysType && !props.canTypeBeInsideContainer(dragDataFromType.genesysType))) {
-		return;
-	}
-
-	dragCounter.value += 1;
-}
-
-function dragLeave() {
-	dragCounter.value = Math.max(0, dragCounter.value - 1);
 }
 
 async function changeItemQuantity(event: MouseEvent, item: GenesysItem<EquipmentDataModel>, direction: number) {
@@ -261,7 +255,7 @@ async function changeDamageState(event: MouseEvent, item: GenesysItem<EquipmentD
 }
 
 async function dropInventoryIntoContainer(event: DragEvent) {
-	dragCounter.value = 0;
+	containerDrag.reset();
 
 	// Only a Container receives drops: those on other items go on to the sheet.
 	if (props.item.type === 'container') {
@@ -276,12 +270,12 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			'inventory-item': true,
 			mini: props.mini,
 			[system().state]: true,
-			hover: dragCounter > 0,
+			hover: containerDrag.isHovered.value,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
 		}"
-		@dragenter="dragEnter"
-		@dragleave="dragLeave"
+		@dragenter="containerDrag.enter"
+		@dragleave="containerDrag.leave"
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 		@drop="dropInventoryIntoContainer"
@@ -289,11 +283,11 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<img :src="item.img" :alt="item.name" />
 
 		<!-- Basic, single-row item -->
-		<span v-if="mini || isBasicItem" class="name" @dragenter="dragEnter" @dragleave="dragLeave">
+		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<a @click="openItem">{{ item.name }}</a>
 		</span>
 		<!-- Complex item with additional details row -->
-		<div v-else class="details" @dragenter="dragEnter" @dragleave="dragLeave">
+		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
 				<a @click="openItem">{{ item.name }}</a>
 				<button
@@ -309,44 +303,41 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<!-- Weapon Details -->
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
 					<!-- Skill -->
-					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().baseWeapon.skills[0]) ?? '-' }}</div>
+					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().skills[0]) ?? '-' }}</div>
 
 					<!-- Firing Arc -->
 					<!-- prettier-ignore -->
-					<div v-if="weaponData().vehWeapon.firingArc" class="firing-arc">
-						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcLabels(weaponData().vehWeapon.firingArc)" :key="label"><Localized :label="label" /></span>
+					<div v-if="firingArcs()" class="firing-arc">
+						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcs()" :key="label"><Localized :label="label" /></span>
 					</div>
 
 					<!-- Damage -->
 					<!-- prettier-ignore -->
 					<div>
 						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage().characteristic">{{ damage().baseDamage }}</span>
-						<span v-else-if="damage().baseDamage >= 0">
-							<Localized :label="damage().characteristic!" />+{{ damage().baseDamage }} ({{ damage().total }})</span
-						>
-						<span v-else><Localized :label="damage().characteristic!" />{{ damage().baseDamage }} ({{ damage().total }})</span>
+						<span v-else><Localized :label="damage().characteristic!" />{{ signed(damage().baseDamage) }} ({{ damage().total }})</span>
 					</div>
 
 					<!-- Critical -->
-					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().baseWeapon.critical }}</div>
+					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().critical }}</div>
 
 					<!-- Range -->
 					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().baseWeapon.range.capitalize()}`" />]</div>
+					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="`Genesys.Range.${weaponData().range.capitalize()}`" />]</div>
 
 					<!-- Qualities -->
-					<QualityList :qualities="weaponData().baseWeapon.qualities" class="item-qualities" />
+					<QualityList :qualities="weaponData().qualities" class="item-qualities" />
 				</template>
 
 				<!-- Armor Details -->
 				<template v-else-if="item.type === 'armor'">
 					<!-- Soak -->
-					<div v-if="armorData().soak > 0"><Localized label="Genesys.Labels.Soak" /> +{{ armorData().soak }}</div>
-					<div v-else-if="armorData().soak < 0"><Localized label="Genesys.Labels.Soak" /> {{ armorData().soak }}</div>
+					<div v-if="armorData().soak !== 0"><Localized label="Genesys.Labels.Soak" /> {{ signed(armorData().soak) }}</div>
 
 					<!-- Defense -->
-					<div v-if="armorData().defense > 0"><Localized label="Genesys.Labels.Defense" /> +{{ armorData().defense }}</div>
-					<div v-else-if="armorData().defense < 0"><Localized label="Genesys.Labels.Defense" /> {{ armorData().defense }}</div>
+					<div v-if="armorData().defense !== 0">
+						<Localized label="Genesys.Labels.Defense" /> {{ signed(armorData().defense) }}
+					</div>
 
 					<!-- Qualities -->
 					<QualityList :qualities="armorData().qualities" class="item-qualities" />
@@ -395,51 +386,46 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			<template v-slot:menu-items>
 				<MenuItem
 					v-if="allowEquippedState && ['weapon', 'vehicleWeapon'].includes(item.type) && canEquipItem(item)"
+					icon="fas fa-hand-fist"
+					label="Genesys.Equipment.Dropdown.Equip"
 					@click="setItemState(EquipmentState.Equipped)"
-				>
-					<template v-slot:icon><i class="fas fa-hand-fist"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Equip" />
-				</MenuItem>
+				/>
 
 				<MenuItem
 					v-if="allowEquippedState && item.type === 'armor' && canEquipItem(item)"
+					icon="fas fa-shield"
+					label="Genesys.Equipment.Dropdown.Equip"
 					@click="setItemState(EquipmentState.Equipped)"
-				>
-					<template v-slot:icon><i class="fas fa-shield"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Equip" />
-				</MenuItem>
+				/>
 
-				<MenuItem v-if="allowEquippedState && canUnequipItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Unequip" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowEquippedState && canUnequipItem(item)"
+					icon="fas fa-suitcase"
+					label="Genesys.Equipment.Dropdown.Unequip"
+					@click="setItemState(EquipmentState.Carried)"
+				/>
 
-				<MenuItem v-if="allowDroppedState && canDropItem(item)" @click="setItemState(EquipmentState.Dropped)">
-					<template v-slot:icon><i class="fas fa-box-archive"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Drop" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowDroppedState && canDropItem(item)"
+					icon="fas fa-box-archive"
+					label="Genesys.Equipment.Dropdown.Drop"
+					@click="setItemState(EquipmentState.Dropped)"
+				/>
 
-				<MenuItem v-if="allowDroppedState && canPickupItem(item)" @click="setItemState(EquipmentState.Carried)">
-					<template v-slot:icon><i class="fas fa-suitcase"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.PickUp" />
-				</MenuItem>
+				<MenuItem
+					v-if="allowDroppedState && canPickupItem(item)"
+					icon="fas fa-suitcase"
+					label="Genesys.Equipment.Dropdown.PickUp"
+					@click="setItemState(EquipmentState.Carried)"
+				/>
 
 				<hr v-if="(allowEquippedState && isEquipableItem(item)) || allowDroppedState" />
 
-				<MenuItem @click="sendItemToChat">
-					<template v-slot:icon><i class="fas fa-comment"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.ToChat" />
-				</MenuItem>
+				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendItemToChat" />
 
-				<MenuItem @click="openItem">
-					<template v-slot:icon><i class="fas fa-edit"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Edit" />
-				</MenuItem>
+				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openItem" />
 
-				<MenuItem @click="deleteItem">
-					<template v-slot:icon><i class="fas fa-trash"></i></template>
-					<Localized label="Genesys.Equipment.Dropdown.Delete" />
-				</MenuItem>
+				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem" />
 			</template>
 
 			<a>

@@ -1,7 +1,13 @@
 /** @file Tests for how a drag's data is read, and how a drag from the sidebar or a compendium is marked with its type. */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { addGenesysDragType, dragData, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import {
+	addGenesysDragType,
+	constructDragTransferTypeFromData,
+	dragData,
+	draggedGenesysType,
+	extractDataFromDragTransferTypes,
+} from '@/data/DragTransferData';
 
 /** A drag's DataTransfer, holding text and the types set on it. */
 function transfer(text: string) {
@@ -79,5 +85,16 @@ describe('addGenesysDragType', () => {
 		addGenesysDragType(notJson.event, ['Item']);
 
 		expect([withoutUuid.types, gone.types, notJson.types]).toEqual([[], [], []]);
+	});
+});
+
+describe('draggedGenesysType', () => {
+	it("reads the Genesys type of a drag's document from its formats, and nothing from a drag of no Genesys document", () => {
+		const types = (...formats: string[]) => ({ dataTransfer: { types: formats } }) as unknown as DragEvent;
+
+		expect(draggedGenesysType(types('text/plain', constructDragTransferTypeFromData('vehicleWeapon', 'Item.abc')))).toBe(
+			'vehicleWeapon',
+		);
+		expect(draggedGenesysType(types('text/plain'))).toBeUndefined();
 	});
 });

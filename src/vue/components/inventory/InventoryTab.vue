@@ -7,9 +7,10 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
-import { extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { draggedGenesysType } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
+import { useDragHover } from '@/vue/useDragHover';
 
 import Localized from '@/vue/components/Localized.vue';
 import InventoryItem from '@/vue/components/inventory/InventoryItem.vue';
@@ -36,11 +37,11 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 const dataModel = toRaw(context.data.actor).systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
 
 const isDraggable = ref(toRaw(context.data.actor).isOwner);
-const dragCounters = ref({
-	[EquipmentState.Equipped]: 0,
-	[EquipmentState.Carried]: 0,
-	[EquipmentState.Dropped]: 0,
-});
+
+// A drag over the tab opens the sort slots of the sections that take the dragged item: the Equipped section those the
+// actor can equip, the others any item of its inventory.
+const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('EQUIPABLE', draggedGenesysType(event) ?? ''));
+const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
 const inventory = computed(
 	() =>
@@ -53,7 +54,7 @@ const carriedItems = computed(() => sectionItems(inventory.value, EquipmentState
 const droppedItems = computed(() => sectionItems(inventory.value, EquipmentState.Dropped));
 
 type ItemSection = {
-	state: keyof typeof dragCounters.value;
+	state: EquipmentState;
 	label: string;
 	items: GenesysItem<EquipmentDataModel>[];
 };
@@ -83,38 +84,28 @@ async function dropInventoryToSortSlot(event: DragEvent, state: EquipmentState, 
 	await receiveInventoryEvent(toRaw(context.data.actor), event, { kind: 'section', state, after });
 }
 
-async function resetDragCounters(_event: DragEvent) {
-	dragCounters.value[EquipmentState.Equipped] = 0;
-	dragCounters.value[EquipmentState.Carried] = 0;
-	dragCounters.value[EquipmentState.Dropped] = 0;
-}
-
-function modifyDragCounters(event: DragEvent, direction: number) {
-	const dragDataFromType = extractDataFromDragTransferTypes(event.dataTransfer?.types);
-	if (!dragDataFromType) {
-		return;
-	}
-
-	if (dataModel.isRelevantTypeForContext('EQUIPABLE', dragDataFromType.genesysType)) {
-		dragCounters.value[EquipmentState.Equipped] += direction;
-	}
-	if (dataModel.isRelevantTypeForContext('INVENTORY', dragDataFromType.genesysType)) {
-		dragCounters.value[EquipmentState.Carried] += direction;
-		dragCounters.value[EquipmentState.Dropped] += direction;
-	}
+function isSectionDragged(state: EquipmentState) {
+	return (state === EquipmentState.Equipped ? equipableDrag : inventoryDrag).isHovered.value;
 }
 
 function dragEnter(event: DragEvent) {
-	modifyDragCounters(event, 1);
+	equipableDrag.enter(event);
+	inventoryDrag.enter(event);
 }
 
 function dragLeave(event: DragEvent) {
-	modifyDragCounters(event, -1);
+	equipableDrag.leave(event);
+	inventoryDrag.leave(event);
+}
+
+function resetDrags() {
+	equipableDrag.reset();
+	inventoryDrag.reset();
 }
 </script>
 
 <template>
-	<section class="tab-inventory" @drop.capture="resetDragCounters" @dragenter="dragEnter" @dragleave="dragLeave">
+	<section class="tab-inventory" @drop.capture="resetDrags" @dragenter="dragEnter" @dragleave="dragLeave">
 		<template v-for="part in layout" :key="part">
 			<div v-if="part === 'summary'" class="encumbrance-currency-row">
 				<div class="currency-row">
@@ -135,20 +126,20 @@ function dragLeave(event: DragEvent) {
 						<span><Localized :label="section.label" /></span>
 					</div>
 
-					<SortSlot :active="dragCounters[section.state] > 0" @drop="dropInventoryToSortSlot($event, section.state, -1)" />
+					<SortSlot :active="isSectionDragged(section.state)" @drop="dropInventoryToSortSlot($event, section.state, -1)" />
 
 					<TransitionGroup name="inv">
 						<template v-for="(item, index) in section.items" :key="item.id">
 							<InventoryItem
 								:item="item"
 								:draggable="isDraggable"
-								:dragging="dragCounters[EquipmentState.Carried] > 0"
+								:dragging="inventoryDrag.isHovered.value"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
 								:allow-dropped-state="allowDroppedState"
 							/>
 
 							<SortSlot
-								:active="dragCounters[section.state] > 0"
+								:active="isSectionDragged(section.state)"
 								@drop="dropInventoryToSortSlot($event, section.state, index)"
 							/>
 						</template>

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { qualityLabel, withQualityAdded, withQualityRating, withoutQuality } from '@/item/data/Qualities';
+import { qualityLabel, withQualityAdded, withQualityRating } from '@/item/data/Qualities';
 
 const quality = (name: string, rating = 1, isRated = true): ContainedItemQuality => ({
 	name,
@@ -32,15 +32,6 @@ describe('withQualityAdded', () => {
 
 	it('changes nothing when the item already has the quality and the quality is not rated', () => {
 		expect(withQualityAdded([quality('Accurate', 1, false)], { name: 'Accurate', description: '', isRated: false })).toBeUndefined();
-	});
-});
-
-describe('withoutQuality', () => {
-	it('removes the quality at an index, and leaves the given list as it is', () => {
-		const qualities = Object.freeze([quality('Pierce', 2), quality('Vicious', 1), quality('Accurate', 1, false)]);
-
-		expect(withoutQuality(qualities, 1)).toEqual([quality('Pierce', 2), quality('Accurate', 1, false)]);
-		expect(qualities).toHaveLength(3);
 	});
 });
 

@@ -72,6 +72,8 @@ type SheetsHelpers = {
 	drag(name: string, from: string, which: string, to: string): Promise<void>;
 	/** Opens the context menu of an element of a sheet and clicks its entry with an icon. */
 	menu(name: string, container: string, which: string, icon: string): Promise<void>;
+	/** Opens the context menu of an element of a sheet, closes the sheet, then clicks the page: whether the click was blocked. */
+	clickAfterClosingMenu(name: string, container: string): Promise<boolean>;
 	/** Sets an input of an open prompt and fires its event. */
 	setPromptInput(cssClass: string, selector: string, value: string, event: string): void;
 	clickPrompt(cssClass: string, selector: string): Promise<void>;
@@ -82,6 +84,8 @@ type SheetsHelpers = {
 	clickStoryPoints(selector: string): Promise<void>;
 	/** Types a count into the GM pool, as the GM does after right-clicking it. */
 	editGMStoryPoints(input: string): Promise<void>;
+	/** Right-clicks the GM pool then the players' pool, and returns the pools that show an input, then leaves them as they were. */
+	editBothStoryPointPools(): Promise<string[]>;
 	setStoryPoints(points: { gm: number; player: number }): Promise<void>;
 	/**
 	 * Since the last call: the users who wrote the Story Point pools, one entry per write, and the Story Point chat
@@ -487,6 +491,17 @@ function installSheetsHelpers() {
 			await settle();
 		},
 
+		async clickAfterClosingMenu(name, container) {
+			const menu = find(sheetElement(name), container);
+			menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			await waitFor('the open context menu', () => menu.querySelector('.context-menu'));
+			await documentNamed(name).sheet.close();
+			await settle();
+			const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+			document.body.dispatchEvent(click);
+			return click.defaultPrevented;
+		},
+
 		setPromptInput(cssClass, selector, value, event) {
 			const field = htmlOf(promptsOf(cssClass)[0])!.querySelector<HTMLInputElement>(selector);
 			if (!field) throw new Error(`No ${selector} in ${cssClass}`);
@@ -544,6 +559,20 @@ function installSheetsHelpers() {
 			field.value = input;
 			field.dispatchEvent(new Event('change', { bubbles: true }));
 			await settle();
+		},
+
+		async editBothStoryPointPools() {
+			const tracker = htmlOf(foundry.applications.instances.get('story-point-tracker'))!;
+			const pools = [...tracker.querySelectorAll('.tracker')];
+			for (const pool of pools) {
+				find(pool, '.points').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+				await settle();
+			}
+			const edited = ['gm', 'player'].filter((_, index) => pools[index].querySelector('input.points'));
+			// An input closes on a change, here to the count it holds.
+			for (const input of tracker.querySelectorAll('input.points')) input.dispatchEvent(new Event('change', { bubbles: true }));
+			await settle();
+			return edited;
 		},
 
 		async setStoryPoints(points) {
@@ -1363,6 +1392,24 @@ export async function run(e2e: ScenarioContext) {
 		await gm.join();
 		await gm.evaluate(installSheetsHelpers);
 	});
+
+	// §#343: the tracker edits one pool at a time.
+	let edited: string[] = [];
+	await e2e.step("#343 GM right-clicks the GM pool, then the players' pool", async () => {
+		edited = await gm.evaluate(() => window.sheetsE2E.editBothStoryPointPools());
+	});
+	e2e.expect("#343 A1 GM: right-clicking a Story Point pool closes the other pool's input", edited, ['player']);
+
+	// §#343: a context menu left open on a sheet that closes.
+	await gm.evaluate(async () => {
+		await window.sheetsE2E.open('Bearer');
+		await window.sheetsE2E.clickTab('Bearer', 'skills');
+	});
+	let blocked: boolean | undefined;
+	await e2e.step('#343 GM opens the context menu of a skill, closes the sheet, then clicks the page', async () => {
+		blocked = await gm.evaluate(() => window.sheetsE2E.clickAfterClosingMenu('Bearer', '.tab-skills .skill.menu-container'));
+	});
+	e2e.expect('#343 A2 GM: a context menu left open on a closed sheet lets the next click through', blocked, false);
 
 	await gm.evaluate((points) => window.sheetsE2E.setStoryPoints(points), storyPoints);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());

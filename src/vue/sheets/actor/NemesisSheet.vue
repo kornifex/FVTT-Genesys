@@ -12,18 +12,14 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 <template>
 	<AdversarySheet>
 		<template v-slot:stats>
-			<CombatStat label="Genesys.Labels.Soak" name="system.soak" :value="system.soak" edit-primary />
+			<CombatStat label="Genesys.Labels.Soak" name="system.soak" :value="system.soak" />
 
 			<CombatStat
 				label="Genesys.Labels.Wounds"
 				primary-label="Genesys.Labels.Threshold"
 				name="system.wounds.max"
 				:value="system.wounds.max"
-				edit-primary
-				has-secondary
-				secondary-label="Genesys.Labels.Current"
-				secondary-name="system.wounds.value"
-				:secondary-value="system.wounds.value"
+				:secondary="{ label: 'Genesys.Labels.Current', value: system.wounds.value, name: 'system.wounds.value' }"
 			/>
 
 			<CombatStat
@@ -31,11 +27,7 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 				primary-label="Genesys.Labels.Threshold"
 				name="system.strain.max"
 				:value="system.strain.max"
-				edit-primary
-				has-secondary
-				secondary-label="Genesys.Labels.Current"
-				secondary-name="system.strain.value"
-				:secondary-value="system.strain.value"
+				:secondary="{ label: 'Genesys.Labels.Current', value: system.strain.value, name: 'system.strain.value' }"
 			/>
 
 			<CombatStat
@@ -43,11 +35,7 @@ const system = computed(() => toRaw(context.data.actor).systemData);
 				primary-label="Genesys.Labels.DefenseRanged"
 				:value="system.defense.ranged"
 				name="system.defense.ranged"
-				has-secondary
-				secondary-name="system.defense.melee"
-				secondary-label="Genesys.Labels.DefenseMelee"
-				:secondary-value="system.defense.melee"
-				edit-primary
+				:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.defense.melee, name: 'system.defense.melee' }"
 			/>
 		</template>
 	</AdversarySheet>

@@ -34,19 +34,15 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 				<Characteristic label="Genesys.Labels.Handling" :value="system.handling.signedString()" name="system.handling" can-edit />
 
 				<div class="stats-column">
-					<CombatStat label="Genesys.Labels.Defense" name="system.defense" :value="system.defense" edit-primary />
-					<CombatStat label="Genesys.Labels.Armor" name="system.armor" :value="system.armor" edit-primary />
+					<CombatStat label="Genesys.Labels.Defense" name="system.defense" :value="system.defense" />
+					<CombatStat label="Genesys.Labels.Armor" name="system.armor" :value="system.armor" />
 
 					<CombatStat
 						label="Genesys.Labels.HullTrauma"
 						primary-label="Genesys.Labels.Threshold"
 						name="system.hullTrauma.max"
 						:value="system.hullTrauma.max"
-						edit-primary
-						has-secondary
-						secondary-label="Genesys.Labels.Current"
-						secondary-name="system.hullTrauma.value"
-						:secondary-value="system.hullTrauma.value"
+						:secondary="{ label: 'Genesys.Labels.Current', value: system.hullTrauma.value, name: 'system.hullTrauma.value' }"
 					/>
 
 					<CombatStat
@@ -54,11 +50,11 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.actor);
 						primary-label="Genesys.Labels.Threshold"
 						name="system.systemStrain.max"
 						:value="system.systemStrain.max"
-						edit-primary
-						has-secondary
-						secondary-label="Genesys.Labels.Current"
-						secondary-name="system.systemStrain.value"
-						:secondary-value="system.systemStrain.value"
+						:secondary="{
+							label: 'Genesys.Labels.Current',
+							value: system.systemStrain.value,
+							name: 'system.systemStrain.value',
+						}"
 					/>
 				</div>
 			</div>
