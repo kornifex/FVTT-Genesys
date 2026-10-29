@@ -10,14 +10,14 @@ export abstract class NemesisDataModel extends AdversaryDataModel implements Has
 
 	static override readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
-			label: 'Wounds',
+			label: 'Genesys.Labels.Wounds',
 			isBar: true,
 			editable: true,
 			valuePath: 'wounds.value',
 			maxPath: 'wounds.max',
 		},
 		strain: {
-			label: 'Strain',
+			label: 'Genesys.Labels.Strain',
 			isBar: true,
 			editable: true,
 			valuePath: 'strain.value',

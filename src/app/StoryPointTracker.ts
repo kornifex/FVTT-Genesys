@@ -4,7 +4,7 @@
 
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
-import { sessionStoryPoints, type StoryPointPool, storyPointsAfterSpending } from '@/data/StoryPoints';
+import { sessionStoryPoints, SPEND_MESSAGES, type StoryPointPool, storyPointsAfterSpending } from '@/data/StoryPoints';
 import * as log from '@/log';
 import { emit as socketEmit, handle as handleSocket, SocketOperation } from '@/socket';
 import type { PlayerSpendStoryPointData } from '@/socket/Relay';
@@ -137,7 +137,10 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return;
 		}
 
-		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', { type: pool });
+		const chatTemplate = await renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
+			type: pool,
+			message: SPEND_MESSAGES[pool],
+		});
 		const message = {
 			// v12 renamed the message's `user` to `author`, which the types we have don't know; v14 drops `user`.
 			author: user.id,

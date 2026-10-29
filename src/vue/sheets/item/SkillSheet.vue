@@ -2,6 +2,7 @@
 import { computed, inject } from 'vue';
 
 import { CHARACTERISTICS } from '@/data/Characteristics';
+import { SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
 import { ItemSheetContext, RootContext } from '@/vue/SheetContext';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -28,11 +29,9 @@ const system = computed(() => context.data.item.systemData);
 
 				<DataRow label="Genesys.Labels.Category">
 					<select name="system.category" :value="system.category">
-						<option value="general"><Localized label="Genesys.SkillCategory.General" /></option>
-						<option value="magic"><Localized label="Genesys.SkillCategory.Magic" /></option>
-						<option value="combat"><Localized label="Genesys.SkillCategory.Combat" /></option>
-						<option value="social"><Localized label="Genesys.SkillCategory.Social" /></option>
-						<option value="knowledge"><Localized label="Genesys.SkillCategory.Knowledge" /></option>
+						<option v-for="category in SKILL_CATEGORIES" :key="category" :value="category">
+							<Localized :label="SKILL_CATEGORY_LABELS[category]" />
+						</option>
 					</select>
 				</DataRow>
 

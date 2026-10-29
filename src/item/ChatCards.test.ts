@@ -102,7 +102,7 @@ describe('chatCard', () => {
 		qualities: [sharp()],
 	});
 
-	it("gives a weapon's card its first skill and its damage, with its damage characteristic", () => {
+	it("gives a weapon's card its first skill, its range and its damage, with its damage characteristic", () => {
 		const systemData = weapon(Characteristic.Brawn);
 		const card = chatCard({ type: 'weapon', img: 'sword.webp', name: 'Sword', systemData }, i18n);
 
@@ -114,7 +114,7 @@ describe('chatCard', () => {
 				type: 'weapon',
 				system: systemData,
 				description: '',
-				weapon: { skill: 'Melee', damage: '3 + Brawn' },
+				weapon: { skill: 'Melee', range: 'Engaged', damage: '3 + Brawn' },
 				qualities: [sharp()],
 			},
 		});
@@ -150,10 +150,10 @@ describe('chatCard', () => {
 		[{ fore: true, aft: true, port: true, starboard: true }, 'All'],
 		[{ fore: false, aft: false, port: false, starboard: false }, 'None'],
 		[{ fore: true, aft: false, port: true, starboard: false }, 'Fore, Port'],
-	])("gives a vehicle weapon's card its skill, damage and firing arc %j", (firingArc, label) => {
+	])("gives a vehicle weapon's card its skill, range, damage and firing arc %j", (firingArc, label) => {
 		expect(vehicleWeapon(firingArc).data).toMatchObject({
 			type: 'vehicleWeapon',
-			weapon: { skill: 'Gunnery', damage: '6', firingArc: label },
+			weapon: { skill: 'Gunnery', range: 'Long', damage: '6', firingArc: label },
 			qualities: [],
 		});
 	});
