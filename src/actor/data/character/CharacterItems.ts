@@ -2,7 +2,7 @@
  * @file A character's Archetype, Career, skills, talents, abilities and Critical Injuries: the drops they receive.
  */
 
-import { AdvancementCharacter, buyDroppedTalent, canReplaceCareer } from '@/actor/data/character/Advancement';
+import { AdvancementCharacter, buyDroppedTalent, canReplaceCareer, CharacterWrites } from '@/actor/data/character/Advancement';
 import { ArchetypeGrants, archetypeChange, ArchetypeHolder, canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { careerChange, heldCareerSkills } from '@/actor/data/character/Career';
 import { isOwnedSkill, Skill } from '@/data/Skills';
@@ -40,37 +40,27 @@ export type DroppedItem = {
 };
 
 /**
- * The writes a drop makes: the items it creates (with their ids), updates and deletes, and the update of the character.
- */
-export type CharacterDropPlan = {
-	itemCreates: Record<string, unknown>[];
-	itemUpdates: ({ _id: string } & Record<string, unknown>)[];
-	itemDeletes: string[];
-	actorUpdate: Record<string, unknown>;
-};
-
-/**
  * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or, for a
  * Career, a choice of the skills that get its Free Ranks to make first.
  */
 type CharacterDropDecision =
 	| { action: 'refuse'; refusal?: Notification }
-	| { action: 'write'; plan: CharacterDropPlan }
+	| { action: 'write'; plan: CharacterWrites }
 	| { action: 'chooseFreeRanks'; skillIds: string[] };
 
 type CareerData = { careerSkills: { name: string }[]; selectedSkillIDs: string[] };
 
-function write({
+function writing({
 	itemCreates = [],
 	itemUpdates = [],
 	itemDeletes = [],
 	actorUpdate = {},
-}: Partial<CharacterDropPlan>): CharacterDropDecision {
+}: Partial<CharacterWrites>): CharacterDropDecision {
 	return { action: 'write', plan: { itemCreates, itemUpdates, itemDeletes, actorUpdate } };
 }
 
 function copy(dropped: DroppedItem, newId: () => string) {
-	return write({ itemCreates: [{ ...dropped.source, _id: newId() }] });
+	return writing({ itemCreates: [{ ...dropped.source, _id: newId() }] });
 }
 
 /**
@@ -111,7 +101,7 @@ export function decideCharacterDrop(
 			const held = character.items.find((item) => item.type === 'archetype') as
 				| (CharacterItem & { system: ArchetypeGrants })
 				| undefined;
-			return write(archetypeChange(character, held, { system: dropped.system as ArchetypeGrants, source: dropped.source }, newId));
+			return writing(archetypeChange(character, held, { system: dropped.system as ArchetypeGrants, source: dropped.source }, newId));
 		}
 		case 'career': {
 			// A Career can be replaced until a skill rank is bought, since that rank's cost depends on the Career's skills.
@@ -128,7 +118,7 @@ export function decideCharacterDrop(
 			}
 
 			const held = character.items.find((item) => item.type === 'career') as (CharacterItem & { system: CareerData }) | undefined;
-			return write(careerChange(character.items, held, { system, source: dropped.source }, freeRankSkillIds, newId));
+			return writing(careerChange(character.items, held, { system, source: dropped.source }, freeRankSkillIds, newId));
 		}
 		case 'talent':
 			return talentDrop(character, dropped, newId());

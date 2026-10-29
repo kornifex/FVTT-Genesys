@@ -160,6 +160,9 @@ declare namespace foundry {
 
 				get token(): TokenDocument | null;
 
+				/** Resolves the document dropped on the sheet from the drag data, and hands it to the handler of its type. */
+				protected _onDrop(event: DragEvent): Promise<void>;
+
 				/**
 				 * The handlers of a document dropped on the sheet, which `_onDrop` resolves from the drag data unless the
 				 * `dropActorSheetData` hook refuses it. Each resolves to a document when the drop did something, or null.

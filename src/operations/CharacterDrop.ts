@@ -4,8 +4,8 @@
 
 import type { GenesysActor } from '@/actor/GenesysActor';
 import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import { advancementCharacter } from '@/actor/data/character/Advancement';
-import { Character, CharacterDropPlan, decideCharacterDrop } from '@/actor/data/character/CharacterItems';
+import { advancementCharacter, writeCharacter } from '@/actor/data/character/Advancement';
+import { Character, decideCharacterDrop } from '@/actor/data/character/CharacterItems';
 import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import type { GenesysItem } from '@/item/GenesysItem';
@@ -38,7 +38,7 @@ export async function receiveCharacterDrop(actor: GenesysActor<CharacterDataMode
 	}
 
 	if (decision.action === 'write') {
-		return write(actor, decision.plan);
+		return writeCharacter(actor, decision.plan);
 	}
 
 	// A decision made with the Free Ranks chosen asks nothing more: it writes or refuses.
@@ -50,26 +50,4 @@ export async function receiveCharacterDrop(actor: GenesysActor<CharacterDataMode
 
 function character(actor: GenesysActor<CharacterDataModel>): Character {
 	return { id: actor.id, system: actor.systemData, items: actor.items.contents, advancement: advancementCharacter(actor) };
-}
-
-/**
- * Write a drop's plan on the character, one batch per kind of write: the items it creates, then those it updates and
- * deletes, then the character.
- */
-async function write(actor: GenesysActor<CharacterDataModel>, plan: CharacterDropPlan) {
-	let created: GenesysItem[] = [];
-	if (plan.itemCreates.length > 0) {
-		created = (await actor.createEmbeddedDocuments('Item', plan.itemCreates, { keepId: true })) as GenesysItem[];
-	}
-	if (plan.itemUpdates.length > 0) {
-		await actor.updateEmbeddedDocuments('Item', plan.itemUpdates);
-	}
-	if (plan.itemDeletes.length > 0) {
-		await actor.deleteEmbeddedDocuments('Item', plan.itemDeletes);
-	}
-	if (Object.keys(plan.actorUpdate).length > 0) {
-		await actor.update(plan.actorUpdate);
-	}
-
-	return created;
 }

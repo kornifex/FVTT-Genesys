@@ -52,9 +52,10 @@ export type AdvancementCharacter = {
 };
 
 /**
- * The changes an Advancement makes to the character and its items.
+ * The writes a change makes to a character and their items: the items it creates (with their ids), updates and deletes,
+ * and the update of the character. An Advancement's plan is one.
  */
-type AdvancementPlan = {
+export type CharacterWrites = {
 	actorUpdate: Record<string, unknown>;
 	itemCreates: Record<string, unknown>[];
 	itemUpdates: ({ _id: string } & Record<string, unknown>)[];
@@ -64,7 +65,7 @@ type AdvancementPlan = {
 /**
  * An Advancement's plan, or why it is refused, with what to tell the user if anything.
  */
-export type AdvancementResult = { plan: AdvancementPlan } | { refusal: Notification | undefined };
+export type AdvancementResult = { plan: CharacterWrites } | { refusal: Notification | undefined };
 
 function refuse(key?: string, data?: Record<string, unknown>): AdvancementResult {
 	return { refusal: key ? { key, data } : undefined };
@@ -72,7 +73,7 @@ function refuse(key?: string, data?: Record<string, unknown>): AdvancementResult
 
 function planFor(
 	entries: Entry[],
-	{ actorUpdate = {}, itemCreates = [], itemUpdates = [], itemDeletes = [] }: Partial<AdvancementPlan> = {},
+	{ actorUpdate = {}, itemCreates = [], itemUpdates = [], itemDeletes = [] }: Partial<CharacterWrites> = {},
 ): AdvancementResult {
 	return {
 		plan: {
@@ -378,10 +379,20 @@ export async function advance(actor: GenesysActor<CharacterDataModel>, result: A
 		return false;
 	}
 
-	const { actorUpdate, itemCreates, itemUpdates, itemDeletes } = result.plan;
+	await writeCharacter(actor, result.plan);
+	return true;
+}
 
+/**
+ * Make a change's writes on a character actor, one batch per kind of write: the items it creates, then those it updates
+ * and deletes, then the character. Returns the created items.
+ */
+export async function writeCharacter(actor: GenesysActor<CharacterDataModel>, writes: CharacterWrites) {
+	const { actorUpdate, itemCreates, itemUpdates, itemDeletes } = writes;
+
+	let created: GenesysItem[] = [];
 	if (itemCreates.length > 0) {
-		await actor.createEmbeddedDocuments('Item', itemCreates, { keepId: true });
+		created = (await actor.createEmbeddedDocuments('Item', itemCreates, { keepId: true })) as GenesysItem[];
 	}
 	if (itemUpdates.length > 0) {
 		await actor.updateEmbeddedDocuments('Item', itemUpdates);
@@ -389,8 +400,9 @@ export async function advance(actor: GenesysActor<CharacterDataModel>, result: A
 	if (itemDeletes.length > 0) {
 		await actor.deleteEmbeddedDocuments('Item', itemDeletes);
 	}
+	if (Object.keys(actorUpdate).length > 0) {
+		await actor.update(actorUpdate);
+	}
 
-	await actor.update(actorUpdate);
-
-	return true;
+	return created;
 }

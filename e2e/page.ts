@@ -121,7 +121,10 @@ type PageHelpers = {
 	apps: (cssClass: string) => Untyped[];
 	/** Starts a drag on an element, which writes its drag data as the user's drag does; returns it, for {@link drop}. */
 	dragStart: (element: Element) => DataTransfer;
-	/** Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does. */
+	/**
+	 * Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does.
+	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then.
+	 */
 	drop: (element: Element, data: object | DataTransfer) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
 	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
@@ -427,6 +430,7 @@ export function installHelpers() {
 			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
 			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
 			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+			dataTransfer.clearData();
 		},
 
 		async deleteSetUp(...collections) {

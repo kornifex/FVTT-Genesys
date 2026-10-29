@@ -2,6 +2,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
+import { GenesysEffect } from '@/effects/GenesysEffect';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
 import { ActorSheetContext } from '@/vue/SheetContext';
 
@@ -26,6 +27,18 @@ export class GenesysActorSheet<
 			sheet: this,
 			data: { actor: this.actor, editable: this.isEditable },
 		};
+	}
+
+	/**
+	 * Called when an ActiveEffect is dropped on the sheet: the actor gets a copy of it, under a new id.
+	 */
+	protected override async _onDropActiveEffect(_event: DragEvent, effect: GenesysEffect) {
+		// The types we have lack `target`, the document an effect applies to.
+		if (!this.actor.isOwner || (effect as { target?: unknown }).target === this.actor) {
+			return null;
+		}
+
+		return GenesysEffect.create(effect.toObject(), { parent: this.actor });
 	}
 
 	/**

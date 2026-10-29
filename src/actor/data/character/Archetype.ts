@@ -82,7 +82,7 @@ function withArchetype(character: ArchetypeHolder, archetype: ArchetypeGrants, s
 	};
 }
 
-function actorUpdate(character: ArchetypeHolder): Record<string, unknown> {
+function toActorUpdate(character: ArchetypeHolder): Record<string, unknown> {
 	const update: Record<string, unknown> = {};
 	for (const characteristic of Object.values(Characteristic)) {
 		update[`system.characteristics.${characteristic}`] = character.characteristics[characteristic];
@@ -99,7 +99,7 @@ function actorUpdate(character: ArchetypeHolder): Record<string, unknown> {
  * thresholds, and the Starting XP entry at the head of the Experience Journal.
  */
 export function archetypeActorUpdate(character: ArchetypeHolder, archetype: ArchetypeGrants, sign: ArchetypeSign): Record<string, unknown> {
-	return actorUpdate(withArchetype(character, archetype, sign));
+	return toActorUpdate(withArchetype(character, archetype, sign));
 }
 
 /**
@@ -227,7 +227,7 @@ export function archetypeChange<T extends HeldItem & { id: string }>(
 		],
 		itemUpdates: [...ranks].filter(([id, rank]) => rank !== rankOf(id)).map(([id, rank]) => ({ _id: id, 'system.rank': rank })),
 		itemDeletes,
-		actorUpdate: actorUpdate(withArchetype(holder, dropped.system, 1)),
+		actorUpdate: toActorUpdate(withArchetype(holder, dropped.system, 1)),
 	};
 }
 
