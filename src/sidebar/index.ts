@@ -28,6 +28,9 @@ function patchCompendiums() {
 	});
 }
 
+/**
+ * Register the system's actor and item directories, and its compendium windows.
+ */
 export function register() {
 	CONFIG.ui.actors = GenesysActorDirectory;
 	CONFIG.ui.items = GenesysItemDirectory;

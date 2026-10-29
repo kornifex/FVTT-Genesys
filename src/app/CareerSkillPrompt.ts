@@ -11,6 +11,9 @@ export type CareerSkillPromptContext = {
 	answer: (skillIDs: string[]) => void;
 };
 
+/**
+ * Prompt the user for the career skills that gain a free rank.
+ */
 export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	override get vueComponent() {
 		return VueCareerSkillPrompt;
@@ -22,6 +25,9 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 		window: { title: 'Genesys.CareerSkillPrompt.Title' },
 	};
 
+	/**
+	 * Ask the user to pick career skills, by their IDs. None when the prompt is closed.
+	 */
 	static async promptForSkills(skills: GenesysItem<SkillDataModel>[]) {
 		return new CareerSkillPrompt(skills).prompt();
 	}

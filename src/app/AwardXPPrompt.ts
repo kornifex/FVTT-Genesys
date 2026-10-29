@@ -34,6 +34,9 @@ export class AwardXPPrompt extends VuePrompt<AwardData | undefined>(undefined) {
 		window: { title: 'Genesys.RewardsPrompt.Title' },
 	};
 
+	/**
+	 * Ask the user for an XP award. Undefined when the prompt is closed.
+	 */
 	static async promptForXPAward() {
 		return new AwardXPPrompt().prompt();
 	}

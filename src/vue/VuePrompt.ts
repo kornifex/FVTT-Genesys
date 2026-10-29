@@ -1,6 +1,4 @@
-/**
- * @file Base for the ApplicationV2 prompts rendered with a Vue component, which wait for the user's answer.
- */
+/** @file Base for the ApplicationV2 prompts rendered with a Vue component, which wait for the user's answer. */
 
 import { VueSheet } from '@/vue/VueSheet';
 

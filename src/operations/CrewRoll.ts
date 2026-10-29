@@ -39,7 +39,7 @@ export async function rollForCrew(crewSkills: CrewSkill[], options: DicePromptOp
 		return;
 	}
 
-	const selected = memberSkills.length === 1 ? memberSkills[0] : await SelectCrewMemberPrompt.prompt(memberSkills);
+	const selected = memberSkills.length === 1 ? memberSkills[0] : await SelectCrewMemberPrompt.promptForCrewMember(memberSkills);
 	if (!selected) {
 		return;
 	}

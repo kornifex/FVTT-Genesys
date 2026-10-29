@@ -27,7 +27,7 @@ export class SelectCrewMemberPrompt extends VuePrompt<ActorCrewMemberSkill | und
 	/**
 	 * Ask the user to pick one of the crew members' skills. Undefined when the prompt is closed.
 	 */
-	static async prompt(memberSkills: ActorCrewMemberSkill[]) {
+	static async promptForCrewMember(memberSkills: ActorCrewMemberSkill[]) {
 		return new SelectCrewMemberPrompt(memberSkills).prompt();
 	}
 
