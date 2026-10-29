@@ -37,9 +37,8 @@ function awardXP(event: Event) {
 </template>
 
 <style lang="scss">
-@use '@scss/mixins/backgrounds.scss';
-
 // Unscoped: these rules style the Foundry window around the component.
+@use '@scss/mixins/backgrounds.scss';
 
 .app-award-xp-prompt {
 	min-width: 150px;
@@ -49,7 +48,9 @@ function awardXP(event: Event) {
 		@include backgrounds.crossboxes();
 	}
 }
+</style>
 
+<style lang="scss" scoped>
 .award-xp-prompt {
 	display: flex;
 	flex-direction: column;

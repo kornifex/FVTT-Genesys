@@ -375,6 +375,7 @@ async function onRoll() {
 </template>
 
 <style lang="scss">
+// Unscoped: these rules style the Foundry window around the component.
 @use '@scss/mixins/backgrounds.scss';
 
 .app-dice-prompt {
@@ -391,7 +392,6 @@ async function onRoll() {
 @use 'sass:color';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/appv1.scss';
-@use '@scss/vars/sheet.scss';
 @use '@scss/mixins/reset.scss';
 
 .dice-prompt {

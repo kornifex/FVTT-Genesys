@@ -310,7 +310,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 								<a @click="editItem(item)" draggable="true" @dragstart="dragStart($event, item)">
 									{{ item.name }}
 
-									<span v-if="item.type === 'armor'" style="padding-right: 0.2em">
+									<span v-if="item.type === 'armor'" class="soak">
 										(+{{ item.system.soak }} <Localized label="Genesys.Labels.Soak" />)
 									</span>
 
@@ -358,10 +358,11 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 	</div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
+// The adversary's skills, motivations and source row are rendered by child components, which these rules reach with :deep().
 .adversary-sheet {
 	display: flex;
 	flex-direction: column;
@@ -415,7 +416,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 		display: flex;
 		flex-direction: column;
 
-		.header {
+		:deep(.header) {
 			font-family: 'Bebas Neue', sans-serif;
 			font-size: 1.25em;
 			color: colors.$blue;
@@ -501,11 +502,11 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 		}
 	}
 
-	.container {
+	:deep(.container) {
 		padding-left: 1em;
 	}
 
-	.skill {
+	:deep(.skill) {
 		display: inline-block;
 
 		& > a {
@@ -547,6 +548,10 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 		}
 	}
 
+	.soak {
+		padding-right: 0.2em;
+	}
+
 	.weapon-details > span {
 		&::after {
 			display: inline;
@@ -584,7 +589,7 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 
 		// An adversary's motivations share their tab with its Critical Injuries, so they start shorter, their editor filling
 		// the height they take.
-		.motivation .body {
+		:deep(.motivation .body) {
 			display: grid;
 			grid-template-rows: 1fr;
 			min-height: 4rem;
@@ -599,20 +604,20 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			row-gap: 0.1em;
 			margin-top: 1rem;
 
-			input:not([type='checkbox']),
-			select {
+			:deep(input:not([type='checkbox'])),
+			:deep(select) {
 				width: 100%;
 			}
 
-			input[type='checkbox'] {
+			:deep(input[type='checkbox']) {
 				justify-self: right;
 			}
 
-			& > * {
+			& > :deep(*) {
 				grid-column: 2 / span 1;
 			}
 
-			& > label {
+			& > :deep(label) {
 				grid-column: 1 / span 1;
 			}
 		}

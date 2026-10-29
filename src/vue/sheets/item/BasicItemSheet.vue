@@ -78,19 +78,8 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 </template>
 
 <style lang="scss">
-@use '@scss/mixins/reset.scss';
-@use '@scss/vars/colors.scss';
-@use '@scss/vars/sheet.scss';
-
+// Unscoped: the item sheets pass their own description and data sections through the slots, which these rules lay out.
 .item-sheet-basic {
-	width: calc(100% + #{sheet.$padding * 2});
-	height: calc(100% + #{sheet.$padding * 2});
-
-	display: grid;
-	grid-template-rows: /* Header & Tabs */ repeat(2, auto) /* Tab Content */ 1fr;
-
-	margin: -1 * sheet.$padding;
-
 	.editor-content {
 		font-family: 'Roboto Serif', serif;
 		text-align: justify;
@@ -115,57 +104,6 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 				border-top: none;
 			}
 		}
-	}
-
-	header {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 0.5rem;
-		align-items: center;
-
-		padding: sheet.$padding;
-
-		// Header Decoration
-		&.with-decoration {
-			grid-template-columns: auto 1fr auto;
-		}
-
-		// Item Image
-		img {
-			border: 1px solid colors.$gold;
-			background: colors.alpha(colors.$gold, 0.5);
-			border-radius: 1em;
-			height: 2.5rem;
-		}
-
-		// Name Input
-		@include reset.input;
-		input[type='text'] {
-			width: 100%;
-			font-family: 'Bebas Neue', sans-serif;
-			font-size: 2rem;
-			color: colors.$blue;
-			height: 2rem;
-
-			&,
-			&:focus {
-				border-bottom: 1px solid colors.$dark-blue;
-			}
-
-			&:focus {
-				font-family: 'Modesto Condensed', sans-serif;
-			}
-		}
-	}
-
-	nav.sheet-tabs {
-		margin-left: 0;
-		width: 100%;
-	}
-
-	.tab {
-		padding-left: sheet.$padding;
-		padding-right: sheet.$padding;
 	}
 
 	section.data-grid {
@@ -197,6 +135,65 @@ const { effects, addEffect } = useDocumentEffects(() => context.data.item);
 				grid-column: 1 / span 1;
 			}
 		}
+	}
+}
+</style>
+
+<style lang="scss" scoped>
+@use '@scss/mixins/reset.scss';
+@use '@scss/vars/colors.scss';
+@use '@scss/vars/sheet.scss';
+
+.item-sheet-basic {
+	width: calc(100% + #{sheet.$padding * 2});
+	height: calc(100% + #{sheet.$padding * 2});
+
+	display: grid;
+	grid-template-rows: /* Header & Tabs */ repeat(2, auto) /* Tab Content */ 1fr;
+
+	margin: -1 * sheet.$padding;
+
+	header {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.5rem;
+		align-items: center;
+
+		padding: sheet.$padding;
+
+		&.with-decoration {
+			grid-template-columns: auto 1fr auto;
+		}
+
+		img {
+			border: 1px solid colors.$gold;
+			background: colors.alpha(colors.$gold, 0.5);
+			border-radius: 1em;
+			height: 2.5rem;
+		}
+
+		@include reset.input;
+		input[type='text'] {
+			width: 100%;
+			font-family: 'Bebas Neue', sans-serif;
+			font-size: 2rem;
+			color: colors.$blue;
+			height: 2rem;
+
+			&,
+			&:focus {
+				border-bottom: 1px solid colors.$dark-blue;
+			}
+
+			&:focus {
+				font-family: 'Modesto Condensed', sans-serif;
+			}
+		}
+	}
+
+	.tab {
+		padding-left: sheet.$padding;
+		padding-right: sheet.$padding;
 	}
 }
 </style>

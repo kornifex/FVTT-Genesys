@@ -45,6 +45,7 @@ async function submitSelection(event: Event) {
 </template>
 
 <style lang="scss">
+// Unscoped: these rules style the Foundry window around the component.
 @use '@scss/mixins/backgrounds.scss';
 
 .app-clone-actor-prompt {
@@ -58,8 +59,6 @@ async function submitSelection(event: Event) {
 </style>
 
 <style lang="scss" scoped>
-@use '@scss/vars/colors.scss';
-
 .clone-actor-prompt {
 	.instantiation-method {
 		display: grid;
