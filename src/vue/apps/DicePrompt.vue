@@ -470,6 +470,13 @@ async function onRoll() {
 		overflow: hidden;
 		@include expandable.description($duration: 1s, $easing: ease, $open: pool-modifications-expanded);
 
+		// The expander clips the folded Pool Modifications, and the container, which the mixin would clip too, doesn't, as
+		// before the mixin: its icons sit 3px below their place in a row (`top: 3px`), and in the last row their box can
+		// pass its bottom edge.
+		& > .pool-modifications-container {
+			overflow: visible;
+		}
+
 		&.pool-modifications-expanded {
 			.pool-modifications-container {
 				visibility: visible;
@@ -482,9 +489,6 @@ async function onRoll() {
 		font-family: 'Roboto', sans-serif;
 		margin-left: 1rem;
 		border-top: 1px dotted black;
-		// The expander, not the container, clips the Pool Modifications it hides: the container keeps showing what passes
-		// its edges, which the expandable mixin would cut.
-		overflow: visible;
 
 		transition: visibility 1s;
 		visibility: hidden;
