@@ -1,5 +1,14 @@
-#chat-controls {
-	& > .chat-control-icon {
-		cursor: pointer;
+// The Dice Roller's button sits beside the message modes in the chat form.
+#chat-controls > .dice-roller {
+	margin-inline: 4px auto;
+}
+
+// By the notifications, while the sidebar is collapsed, the modes stand in a column, with the button under them.
+#chat-notifications > #chat-controls:has(> .dice-roller) {
+	flex-direction: column;
+	gap: 4px;
+
+	> .dice-roller {
+		margin-inline: 0;
 	}
 }
