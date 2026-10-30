@@ -16,34 +16,41 @@ import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentType } from '@/item/ItemTypes';
+import { attackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
 import { notify } from '@/notifications';
 
 /**
- * The name of the Attack Skill an actor rolls a weapon with. Undefined when the weapon lists no skill, and it offers no
- * attack.
+ * The name of the Attack Skill an actor rolls a Weapon Profile with: a weapon's own fields are its main profile.
+ * Undefined when the profile lists no skill, and it offers no attack.
  */
-export function attackSkill(actor: GenesysActor, weapon: GenesysItem<'weapon'>) {
-	return attackSkillName(actor.skills, weapon.system);
+export function attackSkill(actor: GenesysActor, profile: Pick<WeaponProfileData, 'skills' | 'attackSkill'>) {
+	return attackSkillName(actor.skills, profile);
 }
 
 /**
- * Open the dice prompt of an attack with an actor's weapon, which rolls its Attack Skill. A weapon that lists no skill
- * offers no attack.
+ * Open the dice prompt of an attack with one of an actor's Weapon Profiles, its main one by default, which rolls the
+ * profile's Attack Skill. A profile that lists no skill offers no attack.
  */
-export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapon'>) {
-	const skillName = attackSkill(actor, weapon);
+export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapon'>, profile?: WeaponProfile) {
+	const attacked = profile ?? weaponProfiles(weapon.system)[0];
+	const skillName = attackSkill(actor, attacked);
 	if (skillName) {
-		await DicePrompt.promptForRoll(actor, skillName, { roll: { type: RollType.Attack, weapon } });
+		await DicePrompt.promptForRoll(actor, skillName, {
+			roll: { type: RollType.Attack, weapon, profile: attackProfile(weapon.name, attacked, game.i18n) },
+		});
 	}
 }
 
 /**
  * Open the dice prompt of an attack with a vehicle weapon, which one of its skills rolls, by the crew member of a role
- * that has it.
+ * that has it. A vehicle weapon has a single Weapon Profile.
  */
 export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, weapon: GenesysItem<'vehicleWeapon'>) {
-	await rollForCrew(crewForSkills(vehicle.system.crew, weapon.system.skills), { roll: { type: RollType.Attack, weapon } });
+	const { skills, baseDamage, critical, range, qualities } = weapon.system;
+	await rollForCrew(crewForSkills(vehicle.system.crew, skills), {
+		roll: { type: RollType.Attack, weapon, profile: { attackName: weapon.name, skills, baseDamage, critical, range, qualities } },
+	});
 }
 
 /**

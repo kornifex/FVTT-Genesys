@@ -407,6 +407,14 @@ Genesys:
     All: Toutes
     None: Aucune
 
+  # Weapon Profiles
+  WeaponProfile:
+    RowName: '{weapon} ({profile})'
+    Numbered: Profil {number}
+    Title: Profil d'arme
+    Add: Ajouter un profil
+    Delete: Supprimer le profil
+
   # Equipment Data
   Equipment:
     DamageState:

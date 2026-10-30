@@ -108,9 +108,10 @@ function damage() {
 	};
 }
 
-// The Attack Skill of a character's weapon, which offers an attack when it has one.
+// The Attack Skill of a character's weapon's main profile, which offers an attack when it has one. The weapon's row
+// shows its main profile, and attacks with it.
 function skillForWeapon() {
-	return attackSkill(actor.value, item.value as GenesysItem<'weapon'>);
+	return attackSkill(actor.value, (item.value as GenesysItem<'weapon'>).system);
 }
 
 // The Equipment State moves the row's menu offers.

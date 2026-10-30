@@ -2464,5 +2464,167 @@ export async function run(e2e: ScenarioContext) {
 		'https://github.com/kornifex/FVTT-Genesys/wiki/Dice-Pool-Modification-Glyphs',
 	);
 
+	// §#366: a weapon's extra Weapon Profiles, edited on its Data tab, and listed on its card.
+	await gm.evaluate(async () => {
+		const sheets = window.sheetsE2E;
+		await sheets.closeAll();
+		for (const name of ['weapon', 'vehicleWeapon']) {
+			await sheets.open(name);
+			await sheets.clickTab(name, 'data');
+		}
+	});
+	// The weapon's profiles as stored, its main profile's skills and qualities, and the profile blocks its sheet shows.
+	const weaponProfiles = () =>
+		gm.evaluate(() => {
+			type Quality = { name: string; rating: number };
+			type Profile = { name: string; skills: string[]; qualities: Quality[] } & Record<string, unknown>;
+			const weapon = game.items.getName('E2E weapon');
+			const qualities = (list: Quality[]) => list.map(({ name, rating }) => ({ name, rating }));
+			return {
+				main: { skills: [...weapon.system.skills], qualities: qualities(weapon.system.qualities) },
+				extraProfiles: (weapon.system.extraProfiles ?? []).map((profile: Profile) => ({
+					...profile,
+					skills: [...profile.skills],
+					qualities: qualities(profile.qualities),
+				})),
+				blocks: window.e2e.htmlOf(weapon.sheet)!.querySelectorAll('.weapon-profile').length,
+			};
+		});
+	e2e.expect(
+		"#366 C1 a weapon's Data tab ends with an Add Weapon Profile button, a vehicle weapon's has none",
+		await gm.evaluate(() =>
+			Object.fromEntries(
+				['weapon', 'vehicleWeapon'].map((name) => [
+					name,
+					[...window.e2e.htmlOf(game.items.getName(`E2E ${name}`).sheet)!.querySelectorAll('.add-profile button')].map(
+						window.e2e.text,
+					),
+				]),
+			),
+		),
+		{ weapon: ['Add Weapon Profile'], vehicleWeapon: [] },
+	);
+	const mainBefore = (await weaponProfiles()).main;
+	await e2e.step('#366 C2 GM adds a Weapon Profile, edits each of its fields, and drops a quality and a skill on its block', () =>
+		gm.evaluate(async () => {
+			const sheets = window.sheetsE2E;
+			// A build without Weapon Profiles has no Add Weapon Profile button.
+			if (!window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.add-profile button')) return;
+			await sheets.click('weapon', '.add-profile button');
+			await sheets.changeField('weapon', '.weapon-profile .profile-name', 'Thrown');
+			await sheets.changeField('weapon', '.weapon-profile .profile-damage-characteristic', 'agility');
+			await sheets.changeField('weapon', '.weapon-profile .profile-damage', '2');
+			await sheets.changeField('weapon', '.weapon-profile .profile-critical', '4');
+			await sheets.changeField('weapon', '.weapon-profile .profile-range', 'short');
+			await sheets.drop('weapon', { type: 'Item', name: 'quality' }, '.weapon-profile');
+			await sheets.drop('weapon', { type: 'Item', name: 'skill' }, '.weapon-profile .profile-skills');
+		}),
+	);
+	e2e.expect(
+		"#366 C2 the added profile stores each field changed on its block, and the quality and skill dropped on it, leaving the main profile's",
+		await weaponProfiles(),
+		{
+			main: mainBefore,
+			extraProfiles: [
+				{
+					name: 'Thrown',
+					skills: ['E2E skill'],
+					damageCharacteristic: 'agility',
+					baseDamage: 2,
+					critical: 4,
+					range: 'short',
+					qualities: [{ name: 'E2E quality', rating: 1 }],
+					attackSkill: '',
+				},
+			],
+			blocks: 1,
+		},
+	);
+	await e2e.step("#366 C3 GM rates the profile's quality 3 and deletes its skill", () =>
+		gm.evaluate(async () => {
+			const sheet = window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!;
+			const rating = sheet.querySelector<HTMLInputElement>('.weapon-profile .profile-qualities input');
+			if (!rating) return;
+			rating.value = '3';
+			rating.dispatchEvent(new Event('blur'));
+			await window.e2e.settle();
+			await window.sheetsE2E.click('weapon', '.weapon-profile .profile-skills a');
+		}),
+	);
+	const ratedAndUnskilled = await weaponProfiles();
+	e2e.expect(
+		"#366 C3 the profile's quality takes its new rating and its skill is deleted, leaving the main profile's",
+		{
+			main: ratedAndUnskilled.main,
+			skills: ratedAndUnskilled.extraProfiles[0]?.skills,
+			qualities: ratedAndUnskilled.extraProfiles[0]?.qualities,
+		},
+		{ main: mainBefore, skills: [], qualities: [{ name: 'E2E quality', rating: 3 }] },
+	);
+	await e2e.step('#366 C4 GM deletes the profile', () =>
+		gm.evaluate(async () => {
+			if (window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile')) {
+				await window.sheetsE2E.click('weapon', '.weapon-profile .delete-profile');
+			}
+		}),
+	);
+	e2e.expect('#366 C4 the deleted profile leaves the weapon and its sheet', await weaponProfiles(), {
+		main: mainBefore,
+		extraProfiles: [],
+		blocks: 0,
+	});
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	await e2e.step("#366 D1 GM gives the Hero's sword a Thrown profile and sends it to chat", () =>
+		gm.evaluate(async () => {
+			const sheets = window.sheetsE2E;
+			await sheets.update('Hero/Sword', {
+				'system.extraProfiles': [
+					{
+						name: 'Thrown',
+						skills: ['Ranged'],
+						damageCharacteristic: 'brawn',
+						baseDamage: 2,
+						critical: 4,
+						range: 'short',
+						qualities: [{ name: 'Accurate', description: '', isRated: true, rating: 1 }],
+						attackSkill: '',
+					},
+				],
+			});
+			sheets.readMessages();
+			await sheets.open('Hero');
+			await sheets.sendToChat('Hero', 'Sword');
+		}),
+	);
+	e2e.expect(
+		"#366 D1 a weapon's card lists its main profile, then each extra profile named as its row, with its skill, range, damage, Critical rating and qualities",
+		await gm.evaluate(() =>
+			window.sheetsE2E.readMessages().map(({ content }) => {
+				const { text } = window.e2e;
+				const message = document.createElement('div');
+				message.innerHTML = content;
+				const card = message.querySelector('.item-card')!;
+				return {
+					main: [...card.querySelectorAll(':scope > .details-grid span')].map(text),
+					mainQualities: [...card.querySelectorAll(':scope > .qualities .quality')].map(text),
+					extraProfiles: [...card.querySelectorAll('.weapon-profile')].map((profile) => ({
+						name: text(profile.querySelector('.profile-name')),
+						details: [...profile.querySelectorAll('.details-grid span')].map(text),
+						qualities: [...profile.querySelectorAll('.quality')].map(text),
+					})),
+				};
+			}),
+		),
+		[
+			{
+				main: ['Melee', 'Engaged', '3 + Br', '0'],
+				mainQualities: ['E2E Pierce 1'],
+				extraProfiles: [{ name: 'E2E Sword (Thrown)', details: ['Ranged', 'Short', '2 + Br', '4'], qualities: ['Accurate 1'] }],
+			},
+		],
+	);
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
 	await e2e.step('cleanup', () => gm.evaluate(() => window.sheetsE2E.cleanUp()));
 }

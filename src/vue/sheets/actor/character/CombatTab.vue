@@ -17,10 +17,22 @@ import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, skillToRoll } from '@/data/Skills';
 import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
+import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
 
 const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
-const weapons = computed(() => itemsOfType(actor.value, 'weapon').filter((i) => i.system.state === EquipmentState.Equipped));
+// A row for each Weapon Profile of each equipped weapon, its main profile first.
+const weaponRows = computed(() =>
+	itemsOfType(actor.value, 'weapon')
+		.filter((i) => i.system.state === EquipmentState.Equipped)
+		.flatMap((weapon) =>
+			weaponProfiles(weapon.system).map((profile) => ({
+				weapon,
+				profile,
+				name: profileRowName(weapon.name, profile, game.i18n),
+			})),
+		),
+);
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
 
@@ -31,11 +43,11 @@ async function healInjury(injury: GenesysItem<'injury'>) {
 }
 
 /**
- * The Attack Skill the character rolls the weapon with, and the skill and its rank when the character or the Skills
- * Compendium has it: a rank of 0 for an Unranked Skill Check. Undefined when the weapon lists no skill.
+ * The Attack Skill the character rolls a Weapon Profile with, and the skill and its rank when the character or the
+ * Skills Compendium has it: a rank of 0 for an Unranked Skill Check. Undefined when the profile lists no skill.
  */
-function skillForWeapon(weapon: GenesysItem<'weapon'>): { name: string; skill?: GenesysItem<'skill'>; rank: number } | undefined {
-	const skillName = attackSkill(actor.value, weapon);
+function skillForProfile(profile: WeaponProfile): { name: string; skill?: GenesysItem<'skill'>; rank: number } | undefined {
+	const skillName = attackSkill(actor.value, profile);
 	if (!skillName) {
 		return undefined;
 	}
@@ -62,18 +74,19 @@ function skillForWeapon(weapon: GenesysItem<'weapon'>): { name: string; skill?: 
 					<div class="range"><Localized label="Genesys.Labels.Range" /></div>
 				</div>
 
-				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
+				<div v-for="{ weapon, profile, name } in weaponRows" :key="`${weapon.id}-${profile.index}`" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 					<div class="name">
-						<a v-if="weapon.system.skills.length > 0" @click="attackWith(actor, weapon)">{{ weapon.name }}</a>
-						<span v-else>{{ weapon.name }}</span>
+						<a v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</a>
+						<span v-else>{{ name }}</span>
 					</div>
-					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.name ?? 'skill'">
+					<div class="skill" v-for="weaponSkill in [skillForProfile(profile)]" :key="weaponSkill?.name ?? 'skill'">
 						<template v-if="weaponSkill">
 							<!-- A choice the character can't roll stays changeable here. -->
 							<AttackSkillSelect
 								:weapon="weapon"
-								:choices="attackSkillChoices(weapon.system.skills)"
+								:profile="profile.index"
+								:choices="attackSkillChoices(profile.skills)"
 								:attack-skill="weaponSkill.name"
 							/>
 							<SkillRanks
@@ -85,10 +98,10 @@ function skillForWeapon(weapon: GenesysItem<'weapon'>): { name: string; skill?: 
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
-					<div class="damage">{{ weaponDamage(weapon.system, actor.system.characteristics) }}</div>
-					<div class="crit">{{ weapon.system.critical }}</div>
-					<div class="range"><Localized :label="RANGE_LABELS[weapon.system.range]" /></div>
-					<QualityList :qualities="weapon.system.qualities" tags class="qualities" />
+					<div class="damage">{{ weaponDamage(profile, actor.system.characteristics) }}</div>
+					<div class="crit">{{ profile.critical }}</div>
+					<div class="range"><Localized :label="RANGE_LABELS[profile.range]" /></div>
+					<QualityList :qualities="profile.qualities" tags class="qualities" />
 				</div>
 			</div>
 		</div>

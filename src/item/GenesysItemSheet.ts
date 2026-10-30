@@ -76,12 +76,13 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 
 		const item = await itemFromDrop(data);
 		if (item) {
-			await this.receiveItem(item);
+			await this.receiveItem(item, event);
 		}
 	}
 
 	/**
-	 * Receive an item dropped on the sheet. An item takes none, unless its sheet says what it does with one.
+	 * Receive an item dropped on the sheet, by the drop event that carried it. An item takes none, unless its sheet says
+	 * what it does with one.
 	 */
-	protected async receiveItem(_item: GenesysItem): Promise<void> {}
+	protected async receiveItem(_item: GenesysItem, _event?: DragEvent): Promise<void> {}
 }

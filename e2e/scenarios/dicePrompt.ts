@@ -1819,6 +1819,113 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await e2e.step('L end');
 
+	// #366: an attack from the row of a weapon's extra Weapon Profile rolls that profile.
+	await e2e.step('#366 GM gives Ada a dagger with a Thrown profile, and targets the rival', async () => {
+		await gm.evaluate(() =>
+			game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [
+				{
+					name: 'E2E Dagger',
+					type: 'weapon',
+					system: {
+						skills: ['Melee'],
+						damageCharacteristic: 'brawn',
+						baseDamage: 1,
+						critical: 3,
+						range: 'engaged',
+						state: 'equipped',
+						extraProfiles: [
+							{
+								name: 'Thrown',
+								skills: ['Ranged'],
+								damageCharacteristic: 'brawn',
+								baseDamage: 2,
+								critical: 4,
+								range: 'short',
+								qualities: [
+									{ name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 },
+									{ name: 'Limited Ammo', description: '', isRated: true, rating: 1 },
+								],
+							},
+						],
+					},
+				},
+			]),
+		);
+		await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 2 } });
+		await target('Rival');
+	});
+	const promptOf = (state: PromptState) => ({
+		skill: state.skill,
+		pool: state.pool,
+		defense: named(state, 'From Target').filter(({ name }) => name.endsWith('Defense')),
+	});
+	const cardOf = async (rolled: MessageSummary) => {
+		const { summaries, qualities } = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+		return { description: rolled.description, summaries, qualities };
+	};
+	// A build without Weapon Profiles shows no Thrown row: its attack is left out, so that the scenario goes on.
+	const hasThrownRow = (await combatWeapons('Ada')).some(({ name }) => name === 'E2E Dagger (Thrown)');
+	let thrownPrompt = null;
+	let thrownCard = null;
+	if (hasThrownRow) {
+		thrownPrompt = promptOf(await opened(gm, attack('Dagger (Thrown)')));
+		// Ability faces: 4 two Successes, 2 a Success; Difficulty: 1 blank.
+		await gm.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 2, faces: 8 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		thrownCard = await cardOf(await roll());
+	}
+	e2e.expect(
+		"#366 A1 an attack from the Dagger (Thrown) row rolls the profile's skill against the target's ranged defense, and its card names the profile, with its damage, Critical rating and qualities",
+		{ prompt: thrownPrompt, card: thrownCard },
+		{
+			prompt: {
+				skill: 'Ranged (Ag)',
+				pool: 'AA|DD',
+				defense: [{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' }],
+			},
+			card: {
+				description:
+					'Attacking with <strong>E2E Dagger (Thrown)</strong> using <strong>Ranged (Ag<i class="fas fa-star hide-it"></i>)</strong>!',
+				summaries: ['Damage (Br + 2) 8 Critical 4', 's Successes 3'],
+				qualities: [
+					{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
+					{ text: 'Limited Ammo 1', tooltip: 'Genesys.Tooltips.NoDescription' },
+				],
+			},
+		},
+	);
+	const mainPrompt = promptOf(await opened(gm, attack('Dagger')));
+	// Proficiency faces: 2 a Success, 1 blank; Difficulty: 1 blank.
+	await gm.fixDice([
+		{ face: 2, faces: 12 },
+		{ face: 1, faces: 12 },
+		{ face: 1, faces: 12 },
+		{ face: 1, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const mainCard = await cardOf(await roll());
+	e2e.expect(
+		"#366 A2 an attack from the Dagger row rolls the main profile against the target's melee defense, with the weapon's own damage, Critical rating and qualities",
+		{ prompt: mainPrompt, card: mainCard },
+		{
+			prompt: { skill: 'Melee (Br)', pool: 'PPP|DD', defense: [{ name: 'From Target: Melee Defense', enabled: false, mods: 'S+' }] },
+			card: {
+				description:
+					'Attacking with <strong>E2E Dagger</strong> using <strong>Melee (Br<i class="fas fa-star hide-it"></i>)</strong>!',
+				summaries: ['Damage (Br + 1) 5 Critical 3', 's Successes 1'],
+				qualities: [],
+			},
+		},
+	);
+	await target(null);
+	await gm.evaluate(() => game.actors.getName('E2E Ada').items.getName('E2E Dagger').delete());
+	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	await e2e.step('#366 end');
+
 	// #367: the chat's dice button and `/gendr` open the Dice Roller, for the single controlled token's actor.
 	e2e.expect(
 		'#367 A1 the chat controls hold one dice button, under the message modes by the notifications while the sidebar is collapsed, and beside them in the chat form once expanded',

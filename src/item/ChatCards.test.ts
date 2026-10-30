@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Characteristic } from '@/data/Characteristics';
 import { chatCard, enrichedQualities, ItemCard } from '@/item/ChatCards';
 
-const i18n = { localize: (key: string) => key.split('.').pop()! };
+const i18n = {
+	localize: (key: string) => key.split('.').pop()!,
+	format: (key: string, data: Record<string, string>) => `${key.split('.').pop()!}(${Object.values(data).join(', ')})`,
+};
 
 describe('chatCard', () => {
 	it("gives an ability's card its activation, without tier or rank", () => {
@@ -100,6 +103,8 @@ describe('chatCard', () => {
 		damageCharacteristic,
 		critical: 4,
 		qualities: [sharp()],
+		attackSkill: '',
+		extraProfiles: [],
 	});
 
 	it("gives a weapon's card its first skill, its range and its damage, with its damage characteristic", () => {
@@ -133,6 +138,51 @@ describe('chatCard', () => {
 		);
 
 		expect(card.data).toMatchObject({ weapon: { damage: '0' } });
+	});
+
+	it('lists each extra profile of a weapon after its main profile, named as its row, with its own skill, range, damage, critical and qualities', () => {
+		const accurate = { name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 };
+		const thrown = {
+			name: 'Thrown',
+			skills: ['Ranged'],
+			damageCharacteristic: Characteristic.Brawn,
+			baseDamage: 2,
+			critical: 4,
+			range: 'short' as const,
+			qualities: [accurate],
+			attackSkill: '',
+		};
+		const system = { ...weapon(Characteristic.Brawn), extraProfiles: [thrown, { ...thrown, name: '', skills: [], qualities: [] }] };
+		const card = chatCard({ type: 'weapon', img: null, name: 'Dagger', system }, i18n) as ItemCard;
+
+		expect(card.data).toMatchObject({
+			weapon: { skill: 'Melee', range: 'Engaged', damage: '3 + Brawn' },
+			qualities: [sharp()],
+			extraProfiles: [
+				{
+					name: 'RowName(Dagger, Thrown)',
+					weapon: { skill: 'Ranged', range: 'Short', damage: '2 + Brawn' },
+					critical: 4,
+					qualities: [accurate],
+				},
+				{
+					name: 'RowName(Dagger, Numbered(3))',
+					weapon: { skill: '-', range: 'Short', damage: '2 + Brawn' },
+					critical: 4,
+					qualities: [],
+				},
+			],
+		});
+	});
+
+	it("copies an extra profile's qualities, so enriching the card's leaves the item's as they are saved", () => {
+		const thrown = { ...weapon('-'), name: 'Thrown', attackSkill: '' };
+		const system = { ...weapon('-'), extraProfiles: [thrown] };
+		const card = chatCard({ type: 'weapon', img: null, name: 'Dagger', system }, i18n) as ItemCard;
+
+		card.data.extraProfiles![0].qualities[0].description = '<p><a class="content-link">Pierce</a></p>';
+
+		expect(thrown.qualities).toEqual([sharp()]);
 	});
 
 	const vehicleWeapon = (firingArc: { fore: boolean; aft: boolean; port: boolean; starboard: boolean }) =>

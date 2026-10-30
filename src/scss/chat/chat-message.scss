@@ -92,6 +92,18 @@
 			border-bottom: 1px dashed colors.$gold;
 		}
 
+		// An extra Weapon Profile, set apart from the main one above it.
+		.weapon-profile {
+			margin-top: 0.5em;
+			border-top: 1px dashed colors.$gold;
+
+			.profile-name {
+				display: block;
+				text-align: center;
+				font-size: 1.2em;
+			}
+		}
+
 		.weapon-firing-arc {
 			label {
 				grid-column: 1 / span 2;

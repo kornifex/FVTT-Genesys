@@ -26,6 +26,7 @@ import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
 import type { StepDirection } from '@/actor/data/Inventory';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
+import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
@@ -37,12 +38,17 @@ const equipment = computed(() =>
 	itemsOfType(actor.value, EQUIPMENT_TYPES).filter((i) => AdversaryDataModel.isRelevantTypeForContext('INVENTORY', i.type)),
 );
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
-// The weapons, each with its Attack Skill: a weapon without one offers no attack.
+// A row for each Weapon Profile of each weapon, its main profile first, with its Attack Skill: a profile without one
+// offers no attack.
 const weapons = computed(() =>
-	itemsOfType(actor.value, 'weapon').map((item) => ({
-		item,
-		skill: attackSkill(actor.value, item),
-	})),
+	itemsOfType(actor.value, 'weapon').flatMap((item) =>
+		weaponProfiles(item.system).map((profile) => ({
+			item,
+			profile,
+			name: profileRowName(item.name, profile, game.i18n),
+			skill: attackSkill(actor.value, profile),
+		})),
+	),
 );
 
 const { effects, addEffect } = useDocumentEffects();
@@ -60,8 +66,8 @@ async function changeTalentRank(talent: Stored<GenesysItem<'talent'>>, direction
 	await stepTalentRank(actor.value, talent, direction);
 }
 
-function damageForWeapon(weapon: GenesysItem<'weapon'>) {
-	return weaponDamage(weapon.system, system.value.characteristics);
+function damageForProfile(profile: WeaponProfile) {
+	return weaponDamage(profile, system.value.characteristics);
 }
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
@@ -195,7 +201,11 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<span class="header"><Localized label="Genesys.Adversary.Equipment" />:</span>
 						<div class="container">
 							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
-							<ContextMenu v-for="{ item, skill } in weapons" :key="item.id" class="weapon">
+							<ContextMenu
+								v-for="{ item, profile, name, skill } in weapons"
+								:key="`${item.id}-${profile.index}`"
+								class="weapon"
+							>
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 
@@ -203,33 +213,34 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										v-if="skill"
 										icon="fas fa-dice-d20"
 										label="Genesys.Labels.PerformCheck"
-										@click="attackWith(actor, item)"
+										@click="attackWith(actor, item, profile)"
 									/>
 
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="attackWith(actor, item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
+								<a @click="attackWith(actor, item, profile)" draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<i class="fas fa-dice-d20"></i>
-									{{ item.name }}
+									{{ name }}
 									(<span class="weapon-details">
 										<span v-if="skill">
 											<AttackSkillSelect
 												:key="skill"
 												:weapon="item"
-												:choices="attackSkillChoices(item.system.skills)"
+												:profile="profile.index"
+												:choices="attackSkillChoices(profile.skills)"
 												:attack-skill="skill"
 											/>
 										</span>
 										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
-										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForWeapon(item) }}</span>
-										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
+										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForProfile(profile) }}</span>
+										<span><Localized label="Genesys.Labels.Critical" /> {{ profile.critical }}</span>
 										<span
 											><Localized label="Genesys.Labels.Range" /> [<Localized
-												:label="RANGE_LABELS[item.system.range]"
+												:label="RANGE_LABELS[profile.range]"
 											/>]</span
 										>
-										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
+										<QualityList :qualities="profile.qualities" class="weapon-qualities" /> </span
 									>)
 								</a>
 								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>

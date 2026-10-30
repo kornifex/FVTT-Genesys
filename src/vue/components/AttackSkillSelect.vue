@@ -1,9 +1,14 @@
 <script lang="ts" setup>
 import { GenesysItem } from '@/item/GenesysItem';
 import { skillNamesMatch } from '@/data/Skills';
+import { profileUpdate } from '@/item/WeaponProfiles';
 
 const props = defineProps<{
 	weapon: GenesysItem<'weapon'>;
+	/**
+	 * The Weapon Profile whose Attack Skill is chosen, numbered as `weaponProfiles` numbers it: 0 for the main one.
+	 */
+	profile: number;
 	/**
 	 * The skills the Attack Skill can be chosen from, as `attackSkillChoices` gives them.
 	 */
@@ -12,7 +17,8 @@ const props = defineProps<{
 }>();
 
 async function chooseAttackSkill(event: Event) {
-	await props.weapon.update({ system: { attackSkill: (event.currentTarget as HTMLSelectElement).value } });
+	const attackSkill = (event.currentTarget as HTMLSelectElement).value;
+	await props.weapon.update({ system: profileUpdate(props.weapon.system, props.profile, { attackSkill }) });
 }
 </script>
 

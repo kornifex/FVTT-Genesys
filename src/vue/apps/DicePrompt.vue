@@ -52,7 +52,7 @@ const USE_CHANCE_TO_SUCCEED_BY_PERMUTATION = CONFIG.genesys.settings.showChanceT
 const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.genesys.settings.showChanceToSucceedFromSimulations.enabled;
 
 const context = useSheetContext<DicePromptContext>();
-const weapon = context.value.roll.type === RollType.Attack ? context.value.roll.weapon : undefined;
+const attack = context.value.roll.type === RollType.Attack ? context.value.roll : undefined;
 
 // Shallow, so that the dice pool reaches the chance Worker as it is: a reactive proxy can't be cloned to a Worker.
 const currentDicePool = shallowRef<DicePool>({
@@ -92,7 +92,7 @@ onMounted(() => {
 
 	if (actor) {
 		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
-		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.system.skills : []);
+		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, attack?.weapon.type === 'weapon' ? attack.profile.skills : []);
 		weaponSkills.value = skills.weapon;
 		availableSkills.value = skills.owned;
 		unrankedSkills.value = skills.unranked;
@@ -113,7 +113,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			...request,
 			purpose: checkPurpose(),
 			target: target?.actor ?? undefined,
-			attackRange: weapon?.system.range,
+			attackRange: attack?.profile.range,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -143,7 +143,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 function checkPurpose(): CheckPurpose {
 	switch (context.value.roll.type) {
 		case RollType.Attack:
-			return { kind: 'attack', weaponName: context.value.roll.weapon.name };
+			return { kind: 'attack', weaponName: context.value.roll.profile.attackName };
 
 		case RollType.Initiative:
 			return { kind: 'initiative' };
@@ -244,7 +244,7 @@ async function onRoll() {
 
 	switch (context.value.roll.type) {
 		case RollType.Attack:
-			await rollCheck(checkRoll, context.value.roll.weapon);
+			await rollCheck(checkRoll, context.value.roll.profile);
 			break;
 
 		case RollType.Initiative:

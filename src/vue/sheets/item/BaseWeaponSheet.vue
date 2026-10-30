@@ -75,6 +75,8 @@ function updateQualityRating(index: number, event: Event) {
 					</div>
 				</DataRow>
 			</section>
+
+			<slot name="profiles" />
 		</template>
 	</BasicItemSheet>
 </template>
