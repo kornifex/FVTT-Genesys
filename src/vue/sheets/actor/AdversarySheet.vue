@@ -98,7 +98,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		<section class="sheet-body">
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
-					<div class="description-area">
+					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
+					<div v-if="editable || system.description.trim() !== '' || system.source.trim() !== ''" class="description-area">
 						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
 							<Editor name="system.description" />
 							<Enriched class="source" :value="system.source" />
@@ -338,8 +339,35 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					}
 				}
 
-				&.empty > :first-of-type {
-					min-height: 10rem;
+				// An empty description takes the room of its edit toggle alone, which shows in it rather than over it, and
+				// the editor's minimum height once it opens.
+				&.empty {
+					> .editor {
+						min-height: 0;
+
+						:deep(prose-mirror.inactive) {
+							gap: 0;
+						}
+
+						:deep(prose-mirror.inactive > button.toggle:enabled) {
+							display: block;
+							visibility: hidden;
+							position: static;
+							align-self: flex-end;
+						}
+
+						&:hover :deep(prose-mirror.inactive > button.toggle:enabled) {
+							visibility: visible;
+						}
+					}
+
+					> .editor:has(> prose-mirror.active) {
+						min-height: 10rem;
+					}
+
+					> .source:empty {
+						display: none;
+					}
 				}
 			}
 		}

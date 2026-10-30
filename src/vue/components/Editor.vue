@@ -132,6 +132,12 @@ async function show() {
 		}
 	}
 
+	// The HTML source mode's <code-mirror> grows with its HTML, as the rich text does: v14 positions its scroller in a box of
+	// the element's height, at least 150px, which then scrolls, where v13's flows.
+	code-mirror.source-editor .cm-scroller {
+		position: static;
+	}
+
 	.editor-container {
 		margin: 0 0 1em;
 	}
