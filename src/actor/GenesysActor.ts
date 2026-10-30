@@ -3,30 +3,18 @@ import type { Stored } from '@/data/Stored';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { itemsOfType } from '@/item/ItemTypes';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 
 /**
- * An actor of the system, typed by its data model.
+ * An actor of the system, typed by its subtype: its `system` is the DataModel registered for that type.
  */
-export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any = foundry.abstract.DataModel.Any> extends Actor {
-	// Foundry builds `system` with the DataModel registered for the actor's type, which the generic names.
-	// @ts-expect-error -- The types declare `system` as the union of every type's DataModel, which they narrow by subtype, not by DataModel.
-	declare system: ActorDataModel;
-
-	/**
-	 * Specialized property for accessing `actor.system` in a typed manner.
-	 */
-	get systemData(): ActorDataModel {
-		return this.system;
-	}
-
+export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends Actor<SubType> {
 	/**
 	 * The skills the actor owns, in item order.
 	 */
-	get skills(): Stored<GenesysItem<SkillDataModel>>[] {
+	get skills(): Stored<GenesysItem<'skill'>>[] {
 		return itemsOfType(this, 'skill');
 	}
 
@@ -59,14 +47,14 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any 
 	 * @inheritDoc
 	 */
 	override async modifyTokenAttribute(attribute: string, value: number, isDelta?: boolean, isBar?: boolean) {
-		const tokenAttributes = (this.systemData.constructor as DataModelWithTokenAttributes)?.tokenAttributes;
+		const tokenAttributes = (this.system.constructor as DataModelWithTokenAttributes)?.tokenAttributes;
 		if (tokenAttributes) {
 			const tokenAttribute = tokenAttributes[attribute] as TokenAttributeDetails | undefined;
 			if (!tokenAttribute || !tokenAttribute.editable) {
 				return this;
 			}
 
-			const read = (path: string) => Number(foundry.utils.getProperty(this.systemData, path));
+			const read = (path: string) => Number(foundry.utils.getProperty(this.system, path));
 
 			return await this.update({
 				[`system.${tokenAttribute.valuePath}`]: newTokenAttributeValue({

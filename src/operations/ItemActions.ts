@@ -6,10 +6,8 @@
 
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates } from '@/actor/data/character/Career';
-import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
@@ -17,12 +15,7 @@ import { attackSkillName } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
-import type { CareerDataModel } from '@/item/data/CareerDataModel';
-import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import type { TalentDataModel } from '@/item/data/TalentDataModel';
-import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
-import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import type { EquipmentType } from '@/item/ItemTypes';
 import { rollForCrew } from '@/operations/CrewRoll';
 import { notify } from '@/notifications';
 
@@ -30,15 +23,15 @@ import { notify } from '@/notifications';
  * The name of the Attack Skill an actor rolls a weapon with. Undefined when the weapon lists no skill, and it offers no
  * attack.
  */
-export function attackSkill(actor: GenesysActor, weapon: GenesysItem<WeaponDataModel>) {
-	return attackSkillName(actor.skills, weapon.systemData);
+export function attackSkill(actor: GenesysActor, weapon: GenesysItem<'weapon'>) {
+	return attackSkillName(actor.skills, weapon.system);
 }
 
 /**
  * Open the dice prompt of an attack with an actor's weapon, which rolls its Attack Skill. A weapon that lists no skill
  * offers no attack.
  */
-export async function attackWith(actor: GenesysActor, weapon: GenesysItem<WeaponDataModel>) {
+export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapon'>) {
 	const skillName = attackSkill(actor, weapon);
 	if (skillName) {
 		await DicePrompt.promptForRoll(actor, skillName, { roll: { type: RollType.Attack, weapon } });
@@ -49,8 +42,8 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<Weapon
  * Open the dice prompt of an attack with a vehicle weapon, which one of its skills rolls, by the crew member of a role
  * that has it.
  */
-export async function attackWithVehicleWeapon(vehicle: GenesysActor<VehicleDataModel>, weapon: GenesysItem<VehicleWeaponDataModel>) {
-	await rollForCrew(crewForSkills(vehicle.systemData.crew, weapon.systemData.skills), { roll: { type: RollType.Attack, weapon } });
+export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, weapon: GenesysItem<'vehicleWeapon'>) {
+	await rollForCrew(crewForSkills(vehicle.system.crew, weapon.system.skills), { roll: { type: RollType.Attack, weapon } });
 }
 
 /**
@@ -73,7 +66,7 @@ export async function deleteItem(item: GenesysItem) {
  * Remove a character's Archetype, with what it gave them, once the user confirms in a dialog that says what is taken
  * back.
  */
-export async function removeArchetype(character: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
+export async function removeArchetype(character: GenesysActor<'character'>, archetype: GenesysItem<'archetype'>) {
 	if (
 		await confirmDialog(
 			'Genesys.Dialogs.ConfirmRemoveArchetype.Title',
@@ -89,12 +82,12 @@ export async function removeArchetype(character: GenesysActor<CharacterDataModel
  * Remove a character's Career, with what it gave their skills, once the user confirms in a dialog that says what is
  * taken back.
  */
-export async function removeCareer(character: GenesysActor<CharacterDataModel>, career: GenesysItem<CareerDataModel>) {
+export async function removeCareer(character: GenesysActor<'character'>, career: GenesysItem<'career'>) {
 	if (!(await confirmDialog('Genesys.Dialogs.ConfirmRemoveCareer.Title', 'Genesys.Dialogs.ConfirmRemoveCareer.Content', career.name))) {
 		return;
 	}
 
-	const { careerSkills, selectedSkillIDs } = career.systemData;
+	const { careerSkills, selectedSkillIDs } = career.system;
 	// Foundry takes the updates' dot-notation keys, which the types don't.
 	await Promise.all(
 		careerSkillUpdates(character.items.contents, careerSkills, selectedSkillIDs, -1).map(({ skill, update }) =>
@@ -116,12 +109,12 @@ export async function sendToChat(item: GenesysItem, actor: GenesysActor) {
  * major damage, is deleted once the user confirms. `beforeWrite` runs right before the item is written, once confirmed.
  */
 export async function stepEquipment(
-	item: GenesysItem<EquipmentDataModel>,
+	item: GenesysItem<EquipmentType>,
 	kind: SteppedValue,
 	direction: StepDirection,
 	beforeWrite?: () => void,
 ) {
-	const step = equipmentStep({ system: item.systemData }, kind, direction);
+	const step = equipmentStep({ system: item.system }, kind, direction);
 	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDeletion()))) {
 		return;
 	}
@@ -139,7 +132,7 @@ export async function stepEquipment(
  * Raise or lower the rank of an adversary's talent from its menu. Lowering it below rank 1 deletes it once the user
  * confirms, as a step of an item's quantity down to 0 does; a refused change tells the user why, when there is a reason.
  */
-export async function stepTalentRank(adversary: GenesysActor, talent: Stored<GenesysItem<TalentDataModel>>, direction: StepDirection) {
+export async function stepTalentRank(adversary: GenesysActor, talent: Stored<GenesysItem<'talent'>>, direction: StepDirection) {
 	const change = talentRankChange(talent, direction);
 	switch (change.action) {
 		case 'update':

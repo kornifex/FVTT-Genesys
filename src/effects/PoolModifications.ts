@@ -55,7 +55,7 @@ export type PoolModificationEffect = {
  */
 export type PoolModificationActor = {
 	type: string;
-	systemData: object;
+	system: object;
 	allApplicableEffects(): Iterable<PoolModificationEffect>;
 };
 
@@ -189,7 +189,7 @@ export function poolModificationsForCheck(
 		// The target's defense against the range of an attack adds one Setback per point.
 		if (check.attackRange) {
 			const defense = check.attackRange === 'engaged' ? 'melee' : 'ranged';
-			const totalDefense = (target.systemData as { totalDefense: Defense }).totalDefense;
+			const totalDefense = (target.system as { totalDefense: Defense }).totalDefense;
 
 			if (totalDefense[defense] > 0) {
 				modifications.push({

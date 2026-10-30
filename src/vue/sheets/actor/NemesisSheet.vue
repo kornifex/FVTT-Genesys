@@ -3,9 +3,8 @@ import AdversarySheet from '@/vue/sheets/actor/AdversarySheet.vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
-import { NemesisDataModel } from '@/actor/data/NemesisDataModel';
 
-const { system } = useSheetDocument<GenesysActor<NemesisDataModel>>();
+const { system } = useSheetDocument<GenesysActor<'nemesis'>>();
 </script>
 
 <template>

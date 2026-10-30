@@ -2,17 +2,15 @@
 import { computed, ref, toRef } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { GenesysItem } from '@/item/GenesysItem';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
 
 const props = withDefaults(
 	defineProps<{
-		item: GenesysItem<TalentDataModel | AbilityDataModel>;
+		item: GenesysItem<'talent' | 'ability'>;
 		canDelete?: boolean;
 		canUpgrade?: boolean;
 	}>(),
@@ -26,13 +24,13 @@ const emit = defineEmits<{
 	(e: 'upgrade'): void;
 }>();
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
 const expanded = ref(false);
 
 // Named as the prop, which it shadows in the template: the talent reads the item through `useRendered`.
 const item = useRendered(() => props.item);
-const talent = toRef(() => (item.value.type === 'talent' ? (item.value.systemData as TalentDataModel) : undefined));
+const talent = toRef(() => (item.value.type === 'talent' ? (item.value.system as TalentDataModel) : undefined));
 const ranked = computed(() => talent.value?.ranked === 'yes');
 </script>
 
@@ -64,9 +62,9 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
 			</div>
 
-			<Enriched class="desc" :value="item.systemData.description"></Enriched>
+			<Enriched class="desc" :value="item.system.description"></Enriched>
 
-			<div v-if="item.systemData.source" class="source">{{ item.systemData.source }}</div>
+			<div v-if="item.system.source" class="source">{{ item.system.source }}</div>
 		</div>
 	</div>
 </template>

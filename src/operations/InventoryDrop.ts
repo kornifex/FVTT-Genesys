@@ -6,10 +6,9 @@ import type { GenesysActor } from '@/actor/GenesysActor';
 import type { Stored } from '@/data/Stored';
 import { decideDrop, DropTarget, isInventoryType } from '@/actor/data/Inventory';
 import { dragData } from '@/data/DragTransferData';
-import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
-import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
+import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 
 /**
  * Receive an item dropped on an inventory component. The event is stopped at once, before the sheet receives it too;
@@ -23,7 +22,7 @@ export async function receiveInventoryEvent(actor: Stored<GenesysActor>, event: 
 	}
 
 	event.stopPropagation();
-	const item = await itemFromDrop<EquipmentDataModel>(data);
+	const item = await itemFromDrop<EquipmentType>(data);
 	return item ? receiveInventoryDrop(actor, item, at) : false;
 }
 
@@ -48,7 +47,7 @@ export async function receiveInventoryDrop(actor: Stored<GenesysActor>, droppedI
 
 	// A drop carries a stored item, held by a stored actor if any, and only equipment goes to an inventory: the callers
 	// check the item's type.
-	const item = droppedItem as Stored<GenesysItem<EquipmentDataModel>>;
+	const item = droppedItem as Stored<GenesysItem<EquipmentType>>;
 
 	// An item of an actor in a compendium is copied, as from the compendium itself.
 	const holder = (item.actor && !item.actor.pack ? item.actor : undefined) as Stored<GenesysActor> | undefined;
@@ -62,12 +61,12 @@ export async function receiveInventoryDrop(actor: Stored<GenesysActor>, droppedI
 	}
 
 	// Every item lands on the receiver in one batch, then leaves its holder in one batch.
-	let created: GenesysItem<EquipmentDataModel>[] = [];
+	let created: GenesysItem<EquipmentType>[] = [];
 	if (decision.create.length > 0) {
 		const createData = decision.create.map(({ sourceId, ...placed }) =>
 			foundry.utils.mergeObject((holder?.items.get(sourceId) ?? item).toObject(), placed),
 		);
-		created = (await actor.createEmbeddedDocuments('Item', createData, { keepId: true })) as GenesysItem<EquipmentDataModel>[];
+		created = (await actor.createEmbeddedDocuments('Item', createData, { keepId: true })) as GenesysItem<EquipmentType>[];
 	}
 
 	if (decision.update.length > 0) {

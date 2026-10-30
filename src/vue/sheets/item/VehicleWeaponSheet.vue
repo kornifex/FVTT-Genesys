@@ -4,10 +4,9 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { FIRING_ARC_LABELS } from '@/item/Weapons';
 
-const { system } = useSheetDocument<GenesysItem<VehicleWeaponDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'vehicleWeapon'>>();
 </script>
 
 <template>

@@ -6,10 +6,9 @@ import { GenesysActor } from '@/actor/GenesysActor';
 
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
-import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
+import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 import { draggedGenesysType } from '@/data/DragTransferData';
 import { sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
@@ -34,10 +33,10 @@ const props = defineProps<{
 
 const CURRENCY_LABEL = CONFIG.genesys.settings.currencyName;
 
-const { document: actor, system } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
 // The actor's data model tells which item types belong to the inventory and which of them can be equipped.
-const dataModel = actor.value.systemData.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
+const dataModel = actor.value.system.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
 
 const isDraggable = ref(actor.value.isOwner);
 
@@ -56,7 +55,7 @@ const droppedItems = computed(() => sectionItems(inventory.value, EquipmentState
 type ItemSection = {
 	state: EquipmentState;
 	label: string;
-	items: Stored<GenesysItem<EquipmentDataModel>>[];
+	items: Stored<GenesysItem<EquipmentType>>[];
 };
 
 // The item sections in display order.

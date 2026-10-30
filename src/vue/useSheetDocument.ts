@@ -37,14 +37,14 @@ type SheetDocument<DocumentType extends SheetDocumentType, SheetType> = {
 	/**
 	 * The document's system data.
 	 */
-	system: Readonly<Ref<DocumentType['systemData']>>;
+	system: Readonly<Ref<DocumentType['system']>>;
 	editable: Readonly<Ref<boolean>>;
 };
 
 /**
  * A document a sheet shows: an actor or an item, with its typed system data.
  */
-type SheetDocumentType = { systemData: object };
+type SheetDocumentType = { system: object };
 
 /**
  * The document of the sheet the component renders in. A component reads it through `document` and `system`, which read
@@ -63,7 +63,7 @@ export function useSheetDocument<
 	return {
 		sheet: context.value.sheet,
 		document: toRef(() => context.value.document),
-		system: toRef(() => context.value.document.systemData),
+		system: toRef(() => context.value.document.system),
 		editable: computed(() => context.value.editable),
 	};
 }

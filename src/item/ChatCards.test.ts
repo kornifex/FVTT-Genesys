@@ -12,7 +12,7 @@ describe('chatCard', () => {
 				type: 'ability',
 				img: 'ability.webp',
 				name: 'Nimble',
-				systemData: { description: '<p>Moves fast.</p>', activation: { type: 'active', detail: 'Maneuver' } },
+				system: { description: '<p>Moves fast.</p>', activation: { type: 'active', detail: 'Maneuver' } },
 			},
 			i18n,
 		);
@@ -34,7 +34,7 @@ describe('chatCard', () => {
 				type: 'talent',
 				img: 'talent.webp',
 				name: 'Grit',
-				systemData: {
+				system: {
 					description: '<p>Tough.</p>',
 					activation: { type: 'passive', detail: '' },
 					effectiveTier: 2,
@@ -67,8 +67,8 @@ describe('chatCard', () => {
 	const sharp = () => ({ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 });
 
 	it("gives an armor's card its defense, soak and qualities", () => {
-		const systemData = { description: '<p>Heavy.</p>', defense: 1, soak: 2, qualities: [sharp()] };
-		const card = chatCard({ type: 'armor', img: 'armor.webp', name: 'Plate', systemData }, i18n);
+		const system = { description: '<p>Heavy.</p>', defense: 1, soak: 2, qualities: [sharp()] };
+		const card = chatCard({ type: 'armor', img: 'armor.webp', name: 'Plate', system }, i18n);
 
 		expect(card).toEqual({
 			template: 'systems/genesys/templates/chat/item.hbs',
@@ -76,7 +76,7 @@ describe('chatCard', () => {
 				img: 'armor.webp',
 				name: 'Plate',
 				type: 'armor',
-				system: systemData,
+				system,
 				description: '<p>Heavy.</p>',
 				qualities: [sharp()],
 			},
@@ -84,12 +84,12 @@ describe('chatCard', () => {
 	});
 
 	it("copies the item's qualities, so enriching the card's leaves the item's as they are saved", () => {
-		const systemData = { description: '', defense: 0, soak: 1, qualities: [sharp()] };
-		const card = chatCard({ type: 'armor', img: null, name: 'Padded', systemData }, i18n) as ItemCard;
+		const system = { description: '', defense: 0, soak: 1, qualities: [sharp()] };
+		const card = chatCard({ type: 'armor', img: null, name: 'Padded', system }, i18n) as ItemCard;
 
 		card.data.qualities![0].description = '<p><a class="content-link">Pierce</a></p>';
 
-		expect(systemData.qualities).toEqual([sharp()]);
+		expect(system.qualities).toEqual([sharp()]);
 	});
 
 	const weapon = (damageCharacteristic: Characteristic | '-') => ({
@@ -103,8 +103,8 @@ describe('chatCard', () => {
 	});
 
 	it("gives a weapon's card its first skill, its range and its damage, with its damage characteristic", () => {
-		const systemData = weapon(Characteristic.Brawn);
-		const card = chatCard({ type: 'weapon', img: 'sword.webp', name: 'Sword', systemData }, i18n);
+		const system = weapon(Characteristic.Brawn);
+		const card = chatCard({ type: 'weapon', img: 'sword.webp', name: 'Sword', system }, i18n);
 
 		expect(card).toEqual({
 			template: 'systems/genesys/templates/chat/item.hbs',
@@ -112,7 +112,7 @@ describe('chatCard', () => {
 				img: 'sword.webp',
 				name: 'Sword',
 				type: 'weapon',
-				system: systemData,
+				system,
 				description: '',
 				weapon: { skill: 'Melee', range: 'Engaged', damage: '3 + Brawn' },
 				qualities: [sharp()],
@@ -121,14 +121,14 @@ describe('chatCard', () => {
 	});
 
 	it('gives a weapon without a damage characteristic, or without skills, its base damage and no skill', () => {
-		const card = chatCard({ type: 'weapon', img: null, name: 'Rock', systemData: { ...weapon('-'), skills: [] } }, i18n);
+		const card = chatCard({ type: 'weapon', img: null, name: 'Rock', system: { ...weapon('-'), skills: [] } }, i18n);
 
 		expect(card.data).toMatchObject({ weapon: { skill: '-', damage: '3' } });
 	});
 
 	it('gives a weapon whose damage was emptied a damage of 0', () => {
 		const card = chatCard(
-			{ type: 'weapon', img: null, name: 'Stick', systemData: { ...weapon('-'), baseDamage: null as unknown as number } },
+			{ type: 'weapon', img: null, name: 'Stick', system: { ...weapon('-'), baseDamage: null as unknown as number } },
 			i18n,
 		);
 
@@ -141,7 +141,7 @@ describe('chatCard', () => {
 				type: 'vehicleWeapon',
 				img: 'cannon.webp',
 				name: 'Cannon',
-				systemData: { description: '', skills: ['Gunnery'], range: 'long', baseDamage: 6, critical: 3, firingArc, qualities: [] },
+				system: { description: '', skills: ['Gunnery'], range: 'long', baseDamage: 6, critical: 3, firingArc, qualities: [] },
 			},
 			i18n,
 		);
@@ -159,7 +159,7 @@ describe('chatCard', () => {
 	});
 
 	it("gives gear's card its description, without weapon or qualities", () => {
-		const card = chatCard({ type: 'gear', img: 'rope.webp', name: 'Rope', systemData: { description: '<p>Long.</p>' } }, i18n);
+		const card = chatCard({ type: 'gear', img: 'rope.webp', name: 'Rope', system: { description: '<p>Long.</p>' } }, i18n);
 
 		expect(card.data).toEqual({
 			img: 'rope.webp',

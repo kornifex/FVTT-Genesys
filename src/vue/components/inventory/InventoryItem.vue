@@ -5,15 +5,13 @@ import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
-import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
+import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { draggedGenesysType, startDocumentDrag } from '@/data/DragTransferData';
 import { containerContents, equipmentStateMoves, equipmentStateUpdates, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
@@ -30,7 +28,7 @@ import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
 
 const props = withDefaults(
 	defineProps<{
-		item: Stored<GenesysItem<EquipmentDataModel>>;
+		item: Stored<GenesysItem<EquipmentType>>;
 		dragging?: boolean;
 		mini?: boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
@@ -73,13 +71,13 @@ const containerDrag = useDragHover((event) => {
 });
 const isBeingDragged = ref(false);
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<CharacterDataModel | VehicleDataModel>>();
+const { document: actor, editable } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
 
 // Named as the prop, which it shadows in the template: the row reads the item through `useRendered`.
 const item = useRendered(() => props.item);
-const system = toRef(() => item.value.systemData);
+const system = toRef(() => item.value.system);
 
 function armorData() {
 	return system.value as ArmorDataModel;
@@ -106,13 +104,13 @@ function damage() {
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
-		total: weaponDamage(weapon, (actor.value.systemData as Partial<CharacterDataModel>).characteristics),
+		total: weaponDamage(weapon, (actor.value.system as Partial<CharacterDataModel>).characteristics),
 	};
 }
 
 // The Attack Skill of a character's weapon, which offers an attack when it has one.
 function skillForWeapon() {
-	return attackSkill(actor.value, item.value as GenesysItem<WeaponDataModel>);
+	return attackSkill(actor.value, item.value as GenesysItem<'weapon'>);
 }
 
 // The Equipment State moves the row's menu offers.
@@ -194,7 +192,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				<button
 					class="attack"
 					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
-					@click="attackWith(actor, item as GenesysItem<WeaponDataModel>)"
+					@click="attackWith(actor, item as GenesysItem<'weapon'>)"
 				>
 					<Localized label="Genesys.Labels.Attack" />
 				</button>
@@ -254,7 +252,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			@contextmenu="step($event, 'quantity', -1)"
 			data-tooltip="Genesys.Labels.Quantity"
 		>
-			{{ item.systemData.quantity }}
+			{{ item.system.quantity }}
 			<i class="fas fa-suitcase"></i>
 		</a>
 
@@ -266,9 +264,9 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			class="damage"
 			@click="step($event, 'damage', 1)"
 			@contextmenu="step($event, 'damage', -1)"
-			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.systemData.damage]"
+			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 		>
-			<i :class="{ fas: true, [damageStateToIcon.get(item.systemData.damage)!]: true }"></i>
+			<i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i>
 		</a>
 
 		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">

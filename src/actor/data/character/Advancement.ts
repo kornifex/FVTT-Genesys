@@ -408,8 +408,8 @@ export function itemsRemovedByUndo(character: AdvancementCharacter, index: numbe
 /**
  * What Advancement needs to know about a character actor.
  */
-export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {
-	const system = actor.systemData;
+export function advancementCharacter(actor: GenesysActor<'character'>): AdvancementCharacter {
+	const system = actor.system;
 	// The DataModels declare their fields rather than their schema, so their source reads as their fields.
 	const source = system._source as SystemSource<CharacterDataModel>;
 
@@ -423,15 +423,15 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
 		skills: itemsOfType(actor, 'skill').map((skill) => ({
 			id: skill.id,
 			name: skill.name,
-			rank: skill.systemData.rank,
-			career: skill.systemData.career,
+			rank: skill.system.rank,
+			career: skill.system.career,
 		})),
 		talents: itemsOfType(actor, 'talent').map((talent) => ({
 			id: talent.id,
 			name: talent.name,
-			ranked: talent.systemData.ranked,
-			tier: talent.systemData.tier,
-			rank: talent.systemData.rank,
+			ranked: talent.system.ranked,
+			tier: talent.system.tier,
+			rank: talent.system.rank,
 		})),
 		houseRules: {
 			ignoreTalentPyramid: CONFIG.genesys.settings.ignoreTalentPyramid,
@@ -444,7 +444,7 @@ export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): A
  * Apply an Advancement to a character actor, or tell the user why it's refused. The Advancement is planned on what the
  * actor is now. Whether it was applied.
  */
-export async function advance(actor: GenesysActor<CharacterDataModel>, change: (character: AdvancementCharacter) => AdvancementResult) {
+export async function advance(actor: GenesysActor<'character'>, change: (character: AdvancementCharacter) => AdvancementResult) {
 	const result = change(advancementCharacter(actor));
 	if (!('plan' in result)) {
 		if (result.refusal) {
@@ -461,7 +461,7 @@ export async function advance(actor: GenesysActor<CharacterDataModel>, change: (
  * Make a change's writes on a character actor, one batch per kind of write: the items it creates, then those it updates
  * and deletes, then the character. Returns the created items.
  */
-export async function writeCharacter(actor: GenesysActor<CharacterDataModel>, writes: CharacterWrites) {
+export async function writeCharacter(actor: GenesysActor<'character'>, writes: CharacterWrites) {
 	const { actorUpdate, itemCreates, itemUpdates, itemDeletes } = writes;
 
 	// Foundry takes the items' sources, which the writes hold as plain records.

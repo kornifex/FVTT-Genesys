@@ -41,7 +41,7 @@ function actor(
 	return {
 		type,
 		skills,
-		systemData: { characteristics, superCharacteristics: new Set(superCharacteristics), groupSkillRank, totalDefense },
+		system: { characteristics, superCharacteristics: new Set(superCharacteristics), groupSkillRank, totalDefense },
 		allApplicableEffects: () => effects,
 	};
 }

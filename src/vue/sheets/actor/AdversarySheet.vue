@@ -8,10 +8,9 @@ import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
-import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { AdversaryDataModel, type AdversaryType } from '@/actor/data/AdversaryDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import { GenesysItem } from '@/item/GenesysItem';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -20,7 +19,6 @@ import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import Motivations from '@/vue/components/Motivations.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { startDocumentDrag } from '@/data/DragTransferData';
 import { attackSkillChoices } from '@/data/Skills';
@@ -31,7 +29,7 @@ import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
 const talents = computed(() => itemsOfType(actor.value, 'talent'));
 const abilities = computed(() => itemsOfType(actor.value, 'ability'));
@@ -54,16 +52,16 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 }
 
 // A non-ranked talent offers no rank change, as on characters.
-function canChangeTalentRank(talent: Stored<GenesysItem<TalentDataModel>>) {
+function canChangeTalentRank(talent: Stored<GenesysItem<'talent'>>) {
 	return talentRankChange(talent, 1).action !== 'refuse';
 }
 
-async function changeTalentRank(talent: Stored<GenesysItem<TalentDataModel>>, direction: StepDirection) {
+async function changeTalentRank(talent: Stored<GenesysItem<'talent'>>, direction: StepDirection) {
 	await stepTalentRank(actor.value, talent, direction);
 }
 
-function damageForWeapon(weapon: GenesysItem) {
-	return weaponDamage(weapon.systemData as WeaponDataModel, system.value.characteristics);
+function damageForWeapon(weapon: GenesysItem<'weapon'>) {
+	return weaponDamage(weapon.system, system.value.characteristics);
 }
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
@@ -163,12 +161,12 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 									<label>
 										<a @click="openSheet(talent)"
-											>{{ talent.name }} {{ talent.systemData.ranked === 'yes' ? talent.systemData.rank : null }}</a
+											>{{ talent.name }} {{ talent.system.ranked === 'yes' ? talent.system.rank : null }}</a
 										>
 										<a class="send-to-chat-link" @click="sendToChat(talent, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
-								<Enriched class="description" v-if="talent.systemData.description" :value="talent.systemData.description" />
+								<Enriched class="description" v-if="talent.system.description" :value="talent.system.description" />
 							</div>
 						</div>
 					</div>
@@ -188,11 +186,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<a class="send-to-chat-link" @click="sendToChat(ability, actor)"><i class="fas fa-comment"></i></a>
 									</label>
 								</ContextMenu>
-								<Enriched
-									class="description"
-									v-if="ability.systemData.description"
-									:value="ability.systemData.description"
-								/>
+								<Enriched class="description" v-if="ability.system.description" :value="ability.system.description" />
 							</div>
 						</div>
 					</div>
@@ -223,7 +217,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 											<AttackSkillSelect
 												:key="skill"
 												:weapon="item"
-												:choices="attackSkillChoices(item.systemData.skills)"
+												:choices="attackSkillChoices(item.system.skills)"
 												:attack-skill="skill"
 											/>
 										</span>
@@ -232,7 +226,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<span><Localized label="Genesys.Labels.Critical" /> {{ item.system.critical }}</span>
 										<span
 											><Localized label="Genesys.Labels.Range" /> [<Localized
-												:label="RANGE_LABELS[item.systemData.range]"
+												:label="RANGE_LABELS[item.system.range]"
 											/>]</span
 										>
 										<QualityList :qualities="item.system.qualities" class="weapon-qualities" /> </span
@@ -284,7 +278,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										><a @click="openSheet(injury)">{{ injury.name }}</a></label
 									>
 								</ContextMenu>
-								<Enriched class="description" v-if="injury.systemData.description" :value="injury.systemData.description" />
+								<Enriched class="description" v-if="injury.system.description" :value="injury.system.description" />
 							</div>
 						</div>
 					</div>

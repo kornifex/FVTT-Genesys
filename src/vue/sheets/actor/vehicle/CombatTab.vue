@@ -5,9 +5,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -19,14 +17,14 @@ import { attackWithVehicleWeapon } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
 
-const { document: actor } = useSheetDocument<GenesysActor<VehicleDataModel>>();
+const { document: actor } = useSheetDocument<GenesysActor<'vehicle'>>();
 
-const weapons = computed(() => itemsOfType(actor.value, 'vehicleWeapon').filter((i) => i.systemData.state === EquipmentState.Equipped));
+const weapons = computed(() => itemsOfType(actor.value, 'vehicleWeapon').filter((i) => i.system.state === EquipmentState.Equipped));
 const criticalHits = computed(() => itemsOfType(actor.value, 'injury'));
 
-async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
-	await rollForCrew(crewForSkills(actor.value.systemData.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
-		difficulty: severityDifficulty(criticalHit.systemData.severity),
+async function repairHit(criticalHit: GenesysItem<'injury'>) {
+	await rollForCrew(crewForSkills(actor.value.system.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
+		difficulty: severityDifficulty(criticalHit.system.severity),
 	});
 }
 </script>
@@ -52,22 +50,22 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>
 					</div>
 
-					<div class="skill" v-if="weapon.systemData.skills.length > 0">
-						{{ weapon.systemData.skills.join(', ') }}
+					<div class="skill" v-if="weapon.system.skills.length > 0">
+						{{ weapon.system.skills.join(', ') }}
 					</div>
 					<div class="skill" v-else><Localized label="Genesys.Labels.SkillNotFound" /></div>
 
-					<div class="damage">{{ damageFormula(weapon.systemData).baseDamage }}</div>
+					<div class="damage">{{ damageFormula(weapon.system).baseDamage }}</div>
 
-					<div class="crit">{{ weapon.systemData.critical }}</div>
+					<div class="crit">{{ weapon.system.critical }}</div>
 
-					<div class="range"><Localized :label="RANGE_LABELS[weapon.systemData.range]" /></div>
+					<div class="range"><Localized :label="RANGE_LABELS[weapon.system.range]" /></div>
 
 					<div class="firing-arc">
-						<span v-for="label in firingArcLabels(weapon.systemData.firingArc)" :key="label"><Localized :label="label" /></span>
+						<span v-for="label in firingArcLabels(weapon.system.firingArc)" :key="label"><Localized :label="label" /></span>
 					</div>
 
-					<QualityList :qualities="weapon.systemData.qualities" tags class="qualities" />
+					<QualityList :qualities="weapon.system.qualities" tags class="qualities" />
 				</div>
 			</div>
 		</div>

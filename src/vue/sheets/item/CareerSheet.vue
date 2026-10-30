@@ -3,12 +3,11 @@ import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
-import { CareerDataModel } from '@/item/data/CareerDataModel';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 
-const { document: item, system, editable } = useSheetDocument<GenesysItem<CareerDataModel>>();
+const { document: item, system, editable } = useSheetDocument<GenesysItem<'career'>>();
 
 const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 

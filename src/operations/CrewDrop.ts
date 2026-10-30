@@ -17,7 +17,7 @@ export function isPassengerDrop(data: CrewDragTransferData) {
  * Receive an actor dropped on the passengers or a Role of the Crew tab, or a skill dropped on a Role. The event is
  * stopped at once, before the Role or the sheet around the target receives it too; anything else goes on to them.
  */
-export async function receiveCrewEvent(vehicle: GenesysActor<VehicleDataModel>, event: DragEvent, place: CrewPlace) {
+export async function receiveCrewEvent(vehicle: GenesysActor<'vehicle'>, event: DragEvent, place: CrewPlace) {
 	const data: CrewDragTransferData = dragData(event.dataTransfer);
 	const entity = droppedEntity(data, place.kind === 'passengers' ? 'PASSENGER' : 'ROLE');
 	if (!entity) {
@@ -29,9 +29,7 @@ export async function receiveCrewEvent(vehicle: GenesysActor<VehicleDataModel>, 
 		return receiveCrewDrop(vehicle, data, place);
 	}
 
-	return (
-		place.kind === 'role' && vehicle.isOwner && vehicle.systemData.updateCrew((crew) => addRoleSkill(crew, place.roleId, entity.name))
-	);
+	return place.kind === 'role' && vehicle.isOwner && vehicle.system.updateCrew((crew) => addRoleSkill(crew, place.roleId, entity.name));
 }
 
 /**
@@ -53,21 +51,21 @@ function droppedEntity(data: CrewDragTransferData, context: 'PASSENGER' | 'ROLE'
  * clone of it does when it makes unlinked tokens. An actor already in the Crew is refused from anywhere else. Returns
  * whether the Crew changed.
  */
-export async function receiveCrewDrop(vehicle: GenesysActor<VehicleDataModel>, data: CrewDragTransferData, place: CrewPlace) {
+export async function receiveCrewDrop(vehicle: GenesysActor<'vehicle'>, data: CrewDragTransferData, place: CrewPlace) {
 	// The target is checked before the clone prompt, so no clone is made for a drop the Crew refuses.
-	if (!vehicle.isOwner || !data.uuid || !placeActor(vehicle.systemData.crew, data.uuid, place)) {
+	if (!vehicle.isOwner || !data.uuid || !placeActor(vehicle.system.crew, data.uuid, place)) {
 		return false;
 	}
 
 	let uuid = data.uuid;
-	let source: GenesysActor<VehicleDataModel> | undefined;
+	let source: GenesysActor<'vehicle'> | undefined;
 	if (data.sourceVehicleUuid !== vehicle.uuid) {
-		if (vehicle.systemData.hasCrew(uuid)) {
+		if (vehicle.system.hasCrew(uuid)) {
 			return false;
 		}
 
 		if (data.sourceVehicleUuid) {
-			source = (await fromUuid<GenesysActor<VehicleDataModel>>(data.sourceVehicleUuid)) ?? undefined;
+			source = (await fromUuid<GenesysActor<'vehicle'>>(data.sourceVehicleUuid)) ?? undefined;
 			if (!source || source.type !== 'vehicle' || !source.isOwner) {
 				return false;
 			}
@@ -82,10 +80,10 @@ export async function receiveCrewDrop(vehicle: GenesysActor<VehicleDataModel>, d
 
 	// The actor joins this Crew before it leaves the other: if the second update fails, it is in both, which the Crew
 	// allows, rather than in neither.
-	if (!(await vehicle.systemData.updateCrew((crew) => placeActor(crew, uuid, place)))) {
+	if (!(await vehicle.system.updateCrew((crew) => placeActor(crew, uuid, place)))) {
 		return false;
 	}
-	await source?.systemData.updateCrew((sourceCrew) => removeActor(sourceCrew, uuid));
+	await source?.system.updateCrew((sourceCrew) => removeActor(sourceCrew, uuid));
 	return true;
 }
 

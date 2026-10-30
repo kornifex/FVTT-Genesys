@@ -1,6 +1,5 @@
 import type { Stored } from '@/data/Stored';
 import { GenesysItem } from '@/item/GenesysItem';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import VueCareerSkillPrompt from '@/vue/apps/CareerSkillPrompt.vue';
 import { VuePrompt } from '@/vue/VuePrompt';
 
@@ -8,7 +7,7 @@ import { VuePrompt } from '@/vue/VuePrompt';
  * What the career skill prompt shows: the skills to pick from.
  */
 export type CareerSkillPromptContext = {
-	skills: Stored<GenesysItem<SkillDataModel>>[];
+	skills: Stored<GenesysItem<'skill'>>[];
 	answer: (skillIDs: string[]) => void;
 };
 
@@ -29,13 +28,13 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	/**
 	 * Ask the user to pick career skills, by their IDs. None when the prompt is closed.
 	 */
-	static async promptForSkills(skills: Stored<GenesysItem<SkillDataModel>>[]) {
+	static async promptForSkills(skills: Stored<GenesysItem<'skill'>>[]) {
 		return new CareerSkillPrompt(skills).prompt();
 	}
 
-	readonly #skills: Stored<GenesysItem<SkillDataModel>>[];
+	readonly #skills: Stored<GenesysItem<'skill'>>[];
 
-	constructor(skills: Stored<GenesysItem<SkillDataModel>>[]) {
+	constructor(skills: Stored<GenesysItem<'skill'>>[]) {
 		super();
 
 		this.#skills = skills;

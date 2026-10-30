@@ -10,7 +10,6 @@ import WeaponSheet from '@/vue/sheets/item/WeaponSheet.vue';
 import VehicleWeaponSheet from '@/vue/sheets/item/VehicleWeaponSheet.vue';
 import { ArchetypeSheet } from '@/item/sheets/ArchetypeSheet';
 import { CareerSheet } from '@/item/sheets/CareerSheet';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import type { Component } from 'vue';
 
@@ -19,7 +18,7 @@ import type { Component } from 'vue';
  * @param vueComponent Vue component to use for the sheet.
  * @param sheetType Base class to use for the sheet.
  */
-function basicSheet(vueComponent: Component, sheetType: typeof GenesysItemSheet<BaseItemDataModel> = GenesysItemSheet) {
+function basicSheet(vueComponent: Component, sheetType: typeof GenesysItemSheet<Item.SubType> = GenesysItemSheet) {
 	return class extends sheetType {
 		override get vueComponent() {
 			return vueComponent;

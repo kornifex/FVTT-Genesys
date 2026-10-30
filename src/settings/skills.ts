@@ -1,5 +1,4 @@
 import type { Stored } from '@/data/Stored';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 
@@ -22,7 +21,7 @@ export async function loadSkills(storedValue: string | undefined, skillsCompendi
 		ui.notifications.warn('Genesys.Notifications.NoSkillsCompendium', { localize: true });
 	}
 
-	let skills: Stored<GenesysItem<SkillDataModel>>[] = [];
+	let skills: Stored<GenesysItem<'skill'>>[] = [];
 
 	const pack = game.packs.get(skillsCompendiumName);
 	if (!pack) {

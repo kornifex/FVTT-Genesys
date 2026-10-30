@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { toRef } from 'vue';
 
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
@@ -12,7 +11,7 @@ import { openSheet, removeArchetype, removeCareer } from '@/operations/ItemActio
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<'character'>>();
 
 const archetype = toRef(() => itemsOfType(actor.value, 'archetype').at(0));
 const career = toRef(() => itemsOfType(actor.value, 'career').at(0));

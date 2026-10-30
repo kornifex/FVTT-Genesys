@@ -4,7 +4,6 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { GenesysActor } from '@/actor/GenesysActor';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import {
 	advancementCharacter,
 	AdvancementCharacter,
@@ -469,13 +468,13 @@ describe('advancementCharacter', () => {
 	function actor(brawn: number, effectBonus: number, entries: Entry[] = [{ amount: 200, type: EntryType.Starting }]) {
 		const base: CharacteristicsContainer = { brawn, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 };
 		return {
-			systemData: {
+			system: {
 				experienceJournal: { entries },
 				characteristics: { ...base, brawn: brawn + effectBonus },
 				_source: { characteristics: base, wounds: { max: 12 }, strain: { max: 12 } },
 			},
 			items: [],
-		} as unknown as GenesysActor<CharacterDataModel>;
+		} as unknown as GenesysActor<'character'>;
 	}
 
 	it('raises a characteristic from its base rating, without its Active Effects (CRB p. 44)', () => {

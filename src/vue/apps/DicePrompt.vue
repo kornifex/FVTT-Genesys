@@ -8,7 +8,6 @@ import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@
 import { DEFENSE_LABELS } from '@/data/Actors';
 import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { useSheetContext } from '@/vue/SheetContext';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
@@ -32,7 +31,7 @@ import { type DicePool, parsePoolModifications, poolEntries, sortPoolModificatio
 
 type AlsoNone<T> = T | undefined;
 
-type PromptSkill = Stored<GenesysItem<SkillDataModel>>;
+type PromptSkill = Stored<GenesysItem<'skill'>>;
 
 const DIE_CATEGORIES: DieCategory[] = ['positive', 'negative'];
 
@@ -93,7 +92,7 @@ onMounted(() => {
 
 	if (actor) {
 		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
-		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.systemData.skills : []);
+		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, weapon?.type === 'weapon' ? weapon.system.skills : []);
 		weaponSkills.value = skills.weapon;
 		availableSkills.value = skills.owned;
 		unrankedSkills.value = skills.unranked;
@@ -114,7 +113,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			...request,
 			purpose: checkPurpose(),
 			target: target?.actor ?? undefined,
-			attackRange: weapon?.systemData.range,
+			attackRange: weapon?.system.range,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -225,8 +224,8 @@ function onCharacteristicChange(event: Event) {
 	});
 }
 
-function skillLabel(skill: { name: string; systemData: { characteristic: Characteristic } }) {
-	return `${skill.name} (${game.i18n.localize(CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic])})`;
+function skillLabel(skill: { name: string; system: { characteristic: Characteristic } }) {
+	return `${skill.name} (${game.i18n.localize(CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic])})`;
 }
 
 function addManualChange(glyph: string) {

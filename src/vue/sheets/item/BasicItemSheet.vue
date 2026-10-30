@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
@@ -21,7 +20,7 @@ defineProps<{
 	showEffectsTab?: boolean;
 }>();
 
-const { document: item, system } = useSheetDocument<GenesysItem<BaseItemDataModel>>();
+const { document: item, system } = useSheetDocument<GenesysItem>();
 
 const { effects, addEffect } = useDocumentEffects();
 </script>

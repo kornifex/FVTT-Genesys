@@ -4,10 +4,9 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { SEVERITY_LABELS } from '@/item/data/Injuries';
 
-const { system } = useSheetDocument<GenesysItem<InjuryDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'injury'>>();
 </script>
 
 <template>

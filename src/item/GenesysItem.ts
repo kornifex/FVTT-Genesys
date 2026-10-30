@@ -1,22 +1,10 @@
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
 /**
- * Item class used as a base for all Genesys items.
+ * An item of the system, typed by its subtype: its `system` is the DataModel registered for that type.
  */
-export class GenesysItem<ItemDataModel extends foundry.abstract.DataModel.Any = BaseItemDataModel> extends Item {
-	// Foundry builds `system` with the DataModel registered for the item's type, which the generic names.
-	// @ts-expect-error -- The types declare `system` as the union of every type's DataModel, which they narrow by subtype, not by DataModel.
-	declare system: ItemDataModel;
-
-	/**
-	 * Specialized property for accessing `item.system` in a typed manner.
-	 */
-	get systemData(): ItemDataModel {
-		return this.system;
-	}
-
+export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends Item<SubType> {
 	/**
 	 * Keep a Container's contents in its Equipment State, whatever changed the state of either.
 	 * @inheritDoc

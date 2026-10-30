@@ -1,6 +1,5 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import type { Stored } from '@/data/Stored';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
 import { GenesysEffect } from '@/effects/GenesysEffect';
@@ -14,23 +13,22 @@ import '@/actor/GenesysActorSheet.scss';
  * its DragDrop lets a user drop on a sheet they can edit, and its `_onDrop` resolves the dropped document and hands it to
  * the handler of its type, unless the `dropActorSheetData` hook refuses it.
  */
-export class GenesysActorSheet<
-	ActorDataModel extends foundry.abstract.DataModel.Any = foundry.abstract.DataModel.Any,
-	ItemDataModel extends BaseItemDataModel = BaseItemDataModel,
-> extends VueDocumentSheet(foundry.applications.sheets.ActorSheetV2) {
+export class GenesysActorSheet<SubType extends Actor.SubType = Actor.SubType> extends VueDocumentSheet(
+	foundry.applications.sheets.ActorSheetV2,
+) {
 	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 		classes: ['genesys', 'sheet', 'actor'],
 		position: { width: 720, height: 640 },
 	};
 
 	/**
-	 * The actor, of the data model the sheet is registered for. A sheet shows an actor the world or a compendium stores.
+	 * The actor, of the type the sheet is registered for. A sheet shows an actor the world or a compendium stores.
 	 */
 	override get actor() {
-		return this.document as Stored<GenesysActor<ActorDataModel>>;
+		return this.document as Stored<GenesysActor<SubType>>;
 	}
 
-	override async getVueContext(): Promise<DocumentSheetContext<Stored<GenesysActor<ActorDataModel>>, this>> {
+	override async getVueContext(): Promise<DocumentSheetContext<Stored<GenesysActor<SubType>>, this>> {
 		return { sheet: this, document: this.actor, editable: this.isEditable };
 	}
 
@@ -50,7 +48,7 @@ export class GenesysActorSheet<
 	 * stays as it is, since the sheets' Vue components sort their own items. Returns the first item the actor got, as
 	 * Foundry's does, or null.
 	 */
-	protected override async _onDropItem(_event: DragEvent, item: GenesysItem<ItemDataModel>) {
+	protected override async _onDropItem(_event: DragEvent, item: GenesysItem) {
 		if (!this.isEditable || item.parent?.uuid === this.actor.uuid) {
 			return null;
 		}
@@ -63,7 +61,7 @@ export class GenesysActorSheet<
 	 * Receive an item dropped on the sheet, which the actor doesn't own: by default, the actor gets a copy of it. Returns
 	 * the items created, or false when the drop is refused.
 	 */
-	protected async receiveItem(item: GenesysItem<ItemDataModel>): Promise<GenesysItem<ItemDataModel>[] | boolean> {
+	protected async receiveItem(item: GenesysItem): Promise<GenesysItem[] | boolean> {
 		return this._onDropItemCreate(item.toObject());
 	}
 
@@ -78,7 +76,7 @@ export class GenesysActorSheet<
 		// A compendium's folder holds the index entries of its items: each is resolved by its uuid. The types declare one
 		// index entry rather than an array of them.
 		for (const { uuid } of folder.contents as { uuid: string }[]) {
-			const item = await itemFromDrop<ItemDataModel>({ uuid });
+			const item = await itemFromDrop({ uuid });
 			if (item) {
 				await this._onDropItem(event, item);
 			}
@@ -90,10 +88,7 @@ export class GenesysActorSheet<
 	/**
 	 * Create dropped items on the actor.
 	 */
-	protected async _onDropItemCreate(itemData: GenesysItem<ItemDataModel>['_source'] | GenesysItem<ItemDataModel>['_source'][]) {
-		return (await this.actor.createEmbeddedDocuments(
-			'Item',
-			Array.isArray(itemData) ? itemData : [itemData],
-		)) as GenesysItem<ItemDataModel>[];
+	protected async _onDropItemCreate(itemData: GenesysItem['_source'] | GenesysItem['_source'][]) {
+		return await this.actor.createEmbeddedDocuments('Item', Array.isArray(itemData) ? itemData : [itemData]);
 	}
 }

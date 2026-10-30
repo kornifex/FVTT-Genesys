@@ -73,8 +73,8 @@ export class GenesysCombat extends Combat {
 	 */
 	get initiativeSkills(): InitiativeSkill[] {
 		const initiativeSkills = CONFIG.genesys.skills
-			.filter((skill) => skill.systemData.initiative)
-			.map((skill) => ({ skillName: skill.name, skillChar: skill.systemData.characteristic }));
+			.filter((skill) => skill.system.initiative)
+			.map((skill) => ({ skillName: skill.name, skillChar: skill.system.characteristic }));
 
 		// Without any, initiative is a Characteristic Check on Brawn.
 		if (initiativeSkills.length === 0) {

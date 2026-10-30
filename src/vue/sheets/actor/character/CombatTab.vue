@@ -3,17 +3,13 @@ import { computed } from 'vue';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import Localized from '@/vue/components/Localized.vue';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import Enriched from '@/vue/components/Enriched.vue';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -22,15 +18,15 @@ import { attackSkillChoices, skillToRoll } from '@/data/Skills';
 import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 
-const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
-const weapons = computed(() => itemsOfType(actor.value, 'weapon').filter((i) => i.systemData.state === EquipmentState.Equipped));
+const weapons = computed(() => itemsOfType(actor.value, 'weapon').filter((i) => i.system.state === EquipmentState.Equipped));
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
 
-async function healInjury(injury: GenesysItem<InjuryDataModel>) {
+async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
-		difficulty: severityDifficulty(injury.systemData.severity),
+		difficulty: severityDifficulty(injury.system.severity),
 	});
 }
 
@@ -38,9 +34,7 @@ async function healInjury(injury: GenesysItem<InjuryDataModel>) {
  * The Attack Skill the character rolls the weapon with, and the skill and its rank when the character or the Skills
  * Compendium has it: a rank of 0 for an Unranked Skill Check. Undefined when the weapon lists no skill.
  */
-function skillForWeapon(
-	weapon: GenesysItem<WeaponDataModel>,
-): { name: string; skill?: GenesysItem<SkillDataModel>; rank: number } | undefined {
+function skillForWeapon(weapon: GenesysItem<'weapon'>): { name: string; skill?: GenesysItem<'skill'>; rank: number } | undefined {
 	const skillName = attackSkill(actor.value, weapon);
 	if (!skillName) {
 		return undefined;
@@ -50,7 +44,7 @@ function skillForWeapon(
 	return {
 		name: rolledSkill?.skill.name ?? skillName,
 		skill: rolledSkill?.skill,
-		rank: rolledSkill && !rolledSkill.unranked ? rolledSkill.skill.systemData.rank : 0,
+		rank: rolledSkill && !rolledSkill.unranked ? rolledSkill.skill.system.rank : 0,
 	};
 }
 </script>
@@ -71,7 +65,7 @@ function skillForWeapon(
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 					<div class="name">
-						<a v-if="weapon.systemData.skills.length > 0" @click="attackWith(actor, weapon)">{{ weapon.name }}</a>
+						<a v-if="weapon.system.skills.length > 0" @click="attackWith(actor, weapon)">{{ weapon.name }}</a>
 						<span v-else>{{ weapon.name }}</span>
 					</div>
 					<div class="skill" v-for="weaponSkill in [skillForWeapon(weapon)]" :key="weaponSkill?.name ?? 'skill'">
@@ -79,22 +73,22 @@ function skillForWeapon(
 							<!-- A choice the character can't roll stays changeable here. -->
 							<AttackSkillSelect
 								:weapon="weapon"
-								:choices="attackSkillChoices(weapon.systemData.skills)"
+								:choices="attackSkillChoices(weapon.system.skills)"
 								:attack-skill="weaponSkill.name"
 							/>
 							<SkillRanks
 								v-if="weaponSkill.skill"
 								:skill-value="weaponSkill.rank"
-								:characteristic-value="actor.systemData.characteristics[weaponSkill.skill.systemData.characteristic]"
+								:characteristic-value="actor.system.characteristics[weaponSkill.skill.system.characteristic]"
 							/>
 							<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
-					<div class="damage">{{ weaponDamage(weapon.systemData, actor.systemData.characteristics) }}</div>
-					<div class="crit">{{ weapon.systemData.critical }}</div>
-					<div class="range"><Localized :label="RANGE_LABELS[weapon.systemData.range]" /></div>
-					<QualityList :qualities="weapon.systemData.qualities" tags class="qualities" />
+					<div class="damage">{{ weaponDamage(weapon.system, actor.system.characteristics) }}</div>
+					<div class="crit">{{ weapon.system.critical }}</div>
+					<div class="range"><Localized :label="RANGE_LABELS[weapon.system.range]" /></div>
+					<QualityList :qualities="weapon.system.qualities" tags class="qualities" />
 				</div>
 			</div>
 		</div>
@@ -113,10 +107,10 @@ function skillForWeapon(
 					<div class="name">
 						<a @click="openSheet(armor)">{{ armor.name }}</a>
 					</div>
-					<div class="soak">{{ armor.systemData.soak }}</div>
-					<div class="defense">{{ armor.systemData.defense }}</div>
-					<QualityList :qualities="armor.systemData.qualities" tags class="qualities" />
-					<div class="description"><Enriched :value="armor.systemData.description" /></div>
+					<div class="soak">{{ armor.system.soak }}</div>
+					<div class="defense">{{ armor.system.defense }}</div>
+					<QualityList :qualities="armor.system.qualities" tags class="qualities" />
+					<div class="description"><Enriched :value="armor.system.description" /></div>
 				</div>
 			</div>
 		</div>

@@ -1,10 +1,9 @@
 <script lang="ts" setup>
 import { GenesysItem } from '@/item/GenesysItem';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 
 const props = defineProps<{
-	weapon: GenesysItem<WeaponDataModel>;
+	weapon: GenesysItem<'weapon'>;
 	/**
 	 * The skills the Attack Skill can be chosen from, as `attackSkillChoices` gives them.
 	 */
