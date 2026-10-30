@@ -325,15 +325,12 @@ function installCombatHelpers() {
 		},
 
 		async toggleEffect(name, effect) {
-			const actor = window.e2e.token(name).actor;
-			const disabled = actor.effects.getName(effect).disabled;
-			const sheet = actor.sheet;
-			const root = await window.e2e.render(sheet, (root) => root.querySelector('.effects-view .effect'));
-			const effectRow = window.e2e.effectRows(root.querySelector('.effects-view')!).find((row) => row.name === effect);
-			if (!effectRow) throw new Error(`No row for ${effect} in the Effects tab of ${name}`);
-			effectRow.element.querySelector<HTMLElement>('.fa-power-off')!.closest('a')!.click();
-			await waitFor(`${effect} turned ${disabled ? 'on' : 'off'}`, () => actor.effects.getName(effect).disabled !== disabled);
-			await settle();
+			const sheet = window.e2e.token(name).actor.sheet;
+			const effectRow = (root: Element) => {
+				const view = root.querySelector('.effects-view');
+				return view && window.e2e.effectRows(view).find((row) => row.name === effect);
+			};
+			await window.e2e.toggleEffect(effectRow(await window.e2e.render(sheet, effectRow))!);
 			await sheet.close();
 		},
 	};
@@ -972,11 +969,10 @@ export async function run(e2e: ScenarioContext) {
 		// Ally keeps a player owner, so that its slot stays a PC slot Hero can claim, but not the player of the scenario.
 		await e2e.step("#38 GM gives Ally to another player, then claims Ally's slot for Hero and Hero's slot for Ally", () =>
 			gm.evaluate(async (playerUser) => {
-				const { OWNER, NONE } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
-				const other = game.users.getName('E2E Other') ?? (await User.create({ name: 'E2E Other', role: CONST.USER_ROLES.PLAYER }));
-				await game.actors
-					.getName('E2E Ally')
-					.update({ [`ownership.${game.users.getName(playerUser).id}`]: NONE, [`ownership.${other.id}`]: OWNER });
+				if (!game.users.getName('E2E Other')) await User.create({ name: 'E2E Other', role: CONST.USER_ROLES.PLAYER });
+				// The other player first, so that Ally never lacks a player owner.
+				await window.e2e.setOwnership(window.e2e.actor('Ally'), 'E2E Other', 'OWNER');
+				await window.e2e.setOwnership(window.e2e.actor('Ally'), playerUser, 'NONE');
 				await window.combatE2E.claim('Ally:-1', 'Hero');
 				await window.combatE2E.claim('Hero:-1', 'Ally');
 			}, e2e.playerUser),
@@ -1081,10 +1077,8 @@ export async function run(e2e: ScenarioContext) {
 
 		await e2e.step('#190 GM takes Ally from the player and gives them the rival', () =>
 			gm.evaluate(async (playerUser) => {
-				const playerId = game.users.getName(playerUser).id;
-				const { OWNER, NONE } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
-				await game.actors.getName('E2E Ally').update({ [`ownership.${playerId}`]: NONE });
-				await game.actors.getName('E2E Rival').update({ [`ownership.${playerId}`]: OWNER });
+				await window.e2e.setOwnership(window.e2e.actor('Ally'), playerUser, 'NONE');
+				await window.e2e.setOwnership(window.e2e.actor('Rival'), playerUser, 'OWNER');
 			}, e2e.playerUser),
 		);
 		await expectSides('#190 A6 a change of player ownership moves the slots to the other side', {
@@ -1096,13 +1090,8 @@ export async function run(e2e: ScenarioContext) {
 
 		await e2e.step('#190 GM adds a vehicle the player owns to the combat', () =>
 			gm.evaluate(async (playerUser) => {
-				const [vehicle] = await Actor.createDocuments([
-					{
-						name: 'E2E Rig',
-						type: 'vehicle',
-						ownership: { default: 0, [game.users.getName(playerUser).id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER },
-					},
-				]);
+				const [vehicle] = await Actor.createDocuments([{ name: 'E2E Rig', type: 'vehicle' }]);
+				await window.e2e.setOwnership(vehicle, playerUser, 'OWNER');
 				const [token] = await canvas.scene.createEmbeddedDocuments('Token', [
 					{ ...(await vehicle.getTokenDocument()).toObject(), x: 1100, y: 100 },
 				]);

@@ -143,7 +143,7 @@ function installInventoryHelpers() {
 		return;
 	}
 
-	const { settle, waitFor, render, text, unprefixed, isSetUp } = window.e2e;
+	const { settle, waitFor, render, text, unprefixed, isSetUp, effectRows } = window.e2e;
 	const full = (name: string) => `E2E ${name}`;
 	const PACKS = { items: 'e2e-inventory-items', actors: 'e2e-inventory-actors' };
 	const pack = (key: keyof typeof PACKS) => game.packs.get(`world.${PACKS[key]}`);
@@ -397,7 +397,7 @@ function installInventoryHelpers() {
 				{ name: full('Archetype'), type: 'archetype' },
 			]);
 
-			const character = (name: string, extra: object = {}) => ({
+			const character = (name: string) => ({
 				name: full(name),
 				type: 'character',
 				system: {
@@ -407,16 +407,10 @@ function installInventoryHelpers() {
 					experienceJournal: { entries: [{ amount: 100, type: 'Starting' }] },
 				},
 				prototypeToken: { actorLink: true },
-				...extra,
 			});
-			const playerId = game.users.getName(playerUser).id;
-			const OWNER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
-			const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 			await Actor.createDocuments([
-				character('Hero', { ownership: { default: 0, [playerId]: OWNER } }),
-				character('Ally', { ownership: { default: OBSERVER } }),
-				...['Receiver', 'Sorter', 'Wearer', 'Packer', 'Looper', 'Deleter', 'Smith', 'Stepper', 'Placer'].map((name) =>
-					character(name),
+				...['Hero', 'Ally', 'Receiver', 'Sorter', 'Wearer', 'Packer', 'Looper', 'Deleter', 'Smith', 'Stepper', 'Placer'].map(
+					character,
 				),
 				{ name: full('Vehicle'), type: 'vehicle' },
 				{ name: full('Hauler'), type: 'vehicle' },
@@ -427,6 +421,8 @@ function installInventoryHelpers() {
 				{ name: full('Brute'), type: 'rival', system: { characteristics: { brawn: 3 } } },
 				{ name: full('Token Rival'), type: 'rival', prototypeToken: { actorLink: false } },
 			]);
+			await window.e2e.setOwnership(actor('Hero'), playerUser, 'OWNER');
+			await window.e2e.setOwnership(actor('Ally'), 'default', 'OBSERVER');
 
 			await give(actor('Ally'), [
 				{ data: weapon('Sword'), state: 'equipped' },
@@ -840,10 +836,11 @@ function installInventoryHelpers() {
 		},
 
 		async inactive(ref) {
-			const category = (await sheet(ref)).querySelectorAll('.tab[data-tab="effects"] .effects-category')[2];
-			return [...(category?.querySelectorAll('.effect') ?? [])].map(
-				(row) => `${unprefixed(text(row.querySelector('.name')))} | ${row.getAttribute('data-tooltip') ?? ''}`,
-			);
+			const view = (await sheet(ref)).querySelector('.tab[data-tab="effects"] .effects-view');
+			const inactive = game.i18n.localize('Genesys.ActiveEffects.Suppressed');
+			return (view ? effectRows(view) : [])
+				.filter((row) => row.section === inactive)
+				.map((row) => `${unprefixed(row.name)} | ${row.element.dataset.tooltip ?? ''}`);
 		},
 
 		async protection(ref) {
