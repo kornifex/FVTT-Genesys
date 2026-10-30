@@ -43,10 +43,24 @@
 	}
 }
 
-// A row of a weapon or an armor: its columns are the tab's, its qualities and description go below them.
+// The description of a row of the Combat tabs, in the grid row `$row` under its columns: an item's, a Critical Injury's
+// or a Critical Hit's.
+@mixin row-description($margin-left, $row: 2) {
+	grid-column: 1 / span all;
+	justify-self: left;
+	border-left: 4px solid colors.$light-blue;
+	margin-left: $margin-left;
+	padding-left: 0.5em;
+
+	grid-row: $row / span 1;
+	padding-right: 0.5em;
+	@include expandable.description;
+}
+
+// A row of a weapon or an armor: its columns are the tab's, its qualities then its description go below them.
 @mixin item-row {
 	display: grid;
-	grid-template-rows: auto auto;
+	grid-template-rows: repeat(3, auto);
 	border-bottom: 1px dashed colors.$blue;
 	align-items: center;
 	justify-items: center;
@@ -67,15 +81,12 @@
 		border-bottom: none;
 	}
 
-	.description {
+	.qualities {
 		grid-column: 1 / span all;
-		justify-self: left;
-		border-left: 4px solid colors.$light-blue;
-		margin-left: 0.5em;
-		padding-left: 0.5em;
-
 		grid-row: 2 / span 1;
-		padding-right: 0.5em;
-		@include expandable.description;
+	}
+
+	.description {
+		@include row-description(0.5em, 3);
 	}
 }

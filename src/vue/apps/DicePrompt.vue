@@ -399,6 +399,7 @@ async function onRoll() {
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/appv1.scss';
 @use '@scss/mixins/reset.scss';
+@use '@scss/mixins/expandable.scss';
 
 .dice-prompt {
 	display: grid;
@@ -466,14 +467,17 @@ async function onRoll() {
 	.pool-modifications-expander {
 		grid-column: 1 / span all;
 		grid-row: 5 / span all;
-		display: grid;
-		grid-template-rows: 0fr;
 		overflow: hidden;
-		transition: grid-template-rows 1s;
+		@include expandable.description($duration: 1s, $easing: ease, $open: pool-modifications-expanded);
+
+		// The expander clips the folded Pool Modifications, and the container, which the mixin would clip too, doesn't, as
+		// before the mixin: its icons sit 3px below their place in a row (`top: 3px`), and in the last row their box can
+		// pass its bottom edge.
+		& > .pool-modifications-container {
+			overflow: visible;
+		}
 
 		&.pool-modifications-expanded {
-			grid-template-rows: 1fr;
-
 			.pool-modifications-container {
 				visibility: visible;
 			}
@@ -486,7 +490,6 @@ async function onRoll() {
 		margin-left: 1rem;
 		border-top: 1px dotted black;
 
-		min-height: 0;
 		transition: visibility 1s;
 		visibility: hidden;
 

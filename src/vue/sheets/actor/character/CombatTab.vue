@@ -8,6 +8,8 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import { useOpenRows } from '@/vue/useOpenRows';
 import { severityDifficulty } from '@/item/data/Injuries';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -21,12 +23,14 @@ import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/Weapo
 
 const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
-// A row for each Weapon Profile of each equipped weapon, its main profile first.
+// A row for each Weapon Profile of each equipped weapon, its main profile first: each shows the weapon's description, and
+// opens it on its own.
 const weaponRows = computed(() =>
 	itemsOfType(actor.value, 'weapon')
 		.filter((i) => i.system.state === EquipmentState.Equipped)
 		.flatMap((weapon) =>
 			weaponProfiles(weapon.system).map((profile) => ({
+				key: `${weapon.id}-${profile.index}`,
 				weapon,
 				profile,
 				name: profileRowName(weapon.name, profile, game.i18n),
@@ -35,6 +39,8 @@ const weaponRows = computed(() =>
 );
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
+const openWeapons = useOpenRows();
+const openArmors = useOpenRows();
 
 async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
@@ -74,11 +80,16 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					<div class="range"><Localized label="Genesys.Labels.Range" /></div>
 				</div>
 
-				<div v-for="{ weapon, profile, name } in weaponRows" :key="`${weapon.id}-${profile.index}`" class="weapon">
+				<div v-for="{ key, weapon, profile, name } in weaponRows" :key="key" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 					<div class="name">
 						<a v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</a>
 						<span v-else>{{ name }}</span>
+						<DescriptionToggle
+							:description="weapon.system.description"
+							:open="openWeapons.isOpen(key)"
+							@toggle="openWeapons.toggle(key)"
+						/>
 					</div>
 					<div class="skill" v-for="weaponSkill in [skillForProfile(profile)]" :key="weaponSkill?.name ?? 'skill'">
 						<template v-if="weaponSkill">
@@ -102,6 +113,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					<div class="crit">{{ profile.critical }}</div>
 					<div class="range"><Localized :label="RANGE_LABELS[profile.range]" /></div>
 					<QualityList :qualities="profile.qualities" tags class="qualities" />
+					<div :class="['description', { active: openWeapons.isOpen(key) }]"><Enriched :value="weapon.system.description" /></div>
 				</div>
 			</div>
 		</div>
@@ -119,11 +131,18 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					<img :src="armor.img ?? undefined" :alt="armor.name" />
 					<div class="name">
 						<a @click="openSheet(armor)">{{ armor.name }}</a>
+						<DescriptionToggle
+							:description="armor.system.description"
+							:open="openArmors.isOpen(armor.id)"
+							@toggle="openArmors.toggle(armor.id)"
+						/>
 					</div>
 					<div class="soak">{{ armor.system.soak }}</div>
 					<div class="defense">{{ armor.system.defense }}</div>
 					<QualityList :qualities="armor.system.qualities" tags class="qualities" />
-					<div class="description"><Enriched :value="armor.system.description" /></div>
+					<div :class="['description', { active: openArmors.isOpen(armor.id) }]">
+						<Enriched :value="armor.system.description" />
+					</div>
 				</div>
 			</div>
 		</div>
@@ -148,26 +167,10 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 	.armor {
 		grid-template-columns: 1.5rem 1fr repeat(2, 60px);
-		grid-template-rows: repeat(3, auto);
-
-		.qualities {
-			grid-row: 2 / span 1;
-			grid-column: 1 / span all;
-		}
-
-		.description {
-			grid-row: 3 / span 1;
-			grid-column: 1 / span all;
-		}
 	}
 
 	.weapon {
 		grid-template-columns: 1.5rem 2fr 1fr repeat(3, 80px);
-
-		.qualities {
-			grid-column: 1 / span all;
-			grid-row: 2 / span 1;
-		}
 	}
 }
 </style>

@@ -83,6 +83,8 @@ Genesys:
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.
     CycleInitiativeSkill: Cambia la habilidad de iniciativa que utiliza el combatiente.
     AddExtraInitiativeSlot: Añade un puesto de iniciativa adicional.
+    ShowDescription: Mostrar la descripción
+    HideDescription: Ocultar la descripción
 
   # Dice Rolls
   Rolls:

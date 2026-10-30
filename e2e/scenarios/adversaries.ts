@@ -1051,6 +1051,47 @@ export async function run(e2e: ScenarioContext) {
 		Math.round(closedText.height),
 	);
 
+	// L: a description cleared in the editor, which saves it as an empty paragraph, reads as empty (§#393).
+	const cleared = ['Cleared', 'Spaced'];
+	const areasOf = async (client: typeof gm) => {
+		const areas: Record<string, DescriptionArea> = {};
+		for (const name of cleared) areas[name] = await descriptionArea(client, name);
+		return areas;
+	};
+	await e2e.step('#393 E1 a rival given an empty paragraph as its description, and one given a paragraph of a non-breaking space', () =>
+		gm.evaluate(() =>
+			Actor.createDocuments([
+				{ name: 'E2E Cleared', type: 'rival', system: { description: '<p></p>' } },
+				{ name: 'E2E Spaced', type: 'rival', system: { description: '<p>&nbsp;</p>' } },
+			]),
+		),
+	);
+	const clearedAreas = await areasOf(gm);
+	e2e.log('the cleared description areas of the GM', clearedAreas);
+	e2e.expect(
+		"#393 E1 a description of an empty paragraph, or of a non-breaking space, on a rival's sheet the user can edit takes the room of its edit toggle, and one line at most",
+		Object.fromEntries(cleared.map((name) => [name, compact(clearedAreas[name])])),
+		{ Cleared: COMPACT, Spaced: COMPACT },
+	);
+	await e2e.step('#393 E2 the player given Observer on the two rivals', () =>
+		gm.evaluate(
+			async ({ user, actors }) => {
+				for (const name of actors) await window.e2e.setOwnership(window.e2e.actor(name), user, 'OBSERVER');
+			},
+			{ user: e2e.playerUser, actors: cleared },
+		),
+	);
+	const observedCleared = await areasOf(player);
+	e2e.log('the cleared description areas of an observer', observedCleared);
+	e2e.expect(
+		"#393 E2 a description of an empty paragraph, or of a non-breaking space, on a rival's sheet the user can't edit takes no room",
+		Object.fromEntries(cleared.map((name) => [name, observedCleared[name].height])),
+		{ Cleared: 0, Spaced: 0 },
+	);
+	for (const client of [gm, player]) {
+		await client.evaluate((names) => Promise.all(names.map((name) => game.actors.getName(`E2E ${name}`).sheet.close())), cleared);
+	}
+
 	// J: the silhouette of characters and Adversaries (§#380).
 	const characterAndAdversaries = ['Hero', 'Grunts', 'Rival', 'Nemesis'];
 	e2e.expect(

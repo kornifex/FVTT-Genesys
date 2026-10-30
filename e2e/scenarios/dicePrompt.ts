@@ -57,6 +57,21 @@ type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 
 type CheckLink = { skill: string | null; difficulty: string | null; text: string };
 
+/**
+ * The prompt's Pool Modifications as laid out: their expander, which folds them, and the container of their rows.
+ */
+type PoolModificationsBox = {
+	unfolded: boolean;
+	/** The expander's transition, as `<property> <duration>`. */
+	transition: string;
+	/** The expander's height: `whole` when it shows its container whole, else in px. */
+	height: number | 'whole';
+	/** The container's visibility. */
+	visibility: string;
+	/** Whether the rows show a Pool Modification. */
+	modifications: boolean;
+};
+
 type DicePromptHelpers = {
 	settings(user: string): Settings;
 	restore(args: { user: string; settings: Settings }): Promise<void>;
@@ -70,6 +85,9 @@ type DicePromptHelpers = {
 	/** Picks an option of the prompt's select: a characteristic by value, a skill by the start of its text. */
 	promptSelect(args: { name: 'characteristic' | 'skill'; option: string }): Promise<PromptState>;
 	promptToggle(name: string): Promise<PromptState>;
+	poolModificationsBox(): PoolModificationsBox;
+	/** Clicks the Pool Modifications' title, which folds or unfolds them, and waits for their transitions to end. */
+	togglePoolModifications(): Promise<PoolModificationsBox>;
 	/** Clicks the dice box's buttons, named by glyph and operator: `A+` adds an Ability die, `A^` upgrades one. */
 	promptAdd(keys: string[]): Promise<PromptState>;
 	/** Removes a die or symbol of the pool preview, as a click on it does. */
@@ -226,7 +244,14 @@ function installDicePromptHelpers() {
 			blind: message.blind,
 		};
 	};
-	const SETTINGS = ['uncoupleSkills', 'useSuperCharacteristics', 'defaultDifficulty', 'skillsCompendium', 'showDamageOnFailure'];
+	const SETTINGS = [
+		'uncoupleSkills',
+		'useSuperCharacteristics',
+		'defaultDifficulty',
+		'skillsCompendium',
+		'showDamageOnFailure',
+		'dicePoolCollapseModificationsDetails',
+	];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
 	window.dicePromptE2E = {
@@ -453,6 +478,37 @@ function installDicePromptHelpers() {
 			row.querySelector('input')!.click();
 			await settle();
 			return promptState();
+		},
+
+		poolModificationsBox() {
+			const root = htmlOf(thePrompt())!;
+			const expander = root.querySelector('.pool-modifications-expander')!;
+			const container = root.querySelector('.pool-modifications-container')!;
+			const style = getComputedStyle(expander);
+			const height = expander.getBoundingClientRect().height;
+			// Shown whole, the container stands at its full height in the expander, and cuts none of its rows; a pixel of
+			// slack for the heights rounded apart.
+			const whole =
+				Math.abs(height - container.getBoundingClientRect().height) <= 1 && container.scrollHeight - container.clientHeight <= 1;
+			return {
+				unfolded: expander.classList.contains('pool-modifications-expanded'),
+				transition: `${style.transitionProperty} ${style.transitionDuration}`,
+				height: height > 0 && whole ? 'whole' : Math.round(height),
+				visibility: getComputedStyle(container).visibility,
+				modifications: !!container.querySelector('a[data-pool-entity]'),
+			};
+		},
+
+		async togglePoolModifications() {
+			const before = window.dicePromptE2E.poolModificationsBox().unfolded;
+			htmlOf(thePrompt())!.querySelector<HTMLElement>('.pool-modifications-title')!.click();
+			await waitFor(
+				'the Pool Modifications to fold or unfold',
+				() => window.dicePromptE2E.poolModificationsBox().unfolded !== before,
+			);
+			// The page settles once their transitions have ended.
+			await settle();
+			return window.dicePromptE2E.poolModificationsBox();
 		},
 
 		async promptAdd(keys) {
@@ -2078,6 +2134,39 @@ export async function run(e2e: ScenarioContext) {
 		diceRoller,
 		{ button: diceRollerCases, gendr: diceRollerCases },
 	);
+
+	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 1s they always took.
+	await setSetting('dicePoolCollapseModificationsDetails', true);
+	// The Default Difficulty, DD, is a Pool Modification the prompt lists.
+	await opened(gm, skillRoll('Cool'));
+	let unfolded: PoolModificationsBox | null = null;
+	await e2e.step('#396 A1 GM unfolds the Pool Modifications of a Cool check', async () => {
+		unfolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+	});
+	e2e.expect('#396 A1 the unfolded Pool Modifications show their container whole, after a 1s transition', unfolded, {
+		unfolded: true,
+		transition: 'grid-template-rows 1s',
+		height: 'whole',
+		visibility: 'visible',
+		modifications: true,
+	});
+	let refolded: PoolModificationsBox | null = null;
+	await e2e.step('#396 A2 GM folds the Pool Modifications', async () => {
+		refolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+	});
+	// Folded, the expander keeps the 1px of its container's dotted top border, as on main before the mixin.
+	e2e.expect(
+		'#396 A2 the folded Pool Modifications keep only their top border and hide their container, after a 1s transition',
+		refolded,
+		{
+			unfolded: false,
+			transition: 'grid-template-rows 1s',
+			height: 1,
+			visibility: 'hidden',
+			modifications: true,
+		},
+	);
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }

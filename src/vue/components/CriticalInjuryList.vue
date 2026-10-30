@@ -6,6 +6,8 @@ import { severityDifficulty } from '@/item/data/Injuries';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import { useOpenRows } from '@/vue/useOpenRows';
 
 // A character suffers Critical Injuries, a vehicle Critical Hits: the same items, under their own names.
 const KINDS = {
@@ -27,6 +29,7 @@ const emit = defineEmits<{
 
 const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
+const { isOpen, toggle } = useOpenRows();
 </script>
 
 <template>
@@ -42,20 +45,21 @@ const kind = KINDS[props.kind];
 			</div>
 			<div class="name">
 				<a @click="openSheet(injury)">{{ injury.name }}</a>
+				<DescriptionToggle :description="injury.system.description" :open="isOpen(injury.id)" @toggle="toggle(injury.id)" />
 			</div>
 			<div v-if="editable" class="actions">
 				<a @click="openSheet(injury)"><i class="fas fa-edit"></i></a>
 				<a @click="deleteItem(injury)"><i class="fas fa-trash"></i></a>
 			</div>
 			<div v-else />
-			<div class="description"><Enriched :value="injury.system.description" /></div>
+			<div :class="['description', { active: isOpen(injury.id) }]"><Enriched :value="injury.system.description" /></div>
 		</div>
 	</div>
 </template>
 
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
-@use '@scss/mixins/expandable.scss';
+@use '@scss/mixins/combat-tab.scss';
 
 .critical-injuries,
 .critical-hits {
@@ -97,15 +101,7 @@ const kind = KINDS[props.kind];
 	}
 
 	.description {
-		grid-column: 1 / span all;
-		justify-self: left;
-		border-left: 4px solid colors.$light-blue;
-		margin-left: 1em;
-		padding-left: 0.5em;
-
-		grid-row: 2 / span 1;
-		padding-right: 0.5em;
-		@include expandable.description;
+		@include combat-tab.row-description(1em);
 	}
 }
 
