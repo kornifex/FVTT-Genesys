@@ -1,19 +1,19 @@
-// The description of a row that the `active` class opens: open, it shows its whole content at its own height, however
-// long (#325); closed, it takes no height. Its single grid row animates from 0fr to 1fr, which reaches the content's own
-// height at a speed the content's length doesn't change, where a max-height had to guess a cap and cut what passed it.
-// The content is the element's only child: it may shrink below its own height and hides what doesn't fit, so that
-// closed, its margins and padding don't show either.
-@mixin description {
+// The description of a row that the `$open` class opens: open, it shows its whole content at its own height, however
+// long (#325); closed, it takes no height. Its single grid row animates from 0fr to 1fr in `$duration`, which reaches
+// the content's own height at a speed the content's length doesn't change, where a max-height had to guess a cap and cut
+// what passed it. The content is the element's only child: it may shrink below its own height and hides what doesn't
+// fit, so that closed, its margins and padding don't show either.
+@mixin description($duration: 0.5s, $easing: ease-in-out, $open: active) {
 	display: grid;
 	grid-template-rows: 0fr;
-	transition: grid-template-rows 0.5s ease-in-out;
+	transition: grid-template-rows $duration $easing;
 
 	& > * {
 		min-height: 0;
 		overflow: hidden;
 	}
 
-	&.active {
+	&.#{$open} {
 		grid-template-rows: 1fr;
 	}
 }

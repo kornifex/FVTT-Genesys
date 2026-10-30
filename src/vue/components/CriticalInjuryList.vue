@@ -55,7 +55,7 @@ const kind = KINDS[props.kind];
 
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
-@use '@scss/mixins/expandable.scss';
+@use '@scss/mixins/combat-tab.scss';
 
 .critical-injuries,
 .critical-hits {
@@ -97,15 +97,7 @@ const kind = KINDS[props.kind];
 	}
 
 	.description {
-		grid-column: 1 / span all;
-		justify-self: left;
-		border-left: 4px solid colors.$light-blue;
-		margin-left: 1em;
-		padding-left: 0.5em;
-
-		grid-row: 2 / span 1;
-		padding-right: 0.5em;
-		@include expandable.description;
+		@include combat-tab.row-description(1em);
 	}
 }
 
