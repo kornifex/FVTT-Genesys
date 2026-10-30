@@ -132,6 +132,14 @@ async function show() {
 		}
 	}
 
+	// The HTML source mode's <code-mirror> grows with its HTML, as the rich text does: v14 positions its scroller in a box of
+	// the element's height, at least 150px, which then scrolls, where v13's flows. The scroller stays positioned as
+	// CodeMirror's base theme sets it, the containing block and stacking context of its cursor and selection layers.
+	code-mirror.source-editor .cm-scroller {
+		position: relative;
+		inset: auto;
+	}
+
 	.editor-container {
 		margin: 0 0 1em;
 	}

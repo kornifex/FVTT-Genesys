@@ -1,4 +1,5 @@
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import { GenesysEffect, registerCombatantEffects } from '@/effects/GenesysEffect';
+import { isFoundryV13 } from '@/foundryGeneration';
 import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
 
 /**
@@ -10,5 +11,12 @@ export function register() {
 	foundry.applications.apps.DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', foundry.applications.sheets.ActiveEffectConfig);
 	foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {
 		makeDefault: true,
+	});
+
+	// v13 has no Active Effect registry: the Acting GM marks the expired effects itself.
+	Hooks.once('ready', () => {
+		if (!isFoundryV13()) {
+			registerCombatantEffects();
+		}
 	});
 }

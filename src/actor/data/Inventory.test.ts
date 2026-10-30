@@ -13,6 +13,8 @@ import {
 	equipmentStateMoves,
 	equipmentStateUpdates,
 	equipmentStep,
+	rowDropTarget,
+	rowEdge,
 	sectionItems,
 	wornArmor,
 } from '@/actor/data/Inventory';
@@ -564,6 +566,66 @@ describe('equipmentStateMoves', () => {
 
 	it('offers nothing for an item held in a Container, which shares its state', () => {
 		expect(actions('character', item('knife', 'weapon', EquipmentState.Carried, 0, 'bag'))).toEqual([]);
+	});
+});
+
+describe('rowEdge', () => {
+	const row = { top: 100, height: 40 };
+
+	it('is the edge before a row on its upper half, and after it on its lower half', () => {
+		expect([100, 119].map((y) => rowEdge(y, row))).toEqual(['before', 'before']);
+		expect([120, 139].map((y) => rowEdge(y, row))).toEqual(['after', 'after']);
+	});
+});
+
+describe('rowDropTarget', () => {
+	// A character with two Equipped weapons, and a Carried one to drop on their rows.
+	const axe = item('axe', 'weapon', EquipmentState.Carried, 100000);
+	const items = [
+		item('sword', 'weapon', EquipmentState.Equipped, 100000),
+		item('spear', 'weapon', EquipmentState.Equipped, 200000),
+		axe,
+		item('rope', 'gear', EquipmentState.Carried, 200000),
+	];
+	const pc = { uuid: 'Actor.pc', type: 'character', items };
+	const from = { uuid: 'Actor.pc', isOwner: true, items };
+
+	it("places an item dropped after a row right after the row's item, in its section", () => {
+		const at = rowDropTarget(EquipmentState.Equipped, 0, 'after');
+
+		expect(decideDrop(pc, { item: axe, from, at }, newIds())).toEqual({
+			action: 'move',
+			create: [],
+			update: [
+				{ _id: 'axe', sort: 200000, system: { state: EquipmentState.Equipped, container: '' } },
+				{ _id: 'spear', sort: 300000 },
+			],
+			delete: [],
+		});
+	});
+
+	it("places an item dropped before a row right before the row's item, the first row's at the top", () => {
+		const at = rowDropTarget(EquipmentState.Equipped, 0, 'before');
+
+		expect(decideDrop(pc, { item: axe, from, at }, newIds())).toEqual({
+			action: 'move',
+			create: [],
+			update: [
+				{ _id: 'axe', sort: 100000, system: { state: EquipmentState.Equipped, container: '' } },
+				{ _id: 'sword', sort: 200000 },
+				{ _id: 'spear', sort: 300000 },
+			],
+			delete: [],
+		});
+	});
+
+	it("refuses an item the row's section refuses, as its sort slots do", () => {
+		const rope = items[3];
+
+		for (const edge of ['before', 'after'] as const) {
+			const at = rowDropTarget(EquipmentState.Equipped, 1, edge);
+			expect(decideDrop(pc, { item: rope, from, at }, newIds())).toEqual({ action: 'refuse' });
+		}
 	});
 });
 

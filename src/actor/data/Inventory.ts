@@ -40,6 +40,26 @@ type Receiver = {
 export type DropTarget = { kind: 'section'; state: EquipmentState; after: number } | { kind: 'container'; id: string } | { kind: 'sheet' };
 
 /**
+ * The edge of an inventory row an item dropped on it lands next to.
+ */
+export type RowEdge = 'before' | 'after';
+
+/**
+ * The edge of a row a drag points at: the one before it on its upper half, the one after it on its lower half.
+ */
+export function rowEdge(pointerY: number, row: { top: number; height: number }): RowEdge {
+	return pointerY < row.top + row.height / 2 ? 'before' : 'after';
+}
+
+/**
+ * Where an item dropped on an edge of a section's row at `index` lands: in the row's section, next to its item, as on the
+ * sort slot at that edge.
+ */
+export function rowDropTarget(state: EquipmentState, index: number, edge: RowEdge): DropTarget {
+	return { kind: 'section', state, after: edge === 'before' ? index - 1 : index };
+}
+
+/**
  * An item dropped on an inventory.
  */
 type Drop = {
