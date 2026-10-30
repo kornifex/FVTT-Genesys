@@ -326,11 +326,11 @@ function installCombatHelpers() {
 
 		async toggleEffect(name, effect) {
 			const sheet = window.e2e.token(name).actor.sheet;
-			const effectRow = (root: Element) => {
+			const findRow = (root: Element) => {
 				const view = root.querySelector('.effects-view');
 				return view && window.e2e.effectRows(view).find((row) => row.name === effect);
 			};
-			await window.e2e.toggleEffect(effectRow(await window.e2e.render(sheet, effectRow))!);
+			await window.e2e.toggleEffect(findRow(await window.e2e.render(sheet, findRow))!);
 			await sheet.close();
 		},
 	};

@@ -203,6 +203,8 @@ type EffectsTabRow = {
 	name: string;
 	source: string;
 	duration: string;
+	/** Why the effect doesn't apply, as its row's tooltip says, or null when the row has none. */
+	tooltip: string | null;
 	element: HTMLElement;
 };
 
@@ -585,6 +587,7 @@ export function installHelpers() {
 						name: helpers.text(row.querySelector('.name')),
 						source: helpers.text(row.querySelector('.source')),
 						duration: helpers.text(row.querySelector('.duration')),
+						tooltip: row.dataset.tooltip ?? null,
 						element: row,
 					});
 				}

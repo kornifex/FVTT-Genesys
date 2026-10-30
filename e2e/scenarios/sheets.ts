@@ -816,7 +816,7 @@ function installSheetsHelpers() {
 				section: row.section,
 				name: row.name,
 				source: row.source,
-				tooltip: row.element.dataset.tooltip ?? null,
+				tooltip: row.tooltip,
 				buttons: [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
 			}));
 		},

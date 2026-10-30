@@ -840,7 +840,7 @@ function installInventoryHelpers() {
 			const inactive = game.i18n.localize('Genesys.ActiveEffects.Suppressed');
 			return (view ? effectRows(view) : [])
 				.filter((row) => row.section === inactive)
-				.map((row) => `${unprefixed(row.name)} | ${row.element.dataset.tooltip ?? ''}`);
+				.map((row) => `${unprefixed(row.name)} | ${row.tooltip ?? ''}`);
 		},
 
 		async protection(ref) {
