@@ -42,7 +42,8 @@ type Size = { width: number; height: number };
 type EditorState = { toggle: 'enabled' | 'disabled' | null; open: boolean; text: string; links: number };
 
 /**
- * The look of a heading: its size against its parent's, its margins in rem, and its bottom rule.
+ * The look of a heading: its size against its parent's, its margins in rem, its weight, line height, colour, shadow and
+ * bottom rule.
  */
 type HeadingStyle = { size: number; margin: string; weight: string; lineHeight: string; color: string; shadow: string; border: string };
 
@@ -171,8 +172,8 @@ type SheetsHelpers = {
 	 * by others, then put back.
 	 */
 	trackedAttributeLabels(name: string, translations: Record<string, string>): string[];
-	/** Opens a sheet whose description holds an `h1` to `h4`, and reads their look, with the window's text colour. */
-	descriptionHeadings(name: string): Promise<{ text: string; headings: Record<string, HeadingStyle> }>;
+	/** Opens a sheet whose description holds an `h1` to `h4`, and reads their look. */
+	descriptionHeadings(name: string): Promise<Record<string, HeadingStyle>>;
 	/** Reads the look of an `h3` in a journal's text page, which the sheets' styles must leave alone. */
 	journalHeading(): Promise<HeadingStyle>;
 	cleanUp(): Promise<void>;
@@ -1081,9 +1082,8 @@ function installSheetsHelpers() {
 			const headings = Object.fromEntries(
 				tags.map((tag) => [tag, headingStyle(element.querySelector<HTMLElement>(`.editor-content ${tag}`)!)]),
 			);
-			const text = getComputedStyle(element.querySelector('.window-content')!).color;
 			await helpers.close(name);
-			return { text, headings };
+			return headings;
 		},
 
 		async journalHeading() {
@@ -1261,7 +1261,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// #346: ApplicationV2 gives headings its own look (v12: light text with a dark shadow, v13 on: a larger size) and wide
 	// margins. A description's headings keep AppV1's look, and a journal's are left alone.
-	let headings: Awaited<ReturnType<SheetsHelpers['descriptionHeadings']>> | undefined;
+	let headings: Record<string, HeadingStyle> | undefined;
 	let journalHeading: HeadingStyle | undefined;
 	await e2e.step('#346 GM opens a skill whose description holds headings, and a journal page', async () => {
 		headings = await gm.evaluate(() => window.sheetsE2E.descriptionHeadings('skill'));
@@ -1272,14 +1272,15 @@ export async function run(e2e: ScenarioContext) {
 		margin: '0 0 0.5 0',
 		weight: '400',
 		lineHeight: 'normal',
-		color: headings!.text,
+		// AppV1's text colour, which the sheets' windows give their content.
+		color: 'rgb(25, 24, 19)',
 		shadow: 'none',
 		border,
 	});
 	const underline = (width: string) => `${width} solid rgb(120, 46, 34)`;
 	e2e.expect(
 		"#346 A1 a description's headings look as in an AppV1 window: the window's text colour, no shadow, AppV1's sizes, margins and rules",
-		headings!.headings,
+		headings,
 		{
 			h1: appV1Heading(2, underline('2px')),
 			h2: appV1Heading(1.5, underline('1px')),
@@ -1287,7 +1288,22 @@ export async function run(e2e: ScenarioContext) {
 			h4: appV1Heading(1, 'none'),
 		},
 	);
-	e2e.log("#346 a journal page's h3, unchanged against the base", journalHeading);
+	e2e.expect(
+		"#346 A2 a journal page's h3 keeps Foundry's look",
+		journalHeading,
+		// v12 draws a journal's headings as AppV1's, v13 as its own journal pages', without a bottom rule.
+		version === 12
+			? appV1Heading(1.25, underline('1px'))
+			: {
+					size: 1.25,
+					margin: '0 0 0.5 0',
+					weight: '400',
+					lineHeight: '17.5px',
+					color: 'rgb(239, 230, 216)',
+					shadow: 'none',
+					border: 'none',
+				},
+	);
 
 	// Prompts and the story point tracker.
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));
