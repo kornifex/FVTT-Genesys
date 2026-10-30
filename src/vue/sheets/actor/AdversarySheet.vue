@@ -21,6 +21,7 @@ import Motivations from '@/vue/components/Motivations.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
 import { startDocumentDrag } from '@/data/DragTransferData';
+import { isEmptyDescription } from '@/data/Descriptions';
 import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
@@ -32,7 +33,7 @@ import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
-const hasDescription = computed(() => system.value.description.trim() !== '');
+const hasDescription = computed(() => !isEmptyDescription(system.value.description));
 
 const talents = computed(() => itemsOfType(actor.value, 'talent'));
 const abilities = computed(() => itemsOfType(actor.value, 'ability'));
