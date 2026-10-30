@@ -55,6 +55,11 @@ export type FixedDie = { face: number; faces: number };
 export type ConfirmDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
 
 /**
+ * A point of the window, in client coordinates.
+ */
+export type Point = { x: number; y: number };
+
+/**
  * An expandable description of a row as laid out (#325): its height in px, rounded, or `>cap` past the cap given, since
  * the height of a long text differs between the versions' fonts; how many px of its content it cuts off, it or its
  * content clipping; whether its last element ends inside its box; and how its height animates.
@@ -136,9 +141,10 @@ type PageHelpers = {
 	dragStart: (element: Element) => DataTransfer;
 	/**
 	 * Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does.
-	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then.
+	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then. The drop lands at
+	 * a point of the window when one is given, for a target that reads where it lands.
 	 */
-	drop: (element: Element, data: object | DataTransfer) => void;
+	drop: (element: Element, data: object | DataTransfer, point?: Point) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
 	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
 	/** Creates and views the scene `E2E` when no scene is viewed. */
@@ -467,10 +473,11 @@ export function installHelpers() {
 			return dataTransfer;
 		},
 
-		drop(element, data) {
+		drop(element, data, point) {
 			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
 			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
-			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+			const at = point ? { clientX: point.x, clientY: point.y } : {};
+			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer, ...at }));
 			dataTransfer.clearData();
 		},
 
