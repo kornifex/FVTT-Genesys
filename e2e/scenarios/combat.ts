@@ -309,13 +309,13 @@ function installCombatHelpers() {
 
 		async effectRows(name) {
 			const sheet = window.e2e.token(name).actor.sheet;
-			const root = await window.e2e.render(sheet, (root) => root.querySelector('.effects-view'));
+			const root = await window.e2e.render(sheet, window.e2e.effectsView);
 			const sections: Record<string, EffectRow['section']> = {
 				[game.i18n.localize('Genesys.ActiveEffects.Temporary')]: 'temporary',
 				[game.i18n.localize('Genesys.ActiveEffects.Passive')]: 'passive',
 				[game.i18n.localize('Genesys.ActiveEffects.Suppressed')]: 'suppressed',
 			};
-			const rows = window.e2e.effectRows(root.querySelector('.effects-view')!).map((row) => ({
+			const rows = window.e2e.effectRows(root).map((row) => ({
 				section: sections[row.section] ?? '?',
 				name: row.name,
 				duration: row.duration,
@@ -326,10 +326,7 @@ function installCombatHelpers() {
 
 		async toggleEffect(name, effect) {
 			const sheet = window.e2e.token(name).actor.sheet;
-			const findRow = (root: Element) => {
-				const view = root.querySelector('.effects-view');
-				return view && window.e2e.effectRows(view).find((row) => row.name === effect);
-			};
+			const findRow = (root: Element) => window.e2e.effectRows(root).find((row) => row.name === effect);
 			await window.e2e.toggleEffect(findRow(await window.e2e.render(sheet, findRow))!);
 			await sheet.close();
 		},
