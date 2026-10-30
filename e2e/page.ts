@@ -67,6 +67,12 @@ export type Point = { x: number; y: number };
 export type DescriptionBox = { height: number | string; clipped: number; lastInside: boolean; transition: string };
 
 /**
+ * The chevron that opens and closes the description of a Combat tab row (#393): where it points, `right` closed and
+ * `down` open, and its tooltip, localized.
+ */
+export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
+
+/**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
@@ -176,11 +182,10 @@ type PageHelpers = {
 	effectRows: (view: Element) => EffectsTabRow[];
 	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
 	showTab: (name: string, tab: string) => Promise<void>;
-	/**
-	 * Gives an element the `active` class, or takes it away: opens or closes an expandable description that no click
-	 * toggles, as in the Combat tabs.
-	 */
-	setActive: (element: Element, active: boolean) => void;
+	/** The chevron of a row with an expandable description, or null when the row shows none. */
+	chevron: (row: Element) => Chevron | null;
+	/** Clicks the chevron of a row, which opens or closes its description; false when the row shows none. */
+	clickChevron: (row: Element) => boolean;
 	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
 	descriptionBox: (description: Element, cap: number) => DescriptionBox;
 };
@@ -591,8 +596,21 @@ export function installHelpers() {
 			await helpers.waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
 		},
 
-		setActive(element, active) {
-			element.classList.toggle('active', active);
+		chevron(row) {
+			const toggle = row.querySelector<HTMLElement>('.description-toggle');
+			if (!toggle) return null;
+			const icon = toggle.querySelector('i');
+			return {
+				points: icon?.classList.contains('fa-chevron-down') ? 'down' : icon?.classList.contains('fa-chevron-right') ? 'right' : '?',
+				// Foundry localizes a tooltip's key as it shows it.
+				tooltip: game.i18n.localize(toggle.dataset.tooltip ?? ''),
+			};
+		},
+
+		clickChevron(row) {
+			const toggle = row.querySelector<HTMLElement>('.description-toggle');
+			toggle?.click();
+			return !!toggle;
 		},
 
 		descriptionBox(description, cap) {

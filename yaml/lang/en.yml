@@ -83,6 +83,8 @@ Genesys:
     IsInitiative: Whether the skill is commonly used for Initiative or not. Setting this to true will make it appear as an option in the combat tracker for mass rolls.
     CycleInitiativeSkill: Cycle which initiative skill the combatant is using.
     AddExtraInitiativeSlot: Adds an extra initiative slot.
+    ShowDescription: Show the description
+    HideDescription: Hide the description
 
   # Dice Rolls
   Rolls:

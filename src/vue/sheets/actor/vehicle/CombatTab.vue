@@ -9,8 +9,11 @@ import { severityDifficulty } from '@/item/data/Injuries';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
 import Localized from '@/vue/components/Localized.vue';
+import Enriched from '@/vue/components/Enriched.vue';
+import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import { useOpenRows } from '@/vue/useOpenRows';
 
 import { rollForCrew } from '@/operations/CrewRoll';
 import { attackWithVehicleWeapon } from '@/operations/ItemActions';
@@ -21,6 +24,7 @@ const { document: actor } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 const weapons = computed(() => itemsOfType(actor.value, 'vehicleWeapon').filter((i) => i.system.state === EquipmentState.Equipped));
 const criticalHits = computed(() => itemsOfType(actor.value, 'injury'));
+const openWeapons = useOpenRows();
 
 async function repairHit(criticalHit: GenesysItem<'injury'>) {
 	await rollForCrew(crewForSkills(actor.value.system.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
@@ -48,6 +52,11 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 
 					<div class="name">
 						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>
+						<DescriptionToggle
+							:description="weapon.system.description"
+							:open="openWeapons.isOpen(weapon.id)"
+							@toggle="openWeapons.toggle(weapon.id)"
+						/>
 					</div>
 
 					<div class="skill" v-if="weapon.system.skills.length > 0">
@@ -66,6 +75,10 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					</div>
 
 					<QualityList :qualities="weapon.system.qualities" tags class="qualities" />
+
+					<div :class="['description', { active: openWeapons.isOpen(weapon.id) }]">
+						<Enriched :value="weapon.system.description" />
+					</div>
 				</div>
 			</div>
 		</div>
@@ -106,11 +119,6 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					display: none;
 				}
 			}
-		}
-
-		.qualities {
-			grid-column: 1 / span all;
-			grid-row: 2 / span 1;
 		}
 	}
 }

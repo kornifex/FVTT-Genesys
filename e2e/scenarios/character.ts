@@ -1,6 +1,6 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
 import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
-import type { ConfirmDialog, DescriptionBox } from '../page.ts';
+import type { Chevron, ConfirmDialog, DescriptionBox } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
 
@@ -86,13 +86,22 @@ type CharacterHelpers = {
 	trashTalentRow(actor: string, name: string): void;
 	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
 	toggleTalent(actor: string, talent: string): void;
+	/** Clicks the chevron of a Combat tab row, which opens or closes its description; false when the row shows none. */
+	clickChevron(actor: string, row: DescriptionRow): boolean;
+	/** The chevron of a Combat tab row, or null when the row shows none. */
+	chevron(actor: string, row: DescriptionRow): Chevron | null;
+	/** Clicks the name of a Combat tab row. */
+	clickName(actor: string, row: DescriptionRow): void;
 	/**
-	 * Opens or closes the description of an armor or a Critical Injury of the Combat tab by its `active` class, which no
-	 * click toggles there.
+	 * Whether the sheet of the actor's item `E2E <item>` and a Dice Prompt are open, then closes them: a Combat tab row's
+	 * name opens one or the other.
 	 */
-	setDescriptionActive(actor: string, row: DescriptionRow, active: boolean): void;
-	/** The description of a row, as laid out: its height is given as `>cap` past `cap` px. */
-	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox;
+	takeOpened(actor: string, item: string): Promise<{ sheet: boolean; dicePrompt: boolean }>;
+	/**
+	 * The description of a row, as laid out: its height is given as `>cap` past `cap` px. Null when the row has none, as
+	 * a weapon's row before #393.
+	 */
+	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox | null;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
@@ -123,8 +132,11 @@ type CharacterHelpers = {
 	deletePack(): Promise<void>;
 };
 
-/** A row with an expandable description, by its item's name without its `E2E ` prefix. */
-type DescriptionRow = { talent: string } | { armor: string } | { injury: string };
+/**
+ * A row with an expandable description, by its item's name without its `E2E ` prefix, or a weapon's Combat tab row by
+ * the name it shows without its prefix, `Dagger (Thrown)`.
+ */
+type DescriptionRow = { talent: string } | { armor: string } | { injury: string } | { weapon: string };
 
 type MenuTarget = { characteristic: Characteristic } | { skill: string } | { meta: 'archetype' | 'career' } | { adversarySkill: string };
 
@@ -194,15 +206,22 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')].find(
 			(candidate) => text(candidate.querySelector('.name')) === `E2E ${armor}`,
 		);
-	// The element of a row that its `active` class opens.
-	const description = (name: string, row: DescriptionRow) => {
-		let found: Element | null | undefined;
-		if ('talent' in row) found = talentRow(name, `E2E ${row.talent}`)?.querySelector('.desc-container');
-		else if ('armor' in row) found = armorRow(name, row.armor)?.querySelector('.description');
-		else found = injuryRow(name, row.injury)?.querySelector('.description');
-		if (!found) throw new Error(`No description for ${JSON.stringify(row)}`);
+	const weaponRow = (name: string, row: string) =>
+		[...sheet(name).querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].find(
+			(candidate) => unprefixed(text(candidate.querySelector('.name'))) === row,
+		);
+	const rowOf = (name: string, row: DescriptionRow) => {
+		let found: Element | undefined;
+		if ('talent' in row) found = talentRow(name, `E2E ${row.talent}`);
+		else if ('armor' in row) found = armorRow(name, row.armor);
+		else if ('injury' in row) found = injuryRow(name, row.injury);
+		else found = weaponRow(name, row.weapon);
+		if (!found) throw new Error(`No row for ${JSON.stringify(row)}`);
 		return found;
 	};
+	// The element of a row that its `active` class opens.
+	const description = (name: string, row: DescriptionRow) =>
+		rowOf(name, row).querySelector('talent' in row ? '.desc-container' : '.description');
 	const entryText = (entry: { type: string; amount: number; data?: Record<string, string | number | undefined> }) => {
 		const data = entry.data ?? {};
 		switch (entry.type) {
@@ -656,12 +675,30 @@ function installCharacterHelpers() {
 			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name a'), `name of the talent ${talent}`);
 		},
 
-		setDescriptionActive(name, row, active) {
-			window.e2e.setActive(description(name, row), active);
+		clickChevron(name, row) {
+			return window.e2e.clickChevron(rowOf(name, row));
+		},
+
+		chevron(name, row) {
+			return window.e2e.chevron(rowOf(name, row));
+		},
+
+		clickName(name, row) {
+			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
+		},
+
+		async takeOpened(name, item) {
+			const itemSheet = actor(name).items.getName(`E2E ${item}`).sheet;
+			const prompts = apps('app-dice-prompt').filter((app: App) => app.rendered);
+			const opened = { sheet: itemSheet.rendered, dicePrompt: prompts.length > 0 };
+			if (itemSheet.rendered) await itemSheet.close();
+			for (const prompt of prompts) await prompt.close();
+			return opened;
 		},
 
 		descriptionBox(name, row, cap) {
-			return window.e2e.descriptionBox(description(name, row), cap);
+			const element = description(name, row);
+			return element && window.e2e.descriptionBox(element, cap);
 		},
 
 		superCharacteristics(name) {
@@ -789,9 +826,7 @@ function installCharacterHelpers() {
 		},
 
 		async chooseAttackSkill({ actor: name, row, skill }) {
-			const found = [...sheet(name).querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].find(
-				(candidate) => unprefixed(text(candidate.querySelector('.name'))) === row,
-			);
+			const found = weaponRow(name, row);
 			// A build without Weapon Profiles shows no row for an extra profile.
 			const select = found?.querySelector<HTMLSelectElement>('select.attack-skill');
 			if (!select) return false;
@@ -851,6 +886,7 @@ export async function run(e2e: ScenarioContext) {
 		await weaponProfiles(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
+		await combatRowDescriptions(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -2178,9 +2214,11 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const D = 'Reader';
 	const box = (row: DescriptionRow, cap: number) =>
 		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row, cap });
-	const closed = async (row: DescriptionRow) => closedParts(await box(row, 100_000));
-	const setActive = (row: DescriptionRow, active: boolean) =>
-		page((args) => window.characterE2E.setDescriptionActive(args.name, args.row, args.active), { name: D, row, active });
+	const closed = async (row: DescriptionRow) => {
+		const read = await box(row, 100_000);
+		return read && closedParts(read);
+	};
+	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: D, row });
 
 	await e2e.step('#325 A1 a talent with a description taller than 500px clicked open in the Talents tab', async () => {
 		await page((name) => window.characterE2E.create(name), D);
@@ -2212,38 +2250,181 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		CLOSED_DESCRIPTION,
 	);
 
-	// No click opens a description in the Combat tab: the steps give it the class a toggle would.
-	await e2e.step('#325 B1 the description of an armor taller than 200px opened in the Combat tab, by its active class', async () => {
+	await e2e.step('#325 B1 the description of an armor taller than 200px opened in the Combat tab, by its chevron', async () => {
 		await page((name) => window.e2e.showTab(name, 'combat'), D);
-		await setActive({ armor: 'Padded Coat' }, true);
+		await clickChevron({ armor: 'Padded Coat' });
 	});
 	e2e.expect(
 		"#325 B1 the armor's description shows its last line, at its full height past 200px",
 		await box({ armor: 'Padded Coat' }, 200),
 		shownDescription(200),
 	);
-	await e2e.step('#325 B2 the description of the armor closed', () => setActive({ armor: 'Padded Coat' }, false));
+	await e2e.step('#325 B2 the description of the armor closed', () => clickChevron({ armor: 'Padded Coat' }));
 	e2e.expect(
 		"#325 B2 the armor's closed description takes no height, and animates its rows",
 		await closed({ armor: 'Padded Coat' }),
 		CLOSED_DESCRIPTION,
 	);
 
-	await e2e.step('#325 C1 the description of a Critical Injury taller than 200px opened in the Combat tab, by its active class', () =>
-		setActive({ injury: 'Deep Gash' }, true),
+	await e2e.step('#325 C1 the description of a Critical Injury taller than 200px opened in the Combat tab, by its chevron', () =>
+		clickChevron({ injury: 'Deep Gash' }),
 	);
 	e2e.expect(
 		"#325 C1 the Critical Injury's description shows its last line, at its full height past 200px",
 		await box({ injury: 'Deep Gash' }, 200),
 		shownDescription(200),
 	);
-	await e2e.step('#325 C2 the description of the Critical Injury closed', () => setActive({ injury: 'Deep Gash' }, false));
+	await e2e.step('#325 C2 the description of the Critical Injury closed', () => clickChevron({ injury: 'Deep Gash' }));
 	e2e.expect(
 		"#325 C2 the Critical Injury's closed description takes no height, and animates its rows",
 		await closed({ injury: 'Deep Gash' }),
 		CLOSED_DESCRIPTION,
 	);
 	await page((name) => window.characterE2E.close(name), D);
+}
+
+/**
+ * §#393: the chevron after the name of a Combat tab row opens and closes its description, each Weapon Profile's row on
+ * its own; a row without a description shows none, and the name keeps its click.
+ */
+async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
+	const C = 'Duelist';
+	const box = (row: DescriptionRow, cap: number) =>
+		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: C, row, cap });
+	const closed = async (row: DescriptionRow) => {
+		const read = await box(row, 100_000);
+		return read && closedParts(read);
+	};
+	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row });
+	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: C, row });
+	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: C, row });
+	const takeOpened = (item: string) => page((args) => window.characterE2E.takeOpened(args.name, args.item), { name: C, item });
+	const MAIN = { weapon: 'Dagger' };
+	const THROWN = { weapon: 'Dagger (Thrown)' };
+	const SHOW: Chevron = { points: 'right', tooltip: 'Show the description' };
+	const HIDE: Chevron = { points: 'down', tooltip: 'Hide the description' };
+	// The character owns every Skills Compendium skill, at rank 0: the Thrown profile attacks with Ranged, listed first.
+	const weapon = dagger({ main: ['Melee', 'Brawl'], thrown: ['Ranged', 'Athletics'] });
+	const rows = async () => ({
+		main: await chevron(MAIN),
+		thrown: await chevron(THROWN),
+		armor: await chevron({ armor: 'Leather' }),
+		injury: await chevron({ injury: 'Bruise' }),
+	});
+
+	await e2e.step(
+		'#393 A1 a character given a described dagger with a Thrown profile, a club, a described armor and Critical Injury, and a Critical Injury without a description, its Combat tab shown',
+		async () => {
+			await page((name) => window.characterE2E.create(name), C);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: C,
+				items: [
+					{ ...weapon, system: { ...weapon.system, description: LONG_DESCRIPTION } },
+					{ name: 'E2E Club', type: 'weapon', system: { skills: ['Melee'], state: 'equipped' } },
+					{ name: 'E2E Leather', type: 'armor', system: { state: 'equipped', description: '<p>Boiled leather.</p>' } },
+					{ name: 'E2E Bruise', type: 'injury', system: { severity: 'easy', description: '<p>A dark bruise.</p>' } },
+					{ name: 'E2E Scrape', type: 'injury', system: { severity: 'easy' } },
+				],
+			});
+			await page((name) => window.characterE2E.open(name), C);
+			await page((name) => window.e2e.showTab(name, 'combat'), C);
+		},
+	);
+	e2e.expect(
+		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, pointing right, to show the description',
+		await rows(),
+		{ main: SHOW, thrown: SHOW, armor: SHOW, injury: SHOW },
+	);
+	e2e.expect(
+		"#393 A1 the rows of a weapon and of a Critical Injury without a description show no chevron, and every row's description starts closed",
+		{
+			club: await chevron({ weapon: 'Club' }),
+			scrape: await chevron({ injury: 'Scrape' }),
+			main: await closed(MAIN),
+			thrown: await closed(THROWN),
+			armor: await closed({ armor: 'Leather' }),
+			injury: await closed({ injury: 'Bruise' }),
+		},
+		{
+			club: null,
+			scrape: null,
+			main: CLOSED_DESCRIPTION,
+			thrown: CLOSED_DESCRIPTION,
+			armor: CLOSED_DESCRIPTION,
+			injury: CLOSED_DESCRIPTION,
+		},
+	);
+
+	await e2e.step("#393 A2 the chevron of the dagger's main row clicked", () => clickChevron(MAIN));
+	const opened = await takeOpened('Dagger');
+	e2e.expect(
+		"#393 A2 the main row's description shows the weapon's last line, at its full height past 200px",
+		await box(MAIN, 200),
+		shownDescription(200),
+	);
+	e2e.expect(
+		"#393 A2 the main row's chevron points down, to hide the description, and the Thrown row's stays closed",
+		{ main: await chevron(MAIN), thrown: await chevron(THROWN), thrownBox: await closed(THROWN) },
+		{ main: HIDE, thrown: SHOW, thrownBox: CLOSED_DESCRIPTION },
+	);
+	e2e.expect("#393 A2 the chevron opens neither the weapon's sheet nor the Dice Prompt", opened, { sheet: false, dicePrompt: false });
+
+	await e2e.step("#393 A3 the chevron of the dagger's Thrown row clicked", () => clickChevron(THROWN));
+	e2e.expect(
+		"#393 A3 the Thrown row's description shows the weapon's last line too, at its full height past 200px",
+		{ main: await box(MAIN, 200), thrown: await box(THROWN, 200) },
+		{ main: shownDescription(200), thrown: shownDescription(200) },
+	);
+
+	await e2e.step("#393 A4 the chevron of the dagger's main row clicked again", () => clickChevron(MAIN));
+	e2e.expect(
+		"#393 A4 the main row's description closes, its chevron pointing right again, and the Thrown row's stays open",
+		{
+			main: await closed(MAIN),
+			mainChevron: await chevron(MAIN),
+			thrown: await box(THROWN, 200),
+			thrownChevron: await chevron(THROWN),
+		},
+		{ main: CLOSED_DESCRIPTION, mainChevron: SHOW, thrown: shownDescription(200), thrownChevron: HIDE },
+	);
+
+	await e2e.step('#393 A5 the sheet closed and opened again, on its Combat tab, with the Thrown row open', async () => {
+		await page((name) => window.characterE2E.reopen(name), C);
+		await page((name) => window.e2e.showTab(name, 'combat'), C);
+	});
+	e2e.expect(
+		'#393 A5 every row opens closed again',
+		{ rows: await rows(), thrown: await closed(THROWN) },
+		{ rows: { main: SHOW, thrown: SHOW, armor: SHOW, injury: SHOW }, thrown: CLOSED_DESCRIPTION },
+	);
+
+	await e2e.step('#393 B1 the name of the armor clicked', () => clickName({ armor: 'Leather' }));
+	e2e.expect(
+		"#393 B1 the armor's name opens its sheet, and leaves its description closed",
+		{ box: await closed({ armor: 'Leather' }), ...(await takeOpened('Leather')) },
+		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
+	);
+
+	await e2e.step('#393 B2 the name of the Critical Injury clicked', () => clickName({ injury: 'Bruise' }));
+	e2e.expect(
+		"#393 B2 the Critical Injury's name opens its sheet, and leaves its description closed",
+		{ box: await closed({ injury: 'Bruise' }), ...(await takeOpened('Bruise')) },
+		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
+	);
+
+	let prompt: unknown;
+	await e2e.step("#393 B3 the name of the dagger's Thrown row clicked", async () => {
+		await clickName(THROWN);
+		const { actor, skill } = await page(() => window.characterE2E.dicePrompt(), undefined);
+		prompt = { actor, skill, box: await closed(THROWN) };
+	});
+	e2e.expect("#393 B3 the Thrown row's name opens the Dice Prompt of its attack, and leaves its description closed", prompt, {
+		actor: 'E2E Duelist',
+		skill: 'Ranged',
+		box: CLOSED_DESCRIPTION,
+	});
+
+	await page((name) => window.characterE2E.close(name), C);
 }
 
 /** §#200: a talent's tier kept from 1 to 5, and one saved above 5 read as 5. */

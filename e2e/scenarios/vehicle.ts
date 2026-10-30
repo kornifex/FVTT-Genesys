@@ -1,6 +1,6 @@
 /** @file #214: a vehicle's Crew and its Roles, its Skills tab, the crew members who roll its checks, and deleting vehicles with their crew. */
 import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
-import type { DescriptionBox } from '../page.ts';
+import type { Chevron, DescriptionBox } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 
 /**
@@ -89,10 +89,15 @@ type VehicleHelpers = {
 	deleteScene(name: string): Promise<void>;
 	/** Deletes the n-th token of a scene from the left, from 1. */
 	deleteToken(args: { scene: string; n: number }): Promise<void>;
-	/** Gives an element of an actor's sheet the `active` class, or takes it away. */
-	setActive(args: { actor: string; target: Target; active: boolean }): Promise<void>;
-	/** An expandable description of an actor's sheet, as laid out: its height is given as `>cap` past `cap` px. */
-	descriptionBox(args: { actor: string; target: Target; cap: number }): Promise<DescriptionBox>;
+	/** Clicks the chevron of a Combat tab row, which opens or closes its description; false when the row shows none. */
+	clickChevron(args: { actor: string; row: Target }): Promise<boolean>;
+	/** The chevron of a Combat tab row, or null when the row shows none. */
+	chevron(args: { actor: string; row: Target }): Promise<Chevron | null>;
+	/**
+	 * The description of a Combat tab row, as laid out: its height is given as `>cap` past `cap` px. Null when the row has
+	 * none, as a vehicle weapon's row before #393.
+	 */
+	descriptionBox(args: { actor: string; row: Target; cap: number }): Promise<DescriptionBox | null>;
 };
 
 declare global {
@@ -470,12 +475,17 @@ function installVehicleHelpers() {
 			await tokensOf(scene)[n - 1].delete();
 		},
 
-		async setActive({ actor: name, target, active }) {
-			window.e2e.setActive(find(await sheet(name), target), active);
+		async clickChevron({ actor: name, row }) {
+			return window.e2e.clickChevron(find(await sheet(name), row));
 		},
 
-		async descriptionBox({ actor: name, target, cap }) {
-			return window.e2e.descriptionBox(find(await sheet(name), target), cap);
+		async chevron({ actor: name, row }) {
+			return window.e2e.chevron(find(await sheet(name), row));
+		},
+
+		async descriptionBox({ actor: name, row, cap }) {
+			const description = find(await sheet(name), row).querySelector(':scope > .description');
+			return description && window.e2e.descriptionBox(description, cap);
 		},
 	};
 	window.vehicleE2E = helpers;
@@ -524,6 +534,7 @@ export async function run(e2e: ScenarioContext) {
 	await crewRolls(e2e);
 	await vehicleE2E('closePrompts');
 	await expandedDescriptions(e2e);
+	await combatRowDescriptions(e2e);
 }
 
 /**
@@ -532,37 +543,110 @@ export async function run(e2e: ScenarioContext) {
  */
 async function expandedDescriptions(e2e: ScenarioContext) {
 	const vehicleE2E = helpersOf(e2e.gm);
-	const description: Target = ['.tab-combat .critical-hits .critical-hit|=Hull Fire', '.description|1'];
+	const row: Target = ['.tab-combat .critical-hits .critical-hit|=Hull Fire'];
 
-	// No click opens a description in the Combat tab: the step gives it the class a toggle would.
+	await e2e.step('#325 D1 the description of a Critical Hit taller than 200px opened in the Combat tab, by its chevron', async () => {
+		await vehicleE2E('createActors', [
+			{
+				name: 'Barge',
+				type: 'vehicle',
+				items: [{ name: 'E2E Hull Fire', type: 'injury', system: { severity: 'easy', description: LONG_DESCRIPTION } }],
+			},
+		]);
+		await e2e.gm.evaluate(() => window.e2e.showTab('Barge', 'combat'));
+		await vehicleE2E('clickChevron', { actor: 'Barge', row });
+	});
+	e2e.expect(
+		"#325 D1 the Critical Hit's description shows its last line, at its full height past 200px",
+		await vehicleE2E('descriptionBox', { actor: 'Barge', row, cap: 200 }),
+		shownDescription(200),
+	);
+	await e2e.step('#325 D2 the description of the Critical Hit closed', () => vehicleE2E('clickChevron', { actor: 'Barge', row }));
+	const closed = await vehicleE2E('descriptionBox', { actor: 'Barge', row, cap: 100_000 });
+	e2e.expect(
+		"#325 D2 the Critical Hit's closed description takes no height, and animates its rows",
+		closed && closedParts(closed),
+		CLOSED_DESCRIPTION,
+	);
+}
+
+/**
+ * §#393: the chevron after the name of a vehicle weapon's Combat tab row opens and closes its description; a row without
+ * a description shows none, and the name still rolls the attack.
+ */
+async function combatRowDescriptions(e2e: ScenarioContext) {
+	const vehicleE2E = helpersOf(e2e.gm);
+	const harpoon: Target = ['.tab-combat .weapons .weapon|=Harpoon'];
+	const box = (cap: number) => vehicleE2E('descriptionBox', { actor: 'Lugger', row: harpoon, cap });
+	const closed = async () => {
+		const read = await box(100_000);
+		return read && closedParts(read);
+	};
+	const chevron = (row: Target) => vehicleE2E('chevron', { actor: 'Lugger', row });
+	const SHOW: Chevron = { points: 'right', tooltip: 'Show the description' };
+	const HIDE: Chevron = { points: 'down', tooltip: 'Hide the description' };
+
 	await e2e.step(
-		'#325 D1 the description of a Critical Hit taller than 200px opened in the Combat tab, by its active class',
+		'#393 C1 a vehicle given a described vehicle weapon, a vehicle weapon without a description and a gunner, its Combat tab shown',
 		async () => {
 			await vehicleE2E('createActors', [
+				{ name: 'Deckhand', type: 'character', items: [skill('Gunnery', 'agility', 1)] },
 				{
-					name: 'Barge',
+					name: 'Lugger',
 					type: 'vehicle',
-					items: [{ name: 'E2E Hull Fire', type: 'injury', system: { severity: 'easy', description: LONG_DESCRIPTION } }],
+					items: [
+						{
+							name: 'E2E Harpoon',
+							type: 'vehicleWeapon',
+							system: { skills: ['Gunnery'], state: 'equipped', description: LONG_DESCRIPTION },
+						},
+						{ name: 'E2E Swivel Gun', type: 'vehicleWeapon', system: { skills: ['Gunnery'], state: 'equipped' } },
+					],
+					roles: [{ name: 'Gunner', skills: ['Gunnery'], members: ['Deckhand'] }],
 				},
 			]);
-			await e2e.gm.evaluate(() => window.e2e.showTab('Barge', 'combat'));
-			await vehicleE2E('setActive', { actor: 'Barge', target: description, active: true });
+			await e2e.gm.evaluate(() => window.e2e.showTab('Lugger', 'combat'));
 		},
 	);
 	e2e.expect(
-		"#325 D1 the Critical Hit's description shows its last line, at its full height past 200px",
-		await vehicleE2E('descriptionBox', { actor: 'Barge', target: description, cap: 200 }),
-		shownDescription(200),
+		"#393 C1 a vehicle weapon's row shows a chevron after its name, pointing right, to show the description, which starts closed",
+		{ chevron: await chevron(harpoon), box: await closed() },
+		{ chevron: SHOW, box: CLOSED_DESCRIPTION },
 	);
-	await e2e.step('#325 D2 the description of the Critical Hit closed', () =>
-		vehicleE2E('setActive', { actor: 'Barge', target: description, active: false }),
-	);
-	const closed = await vehicleE2E('descriptionBox', { actor: 'Barge', target: description, cap: 100_000 });
 	e2e.expect(
-		"#325 D2 the Critical Hit's closed description takes no height, and animates its rows",
-		closedParts(closed),
-		CLOSED_DESCRIPTION,
+		"#393 C1 a vehicle weapon's row without a description shows no chevron",
+		await chevron(['.tab-combat .weapons .weapon|=Swivel Gun']),
+		null,
 	);
+
+	await e2e.step('#393 C2 the chevron of the vehicle weapon clicked', () =>
+		vehicleE2E('clickChevron', { actor: 'Lugger', row: harpoon }),
+	);
+	e2e.expect(
+		"#393 C2 the vehicle weapon's description shows its last line, at its full height past 200px, its chevron pointing down to hide it, and no prompt opens",
+		{ box: await box(200), chevron: await chevron(harpoon), prompts: await vehicleE2E('prompts') },
+		{ box: shownDescription(200), chevron: HIDE, prompts: noPrompts },
+	);
+
+	await e2e.step('#393 C3 the chevron of the vehicle weapon clicked again', () =>
+		vehicleE2E('clickChevron', { actor: 'Lugger', row: harpoon }),
+	);
+	e2e.expect(
+		"#393 C3 the vehicle weapon's description closes, its chevron pointing right again",
+		{ box: await closed(), chevron: await chevron(harpoon) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW },
+	);
+
+	await e2e.step('#393 C4 the name of the vehicle weapon clicked', () =>
+		vehicleE2E('click', { actor: 'Lugger', target: [...harpoon, '.name a|1'] }),
+	);
+	const { dice } = await vehicleE2E('prompts');
+	e2e.expect(
+		"#393 C4 the vehicle weapon's name rolls its attack, and leaves its description closed",
+		{ dice: dice.map(({ actor, skill, rollType }) => ({ actor, skill, rollType })), box: await closed() },
+		{ dice: [{ actor: 'Deckhand', skill: 'Gunnery', rollType: ATTACK_ROLL }], box: CLOSED_DESCRIPTION },
+	);
+	await vehicleE2E('closePrompts');
 }
 
 /**
