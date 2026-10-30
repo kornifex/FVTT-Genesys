@@ -55,6 +55,7 @@ const kind = KINDS[props.kind];
 
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
+@use '@scss/mixins/expandable.scss';
 
 .critical-injuries,
 .critical-hits {
@@ -103,14 +104,8 @@ const kind = KINDS[props.kind];
 		padding-left: 0.5em;
 
 		grid-row: 2 / span 1;
-		max-height: 0;
-		transition: max-height 0.5s ease-in-out;
-		overflow: hidden;
 		padding-right: 0.5em;
-
-		&.active {
-			max-height: 200px;
-		}
+		@include expandable.description;
 	}
 }
 

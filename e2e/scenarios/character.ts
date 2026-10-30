@@ -1,5 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries. */
-import type { ConfirmDialog } from '../page.ts';
+import type { ConfirmDialog, DescriptionBox } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
 type Characteristic = 'brawn' | 'agility' | 'intellect' | 'cunning' | 'willpower' | 'presence';
@@ -82,6 +82,17 @@ type CharacterHelpers = {
 	talentsTab(actor: string): { abilities: string[]; talents: string[] };
 	/** Clicks the trash icon of a row of the Talents tab. */
 	trashTalentRow(actor: string, name: string): void;
+	/** Shows a tab of the actor's sheet, by its nav. */
+	showTab(actor: string, tab: string): Promise<void>;
+	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
+	toggleTalent(actor: string, talent: string): void;
+	/**
+	 * Opens or closes the description of an armor or a Critical Injury of the Combat tab by its `active` class, which no
+	 * click toggles there.
+	 */
+	setDescriptionActive(actor: string, row: DescriptionRow, active: boolean): void;
+	/** The description of a row, as laid out: its height is given as `>cap` past `cap` px. */
+	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
@@ -99,6 +110,9 @@ type CharacterHelpers = {
 	createPack(): Promise<string>;
 	deletePack(): Promise<void>;
 };
+
+/** A row with an expandable description, by its item's name without its `E2E ` prefix. */
+type DescriptionRow = { talent: string } | { armor: string } | { injury: string };
 
 type MenuTarget = { characteristic: Characteristic } | { skill: string } | { meta: 'archetype' | 'career' } | { adversarySkill: string };
 
@@ -164,6 +178,18 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.tab-talents .talent')].find(
 			(row) => text(row.querySelector('.name a')).replace(/ \d+$/, '') === talent,
 		);
+	const description = (name: string, row: DescriptionRow) => {
+		const found =
+			'talent' in row
+				? talentRow(name, `E2E ${row.talent}`)?.querySelector('.desc-container')
+				: 'armor' in row
+					? [...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')]
+							.find((candidate) => text(candidate.querySelector('.name')) === `E2E ${row.armor}`)
+							?.querySelector('.description')
+					: injuryRow(name, row.injury)?.querySelector('.description');
+		if (!found) throw new Error(`No description for ${JSON.stringify(row)}`);
+		return found;
+	};
 	const entryText = (entry: { type: string; amount: number; data?: Record<string, string | number | undefined> }) => {
 		const data = entry.data ?? {};
 		switch (entry.type) {
@@ -613,6 +639,24 @@ function installCharacterHelpers() {
 			click(row?.querySelector('.fa-trash')?.closest('a'), `trash icon of ${item}`);
 		},
 
+		async showTab(name, tab) {
+			const root = sheet(name);
+			click(root.querySelector(`nav.sheet-tabs [data-tab="${tab}"]`), `${tab} tab`);
+			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
+		},
+
+		toggleTalent(name, talent) {
+			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name a'), `name of the talent ${talent}`);
+		},
+
+		setDescriptionActive(name, row, active) {
+			description(name, row).classList.toggle('active', active);
+		},
+
+		descriptionBox(name, row, cap) {
+			return window.e2e.descriptionBox(description(name, row), cap);
+		},
+
 		superCharacteristics(name) {
 			const fields = [...sheet(name).querySelectorAll('.characteristic-field')];
 			return {
@@ -759,6 +803,7 @@ export async function run(e2e: ScenarioContext) {
 		await talentsTab(e2e, page);
 		await injuries(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
+		await expandedDescriptions(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -2018,6 +2063,87 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 		await window.characterE2E.close('Wounded');
 		await window.characterE2E.close('Wreck');
 	}, undefined);
+}
+
+/**
+ * §#325: an expanded description shows its whole text, past the height that once cut it: a talent's in the Talents tab,
+ * an armor's and a Critical Injury's in the Combat tab; and a closed one takes no height.
+ */
+async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
+	const D = 'Reader';
+	// Forty paragraphs stand well past the caps of 500px and 200px the descriptions had.
+	const long = Array.from({ length: 40 }, (_, index) => `<p>Line ${index + 1} of a long description.</p>`).join('');
+	const transition = 'grid-template-rows 0.5s';
+	const box = (row: DescriptionRow, cap: number) =>
+		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row, cap });
+	const shown = (cap: number): DescriptionBox => ({ height: `>${cap}`, clipped: 0, lastInside: true, transition });
+	const closed = async (row: DescriptionRow) => {
+		const { height, transition } = await box(row, 100_000);
+		return { height, transition };
+	};
+	const setActive = (row: DescriptionRow, active: boolean) =>
+		page((args) => window.characterE2E.setDescriptionActive(args.name, args.row, args.active), { name: D, row, active });
+
+	await e2e.step('#325 A1 a talent with a description taller than 500px clicked open in the Talents tab', async () => {
+		await page((name) => window.characterE2E.create(name), D);
+		await page((args) => window.characterE2E.createItems(args.name, args.items), {
+			name: D,
+			items: [
+				{
+					name: 'E2E Verbose',
+					type: 'talent',
+					system: { activation: { type: 'passive', detail: '' }, tier: 1, description: long },
+				},
+				{ name: 'E2E Padded Coat', type: 'armor', system: { state: 'equipped', description: long } },
+				{ name: 'E2E Deep Gash', type: 'injury', system: { severity: 'easy', description: long } },
+			],
+		});
+		await page((name) => window.characterE2E.open(name), D);
+		await page((name) => window.characterE2E.showTab(name, 'talents'), D);
+		await page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D);
+	});
+	e2e.expect(
+		"#325 A1 the talent's description shows its last line, at its full height past 500px",
+		await box({ talent: 'Verbose' }, 500),
+		shown(500),
+	);
+	await e2e.step('#325 A2 the talent clicked closed', () => page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D));
+	e2e.expect("#325 A2 the talent's closed description takes no height, and animates its rows", await closed({ talent: 'Verbose' }), {
+		height: 0,
+		transition,
+	});
+
+	// No click opens a description in the Combat tab: the steps give it the class a toggle would.
+	await e2e.step('#325 B1 the description of an armor taller than 200px opened in the Combat tab, by its active class', async () => {
+		await page((name) => window.characterE2E.showTab(name, 'combat'), D);
+		await setActive({ armor: 'Padded Coat' }, true);
+	});
+	e2e.expect(
+		"#325 B1 the armor's description shows its last line, at its full height past 200px",
+		await box({ armor: 'Padded Coat' }, 200),
+		shown(200),
+	);
+	await e2e.step('#325 B2 the description of the armor closed', () => setActive({ armor: 'Padded Coat' }, false));
+	e2e.expect("#325 B2 the armor's closed description takes no height, and animates its rows", await closed({ armor: 'Padded Coat' }), {
+		height: 0,
+		transition,
+	});
+
+	await e2e.step('#325 C1 the description of a Critical Injury taller than 200px opened in the Combat tab, by its active class', () =>
+		setActive({ injury: 'Deep Gash' }, true),
+	);
+	e2e.expect(
+		"#325 C1 the Critical Injury's description shows its last line, at its full height past 200px",
+		await box({ injury: 'Deep Gash' }, 200),
+		shown(200),
+	);
+	await e2e.step('#325 C2 the description of the Critical Injury closed', () => setActive({ injury: 'Deep Gash' }, false));
+	e2e.expect(
+		"#325 C2 the Critical Injury's closed description takes no height, and animates its rows",
+		await closed({ injury: 'Deep Gash' }),
+		{ height: 0, transition },
+	);
+	await page((name) => window.characterE2E.close(name), D);
 }
 
 /** §#200: a talent's tier kept from 1 to 5, and one saved above 5 read as 5. */
