@@ -1,6 +1,6 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import { choiceField, qualitiesField } from '@/data/schemaFields';
-import { RangeBand, RANGES } from '@/item/Weapons';
+import { baseProfileFields } from '@/item/data/WeaponProfileFields';
+import type { RangeBand } from '@/item/Weapons';
 
 /**
  * A quality as a weapon or an armor holds it: a copy of the quality item, with its rating.
@@ -57,15 +57,10 @@ export abstract class BaseWeaponDataModel extends EquipmentDataModel {
 	abstract qualities: ContainedItemQuality[];
 
 	static override defineSchema() {
-		const fields = foundry.data.fields;
-
 		return {
 			...super.defineSchema(),
-			baseDamage: new fields.NumberField({ initial: 0, integer: true }),
-			critical: new fields.NumberField({ initial: 0, integer: true }),
-			range: choiceField(RANGES, 'engaged'),
-			skills: new fields.ArrayField(new fields.StringField()),
-			qualities: qualitiesField(),
+			// A weapon's own attack fields are its main Weapon Profile.
+			...baseProfileFields(),
 		};
 	}
 }

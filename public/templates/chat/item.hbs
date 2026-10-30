@@ -1,3 +1,14 @@
+{{#*inline "qualityList"}}
+	{{#if qualities}}
+		<label>{{localize 'Genesys.Labels.Qualities'}}</label>
+		<div class="qualities">
+			{{#each qualities}}
+				<a class="quality" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}} {{#if isRated}}{{rating}}{{/if}}</a>
+			{{/each}}
+		</div>
+	{{/if}}
+{{/inline}}
+
 <div class="item-card {{ type }}">
 	<div class="imageAndName">
 		<img src="{{img}}" />
@@ -41,12 +52,28 @@
 	{{/if}}
 
 	{{!-- Armor & Weapon: Qualities --}}
-	{{#if qualities}}
-		<label>{{localize 'Genesys.Labels.Qualities'}}</label>
-		<div class="qualities">
-			{{#each qualities}}
-				<a class="quality" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}} {{#if isRated}}{{rating}}{{/if}}</a>
-			{{/each}}
+	{{> qualityList qualities=qualities}}
+
+	{{!-- Weapon: each extra Weapon Profile, after the main one --}}
+	{{#each extraProfiles}}
+		<div class="weapon-profile">
+			<label class="profile-name">{{ name }}</label>
+
+			<div class="details-grid">
+				<label class="skill">{{localize 'Genesys.Labels.Skill'}}</label>
+				<label class="range">{{localize 'Genesys.Labels.Range'}}</label>
+				<span class="skill">{{ weapon.skill }}</span>
+				<span class="range">{{ weapon.range }}</span>
+			</div>
+
+			<div class="details-grid">
+				<label class="damage">{{localize 'Genesys.Labels.Damage'}}</label>
+				<label class="critical">{{localize 'Genesys.Labels.Critical'}}</label>
+				<span class="damage">{{ weapon.damage }}</span>
+				<span class="critical">{{ critical }}</span>
+			</div>
+
+			{{> qualityList qualities=qualities}}
 		</div>
-	{{/if}}
+	{{/each}}
 </div>

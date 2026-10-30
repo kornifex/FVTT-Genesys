@@ -5,6 +5,7 @@ import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/CheckRoll';
 import { diceRollerTarget } from '@/dice/DiceRoller';
+import type { AttackProfile } from '@/item/WeaponProfiles';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -16,12 +17,12 @@ export const RollType = {
 } as const;
 
 /**
- * A check the Dice Prompt rolls, and what its roll type needs on top of the dice pool: the weapon of an attack, the
- * promise of an initiative, settled when the check is rolled or the prompt closed.
+ * A check the Dice Prompt rolls, and what its roll type needs on top of the dice pool: the weapon of an attack and the
+ * Weapon Profile it is made with, the promise of an initiative, settled when the check is rolled or the prompt closed.
  */
 export type DicePromptRoll =
 	| { type: typeof RollType.Skill }
-	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'> }
+	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'>; profile: AttackProfile }
 	| { type: typeof RollType.Initiative; resolve: (checkRoll: CheckRoll) => void; reject: () => void };
 
 /**

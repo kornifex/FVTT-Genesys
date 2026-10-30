@@ -10,6 +10,7 @@ import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel'
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { enrich } from '@/enrich';
 import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
+import { profileRowName, weaponProfiles } from '@/item/WeaponProfiles';
 
 /**
  * The label of each activation type of an ability or a talent.
@@ -33,13 +34,29 @@ type ItemSource =
 	| Source<'armor', Pick<ArmorDataModel, 'description' | 'defense' | 'soak' | 'qualities'>>
 	| Source<
 			'weapon',
-			Pick<WeaponDataModel, 'description' | 'skills' | 'range' | 'baseDamage' | 'damageCharacteristic' | 'critical' | 'qualities'>
+			Pick<
+				WeaponDataModel,
+				| 'description'
+				| 'skills'
+				| 'range'
+				| 'baseDamage'
+				| 'damageCharacteristic'
+				| 'critical'
+				| 'qualities'
+				| 'attackSkill'
+				| 'extraProfiles'
+			>
 	  >
 	| Source<
 			'vehicleWeapon',
 			Pick<VehicleWeaponDataModel, 'description' | 'skills' | 'range' | 'baseDamage' | 'critical' | 'firingArc' | 'qualities'>
 	  >
 	| Source<'consumable' | 'gear' | 'container', Pick<EquipmentDataModel, 'description'>>;
+
+/**
+ * The skill, range and damage a card shows of a weapon's profile.
+ */
+type WeaponDetails = { skill: string; range: string; damage: string; firingArc?: string };
 
 type AbilityCard = {
 	template: 'systems/genesys/templates/chat/ability.hbs';
@@ -65,15 +82,17 @@ export type ItemCard = {
 		type: ItemSource['type'];
 		system: ItemSource['system'];
 		description: string;
-		weapon?: { skill: string; range: string; damage: string; firingArc?: string };
+		weapon?: WeaponDetails;
 		qualities?: ContainedItemQuality[];
+		/** A weapon's extra profiles, after its main one, each named as the row it is attacked from. */
+		extraProfiles?: { name: string; weapon: WeaponDetails; critical: number; qualities: ContainedItemQuality[] }[];
 	};
 };
 
 /**
  * The localization function the card's text is written with.
  */
-type Localizer = { localize(key: string): string };
+type Localizer = { localize(key: string): string; format(key: string, data: Record<string, string>): string };
 
 /**
  * The template of an item's chat card and the data it is rendered with. Descriptions are left as they are saved, for
@@ -112,6 +131,12 @@ export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
 		...data,
 		description: await enrich(data.description),
 		...('qualities' in data && data.qualities && { qualities: await enrichedQualities(data.qualities) }),
+		...('extraProfiles' in data &&
+			data.extraProfiles && {
+				extraProfiles: await Promise.all(
+					data.extraProfiles.map(async (profile) => ({ ...profile, qualities: await enrichedQualities(profile.qualities) })),
+				),
+			}),
 	});
 
 	await ChatMessage.create({
@@ -142,13 +167,17 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 	};
 
 	if (item.type === 'weapon') {
-		const { skills } = item.system;
-		const { baseDamage, characteristic } = damageFormula(item.system);
-		card.data.weapon = {
-			skill: skills[0] ?? '-',
-			range: i18n.localize(RANGE_LABELS[item.system.range]),
-			damage: baseDamage.toString() + (characteristic ? ' + ' + i18n.localize(characteristic) : ''),
-		};
+		const [main, ...extraProfiles] = weaponProfiles(item.system);
+		card.data.weapon = weaponDetails(main, i18n);
+		if (extraProfiles.length > 0) {
+			card.data.extraProfiles = extraProfiles.map((profile) => ({
+				name: profileRowName(item.name, profile, i18n),
+				weapon: weaponDetails(profile, i18n),
+				critical: profile.critical,
+				// Copies, so the card never writes into the profile's qualities.
+				qualities: profile.qualities.map((quality) => ({ ...quality })),
+			}));
+		}
 	} else if (item.type === 'vehicleWeapon') {
 		const { skills, firingArc } = item.system;
 		card.data.weapon = {
@@ -167,4 +196,17 @@ function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 	}
 
 	return card;
+}
+
+function weaponDetails(
+	profile: Pick<WeaponDataModel, 'skills' | 'range' | 'baseDamage' | 'damageCharacteristic'>,
+	i18n: Localizer,
+): WeaponDetails {
+	const { baseDamage, characteristic } = damageFormula(profile);
+
+	return {
+		skill: profile.skills[0] ?? '-',
+		range: i18n.localize(RANGE_LABELS[profile.range]),
+		damage: baseDamage.toString() + (characteristic ? ' + ' + i18n.localize(characteristic) : ''),
+	};
 }

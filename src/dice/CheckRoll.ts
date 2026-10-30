@@ -5,9 +5,9 @@ import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import { CardResults, cardResults, GenesysRollResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
-import { GenesysItem } from '@/item/GenesysItem';
 import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
+import type { AttackProfile } from '@/item/WeaponProfiles';
 import { CharacteristicsContainer } from '@/data/Characteristics';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
@@ -34,8 +34,6 @@ type PoolRoll = {
 	results: GenesysRollResults;
 };
 
-type AttackWeapon = GenesysItem<'weapon' | 'vehicleWeapon'>;
-
 /**
  * Roll a dice pool, and read its results.
  */
@@ -47,16 +45,16 @@ export async function rollPool(dicePool: DicePool): Promise<PoolRoll> {
 }
 
 /**
- * The data of the chat message that shows a check's roll: the check's card, or the attack's card with the weapon an
- * attack is rolled with.
+ * The data of the chat message that shows a check's roll: the check's card, or the attack's card with the Weapon Profile
+ * an attack is rolled with.
  */
-export async function checkMessageData(check: Check, { roll, results }: PoolRoll, weapon?: AttackWeapon) {
+export async function checkMessageData(check: Check, { roll, results }: PoolRoll, attack?: AttackProfile) {
 	const card = cardResults(results);
 	const data = { description: checkDescription(check, game.i18n), results, card };
-	const content = weapon
+	const content = attack
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {
 				...data,
-				...(await attackCardData(check, weapon, results, card)),
+				...(await attackCardData(check, attack, results, card)),
 			})
 		: await foundry.applications.handlebars.renderTemplate(CHECK_TEMPLATE, data);
 
@@ -69,28 +67,28 @@ export async function checkMessageData(check: Check, { roll, results }: PoolRoll
 }
 
 /**
- * What an attack's card shows on top of the check's: the damage, the critical and the qualities of the weapon.
+ * What an attack's card shows on top of the check's: the damage, the critical and the qualities of the Weapon Profile.
  */
-async function attackCardData(check: Check, weapon: AttackWeapon, results: GenesysRollResults, card: CardResults) {
+async function attackCardData(check: Check, profile: AttackProfile, results: GenesysRollResults, card: CardResults) {
 	// A vehicle has no characteristics to add to its weapons' damage.
 	const characteristics = (check.actor?.system as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
-	const { baseDamage, characteristic } = damageFormula(weapon.system);
+	const { baseDamage, characteristic } = damageFormula(profile);
 
 	return {
-		totalDamage: attackDamage(weapon.system, characteristics, results.netSuccess),
+		totalDamage: attackDamage(profile, characteristics, results.netSuccess),
 		damageFormula: characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString(),
-		critical: weapon.system.critical,
-		qualities: await enrichedQualities(weapon.system.qualities),
+		critical: profile.critical,
+		qualities: await enrichedQualities(profile.qualities),
 		showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),
 	};
 }
 
 /**
- * Roll a check, or an attack with the weapon it is rolled with, and post its results to the chat.
+ * Roll a check, or an attack with the Weapon Profile it is rolled with, and post its results to the chat.
  */
-export async function rollCheck({ check, dicePool }: CheckRoll, weapon?: AttackWeapon) {
+export async function rollCheck({ check, dicePool }: CheckRoll, attack?: AttackProfile) {
 	const poolRoll = await rollPool(dicePool);
-	await ChatMessage.create(await checkMessageData(check, poolRoll, weapon), { rollMode: game.settings.get('core', 'rollMode') });
+	await ChatMessage.create(await checkMessageData(check, poolRoll, attack), { rollMode: game.settings.get('core', 'rollMode') });
 }
 
 /**

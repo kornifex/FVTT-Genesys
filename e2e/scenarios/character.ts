@@ -1,7 +1,8 @@
-/** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries. */
+/** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
 import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
 import type { ConfirmDialog, DescriptionBox } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
+import { dagger } from '../weaponProfiles.ts';
 
 type Characteristic = 'brawn' | 'agility' | 'intellect' | 'cunning' | 'willpower' | 'presence';
 
@@ -106,6 +107,18 @@ type CharacterHelpers = {
 	storedTier(target: { uuid: string }): Promise<number | undefined>;
 	loadedTalent(uuid: string): Promise<{ tier: number; source: number; invalid: boolean }>;
 	pyramidTotals(actor: string): Record<string, number>;
+	/**
+	 * A character's weapons: the names of their Inventory tab rows, its Encumbrance value, and the Combat tab's rows with
+	 * the Attack Skill each shows, `[skill]` for a select; and the Attack Skill each profile stores, `main` first.
+	 */
+	weaponRows(actor: string): Promise<{
+		inventory: string[];
+		encumbrance: number;
+		combat: { name: string; skill: string }[];
+		stored: Record<string, string[]>;
+	}>;
+	/** Picks an Attack Skill in the select of the Combat tab's row of that name; false when the row has none. */
+	chooseAttackSkill(args: { actor: string; row: string; skill: string }): Promise<boolean>;
 	createPack(): Promise<string>;
 	deletePack(): Promise<void>;
 };
@@ -749,6 +762,45 @@ function installCharacterHelpers() {
 			return { ...actor(name).system.talentPyramidTotals };
 		},
 
+		async weaponRows(name) {
+			const root = await render(actor(name).sheet, (element) => element.querySelector('.tab-combat .weapons'));
+			const combatRows = () => [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.header)')];
+			await waitFor(`the Combat tab's weapons of E2E ${name}`, () => combatRows().length);
+			const weapons = actor(name).items.filter((item: { type: string }) => item.type === 'weapon');
+			return {
+				inventory: [...root.querySelectorAll('.inventory-item')]
+					.filter((row) => row.querySelector('[data-item-type=weapon]'))
+					.map((row) => unprefixed(text(row.querySelector('.name a')))),
+				encumbrance: actor(name).system.currentEncumbrance.value,
+				combat: combatRows().map((row) => {
+					const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
+					return {
+						name: unprefixed(text(row.querySelector('.name'))),
+						skill: select ? `[${select.value}]` : text(row.querySelector('.skill')),
+					};
+				}),
+				stored: Object.fromEntries(
+					weapons.map((weapon: { name: string; system: { attackSkill: string; extraProfiles: { attackSkill: string }[] } }) => [
+						unprefixed(weapon.name),
+						[weapon.system.attackSkill, ...(weapon.system.extraProfiles ?? []).map((profile) => profile.attackSkill)],
+					]),
+				),
+			};
+		},
+
+		async chooseAttackSkill({ actor: name, row, skill }) {
+			const found = [...sheet(name).querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].find(
+				(candidate) => unprefixed(text(candidate.querySelector('.name'))) === row,
+			);
+			// A build without Weapon Profiles shows no row for an extra profile.
+			const select = found?.querySelector<HTMLSelectElement>('select.attack-skill');
+			if (!select) return false;
+			select.value = skill;
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+			await settle();
+			return true;
+		},
+
 		async createPack() {
 			const pack = await window.e2e.createCompendium({ label: 'E2E Talents', name: PACK, type: 'Item' });
 			const [created] = await Item.createDocuments([game.items.getName('E2E Old Talent').toObject()], { pack: pack.collection });
@@ -796,6 +848,7 @@ export async function run(e2e: ScenarioContext) {
 		await talentRanks(e2e, page);
 		await talentsTab(e2e, page);
 		await injuries(e2e, page);
+		await weaponProfiles(e2e, page);
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
@@ -810,6 +863,64 @@ export async function run(e2e: ScenarioContext) {
 }
 
 type Evaluate = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
+
+/** §#366, part N: a weapon with an extra Weapon Profile is one piece of equipment, with a Combat tab row per profile. */
+async function weaponProfiles(e2e: ScenarioContext, page: Evaluate) {
+	const W = 'Wielder';
+	// The character owns every Skills Compendium skill, at rank 0.
+	const weapon = dagger({ main: ['Melee', 'Brawl'], thrown: ['Ranged', 'Athletics'] });
+	const rows = () => page((name) => window.characterE2E.weaponRows(name), W);
+	const choose = (row: string, skill: string) => page((args) => window.characterE2E.chooseAttackSkill(args), { actor: W, row, skill });
+
+	await e2e.step('#366 N1 a character given a dagger with a Thrown profile, equipped', async () => {
+		await page((name) => window.characterE2E.create(name), W);
+		await page((args) => window.characterE2E.createItems(args.name, args.items), { name: W, items: [weapon] });
+		await page((name) => window.characterE2E.open(name), W);
+	});
+	e2e.expect(
+		'#366 N1 the dagger shows one Inventory tab row and counts its encumbrance once, but shows a Combat tab row per profile, each with its Attack Skill',
+		await rows(),
+		{
+			inventory: ['Dagger'],
+			encumbrance: 1,
+			combat: [
+				{ name: 'Dagger', skill: '[Melee]' },
+				{ name: 'Dagger (Thrown)', skill: '[Ranged]' },
+			],
+			stored: { Dagger: ['', ''] },
+		},
+	);
+
+	await e2e.step("#366 N2 Athletics chosen on the Thrown row's Attack Skill select", () => choose('Dagger (Thrown)', 'Athletics'));
+	const thrownChosen = await rows();
+	await e2e.step("#366 N2 Brawl chosen on the main row's Attack Skill select", () => choose('Dagger', 'Brawl'));
+	const mainChosen = await rows();
+	e2e.expect(
+		"#366 N2 the Attack Skill chosen on one profile's row is stored on that profile, and doesn't change the other row's",
+		{
+			thrownChosen: { combat: thrownChosen.combat, stored: thrownChosen.stored },
+			mainChosen: { combat: mainChosen.combat, stored: mainChosen.stored },
+		},
+		{
+			thrownChosen: {
+				combat: [
+					{ name: 'Dagger', skill: '[Melee]' },
+					{ name: 'Dagger (Thrown)', skill: '[Athletics]' },
+				],
+				stored: { Dagger: ['', 'Athletics'] },
+			},
+			mainChosen: {
+				combat: [
+					{ name: 'Dagger', skill: '[Brawl]' },
+					{ name: 'Dagger (Thrown)', skill: '[Athletics]' },
+				],
+				stored: { Dagger: ['Brawl', 'Athletics'] },
+			},
+		},
+	);
+
+	await page((name) => window.characterE2E.close(name), W);
+}
 
 /** §#36, §#49, §#137: an Archetype's drop and removal, and the items it granted. */
 async function archetypes(e2e: ScenarioContext, page: Evaluate) {

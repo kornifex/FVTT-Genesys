@@ -1,6 +1,7 @@
 /** @file #215, #246, #269, #300, #343 and #380: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
 import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
+import { dagger } from '../weaponProfiles.ts';
 
 /** The names of the adversaries the scenario drops on, without their `E2E ` prefix. */
 type Adversary = 'Grunts' | 'Rival' | 'Nemesis';
@@ -82,6 +83,19 @@ type AdversariesHelpers = {
 	update(args: { actor: string; data: object }): Promise<void>;
 	/** Types a change in a bar of the Token HUD of an actor's token, then returns the value stored. */
 	hud(args: { actor: string; bar: 'bar1' | 'bar2'; input: string; path: string }): Promise<unknown>;
+	/**
+	 * The rows of an adversary's weapons in its equipment list: each one's name, as the row reads it before the weapon
+	 * details in brackets, those details, and its qualities.
+	 */
+	weaponRows(actor: string): Promise<{ name: string; details: string[]; qualities: string[] }[]>;
+	/**
+	 * Targets an actor's token, clicks the weapon row of that name on the attacker's sheet, and reads the skill and the
+	 * defense rows of the Dice Prompt it opens; null when the sheet has no such row.
+	 */
+	attackFromRow(args: { actor: string; row: string; target: string }): Promise<{
+		skill: string;
+		defense: PromptState['modifications'];
+	} | null>;
 	/** Gives a user the Observer permission on actors: the user can view their sheets but not edit them. */
 	grantObserver(args: { user: string; actors: string[] }): Promise<void>;
 	descriptionArea(args: { actor: string }): Promise<DescriptionArea>;
@@ -149,6 +163,14 @@ function installAdversariesHelpers() {
 				? [...container.querySelectorAll<HTMLElement>(':scope > .context-menu .menu-item')]
 				: undefined,
 		);
+	};
+
+	// The links of an adversary's weapon rows, and the name each row reads before its weapon details in brackets.
+	const weaponLinks = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.adversary-items .weapon.menu-container > a')];
+	const weaponRowName = (link: Element) => {
+		const name = link.cloneNode(true) as HTMLElement;
+		name.querySelector('.weapon-details')?.remove();
+		return text(name).replace(/ \(\)$/, '');
 	};
 
 	const closePrompts = async () => {
@@ -436,6 +458,35 @@ function installAdversariesHelpers() {
 			await settle();
 			hud.clear();
 			return foundry.utils.getProperty(actor(name), path);
+		},
+
+		async weaponRows(name) {
+			const root = await sheet(name);
+			return weaponLinks(root).map((link) => ({
+				name: weaponRowName(link),
+				details: [...link.querySelectorAll('.weapon-details > span:not(.weapon-qualities)')].map(text),
+				qualities: [...link.querySelectorAll('.weapon-qualities > *')].map(text),
+			}));
+		},
+
+		async attackFromRow({ actor: name, row, target: targetName }) {
+			await closePrompts();
+			const root = await sheet(name);
+			// A build without Weapon Profiles shows no row for an extra profile.
+			const link = weaponLinks(root).find((candidate) => weaponRowName(candidate) === row);
+			if (!link) return null;
+			target(targetName);
+			link.click();
+			const select = await waitFor('the Dice Prompt skill select', () => {
+				const open = apps('app-dice-prompt');
+				return open.length === 1 && htmlOf(open[0])?.querySelector<HTMLSelectElement>('select[name=skill]');
+			});
+			// The skill is selected once the check is resolved.
+			await settle();
+			const skill = text(select.selectedOptions[0]);
+			const { modifications } = await readPrompt();
+			target(null);
+			return { skill, defense: modifications.filter(({ name }) => name.endsWith('Defense')) };
 		},
 
 		async grantObserver({ user, actors }) {
@@ -862,6 +913,42 @@ export async function run(e2e: ScenarioContext) {
 			Nemesis: characteristics('input'),
 			Hero: characteristics('div'),
 			Wagon: { Silhouette: 'input center', Speed: 'input center', Handling: 'input center' },
+		},
+	);
+
+	// K: a rival's weapon with an extra Weapon Profile has a row per profile in its equipment list, each attacking with
+	// its profile (§#366). The Attacker has Brawn and Agility 2.
+	await e2e.step('#366 GM gives the Attacker a dagger with a Thrown profile', async () => {
+		await gm.evaluate(
+			(item) => game.actors.getName('E2E Attacker').createEmbeddedDocuments('Item', [item]),
+			dagger({ main: ['E2E Melee'], thrown: ['E2E Ranged'] }),
+		);
+		await update('Nemesis', { 'system.defense': { melee: 2, ranged: 1 } });
+	});
+	e2e.expect(
+		"#366 K1 the rival's equipment list shows a row per profile of the dagger, each with its own Attack Skill, damage, Critical rating, range and qualities",
+		(await gm.evaluate(() => window.adversariesE2E.weaponRows('Attacker'))).filter(({ name }) => name.startsWith('E2E Dagger')),
+		[
+			{ name: 'E2E Dagger', details: ['E2E Melee', 'Damage 3', 'Critical 3', 'Range [Engaged]'], qualities: [] },
+			{
+				name: 'E2E Dagger (Thrown)',
+				details: ['E2E Ranged', 'Damage 4', 'Critical 4', 'Range [Short]'],
+				qualities: ['Accurate 1', 'Limited Ammo 1'],
+			},
+		],
+	);
+	const attackFromRow = (row: string) =>
+		gm.evaluate((args) => window.adversariesE2E.attackFromRow(args), { actor: 'Attacker', row, target: 'Nemesis' });
+	let profileAttacks: Record<string, unknown> = {};
+	await e2e.step('#366 K2 GM attacks the Nemesis from the Dagger (Thrown) row, then from the Dagger row', async () => {
+		profileAttacks = { thrown: await attackFromRow('E2E Dagger (Thrown)'), main: await attackFromRow('E2E Dagger') };
+	});
+	e2e.expect(
+		"#366 K2 the Dagger (Thrown) row attacks with the Thrown profile's skill against the target's ranged defense, and the Dagger row with the main profile's against its melee defense",
+		profileAttacks,
+		{
+			thrown: { skill: 'E2E Ranged (Ag)', defense: [{ name: 'From Target: Ranged Defense', mods: 'S+' }] },
+			main: { skill: 'E2E Melee (Br)', defense: [{ name: 'From Target: Melee Defense', mods: 'S+ S+' }] },
 		},
 	);
 
