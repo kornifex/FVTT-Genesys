@@ -64,7 +64,7 @@ type PoolModificationsBox = {
 	unfolded: boolean;
 	/** The expander's transition, as `<property> <duration>`. */
 	transition: string;
-	/** The expander's height: 0 folded, `whole` when it shows its container whole, else in px. */
+	/** The expander's height: `whole` when it shows its container whole, else in px. */
 	height: number | 'whole';
 	/** The container's visibility. */
 	visibility: string;
@@ -2154,13 +2154,18 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#396 A2 GM folds the Pool Modifications', async () => {
 		refolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
 	});
-	e2e.expect('#396 A2 the folded Pool Modifications take no height and hide their container, after a 1s transition', refolded, {
-		unfolded: false,
-		transition: 'grid-template-rows 1s',
-		height: 0,
-		visibility: 'hidden',
-		modifications: true,
-	});
+	// Folded, the expander keeps the 1px of its container's dotted top border, as on main before the mixin.
+	e2e.expect(
+		'#396 A2 the folded Pool Modifications keep only their top border and hide their container, after a 1s transition',
+		refolded,
+		{
+			unfolded: false,
+			transition: 'grid-template-rows 1s',
+			height: 1,
+			visibility: 'hidden',
+			modifications: true,
+		},
+	);
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
