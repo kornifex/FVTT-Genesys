@@ -1,5 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
-import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
+import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
 import type { Chevron, ConfirmDialog, DescriptionBox } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
@@ -93,10 +93,10 @@ type CharacterHelpers = {
 	/** Clicks the name of a Combat tab row. */
 	clickName(actor: string, row: DescriptionRow): void;
 	/**
-	 * Whether the sheet of the actor's item `E2E <item>` and a Dice Prompt are open, then closes them: a Combat tab row's
+	 * Closes the sheet of the actor's item `E2E <item>` and the Dice Prompts, and gives which were open: a Combat tab row's
 	 * name opens one or the other.
 	 */
-	takeOpened(actor: string, item: string): Promise<{ sheet: boolean; dicePrompt: boolean }>;
+	closeOpened(actor: string, item: string): Promise<{ sheet: boolean; dicePrompt: boolean }>;
 	/**
 	 * The description of a row, as laid out: its height is given as `>cap` past `cap` px. Null when the row has none, as
 	 * a weapon's row before #393.
@@ -687,7 +687,7 @@ function installCharacterHelpers() {
 			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
 		},
 
-		async takeOpened(name, item) {
+		async closeOpened(name, item) {
 			const itemSheet = actor(name).items.getName(`E2E ${item}`).sheet;
 			const prompts = apps('app-dice-prompt').filter((app: App) => app.rendered);
 			const opened = { sheet: itemSheet.rendered, dicePrompt: prompts.length > 0 };
@@ -2214,10 +2214,7 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const D = 'Reader';
 	const box = (row: DescriptionRow, cap: number) =>
 		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row, cap });
-	const closed = async (row: DescriptionRow) => {
-		const read = await box(row, 100_000);
-		return read && closedParts(read);
-	};
+	const closed = (row: DescriptionRow) => closedDescription((cap) => box(row, cap));
 	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: D, row });
 
 	await e2e.step('#325 A1 a talent with a description taller than 500px clicked open in the Talents tab', async () => {
@@ -2291,18 +2288,13 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const C = 'Duelist';
 	const box = (row: DescriptionRow, cap: number) =>
 		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: C, row, cap });
-	const closed = async (row: DescriptionRow) => {
-		const read = await box(row, 100_000);
-		return read && closedParts(read);
-	};
+	const closed = (row: DescriptionRow) => closedDescription((cap) => box(row, cap));
 	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row });
 	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: C, row });
 	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: C, row });
-	const takeOpened = (item: string) => page((args) => window.characterE2E.takeOpened(args.name, args.item), { name: C, item });
+	const closeOpened = (item: string) => page((args) => window.characterE2E.closeOpened(args.name, args.item), { name: C, item });
 	const MAIN = { weapon: 'Dagger' };
 	const THROWN = { weapon: 'Dagger (Thrown)' };
-	const SHOW: Chevron = { points: 'right', tooltip: 'Show the description' };
-	const HIDE: Chevron = { points: 'down', tooltip: 'Hide the description' };
 	// The character owns every Skills Compendium skill, at rank 0: the Thrown profile attacks with Ranged, listed first.
 	const weapon = dagger({ main: ['Melee', 'Brawl'], thrown: ['Ranged', 'Athletics'] });
 	const rows = async () => ({
@@ -2323,7 +2315,8 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 					{ name: 'E2E Club', type: 'weapon', system: { skills: ['Melee'], state: 'equipped' } },
 					{ name: 'E2E Leather', type: 'armor', system: { state: 'equipped', description: '<p>Boiled leather.</p>' } },
 					{ name: 'E2E Bruise', type: 'injury', system: { severity: 'easy', description: '<p>A dark bruise.</p>' } },
-					{ name: 'E2E Scrape', type: 'injury', system: { severity: 'easy' } },
+					// Foundry's editor saves a description cleared in it as an empty paragraph.
+					{ name: 'E2E Scrape', type: 'injury', system: { severity: 'easy', description: '<p></p>' } },
 				],
 			});
 			await page((name) => window.characterE2E.open(name), C);
@@ -2333,7 +2326,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, pointing right, to show the description',
 		await rows(),
-		{ main: SHOW, thrown: SHOW, armor: SHOW, injury: SHOW },
+		{ main: SHOW_CHEVRON, thrown: SHOW_CHEVRON, armor: SHOW_CHEVRON, injury: SHOW_CHEVRON },
 	);
 	e2e.expect(
 		"#393 A1 the rows of a weapon and of a Critical Injury without a description show no chevron, and every row's description starts closed",
@@ -2356,7 +2349,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	);
 
 	await e2e.step("#393 A2 the chevron of the dagger's main row clicked", () => clickChevron(MAIN));
-	const opened = await takeOpened('Dagger');
+	const opened = await closeOpened('Dagger');
 	e2e.expect(
 		"#393 A2 the main row's description shows the weapon's last line, at its full height past 200px",
 		await box(MAIN, 200),
@@ -2365,7 +2358,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#393 A2 the main row's chevron points down, to hide the description, and the Thrown row's stays closed",
 		{ main: await chevron(MAIN), thrown: await chevron(THROWN), thrownBox: await closed(THROWN) },
-		{ main: HIDE, thrown: SHOW, thrownBox: CLOSED_DESCRIPTION },
+		{ main: HIDE_CHEVRON, thrown: SHOW_CHEVRON, thrownBox: CLOSED_DESCRIPTION },
 	);
 	e2e.expect("#393 A2 the chevron opens neither the weapon's sheet nor the Dice Prompt", opened, { sheet: false, dicePrompt: false });
 
@@ -2385,7 +2378,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			thrown: await box(THROWN, 200),
 			thrownChevron: await chevron(THROWN),
 		},
-		{ main: CLOSED_DESCRIPTION, mainChevron: SHOW, thrown: shownDescription(200), thrownChevron: HIDE },
+		{ main: CLOSED_DESCRIPTION, mainChevron: SHOW_CHEVRON, thrown: shownDescription(200), thrownChevron: HIDE_CHEVRON },
 	);
 
 	await e2e.step('#393 A5 the sheet closed and opened again, on its Combat tab, with the Thrown row open', async () => {
@@ -2395,20 +2388,20 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		'#393 A5 every row opens closed again',
 		{ rows: await rows(), thrown: await closed(THROWN) },
-		{ rows: { main: SHOW, thrown: SHOW, armor: SHOW, injury: SHOW }, thrown: CLOSED_DESCRIPTION },
+		{ rows: { main: SHOW_CHEVRON, thrown: SHOW_CHEVRON, armor: SHOW_CHEVRON, injury: SHOW_CHEVRON }, thrown: CLOSED_DESCRIPTION },
 	);
 
 	await e2e.step('#393 B1 the name of the armor clicked', () => clickName({ armor: 'Leather' }));
 	e2e.expect(
 		"#393 B1 the armor's name opens its sheet, and leaves its description closed",
-		{ box: await closed({ armor: 'Leather' }), ...(await takeOpened('Leather')) },
+		{ box: await closed({ armor: 'Leather' }), ...(await closeOpened('Leather')) },
 		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
 	);
 
 	await e2e.step('#393 B2 the name of the Critical Injury clicked', () => clickName({ injury: 'Bruise' }));
 	e2e.expect(
 		"#393 B2 the Critical Injury's name opens its sheet, and leaves its description closed",
-		{ box: await closed({ injury: 'Bruise' }), ...(await takeOpened('Bruise')) },
+		{ box: await closed({ injury: 'Bruise' }), ...(await closeOpened('Bruise')) },
 		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
 	);
 
@@ -2455,7 +2448,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			editable: await playerPage((name) => game.actors.getName(`E2E ${name}`).sheet.isEditable, C),
 			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
 		},
-		{ editable: false, chevron: SHOW },
+		{ editable: false, chevron: SHOW_CHEVRON },
 	);
 
 	await e2e.step("#393 D2 the chevron of the dagger's main row clicked in the player's page", () =>
@@ -2471,7 +2464,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			}),
 			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
 		},
-		{ box: shownDescription(200), chevron: HIDE },
+		{ box: shownDescription(200), chevron: HIDE_CHEVRON },
 	);
 
 	// The player leaves as it came: the steps after these run without it.

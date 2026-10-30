@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { isEmptyDescription } from '@/data/Descriptions';
+
 defineProps<{
 	/**
 	 * The description the toggle opens: an empty one has nothing to show, and no toggle.
@@ -15,7 +17,7 @@ const emit = defineEmits<{
 <template>
 	<!-- Reading a description edits nothing: the toggle shows on a sheet the user can't edit too. -->
 	<a
-		v-if="description.trim() !== ''"
+		v-if="!isEmptyDescription(description)"
 		class="description-toggle"
 		:data-tooltip="open ? 'Genesys.Tooltips.HideDescription' : 'Genesys.Tooltips.ShowDescription'"
 		@click="emit('toggle')"
