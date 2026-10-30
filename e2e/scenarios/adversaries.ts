@@ -96,8 +96,6 @@ type AdversariesHelpers = {
 		skill: string;
 		defense: PromptState['modifications'];
 	} | null>;
-	/** Gives a user the Observer permission on actors: the user can view their sheets but not edit them. */
-	grantObserver(args: { user: string; actors: string[] }): Promise<void>;
 	descriptionArea(args: { actor: string }): Promise<DescriptionArea>;
 	/** Clicks the edit toggle of an adversary's description and returns its editor once open. */
 	openDescription(args: { actor: string }): Promise<OpenEditor>;
@@ -487,13 +485,6 @@ function installAdversariesHelpers() {
 			const { modifications } = await readPrompt();
 			target(null);
 			return { skill, defense: modifications.filter(({ name }) => name.endsWith('Defense')) };
-		},
-
-		async grantObserver({ user, actors }) {
-			const userId = game.users.getName(user).id;
-			for (const name of actors) {
-				await actor(name).update({ [`ownership.${userId}`]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER });
-			}
 		},
 
 		async descriptionArea({ actor: name }) {
@@ -990,7 +981,13 @@ export async function run(e2e: ScenarioContext) {
 
 	const player = await e2e.player();
 	await player.evaluate(installAdversariesHelpers);
-	await gm.evaluate((args) => window.adversariesE2E.grantObserver(args), { user: e2e.playerUser, actors: adversaries });
+	// An observer views the adversaries' sheets but can't edit them.
+	await gm.evaluate(
+		async ({ user, actors }) => {
+			for (const name of actors) await window.e2e.setOwnership(window.e2e.actor(name), user, 'OBSERVER');
+		},
+		{ user: e2e.playerUser, actors: adversaries },
+	);
 	await e2e.settle();
 	const observedAreas = await byAdversary(adversaries, (actor) => descriptionArea(player, actor));
 	e2e.log('the empty description areas of an observer', observedAreas);

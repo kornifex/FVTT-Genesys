@@ -191,7 +191,7 @@ declare global {
  */
 function installSheetsHelpers() {
 	if (window.sheetsE2E) return;
-	const { sleep, settle, waitFor, text, isSetUp, durationRounds, htmlOf, render, actor, apps, dragStart, drop } = window.e2e;
+	const { sleep, settle, waitFor, text, isSetUp, durationRounds, htmlOf, render, actor, apps, dragStart, drop, effectRows } = window.e2e;
 	const ApplicationV2 = foundry.applications.api.ApplicationV2;
 	// An actor's name, a world item's name, or `Actor/Item` for an owned item.
 	const documentNamed = (name: string) => {
@@ -300,7 +300,6 @@ function installSheetsHelpers() {
 		async setUp(player) {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
-			const playerId = game.users.getName(player).id;
 			const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
 			await Actor.createDocuments([
 				{
@@ -309,16 +308,18 @@ function installSheetsHelpers() {
 					// Artwork of its own, for the header's artwork entries.
 					img: 'icons/svg/aura.svg',
 					prototypeToken: { texture: { src: 'icons/svg/aura.svg' } },
-					ownership: { default: 0, [playerId]: levels.OWNER },
 				},
-				{ name: 'E2E Observed', type: 'character', ownership: { default: 0, [playerId]: levels.OBSERVER } },
-				{ name: 'E2E Limited', type: 'character', ownership: { default: 0, [playerId]: levels.LIMITED } },
+				{ name: 'E2E Observed', type: 'character' },
+				{ name: 'E2E Limited', type: 'character' },
 				{ name: 'E2E Bearer', type: 'character' },
 				{ name: 'E2E Minion', type: 'minion' },
 				{ name: 'E2E Rival', type: 'rival' },
 				{ name: 'E2E Nemesis', type: 'nemesis' },
 				{ name: 'E2E Vehicle', type: 'vehicle' },
 			]);
+			await window.e2e.setOwnership(actor('Hero'), player, 'OWNER');
+			await window.e2e.setOwnership(actor('Observed'), player, 'OBSERVER');
+			await window.e2e.setOwnership(actor('Limited'), player, 'LIMITED');
 			const link = `@UUID[${actor('Hero').uuid}]{E2E Hero}`;
 			const quality = { name: 'E2E Pierce', description: `<p>${link} pierces.</p>`, isRated: true, rating: 1 };
 			await Item.createDocuments(
@@ -811,22 +812,13 @@ function installSheetsHelpers() {
 		},
 
 		effectRows(name) {
-			const view = sheetElement(name).querySelector('.effects-view')!;
-			const rows: EffectRow[] = [];
-			let section = '';
-			for (const element of view.children) {
-				if (element.matches('.effects-header')) section = text(element.querySelector('.name'));
-				for (const row of element.matches('.effects-category') ? element.querySelectorAll<HTMLElement>('.effect') : []) {
-					rows.push({
-						section,
-						name: text(row.querySelector('.name')),
-						source: text(row.querySelector('.source')),
-						tooltip: row.dataset.tooltip ?? null,
-						buttons: [...row.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
-					});
-				}
-			}
-			return rows;
+			return effectRows(sheetElement(name).querySelector('.effects-view')!).map((row) => ({
+				section: row.section,
+				name: row.name,
+				source: row.source,
+				tooltip: row.tooltip,
+				buttons: [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
+			}));
 		},
 
 		effectsData(name) {
@@ -1864,14 +1856,12 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#85 GM opens the effect sheet from the Effects tab of a character', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
-			const { text, htmlOf, waitFor } = window.e2e;
+			const { htmlOf, waitFor, effectRows } = window.e2e;
 			await sheets.open('Hero');
 			await sheets.clickTab('Hero', 'effects');
 			const hero = game.actors.getName('E2E Hero');
-			const row = [...htmlOf(hero.sheet)!.querySelectorAll('.effects-view .effect')].find(
-				(row) => text(row.querySelector('.name')) === 'E2E Edited',
-			) as HTMLElement;
-			row.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
+			const row = effectRows(htmlOf(hero.sheet)!.querySelector('.effects-view')!).find((row) => row.name === 'E2E Edited')!;
+			row.element.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
 			const effectSheet = hero.effects.getName('E2E Edited').sheet;
 			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name$="changes.0.key"]'));
 		}),
@@ -2291,17 +2281,16 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step("#102 GM edits and powers off an item's effect from the Rival's Effects tab", () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
-			const { text, htmlOf, settle } = window.e2e;
+			const { htmlOf, settle, effectRows, toggleEffect } = window.e2e;
 			await sheets.clickTab('Rival', 'effects');
 			const row = () =>
-				[...htmlOf(game.actors.getName('E2E Rival').sheet)!.querySelectorAll('.effects-view .effect')].find(
-					(row) => text(row.querySelector('.name')) === 'E2E Kit effect',
-				) as HTMLElement;
+				effectRows(htmlOf(game.actors.getName('E2E Rival').sheet)!.querySelector('.effects-view')!).find(
+					(row) => row.name === 'E2E Kit effect',
+				)!;
 			// Which effect sheet opens is under test: the step waits for the click's work to end, not for a sheet.
-			row().querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
+			row().element.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
 			await settle();
-			row().querySelector<HTMLElement>('.fa-power-off')!.parentElement!.click();
-			await settle();
+			await toggleEffect(row());
 		}),
 	);
 	e2e.expect(
