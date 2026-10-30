@@ -2,7 +2,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { isSuppressedAsConsumable, isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import { effectsToExpire, isExpired, rearms } from '@/effects/EffectExpiry';
+import { effectsToExpire, isExpired, extendsExpiredEffect } from '@/effects/EffectExpiry';
 import type { GenesysCombat } from '@/combat/GenesysCombat';
 
 // v12 and v13: their effect duration has no `expired` field, so the Acting GM marks an Expired Effect with this flag.
@@ -29,12 +29,12 @@ export class GenesysEffect extends ActiveEffect {
 		options: DocumentUpdateContext<this>,
 		user: foundry.documents.BaseUser,
 	) {
-		// Foundry never sets an expired effect back: an update that gives its duration time left again rearms it.
+		// Foundry never sets an expired effect back: an update that extends its duration, so that it has time left again, makes it apply again.
 		if (changed.duration) {
 			const duration = this._source.duration;
 			const newDuration = foundry.utils.mergeObject(duration, changed.duration, { inplace: false });
 			const combat = game.combat;
-			if (rearms({ expired: this.isExpired, duration }, newDuration, combat?.combatTime)) {
+			if (extendsExpiredEffect({ expired: this.isExpired, duration }, newDuration, combat?.combatClock)) {
 				foundry.utils.setProperty(changed, `flags.genesys.${FLAG_EXPIRED}`, false);
 			}
 		}
@@ -103,7 +103,7 @@ export async function expireEffectsOfCombat(combat: GenesysCombat) {
 
 	const expiring = effectsToExpire(
 		[...effects.values()].map((document) => ({ document, expired: document.isExpired, duration: document._source.duration })),
-		combat.combatTime,
+		combat.combatClock,
 	);
 
 	// Written by parent: an actor or an item.

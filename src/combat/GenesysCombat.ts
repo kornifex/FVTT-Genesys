@@ -5,6 +5,7 @@ import { checkDescription, checkDicePool, resolveCheck, worldCheckRules } from '
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 import { expireEffectsOfCombat } from '@/effects/GenesysEffect';
+import type { CombatClock } from '@/effects/EffectExpiry';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import {
 	ClaimInitiativeSlotData,
@@ -96,7 +97,7 @@ export class GenesysCombat extends Combat {
 	/**
 	 * The point the combat has reached, against which effect durations in rounds and turns are counted.
 	 */
-	get combatTime() {
+	get combatClock(): CombatClock {
 		return { round: this.round, turn: this.turn, turnCount: this.turns.length };
 	}
 
