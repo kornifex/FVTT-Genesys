@@ -55,6 +55,13 @@ export type FixedDie = { face: number; faces: number };
 export type ConfirmDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
 
 /**
+ * An expandable description of a row as laid out (#325): its height in px, rounded, or `>cap` past the cap given, since
+ * the height of a long text differs between the versions' fonts; how many px of its content it cuts off, it or its
+ * content clipping; whether its last element ends inside its box; and how its height animates.
+ */
+export type DescriptionBox = { height: number | string; clipped: number; lastInside: boolean; transition: string };
+
+/**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
@@ -161,6 +168,15 @@ type PageHelpers = {
 	poolModification: (element: Element, icon?: Element | null) => string;
 	/** The rows of an Effects tab, each with the heading of its section and its row element, to click its buttons. */
 	effectRows: (view: Element) => EffectsTabRow[];
+	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
+	showTab: (name: string, tab: string) => Promise<void>;
+	/**
+	 * Gives an element the `active` class, or takes it away: opens or closes an expandable description that no click
+	 * toggles, as in the Combat tabs.
+	 */
+	setActive: (element: Element, active: boolean) => void;
+	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
+	descriptionBox: (description: Element, cap: number) => DescriptionBox;
 };
 
 /**
@@ -558,6 +574,37 @@ export function installHelpers() {
 				}
 			}
 			return rows;
+		},
+
+		async showTab(name, tab) {
+			const root = await helpers.render(helpers.actor(name).sheet);
+			const link = root.querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`);
+			if (!link) throw new Error(`No ${tab} tab on the sheet of E2E ${name}`);
+			link.click();
+			await helpers.waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
+		},
+
+		setActive(element, active) {
+			element.classList.toggle('active', active);
+		},
+
+		descriptionBox(description, cap) {
+			const box = description.getBoundingClientRect();
+			const last = [...description.querySelectorAll('*')].at(-1);
+			const style = getComputedStyle(description);
+			const clipped = Math.max(
+				...[description, description.firstElementChild].map((element) =>
+					element ? element.scrollHeight - element.clientHeight : 0,
+				),
+			);
+			return {
+				height: box.height > cap ? `>${cap}` : Math.round(box.height),
+				// The two heights are rounded apart, by a pixel at most, when a box's height has a fraction.
+				clipped: clipped > 1 ? clipped : 0,
+				// Half a pixel of slack, for a box whose edges fall between two pixels.
+				lastInside: !!last && last.getBoundingClientRect().bottom <= box.bottom + 0.5,
+				transition: `${style.transitionProperty} ${style.transitionDuration}`,
+			};
 		},
 	};
 
