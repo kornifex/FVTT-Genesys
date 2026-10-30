@@ -79,6 +79,33 @@ type CombatHelpers = {
 	/** A refusal notification, as the client words it. */
 	warning(key: string, name?: string): string;
 	effectRemaining(combatant: string, effect: string): number | undefined;
+	/** Gives a combatant's token actor an effect adding 1 to its melee defense, from the current turn. */
+	addDefenseEffect(combatant: string, effect: string, duration: { rounds?: number; turns?: number }): Promise<void>;
+	/** An effect of a combatant's token actor, found through its token: it outlives the combat. */
+	expiry(combatant: string, effect: string): EffectExpiry | null;
+	/** The rows of the Effects tab of a combatant's token actor. */
+	effectRows(combatant: string): Promise<EffectRow[]>;
+	/** Clicks the on/off toggle of an effect in the Effects tab of a combatant's token actor. */
+	toggleEffect(combatant: string, effect: string): Promise<void>;
+};
+
+/**
+ * Whether an effect is expired, turned off or suppressed, and the melee defense of its actor.
+ */
+type EffectExpiry = {
+	expired: boolean;
+	disabled: boolean;
+	suppressed: boolean;
+	meleeDefense: number;
+};
+
+/**
+ * A row of an actor's Effects tab.
+ */
+type EffectRow = {
+	section: 'temporary' | 'passive' | 'suppressed' | '?';
+	name: string;
+	duration: string;
 };
 
 declare global {
@@ -92,7 +119,7 @@ declare global {
  */
 function installCombatHelpers() {
 	if (window.combatE2E) return;
-	const { settle, waitFor, unprefixed, apps } = window.e2e;
+	const { settle, waitFor, unprefixed, apps, text } = window.e2e;
 	const combatant = (name: string) => {
 		const found = game.combat?.combatants.find((candidate: { name: string }) => candidate.name === name);
 		if (!found) throw new Error(`No combatant named ${name}`);
@@ -256,6 +283,68 @@ function installCombatHelpers() {
 		effectRemaining(name, effect) {
 			return combatant(name).actor.effects.getName(effect)?.duration.remaining;
 		},
+
+		async addDefenseEffect(name, effect, duration) {
+			const combat = game.combat;
+			await combatant(name).actor.createEmbeddedDocuments('ActiveEffect', [
+				{
+					name: effect,
+					changes: [{ key: 'system.defense.melee', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' }],
+					duration: { ...duration, combat: combat.id, startRound: combat.round, startTurn: combat.turn },
+				},
+			]);
+		},
+
+		expiry(name, effect) {
+			const actor = window.e2e.token(name).actor;
+			const found = actor.effects.getName(effect);
+			if (!found) return null;
+			return {
+				expired: found.isExpired,
+				disabled: found.disabled,
+				suppressed: found.isSuppressed,
+				meleeDefense: actor.system.defense.melee,
+			};
+		},
+
+		async effectRows(name) {
+			const sheet = window.e2e.token(name).actor.sheet;
+			const root = await window.e2e.render(sheet, (root) => root.querySelector('.effects-view'));
+			const sections: Record<string, EffectRow['section']> = {
+				[game.i18n.localize('Genesys.ActiveEffects.Temporary')]: 'temporary',
+				[game.i18n.localize('Genesys.ActiveEffects.Passive')]: 'passive',
+				[game.i18n.localize('Genesys.ActiveEffects.Suppressed')]: 'suppressed',
+			};
+			const rows: EffectRow[] = [];
+			let section: EffectRow['section'] = '?';
+			for (const element of root.querySelector('.effects-view')!.children) {
+				if (element.matches('.effects-header')) section = sections[text(element.querySelector('.name'))] ?? '?';
+				for (const effectRow of element.matches('.effects-category') ? element.querySelectorAll('.effect') : []) {
+					rows.push({
+						section,
+						name: text(effectRow.querySelector('.name')),
+						duration: text(effectRow.querySelector('.duration')),
+					});
+				}
+			}
+			await sheet.close();
+			return rows;
+		},
+
+		async toggleEffect(name, effect) {
+			const actor = window.e2e.token(name).actor;
+			const disabled = actor.effects.getName(effect).disabled;
+			const sheet = actor.sheet;
+			const root = await window.e2e.render(sheet, (root) => root.querySelector('.effects-view .effect'));
+			const effectRow = [...root.querySelectorAll('.effects-view .effect')].find(
+				(candidate) => text(candidate.querySelector('.name')) === effect,
+			);
+			if (!effectRow) throw new Error(`No row for ${effect} in the Effects tab of ${name}`);
+			effectRow.querySelector<HTMLElement>('.fa-power-off')!.closest('a')!.click();
+			await waitFor(`${effect} turned ${disabled ? 'on' : 'off'}`, () => actor.effects.getName(effect).disabled !== disabled);
+			await settle();
+			await sheet.close();
+		},
 	};
 
 	Hooks.on('createChatMessage', (message: { speaker: { actor: string }; rolls: { formula: string }[]; sound: string | null }) =>
@@ -363,6 +452,7 @@ export async function run(e2e: ScenarioContext) {
 
 	await trackerClass();
 	await extraSlotKeepsTurn();
+	await expiredEffects();
 	await rollKeepsTurn();
 	await claims();
 	await claimedRows();
@@ -441,6 +531,8 @@ export async function run(e2e: ScenarioContext) {
 		const effectState = async () =>
 			(await gm.evaluate(() => window.combatE2E.effectRemaining('Boss', 'E2E Dazed'))) ? 'running' : 'expired';
 		const effectBefore = await effectState();
+		const expired = () => gm.evaluate(() => window.combatE2E.expiry('Boss', 'E2E Dazed')?.expired);
+		const expiredBefore = await expired();
 		const a3 = await e2e.step('#57 A3 GM ends the turn', () => gm.evaluate(() => game.combat.nextTurn()));
 		turnOn('A3', a3, 'Boss:1');
 		// §#96: Foundry sees a turn change when the turn stays with the same combatant.
@@ -457,6 +549,12 @@ export async function run(e2e: ScenarioContext) {
 			"#96 A2 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot on v12 and v13 alike",
 			{ before: effectBefore, after: await effectState() },
 			{ before: 'running', after: 'expired' },
+		);
+		// §#357: it expires at that same turn change: the Acting GM marks it on v13, Foundry's registry on v14.
+		e2e.expect(
+			"#357 C1 a one-turn effect on Boss is marked expired from Boss's own slot to its Extra Slot, as #96 A2 sees it run out",
+			{ before: expiredBefore, after: await expired() },
+			{ before: false, after: true },
 		);
 
 		// Initiatives rolled, Boss ahead: Hero's new slot sorts after the current one.
@@ -479,6 +577,85 @@ export async function run(e2e: ScenarioContext) {
 		await player.reload();
 		await player.evaluate(installCombatHelpers);
 		turnOn('C3', await e2e.step('#57 C3 player reloaded'), 'Hero:-1');
+	}
+
+	/** §#357: an effect whose duration in rounds or turns has run out stops applying, and shows as expired, until extended. */
+	async function expiredEffects() {
+		const expiry = () => gm.evaluate(() => window.combatE2E.expiry('Boss', 'E2E Guarded'));
+		const effectRows = () => gm.evaluate(() => window.combatE2E.effectRows('Boss'));
+		const toggle = () => gm.evaluate(() => window.combatE2E.toggleEffect('Boss', 'E2E Guarded'));
+		const nextTurn = () => gm.evaluate(() => game.combat.nextTurn());
+		const expiredLabel = await gm.evaluate(() => game.i18n.localize('Genesys.ActiveEffects.Expired'));
+		const applying = { expired: false, disabled: false, suppressed: false, meleeDefense: 1 };
+		const expired = { expired: true, disabled: false, suppressed: true, meleeDefense: 0 };
+
+		// Hero's turn, then Boss's: a round has two turns.
+		await setUp({ Hero: 2, Boss: 1 }, { turnOn: 'Hero:-1' });
+		await gm.evaluate(() => window.combatE2E.addDefenseEffect('Boss', 'E2E Guarded', { rounds: 1 }));
+		e2e.expect("#357 A0 a one-round effect adds 1 to Boss's melee defense", await expiry(), applying);
+
+		await e2e.step("#357 A1 GM ends Hero's turn", nextTurn);
+		e2e.expect('#357 A1 the effect still applies during its round', await expiry(), applying);
+
+		await e2e.step("#357 A2 GM ends Boss's turn, starting round 2", nextTurn);
+		e2e.expect('#357 A2 the one-round effect stops applying at the start of round 2', await expiry(), expired);
+		e2e.expect('#357 A3 the expired effect is listed under Suppressed, with "Expired" as its duration', await effectRows(), [
+			{ section: 'suppressed', name: 'E2E Guarded', duration: expiredLabel },
+		]);
+
+		await e2e.step('#357 A4 GM turns the expired effect off, then on, with its toggle', async () => {
+			await toggle();
+			await toggle();
+		});
+		e2e.expect("#357 A4 turning an expired effect on doesn't make it apply", await expiry(), expired);
+
+		// v13: a duration holds its rounds; from v14 on, a value and its units.
+		const extended = e2e.version >= 14 ? { 'duration.value': 2 } : { 'duration.rounds': 2 };
+		await e2e.step('#357 A5 GM extends the effect by one round, from round 2', () =>
+			gm.evaluate((update) => window.e2e.token('Boss').actor.effects.getName('E2E Guarded').update(update), extended),
+		);
+		e2e.expect(
+			'#357 A5 the extended effect applies again, as a temporary effect',
+			{ expiry: await expiry(), sections: (await effectRows()).map((row) => row.section) },
+			{ expiry: applying, sections: ['temporary'] },
+		);
+
+		await e2e.step('#357 A6 GM turns the running effect off with its toggle', toggle);
+		e2e.expect('#357 A6 turning a running effect off suppresses it', await expiry(), {
+			expired: false,
+			disabled: true,
+			suppressed: true,
+			meleeDefense: 0,
+		});
+		await e2e.step('#357 A7 GM turns it on again', toggle);
+		e2e.expect('#357 A7 turning it on again makes it apply', await expiry(), applying);
+
+		await e2e.step("#357 A8 GM ends Hero's turn in round 2", nextTurn);
+		e2e.expect('#357 A8 the extended effect still applies during its last round', await expiry(), applying);
+		await e2e.step("#357 A9 GM ends Boss's turn, starting round 3", nextTurn);
+		e2e.expect('#357 A9 the extended effect expires again once its last round is over', await expiry(), expired);
+
+		await e2e.step('#357 A10 GM deletes the combat', () => gm.evaluate(() => game.combat.delete()));
+		e2e.expect(
+			'#357 A10 the expired effect stays suppressed, and listed as expired, once the combat is deleted',
+			{ expiry: await expiry(), rows: await effectRows() },
+			{ expiry: expired, rows: [{ section: 'suppressed', name: 'E2E Guarded', duration: expiredLabel }] },
+		);
+
+		// With no GM online, nobody writes the flag: the next turn change with one online does.
+		await setUp({ Hero: 2, Boss: 1 }, { turnOn: 'Hero:-1' });
+		await gm.evaluate(() => window.combatE2E.addDefenseEffect('Boss', 'E2E Guarded', { turns: 1 }));
+		await e2e.step('#357 B0 GM leaves', () => gm.leave());
+		const errors = errorCounts();
+		await e2e.step("#357 B1 player ends Hero's turn, with no GM online", () => player.evaluate(() => game.combat.nextTurn()));
+		e2e.expect('#357 B1 with no GM online, the turn change throws nothing', errorsSince(errors), { [e2e.playerUser]: [] });
+		await e2e.step('#357 B2 GM joins again', async () => {
+			await gm.join();
+			await gm.evaluate(installCombatHelpers);
+		});
+		e2e.expect('#357 B2 with no GM online, the run-out effect was left unmarked, and still applies', await expiry(), applying);
+		await e2e.step("#357 B3 GM ends Boss's turn, starting round 2", nextTurn);
+		e2e.expect('#357 B3 the next turn change with a GM online marks the effect expired', await expiry(), expired);
 	}
 
 	/** §#59, from `rollKeepsTurn.ts` (#58): a roll that moves a slot before the current one keeps the turn, with no turn events. */

@@ -96,7 +96,10 @@ async function deleteEffect(effect: GenesysEffect) {
 					<img :src="effect.img ?? undefined" :alt="effect.name" />
 					<div class="name">{{ effect.name }}</div>
 					<div class="source">{{ sourceName(effect) }}</div>
-					<div class="duration">{{ effect.duration.label }}</div>
+					<div class="duration">
+						<Localized v-if="effect.isExpired" label="Genesys.ActiveEffects.Expired" />
+						<template v-else>{{ effect.duration.label }}</template>
+					</div>
 					<div v-if="editable" class="buttons">
 						<a @click="toggleDisabled(effect)" :style="effect.disabled ? 'opacity: 25%' : undefined"
 							><i class="fas fa-power-off"></i

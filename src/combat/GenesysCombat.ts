@@ -4,8 +4,10 @@ import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
+import { expireEffectsOfCombat } from '@/effects/GenesysEffect';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
-import { emit as socketEmit, handle as handleSocket, SocketOperation } from '@/socket';
+import { emit as socketEmit, handle as handleSocket, isActingGm, SocketOperation } from '@/socket';
+import { isFoundryV13 } from '@/foundryGeneration';
 import {
 	buildSlots,
 	claimRefusal,
@@ -109,6 +111,13 @@ export class GenesysCombat extends Combat {
 	 */
 	get slots() {
 		return this.slotsForRound(this.round);
+	}
+
+	/**
+	 * The point the combat has reached, against which effect durations in rounds and turns are counted.
+	 */
+	get combatTime() {
+		return { round: this.round, turn: this.turn, turnCount: this.turns.length };
 	}
 
 	/**
@@ -517,6 +526,12 @@ export class GenesysCombat extends Combat {
 		}
 
 		super._onUpdate(changed, options, userId);
+
+		// v13: Foundry never expires an effect, so the Acting GM marks those whose duration ran out at this turn. v14's
+		// Active Effect registry does it at the turn events.
+		if (isFoundryV13() && ('round' in changed || 'turn' in changed) && isActingGm()) {
+			expireEffectsOfCombat(this).catch((error: unknown) => log.error('Marking the expired effects failed', error));
+		}
 	}
 
 	/**

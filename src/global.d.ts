@@ -73,6 +73,7 @@ declare module 'fvtt-types/configuration' {
 
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
+		ActiveEffect: { genesys: { expired?: boolean } };
 		Combat: { genesys: { slotClaims?: ClaimData; extraSlots?: StoredExtraSlot[] } };
 		Combatant: { genesys: { initiativeSkill?: string } };
 	}
