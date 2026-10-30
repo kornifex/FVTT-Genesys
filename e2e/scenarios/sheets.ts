@@ -41,6 +41,11 @@ type Size = { width: number; height: number };
  */
 type EditorState = { toggle: 'enabled' | 'disabled' | null; open: boolean; text: string; links: number };
 
+/**
+ * The look of a heading: its size against its parent's, its margins in rem, and its bottom rule.
+ */
+type HeadingStyle = { size: number; margin: string; weight: string; lineHeight: string; color: string; shadow: string; border: string };
+
 type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */
 	setUp(player: string): Promise<void>;
@@ -166,6 +171,10 @@ type SheetsHelpers = {
 	 * by others, then put back.
 	 */
 	trackedAttributeLabels(name: string, translations: Record<string, string>): string[];
+	/** Opens a sheet whose description holds an `h1` to `h4`, and reads their look, with the window's text colour. */
+	descriptionHeadings(name: string): Promise<{ text: string; headings: Record<string, HeadingStyle> }>;
+	/** Reads the look of an `h3` in a journal's text page, which the sheets' styles must leave alone. */
+	journalHeading(): Promise<HeadingStyle>;
 	cleanUp(): Promise<void>;
 };
 
@@ -260,6 +269,23 @@ function installSheetsHelpers() {
 		const effect = doc.effects.getName('E2E Edited');
 		if (!effect) throw new Error(`No effect E2E Edited on ${owner}`);
 		return effect;
+	};
+	const headingStyle = (heading: HTMLElement): HeadingStyle => {
+		const style = getComputedStyle(heading);
+		const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		const inRem = (value: string) => Math.round((parseFloat(value) / rem) * 100) / 100;
+		return {
+			size: Math.round((parseFloat(style.fontSize) / parseFloat(getComputedStyle(heading.parentElement!).fontSize)) * 100) / 100,
+			margin: [style.marginTop, style.marginRight, style.marginBottom, style.marginLeft].map(inRem).join(' '),
+			weight: style.fontWeight,
+			lineHeight: style.lineHeight,
+			color: style.color,
+			shadow: style.textShadow,
+			border:
+				style.borderBottomStyle === 'none'
+					? 'none'
+					: `${style.borderBottomWidth} ${style.borderBottomStyle} ${style.borderBottomColor}`,
+		};
 	};
 	const setSelect = (element: Element, selector: string, value: string) => {
 		const field = element.querySelector<HTMLInputElement | HTMLSelectElement>(selector);
@@ -1043,6 +1069,38 @@ function installSheetsHelpers() {
 			}
 		},
 
+		async descriptionHeadings(name) {
+			const tags = ['h1', 'h2', 'h3', 'h4'];
+			await helpers.update(name, {
+				'system.description': `${tags.map((tag) => `<${tag}>E2E ${tag}</${tag}>`).join('')}<p>E2E text.</p>`,
+			});
+			await helpers.open(name);
+			const element = await waitFor(`the headings of ${name}`, () =>
+				sheetElement(name).querySelector('.vue-app .editor-content h4') ? sheetElement(name) : undefined,
+			);
+			const headings = Object.fromEntries(
+				tags.map((tag) => [tag, headingStyle(element.querySelector<HTMLElement>(`.editor-content ${tag}`)!)]),
+			);
+			const text = getComputedStyle(element.querySelector('.window-content')!).color;
+			await helpers.close(name);
+			return { text, headings };
+		},
+
+		async journalHeading() {
+			const journal = await CONFIG.JournalEntry.documentClass.create({
+				name: 'E2E Headings',
+				pages: [{ name: 'E2E Page', type: 'text', text: { content: '<h3>E2E h3</h3><p>E2E text.</p>' } }],
+			});
+			try {
+				const element = await render(journal!.sheet);
+				const heading = await waitFor('the journal heading', () => element.querySelector<HTMLElement>('.journal-entry-page h3'));
+				return headingStyle(heading);
+			} finally {
+				await journal!.sheet.close();
+				await journal!.delete();
+			}
+		},
+
 		async cleanUp() {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
@@ -1200,6 +1258,36 @@ export async function run(e2e: ScenarioContext) {
 		gear: { width: 320, height: 200 },
 		archetype: { width: 580, height: 600 },
 	});
+
+	// #346: ApplicationV2 gives headings its own look (v12: light text with a dark shadow, v13 on: a larger size) and wide
+	// margins. A description's headings keep AppV1's look, and a journal's are left alone.
+	let headings: Awaited<ReturnType<SheetsHelpers['descriptionHeadings']>> | undefined;
+	let journalHeading: HeadingStyle | undefined;
+	await e2e.step('#346 GM opens a skill whose description holds headings, and a journal page', async () => {
+		headings = await gm.evaluate(() => window.sheetsE2E.descriptionHeadings('skill'));
+		journalHeading = await gm.evaluate(() => window.sheetsE2E.journalHeading());
+	});
+	const appV1Heading = (size: number, border: string) => ({
+		size,
+		margin: '0 0 0.5 0',
+		weight: '400',
+		lineHeight: 'normal',
+		color: headings!.text,
+		shadow: 'none',
+		border,
+	});
+	const underline = (width: string) => `${width} solid rgb(120, 46, 34)`;
+	e2e.expect(
+		"#346 A1 a description's headings look as in an AppV1 window: the window's text colour, no shadow, AppV1's sizes, margins and rules",
+		headings!.headings,
+		{
+			h1: appV1Heading(2, underline('2px')),
+			h2: appV1Heading(1.5, underline('1px')),
+			h3: appV1Heading(1.25, underline('1px')),
+			h4: appV1Heading(1, 'none'),
+		},
+	);
+	e2e.log("#346 a journal page's h3, unchanged against the base", journalHeading);
 
 	// Prompts and the story point tracker.
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));
