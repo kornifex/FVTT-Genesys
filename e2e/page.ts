@@ -55,6 +55,11 @@ export type FixedDie = { face: number; faces: number };
 export type ConfirmDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
 
 /**
+ * A point of the window, in client coordinates.
+ */
+export type Point = { x: number; y: number };
+
+/**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
@@ -132,7 +137,7 @@ type PageHelpers = {
 	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then. The drop lands at
 	 * a point of the window when one is given, for a target that reads where it lands.
 	 */
-	drop: (element: Element, data: object | DataTransfer, point?: { x: number; y: number }) => void;
+	drop: (element: Element, data: object | DataTransfer, point?: Point) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
 	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
 	/** Creates and views the scene `E2E` when no scene is viewed. */

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { onUnmounted, ref } from 'vue';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 
 const props = withDefaults(
 	defineProps<{
@@ -47,12 +48,7 @@ function removeDocumentListeners() {
 // A menu still open when its sheet closes would otherwise swallow the next click anywhere.
 onUnmounted(removeDocumentListeners);
 
-defineExpose({
-	/**
-	 * Opens the menu from an event of another element than its own, such as a right-click on the row it belongs to.
-	 */
-	open: showContextMenu,
-});
+defineExpose({ open: showContextMenu } satisfies ContextMenuHandle);
 </script>
 
 <template>

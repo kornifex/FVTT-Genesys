@@ -10,7 +10,7 @@ import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 import { draggedGenesysType } from '@/data/DragTransferData';
-import { rowDropTarget, RowEdge, sectionItems } from '@/actor/data/Inventory';
+import { rowDropTarget, sectionItems, type RowEdge } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
 
@@ -138,9 +138,9 @@ function resetDrags() {
 								:item="item"
 								:draggable="isDraggable"
 								:dragging="inventoryDrag.isHovered.value"
-								:sortable="isSectionDragged(section.state)"
+								:section-takes-drag="isSectionDragged(section.state)"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
-								@drop="(event: DragEvent, edge: RowEdge) => dropInventoryOnRow(event, section.state, index, edge)"
+								@drop-on-row="(event: DragEvent, edge: RowEdge) => dropInventoryOnRow(event, section.state, index, edge)"
 							/>
 
 							<SortSlot

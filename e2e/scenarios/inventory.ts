@@ -1,6 +1,6 @@
 /** @file The inventory of #37: drops on actor and item sheets, Containers, Equipment States and their effects, armor, encumbrance and inventory rows. */
-import type { ConfirmDialog } from '../page.ts';
-import type { ScenarioContext } from '../scenario.ts';
+import type { ConfirmDialog, Point } from '../page.ts';
+import type { Client, ScenarioContext } from '../scenario.ts';
 
 type EquipmentState = 'equipped' | 'carried' | 'dropped';
 
@@ -230,9 +230,8 @@ function installInventoryHelpers() {
 		}
 		return dropData(source);
 	};
-	// The point of a half of a row, on the Inventory tab shown, as a drag pointing at it gives.
-	const edgePoint = async (ref: string, row: HTMLElement, edge: RowEdge) => {
-		await helpers.showTab(ref, 'inventory');
+	// The point of a half of a row, as a drag pointing at it gives. The row's tab must be shown, for the row to have a size.
+	const edgePoint = (row: HTMLElement, edge: RowEdge): Point => {
 		const rect = row.getBoundingClientRect();
 		if (!rect.height) throw new Error(`The row of ${text(row.querySelector('.name a'))} isn't shown`);
 		return { x: rect.left + rect.width / 2, y: rect.top + rect.height * (edge === 'before' ? 0.25 : 0.75) };
@@ -243,7 +242,7 @@ function installInventoryHelpers() {
 				? '---'
 				: `${text(entry.querySelector('.menu-label'))} [${[...(entry.querySelector('.menu-icon i')?.classList ?? [])].filter((name) => name !== 'fas').join(' ')}]`,
 		);
-	const dropOn = async (element: Element, data: object | DataTransfer, point?: { x: number; y: number }) => {
+	const dropOn = async (element: Element, data: object | DataTransfer, point?: Point) => {
 		window.e2e.drop(element, data, point);
 		// The sheets handle a drop asynchronously, and a refused drop changes nothing.
 		await settle();
@@ -591,10 +590,13 @@ function installInventoryHelpers() {
 			const dragged = await dragFrom(source);
 			const root = await sheet(ref);
 			let target: Element | null | undefined;
-			let point: { x: number; y: number } | undefined;
+			let point: Point | undefined;
 			if ('item' in at) {
 				target = findRow(root, at.item);
-				if (at.edge) point = await edgePoint(ref, target as HTMLElement, at.edge);
+				if (at.edge) {
+					await helpers.showTab(ref, 'inventory');
+					point = edgePoint(target as HTMLElement, at.edge);
+				}
 			} else if ('on' in at) {
 				target = root.querySelector(at.on);
 			} else {
@@ -674,9 +676,10 @@ function installInventoryHelpers() {
 			if (!(dataTransfer instanceof DataTransfer)) throw new Error('Only a held item is dragged over a row');
 			const row = findRow(await sheet(ref), name);
 			const shown: (RowEdge | null)[] = [];
+			await helpers.showTab(ref, 'inventory');
 			row.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
 			for (const edge of edges) {
-				const { x, y } = await edgePoint(ref, row, edge);
+				const { x, y } = edgePoint(row, edge);
 				row.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: x, clientY: y }));
 				await settle();
 				shown.push(row.classList.contains('drop-before') ? 'before' : row.classList.contains('drop-after') ? 'after' : null);
@@ -929,30 +932,48 @@ function installInventoryHelpers() {
 // Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
 export const needsCanvas = true;
 
+/** The steps' calls of the inventory helpers in a client's page. */
+function inventorySteps(page: Client) {
+	return {
+		drop: (source: Source, actor: string, at: Target) => () =>
+			page.evaluate((args) => window.inventoryE2E.drop(args.source, args.actor, args.at), { source, actor, at }),
+		items: (actor: string) => page.evaluate((ref) => window.inventoryE2E.items(ref), actor),
+		section: (actor: string, state: EquipmentState) =>
+			page.evaluate((args) => window.inventoryE2E.section(args.actor, args.state), { actor, state }),
+		entries: (actor: string, item: string) =>
+			page.evaluate((args) => window.inventoryE2E.menuEntries(args.actor, args.item), { actor, item }),
+	};
+}
+
+/** Runs actions one after the other, as a single step. */
+function drops(...actions: (() => Promise<unknown>)[]) {
+	return async () => {
+		for (const action of actions) await action();
+	};
+}
+
+function held(item: string, by: string): Source {
+	return { held: item, by };
+}
+
+// The entries every inventory row's menu ends with.
+const MENU_TAIL = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
+
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installInventoryHelpers);
 	await gm.evaluate((playerUser) => window.inventoryE2E.setUp(playerUser), e2e.playerUser);
 
 	const page = gm;
-	const drop = (source: Source, actor: string, at: Target) => () =>
-		page.evaluate((args) => window.inventoryE2E.drop(args.source, args.actor, args.at), { source, actor, at });
-	const drops =
-		(...actions: (() => Promise<unknown>)[]) =>
-		async () => {
-			for (const action of actions) await action();
-		};
+	const { drop, items, section } = inventorySteps(page);
 	const menu = (actor: string, item: string, action: MenuAction) => () =>
 		page.evaluate((args) => window.inventoryE2E.menu(args.actor, args.item, args.action), { actor, item, action });
 	// Answers the dialog an action opened: the menu's Delete asks to confirm.
 	const answer = (yesOrNo: 'yes' | 'no') => () => page.evaluate((value) => window.e2e.answerConfirm(value), yesOrNo);
 	const updateItem = (actor: string, item: string, changes: object) => () =>
 		page.evaluate((args) => window.inventoryE2E.updateItem(args.actor, args.item, args.changes), { actor, item, changes });
-	const items = (actor: string) => page.evaluate((ref) => window.inventoryE2E.items(ref), actor);
 	const sorts = (actor: string, state: EquipmentState) =>
 		page.evaluate((args) => window.inventoryE2E.sorts(args.actor, args.state), { actor, state });
-	const section = (actor: string, state: EquipmentState) =>
-		page.evaluate((args) => window.inventoryE2E.section(args.actor, args.state), { actor, state });
 	const effects = (actor: string) => page.evaluate((ref) => window.inventoryE2E.effects(ref), actor);
 	const stat = (actor: string, path: string) => page.evaluate((args) => window.inventoryE2E.stat(args.actor, args.path), { actor, path });
 	const inactive = (actor: string) => page.evaluate((ref) => window.inventoryE2E.inactive(ref), actor);
@@ -964,7 +985,6 @@ export async function run(e2e: ScenarioContext) {
 	const errorCount = () => gm.errors.length;
 	const sidebar = (name: string): Source => ({ sidebar: name });
 	const compendium = (name: string): Source => ({ compendium: name });
-	const held = (item: string, by: string): Source => ({ held: item, by });
 	const slot = (state: EquipmentState, n: number): Target => ({ section: state, slot: n });
 	const onSheet: Target = { on: '.window-content' };
 	const tooltip = (item: string, state: string) => `Inactive while E2E ${item} is ${state}.`;
@@ -1901,8 +1921,7 @@ export async function run(e2e: ScenarioContext) {
 /** §#252: the Equipment State moves an inventory row's menu offers, and the dialogs confirming a deletion from its row and its menu. */
 async function itemActions(e2e: ScenarioContext) {
 	const { gm } = e2e;
-	const entries = (actor: string, item: string) =>
-		gm.evaluate((args) => window.inventoryE2E.menuEntries(args.actor, args.item), { actor, item });
+	const { entries } = inventorySteps(gm);
 	const stepToDeletion = (actor: string, item: string, kind: 'quantity' | 'damage', answer: 'yes' | 'no') =>
 		gm.evaluate((args) => window.inventoryE2E.stepToDeletion(args.actor, args.item, args.kind, args.answer), {
 			actor,
@@ -1913,7 +1932,6 @@ async function itemActions(e2e: ScenarioContext) {
 	const stepperItems = async () =>
 		(await gm.evaluate(() => window.inventoryE2E.items('Stepper'))).filter((name) => /^(Pebble|Shard)/.test(name));
 
-	const rest = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
 	e2e.expect(
 		"#252 B1 a character's row offers to equip a weapon or an armor or put it back to Carried, and to drop or pick up any item; a vehicle's row to equip or unequip a vehicle weapon only",
 		{
@@ -1926,13 +1944,13 @@ async function itemActions(e2e: ScenarioContext) {
 			vehicleGear: await entries('Barge', 'Tarp'),
 		},
 		{
-			weapon: ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...rest],
-			wornArmor: ['Unequip [fa-suitcase]', 'Drop [fa-box-archive]', '---', ...rest],
-			carriedArmor: ['Equip [fa-shield]', 'Drop [fa-box-archive]', '---', ...rest],
-			droppedGear: ['Pick Up [fa-suitcase]', '---', ...rest],
-			container: ['Drop [fa-box-archive]', '---', ...rest],
-			vehicleWeapon: ['Equip [fa-hand-fist]', '---', ...rest],
-			vehicleGear: rest,
+			weapon: ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
+			wornArmor: ['Unequip [fa-suitcase]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
+			carriedArmor: ['Equip [fa-shield]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
+			droppedGear: ['Pick Up [fa-suitcase]', '---', ...MENU_TAIL],
+			container: ['Drop [fa-box-archive]', '---', ...MENU_TAIL],
+			vehicleWeapon: ['Equip [fa-hand-fist]', '---', ...MENU_TAIL],
+			vehicleGear: MENU_TAIL,
 		},
 	);
 
@@ -1994,17 +2012,9 @@ async function itemActions(e2e: ScenarioContext) {
 /** §#358: an inventory row's menu opens on a right-click, and an item dropped on a row lands before or after it. */
 async function rowMenuAndDrops(e2e: ScenarioContext) {
 	const { gm } = e2e;
-	const entries = (actor: string, item: string) =>
-		gm.evaluate((args) => window.inventoryE2E.menuEntries(args.actor, args.item), { actor, item });
+	const { drop, items, section, entries } = inventorySteps(gm);
 	const rightClick = (actor: string, item: string, on: 'image' | 'quantity' = 'image') =>
 		gm.evaluate((args) => window.inventoryE2E.rightClickMenu(args.actor, args.item, args.on), { actor, item, on });
-	const drop = (source: Source, actor: string, at: Target) => () =>
-		gm.evaluate((args) => window.inventoryE2E.drop(args.source, args.actor, args.at), { source, actor, at });
-	const drops =
-		(...actions: (() => Promise<unknown>)[]) =>
-		async () => {
-			for (const action of actions) await action();
-		};
 	const edgesShown = (source: Source, actor: string, item: string, edges: RowEdge[]) =>
 		gm.evaluate((args) => window.inventoryE2E.edgesShown(args.source, args.actor, args.item, args.edges), {
 			source,
@@ -2012,20 +2022,14 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 			item,
 			edges,
 		});
-	const section = (actor: string, state: EquipmentState) =>
-		gm.evaluate((args) => window.inventoryE2E.section(args.actor, args.state), { actor, state });
-	const items = (actor: string) => gm.evaluate((ref) => window.inventoryE2E.items(ref), actor);
 	const placer = async () => ({
 		equipped: await section('Placer', 'equipped'),
 		carried: await section('Placer', 'carried'),
 		dropped: await section('Placer', 'dropped'),
 	});
 	const rover = async () => ({ equipped: await section('Rover', 'equipped'), carried: await section('Rover', 'carried') });
-	const held = (item: string, by: string): Source => ({ held: item, by });
-	const rest = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
-
 	await gm.evaluate(() => window.inventoryE2E.showTab('Placer', 'inventory'));
-	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...rest];
+	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 A1 a right-click on a character's inventory row opens the menu of its … button, which a left-click still opens",
 		{ rightClick: await rightClick('Placer', 'Lance'), button: await entries('Placer', 'Lance') },
@@ -2120,9 +2124,18 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		(await items('Placer')).filter((name) => /^(Twig|Berry)/.test(name)),
 		['Berry:carried@Basket', 'Twig:carried@Basket'],
 	);
+	await e2e.step(
+		"#358 B8 an item of a compendium dropped on the upper half of Placer's Dropped Pinecone row",
+		drop({ compendium: 'Packed Gear' }, 'Placer', { item: 'Pinecone', edge: 'before' }),
+	);
+	e2e.expect('#358 B8 an item from a compendium dropped on a row is placed the same way', await placer(), {
+		equipped: ['Glaive', 'Sword', 'Lance', 'Pike', 'Halberd'],
+		carried: ['Basket'],
+		dropped: ['Packed Gear', 'Pinecone'],
+	});
 
 	await gm.evaluate(() => window.inventoryE2E.showTab('Rover', 'inventory'));
-	const railgunMenu = ['Unequip [fa-suitcase]', '---', ...rest];
+	const railgunMenu = ['Unequip [fa-suitcase]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 C1 a right-click on a vehicle's inventory row opens the menu of its … button",
 		{ rightClick: await rightClick('Rover', 'Railgun'), button: await entries('Rover', 'Railgun') },

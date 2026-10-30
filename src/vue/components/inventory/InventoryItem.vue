@@ -18,13 +18,14 @@ import {
 	equipmentStateMoves,
 	equipmentStateUpdates,
 	rowEdge,
-	RowEdge,
+	type RowEdge,
 	StepDirection,
 	SteppedValue,
 } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
 
@@ -42,13 +43,13 @@ const props = withDefaults(
 		 * Whether a drag the row's section takes is over the inventory: the row then shows the edge the item would land
 		 * next to.
 		 */
-		sortable?: boolean;
+		sectionTakesDrag?: boolean;
 		mini?: boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
 	}>(),
 	{
 		dragging: false,
-		sortable: false,
+		sectionTakesDrag: false,
 		mini: false,
 		canTypeBeInsideContainer: () => false,
 	},
@@ -60,7 +61,7 @@ const emit = defineEmits<{
 	/**
 	 * An item dropped on the row of an item that is no Container, next to one of its edges.
 	 */
-	(e: 'drop', event: DragEvent, edge: RowEdge): void;
+	(e: 'drop-on-row', event: DragEvent, edge: RowEdge): void;
 }>();
 
 const damageStateToIcon = new Map([
@@ -93,10 +94,11 @@ const isBeingDragged = ref(false);
 const takesSortDrop = computed(() => props.item.type !== 'container' && !props.mini);
 const sortDrag = useDragHover(() => takesSortDrop.value);
 const sortEdge = ref<RowEdge>();
-const shownEdge = computed(() => (props.sortable && sortDrag.isHovered.value && !isBeingDragged.value ? sortEdge.value : undefined));
+const shownEdge = computed(() =>
+	props.sectionTakesDrag && sortDrag.isHovered.value && !isBeingDragged.value ? sortEdge.value : undefined,
+);
 
-// The row's menu, as ContextMenu exposes it: ESLint can't read the type of a component's exposed members.
-const menu = useTemplateRef<{ open: (event: Event) => void }>('menu');
+const menu = useTemplateRef<ContextMenuHandle>('menu');
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
@@ -194,6 +196,11 @@ function dragEnter(event: DragEvent) {
 function dragLeave(event: DragEvent) {
 	containerDrag.leave(event);
 	sortDrag.leave(event);
+
+	// A drag entering the row again shows no edge until it points at one.
+	if (!sortDrag.isHovered.value) {
+		sortEdge.value = undefined;
+	}
 }
 
 function dragOver(event: DragEvent) {
@@ -205,21 +212,21 @@ function dragOver(event: DragEvent) {
 async function drop(event: DragEvent) {
 	containerDrag.reset();
 	sortDrag.reset();
+	sortEdge.value = undefined;
 
 	// A Container receives the drop. The inventory tab places one on another row in the row's section, and the row of a
 	// Container's contents lets it go on to the Container.
 	if (props.item.type === 'container') {
 		await receiveInventoryEvent(actor.value, event, { kind: 'container', id: props.item.id });
 	} else if (takesSortDrop.value) {
-		emit('drop', event, edgeOf(event));
+		emit('drop-on-row', event, edgeOf(event));
 	}
 }
 
 // A right-click anywhere on the row opens its menu, as a click on its button does. The row of a Container's contents
-// has no menu, and keeps the right-click from opening the Container's.
+// has no menu, and keeps the right-click from opening the Container's; the browser's own menu is left to Foundry.
 function openMenu(event: MouseEvent) {
 	if (props.mini) {
-		event.preventDefault();
 		event.stopPropagation();
 		return;
 	}
