@@ -1259,8 +1259,8 @@ export async function run(e2e: ScenarioContext) {
 		archetype: { width: 580, height: 600 },
 	});
 
-	// #346: ApplicationV2 gives headings its own look (v12: light text with a dark shadow, v13 on: a larger size) and wide
-	// margins. A description's headings keep AppV1's look, and a journal's are left alone.
+	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
+	// AppV1's look, and a journal's are left alone.
 	let headings: Record<string, HeadingStyle> | undefined;
 	let journalHeading: HeadingStyle | undefined;
 	await e2e.step('#346 GM opens a skill whose description holds headings, and a journal page', async () => {
@@ -1291,18 +1291,16 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect(
 		"#346 A2 a journal page's h3 keeps Foundry's look",
 		journalHeading,
-		// v12 draws a journal's headings as AppV1's, v13 as its own journal pages', without a bottom rule.
-		version === 12
-			? appV1Heading(1.25, underline('1px'))
-			: {
-					size: 1.25,
-					margin: '0 0 0.5 0',
-					weight: '400',
-					lineHeight: '17.5px',
-					color: 'rgb(239, 230, 216)',
-					shadow: 'none',
-					border: 'none',
-				},
+		// Foundry draws a journal page's headings without a bottom rule.
+		{
+			size: 1.25,
+			margin: '0 0 0.5 0',
+			weight: '400',
+			lineHeight: '17.5px',
+			color: 'rgb(239, 230, 216)',
+			shadow: 'none',
+			border: 'none',
+		},
 	);
 
 	// Prompts and the story point tracker.
