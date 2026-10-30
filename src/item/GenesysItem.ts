@@ -1,5 +1,4 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
@@ -8,7 +7,7 @@ import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
  */
 export class GenesysItem<ItemDataModel extends foundry.abstract.DataModel.Any = BaseItemDataModel> extends Item {
 	// Foundry builds `system` with the DataModel registered for the item's type, which the generic names.
-	// @ts-expect-error -- The types declare the union of every type's DataModel, which no single one is assignable to (#246).
+	// @ts-expect-error -- The types declare `system` as the union of every type's DataModel, which they narrow by subtype, not by DataModel.
 	declare system: ItemDataModel;
 
 	/**
@@ -16,16 +15,6 @@ export class GenesysItem<ItemDataModel extends foundry.abstract.DataModel.Any = 
 	 */
 	get systemData(): ItemDataModel {
 		return this.system;
-	}
-
-	/**
-	 * Override the _preCreate callback to call preCreate from the data model class, if present.
-	 * @inheritDoc
-	 */
-	protected override async _preCreate(data: Item.CreateData, options: Item.Database.PreCreateOptions, user: User.Stored) {
-		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
-
-		return super._preCreate(data, options, user);
 	}
 
 	/**

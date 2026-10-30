@@ -1,3 +1,5 @@
+import type { GenesysItem } from '@/item/GenesysItem';
+
 /**
  * Base data model shared by all Item documents.
  *
@@ -6,7 +8,7 @@
  * In this way, we can safely define the value types (to allow for typed access) on the data model. This works only because we never
  * have reason to instantiate any of the DataModel classes ourselves.
  */
-export abstract class BaseItemDataModel extends foundry.abstract.DataModel<foundry.data.fields.DataSchema> {
+export abstract class BaseItemDataModel extends foundry.abstract.TypeDataModel<foundry.data.fields.DataSchema, GenesysItem> {
 	abstract description: string;
 	abstract source: string;
 

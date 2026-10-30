@@ -1,4 +1,4 @@
-/** @file #215, #269, #300 and #343: adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
+/** @file #215, #246, #269, #300 and #343: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
 import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
@@ -17,12 +17,16 @@ type Observed = { items: string[]; writes: string[]; notifications: string[] };
  */
 type PromptState = { pool: string; modifications: { name: string; mods: string }[] };
 
+type PrototypeToken = { bar1: string | null; bar2: string | null; actorLink: boolean; disposition: number };
+
 type MenuTarget = { actor: string; kind: 'skill' | 'talent'; name: string };
 
 type AdversariesHelpers = {
 	setUp(): Promise<void>;
 	cleanUp(): Promise<void>;
 	items(actor: string): string[];
+	/** The bars, link and disposition of an actor's prototype token. */
+	prototypeToken(actor: string): PrototypeToken;
 	/** Drops a world item on an actor's sheet, as from the sidebar. */
 	drop(args: { actor: string; item: string }): Promise<Observed>;
 	/** The labels of the context menu of an adversary's skill or talent. */
@@ -214,6 +218,11 @@ function installAdversariesHelpers() {
 				.sort((left: string, right: string) => left.localeCompare(right));
 		},
 
+		prototypeToken(name) {
+			const { bar1, bar2, actorLink, disposition } = actor(name).prototypeToken;
+			return { bar1: bar1.attribute, bar2: bar2.attribute, actorLink, disposition };
+		},
+
 		async drop({ actor: name, item }) {
 			const root = await sheet(name);
 			return observe(name, () =>
@@ -337,6 +346,20 @@ export async function run(e2e: ScenarioContext) {
 		for (const name of names) results[name] = await action(name);
 		return results;
 	};
+
+	// Each actor type's data model sets its prototype token when the actor is created.
+	const prototypeTokens = await gm.evaluate(() =>
+		Object.fromEntries(
+			['Grunts', 'Rival', 'Nemesis', 'Hero', 'Wagon'].map((name) => [name, window.adversariesE2E.prototypeToken(name)]),
+		),
+	);
+	e2e.expect('#246 an actor created gets the token bars, link and disposition of its type', prototypeTokens, {
+		Grunts: { bar1: 'wounds', bar2: 'members', actorLink: false, disposition: -1 },
+		Rival: { bar1: 'wounds', bar2: null, actorLink: false, disposition: -1 },
+		Nemesis: { bar1: 'wounds', bar2: 'strain', actorLink: true, disposition: -1 },
+		Hero: { bar1: 'wounds', bar2: 'strain', actorLink: true, disposition: 1 },
+		Wagon: { bar1: 'trauma', bar2: 'strain', actorLink: true, disposition: -1 },
+	});
 
 	// A: drops on a minion, a rival and a nemesis (§#131).
 	const skillDrops = await byAdversary(adversaries, async (name) => [await drop(name, 'Stealth'), await drop(name, 'Stealth')]);

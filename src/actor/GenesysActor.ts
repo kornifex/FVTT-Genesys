@@ -1,7 +1,5 @@
 import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import type { Stored } from '@/data/Stored';
-import { HasOnDelete } from '@/data/HasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
@@ -15,7 +13,7 @@ import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
  */
 export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any = foundry.abstract.DataModel.Any> extends Actor {
 	// Foundry builds `system` with the DataModel registered for the actor's type, which the generic names.
-	// @ts-expect-error -- The types declare the union of every type's DataModel, which no single one is assignable to (#246).
+	// @ts-expect-error -- The types declare `system` as the union of every type's DataModel, which they narrow by subtype, not by DataModel.
 	declare system: ActorDataModel;
 
 	/**
@@ -33,12 +31,10 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any 
 	}
 
 	/**
-	 * Override the _preCreate callback to call preCreate from the data model class, if present.
+	 * Migrate an actor created with legacy copies of its items' effects.
 	 * @inheritDoc
 	 */
 	protected override async _preCreate(data: Actor.CreateData, options: Actor.Database.PreCreateOptions, user: User.Stored) {
-		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
-
 		// An actor created with legacy copies of its items' effects, for instance imported from an older module compendium,
 		// loses them and gets its equipment's effects enabled, as the world's actors did in migrations 3 and 4.
 		const changes = migrateCreatedActor(this.toObject() as ActorSource);
@@ -55,16 +51,6 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any 
 		// A non-recursive update replaces the effects with those listed.
 		const keptEffects = this.toObject().effects.filter((effect) => effect._id === null || !deletedEffects.includes(effect._id));
 		this.updateSource({ effects: keptEffects }, { recursive: false });
-	}
-
-	/**
-	 * Override the _onDelete callback to call onDelete from the data model class, if present.
-	 * @inheritDoc
-	 */
-	protected override _onDelete(options: Actor.Database.OnDeleteOptions, userId: string) {
-		(<HasOnDelete<this>>this.systemData).onDelete?.(this, options, userId);
-
-		super._onDelete(options, userId);
 	}
 
 	/**

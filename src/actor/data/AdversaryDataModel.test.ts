@@ -2,13 +2,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// Foundry's DataModel and fields, reduced to the options each field is built with; a SchemaField keeps its fields.
+// Foundry's TypeDataModel and fields, reduced to the options each field is built with; a SchemaField keeps its fields.
 vi.hoisted(() => {
 	const field = class {
 		constructor(readonly options: object = {}) {}
 	};
 	vi.stubGlobal('foundry', {
-		abstract: { DataModel: class {} },
+		abstract: { TypeDataModel: class {} },
 		data: {
 			fields: {
 				SchemaField: class {

@@ -1,13 +1,11 @@
-import { GenesysActor } from '@/actor/GenesysActor';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { CombatPool, combatPoolField } from '@/data/schemaFields';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 
 /**
  * The data of a nemesis, who suffers wounds and strain.
  */
-export abstract class NemesisDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<NemesisDataModel>> {
+export abstract class NemesisDataModel extends AdversaryDataModel {
 	abstract wounds: CombatPool;
 	abstract strain: CombatPool;
 
@@ -29,14 +27,18 @@ export abstract class NemesisDataModel extends AdversaryDataModel implements Has
 		...AdversaryDataModel.tokenAttributes,
 	};
 
-	async preCreate(actor: GenesysActor<NemesisDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
+	/**
+	 * Show the wounds and strain on the bars of the nemesis's token, which is linked to the actor.
+	 * @inheritDoc
+	 */
+	protected override async _preCreate() {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 			bar2: { attribute: 'strain' },
 			actorLink: true,
 		};
 
-		actor.updateSource({ prototypeToken });
+		this.parent.updateSource({ prototypeToken });
 	}
 
 	static override defineSchema() {

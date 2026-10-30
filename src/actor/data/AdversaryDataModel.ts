@@ -2,6 +2,7 @@
  * @file Base data shared by all Adversaries.
  */
 
+import type { GenesysActor } from '@/actor/GenesysActor';
 import { isRelevantToAdversary } from '@/actor/data/RelevantTypes';
 import { adversaryDefense } from '@/actor/data/Protection';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
@@ -12,7 +13,7 @@ import { characteristicsField, defenseField, Motivations, motivationsField } fro
 /**
  * The data that every Adversary shares: Minion Groups, Rivals and Nemeses.
  */
-export abstract class AdversaryDataModel extends foundry.abstract.DataModel<foundry.data.fields.DataSchema> {
+export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<foundry.data.fields.DataSchema, GenesysActor> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;
