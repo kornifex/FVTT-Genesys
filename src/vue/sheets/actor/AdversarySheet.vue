@@ -158,7 +158,11 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 		<section class="sheet-body">
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
-					<div class="description-area">
+					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
+					<div
+						v-if="context.data.editable || system.description.trim() !== '' || system.source.trim() !== ''"
+						class="description-area"
+					>
 						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
 							<Editor name="system.description" :content="system.description" button />
 							<Enriched class="source" :value="system.source" />
@@ -484,8 +488,28 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					}
 				}
 
-				&.empty > :first-of-type {
-					min-height: 10rem;
+				// An empty description takes the room of its edit toggle alone, which shows in it rather than over it, and
+				// the editor's minimum height once it opens.
+				&.empty {
+					> .vue-editor:has(.editor-container) {
+						min-height: 10rem;
+					}
+
+					> .vue-editor > .editor-edit {
+						display: block;
+						visibility: hidden;
+						position: static;
+						width: fit-content;
+						margin: 5px 5px 0 auto;
+					}
+
+					> .vue-editor:hover > .editor-edit {
+						visibility: visible;
+					}
+
+					> .source:empty {
+						display: none;
+					}
 				}
 			}
 		}

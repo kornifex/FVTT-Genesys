@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { inject, onMounted, onUpdated, ref, toRaw } from 'vue';
+import { inject, onBeforeUnmount, onMounted, onUpdated, ref, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import * as log from '@/log';
 
@@ -75,6 +75,46 @@ const rootContext = inject<BaseSheetContext>(RootContext)!;
  * Ensure the base content is enriched on mount.
  */
 onMounted(enrichContent);
+
+/**
+ * v12: the HTML source mode of the ProseMirror menu adds a `<textarea>` to the editor, which keeps the height of two
+ * rows whatever the HTML it holds, where v13's `<code-mirror>` grows with its text. The v12 desktop app's Chromium 122
+ * has no CSS `field-sizing`, so the textarea is sized to its content when it is added and on each input.
+ */
+function fitSourceTextarea(textarea: HTMLTextAreaElement) {
+	// Shrinking the textarea to measure its content may clamp the scroll of the windows holding it: it is put back.
+	const scrolled: [Element, number][] = [];
+	for (let parent = textarea.parentElement; parent; parent = parent.parentElement) {
+		if (parent.scrollTop) scrolled.push([parent, parent.scrollTop]);
+	}
+
+	textarea.style.height = 'auto';
+	const style = getComputedStyle(textarea);
+	const frame =
+		style.boxSizing === 'border-box'
+			? textarea.offsetHeight - textarea.clientHeight
+			: -(parseFloat(style.paddingTop) + parseFloat(style.paddingBottom));
+	textarea.style.height = `${textarea.scrollHeight + frame}px`;
+
+	for (const [parent, scrollTop] of scrolled) parent.scrollTop = scrollTop;
+}
+
+// v12: the menu adds the source textarea to the editor's root, the closest `.editor` to the ProseMirror view.
+const sourceObserver = new MutationObserver((mutations) => {
+	for (const mutation of mutations) {
+		for (const node of mutation.addedNodes) {
+			if (node instanceof HTMLTextAreaElement) fitSourceTextarea(node);
+		}
+	}
+});
+onMounted(() => {
+	const root = rootDiv.value!;
+	sourceObserver.observe(root, { childList: true });
+	root.addEventListener('input', (event) => {
+		if (event.target instanceof HTMLTextAreaElement && event.target.parentElement === root) fitSourceTextarea(event.target);
+	});
+});
+onBeforeUnmount(() => sourceObserver.disconnect());
 
 /**
  * When we're updated, we need to update the base content. This is a little more complex than simply calling enrichContent,
