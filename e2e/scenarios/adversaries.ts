@@ -763,7 +763,7 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 
-	// H: a rival's weapon with an extra Weapon Profile has a row per profile in its equipment list, each attacking with
+	// K: a rival's weapon with an extra Weapon Profile has a row per profile in its equipment list, each attacking with
 	// its profile (§#366). The Attacker has Brawn and Agility 2.
 	await e2e.step('#366 GM gives the Attacker a dagger with a Thrown profile', async () => {
 		await gm.evaluate(
@@ -773,7 +773,7 @@ export async function run(e2e: ScenarioContext) {
 		await update('Nemesis', { 'system.defense': { melee: 2, ranged: 1 } });
 	});
 	e2e.expect(
-		"#366 H1 the rival's equipment list shows a row per profile of the dagger, each with its own Attack Skill, damage, Critical rating, range and qualities",
+		"#366 K1 the rival's equipment list shows a row per profile of the dagger, each with its own Attack Skill, damage, Critical rating, range and qualities",
 		(await gm.evaluate(() => window.adversariesE2E.weaponRows('Attacker'))).filter(({ name }) => name.startsWith('E2E Dagger')),
 		[
 			{ name: 'E2E Dagger', details: ['E2E Melee', 'Damage 3', 'Critical 3', 'Range [Engaged]'], qualities: [] },
@@ -787,11 +787,11 @@ export async function run(e2e: ScenarioContext) {
 	const attackFromRow = (row: string) =>
 		gm.evaluate((args) => window.adversariesE2E.attackFromRow(args), { actor: 'Attacker', row, target: 'Nemesis' });
 	let profileAttacks: Record<string, unknown> = {};
-	await e2e.step('#366 H2 GM attacks the Nemesis from the Dagger (Thrown) row, then from the Dagger row', async () => {
+	await e2e.step('#366 K2 GM attacks the Nemesis from the Dagger (Thrown) row, then from the Dagger row', async () => {
 		profileAttacks = { thrown: await attackFromRow('E2E Dagger (Thrown)'), main: await attackFromRow('E2E Dagger') };
 	});
 	e2e.expect(
-		"#366 H2 the Dagger (Thrown) row attacks with the Thrown profile's skill against the target's ranged defense, and the Dagger row with the main profile's against its melee defense",
+		"#366 K2 the Dagger (Thrown) row attacks with the Thrown profile's skill against the target's ranged defense, and the Dagger row with the main profile's against its melee defense",
 		profileAttacks,
 		{
 			thrown: { skill: 'E2E Ranged (Ag)', defense: [{ name: 'From Target: Ranged Defense', mods: 'S+' }] },
