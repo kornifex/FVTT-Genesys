@@ -84,6 +84,11 @@ type Untyped = any;
  */
 type SetUpCollection = 'Token' | 'Actor' | 'Item' | 'Folder' | 'Scene' | 'JournalEntry';
 
+/**
+ * A permission level on a document, named as in `CONST.DOCUMENT_OWNERSHIP_LEVELS`: `INHERIT` gives a user none of its own.
+ */
+export type OwnershipLevel = 'INHERIT' | 'NONE' | 'LIMITED' | 'OBSERVER' | 'OWNER';
+
 type PageHelpers = {
 	events: string[];
 	notifications: string[];
@@ -180,6 +185,10 @@ type PageHelpers = {
 	poolModification: (element: Element, icon?: Element | null) => string;
 	/** The rows of an Effects tab, each with the heading of its section and its row element, to click its buttons. */
 	effectRows: (view: Element) => EffectsTabRow[];
+	/** Clicks the power button of an Effects tab row, and waits for the row to show its effect turned on or off. */
+	toggleEffect: (row: EffectsTabRow) => Promise<void>;
+	/** Gives a user, by name, a permission level on an actor; the user `default` stands for every user without one. */
+	setOwnership: (actor: Untyped, user: string, level: OwnershipLevel) => Promise<void>;
 	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
 	showTab: (name: string, tab: string) => Promise<void>;
 	/** The chevron of a row with an expandable description, or null when the row shows none. */
@@ -199,6 +208,8 @@ type EffectsTabRow = {
 	name: string;
 	source: string;
 	duration: string;
+	/** Why the effect doesn't apply, as its row's tooltip says, or null when the row has none. */
+	tooltip: string | null;
 	element: HTMLElement;
 };
 
@@ -581,11 +592,27 @@ export function installHelpers() {
 						name: helpers.text(row.querySelector('.name')),
 						source: helpers.text(row.querySelector('.source')),
 						duration: helpers.text(row.querySelector('.duration')),
+						tooltip: row.dataset.tooltip ?? null,
 						element: row,
 					});
 				}
 			}
 			return rows;
+		},
+
+		async toggleEffect(row) {
+			const power = row.element.querySelector<HTMLElement>('.fa-power-off')!.closest('a')!;
+			// The power button dims a disabled effect; an effect that changes section leaves its row for another one.
+			const opacity = power.style.opacity;
+			power.click();
+			await helpers.waitFor(`${row.name} turned on or off`, () => !row.element.isConnected || power.style.opacity !== opacity);
+			await helpers.settle();
+		},
+
+		async setOwnership(actor, user, level) {
+			const id = user === 'default' ? user : game.users.getName(user)?.id;
+			if (!id) throw new Error(`No user ${user}`);
+			await actor.update({ [`ownership.${id}`]: CONST.DOCUMENT_OWNERSHIP_LEVELS[level] });
 		},
 
 		async showTab(name, tab) {

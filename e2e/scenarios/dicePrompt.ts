@@ -286,8 +286,7 @@ function installDicePromptHelpers() {
 			await game.packs.get('world.e2e-skills')?.deleteCompendium();
 			await game.users.getName(user).update({ character: null });
 
-			const { OBSERVER, OWNER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
-			const playerOwns = { default: 0, [game.users.getName(user).id]: OWNER };
+			const { OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
 			const skill = (name: string, characteristic: string, rank: number) => ({
 				name,
 				type: 'skill',
@@ -353,7 +352,6 @@ function installDicePromptHelpers() {
 				{
 					name: 'E2E Rival',
 					type: 'rival',
-					ownership: { default: OBSERVER },
 					system: {
 						characteristics: characteristics([2, 3, 2, 2, 2, 2]),
 						defense: { melee: 1, ranged: 2 },
@@ -384,9 +382,11 @@ function installDicePromptHelpers() {
 					items: [skill('Melee', 'brawn', 0)],
 				},
 				// Characters created without skills get every skill of the Skills Compendium.
-				{ name: 'E2E Bo', type: 'character', ownership: playerOwns, system: { notes: '<p>@check[Athletics,3]</p>' } },
-				{ name: 'E2E Cy', type: 'character', ownership: playerOwns },
+				{ name: 'E2E Bo', type: 'character', system: { notes: '<p>@check[Athletics,3]</p>' } },
+				{ name: 'E2E Cy', type: 'character' },
 			]);
+			await window.e2e.setOwnership(actor('Rival'), 'default', 'OBSERVER');
+			for (const name of ['Bo', 'Cy']) await window.e2e.setOwnership(actor(name), user, 'OWNER');
 			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy'];
 			await canvas.scene.createEmbeddedDocuments(
 				'Token',

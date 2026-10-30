@@ -1,6 +1,6 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
 import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
-import type { Chevron, ConfirmDialog, DescriptionBox } from '../page.ts';
+import type { Chevron, ConfirmDialog, DescriptionBox, OwnershipLevel } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
 
@@ -2422,18 +2422,19 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const player = await e2e.player();
 	const playerPage = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) =>
 		(player.evaluate as (fn: unknown, arg: unknown) => Promise<R>)(fn, arg);
-	// The player's ownership of the character: a level, `OBSERVER` by its name, or null for none of its own.
-	const setOwnership = (level: number | 'OBSERVER' | null) =>
-		page(
-			async (args) => {
-				const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
-				const value = args.level === 'OBSERVER' ? levels.OBSERVER : args.level ?? levels.INHERIT;
-				await game.actors.getName(`E2E ${args.name}`).update({ [`ownership.${game.users.getName(args.user).id}`]: value });
-			},
-			{ name: C, user: e2e.playerUser, level },
-		);
+	const setOwnership = (level: OwnershipLevel) =>
+		page((args) => window.e2e.setOwnership(game.actors.getName(`E2E ${args.name}`), args.user, args.level), {
+			name: C,
+			user: e2e.playerUser,
+			level,
+		});
+	// The player's level of its own on the character, by name, to give back afterwards.
 	const previous = await page(
-		(args): number | null => game.actors.getName(`E2E ${args.name}`).ownership[game.users.getName(args.user).id] ?? null,
+		(args): OwnershipLevel => {
+			const level = game.actors.getName(`E2E ${args.name}`).ownership[game.users.getName(args.user).id];
+			const named = Object.entries(CONST.DOCUMENT_OWNERSHIP_LEVELS).find(([, value]) => value === level)?.[0];
+			return (named ?? 'INHERIT') as OwnershipLevel;
+		},
 		{ name: C, user: e2e.playerUser },
 	);
 	await e2e.step("#393 D1 the player given Observer on the character, its sheet's Combat tab shown in the player's page", async () => {

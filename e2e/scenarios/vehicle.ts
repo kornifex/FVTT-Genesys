@@ -183,17 +183,14 @@ function installVehicleHelpers() {
 			for (const folder of new Set(specs.flatMap((spec) => (spec.folder ? [spec.folder] : [])))) {
 				await CONFIG.Folder.documentClass.create({ name: `E2E ${folder}`, type: 'Actor' });
 			}
-			const ownership = (owner?: string) =>
-				owner ? { default: 0, [game.users.getName(owner).id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER } : { default: 0 };
 			const uuidOf = (name: string) => actor(name).uuid;
 			// Crew members are created first, so that a vehicle's Crew can name them.
 			const ordered = [...specs.filter((spec) => spec.type !== 'vehicle'), ...specs.filter((spec) => spec.type === 'vehicle')];
 			for (const spec of ordered) {
-				await Actor.create({
+				const created = await Actor.create({
 					name: `E2E ${spec.name}`,
 					type: spec.type,
 					folder: spec.folder ? game.folders.getName(`E2E ${spec.folder}`).id : null,
-					ownership: ownership(spec.owner),
 					prototypeToken: { actorLink: spec.linked ?? false },
 					items: spec.items ?? [],
 					system: {
@@ -213,6 +210,7 @@ function installVehicleHelpers() {
 						}),
 					},
 				});
+				if (spec.owner) await window.e2e.setOwnership(created, spec.owner, 'OWNER');
 			}
 		},
 
