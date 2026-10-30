@@ -1893,9 +1893,10 @@ export async function run(e2e: ScenarioContext) {
 		'system.defense',
 		'system.armor',
 	];
-	const keyGroup = (label: string, names: string[], vehicle: string[]) => ({
+	// §#380: the silhouette applies to any actor.
+	const keyGroup = (label: string, names: string[], [silhouette, ...vehicle]: string[]) => ({
 		label,
-		options: [...names.map((name) => `🧑 ${name}`), ...vehicle.map((name) => `🚗 ${name}`)],
+		options: [...names.map((name) => `🧑 ${name}`), `🌐 ${silhouette}`, ...vehicle.map((name) => `🚗 ${name}`)],
 		values: keyValues,
 	});
 	const state = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Hero'));
@@ -1932,7 +1933,7 @@ export async function run(e2e: ScenarioContext) {
 				'system.characteristics.cunning=🧑 Cunning',
 				'system.characteristics.willpower=🧑 Willpower',
 				'system.characteristics.presence=🧑 Presence',
-				'system.silhouette=🚗 Silhouette',
+				'system.silhouette=🌐 Silhouette',
 				'system.speed=🚗 Speed',
 				'system.handling=🚗 Handling',
 				'system.defense=🚗 Defense',

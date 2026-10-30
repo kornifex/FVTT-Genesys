@@ -6,7 +6,7 @@ import { Characteristic } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
-import { PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 
@@ -70,19 +70,25 @@ export type CheckForPoolModifications = {
 	 * Range of the weapon, for an attack.
 	 */
 	attackRange?: string;
+
+	/**
+	 * The actor that makes the attack, for an attack: the one making the check, or the vehicle whose weapon they fire.
+	 * Left undefined for any other check.
+	 */
+	attacker?: Pick<PoolModificationActor, 'system'>;
 };
 
 /**
- * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, or from
- * the target's defense.
+ * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
+ * target's defense, or from the size difference between the attacker's silhouette and the target's.
  */
 export type ExternalPoolModification = {
 	source: PoolModificationSource;
-	from: { effect: string } | { defense: keyof Defense };
+	from: { effect: string } | { defense: keyof Defense } | { silhouette: { target: number; attacker: number } };
 	mods: string[];
 };
 
-// The actor types whose effects and defense modify the checks that target them. A vehicle's defense works as a
+// The actor types whose effects, defense and silhouette modify the checks that target them. A vehicle's defense works as a
 // character's (CRB p. 223).
 const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis', 'vehicle'];
 
@@ -168,7 +174,8 @@ export function scaledChangeValue(item: SourceItem | undefined, { key, value }: 
 }
 
 /**
- * The Pool Modifications that the effects of the actor and of their target, and the target's defense, bring to a check.
+ * The Pool Modifications that the effects of the actor and of their target, the target's defense and, for an attack,
+ * the size difference with the target bring to a check.
  */
 export function poolModificationsForCheck(
 	actor: PoolModificationActor | undefined,
@@ -199,9 +206,45 @@ export function poolModificationsForCheck(
 				});
 			}
 		}
+
+		if (check.attacker) {
+			modifications.push(...sizeDifferenceModifications(check.attacker, target));
+		}
 	}
 
 	return modifications;
+}
+
+// An attack against a target two or more silhouettes larger is one difficulty easier, and one difficulty harder against
+// a target two or more smaller (CRB p. 109, which p. 222 applies to vehicles).
+function sizeDifferenceModifications(
+	attacker: Pick<PoolModificationActor, 'system'>,
+	target: PoolModificationActor,
+): ExternalPoolModification[] {
+	const targetSilhouette = silhouetteOf(target);
+	const attackerSilhouette = silhouetteOf(attacker);
+	// A vehicle's silhouette can be emptied in its sheet.
+	if (targetSilhouette === undefined || attackerSilhouette === undefined) {
+		return [];
+	}
+
+	const difference = targetSilhouette - attackerSilhouette;
+	if (Math.abs(difference) < 2) {
+		return [];
+	}
+
+	return [
+		{
+			source: 'target',
+			from: { silhouette: { target: targetSilhouette, attacker: attackerSilhouette } },
+			mods: [difference > 0 ? removalGlyph(DIE_GLYPHS.Difficulty) : DIE_GLYPHS.Difficulty],
+		},
+	];
+}
+
+function silhouetteOf(actor: Pick<PoolModificationActor, 'system'>) {
+	const { silhouette } = actor.system as { silhouette?: number | null };
+	return typeof silhouette === 'number' ? silhouette : undefined;
 }
 
 function effectModifications(

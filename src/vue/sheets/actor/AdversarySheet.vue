@@ -83,6 +83,10 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		<header>
 			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
 			<input type="text" name="name" :value="actor.name" />
+			<label class="silhouette">
+				<Localized label="Genesys.Labels.Silhouette" />
+				<input type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />
+			</label>
 		</header>
 
 		<nav class="sheet-tabs" data-group="primary">
@@ -370,14 +374,15 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	header {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 0.5rem;
+		column-gap: 0.5rem;
 		align-items: center;
 
 		img {
+			grid-row: 1 / span 2;
 			border: 1px solid colors.$gold;
 			background: colors.alpha(colors.$gold, 0.5);
 			border-radius: 1em;
-			height: 2.5rem;
+			height: 3.5rem;
 		}
 
 		@include reset.input;
@@ -395,6 +400,22 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 			&:focus {
 				font-family: 'Modesto Condensed', sans-serif;
+			}
+		}
+
+		// The silhouette sits under the name, with the actor's identity rather than its combat stats.
+		.silhouette {
+			display: flex;
+			gap: 0.5em;
+			align-items: baseline;
+			font-family: 'Bebas Neue', sans-serif;
+			color: colors.$blue;
+
+			input {
+				width: 3em;
+				text-align: center;
+				font-family: 'Roboto', sans-serif;
+				border-bottom: 1px solid colors.$dark-blue;
 			}
 		}
 	}

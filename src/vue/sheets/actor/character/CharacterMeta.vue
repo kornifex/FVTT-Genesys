@@ -72,6 +72,11 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 			</div>
 
 			<div class="underline"></div>
+
+			<label><Localized label="Genesys.Labels.Silhouette" /></label>
+			<input type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />
+
+			<div class="underline"></div>
 		</div>
 
 		<img :src="actor.img ?? undefined" data-edit="img" :alt="actor.name" />

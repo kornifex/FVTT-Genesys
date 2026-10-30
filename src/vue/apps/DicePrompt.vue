@@ -114,6 +114,8 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			purpose: checkPurpose(),
 			target: target?.actor ?? undefined,
 			attackRange: weapon?.system.range,
+			// A crew member fires a vehicle weapon, but the vehicle makes the attack.
+			attacker: weapon?.type === 'vehicleWeapon' ? weapon.actor ?? undefined : undefined,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -157,8 +159,23 @@ function poolModificationName({ source, from }: CheckPoolModification) {
 	return (
 		game.i18n.localize(
 			source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects',
-		) + ('effect' in from ? from.effect : game.i18n.localize(DEFENSE_LABELS[from.defense]))
+		) + poolModificationOrigin(from)
 	);
+}
+
+function poolModificationOrigin(from: CheckPoolModification['from']) {
+	if ('effect' in from) {
+		return from.effect;
+	}
+
+	if ('defense' in from) {
+		return game.i18n.localize(DEFENSE_LABELS[from.defense]);
+	}
+
+	return game.i18n.format('Genesys.DicePrompt.PoolModifications.SizeDifference', {
+		target: String(from.silhouette.target),
+		attacker: String(from.silhouette.attacker),
+	});
 }
 
 function buildDicePool() {

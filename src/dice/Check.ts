@@ -89,8 +89,8 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	purpose?: CheckPurpose;
 
 	/**
-	 * The target of the check, whose effects and defense bring Pool Modifications. Initiative has none: a target given for
-	 * it is ignored.
+	 * The target of the check, whose effects, defense and silhouette bring Pool Modifications. Initiative has none: a
+	 * target given for it is ignored.
 	 */
 	target?: CheckActor<S>;
 
@@ -98,6 +98,11 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	 * Range of the weapon, for an attack.
 	 */
 	attackRange?: string;
+
+	/**
+	 * The actor that makes an attack when it isn't the one rolling it: the vehicle whose weapon a crew member fires.
+	 */
+	attacker?: Pick<PoolModificationActor, 'system'>;
 
 	/**
 	 * Whether the Proficiency dice explode, for a dice pool rolled without an actor.
@@ -167,6 +172,7 @@ export function resolveCheck<S extends CheckSkill>(
 		characteristic,
 		skillName: rolledSkill?.skill.name,
 		attackRange: request.attackRange,
+		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
 	});
 
 	return {
@@ -220,7 +226,11 @@ export function canRollWithoutCharacteristic(check: Pick<Check, 'skill'>) {
 }
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
-	return `${source}.${'effect' in from ? `effect.${from.effect}` : `defense.${from.defense}`}`;
+	if ('effect' in from) {
+		return `${source}.effect.${from.effect}`;
+	}
+
+	return 'defense' in from ? `${source}.defense.${from.defense}` : `${source}.silhouette`;
 }
 
 /**

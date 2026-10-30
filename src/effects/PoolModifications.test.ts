@@ -44,10 +44,14 @@ function effect(
 /**
  * An actor whose applicable effects are the given ones.
  */
-function actor(type: string, effects: PoolModificationEffect[], { totalDefense = { melee: 0, ranged: 0 } } = {}): PoolModificationActor {
+function actor(
+	type: string,
+	effects: PoolModificationEffect[],
+	{ totalDefense = { melee: 0, ranged: 0 }, silhouette = 1 } = {},
+): PoolModificationActor {
 	return {
 		type,
-		system: { totalDefense },
+		system: { totalDefense, silhouette },
 		allApplicableEffects: () => effects,
 	};
 }
@@ -286,6 +290,68 @@ describe('poolModificationsForCheck', () => {
 		expect(
 			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5) }), { attackRange: 'short' }),
 		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
+	});
+
+	describe('the size difference between the attacker and the target (CRB p. 109)', () => {
+		const sized = (type: string, silhouette: number) => actor(type, [], { silhouette });
+
+		it('removes one Difficulty die from an attack against a target 2 or more silhouettes larger', () => {
+			const self = sized('character', 1);
+
+			expect(poolModificationsForCheck(self, sized('rival', 3), { attacker: self })).toEqual([
+				{ source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] },
+			]);
+		});
+
+		it('adds one Difficulty die to an attack against a target 2 or more silhouettes smaller', () => {
+			const self = sized('nemesis', 4);
+
+			expect(poolModificationsForCheck(self, sized('character', 0), { attacker: self })).toEqual([
+				{ source: 'target', from: { silhouette: { target: 0, attacker: 4 } }, mods: ['D'] },
+			]);
+		});
+
+		it('changes nothing when the silhouettes differ by 1 or less', () => {
+			const self = sized('character', 2);
+
+			for (const silhouette of [1, 2, 3]) {
+				expect(poolModificationsForCheck(self, sized('rival', silhouette), { attacker: self })).toEqual([]);
+			}
+		});
+
+		it('compares the silhouette of a vehicle, as the attacker or the target (CRB p. 222)', () => {
+			const self = sized('character', 1);
+			const vehicle = sized('vehicle', 3);
+
+			expect(poolModificationsForCheck(self, vehicle, { attacker: self })[0].mods).toEqual(['-D']);
+			expect(poolModificationsForCheck(self, sized('character', 1), { attacker: vehicle })).toEqual([
+				{ source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
+			]);
+		});
+
+		it('changes nothing against a vehicle whose silhouette was emptied in its sheet', () => {
+			const self = sized('character', 4);
+			const vehicle: PoolModificationActor = { type: 'vehicle', system: { silhouette: null }, allApplicableEffects: () => [] };
+
+			expect(poolModificationsForCheck(self, vehicle, { attacker: self })).toEqual([]);
+		});
+
+		it("lists the size difference after the target's defense", () => {
+			const self = sized('character', 1);
+			const target = actor('rival', [], { silhouette: 3, totalDefense: { melee: 1, ranged: 0 } });
+
+			expect(poolModificationsForCheck(self, target, { attackRange: 'engaged', attacker: self }).map(({ from }) => from)).toEqual([
+				{ defense: 'melee' },
+				{ silhouette: { target: 3, attacker: 1 } },
+			]);
+		});
+
+		it("changes nothing for a check that isn't an attack, or without a target", () => {
+			const self = sized('character', 1);
+
+			expect(poolModificationsForCheck(self, sized('rival', 3), {})).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, { attacker: self })).toEqual([]);
+		});
 	});
 
 	it('collects nothing without an actor making the check', () => {
