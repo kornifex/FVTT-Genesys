@@ -176,7 +176,7 @@ Genesys:
       ManualChanges: Cambios manuales
       SelfEffects: 'Propios: '
       TargetEffects: 'Objetivo: '
-      SizeDifference: Silueta ({target} contra {attacker})
+      SilhouetteDifference: Silueta ({target} contra {attacker})
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
     ChanceToSucceedBySimulationDisclaimer: La probabilidad mostrada es una aproximación que utiliza el método Monte Carlo.

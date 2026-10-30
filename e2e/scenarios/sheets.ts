@@ -1894,7 +1894,7 @@ export async function run(e2e: ScenarioContext) {
 		'system.armor',
 	];
 	// §#380: the silhouette applies to any actor.
-	const keyGroup = (label: string, names: string[], [silhouette, ...vehicle]: string[]) => ({
+	const keyGroup = (label: string, names: string[], silhouette: string, vehicle: string[]) => ({
 		label,
 		options: [...names.map((name) => `🧑 ${name}`), `🌐 ${silhouette}`, ...vehicle.map((name) => `🚗 ${name}`)],
 		values: keyValues,
@@ -1914,11 +1914,12 @@ export async function run(e2e: ScenarioContext) {
 		'#140 A2 the key select lists the six characteristics in their order, then the vehicle characteristics, and keeps its selection',
 		{ group: state.keyGroup, selected: state.keySelected },
 		{
-			group: keyGroup(
-				'Modify Characteristic',
-				['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'],
-				['Silhouette', 'Speed', 'Handling', 'Defense', 'Armor'],
-			),
+			group: keyGroup('Modify Characteristic', ['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'], 'Silhouette', [
+				'Speed',
+				'Handling',
+				'Defense',
+				'Armor',
+			]),
 			selected: 'system.characteristics.cunning',
 		},
 	);
@@ -2050,7 +2051,8 @@ export async function run(e2e: ScenarioContext) {
 			group: keyGroup(
 				'Caractéristique à modifier',
 				['Vigueur', 'Agilité', 'Intelligence', 'Ruse', 'Volonté', 'Présence'],
-				['Gabarit', 'Vitesse', 'Maniabilité', 'Défense', 'Armure'],
+				'Gabarit',
+				['Vitesse', 'Maniabilité', 'Défense', 'Armure'],
 			),
 			selected: 'system.characteristics.cunning',
 		},

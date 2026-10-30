@@ -292,7 +292,7 @@ describe('poolModificationsForCheck', () => {
 		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
 	});
 
-	describe('the size difference between the attacker and the target (CRB p. 109)', () => {
+	describe('the silhouette difference between the attacker and the target (CRB p. 109)', () => {
 		const sized = (type: string, silhouette: number) => actor(type, [], { silhouette });
 
 		it('removes one Difficulty die from an attack against a target 2 or more silhouettes larger', () => {
@@ -336,7 +336,7 @@ describe('poolModificationsForCheck', () => {
 			expect(poolModificationsForCheck(self, vehicle, { attacker: self })).toEqual([]);
 		});
 
-		it("lists the size difference after the target's defense", () => {
+		it("lists the silhouette difference after the target's defense", () => {
 			const self = sized('character', 1);
 			const target = actor('rival', [], { silhouette: 3, totalDefense: { melee: 1, ranged: 0 } });
 

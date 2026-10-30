@@ -16,6 +16,7 @@ import {
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
+	vehicleAttacker,
 } from '@/dice/Check';
 import { PoolModificationEffect } from '@/effects/PoolModifications';
 
@@ -219,6 +220,19 @@ describe('resolveCheck', () => {
 		expect(resolveCheck(gunner, request, rules).poolModifications).toEqual([
 			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
 		]);
+	});
+});
+
+describe('vehicleAttacker', () => {
+	it('is the vehicle that owns a vehicle weapon, which a crew member fires (CRB p. 222)', () => {
+		const vehicle = actor('vehicle', [], { silhouette: 3 });
+
+		expect(vehicleAttacker({ type: 'vehicleWeapon', actor: vehicle })).toBe(vehicle);
+	});
+
+	it('is nothing for a weapon of the actor rolling, or without a weapon', () => {
+		expect(vehicleAttacker({ type: 'weapon', actor: actor('character', []) })).toBeUndefined();
+		expect(vehicleAttacker(undefined)).toBeUndefined();
 	});
 });
 

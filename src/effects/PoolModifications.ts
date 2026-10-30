@@ -75,18 +75,50 @@ export type CheckForPoolModifications = {
 	 * The actor that makes the attack, for an attack: the one making the check, or the vehicle whose weapon they fire.
 	 * Left undefined for any other check.
 	 */
-	attacker?: Pick<PoolModificationActor, 'system'>;
+	attacker?: SilhouettedActor;
 };
 
 /**
+ * What this module needs of an actor whose silhouette it compares. A vehicle's silhouette can be emptied in its sheet.
+ */
+export type SilhouettedActor = {
+	system: { silhouette?: number | null };
+};
+
+/**
+ * The silhouettes of a target and of its attacker.
+ */
+type Silhouettes = { target: number; attacker: number };
+
+/**
+ * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, or the silhouette
+ * difference between the target and its attacker.
+ */
+type PoolModificationOrigin = { effect: string } | { defense: keyof Defense } | { silhouette: Silhouettes };
+
+/**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
- * target's defense, or from the size difference between the attacker's silhouette and the target's.
+ * target's defense, or from the silhouette difference between the attacker and the target.
  */
 export type ExternalPoolModification = {
 	source: PoolModificationSource;
-	from: { effect: string } | { defense: keyof Defense } | { silhouette: { target: number; attacker: number } };
+	from: PoolModificationOrigin;
 	mods: string[];
 };
+
+/**
+ * The value that the function for its kind of origin gives a Pool Modification's origin.
+ */
+export function matchOrigin<T>(
+	from: PoolModificationOrigin,
+	cases: { effect(name: string): T; defense(defense: keyof Defense): T; silhouette(silhouettes: Silhouettes): T },
+): T {
+	if ('effect' in from) {
+		return cases.effect(from.effect);
+	}
+
+	return 'defense' in from ? cases.defense(from.defense) : cases.silhouette(from.silhouette);
+}
 
 // The actor types whose effects, defense and silhouette modify the checks that target them. A vehicle's defense works as a
 // character's (CRB p. 223).
@@ -175,7 +207,7 @@ export function scaledChangeValue(item: SourceItem | undefined, { key, value }: 
 
 /**
  * The Pool Modifications that the effects of the actor and of their target, the target's defense and, for an attack,
- * the size difference with the target bring to a check.
+ * the silhouette difference with the target bring to a check.
  */
 export function poolModificationsForCheck(
 	actor: PoolModificationActor | undefined,
@@ -208,7 +240,7 @@ export function poolModificationsForCheck(
 		}
 
 		if (check.attacker) {
-			modifications.push(...sizeDifferenceModifications(check.attacker, target));
+			modifications.push(...silhouetteDifferenceModifications(check.attacker, target));
 		}
 	}
 
@@ -217,13 +249,9 @@ export function poolModificationsForCheck(
 
 // An attack against a target two or more silhouettes larger is one difficulty easier, and one difficulty harder against
 // a target two or more smaller (CRB p. 109, which p. 222 applies to vehicles).
-function sizeDifferenceModifications(
-	attacker: Pick<PoolModificationActor, 'system'>,
-	target: PoolModificationActor,
-): ExternalPoolModification[] {
+function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: SilhouettedActor): ExternalPoolModification[] {
 	const targetSilhouette = silhouetteOf(target);
 	const attackerSilhouette = silhouetteOf(attacker);
-	// A vehicle's silhouette can be emptied in its sheet.
 	if (targetSilhouette === undefined || attackerSilhouette === undefined) {
 		return [];
 	}
@@ -242,8 +270,8 @@ function sizeDifferenceModifications(
 	];
 }
 
-function silhouetteOf(actor: Pick<PoolModificationActor, 'system'>) {
-	const { silhouette } = actor.system as { silhouette?: number | null };
+function silhouetteOf({ system }: SilhouettedActor) {
+	const silhouette: unknown = system.silhouette;
 	return typeof silhouette === 'number' ? silhouette : undefined;
 }
 

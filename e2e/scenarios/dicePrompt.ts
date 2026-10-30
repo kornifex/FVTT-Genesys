@@ -1258,8 +1258,8 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
 	await e2e.step('D end');
 
-	// §#380: the size difference between the attacker's silhouette and the target's. Every character and Adversary is
-	// at 1, every vehicle at 0, unless set here.
+	// M: the silhouette difference between the attacker and the target (§#380). Every character and Adversary is at 1,
+	// every vehicle at 0, unless set here.
 	const silhouetteRows = (state: PromptState) => state.modifications.filter(({ name }) => name.includes('Silhouette'));
 	const setSilhouette = (actor: string, silhouette: number) => update({ actor }, { 'system.silhouette': silhouette });
 	const rivalKnife = click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a');
@@ -1269,7 +1269,7 @@ export async function run(e2e: ScenarioContext) {
 	const largerOn = await toggle('Silhouette');
 	const largerOff = await toggle('Silhouette');
 	e2e.expect(
-		'#380 B1 a silhouette 1 character attacking a silhouette 3 rival lists a target Pool Modification removing one Difficulty die, after the defense, which toggles',
+		'#380 M1 a silhouette 1 character attacking a silhouette 3 rival lists a target Pool Modification removing one Difficulty die, after the defense, which toggles',
 		{
 			rows: rows(atLarger),
 			pool: atLarger.pool,
@@ -1294,7 +1294,7 @@ export async function run(e2e: ScenarioContext) {
 	const atSmaller = await opened(gm, rivalKnife);
 	const smallerOn = await toggle('Silhouette');
 	e2e.expect(
-		'#380 B2 a silhouette 3 rival attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
+		'#380 M2 a silhouette 3 rival attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
 		{ actor: atSmaller.actor, rows: silhouetteRows(atSmaller), pool: atSmaller.pool, on: smallerOn.pool },
 		{
 			actor: 'Rival',
@@ -1316,7 +1316,7 @@ export async function run(e2e: ScenarioContext) {
 	await target(null);
 	unchanged.untargeted = silhouetteRows(await opened(gm, attack('Pistol')));
 	e2e.expect(
-		"#380 B3 a silhouette difference of 1 or 0, a check that isn't an attack, the bare Dice Roller and an untargeted attack change nothing",
+		"#380 M3 a silhouette difference of 1 or 0, a check that isn't an attack, the bare Dice Roller and an untargeted attack change nothing",
 		unchanged,
 		{ 'rival at 2': [], 'rival at 1': [], 'skill check': [], 'Dice Roller': [], untargeted: [] },
 	);
@@ -1324,7 +1324,7 @@ export async function run(e2e: ScenarioContext) {
 	await setSilhouette('Wagon', 3);
 	await target('Wagon');
 	e2e.expect(
-		'#380 B4 a silhouette 1 character attacking a silhouette 3 vehicle lists one Difficulty die removed',
+		'#380 M4 a silhouette 1 character attacking a silhouette 3 vehicle lists one Difficulty die removed',
 		silhouetteRows(await opened(gm, attack('Pistol'))),
 		[{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }],
 	);
@@ -1334,7 +1334,7 @@ export async function run(e2e: ScenarioContext) {
 	const cannonAtMark = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
 	const cannonOn = await toggle('Silhouette');
 	e2e.expect(
-		"#380 B5 a silhouette 1 crew member firing a silhouette 3 vehicle's weapon at a silhouette 1 character adds one Difficulty die, from the vehicle's silhouette",
+		"#380 M5 a silhouette 1 crew member firing a silhouette 3 vehicle's weapon at a silhouette 1 character adds one Difficulty die, from the vehicle's silhouette",
 		{
 			actor: cannonAtMark.actor,
 			rows: silhouetteRows(cannonAtMark),
@@ -1364,7 +1364,7 @@ export async function run(e2e: ScenarioContext) {
 			return { silhouette: mark.system.silhouette, stored: mark._source.system.silhouette };
 		});
 	e2e.expect(
-		"#380 B6 an Active Effect adding 2 to a character's silhouette makes it 3 for the rule: a silhouette 1 attacker loses one Difficulty die",
+		"#380 M6 an Active Effect adding 2 to a character's silhouette makes it 3 for the rule: a silhouette 1 attacker loses one Difficulty die",
 		{ mark: await markSilhouette(), rows: silhouetteRows(await opened(gm, attack('Pistol'))) },
 		{
 			mark: { silhouette: 3, stored: 1 },
