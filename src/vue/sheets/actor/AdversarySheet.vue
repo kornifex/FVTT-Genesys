@@ -31,6 +31,8 @@ import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
+const hasDescription = computed(() => system.value.description.trim() !== '');
+
 const talents = computed(() => itemsOfType(actor.value, 'talent'));
 const abilities = computed(() => itemsOfType(actor.value, 'ability'));
 const equipment = computed(() =>
@@ -99,8 +101,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
 					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
-					<div v-if="editable || system.description.trim() !== '' || system.source.trim() !== ''" class="description-area">
-						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
+					<div v-if="editable || hasDescription || system.source.trim() !== ''" class="description-area">
+						<div :class="['adversary-description', { empty: !hasDescription }]">
 							<Editor name="system.description" />
 							<Enriched class="source" :value="system.source" />
 						</div>
@@ -347,17 +349,17 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 						:deep(prose-mirror.inactive) {
 							gap: 0;
-						}
 
-						:deep(prose-mirror.inactive > button.toggle:enabled) {
-							display: block;
-							visibility: hidden;
-							position: static;
-							align-self: flex-end;
-						}
+							> button.toggle:enabled {
+								display: block;
+								visibility: hidden;
+								position: static;
+								align-self: flex-end;
+							}
 
-						&:hover :deep(prose-mirror.inactive > button.toggle:enabled) {
-							visibility: visible;
+							&:hover > button.toggle:enabled {
+								visibility: visible;
+							}
 						}
 					}
 

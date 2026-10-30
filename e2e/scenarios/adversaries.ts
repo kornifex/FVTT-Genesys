@@ -30,9 +30,16 @@ type DescriptionArea = { height: number; toggleBottom: number | null; textBottom
 
 /**
  * The open description editor of an adversary's sheet: its height in px, whether it shows its HTML source, whether it
- * scrolls inside, and the scroll and client heights of the part showing its rich text or its HTML source.
+ * scrolls inside, the scroll and client heights of the part showing its rich text or its HTML source, and the computed
+ * `position` of the HTML source's scroller (null in rich text).
  */
-type OpenEditor = { height: number; source: boolean; scrolls: boolean; content: { scrollHeight: number; clientHeight: number } };
+type OpenEditor = {
+	height: number;
+	source: boolean;
+	scrolls: boolean;
+	content: { scrollHeight: number; clientHeight: number };
+	sourcePosition: string | null;
+};
 
 type AdversariesHelpers = {
 	setUp(): Promise<void>;
@@ -192,6 +199,7 @@ function installAdversariesHelpers() {
 			source: !!source,
 			scrolls: editor.scrollHeight > editor.clientHeight,
 			content: { scrollHeight: content.scrollHeight, clientHeight: content.clientHeight },
+			sourcePosition: source ? getComputedStyle(source).position : null,
 		};
 	};
 	const openEditor = async (name: string) => {
@@ -915,8 +923,10 @@ export async function run(e2e: ScenarioContext) {
 			source: htmlSource.source,
 			scrolls: htmlSource.scrolls,
 			showsEveryLine: htmlSource.content.scrollHeight === htmlSource.content.clientHeight,
+			// CodeMirror's base theme positions the scroller, which holds its cursor and selection layers.
+			sourcePosition: htmlSource.sourcePosition,
 		},
-		{ source: true, scrolls: false, showsEveryLine: true },
+		{ source: true, scrolls: false, showsEveryLine: true, sourcePosition: 'relative' },
 	);
 	e2e.expect(
 		'#359 I4 back in rich-text mode, the editor of 25 paragraphs is as tall as before its HTML source',
