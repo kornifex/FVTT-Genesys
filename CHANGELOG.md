@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.2...v0.4.0-rc.3) (2026-10-30)
+
+
+### Bug Fixes
+
+* **actor:** ask for a reload when Ignore Talent Pyramid changes ([#365](https://github.com/kornifex/FVTT-Genesys/issues/365)) ([3dd6add](https://github.com/kornifex/FVTT-Genesys/commit/3dd6add378326b075d1c2435408153206e5f8de9))
+* **effects:** stop applying an effect whose duration in rounds or turns has run out ([#388](https://github.com/kornifex/FVTT-Genesys/issues/388)) ([7ea82bd](https://github.com/kornifex/FVTT-Genesys/commit/7ea82bdee92ea44bbd922858dce30f88fa7a1c15))
+* **ui:** give a sheet's rich-text headings the look of an AppV1 window ([#382](https://github.com/kornifex/FVTT-Genesys/issues/382)) ([e62d452](https://github.com/kornifex/FVTT-Genesys/commit/e62d4525539183079cb5c6de287006ba8274f084))
+* **ui:** shrink an adversary's empty description and grow the HTML source editor with its text ([#392](https://github.com/kornifex/FVTT-Genesys/issues/392)) ([73141b6](https://github.com/kornifex/FVTT-Genesys/commit/73141b6c6b81fcbbed420a567ec46dbcf9b04cb8))
+
+
+### Continuous Integration
+
+* set the next release to 0.4.0 ([#326](https://github.com/kornifex/FVTT-Genesys/issues/326)) ([0551eb3](https://github.com/kornifex/FVTT-Genesys/commit/0551eb3eede077197c38aaa174f99d7e21f16de0))
+* set the next release to 0.4.0-rc.3 ([#405](https://github.com/kornifex/FVTT-Genesys/issues/405)) ([c00019f](https://github.com/kornifex/FVTT-Genesys/commit/c00019f0b232e7cea8ddb0b3562f7ac4d38a07b1))
+
 ## [0.4.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.1...v0.4.0-rc.2) (2026-10-28)
 
 
