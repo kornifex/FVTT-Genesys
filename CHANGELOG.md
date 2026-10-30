@@ -1,5 +1,117 @@
 # Changelog
 
+## [0.5.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.1...v0.5.0-rc.1) (2026-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* read a document's system as its subtype's DataModel, without the systemData getters ([#381](https://github.com/kornifex/FVTT-Genesys/issues/381))
+* the system requires Foundry v13 or later. A v12 world stays on 0.4.x.
+
+### Features
+
+* **actor:** open an inventory row's menu on a right-click, and place an item dropped on a row before or after it ([#389](https://github.com/kornifex/FVTT-Genesys/issues/389)) ([2b8faa8](https://github.com/kornifex/FVTT-Genesys/commit/2b8faa8200aa98481b91926590ce22a074d4e339))
+* **dice:** give characters and Adversaries a Silhouette, and change a targeted attack's difficulty by the silhouette difference ([#390](https://github.com/kornifex/FVTT-Genesys/issues/390)) ([9e90afd](https://github.com/kornifex/FVTT-Genesys/commit/9e90afd13236d26d9a4e2f8b336842993e8ac6fe))
+* **dice:** open the Dice Roller from a button of the chat controls ([#383](https://github.com/kornifex/FVTT-Genesys/issues/383)) ([a2d74cd](https://github.com/kornifex/FVTT-Genesys/commit/a2d74cd8c35ea32ccdd5bcdafa5fdd5ea1c66db6))
+* **item:** give a weapon extra Weapon Profiles, each attacked with from its own row ([#391](https://github.com/kornifex/FVTT-Genesys/issues/391)) ([15c7d08](https://github.com/kornifex/FVTT-Genesys/commit/15c7d0881248530edd86587afeb18dd168840d34))
+* **ui:** open a Combat tab row's description from a chevron, and write its description styles once ([#399](https://github.com/kornifex/FVTT-Genesys/issues/399)) ([1ba9704](https://github.com/kornifex/FVTT-Genesys/commit/1ba97048d4fa8047bcde7226bc2df9c2b6e4ce0c))
+
+
+### Bug Fixes
+
+* **actor:** ask for a reload when Ignore Talent Pyramid changes ([#364](https://github.com/kornifex/FVTT-Genesys/issues/364)) ([9b7accc](https://github.com/kornifex/FVTT-Genesys/commit/9b7accc8ddab025625108e47dbca7bc49d347b96))
+* **combat:** reroll the slot from the tracker's menu on Foundry v14 ([#296](https://github.com/kornifex/FVTT-Genesys/issues/296)) ([9221f83](https://github.com/kornifex/FVTT-Genesys/commit/9221f83ee386a2dd763166025a26977e4a119ac8))
+* **dice:** extend foundry.dice.terms.Die, which v14 keeps, instead of the removed Die global ([#293](https://github.com/kornifex/FVTT-Genesys/issues/293)) ([bd26b26](https://github.com/kornifex/FVTT-Genesys/commit/bd26b265b896d90ccac494ff352cfc74a63c7ef6))
+* **effects:** scale a talent's changes by its rank on Foundry v14, which calls the static applyChange ([#298](https://github.com/kornifex/FVTT-Genesys/issues/298)) ([41d6114](https://github.com/kornifex/FVTT-Genesys/commit/41d6114ef108040ee0363fdaba7ab56dc9c6842f))
+* **effects:** show and save the effect sheet's changes on Foundry v14 ([#297](https://github.com/kornifex/FVTT-Genesys/issues/297)) ([3af8b51](https://github.com/kornifex/FVTT-Genesys/commit/3af8b5183e24622ea804f6ff7d390fd893dbf4dc))
+* **effects:** stop applying an effect whose duration in rounds or turns has run out ([#398](https://github.com/kornifex/FVTT-Genesys/issues/398)) ([00cbfc2](https://github.com/kornifex/FVTT-Genesys/commit/00cbfc2ea75d003cb07ffcaaf0551592a1e59227))
+* **i18n:** localize the strings shown raw, and build every dynamic key from a typed table ([#348](https://github.com/kornifex/FVTT-Genesys/issues/348)) ([a201678](https://github.com/kornifex/FVTT-Genesys/commit/a2016785b360fafdbbeb58f6043c3a91cfd3a6f3))
+* **migration:** enable the equipment effects left disabled from 0.3.1, so the Equipment State decides ([#309](https://github.com/kornifex/FVTT-Genesys/issues/309)) ([e4b3694](https://github.com/kornifex/FVTT-Genesys/commit/e4b3694694d40d6ea0f50b06824a5a942fc18b8a))
+* send a player's socket operations to one Acting GM, so a Story Point spend is written once ([#335](https://github.com/kornifex/FVTT-Genesys/issues/335)) ([ba40b0f](https://github.com/kornifex/FVTT-Genesys/commit/ba40b0f667c40911fbe3c9898aa80a93e500aa0f))
+* **ui:** center an adversary's and a vehicle's editable characteristic values on Foundry v13 and v14 ([#307](https://github.com/kornifex/FVTT-Genesys/issues/307)) ([9f061b2](https://github.com/kornifex/FVTT-Genesys/commit/9f061b28f2b3bd00e60769ea2db59ba84b44a79a))
+* **ui:** collapse a minimized sheet to its header, and keep its minimum size only while open ([#316](https://github.com/kornifex/FVTT-Genesys/issues/316)) ([f6c33e1](https://github.com/kornifex/FVTT-Genesys/commit/f6c33e1dbade9d5b89c55a0b6f09474d53f3396b))
+* **ui:** give a sheet's rich-text headings the look of an AppV1 window ([#384](https://github.com/kornifex/FVTT-Genesys/issues/384)) ([aa2aa0f](https://github.com/kornifex/FVTT-Genesys/commit/aa2aa0fae8c1986ea8ae63f7c92080c395913aa8))
+* **ui:** show an expanded row's whole description, however long, instead of cutting it at a fixed height ([#387](https://github.com/kornifex/FVTT-Genesys/issues/387)) ([7613a8f](https://github.com/kornifex/FVTT-Genesys/commit/7613a8f0e8079a0959f910ab70749a4833ef6e9b))
+* **ui:** shrink an adversary's empty description and grow the HTML source editor with its text ([#397](https://github.com/kornifex/FVTT-Genesys/issues/397)) ([a197cce](https://github.com/kornifex/FVTT-Genesys/commit/a197cce1e3422ed2184a07cbc5fd959c2e4fb2f4))
+
+
+### Code Refactoring
+
+* **actor:** route archetype, career and talent drops on a character through one plan ([#338](https://github.com/kornifex/FVTT-Genesys/issues/338)) ([e31a364](https://github.com/kornifex/FVTT-Genesys/commit/e31a364e10d3e59fefff7767e950b5e7c89f4922))
+* **combat:** compute the turn order in a Turn Order module, and number a combatant's turn by its first slot ([#403](https://github.com/kornifex/FVTT-Genesys/issues/403)) ([0a1c84a](https://github.com/kornifex/FVTT-Genesys/commit/0a1c84a60b57cd55c0e6de049b667fb7542b8462))
+* **combat:** name the combat code after the glossary, and find the controlled combatant once ([#328](https://github.com/kornifex/FVTT-Genesys/issues/328)) ([5bb865a](https://github.com/kornifex/FVTT-Genesys/commit/5bb865a55be75966a478de4e7481e9d4b140d46d))
+* declare each world and client setting once, in a typed table ([#313](https://github.com/kornifex/FVTT-Genesys/issues/313)) ([b69396f](https://github.com/kornifex/FVTT-Genesys/commit/b69396f3d0f0953fc8e7e614b4adb54427e92cf7))
+* declare the DataModels' shared schemas once, and read an actor's items by type without casts ([#370](https://github.com/kornifex/FVTT-Genesys/issues/370)) ([57801bb](https://github.com/kornifex/FVTT-Genesys/commit/57801bb1fbbefd69fcd255d38490bb16e9c25015))
+* declare the document types in the manifest instead of template.json ([#333](https://github.com/kornifex/FVTT-Genesys/issues/333)) ([1adcb8e](https://github.com/kornifex/FVTT-Genesys/commit/1adcb8e791a6d24490a524d733f988e59c04c39f))
+* **dice:** keep the rule modules free of Foundry classes, and fail a unit test that reaches an unstubbed Foundry global ([#330](https://github.com/kornifex/FVTT-Genesys/issues/330)) ([536b914](https://github.com/kornifex/FVTT-Genesys/commit/536b914b1f2864827064aea81c4e533bf349cf87))
+* **dice:** name the dice glyphs in one table, and roll checks through plain functions ([#334](https://github.com/kornifex/FVTT-Genesys/issues/334)) ([f224f77](https://github.com/kornifex/FVTT-Genesys/commit/f224f777fcda73859853b763767e5484705b214e))
+* **dice:** share the skill and attack chat cards' common part, and compute what they show in RollResults.ts ([#332](https://github.com/kornifex/FVTT-Genesys/issues/332)) ([7f6bb54](https://github.com/kornifex/FVTT-Genesys/commit/7f6bb54be2daa0d793530979f2b30ae86bb449b8))
+* **dice:** type the Dice Prompt's roll as a union, and trim DicePrompt.vue's copies ([#342](https://github.com/kornifex/FVTT-Genesys/issues/342)) ([a34b01b](https://github.com/kornifex/FVTT-Genesys/commit/a34b01bae4a68c133cb50bca29c11bf8a9f8a296))
+* drop Foundry v12 from main ([#290](https://github.com/kornifex/FVTT-Genesys/issues/290)) ([a0fbd47](https://github.com/kornifex/FVTT-Genesys/commit/a0fbd47b36afb041ccf75be367ba0d89649794b2))
+* enrich text through one function ([#360](https://github.com/kornifex/FVTT-Genesys/issues/360)) ([a1283a0](https://github.com/kornifex/FVTT-Genesys/commit/a1283a0f7db1a8835e1ba967b276e4abeac7354f))
+* **item:** handle item qualities in one module, and show them with one component ([#331](https://github.com/kornifex/FVTT-Genesys/issues/331)) ([a4709ea](https://github.com/kornifex/FVTT-Genesys/commit/a4709ea806e46cef184b338d2582b53b1984fdea))
+* move the data models onto TypeDataModel ([#379](https://github.com/kornifex/FVTT-Genesys/issues/379)) ([8090a3b](https://github.com/kornifex/FVTT-Genesys/commit/8090a3bb6f1d7cee8165294048c2f10129261a84))
+* move the rules left in components and DataModels into tested modules, and write each once ([#337](https://github.com/kornifex/FVTT-Genesys/issues/337)) ([957ffd6](https://github.com/kornifex/FVTT-Genesys/commit/957ffd68183f061bd8fa7cd49e120bb01087d086))
+* read a document's system as its subtype's DataModel, without the systemData getters ([#381](https://github.com/kornifex/FVTT-Genesys/issues/381)) ([8734623](https://github.com/kornifex/FVTT-Genesys/commit/8734623fb134c1345cf9e19644c9733972be1236))
+* replace the Foundry globals deprecated since v13, and lint them ([#349](https://github.com/kornifex/FVTT-Genesys/issues/349)) ([b87aaaf](https://github.com/kornifex/FVTT-Genesys/commit/b87aaaf05a842d66e660dd20c3e7f0d0ed7cc162))
+* replace the TypeScript enums and interfaces with as-const objects and type aliases ([#339](https://github.com/kornifex/FVTT-Genesys/issues/339)) ([394c50c](https://github.com/kornifex/FVTT-Genesys/commit/394c50c1f7717fced1fc760d1436aefaf6e20f60))
+* resolve a dropped item once in the base actor and item sheets ([#336](https://github.com/kornifex/FVTT-Genesys/issues/336)) ([9518bcd](https://github.com/kornifex/FVTT-Genesys/commit/9518bcdcede52b77985189b825ebdbd86e2acdd4))
+* share the prompts' plumbing, and move the entry point's bodies to their domains ([#347](https://github.com/kornifex/FVTT-Genesys/issues/347)) ([9ee8348](https://github.com/kornifex/FVTT-Genesys/commit/9ee83481da638fc4fed275f71465ed0618c7a141))
+* type the system against fvtt-types for Foundry v14 ([#377](https://github.com/kornifex/FVTT-Genesys/issues/377)) ([4ed5327](https://github.com/kornifex/FVTT-Genesys/commit/4ed5327fb1eb466773c053493061ca2efe225970))
+* **ui:** edit enriched text in Foundry's prose-mirror element ([#369](https://github.com/kornifex/FVTT-Genesys/issues/369)) ([9bbbf3a](https://github.com/kornifex/FVTT-Genesys/commit/9bbbf3a393656b54b68f232e8e6bc924671309f9))
+* **ui:** extract the Vue patterns copied across sheets and components ([#343](https://github.com/kornifex/FVTT-Genesys/issues/343)) ([ffa1767](https://github.com/kornifex/FVTT-Genesys/commit/ffa1767818aa8c27a8d95e7a1486e6ec29d4a0d5))
+* **ui:** give the Vue sheets one contract for reading their document ([#368](https://github.com/kornifex/FVTT-Genesys/issues/368)) ([839da5e](https://github.com/kornifex/FVTT-Genesys/commit/839da5eb36c82b6866b1d5086f370507a9238cfa))
+* **ui:** lay out the data rows of the item sheets and the adversaries' Source row once ([#362](https://github.com/kornifex/FVTT-Genesys/issues/362)) ([8d71948](https://github.com/kornifex/FVTT-Genesys/commit/8d719481afebd4bad323d4ef56c132986cc3fd64))
+* **ui:** move the item actions and view rules out of the Vue components ([#372](https://github.com/kornifex/FVTT-Genesys/issues/372)) ([aef736d](https://github.com/kornifex/FVTT-Genesys/commit/aef736dbec9fd3473a5ff6757ee8282ea0546c7e))
+* **ui:** route the remaining item edits and deletes through the item actions, which ask first ([#374](https://github.com/kornifex/FVTT-Genesys/issues/374)) ([ca871c7](https://github.com/kornifex/FVTT-Genesys/commit/ca871c7b8fc51de42bc68d4f1d849765f3d31a29))
+* **ui:** scope the Vue styles, and say why the rest aren't ([#350](https://github.com/kornifex/FVTT-Genesys/issues/350)) ([8c322b4](https://github.com/kornifex/FVTT-Genesys/commit/8c322b4f1082fd128b47a4c5f94523a8a6616d0a))
+* **ui:** share the prompts' window rules in one mixin ([#361](https://github.com/kornifex/FVTT-Genesys/issues/361)) ([975c945](https://github.com/kornifex/FVTT-Genesys/commit/975c9457e305e08a2b6740370a14355e34d9f8ca))
+* **ui:** weigh the sheets' field rules as little as v13 needs, and drop reset.input's selector ([#317](https://github.com/kornifex/FVTT-Genesys/issues/317)) ([7b6ca5b](https://github.com/kornifex/FVTT-Genesys/commit/7b6ca5bd2104546f2dca357ac5a725ec2ef77ef1))
+
+
+### Documentation
+
+* define Expired Effect ([#386](https://github.com/kornifex/FVTT-Genesys/issues/386)) ([454fdb3](https://github.com/kornifex/FVTT-Genesys/commit/454fdb30253199ced1d24cf9b8dca6e1ee35963f))
+* define Weapon Profile and Silhouette, and record ADR 0007 ([#385](https://github.com/kornifex/FVTT-Genesys/issues/385)) ([ebc50ef](https://github.com/kornifex/FVTT-Genesys/commit/ebc50ef47dfc903ca03cd7c3df2b575ed2f9cac3))
+* fix, trim and complete the comments and JSDoc ([#351](https://github.com/kornifex/FVTT-Genesys/issues/351)) ([9ac77b2](https://github.com/kornifex/FVTT-Genesys/commit/9ac77b2ab324e72ddf04c884f1a96e8ab3d35ef0))
+* record why the create dialog doesn't group the types ([#301](https://github.com/kornifex/FVTT-Genesys/issues/301)) ([8b41767](https://github.com/kornifex/FVTT-Genesys/commit/8b417675ccd81865e50fffac1fbc1ad406f62cd3))
+* type the system against fvtt-types for Foundry v14 ([#376](https://github.com/kornifex/FVTT-Genesys/issues/376)) ([05f8091](https://github.com/kornifex/FVTT-Genesys/commit/05f80913f9b505a775b96c7328e2c8138f1ae2a0))
+
+
+### Build System
+
+* compile the Skills Compendium from YAML sources into a LevelDB pack ([#287](https://github.com/kornifex/FVTT-Genesys/issues/287)) ([fc0ea57](https://github.com/kornifex/FVTT-Genesys/commit/fc0ea5700bb09b9f449f1374dcd3a4e4743d7d5c))
+* ship Vue's runtime-only build, and lay the skill categories out with CSS columns ([#329](https://github.com/kornifex/FVTT-Genesys/issues/329)) ([0bb9834](https://github.com/kornifex/FVTT-Genesys/commit/0bb98349a2c8a90c9b20ff38af45639412c8eb61))
+
+
+### Continuous Integration
+
+* release the 0.4.x line from its own branch, and set main's next release to 0.5.0 ([#281](https://github.com/kornifex/FVTT-Genesys/issues/281)) ([b62f056](https://github.com/kornifex/FVTT-Genesys/commit/b62f056055094ab39a6bf5485e0a959026551ea2))
+* set the next release to 0.4.0, and merge a release candidate before the table tests ([#278](https://github.com/kornifex/FVTT-Genesys/issues/278)) ([d11bbd3](https://github.com/kornifex/FVTT-Genesys/commit/d11bbd33d5d1b5eb4073d8efc9055c053f0f65f5))
+* set the next release to 0.5.0-rc.1 ([#406](https://github.com/kornifex/FVTT-Genesys/issues/406)) ([a462fe0](https://github.com/kornifex/FVTT-Genesys/commit/a462fe0dba9949037d9763973a3f24c5e11393f9))
+
+
+### Miscellaneous Chores
+
+* give third-party reporters issue forms for bugs and feature requests ([#303](https://github.com/kornifex/FVTT-Genesys/issues/303)) ([767e1a0](https://github.com/kornifex/FVTT-Genesys/commit/767e1a0d733a6c575f3868dad46ab797a191f758))
+
+
+### Tests
+
+* **combat:** prove that a claimed row's roll and Initiative Skill buttons follow the owners of its slot's origin ([#323](https://github.com/kornifex/FVTT-Genesys/issues/323)) ([cefb122](https://github.com/kornifex/FVTT-Genesys/commit/cefb1225f8d8ab4111541bfd8e1ca47c0c6e99e5))
+* document the steps named by their section alone, and give one step a single section ([#341](https://github.com/kornifex/FVTT-Genesys/issues/341)) ([97de390](https://github.com/kornifex/FVTT-Genesys/commit/97de390ff20daec546aa72a8c921f6c4f0a10809))
+* **effects:** read an effect's duration in rounds in each Foundry version's shape ([#312](https://github.com/kornifex/FVTT-Genesys/issues/312)) ([36a7125](https://github.com/kornifex/FVTT-Genesys/commit/36a71255caa7ee82db0997611115cce7e503f1b2))
+* expect v14's ownership and detach header controls in the sheets scenario ([#299](https://github.com/kornifex/FVTT-Genesys/issues/299)) ([e897261](https://github.com/kornifex/FVTT-Genesys/commit/e897261249bcbbb80381801ce8ebac53d0ce261b))
+* find the Effects view, click its Edit and Add buttons and grant ownership through shared e2e helpers ([#404](https://github.com/kornifex/FVTT-Genesys/issues/404)) ([310958b](https://github.com/kornifex/FVTT-Genesys/commit/310958bff160102209c93764f87ba3a638a9efe0))
+* **item:** prove the state and delete paths the checklist names but no sheet offers, and read a script's Used write ([#321](https://github.com/kornifex/FVTT-Genesys/issues/321)) ([11eb462](https://github.com/kornifex/FVTT-Genesys/commit/11eb4622a2b7dabd06535fe616090a6b5bf2fe9f))
+* lint the deprecated Foundry globals in the e2e code too, and through the global object ([#363](https://github.com/kornifex/FVTT-Genesys/issues/363)) ([590769d](https://github.com/kornifex/FVTT-Genesys/commit/590769daabc176d4d7fff8fdd6ed26d71e6b020c))
+* **migration:** seed the migrations scenario's legacy copies from their effects as written, on Foundry v14 ([#311](https://github.com/kornifex/FVTT-Genesys/issues/311)) ([e5bb66e](https://github.com/kornifex/FVTT-Genesys/commit/e5bb66e39382bb77265c7b1786070df6bc459c28))
+* read and toggle the Effects tab's rows and give users a permission level through shared e2e helpers ([#401](https://github.com/kornifex/FVTT-Genesys/issues/401)) ([8291d7b](https://github.com/kornifex/FVTT-Genesys/commit/8291d7bb1707b96485d993b2059cfdbdc224e2a4))
+* read the Dice Prompt's roll type from its roll in the vehicle scenario ([#345](https://github.com/kornifex/FVTT-Genesys/issues/345)) ([d0b8bce](https://github.com/kornifex/FVTT-Genesys/commit/d0b8bcef2e53feaf00ebb010f9cdb9760260eaea))
+* run the e2e harness on Foundry v14, and declare the system verified on v14 ([#291](https://github.com/kornifex/FVTT-Genesys/issues/291)) ([367afc1](https://github.com/kornifex/FVTT-Genesys/commit/367afc125cb181af79e7310dec9a55fcbb1c8303))
+* **ui:** prove that Escape leaves a sheet open while a field has the focus, and closes it otherwise ([#322](https://github.com/kornifex/FVTT-Genesys/issues/322)) ([392ab9e](https://github.com/kornifex/FVTT-Genesys/commit/392ab9eeaf957eed0bd03bb9519e88c6a9702f16))
+* **ui:** prove the directories' create dialogs open where the directory asks, without a compatibility warning ([#314](https://github.com/kornifex/FVTT-Genesys/issues/314)) ([5bba2bb](https://github.com/kornifex/FVTT-Genesys/commit/5bba2bbb73866dab04ec4eb7c49c06776c3b1944))
+
 ## [0.4.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.3.1...v0.4.0-rc.1) (2026-10-27)
 
 
