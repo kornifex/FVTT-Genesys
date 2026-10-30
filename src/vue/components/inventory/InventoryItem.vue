@@ -25,6 +25,7 @@ import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
+import { weaponProfiles } from '@/item/WeaponProfiles';
 
 const props = withDefaults(
 	defineProps<{
@@ -88,6 +89,13 @@ function weaponData() {
 	return system.value as WeaponDataModel | VehicleWeaponDataModel;
 }
 
+// The profile a weapon's row shows, and attacks with: a character's weapon's main Weapon Profile, or a vehicle weapon's
+// single one, its own fields.
+function weaponProfile() {
+	const weapon = weaponData();
+	return 'extraProfiles' in weapon ? weaponProfiles(weapon)[0] : weapon;
+}
+
 // The labels of a vehicle weapon's firing arc: a character's weapon has none.
 function firingArcs() {
 	const weapon = weaponData();
@@ -100,7 +108,7 @@ const displayContainerContents = ref(false);
 const containedItems = computed(() => containerContents(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id));
 
 function damage() {
-	const weapon = weaponData();
+	const weapon = weaponProfile();
 	return {
 		...damageFormula(weapon),
 		// A vehicle has no characteristics to add to the damage.
@@ -108,10 +116,9 @@ function damage() {
 	};
 }
 
-// The Attack Skill of a character's weapon's main profile, which offers an attack when it has one. The weapon's row
-// shows its main profile, and attacks with it.
+// The Attack Skill of a character's weapon's main profile, which offers an attack when it has one.
 function skillForWeapon() {
-	return attackSkill(actor.value, (item.value as GenesysItem<'weapon'>).system);
+	return attackSkill(actor.value, weaponProfiles((item.value as GenesysItem<'weapon'>).system)[0]);
 }
 
 // The Equipment State moves the row's menu offers.
@@ -201,7 +208,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 
 			<div :data-item-type="item.type">
 				<template v-if="item.type === 'weapon' || item.type === 'vehicleWeapon'">
-					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponData().skills[0]) ?? '-' }}</div>
+					<div>{{ (item.type === 'weapon' ? skillForWeapon() : weaponProfile().skills[0]) ?? '-' }}</div>
 
 					<!-- prettier-ignore -->
 					<div v-if="firingArcs()" class="firing-arc">
@@ -214,12 +221,12 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 						<span v-else><Localized :label="damage().characteristic!" />{{ signed(damage().baseDamage) }} ({{ damage().total }})</span>
 					</div>
 
-					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponData().critical }}</div>
+					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponProfile().critical }}</div>
 
 					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="RANGE_LABELS[weaponData().range]" />]</div>
+					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="RANGE_LABELS[weaponProfile().range]" />]</div>
 
-					<QualityList :qualities="weaponData().qualities" class="item-qualities" />
+					<QualityList :qualities="weaponProfile().qualities" class="item-qualities" />
 				</template>
 
 				<template v-else-if="item.type === 'armor'">

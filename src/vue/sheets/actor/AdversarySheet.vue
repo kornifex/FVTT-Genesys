@@ -227,7 +227,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 											<AttackSkillSelect
 												:key="skill"
 												:weapon="item"
-												:profile="profile.index"
+												:profile-index="profile.index"
 												:choices="attackSkillChoices(profile.skills)"
 												:attack-skill="skill"
 											/>

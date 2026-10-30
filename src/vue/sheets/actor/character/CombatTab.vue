@@ -85,7 +85,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 							<!-- A choice the character can't roll stays changeable here. -->
 							<AttackSkillSelect
 								:weapon="weapon"
-								:profile="profile.index"
+								:profile-index="profile.index"
 								:choices="attackSkillChoices(profile.skills)"
 								:attack-skill="weaponSkill.name"
 							/>

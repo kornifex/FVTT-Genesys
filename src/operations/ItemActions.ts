@@ -16,7 +16,7 @@ import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentType } from '@/item/ItemTypes';
-import { attackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
+import { attackProfile, vehicleAttackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
 import { notify } from '@/notifications';
 
@@ -47,9 +47,8 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapo
  * that has it. A vehicle weapon has a single Weapon Profile.
  */
 export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, weapon: GenesysItem<'vehicleWeapon'>) {
-	const { skills, baseDamage, critical, range, qualities } = weapon.system;
-	await rollForCrew(crewForSkills(vehicle.system.crew, skills), {
-		roll: { type: RollType.Attack, weapon, profile: { attackName: weapon.name, skills, baseDamage, critical, range, qualities } },
+	await rollForCrew(crewForSkills(vehicle.system.crew, weapon.system.skills), {
+		roll: { type: RollType.Attack, weapon, profile: vehicleAttackProfile(weapon) },
 	});
 }
 

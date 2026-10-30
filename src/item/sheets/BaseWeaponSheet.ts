@@ -1,10 +1,11 @@
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
-import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 import { withQualityAdded } from '@/item/data/Qualities';
-import { profileUpdate, weaponProfiles } from '@/item/WeaponProfiles';
+import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
+import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
+import { type ExtraWeaponProfile, profileUpdate, weaponProfile } from '@/item/WeaponProfiles';
 
 /**
  * Item sheet shared by the weapons, which receives their skills and qualities. A character's weapon gives an item
@@ -13,11 +14,14 @@ import { profileUpdate, weaponProfiles } from '@/item/WeaponProfiles';
  */
 export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'> {
 	protected override async receiveItem(droppedItem: GenesysItem, event?: DragEvent): Promise<void> {
-		const index = this.#profileDroppedOn(event);
+		const system = this.item.system;
 		// A vehicle weapon has a single profile: its own fields.
-		const profile = index > 0 ? weaponProfiles(this.item.system as WeaponDataModel)[index] : this.item.system;
-		const update = (changes: Pick<WeaponDataModel, 'skills'> | Pick<WeaponDataModel, 'qualities'>) =>
-			index > 0 ? profileUpdate(this.item.system as WeaponDataModel, index, changes) : changes;
+		const weapon = hasExtraProfiles(system) ? system : undefined;
+		// The profile read, the main one when the block's profile was deleted meanwhile.
+		const dropped = weapon && weaponProfile(weapon, profileDroppedOn(event));
+		const profile = dropped ?? system;
+		const update = (changes: Partial<ExtraWeaponProfile>) =>
+			weapon && dropped ? profileUpdate(weapon, dropped.index, changes) : changes;
 
 		switch (droppedItem.type) {
 			case 'skill':
@@ -46,14 +50,20 @@ export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'
 			}
 		}
 	}
+}
 
-	/**
-	 * The Weapon Profile whose block a drop landed on, numbered as `weaponProfiles` numbers it: 0, the main profile, for
-	 * a drop anywhere else.
-	 */
-	#profileDroppedOn(event: DragEvent | undefined) {
-		const block = event?.target instanceof Element ? event.target.closest<HTMLElement>('[data-weapon-profile]') : null;
-		const index = Number(block?.dataset.weaponProfile ?? 0);
-		return this.item.type === 'weapon' && index > 0 && index <= (this.item.system as WeaponDataModel).extraProfiles.length ? index : 0;
-	}
+/**
+ * The Weapon Profile whose block a drop landed on, numbered as `weaponProfiles` numbers it: 0, the main profile, for a
+ * drop anywhere else.
+ */
+function profileDroppedOn(event: DragEvent | undefined) {
+	const block = event?.target instanceof Element ? event.target.closest<HTMLElement>('[data-weapon-profile]') : null;
+	return Number(block?.dataset.weaponProfile ?? 0);
+}
+
+/**
+ * Whether a weapon's data is a character's weapon's, which holds extra profiles.
+ */
+function hasExtraProfiles(system: WeaponDataModel | VehicleWeaponDataModel): system is WeaponDataModel {
+	return 'extraProfiles' in system && system.extraProfiles !== undefined;
 }

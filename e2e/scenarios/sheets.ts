@@ -1,5 +1,6 @@
 /** @file The sheet and chat card items of the test checklist (#37), each step named after its section: `#95 A1 …` for §#95. */
 import type { Client, ScenarioContext } from '../scenario.ts';
+import { thrownProfile } from '../weaponProfiles.ts';
 
 /**
  * A row of an Effects tab.
@@ -2464,7 +2465,7 @@ export async function run(e2e: ScenarioContext) {
 		'https://github.com/kornifex/FVTT-Genesys/wiki/Dice-Pool-Modification-Glyphs',
 	);
 
-	// §#366: a weapon's extra Weapon Profiles, edited on its Data tab, and listed on its card.
+	// B: a weapon's extra Weapon Profiles, edited on its Data tab, and listed on its card (§#366).
 	await gm.evaluate(async () => {
 		const sheets = window.sheetsE2E;
 		await sheets.closeAll();
@@ -2491,7 +2492,7 @@ export async function run(e2e: ScenarioContext) {
 			};
 		});
 	e2e.expect(
-		"#366 C1 a weapon's Data tab ends with an Add Weapon Profile button, a vehicle weapon's has none",
+		"#366 B1 a weapon's Data tab ends with an Add Weapon Profile button, a vehicle weapon's has none",
 		await gm.evaluate(() =>
 			Object.fromEntries(
 				['weapon', 'vehicleWeapon'].map((name) => [
@@ -2505,7 +2506,7 @@ export async function run(e2e: ScenarioContext) {
 		{ weapon: ['Add Weapon Profile'], vehicleWeapon: [] },
 	);
 	const mainBefore = (await weaponProfiles()).main;
-	await e2e.step('#366 C2 GM adds a Weapon Profile, edits each of its fields, and drops a quality and a skill on its block', () =>
+	await e2e.step('#366 B2 GM adds a Weapon Profile, edits each of its fields, and drops a quality and a skill on its block', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
 			// A build without Weapon Profiles has no Add Weapon Profile button.
@@ -2521,7 +2522,7 @@ export async function run(e2e: ScenarioContext) {
 		}),
 	);
 	e2e.expect(
-		"#366 C2 the added profile stores each field changed on its block, and the quality and skill dropped on it, leaving the main profile's",
+		"#366 B2 the added profile stores each field changed on its block, and the quality and skill dropped on it, leaving the main profile's",
 		await weaponProfiles(),
 		{
 			main: mainBefore,
@@ -2540,7 +2541,7 @@ export async function run(e2e: ScenarioContext) {
 			blocks: 1,
 		},
 	);
-	await e2e.step("#366 C3 GM rates the profile's quality 3 and deletes its skill", () =>
+	await e2e.step("#366 B3 GM rates the profile's quality 3 and deletes its skill", () =>
 		gm.evaluate(async () => {
 			const sheet = window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!;
 			const rating = sheet.querySelector<HTMLInputElement>('.weapon-profile .profile-qualities input');
@@ -2553,7 +2554,7 @@ export async function run(e2e: ScenarioContext) {
 	);
 	const ratedAndUnskilled = await weaponProfiles();
 	e2e.expect(
-		"#366 C3 the profile's quality takes its new rating and its skill is deleted, leaving the main profile's",
+		"#366 B3 the profile's quality takes its new rating and its skill is deleted, leaving the main profile's",
 		{
 			main: ratedAndUnskilled.main,
 			skills: ratedAndUnskilled.extraProfiles[0]?.skills,
@@ -2561,44 +2562,34 @@ export async function run(e2e: ScenarioContext) {
 		},
 		{ main: mainBefore, skills: [], qualities: [{ name: 'E2E quality', rating: 3 }] },
 	);
-	await e2e.step('#366 C4 GM deletes the profile', () =>
+	await e2e.step('#366 B4 GM deletes the profile', () =>
 		gm.evaluate(async () => {
 			if (window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile')) {
 				await window.sheetsE2E.click('weapon', '.weapon-profile .delete-profile');
 			}
 		}),
 	);
-	e2e.expect('#366 C4 the deleted profile leaves the weapon and its sheet', await weaponProfiles(), {
+	e2e.expect('#366 B4 the deleted profile leaves the weapon and its sheet', await weaponProfiles(), {
 		main: mainBefore,
 		extraProfiles: [],
 		blocks: 0,
 	});
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
-	await e2e.step("#366 D1 GM gives the Hero's sword a Thrown profile and sends it to chat", () =>
-		gm.evaluate(async () => {
-			const sheets = window.sheetsE2E;
-			await sheets.update('Hero/Sword', {
-				'system.extraProfiles': [
-					{
-						name: 'Thrown',
-						skills: ['Ranged'],
-						damageCharacteristic: 'brawn',
-						baseDamage: 2,
-						critical: 4,
-						range: 'short',
-						qualities: [{ name: 'Accurate', description: '', isRated: true, rating: 1 }],
-						attackSkill: '',
-					},
-				],
-			});
-			sheets.readMessages();
-			await sheets.open('Hero');
-			await sheets.sendToChat('Hero', 'Sword');
-		}),
+	await e2e.step("#366 B5 GM gives the Hero's sword a Thrown profile and sends it to chat", () =>
+		gm.evaluate(
+			async (profile) => {
+				const sheets = window.sheetsE2E;
+				await sheets.update('Hero/Sword', { 'system.extraProfiles': [profile] });
+				sheets.readMessages();
+				await sheets.open('Hero');
+				await sheets.sendToChat('Hero', 'Sword');
+			},
+			thrownProfile(['Ranged']),
+		),
 	);
 	e2e.expect(
-		"#366 D1 a weapon's card lists its main profile, then each extra profile named as its row, with its skill, range, damage, Critical rating and qualities",
+		"#366 B5 a weapon's card lists its main profile, then each extra profile named as its row, with its skill, range, damage, Critical rating and qualities",
 		await gm.evaluate(() =>
 			window.sheetsE2E.readMessages().map(({ content }) => {
 				const { text } = window.e2e;
@@ -2620,7 +2611,13 @@ export async function run(e2e: ScenarioContext) {
 			{
 				main: ['Melee', 'Engaged', '3 + Br', '0'],
 				mainQualities: ['E2E Pierce 1'],
-				extraProfiles: [{ name: 'E2E Sword (Thrown)', details: ['Ranged', 'Short', '2 + Br', '4'], qualities: ['Accurate 1'] }],
+				extraProfiles: [
+					{
+						name: 'E2E Sword (Thrown)',
+						details: ['Ranged', 'Short', '2 + Br', '4'],
+						qualities: ['Accurate 1', 'Limited Ammo 1'],
+					},
+				],
 			},
 		],
 	);

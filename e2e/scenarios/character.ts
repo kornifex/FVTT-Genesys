@@ -1,6 +1,7 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries and a weapon's Weapon Profiles. */
 import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
+import { dagger } from '../weaponProfiles.ts';
 
 type Characteristic = 'brawn' | 'agility' | 'intellect' | 'cunning' | 'willpower' | 'presence';
 
@@ -824,45 +825,21 @@ export async function run(e2e: ScenarioContext) {
 
 type Evaluate = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
 
-/** §#366: a weapon with an extra Weapon Profile is one piece of equipment, with a Combat tab row per profile. */
+/** §#366, part N: a weapon with an extra Weapon Profile is one piece of equipment, with a Combat tab row per profile. */
 async function weaponProfiles(e2e: ScenarioContext, page: Evaluate) {
 	const W = 'Wielder';
-	const quality = (name: string) => ({ name, description: '', isRated: true, rating: 1 });
-	// The dagger of Realms of Terrinoth (pp. 92–96), also thrown. The character owns every Skills Compendium skill, at rank 0.
-	const dagger = {
-		name: 'E2E Dagger',
-		type: 'weapon',
-		system: {
-			skills: ['Melee', 'Brawl'],
-			damageCharacteristic: 'brawn',
-			baseDamage: 1,
-			critical: 3,
-			range: 'engaged',
-			encumbrance: 1,
-			state: 'equipped',
-			extraProfiles: [
-				{
-					name: 'Thrown',
-					skills: ['Ranged', 'Athletics'],
-					damageCharacteristic: 'brawn',
-					baseDamage: 2,
-					critical: 4,
-					range: 'short',
-					qualities: [quality('Accurate'), quality('Limited Ammo')],
-				},
-			],
-		},
-	};
+	// The character owns every Skills Compendium skill, at rank 0.
+	const weapon = dagger({ main: ['Melee', 'Brawl'], thrown: ['Ranged', 'Athletics'] });
 	const rows = () => page((name) => window.characterE2E.weaponRows(name), W);
 	const choose = (row: string, skill: string) => page((args) => window.characterE2E.chooseAttackSkill(args), { actor: W, row, skill });
 
-	await e2e.step('#366 A1 a character given a dagger with a Thrown profile, equipped', async () => {
+	await e2e.step('#366 N1 a character given a dagger with a Thrown profile, equipped', async () => {
 		await page((name) => window.characterE2E.create(name), W);
-		await page((args) => window.characterE2E.createItems(args.name, args.items), { name: W, items: [dagger] });
+		await page((args) => window.characterE2E.createItems(args.name, args.items), { name: W, items: [weapon] });
 		await page((name) => window.characterE2E.open(name), W);
 	});
 	e2e.expect(
-		'#366 A1 the dagger shows one Inventory tab row and counts its encumbrance once, but shows a Combat tab row per profile, each with its Attack Skill',
+		'#366 N1 the dagger shows one Inventory tab row and counts its encumbrance once, but shows a Combat tab row per profile, each with its Attack Skill',
 		await rows(),
 		{
 			inventory: ['Dagger'],
@@ -875,12 +852,12 @@ async function weaponProfiles(e2e: ScenarioContext, page: Evaluate) {
 		},
 	);
 
-	await e2e.step("#366 A2 Athletics chosen on the Thrown row's Attack Skill select", () => choose('Dagger (Thrown)', 'Athletics'));
+	await e2e.step("#366 N2 Athletics chosen on the Thrown row's Attack Skill select", () => choose('Dagger (Thrown)', 'Athletics'));
 	const thrownChosen = await rows();
-	await e2e.step("#366 A2 Brawl chosen on the main row's Attack Skill select", () => choose('Dagger', 'Brawl'));
+	await e2e.step("#366 N2 Brawl chosen on the main row's Attack Skill select", () => choose('Dagger', 'Brawl'));
 	const mainChosen = await rows();
 	e2e.expect(
-		"#366 A2 the Attack Skill chosen on one profile's row is stored on that profile, and doesn't change the other row's",
+		"#366 N2 the Attack Skill chosen on one profile's row is stored on that profile, and doesn't change the other row's",
 		{
 			thrownChosen: { combat: thrownChosen.combat, stored: thrownChosen.stored },
 			mainChosen: { combat: mainChosen.combat, stored: mainChosen.stored },

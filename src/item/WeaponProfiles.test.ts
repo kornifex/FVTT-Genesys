@@ -4,10 +4,12 @@ import { Characteristic } from '@/data/Characteristics';
 import {
 	attackProfile,
 	profileRowName,
+	vehicleAttackProfile,
+	weaponProfile,
 	profileUpdate,
 	weaponProfiles,
-	withExtraProfileAdded,
-	withoutExtraProfile,
+	addExtraProfileUpdate,
+	deleteExtraProfileUpdate,
 } from '@/item/WeaponProfiles';
 
 const accurate = { name: 'Accurate', description: '', isRated: true, rating: 1 };
@@ -90,6 +92,17 @@ const i18n = {
 	format: (key: string, data: Record<string, string>) => ENGLISH[key].replace(/\{(\w+)\}/g, (_match, name: string) => data[name]),
 };
 
+describe('weaponProfile', () => {
+	it('reads the profile of a number, as weaponProfiles numbers them', () => {
+		expect(weaponProfile(dagger(), 1)).toEqual(weaponProfiles(dagger())[1]);
+		expect(weaponProfile(dagger(), 0)).toEqual(weaponProfiles(dagger())[0]);
+	});
+
+	it('reads the main profile for a number the weapon has no profile of, as once that profile is deleted', () => {
+		expect(weaponProfile(dagger(), 2)).toMatchObject({ index: 0, skills: ['Melee (Light)'] });
+	});
+});
+
 describe('profileRowName', () => {
 	const [main, thrown] = weaponProfiles(dagger());
 
@@ -131,9 +144,9 @@ describe('profileUpdate', () => {
 	});
 });
 
-describe('withExtraProfileAdded', () => {
+describe('addExtraProfileUpdate', () => {
 	it("adds an extra profile after the others, with the main profile's defaults and no name", () => {
-		expect(withExtraProfileAdded(dagger())).toEqual({
+		expect(addExtraProfileUpdate(dagger())).toEqual({
 			extraProfiles: [
 				dagger().extraProfiles[0],
 				{
@@ -151,12 +164,12 @@ describe('withExtraProfileAdded', () => {
 	});
 });
 
-describe('withoutExtraProfile', () => {
+describe('deleteExtraProfileUpdate', () => {
 	it('deletes an extra profile, the others keeping their order', () => {
 		const lunge = { ...dagger().extraProfiles[0], name: 'Lunge' };
 		const weapon = { ...dagger(), extraProfiles: [...dagger().extraProfiles, lunge] };
 
-		expect(withoutExtraProfile(weapon, 1)).toEqual({ extraProfiles: [lunge] });
+		expect(deleteExtraProfileUpdate(weapon, 1)).toEqual({ extraProfiles: [lunge] });
 	});
 });
 
@@ -170,6 +183,7 @@ describe('attackProfile', () => {
 			critical: 4,
 			range: 'short',
 			qualities: [accurate, limitedAmmo],
+			attackSkill: '',
 		});
 	});
 
@@ -181,6 +195,30 @@ describe('attackProfile', () => {
 			baseDamage: 1,
 			critical: 3,
 			range: 'engaged',
+			qualities: [],
+			attackSkill: '',
+		});
+	});
+});
+
+describe('vehicleAttackProfile', () => {
+	it('gives an attack with a vehicle weapon its single profile, named after the weapon, with no damage characteristic (CRB p. 223)', () => {
+		// The 24-pounder cannons of the three-masted frigate (p. 231).
+		const system = {
+			skills: ['Gunnery'],
+			baseDamage: 6,
+			critical: 3,
+			range: 'long' as const,
+			qualities: [],
+			firingArc: { fore: false },
+		};
+
+		expect(vehicleAttackProfile({ name: 'Cannons', system })).toEqual({
+			attackName: 'Cannons',
+			skills: ['Gunnery'],
+			baseDamage: 6,
+			critical: 3,
+			range: 'long',
 			qualities: [],
 		});
 	});
