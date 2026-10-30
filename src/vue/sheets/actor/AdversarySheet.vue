@@ -29,6 +29,7 @@ import { weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
+const hasDescription = computed(() => system.value.description.trim() !== '');
 
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
@@ -159,11 +160,8 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
 					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
-					<div
-						v-if="context.data.editable || system.description.trim() !== '' || system.source.trim() !== ''"
-						class="description-area"
-					>
-						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
+					<div v-if="context.data.editable || hasDescription || system.source.trim() !== ''" class="description-area">
+						<div :class="['adversary-description', { empty: !hasDescription }]">
 							<Editor name="system.description" :content="system.description" button />
 							<Enriched class="source" :value="system.source" />
 						</div>
@@ -453,6 +451,8 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
+// Unscoped: these rules reach into the child components the sheet renders (the editors, skills and motivations), which
+// scoped rules would reach only through :deep().
 .adversary-sheet {
 	display: flex;
 	flex-direction: column;
