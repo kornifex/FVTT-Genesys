@@ -44,6 +44,10 @@ _Avoid_: Initiative type, initiative stat
 The skill an actor rolls to attack with a weapon, among the skills the weapon lists. The actor may choose one for each of their weapons; when none is chosen, they roll the listed skill they have the highest rank in, then the first the weapon lists, as an Unranked Skill Check if they have none of them.
 _Avoid_: Weapon skill, combat skill
 
+**Silhouette**:
+An abstract of an actor's size: 0 is smaller than a human, 1 is about human-sized (every character and Adversary starts at 1), and vehicles range from 0 to 10 or more. An attack against a target whose silhouette is two or more points larger than the attacker's is one difficulty easier, and against a target two or more points smaller, one difficulty harder.
+_Avoid_: Size, scale
+
 **Critical Injury**:
 A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle.
 _Avoid_: Crit, wound
@@ -109,6 +113,10 @@ _Avoid_: Active armor, armor in use
 **Encumbrance**:
 The total encumbrance of a character's or vehicle's equipment (its value), against the threshold above which they are encumbered. Each item adds its encumbrance to the value once per item of its quantity; an item with a negative encumbrance raises the threshold instead, also once per item. On a character, Dropped equipment, including the contents of a Dropped container, counts towards neither the value nor the threshold, and an Equipped armor counts 3 less, to a minimum of 0, for one of its quantity. On a vehicle, all equipment counts, whatever its Equipment State.
 _Avoid_: Weight, load
+
+**Weapon Profile**:
+One way to attack with a weapon: its skills, damage, Critical rating, range and qualities. Every weapon has a main profile, and may have more, such as a dagger that is also thrown. The weapon stays one piece of equipment, whatever its number of profiles: it counts once towards Encumbrance, and has one Equipment State. An attack is made with one of its profiles. A vehicle weapon has a single profile.
+_Avoid_: Mode, stat line
 
 ### Vehicles
 
