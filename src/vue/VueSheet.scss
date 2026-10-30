@@ -61,8 +61,9 @@
 }
 
 // The components render no heading of their own: these are the rich text's, such as a description's. ApplicationV2 gives
-// headings a larger size and wide margins. These restore AppV1's headings, which the descriptions were written for.
-// v12: only v12 needs the colour and the shadow reset, since its ApplicationV2 headings are light text with a dark shadow.
+// headings a larger size, another colour and wide margins. These restore AppV1's headings, which the descriptions were
+// written for.
+// v12: only v12 needs the shadow reset, since its ApplicationV2 headings are light text with a dark shadow.
 .application .vue-app :is(h1, h2, h3, h4) {
 	margin: 0 0 0.5rem;
 	padding: 0;
