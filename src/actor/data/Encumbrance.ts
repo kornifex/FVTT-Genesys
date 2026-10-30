@@ -153,9 +153,9 @@ export function isEncumbered({ value, threshold }: Encumbrance) {
  * What this module reads of an actor's items. The fields of an item that isn't equipment are left undefined, and the
  * item is ignored as its type isn't relevant to encumbrance.
  */
-export function encumberingItems(items: Iterable<Item>): EncumberingItem[] {
+export function encumberingItems(items: Iterable<Item.Stored>): EncumberingItem[] {
 	return Array.from(items, (item) => {
-		const { encumbrance, quantity, state, container } = (<GenesysItem<EquipmentDataModel>>(<unknown>item)).systemData;
+		const { encumbrance, quantity, state, container } = (item as GenesysItem<EquipmentDataModel>).systemData;
 		return { id: item.id, type: item.type, encumbrance, quantity, state, container };
 	});
 }

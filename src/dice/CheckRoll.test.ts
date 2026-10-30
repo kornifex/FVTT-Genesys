@@ -11,14 +11,14 @@ import { parseRollResults } from '@/dice/CheckRoll';
  */
 type FakeTerm = { denomination: string; labels: string[] };
 
-function fakeRoll(terms: FakeTerm[], symbols?: Record<string, number>): Roll {
+function fakeRoll(terms: FakeTerm[], symbols?: Record<string, number>) {
 	const dice = terms.map(({ denomination, labels }) => ({
 		denomination,
 		results: labels.map((label) => ({ label })),
 		getResultLabel: (result: { label: string }) => result.label,
 	}));
 
-	return { dice, data: { symbols } } as unknown as Roll;
+	return { dice, data: { symbols } } as unknown as Parameters<typeof parseRollResults>[0];
 }
 
 describe('parseRollResults', () => {

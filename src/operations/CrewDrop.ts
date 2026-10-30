@@ -95,7 +95,7 @@ export async function receiveCrewDrop(vehicle: GenesysActor<VehicleDataModel>, d
  */
 async function cloneForCrew(uuid: string) {
 	const actor = fromUuidSync(uuid) as GenesysActor | null;
-	if (!actor || actor.prototypeToken.actorLink || !(Actor.implementation as typeof GenesysActor).canUserCreate(game.user)) {
+	if (!actor || actor.prototypeToken.actorLink || !Actor.implementation.canUserCreate(game.user)) {
 		return undefined;
 	}
 

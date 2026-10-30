@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
@@ -28,6 +29,7 @@ import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentR
 import type { StepDirection } from '@/actor/data/Inventory';
 import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
+import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
 
@@ -52,11 +54,11 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 }
 
 // A non-ranked talent offers no rank change, as on characters.
-function canChangeTalentRank(talent: GenesysItem<TalentDataModel>) {
+function canChangeTalentRank(talent: Stored<GenesysItem<TalentDataModel>>) {
 	return talentRankChange(talent, 1).action !== 'refuse';
 }
 
-async function changeTalentRank(talent: GenesysItem<TalentDataModel>, direction: StepDirection) {
+async function changeTalentRank(talent: Stored<GenesysItem<TalentDataModel>>, direction: StepDirection) {
 	await stepTalentRank(actor.value, talent, direction);
 }
 
@@ -73,7 +75,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	}
 
 	await actor.value.update({
-		'system.superCharacteristics': superCharacteristics,
+		system: { superCharacteristics },
 	});
 }
 </script>
@@ -81,7 +83,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 <template>
 	<div class="adversary-sheet">
 		<header>
-			<img :src="actor.img" :alt="actor.name" data-edit="img" />
+			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
 			<input type="text" name="name" :value="actor.name" />
 		</header>
 
@@ -254,7 +256,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 									{{ item.name }}
 
 									<span v-if="item.type === 'armor'" class="soak">
-										(+{{ item.system.soak }} <Localized label="Genesys.Labels.Soak" />)
+										(+{{ (item.system as ArmorDataModel).soak }} <Localized label="Genesys.Labels.Soak" />)
 									</span>
 
 									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>

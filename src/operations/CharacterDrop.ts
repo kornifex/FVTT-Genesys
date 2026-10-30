@@ -8,6 +8,7 @@ import { advancementCharacter, writeCharacter } from '@/actor/data/character/Adv
 import { Character, decideCharacterDrop } from '@/actor/data/character/CharacterItems';
 import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
+import type { Stored } from '@/data/Stored';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { notify } from '@/notifications';
@@ -18,7 +19,7 @@ import { receiveInventoryDrop } from '@/operations/InventoryDrop';
  * plan. A Career first asks the player which skills get its Free Ranks, before anything is written. Returns the created
  * items, or false when the drop is refused.
  */
-export async function receiveCharacterDrop(actor: GenesysActor<CharacterDataModel>, item: GenesysItem) {
+export async function receiveCharacterDrop(actor: Stored<GenesysActor<CharacterDataModel>>, item: GenesysItem) {
 	if (isRelevantToCharacter('INVENTORY', item.type)) {
 		return receiveInventoryDrop(actor, item);
 	}
@@ -31,7 +32,7 @@ export async function receiveCharacterDrop(actor: GenesysActor<CharacterDataMode
 	const newId = () => foundry.utils.randomID();
 	let decision = decideCharacterDrop(character(actor), dropped, newId);
 	if (decision.action === 'chooseFreeRanks') {
-		const skills = decision.skillIds.map((id) => actor.items.get(id) as GenesysItem<SkillDataModel>);
+		const skills = decision.skillIds.map((id) => actor.items.get(id) as Stored<GenesysItem<SkillDataModel>>);
 		const freeRankSkillIds = await CareerSkillPrompt.promptForSkills(skills);
 		// The character is read again: it may have changed while the player chose.
 		decision = decideCharacterDrop(character(actor), dropped, newId, freeRankSkillIds);

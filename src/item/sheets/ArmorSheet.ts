@@ -22,7 +22,7 @@ export class ArmorSheet extends GenesysItemSheet<ArmorDataModel> {
 				isRated: quality.isRated,
 			});
 			if (qualities) {
-				await this.item.update({ 'system.qualities': qualities });
+				await this.item.update({ system: { qualities } });
 			}
 		}
 	}

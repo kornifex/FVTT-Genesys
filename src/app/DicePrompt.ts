@@ -89,7 +89,7 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 	 * Open a Dice Prompt for an actor's initiative, and wait for the check rolled. Rejects when the prompt is closed
 	 * without a roll.
 	 */
-	static async promptForInitiative(actor: GenesysActor, skillName: string, options: Omit<DicePromptOptions, 'roll'> = {}) {
+	static async promptForInitiative(actor: GenesysActor | undefined, skillName: string, options: Omit<DicePromptOptions, 'roll'> = {}) {
 		return new Promise<CheckRoll>((resolve, reject) => {
 			const app = new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative, resolve, reject } });
 

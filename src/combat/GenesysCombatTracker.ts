@@ -2,12 +2,11 @@
  * @file Combat Tracker, which lists Initiative Slots instead of combatants.
  */
 
-import { GenesysCombat } from '@/combat/GenesysCombat';
-import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { isFoundryV13 } from '@/foundryGeneration';
 
-type RenderContext = foundry.applications.ApplicationRenderContext;
-type RenderOptions = foundry.applications.ApplicationRenderOptions;
+type RenderContext = foundry.applications.sidebar.tabs.CombatTracker.RenderContext;
+type RenderOptions = foundry.applications.api.HandlebarsApplicationMixin.RenderOptions;
+type ContextMenuEntry = foundry.applications.ux.ContextMenu.Entry<HTMLElement>;
 
 /** The id of the Initiative Slot whose row holds the element. */
 function slotIdOf(element: HTMLElement) {
@@ -17,7 +16,7 @@ function slotIdOf(element: HTMLElement) {
 /**
  * The Combat Tracker, whose rows are the Initiative Slots of the round and the combatants that Claim them.
  */
-export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker<GenesysCombat> {
+export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
 	static override DEFAULT_OPTIONS = {
 		actions: {
 			claimInitiativeSlot: GenesysCombatTracker.#onClaimInitiativeSlot,
@@ -70,32 +69,33 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 			return;
 		}
 
-		const turns: Record<string, unknown>[] = [];
+		const turns: foundry.applications.sidebar.tabs.CombatTracker.TurnContext[] = [];
 		context.turns = turns;
 
 		for (const [index, slot] of combat.slots.entries()) {
-			const combatant = combat.combatants.get(slot.originId) as GenesysCombatant;
+			// A slot's origin is one of the combat's combatants.
+			const combatant = combat.combatants.get(slot.originId)!;
 			if (!combatant.visible) {
 				continue;
 			}
 
 			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
-			const claimant = slot.claimantId ? combat.combatants.get<GenesysCombatant>(slot.claimantId) : undefined;
+			const claimant = slot.claimantId ? combat.combatants.get(slot.claimantId) : undefined;
 			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
 			turns.push({ ...turn, ...combat.slotTrackerContext(slot) });
 		}
 	}
 
 	override _createContextMenu(
-		handler: () => foundry.applications.ContextMenuEntry[],
+		handler: foundry.applications.api.ApplicationV2.CreateContextMenuHandler,
 		selector: string,
-		options?: foundry.applications.ContextMenuOptions,
+		options: foundry.applications.api.ApplicationV2.CreateContextMenuOptions,
 	) {
 		// Only claimed slots show a combatant to act on.
 		return super._createContextMenu(handler, selector === '.combatant' ? '.combatant.claimed' : selector, options);
 	}
 
-	override _getEntryContextOptions(): foundry.applications.ContextMenuEntry[] {
+	override _getEntryContextOptions(): ContextMenuEntry[] {
 		const baseEntries = super._getEntryContextOptions();
 
 		// Reroll the initiative of the slot, which may be one of the combatant's Extra Slots.
@@ -123,7 +123,7 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 		if (isFoundryV13()) {
 			const v13RerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
 			if (v13RerollEntry) {
-				v13RerollEntry.callback = rerollSlot;
+				v13RerollEntry.callback = (li) => void rerollSlot(li);
 			}
 			const v13RevokeEntry = {
 				name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
@@ -131,7 +131,8 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 				condition: canRevokeClaim,
 				callback: revokeClaim,
 			};
-			return [...baseEntries, v13RevokeEntry];
+			// v13: its entries have no `label`, which v14's require.
+			return [...baseEntries, v13RevokeEntry] as ContextMenuEntry[];
 		}
 
 		const rerollEntry = baseEntries.find((e) => e.label === 'COMBATANT.ACTIONS.Reroll');
@@ -155,7 +156,7 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 		return super._onCombatantHoverIn(event);
 	}
 
-	override _onCombatantMouseDown(event: PointerEvent, target: HTMLElement) {
+	override _onCombatantMouseDown(event: PointerEvent, target: foundry.applications.api.ApplicationV2.ActionTarget) {
 		if (!target?.classList.contains('claimed')) {
 			return;
 		}

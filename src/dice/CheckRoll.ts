@@ -24,10 +24,15 @@ export type CheckRoll = {
 };
 
 /**
+ * The data of a dice pool's roll: the symbols its modifications add.
+ */
+type PoolRollData = { symbols: Record<string, number> };
+
+/**
  * A dice pool rolled, and the results read from its dice.
  */
 type PoolRoll = {
-	roll: Roll;
+	roll: Roll<PoolRollData>;
 	results: GenesysRollResults;
 };
 
@@ -93,7 +98,7 @@ export async function rollCheck({ check, dicePool }: CheckRoll, weapon?: AttackW
 /**
  * The results of a roll, from the faces of its dice and the extra symbols of its data.
  */
-export function parseRollResults(roll: Roll): GenesysRollResults {
+export function parseRollResults(roll: Roll<PoolRollData>): GenesysRollResults {
 	const faces = roll.dice.reduce((faces: Record<string, string[]>, die) => {
 		const genDie = <GenesysDie>die;
 		if (faces[genDie.denomination] === undefined) {
@@ -105,5 +110,5 @@ export function parseRollResults(roll: Roll): GenesysRollResults {
 		return faces;
 	}, {});
 
-	return rollResults(faces, <Record<string, number>>roll.data.symbols);
+	return rollResults(faces, roll.data.symbols);
 }

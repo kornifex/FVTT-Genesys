@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -37,11 +38,11 @@ function tierLimitText(tier: number) {
 
 const advancement = computed(() => advancementCharacter(actor.value));
 
-function canUpgradeTalent(talent: GenesysItem<TalentDataModel>) {
+function canUpgradeTalent(talent: Stored<GenesysItem<TalentDataModel>>) {
 	return isAllowed(buyTalentRank(advancement.value, talent.id));
 }
 
-async function upgradeTalent(talent: GenesysItem<TalentDataModel>) {
+async function upgradeTalent(talent: Stored<GenesysItem<TalentDataModel>>) {
 	await advance(actor.value, (character) => buyTalentRank(character, talent.id));
 }
 </script>

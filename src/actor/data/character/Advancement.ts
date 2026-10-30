@@ -8,10 +8,9 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import type { CombatPool } from '@/data/schemaFields';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
-import { itemsOfType } from '@/item/ItemTypes';
+import { itemsOfType, type SystemSource } from '@/item/ItemTypes';
 import { Notification, notify } from '@/notifications';
 
 /**
@@ -411,14 +410,16 @@ export function itemsRemovedByUndo(character: AdvancementCharacter, index: numbe
  */
 export function advancementCharacter(actor: GenesysActor<CharacterDataModel>): AdvancementCharacter {
 	const system = actor.systemData;
+	// The DataModels declare their fields rather than their schema, so their source reads as their fields.
+	const source = system._source as SystemSource<CharacterDataModel>;
 
 	// An Advancement prices, caps and writes the base ratings: an Active Effect only adds to them for a while, so it
 	// keeps applying on top of the raised rating (CRB p. 44).
 	return {
 		entries: system.experienceJournal.entries,
-		characteristics: system._source.characteristics as CharacteristicsContainer,
-		woundThreshold: (system._source.wounds as CombatPool).max,
-		strainThreshold: (system._source.strain as CombatPool).max,
+		characteristics: source.characteristics,
+		woundThreshold: source.wounds.max,
+		strainThreshold: source.strain.max,
 		skills: itemsOfType(actor, 'skill').map((skill) => ({
 			id: skill.id,
 			name: skill.name,
@@ -463,9 +464,10 @@ export async function advance(actor: GenesysActor<CharacterDataModel>, change: (
 export async function writeCharacter(actor: GenesysActor<CharacterDataModel>, writes: CharacterWrites) {
 	const { actorUpdate, itemCreates, itemUpdates, itemDeletes } = writes;
 
+	// Foundry takes the items' sources, which the writes hold as plain records.
 	let created: GenesysItem[] = [];
 	if (itemCreates.length > 0) {
-		created = (await actor.createEmbeddedDocuments('Item', itemCreates, { keepId: true })) as GenesysItem[];
+		created = (await actor.createEmbeddedDocuments('Item', itemCreates as unknown as Item.CreateData[], { keepId: true })) ?? [];
 	}
 	if (itemUpdates.length > 0) {
 		await actor.updateEmbeddedDocuments('Item', itemUpdates);

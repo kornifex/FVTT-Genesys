@@ -75,7 +75,7 @@ watch(
 		<div v-if="groupingMode === 'member'" class="members-container">
 			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
-					<img class="member-image" :src="details.actor.img" :alt="details.actor.name" draggable="false" />
+					<img class="member-image" :src="details.actor.img ?? undefined" :alt="details.actor.name" draggable="false" />
 					<a class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</a>
 					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role.name }}</div>
 
@@ -86,7 +86,7 @@ watch(
 
 						<div class="member-skills-container">
 							<div v-for="rolledSkill in details.skills" :key="rolledSkill.skillName" class="member-skill">
-								<img :src="rolledSkill.skill.img" :alt="rolledSkill.skill.name" />
+								<img :src="rolledSkill.skill.img ?? undefined" :alt="rolledSkill.skill.name" />
 								<a class="skill-name" @click="rollForCrew([rolledSkill])">
 									<span
 										>{{ rolledSkill.skill.name }} (<Localized
@@ -120,7 +120,7 @@ watch(
 						<div v-for="memberSkill in details.members" :key="memberSkill.member" class="skill-content-details">
 							<img
 								class="skill-content-details-charImage"
-								:src="memberSkill.actor.img"
+								:src="memberSkill.actor.img ?? undefined"
 								:alt="memberSkill.actor.name"
 								draggable="false"
 							/>

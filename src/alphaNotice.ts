@@ -8,7 +8,7 @@ import { KEY_ALPHA_VERSION, NEW_WORLD_ALPHA_VERSION } from '@/settings/alpha';
  * The version of the last Alpha notice the world showed.
  */
 export function lastAlphaVersion() {
-	return game.settings.get<string>(NAMESPACE, KEY_ALPHA_VERSION) ?? NEW_WORLD_ALPHA_VERSION;
+	return game.settings.get(NAMESPACE, KEY_ALPHA_VERSION) ?? NEW_WORLD_ALPHA_VERSION;
 }
 
 /**

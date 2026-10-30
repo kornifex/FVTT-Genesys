@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Stored } from '@/data/Stored';
 import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory } from '@/effects/NewEffect';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
@@ -7,7 +8,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import Localized from '@/vue/components/Localized.vue';
 
 defineProps<{
-	effects: GenesysEffect[];
+	effects: Stored<GenesysEffect>[];
 }>();
 
 const emit = defineEmits<{
@@ -64,7 +65,7 @@ function suppressionReason(effect: GenesysEffect) {
 }
 
 async function openEffect(effect: GenesysEffect) {
-	await effect.sheet.render(true);
+	await effect.sheet?.render(true);
 }
 
 async function toggleDisabled(effect: GenesysEffect) {
@@ -92,7 +93,7 @@ async function deleteEffect(effect: GenesysEffect) {
 
 			<section class="effects-category">
 				<div v-for="effect in effects.filter(filter)" :key="effect.uuid" class="effect" :data-tooltip="suppressionReason(effect)">
-					<img :src="effect.img" :alt="effect.name" />
+					<img :src="effect.img ?? undefined" :alt="effect.name" />
 					<div class="name">{{ effect.name }}</div>
 					<div class="source">{{ sourceName(effect) }}</div>
 					<div class="duration">{{ effect.duration.label }}</div>

@@ -157,8 +157,8 @@ async function onCheckLinkClick(event: MouseEvent) {
 	const app = appId ? foundry.applications.instances.get(appId) : undefined;
 
 	const actor = checkLinkActor<GenesysActor>({
-		sheetActor: app instanceof foundry.applications.sheets.ActorSheetV2 ? (app.actor as GenesysActor) : undefined,
-		controlledActors: (canvas.tokens?.controlled ?? []).map((token) => (token.actor ?? undefined) as GenesysActor | undefined),
+		sheetActor: app instanceof foundry.applications.sheets.ActorSheetV2 ? app.actor : undefined,
+		controlledActors: (canvas.tokens?.controlled ?? []).map((token) => token.actor ?? undefined),
 		assignedCharacter: game.user.character ?? undefined,
 	});
 

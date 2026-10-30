@@ -4,6 +4,7 @@ import { GenesysEffect } from '@/effects/GenesysEffect';
 import { EffectCategory, newEffectData } from '@/effects/NewEffect';
 import { GenesysItem } from '@/item/GenesysItem';
 import { useSheetDocument } from '@/vue/useSheetDocument';
+import type { Stored } from '@/data/Stored';
 
 /**
  * The effects of the sheet's document, for its Effects tab, and the creation of an effect in a category of the tab.
@@ -18,12 +19,19 @@ export function useDocumentEffects() {
 		// An actor's effects are those that apply to it: its own, and those its items transfer to it.
 		return [
 			...(sheetDocument instanceof GenesysActor ? sheetDocument.allApplicableEffects() : sheetDocument.effects),
-		] as GenesysEffect[];
+		] as Stored<GenesysEffect>[];
 	});
 
 	async function addEffect(category: EffectCategory) {
 		const target = document.value;
-		await target.createEmbeddedDocuments('ActiveEffect', [newEffectData(target.name, category)]);
+		// v13: an effect's duration counts its `rounds`, which v14 migrates into the `value` and `units` the types declare.
+		const effectData = [newEffectData(target.name, category) as ActiveEffect.CreateData];
+		// An actor and an item create their effects alike, which the types declare apart.
+		if (target instanceof GenesysActor) {
+			await target.createEmbeddedDocuments('ActiveEffect', effectData);
+		} else {
+			await target.createEmbeddedDocuments('ActiveEffect', effectData);
+		}
 	}
 
 	return { effects, addEffect };

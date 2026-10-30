@@ -18,7 +18,7 @@ export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 				}
 
 				await this.item.update({
-					'system.skills': [...systemData.skills, droppedItem.name],
+					system: { skills: [...systemData.skills, droppedItem.name] },
 				});
 
 				await this.render();
@@ -33,7 +33,7 @@ export class BaseWeaponSheet extends GenesysItemSheet<BaseWeaponDataModel> {
 					isRated: quality.isRated,
 				});
 				if (qualities) {
-					await this.item.update({ 'system.qualities': qualities });
+					await this.item.update({ system: { qualities } });
 				}
 
 				return;

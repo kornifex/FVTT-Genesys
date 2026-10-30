@@ -6,6 +6,7 @@ import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
+import { itemsOfType } from '@/item/ItemTypes';
 import { decideAdversaryDrop } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
@@ -27,13 +28,12 @@ export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
 			return receiveInventoryDrop(this.actor, droppedItem);
 		}
 
-		const items = this.actor.items.contents;
 		const decision = decideAdversaryDrop(
 			{
 				type: this.actor.type,
 				skills: this.actor.skills,
-				talents: items.filter((item) => item.type === 'talent'),
-				abilities: items.filter((item) => item.type === 'ability'),
+				talents: itemsOfType(this.actor, 'talent'),
+				abilities: itemsOfType(this.actor, 'ability'),
 			},
 			droppedItem,
 		);

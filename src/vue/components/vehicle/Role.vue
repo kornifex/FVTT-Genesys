@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { shallowRef, watch } from 'vue';
 
+import type { Stored } from '@/data/Stored';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -8,8 +9,6 @@ import ActorTile from '@/vue/components/ActorTile.vue';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { useDragHover } from '@/vue/useDragHover';
 import { crewActors } from '@/operations/CrewRoll';
-
-type MemberUUID = ActorUUID | TokenDocumentUUID;
 
 const props = withDefaults(
 	defineProps<{
@@ -29,12 +28,12 @@ const emit = defineEmits<{
 	(e: 'updateName', newName: string): void;
 	(e: 'removeSkill', skillName: string): void;
 	(e: 'removeMember', memberUuid: string): void;
-	(e: 'entityDrop', event: DragEvent, memberUnder?: MemberUUID): void;
+	(e: 'entityDrop', event: DragEvent, memberUnder?: string): void;
 }>();
 
 const { isHovered, enter, leave, reset } = useDragHover();
 // Shallow, so that Vue never wraps the actors in reactive proxies.
-const actorsInRole = shallowRef<GenesysActor[]>([]);
+const actorsInRole = shallowRef<Stored<GenesysActor>[]>([]);
 
 // Only the members whose actor still exists are shown. Foundry builds the vehicle's system data anew on each of its
 // updates, so a change to the members comes as another list. Resolving them is asynchronous: a later change of the
@@ -53,7 +52,7 @@ watch(
 	{ immediate: true },
 );
 
-function drop(event: DragEvent, memberUnder?: MemberUUID) {
+function drop(event: DragEvent, memberUnder?: string) {
 	reset();
 
 	emit('entityDrop', event, memberUnder);
@@ -98,7 +97,7 @@ function drop(event: DragEvent, memberUnder?: MemberUUID) {
 				<TransitionGroup name="mems">
 					<div v-for="member in actorsInRole" :key="member.uuid" class="role-member" @drop="drop($event, member.uuid)">
 						<ActorTile
-							:actor="member as GenesysActor"
+							:actor="member"
 							draggable="true"
 							:dragging="dragging"
 							@remove-member="emit('removeMember', member.uuid)"

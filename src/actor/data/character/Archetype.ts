@@ -250,9 +250,10 @@ export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, a
 		heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems, actor.id).map(async (i) => await i.delete()),
 	);
 
+	// Foundry takes the updates' dot-notation keys, which the types don't.
 	await Promise.all(
 		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(
-			async ({ skill, update }) => await skill.update(update),
+			async ({ skill, update }) => await skill.update(update as Item.UpdateData),
 		),
 	);
 

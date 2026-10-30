@@ -3,17 +3,19 @@
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
+import type { Stored } from '@/data/Stored';
 import { decideDrop, DropTarget, isInventoryType } from '@/actor/data/Inventory';
 import { dragData } from '@/data/DragTransferData';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { itemFromDrop } from '@/item/GenesysItemSheet';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 
 /**
  * Receive an item dropped on an inventory component. The event is stopped at once, before the sheet receives it too;
  * anything else, an item of a type the actor doesn't keep in its inventory included, goes on to the sheet.
  */
-export async function receiveInventoryEvent(actor: GenesysActor, event: DragEvent, at: DropTarget) {
+export async function receiveInventoryEvent(actor: Stored<GenesysActor>, event: DragEvent, at: DropTarget) {
 	const data = dragData(event.dataTransfer);
 	const type = data.type === 'Item' && data.uuid ? data.genesysType ?? droppedType(data.uuid) : undefined;
 	if (!type || !isInventoryType(actor.type, type)) {
@@ -39,16 +41,20 @@ function droppedType(uuid: string) {
  * one from an actor they don't own is refused, and one from a compendium or the sidebar is copied. Returns the created
  * items, or false when the drop is refused.
  */
-export async function receiveInventoryDrop(actor: GenesysActor, item: GenesysItem, at: DropTarget = { kind: 'sheet' }) {
+export async function receiveInventoryDrop(actor: Stored<GenesysActor>, droppedItem: GenesysItem, at: DropTarget = { kind: 'sheet' }) {
 	if (!actor.isOwner) {
 		return false;
 	}
 
+	// A drop carries a stored item, held by a stored actor if any, and only equipment goes to an inventory: the callers
+	// check the item's type.
+	const item = droppedItem as Stored<GenesysItem<EquipmentDataModel>>;
+
 	// An item of an actor in a compendium is copied, as from the compendium itself.
-	const holder = item.actor && !item.actor.pack ? item.actor : undefined;
+	const holder = (item.actor && !item.actor.pack ? item.actor : undefined) as Stored<GenesysActor> | undefined;
 	const decision = decideDrop(
-		{ uuid: actor.uuid, type: actor.type, items: actor.items.contents },
-		{ item, from: holder && { uuid: holder.uuid, isOwner: holder.isOwner, items: holder.items.contents }, at },
+		{ uuid: actor.uuid, type: actor.type, items: itemsOfType(actor, EQUIPMENT_TYPES) },
+		{ item, from: holder && { uuid: holder.uuid, isOwner: holder.isOwner, items: itemsOfType(holder, EQUIPMENT_TYPES) }, at },
 		() => foundry.utils.randomID(),
 	);
 	if (decision.action === 'refuse') {

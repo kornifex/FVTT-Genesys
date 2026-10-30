@@ -15,7 +15,8 @@ type IsEquipmentType = (context: 'INVENTORY' | 'EQUIPABLE' | 'CONSUMABLE', type:
  */
 type HeldItem = {
 	type: string;
-	system: { state?: EquipmentState; container?: string };
+	// The data of an item of any type, which only equipment fills these fields of.
+	system: object & { state?: EquipmentState; container?: string };
 };
 
 // The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries have none: the

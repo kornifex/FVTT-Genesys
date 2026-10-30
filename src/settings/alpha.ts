@@ -1,3 +1,5 @@
+import type { NAMESPACE } from '@/settings';
+
 /**
  * The setting of the last Alpha version the world acknowledged.
  */
@@ -22,7 +24,7 @@ export function isNewWorld(lastAlpha: string) {
 /**
  * Register the world settings of the Alpha notice and the migrations.
  */
-export function register(namespace: string) {
+export function register(namespace: typeof NAMESPACE) {
 	game.settings.register(namespace, KEY_ALPHA_VERSION, {
 		name: 'Alpha Version',
 		config: false,

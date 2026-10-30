@@ -30,5 +30,5 @@ export function cloneSource<S extends ActorSource>(source: S, name: string): S {
  * Create the clone of an actor under the given name.
  */
 export async function cloneActor(actor: GenesysActor, name: string) {
-	return (Actor.implementation as typeof GenesysActor).create(cloneSource(actor.toObject(), name));
+	return Actor.implementation.create(cloneSource(actor.toObject(), name));
 }

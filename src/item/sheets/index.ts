@@ -28,15 +28,13 @@ function basicSheet(vueComponent: Component, sheetType: typeof GenesysItemSheet<
 }
 
 /**
- * Registers an item sheet of the system. The Foundry types we have only register AppV1 sheets, though Foundry takes ApplicationV2
- * ones (ADR 0005).
+ * Registers an item sheet of the system.
  */
-function registerSheet(sheetClass: ConstructorOf<GenesysItemSheet>, options: RegisterSheetOptions) {
-	foundry.documents.collections.Items.registerSheet(
-		'genesys',
-		sheetClass as unknown as ConstructorOf<foundry.appv1.sheets.ItemSheet>,
-		options,
-	);
+function registerSheet(
+	sheetClass: foundry.applications.api.DocumentSheetV2.AnyConstructor,
+	options: foundry.applications.apps.DocumentSheetConfig.RegisterSheetOptions<Item.ImplementationClass>,
+) {
+	foundry.documents.collections.Items.registerSheet('genesys', sheetClass, options);
 }
 
 /**

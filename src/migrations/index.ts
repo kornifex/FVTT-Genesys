@@ -1,3 +1,4 @@
+import type { GenesysActor } from '@/actor/GenesysActor';
 import { NAMESPACE } from '@/settings';
 import { isNewWorld, KEY_MIGRATION_VERSION } from '@/settings/alpha';
 import {
@@ -17,7 +18,7 @@ import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equip
 import * as log from '@/log';
 import { isActingGm } from '@/socket';
 
-async function applyChanges(actor: Actor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+async function applyChanges(actor: GenesysActor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
 	if (update) {
 		await actor.update(update);
 	}
@@ -31,8 +32,9 @@ async function applyChanges(actor: Actor, { update, itemEffects = {}, deletedEff
 	}
 }
 
-function walkedActor(actor: Actor): WalkedActor {
-	return { uuid: actor.uuid, source: actor.toObject() as ActorSource, apply: (changes) => applyChanges(actor, changes) };
+function walkedActor(actor: GenesysActor): WalkedActor {
+	// Every actor the world holds has a uuid, an unlinked token's synthetic actor included.
+	return { uuid: actor.uuid!, source: actor.toObject() as ActorSource, apply: (changes) => applyChanges(actor, changes) };
 }
 
 /**
@@ -51,7 +53,7 @@ const foundryActorWorld: ActorWorld = {
 			.map((pack) => ({
 				locked: pack.locked,
 				setLocked: (locked) => pack.configure({ locked }),
-				actors: async () => ((await pack.getDocuments()) as Actor[]).map(walkedActor),
+				actors: async () => ((await pack.getDocuments()) as Actor.Stored[]).map(walkedActor),
 			})),
 };
 
@@ -85,7 +87,7 @@ export async function ready(lastAlpha: string) {
 		return;
 	}
 
-	const currentMigrationVersion = game.settings.get<number>(NAMESPACE, KEY_MIGRATION_VERSION) ?? 0;
+	const currentMigrationVersion = game.settings.get(NAMESPACE, KEY_MIGRATION_VERSION) ?? 0;
 	if (currentMigrationVersion === totalMigrationScripts) {
 		return;
 	}

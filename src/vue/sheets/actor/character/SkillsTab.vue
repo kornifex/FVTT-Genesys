@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 
+import type { Stored } from '@/data/Stored';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
 import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/data/character/CharacterCreation';
@@ -26,7 +27,7 @@ const skillCategories = computed(() => skillsByCategory(actor.value.skills, game
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 
-async function rollSkill(skill: GenesysItem<SkillDataModel>) {
+async function rollSkill(skill: Stored<GenesysItem<SkillDataModel>>) {
 	await DicePrompt.promptForRoll(actor.value, skill.name);
 }
 
@@ -42,25 +43,25 @@ function canPurchaseCharacteristic(characteristic: CharacteristicType) {
 	return isAllowed(raiseCharacteristic(advancement.value, characteristic));
 }
 
-async function purchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
+async function purchaseSkillRank(skill: Stored<GenesysItem<SkillDataModel>>) {
 	await advance(actor.value, (character) => buySkillRank(character, skill.id));
 }
 
-function canPurchaseSkillRank(skill: GenesysItem<SkillDataModel>) {
+function canPurchaseSkillRank(skill: Stored<GenesysItem<SkillDataModel>>) {
 	return isAllowed(buySkillRank(advancement.value, skill.id));
 }
 
 // A skill can be marked as a career skill by hand at any time, whatever the character's Career: a talent or the GM
 // may grant one.
-async function toggleCareerSkill(skill: GenesysItem<SkillDataModel>) {
+async function toggleCareerSkill(skill: Stored<GenesysItem<SkillDataModel>>) {
 	await skill.update({
-		'system.career': !skill.systemData.career,
+		system: { career: !skill.systemData.career },
 	});
 }
 
-async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
+async function freeSkillRank(skill: Stored<GenesysItem<SkillDataModel>>, step: 1 | -1) {
 	await skill.update({
-		'system.rank': freeRank(skill.systemData.rank, step),
+		system: { rank: freeRank(skill.systemData.rank, step) },
 	});
 }
 
@@ -79,7 +80,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	}
 
 	await actor.value.update({
-		'system.superCharacteristics': superCharacteristics,
+		system: { superCharacteristics },
 	});
 }
 </script>
@@ -146,7 +147,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 						</template>
 
-						<img :src="skill.img" :alt="skill.name" />
+						<img :src="skill.img ?? undefined" :alt="skill.name" />
 						<a class="name" @click="rollSkill(skill)">
 							<span
 								>{{ skill.name }} (<Localized

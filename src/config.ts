@@ -1,3 +1,4 @@
+import type { Stored } from '@/data/Stored';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { configDefaults } from '@/settings/table';
@@ -12,7 +13,7 @@ export const GENESYS_CONFIG = {
 	/**
 	 * The skills of the Skills Compendium, loaded again when the setting or the compendium changes.
 	 */
-	skills: [] as GenesysItem<SkillDataModel>[],
+	skills: [] as Stored<GenesysItem<SkillDataModel>>[],
 };
 
 /**

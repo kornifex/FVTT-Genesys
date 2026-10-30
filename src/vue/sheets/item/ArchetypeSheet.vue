@@ -20,7 +20,7 @@ const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').s
 const specialAbilities = computed(() => system.value.grantedItems.filter((i) => i.type === 'ability'));
 
 async function deleteGrantedItem(index: number) {
-	await item.value.update({ 'system.grantedItems': withoutIndex(system.value.grantedItems, index) });
+	await item.value.update({ system: { grantedItems: withoutIndex(system.value.grantedItems, index) } });
 }
 </script>
 

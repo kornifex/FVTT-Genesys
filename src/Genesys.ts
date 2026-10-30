@@ -24,7 +24,7 @@ import { register as registerVehicles } from '@/actor/data/VehicleDataModel';
 
 import '@scss/index.scss';
 
-Hooks.once('init', async () => {
+Hooks.once('init', () => {
 	registerActors();
 	registerToken();
 	registerEffects();
@@ -46,7 +46,7 @@ Hooks.once('setup', () => {
 	setupSettings();
 });
 
-Hooks.once('ready', async () => {
+async function ready() {
 	// The notice records the running version as the last one shown: the migrations tell a new world from the version
 	// read before it.
 	const lastAlpha = lastAlphaVersion();
@@ -58,4 +58,7 @@ Hooks.once('ready', async () => {
 
 	registerStoryPointTracker();
 	registerVehicles();
-});
+}
+
+// Foundry doesn't wait for a hook's callbacks.
+Hooks.once('ready', () => void ready());

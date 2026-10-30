@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, shallowRef } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
@@ -13,7 +14,6 @@ import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
 import type { DieCategory } from '@/dice/dice/GenesysDie';
-import { GenesysActor } from '@/actor/GenesysActor';
 import { DIE_GLYPHS, GRADE_GLYPHS, removalGlyph, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import {
@@ -32,7 +32,7 @@ import { type DicePool, parsePoolModifications, poolEntries, sortPoolModificatio
 
 type AlsoNone<T> = T | undefined;
 
-type PromptSkill = GenesysItem<SkillDataModel>;
+type PromptSkill = Stored<GenesysItem<SkillDataModel>>;
 
 const DIE_CATEGORIES: DieCategory[] = ['positive', 'negative'];
 
@@ -113,7 +113,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		{
 			...request,
 			purpose: checkPurpose(),
-			target: (target?.actor as GenesysActor | null) ?? undefined,
+			target: target?.actor ?? undefined,
 			attackRange: weapon?.systemData.range,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},

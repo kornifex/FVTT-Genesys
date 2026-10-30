@@ -22,7 +22,8 @@ function patchCompendiums() {
 			patched.add(pack.metadata.id);
 			if (PATCHED_COMPENDIUM_TYPES.includes(pack.metadata.type)) {
 				pack.apps.shift();
-				pack.apps.push(new GenesysCompendium({ collection: pack }));
+				// The types take the options as a deep partial, which turns the pack into a shape no pack matches.
+				pack.apps.push(new GenesysCompendium({ collection: pack } as ConstructorParameters<typeof GenesysCompendium>[0]));
 			}
 		}
 	});
@@ -32,8 +33,9 @@ function patchCompendiums() {
  * Register the system's actor and item directories, and its compendium windows.
  */
 export function register() {
-	CONFIG.ui.actors = GenesysActorDirectory;
-	CONFIG.ui.items = GenesysItemDirectory;
+	// The types take the core classes, whose generic constructors no subclass of a fixed instantiation matches.
+	CONFIG.ui.actors = GenesysActorDirectory as typeof foundry.applications.sidebar.tabs.ActorDirectory;
+	CONFIG.ui.items = GenesysItemDirectory as typeof foundry.applications.sidebar.tabs.ItemDirectory;
 
 	patchCompendiums();
 }

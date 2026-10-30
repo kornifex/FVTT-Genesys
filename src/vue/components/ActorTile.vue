@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onUpdated, ref } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { startDocumentDrag } from '@/data/DragTransferData';
@@ -11,7 +12,7 @@ import MenuItem from '@/vue/components/MenuItem.vue';
 
 const props = withDefaults(
 	defineProps<{
-		actor: GenesysActor;
+		actor: Stored<GenesysActor>;
 		dragging?: boolean;
 		mini?: boolean;
 	}>(),
@@ -43,8 +44,9 @@ const career = computed(() =>
 onUpdated(() => {
 	const imageDomValue = imageDom.value;
 	if (imageDomValue) {
-		if (imageDomValue.getAttribute('src') !== props.actor.img) {
-			imageDomValue.setAttribute('src', props.actor.img);
+		const img = props.actor.img;
+		if (img && imageDomValue.getAttribute('src') !== img) {
+			imageDomValue.setAttribute('src', img);
 		}
 
 		if (imageDomValue.getAttribute('alt') !== props.actor.name) {
@@ -80,7 +82,7 @@ async function openActorSheet() {
 		@dragstart="dragStart"
 		@dragend="dragEnd"
 	>
-		<img :src="actor.img" :alt="actor.name" draggable="false" />
+		<img :src="actor.img ?? undefined" :alt="actor.name" draggable="false" />
 
 		<div class="details">
 			<span class="name">
@@ -119,7 +121,7 @@ async function openActorSheet() {
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
-			<img ref="imageDom" :src="actor.img" :alt="actor.name" draggable="false" />
+			<img ref="imageDom" :src="actor.img ?? undefined" :alt="actor.name" draggable="false" />
 		</ContextMenu>
 	</div>
 </template>

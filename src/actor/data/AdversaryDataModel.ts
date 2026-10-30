@@ -12,7 +12,7 @@ import { characteristicsField, defenseField, Motivations, motivationsField } fro
 /**
  * The data that every Adversary shares: Minion Groups, Rivals and Nemeses.
  */
-export abstract class AdversaryDataModel extends foundry.abstract.DataModel {
+export abstract class AdversaryDataModel extends foundry.abstract.DataModel<foundry.data.fields.DataSchema> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;

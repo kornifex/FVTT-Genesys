@@ -1,5 +1,3 @@
-import { GenesysActor } from '@/actor/GenesysActor';
-
 /**
  * An attribute a data model offers a token: a bar with its maximum, or a value.
  */
@@ -27,16 +25,16 @@ export type TokenAttributeDetails =
  */
 export type DataModelWithTokenAttributes = { tokenAttributes?: Record<string, TokenAttributeDetails> };
 
-type TrackedAttributes = TokenAttributes & {
+type TrackedAttributes = TokenDocument.TrackedAttributesDescription & {
 	source?: Record<string, TokenAttributeDetails>;
 };
 
 /**
  * A token, whose bars and attributes come from its actor's data model.
  */
-export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
-	override getBarAttribute(barName: string, options: { alternative?: string } = {}) {
-		// The types we have lack the token's bars.
+export class GenesysTokenDocument extends TokenDocument {
+	override getBarAttribute(barName: string, options: TokenDocument.GetBarAttributeOptions = {}): TokenDocument.GetBarAttributeReturn {
+		// Foundry reads the bar by its name, which the types only declare as `bar1` and `bar2`.
 		const attribute =
 			options.alternative || (this as unknown as Record<string, { attribute?: string } | undefined>)[barName]?.attribute;
 		if (!this.actor || !attribute) {
@@ -59,29 +57,22 @@ export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 			return null;
 		}
 
-		const barAttribute: TokenResourceData = {
-			type: 'value',
-			attribute: attribute,
-			editable: targetAttribute.editable,
-			value: Number(dataValue),
-		};
-
-		if (targetAttribute.isBar) {
-			const dataMax = foundry.utils.getProperty(system, targetAttribute.maxPath);
-			if (!Number.isNumeric(dataMax)) {
-				return null;
-			}
-
-			barAttribute.type = 'bar';
-			barAttribute.max = Number(dataMax);
+		const value = Number(dataValue);
+		if (!targetAttribute.isBar) {
+			return { type: 'value', attribute, editable: targetAttribute.editable, value };
 		}
 
-		return barAttribute;
+		const dataMax = foundry.utils.getProperty(system, targetAttribute.maxPath);
+		if (!Number.isNumeric(dataMax)) {
+			return null;
+		}
+
+		return { type: 'bar', attribute, editable: targetAttribute.editable, value, max: Number(dataMax) };
 	}
 
-	static override getTrackedAttributes(data?: Record<string, unknown>, _path?: string[]): TrackedAttributes {
-		if (foundry.utils.isSubclass(data?.constructor, foundry.abstract.DataModel)) {
-			const tokenAttributes = (data!.constructor as DataModelWithTokenAttributes).tokenAttributes;
+	static override getTrackedAttributes(data?: TokenDocument.TrackedAttributesSubject, _path?: string[]): TrackedAttributes {
+		if (data instanceof foundry.abstract.DataModel) {
+			const tokenAttributes = (data.constructor as DataModelWithTokenAttributes).tokenAttributes;
 			if (tokenAttributes) {
 				return {
 					bar: [],
@@ -94,7 +85,7 @@ export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 		return super.getTrackedAttributes(data, _path);
 	}
 
-	static override getTrackedAttributeChoices(attributes: TrackedAttributes): TokenAttributeChoices[] {
+	static override getTrackedAttributeChoices(attributes: TrackedAttributes): TokenDocument.TrackedAttributesChoice[] {
 		attributes = attributes || this.getTrackedAttributes();
 		const barGroup = game.i18n.localize('TOKEN.BarAttributes');
 		const valueGroup = game.i18n.localize('TOKEN.BarValues');
@@ -107,7 +98,7 @@ export class GenesysTokenDocument extends TokenDocument<GenesysActor> {
 					value: attributeId,
 				});
 				return accum;
-			}, [] as TokenAttributeChoices[]);
+			}, [] as TokenDocument.TrackedAttributesChoice[]);
 			trackedAttributes.sort((left, right) => {
 				if (left.group !== right.group) {
 					return left.group === barGroup ? -1 : 1;

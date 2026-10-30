@@ -34,7 +34,8 @@ export type PoolModificationKey = {
  */
 export type SourceItem = {
 	type: string;
-	system: { rank?: number; scalesWithRank?: 'yes' | 'no' };
+	// The data of an item of any type, which only talents fill these fields of.
+	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
 };
 
 /**
@@ -45,7 +46,8 @@ export type PoolModificationEffect = {
 	isSuppressed: boolean;
 	origin: string | null;
 	parent: unknown;
-	changes: { key: string; value: string }[];
+	// v14 lets a change hold a value of any type, which a Pool Modification never is.
+	changes: { key?: string; value: unknown }[];
 };
 
 /**
@@ -230,9 +232,11 @@ function effectModifications(
 		}
 
 		const item = sourceItem(effect);
-		const mods = effect.changes
-			.filter((change) => appliesToCheck(decodeKey(change.key)))
-			.flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
+		const mods = effect.changes.flatMap(({ key = '', value }) =>
+			appliesToCheck(decodeKey(key)) && typeof value === 'string'
+				? parsePoolModifications(scaledChangeValue(item, { key, value }))
+				: [],
+		);
 
 		if (mods.length > 0) {
 			modifications.push({ source, from: { effect: effect.name }, mods: mods.sort(sortPoolModifications) });

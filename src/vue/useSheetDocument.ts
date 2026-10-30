@@ -5,6 +5,7 @@
 
 import { computed, type Ref, toRef } from 'vue';
 import type { GenesysActor } from '@/actor/GenesysActor';
+import type { Stored } from '@/data/Stored';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 
@@ -29,9 +30,10 @@ export function useRendered<T>(read: () => T): Readonly<Ref<T>> {
 type SheetDocument<DocumentType extends SheetDocumentType, SheetType> = {
 	sheet: SheetType;
 	/**
-	 * The document itself, never a reactive proxy.
+	 * The document itself, never a reactive proxy. A sheet shows a document the world, a compendium or another document
+	 * stores.
 	 */
-	document: Readonly<Ref<DocumentType>>;
+	document: Readonly<Ref<Stored<DocumentType>>>;
 	/**
 	 * The document's system data.
 	 */
@@ -54,9 +56,9 @@ type SheetDocumentType = { systemData: object };
  */
 export function useSheetDocument<
 	DocumentType extends SheetDocumentType = GenesysActor | GenesysItem,
-	SheetType = foundry.applications.api.DocumentSheetV2,
+	SheetType = foundry.applications.api.DocumentSheetV2.Any,
 >(): SheetDocument<DocumentType, SheetType> {
-	const context = useSheetContext<DocumentSheetContext<DocumentType, SheetType>>();
+	const context = useSheetContext<DocumentSheetContext<Stored<DocumentType>, SheetType>>();
 
 	return {
 		sheet: context.value.sheet,

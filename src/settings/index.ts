@@ -60,11 +60,8 @@ const WIKI_LINKED_SETTING: SettingKey = 'defaultDifficulty';
  * Turn the `[[Page|label]]` of a setting's hint into a link to the wiki: Foundry escapes the HTML of a hint.
  */
 function registerWikiLinks() {
-	// v12: the Foundry types we have are v12's, whose hook passes jQuery; v13 passes the element.
-	Hooks.on('renderSettingsConfig', (_app: SettingsConfig, html: JQuery<HTMLElement>, _data: object) => {
-		const hint = (html as unknown as HTMLElement).querySelector(
-			`.form-fields:has(input[name='${NAMESPACE}.${WIKI_LINKED_SETTING}']) + p.hint`,
-		);
+	Hooks.on('renderSettingsConfig', (_app, html) => {
+		const hint = html.querySelector(`.form-fields:has(input[name='${NAMESPACE}.${WIKI_LINKED_SETTING}']) + p.hint`);
 
 		if (hint) {
 			hint.innerHTML = hint.innerHTML.replaceAll(WIKI_LINK_PATTERN, (_m, page, _g2, label) => {

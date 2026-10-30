@@ -1,5 +1,6 @@
 /** @file Rolls a skill for a vehicle by a crew member, picked in a prompt when several can roll it, as the CrewRoster module resolves them. */
 
+import type { Stored } from '@/data/Stored';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { CrewMemberSkill, CrewSkill, crewMemberSkills } from '@/actor/data/CrewRoster';
 import { DicePrompt, DicePromptOptions } from '@/app/DicePrompt';
@@ -17,9 +18,10 @@ export type ActorCrewMemberSkill = CrewMemberSkill<GenesysActor, GenesysItem<Ski
  * The actors of crew members, by UUID. A member whose actor no longer exists is left out.
  */
 export async function crewActors(members: string[]) {
-	const actors = new Map<string, GenesysActor>();
+	const actors = new Map<string, Stored<GenesysActor>>();
 	for (const member of new Set(members)) {
-		const actor = await fromUuid<GenesysActor>(member);
+		// An actor found by its uuid is stored.
+		const actor = (await fromUuid<GenesysActor>(member)) as Stored<GenesysActor> | null;
 		if (actor) {
 			actors.set(member, actor);
 		}

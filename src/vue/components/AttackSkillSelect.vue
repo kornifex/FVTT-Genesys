@@ -13,7 +13,7 @@ const props = defineProps<{
 }>();
 
 async function chooseAttackSkill(event: Event) {
-	await props.weapon.update({ 'system.attackSkill': (event.currentTarget as HTMLSelectElement).value });
+	await props.weapon.update({ system: { attackSkill: (event.currentTarget as HTMLSelectElement).value } });
 }
 </script>
 

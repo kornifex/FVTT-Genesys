@@ -1,5 +1,6 @@
 import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
 import { HasPreCreate } from '@/data/HasPreCreate';
+import type { Stored } from '@/data/Stored';
 import { HasOnDelete } from '@/data/HasOnDelete';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
@@ -12,18 +13,22 @@ import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 /**
  * An actor of the system, typed by its data model.
  */
-export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = foundry.abstract.DataModel> extends Actor {
+export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel.Any = foundry.abstract.DataModel.Any> extends Actor {
+	// Foundry builds `system` with the DataModel registered for the actor's type, which the generic names.
+	// @ts-expect-error -- The types declare the union of every type's DataModel, which no single one is assignable to (#246).
+	declare system: ActorDataModel;
+
 	/**
 	 * Specialized property for accessing `actor.system` in a typed manner.
 	 */
 	get systemData(): ActorDataModel {
-		return <ActorDataModel>this.system;
+		return this.system;
 	}
 
 	/**
 	 * The skills the actor owns, in item order.
 	 */
-	get skills(): GenesysItem<SkillDataModel>[] {
+	get skills(): Stored<GenesysItem<SkillDataModel>>[] {
 		return itemsOfType(this, 'skill');
 	}
 
@@ -31,7 +36,7 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 	 * Override the _preCreate callback to call preCreate from the data model class, if present.
 	 * @inheritDoc
 	 */
-	protected override async _preCreate(data: PreDocumentId<this['_source']>, options: DocumentModificationContext<this>, user: User) {
+	protected override async _preCreate(data: Actor.CreateData, options: Actor.Database.PreCreateOptions, user: User.Stored) {
 		await (<HasPreCreate<this>>this.systemData).preCreate?.(this, data, options, user);
 
 		// An actor created with legacy copies of its items' effects, for instance imported from an older module compendium,
@@ -48,7 +53,7 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 		this.updateSource({ items: Object.entries(itemEffects).map(([_id, effects]) => ({ _id, effects })) });
 
 		// A non-recursive update replaces the effects with those listed.
-		const keptEffects = this.toObject().effects.filter((effect) => !deletedEffects.includes(effect._id));
+		const keptEffects = this.toObject().effects.filter((effect) => effect._id === null || !deletedEffects.includes(effect._id));
 		this.updateSource({ effects: keptEffects }, { recursive: false });
 	}
 
@@ -56,7 +61,7 @@ export class GenesysActor<ActorDataModel extends foundry.abstract.DataModel = fo
 	 * Override the _onDelete callback to call onDelete from the data model class, if present.
 	 * @inheritDoc
 	 */
-	protected override _onDelete(options: DocumentModificationContext<this>, userId: string) {
+	protected override _onDelete(options: Actor.Database.OnDeleteOptions, userId: string) {
 		(<HasOnDelete<this>>this.systemData).onDelete?.(this, options, userId);
 
 		super._onDelete(options, userId);

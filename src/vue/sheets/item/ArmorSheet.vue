@@ -13,7 +13,7 @@ const { document: item, system } = useSheetDocument<GenesysItem<ArmorDataModel>>
 
 async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {
-		await item.value.update({ 'system.qualities': qualities });
+		await item.value.update({ system: { qualities } });
 	}
 }
 

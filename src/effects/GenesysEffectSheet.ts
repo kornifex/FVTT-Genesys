@@ -1,5 +1,5 @@
 import { CHARACTERISTICS } from '@/data/Characteristics';
-import { GenesysEffect } from '@/effects/GenesysEffect';
+import type { DeepPartial } from 'fvtt-types/utils';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import { isFoundryV13 } from '@/foundryGeneration';
 import '@/effects/GenesysEffectSheet.scss';
@@ -8,6 +8,9 @@ import '@/effects/GenesysEffectSheet.scss';
  * A change type, as Foundry v14 registers it in `ActiveEffect.CHANGE_TYPES`.
  */
 type ChangeType = { label: string; defaultPriority: number };
+
+type RenderContext = foundry.applications.api.ApplicationV2.RenderContextOf<GenesysEffectSheetV2>;
+type RenderOptions = DeepPartial<foundry.applications.sheets.ActiveEffectConfig.RenderOptions>;
 
 /**
  * What the sheet reads of the schema that holds the changes: the fields of a change, which its inputs render.
@@ -109,8 +112,8 @@ function keyOptions() {
  * The change types v14 offers, core's and those systems and modules register.
  */
 function changeTypes() {
-	// The vendored Foundry types predate v14, which gave changes a type.
-	return (ActiveEffect as unknown as { CHANGE_TYPES: Record<string, ChangeType> }).CHANGE_TYPES;
+	// The types let any key look up a type, which only the registered ones hold.
+	return ActiveEffect.CHANGE_TYPES as Record<string, ChangeType>;
 }
 
 /**
@@ -135,8 +138,8 @@ function changeTypeChoices(changes: EditedChange[]) {
  * The sheet of an Active Effect, whose Changes tab offers the system's keys and Pool Modifications. The class keeps its
  * name: Foundry identifies a sheet as `genesys.<class name>` in the `core.sheetClass` flag of the effects.
  */
-export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffectConfig<GenesysEffect> {
-	static DEFAULT_OPTIONS = {
+export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffectConfig {
+	static override DEFAULT_OPTIONS = {
 		classes: ['effect-sheet-v2'],
 	};
 
@@ -145,28 +148,33 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		changes: { template: 'systems/genesys/templates/sheets/effect-changes-tab.hbs' },
 	};
 
-	override async _preparePartContext(partId: string, context: Record<string, unknown>): Promise<Record<string, unknown>> {
-		const partContext = await super._preparePartContext(partId, context);
+	override async _preparePartContext(partId: string, context: RenderContext, options: RenderOptions) {
+		const partContext = await super._preparePartContext(partId, context, options);
 
 		if (partId === 'changes') {
-			const changes = (foundry.utils.getProperty(partContext.source as object, changesPath()) as EditedChange[]).map(toEditedChange);
+			const changes = (foundry.utils.getProperty(partContext.source, changesPath()) as EditedChange[]).map(toEditedChange);
 
-			partContext.changesPath = changesPath();
-			partContext.changeFields = this.#changeFields();
-			partContext.changes = changes;
-			partContext.keys = keyOptions();
-			partContext.skills = skillChoices(
-				CONFIG.genesys.skills.map((skill) => skill.name),
+			// The template reads the system's own entries, which the types of Foundry's context lack.
+			Object.assign(partContext, {
+				changesPath: changesPath(),
+				changeFields: this.#changeFields(),
 				changes,
-			);
-			partContext.characteristics = CHARACTERISTICS;
-			// v13: a change has a mode, whose choices and default priorities Foundry's context holds.
-			partContext.v13 = isFoundryV13();
+				keys: keyOptions(),
+				skills: skillChoices(
+					CONFIG.genesys.skills.map((skill) => skill.name),
+					changes,
+				),
+				characteristics: CHARACTERISTICS,
+				// v13: a change has a mode, whose choices and default priorities Foundry's context holds.
+				v13: isFoundryV13(),
+			});
 			if (!isFoundryV13()) {
-				partContext.changeTypes = changeTypeChoices(changes);
-				partContext.priorities = Object.fromEntries(
-					Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority]),
-				);
+				Object.assign(partContext, {
+					changeTypes: changeTypeChoices(changes),
+					priorities: Object.fromEntries(
+						Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority]),
+					),
+				});
 			}
 		}
 
@@ -182,7 +190,7 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		return (isFoundryV13() ? document.schema : document.system.schema).fields.changes.element.fields;
 	}
 
-	override _onChangeForm(formConfig: Record<string, unknown>, event: Event) {
+	override _onChangeForm(formConfig: foundry.applications.api.ApplicationV2.FormConfiguration, event: Event) {
 		super._onChangeForm(formConfig, event);
 
 		const target = event.target as HTMLElement;
@@ -201,7 +209,7 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		}
 	}
 
-	override _processFormData(event: Event, form: HTMLElement, formData: Record<string, unknown>) {
+	override _processFormData(event: SubmitEvent | null, form: HTMLFormElement, formData: foundry.applications.ux.FormDataExtended) {
 		const formDataExpanded = super._processFormData(event, form, formData);
 
 		// v14's actions that add and delete a change read the changes from the processed form data too.

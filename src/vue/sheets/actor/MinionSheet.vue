@@ -10,7 +10,7 @@ import { MinionDataModel } from '@/actor/data/MinionDataModel';
 const { document: actor, system } = useSheetDocument<GenesysActor<MinionDataModel>>();
 
 // Read on each render of the sheet, which follows a change of the flag.
-const isIndependent = computed(() => actor.value.getFlag<boolean>('genesys', 'independentMinion'));
+const isIndependent = computed(() => actor.value.getFlag('genesys', 'independentMinion'));
 </script>
 
 <template>

@@ -3,11 +3,12 @@
  */
 
 import { App, Component, createApp, nextTick } from 'vue';
+import type { DeepPartial } from 'fvtt-types/utils';
 import { provideSheetContext } from '@/vue/SheetContext';
 
 import '@/vue/VueSheet.scss';
 
-type ApplicationV2 = foundry.applications.api.ApplicationV2;
+type ApplicationV2 = foundry.applications.api.ApplicationV2.Any;
 
 /**
  * The constructor of an ApplicationV2 class the mixins extend.
@@ -15,8 +16,8 @@ type ApplicationV2 = foundry.applications.api.ApplicationV2;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TypeScript only lets a class extend a constructor that takes any[].
 export type ApplicationConstructor<T extends ApplicationV2 = ApplicationV2> = new (...args: any[]) => T;
 
-type RenderContext = foundry.applications.ApplicationRenderContext;
-type RenderOptions = foundry.applications.ApplicationRenderOptions;
+type RenderContext = foundry.applications.api.ApplicationV2.RenderContext;
+type RenderOptions = DeepPartial<foundry.applications.api.ApplicationV2.RenderOptions>;
 
 /**
  * Mix the rendering of a Vue component into an ApplicationV2 class: the component mounts on the first render, and later
@@ -26,7 +27,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 	return class extends base {
 		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which v13 gives AppV1
 		// windows while ApplicationV2 ones follow the interface's theme.
-		static DEFAULT_OPTIONS: DeepPartial<foundry.applications.ApplicationConfiguration> = {
+		static DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 			tag: 'form',
 			classes: ['themed', 'theme-light'],
 		};
@@ -93,7 +94,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 			}
 		}
 
-		protected override async _onRender(context: RenderContext, options: RenderOptions) {
+		protected override async _onRender(context: DeepPartial<RenderContext>, options: RenderOptions) {
 			await super._onRender(context, options);
 
 			// Vue patches the DOM on its next tick, which may add tabs.
@@ -106,7 +107,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 
 			this.#tabs ??= new foundry.applications.ux.Tabs({ navSelector: '.sheet-tabs', contentSelector: '.sheet-body', initial });
 			if (this.#tabsElement === this.element) {
-				this.#tabs.activate(this.#tabs.active);
+				this.#tabs.activate(this.#tabs.active ?? initial);
 			} else {
 				this.#tabs.bind(this.element);
 				this.#tabsElement = this.element;
@@ -116,12 +117,12 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		/**
 		 * Unmount and destroy the Vue app on close.
 		 */
-		protected override _onClose(options: object) {
+		protected override _onClose(options: RenderOptions) {
 			this.vueApp?.unmount();
 			this.vueApp = undefined;
 			this.#renderContext = undefined;
 
-			super._onClose(options);
+			void super._onClose(options);
 		}
 	};
 }

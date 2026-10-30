@@ -30,7 +30,7 @@ function decodeUpperCase(text: string) {
  * The drag format that carries a document's type and uuid. Browsers lowercase a drag's formats, so the uppercase
  * letters of both are encoded.
  */
-export function constructDragTransferTypeFromData(genesysType: string, uuid: DocumentUUID) {
+export function constructDragTransferTypeFromData(genesysType: string, uuid: string) {
 	return `${GENESYS_DRAG_TYPE_PREFIX}/${encodeUpperCase(genesysType)}/${encodeUpperCase(uuid)}`;
 }
 
@@ -45,7 +45,7 @@ export function startDocumentDrag(
 ) {
 	const data: CrewDragTransferData = { uuid: document.uuid, type: document.documentName, genesysType: document.type, ...added };
 	event.dataTransfer?.setData('text/plain', JSON.stringify(data));
-	event.dataTransfer?.setData(constructDragTransferTypeFromData(document.type, document.uuid as DocumentUUID), '');
+	event.dataTransfer?.setData(constructDragTransferTypeFromData(document.type, document.uuid), '');
 }
 
 /**
@@ -77,7 +77,7 @@ export function addGenesysDragType(event: DragEvent, acceptedTypes: readonly ('A
 
 	const dragged = fromUuidSync(uuid) as { type: string } | null;
 	if (dragged) {
-		event.dataTransfer?.setData(constructDragTransferTypeFromData(dragged.type, uuid as DocumentUUID), '');
+		event.dataTransfer?.setData(constructDragTransferTypeFromData(dragged.type, uuid), '');
 	}
 }
 

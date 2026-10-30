@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import { computed, ref, toRef } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 
 import { GenesysItem } from '@/item/GenesysItem';
+import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
@@ -28,7 +30,7 @@ import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
 
 const props = withDefaults(
 	defineProps<{
-		item: GenesysItem<EquipmentDataModel>;
+		item: Stored<GenesysItem<EquipmentDataModel>>;
 		dragging?: boolean;
 		mini?: boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
@@ -97,7 +99,7 @@ function firingArcs() {
 const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
 
 const displayContainerContents = ref(false);
-const containedItems = computed(() => containerContents(actor.value.items.contents as GenesysItem<EquipmentDataModel>[], props.item.id));
+const containedItems = computed(() => containerContents(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id));
 
 function damage() {
 	const weapon = weaponData();
@@ -124,7 +126,10 @@ function moveIcon(action: keyof typeof MOVE_ENTRIES) {
 
 async function setItemState(state: EquipmentState) {
 	// A Container's contents take its new state with it, and an armor put on takes off the one worn before.
-	await actor.value.updateEmbeddedDocuments('Item', equipmentStateUpdates(actor.value.items.contents, props.item.id, state));
+	await actor.value.updateEmbeddedDocuments(
+		'Item',
+		equipmentStateUpdates(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id, state),
+	);
 }
 
 function dragStart(event: DragEvent) {
@@ -178,7 +183,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		@dragend="dragEnd"
 		@drop="dropInventoryIntoContainer"
 	>
-		<img :src="item.img" :alt="item.name" />
+		<img :src="item.img ?? undefined" :alt="item.name" />
 
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<a @click="openSheet(item)">{{ item.name }}</a>
