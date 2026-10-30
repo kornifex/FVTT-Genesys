@@ -755,10 +755,10 @@ export async function run(e2e: ScenarioContext) {
 		{ dependent: ['system.wounds.threshold'], independent: ['system.wounds.value'] },
 	);
 
-	// H: the silhouette of characters and Adversaries (§#380).
+	// J: the silhouette of characters and Adversaries (§#380).
 	const characterAndAdversaries = ['Hero', 'Grunts', 'Rival', 'Nemesis'];
 	e2e.expect(
-		'#380 H1 a character or an Adversary stored before it had a silhouette reads 1, and a new one is created at 1',
+		'#380 J1 a character or an Adversary stored before it had a silhouette reads 1, and a new one is created at 1',
 		await gm.evaluate((names) => {
 			const stored = (name: string) => {
 				const data = game.actors.getName(`E2E ${name}`).toObject();
@@ -780,7 +780,7 @@ export async function run(e2e: ScenarioContext) {
 		silhouetteFields[actor] = await gm.evaluate((name) => window.adversariesE2E.silhouetteField(name), actor);
 	}
 	const expectedSilhouetteField = (place: string) => ({ place, label: 'Silhouette', value: '1', min: '0', step: '1' });
-	e2e.expect("#380 H2 the silhouette is edited in the character's meta block and under an Adversary's name", silhouetteFields, {
+	e2e.expect("#380 J2 the silhouette is edited in the character's meta block and under an Adversary's name", silhouetteFields, {
 		Hero: expectedSilhouetteField('character meta'),
 		Grunts: expectedSilhouetteField('adversary header'),
 		Rival: expectedSilhouetteField('adversary header'),
@@ -794,7 +794,7 @@ export async function run(e2e: ScenarioContext) {
 			path: 'system.silhouette',
 		});
 	e2e.expect(
-		'#380 H3 a silhouette typed in a sheet is stored, from 0 and without maximum; a negative one becomes 0, a fraction is rounded',
+		'#380 J3 a silhouette typed in a sheet is stored, from 0 and without maximum; a negative one becomes 0, a fraction is rounded',
 		{
 			'Grunts 0': await typeSilhouette('Grunts', '0'),
 			'Nemesis 12': await typeSilhouette('Nemesis', '12'),
@@ -807,7 +807,7 @@ export async function run(e2e: ScenarioContext) {
 	await update('Attacker', { 'system.silhouette': 3 });
 	await update('Hero', { 'system.silhouette': 1 });
 	e2e.expect(
-		'#380 H4 a silhouette 3 Adversary attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
+		'#380 J4 a silhouette 3 Adversary attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
 		(
 			await gm.evaluate((args) => window.adversariesE2E.attack(args), { actor: 'Attacker', weapon: 'Knife', target: 'Hero' })
 		).modifications.filter(({ name }) => name.includes('Silhouette')),
