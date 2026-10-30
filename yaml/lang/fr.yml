@@ -231,7 +231,7 @@ Genesys:
     NotEnoughStoryPoints: Vous ne pouvez pas dépenser de Point Narratif que vous ne possédez pas!
     SelectOneTokenForAction: Vous devez selectionner un unique token pour réaliser cette action.
     NoActorForCheck: Sélectionnez un seul token ou attribuez-vous un personnage pour faire ce test.
-    SelectNoneOrOneTokenForAction: Vous devez sélectionner aucun token, ou juste un, pour faire cette action.
+    SelectNoneOrOneTokenForAction: Sélectionnez un seul token, ou aucun, pour faire cette action.
     InvalidTokenTypeForAction: Le token sélectionné est d'un type invalide pour réaliser cette action.
     TokenIsNotCombatant: Le token selectionné n'est pas dans le combat actuel.
     CannotClaimOppositeSlot: Vous ne pouvez par réclamer ce slot d'intiative avec {name} - il est du mauvais coté!

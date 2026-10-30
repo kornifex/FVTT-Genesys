@@ -18,9 +18,10 @@ export type DiceRollerTarget<A> =
 	| { error: 'Genesys.Notifications.SelectNoneOrOneTokenForAction' | 'Genesys.Notifications.InvalidTokenTypeForAction' };
 
 /**
- * The actor the Dice Roller opens the Dice Prompt for.
+ * What the Dice Roller opens the Dice Prompt for: the actor of the single controlled token, a bare prompt when no token
+ * is controlled, or an error for several tokens or a vehicle.
  */
-export function diceRollerActor<A>(controlled: ControlledToken<A>[]): DiceRollerTarget<A> {
+export function diceRollerTarget<A>(controlled: ControlledToken<A>[]): DiceRollerTarget<A> {
 	if (controlled.length > 1) return { error: 'Genesys.Notifications.SelectNoneOrOneTokenForAction' };
 	if (controlled[0]?.vehicle) return { error: 'Genesys.Notifications.InvalidTokenTypeForAction' };
 	return { actor: controlled[0]?.actor };

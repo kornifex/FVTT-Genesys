@@ -4,7 +4,7 @@ import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
 import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/CheckRoll';
-import { diceRollerActor } from '@/dice/DiceRoller';
+import { diceRollerTarget } from '@/dice/DiceRoller';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -137,7 +137,7 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
  * controlled.
  */
 function openDiceRoller() {
-	const target = diceRollerActor<GenesysActor>(
+	const target = diceRollerTarget<GenesysActor>(
 		(canvas?.tokens?.controlled ?? []).map((token) => ({ actor: token.actor ?? undefined, vehicle: token.actor?.type === 'vehicle' })),
 	);
 	if ('error' in target) {
@@ -169,6 +169,7 @@ export function register() {
 		const button = document.createElement('button');
 		button.type = 'button';
 		button.className = 'ui-control icon fa-solid fa-dice-d20 dice-roller';
+		// An empty tooltip shows the aria-label, as on Foundry's own chat controls.
 		button.dataset.tooltip = '';
 		button.ariaLabel = game.i18n.localize('Genesys.DicePrompt.OpenDiceRoller');
 		button.addEventListener('click', openDiceRoller);

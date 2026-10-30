@@ -93,7 +93,7 @@ type DicePromptHelpers = {
 	pools(doc: Doc): Promise<{ text: string; icons: string }[]>;
 	control(names: string[]): void;
 	/** Collapses the sidebar, expands it on the chat tab, then collapses it again, and reads the Dice Roller's buttons each time. */
-	diceRollerButtons(): Promise<Record<string, { count: number; layout: string | null; label: string | null }>>;
+	diceRollerButtons(): Promise<Record<string, { count: number; place: string | null; label: string | null }>>;
 	clickDiceRoller(): void;
 	chatMessage(content: string): Promise<string>;
 	notifications(): string[];
@@ -635,12 +635,13 @@ function installDicePromptHelpers() {
 		async diceRollerButtons() {
 			const read = () => {
 				const buttons = [...document.querySelectorAll('#chat-controls > .dice-roller')];
-				const layout = buttons[0]?.closest('#chat-notifications')
-					? 'notifications'
-					: buttons[0]?.closest('.chat-form')
-						? 'chat'
-						: null;
-				return { count: buttons.length, layout, label: buttons[0]?.getAttribute('aria-label') ?? null };
+				const [button] = buttons;
+				const modes = button?.parentElement?.querySelector('.split-button')?.getBoundingClientRect();
+				const box = button?.getBoundingClientRect();
+				// Where the button sits: in the chat form or by the notifications, and beside or under the message modes.
+				const parent = button?.closest('#chat-notifications') ? 'notifications' : button?.closest('.chat-form') ? 'chat' : null;
+				const side = !box || !modes ? null : box.top >= modes.bottom ? 'under' : box.left >= modes.right ? 'beside' : 'over';
+				return { count: buttons.length, place: parent && `${parent}, ${side}`, label: button?.getAttribute('aria-label') ?? null };
 			};
 			ui.sidebar.collapse();
 			await settle();
@@ -1820,12 +1821,12 @@ export async function run(e2e: ScenarioContext) {
 
 	// #367: the chat's dice button and `/gendr` open the Dice Roller, for the single controlled token's actor.
 	e2e.expect(
-		'#367 A1 the chat controls hold one dice button, by the notifications while the sidebar is collapsed and in the chat form once expanded',
+		'#367 A1 the chat controls hold one dice button, under the message modes by the notifications while the sidebar is collapsed, and beside them in the chat form once expanded',
 		await gm.evaluate(() => window.dicePromptE2E.diceRollerButtons()),
 		{
-			collapsed: { count: 1, layout: 'notifications', label: 'Roll dice' },
-			expanded: { count: 1, layout: 'chat', label: 'Roll dice' },
-			collapsedAgain: { count: 1, layout: 'notifications', label: 'Roll dice' },
+			collapsed: { count: 1, place: 'notifications, under', label: 'Roll dice' },
+			expanded: { count: 1, place: 'chat, beside', label: 'Roll dice' },
+			collapsedAgain: { count: 1, place: 'notifications, under', label: 'Roll dice' },
 		},
 	);
 	const diceRollerOpens = {
