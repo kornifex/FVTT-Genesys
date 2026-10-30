@@ -133,3 +133,23 @@ function extendsExpiredEffectOnV14(effect: GenesysEffect, changed: ActiveEffect.
 
 	return !foundry.utils.objectsEqual(timing(effect), timing(updated)) && hasTimeLeft(updated.duration.remaining);
 }
+
+/**
+ * Registers the effects of the combatants' actors with Foundry v14's Active Effect registry, which expires them, once the
+ * world is ready.
+ *
+ * Foundry misses those of an unlinked token in combat when the world loads: preparing the combatant reads its actor
+ * (`Combatant#updateResource`), which builds the token's actor before the registry is initialized, so that
+ * `TokenDocument#_onDeltaMaterialized` skips it, and the registry's own initialization only reads the world's actors. A GM
+ * who joins during a combat would never see those effects expire.
+ */
+export function registerCombatantEffects() {
+	for (const combat of game.combats) {
+		for (const combatant of combat.combatants) {
+			const actor = combatant.actor;
+			if (actor) {
+				foundry.documents.ActiveEffect.registry.addFromParent(actor);
+			}
+		}
+	}
+}
