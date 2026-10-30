@@ -52,6 +52,10 @@ _Avoid_: Size, scale
 A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle.
 _Avoid_: Crit, wound
 
+**Expired Effect**:
+A temporary Active Effect whose duration in rounds or turns has run out. It stops applying but isn't deleted: it stays on its actor or item, suspended, until its duration is extended. Turning an effect off by hand is a different thing: an effect can be expired, turned off, both or neither.
+_Avoid_: Finished effect, ended effect
+
 ### Skills
 
 **Skills Compendium**:
