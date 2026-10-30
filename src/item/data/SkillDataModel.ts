@@ -2,7 +2,6 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
 import { SKILL_CATEGORIES, type SkillCategory } from '@/data/Skills';
 import { choiceField } from '@/data/schemaFields';
-import type { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import { createdSkillIsCareer } from '@/actor/data/character/Career';
 
@@ -38,8 +37,10 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	/**
 	 * Make a skill added to a character a Career skill when their Career lists it, whether it is dropped on the sheet or
 	 * created by a macro. Foundry runs no item `preCreate` for the skills created with their actor.
+	 * @inheritDoc
 	 */
-	async preCreate(skill: GenesysItem<SkillDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
+	protected override async _preCreate() {
+		const skill = this.parent;
 		if (skill.actor?.type !== 'character') {
 			return;
 		}
@@ -47,7 +48,7 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 		const [career] = itemsOfType(skill.actor, 'career');
 		const careerSkills = career?.systemData.careerSkills ?? [];
 		skill.updateSource({
-			system: { career: createdSkillIsCareer({ name: skill.name, career: skill.systemData.career }, careerSkills) },
+			system: { career: createdSkillIsCareer({ name: skill.name, career: this.career }, careerSkills) },
 		});
 	}
 

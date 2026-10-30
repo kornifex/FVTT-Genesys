@@ -13,7 +13,6 @@ import {
 import { totalDefense, totalSoak } from '@/actor/data/Protection';
 import { wornArmor } from '@/actor/data/Inventory';
 import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import { itemsOfType } from '@/item/ItemTypes';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
@@ -50,10 +49,7 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 /**
  * The data of a player character.
  */
-export abstract class CharacterDataModel
-	extends foundry.abstract.DataModel<foundry.data.fields.DataSchema>
-	implements HasPreCreate<CharacterActor>
-{
+export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<foundry.data.fields.DataSchema, CharacterActor> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;
@@ -114,7 +110,7 @@ export abstract class CharacterDataModel
 	}
 
 	#wornArmor() {
-		return wornArmor(itemsOfType(<CharacterActor>(<unknown>this.parent), 'armor')).map((armor) => armor.systemData);
+		return wornArmor(itemsOfType(this.parent, 'armor')).map((armor) => armor.systemData);
 	}
 
 	/**
@@ -135,7 +131,7 @@ export abstract class CharacterDataModel
 	 * Player's current Encumbrance value, including both ActiveEffects and equipment.
 	 */
 	get currentEncumbrance(): Encumbrance {
-		const equipment = equipmentEncumbrance(encumberingItems((<CharacterActor>(<unknown>this.parent)).items), ENCUMBRANCE_RULES);
+		const equipment = equipmentEncumbrance(encumberingItems(this.parent.items), ENCUMBRANCE_RULES);
 
 		return characterEncumbrance(equipment, this.encumbrance, this.characteristics.brawn);
 	}
@@ -151,11 +147,18 @@ export abstract class CharacterDataModel
 	 * How many talents the character holds at each tier of the Talent Pyramid, counting the tiers their ranks reached.
 	 */
 	get talentPyramidTotals() {
-		const allTalents = itemsOfType(<CharacterActor>(<unknown>this.parent), 'talent');
+		const allTalents = itemsOfType(this.parent, 'talent');
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
 	}
 
-	async preCreate(actor: CharacterActor, _data: unknown, _options: unknown, _user: User.Stored) {
+	/**
+	 * Give a new character a Friendly token, linked to the actor, and the skills of the Skills Compendium unless they come
+	 * with skills.
+	 * @inheritDoc
+	 */
+	protected override async _preCreate() {
+		const actor = this.parent;
+
 		// Player character tokens should default to being Friendly.
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },

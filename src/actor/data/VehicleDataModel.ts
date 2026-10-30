@@ -3,8 +3,6 @@ import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered 
 import { isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Defense } from '@/data/Actors';
-import { HasOnDelete } from '@/data/HasOnDelete';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
@@ -21,10 +19,10 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 /**
  * The data of a vehicle, with its Crew and its cargo.
  */
-export abstract class VehicleDataModel
-	extends foundry.abstract.DataModel<foundry.data.fields.DataSchema>
-	implements HasPreCreate<GenesysActor<VehicleDataModel>>, HasOnDelete<GenesysActor<VehicleDataModel>>
-{
+export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<
+	foundry.data.fields.DataSchema,
+	GenesysActor<VehicleDataModel>
+> {
 	abstract silhouette: number;
 	abstract speed: number;
 	abstract handling: number;
@@ -93,12 +91,11 @@ export abstract class VehicleDataModel
 		return super.migrateData(source) as typeof source;
 	}
 
-	constructor(...args: foundry.abstract.DataModel.ConstructorArgs<foundry.data.fields.DataSchema>) {
+	constructor(...args: foundry.abstract.DataModel.ConstructorArgs<foundry.data.fields.DataSchema, GenesysActor<VehicleDataModel>>) {
 		super(...args);
 
-		const actor = this.parent as unknown as GenesysActor<this>;
-		if (actor.id) {
-			VehicleDataModel._GAME_VEHICLES.add(actor);
+		if (this.parent.id) {
+			VehicleDataModel._GAME_VEHICLES.add(this.parent);
 		}
 	}
 
@@ -106,8 +103,7 @@ export abstract class VehicleDataModel
 	 * Gets the current encumbrance value and threshold after taking into account item's quantities and containers.
 	 */
 	get currentEncumbrance() {
-		const actor = this.parent as unknown as GenesysActor<this>;
-		const cargo = equipmentEncumbrance(encumberingItems(actor.items), ENCUMBRANCE_RULES);
+		const cargo = equipmentEncumbrance(encumberingItems(this.parent.items), ENCUMBRANCE_RULES);
 
 		return {
 			value: Math.max(this.encumbrance.value + cargo.value, 0),
@@ -171,23 +167,30 @@ export abstract class VehicleDataModel
 			return false;
 		}
 
-		const actor = this.parent as unknown as GenesysActor<this>;
-		await actor.update({ system: { passengers: { list: crew.passengers }, roles: crew.roles } });
+		await this.parent.update({ system: { passengers: { list: crew.passengers }, roles: crew.roles } });
 		return true;
 	}
 
-	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
+	/**
+	 * Show the hull trauma and system strain on the bars of the vehicle's token, which is linked to the actor.
+	 * @inheritDoc
+	 */
+	protected override async _preCreate() {
 		const prototypeToken = {
 			bar1: { attribute: 'trauma' },
 			bar2: { attribute: 'strain' },
 			actorLink: true,
 		};
 
-		actor.updateSource({ prototypeToken });
+		this.parent.updateSource({ prototypeToken });
 	}
 
-	onDelete(actor: GenesysActor<VehicleDataModel>, _options: unknown, _userId: string) {
-		VehicleDataModel._GAME_VEHICLES.delete(actor);
+	/**
+	 * Forget a deleted vehicle, whose Crew no longer needs to follow its members.
+	 * @inheritDoc
+	 */
+	protected override _onDelete() {
+		VehicleDataModel._GAME_VEHICLES.delete(this.parent);
 	}
 
 	static override defineSchema() {

@@ -6,8 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 // The data model extends a Foundry class, whose own migration leaves the source as it is.
 vi.hoisted(() => {
-	vi.stubGlobal('foundry', { abstract: { DataModel: class {} } });
-	Object.assign(globalThis.foundry.abstract.DataModel, { migrateData: (source: object) => source });
+	vi.stubGlobal('foundry', { abstract: { TypeDataModel: class {} } });
+	Object.assign(globalThis.foundry.abstract.TypeDataModel, { migrateData: (source: object) => source });
 });
 
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';

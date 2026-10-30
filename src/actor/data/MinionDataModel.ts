@@ -1,14 +1,12 @@
 import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
-import { GenesysActor } from '@/actor/GenesysActor';
 import { groupSkillRank, groupWoundThreshold, remainingMembers } from '@/actor/data/MinionGroup';
-import { HasPreCreate } from '@/data/HasPreCreate';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
 /**
  * The data of a Minion Group.
  */
-export abstract class MinionDataModel extends AdversaryDataModel implements HasPreCreate<GenesysActor<MinionDataModel>> {
+export abstract class MinionDataModel extends AdversaryDataModel {
 	abstract groupSize: number;
 	abstract wounds: ValueWithThreshold;
 
@@ -50,13 +48,17 @@ export abstract class MinionDataModel extends AdversaryDataModel implements HasP
 		return groupSkillRank(this);
 	}
 
-	async preCreate(actor: GenesysActor<MinionDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
+	/**
+	 * Show the wounds and remaining members on the bars of the Minion Group's token.
+	 * @inheritDoc
+	 */
+	protected override async _preCreate() {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 			bar2: { attribute: 'members' },
 		};
 
-		actor.updateSource({ prototypeToken });
+		this.parent.updateSource({ prototypeToken });
 	}
 
 	static override defineSchema() {
