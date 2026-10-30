@@ -3,7 +3,6 @@
  */
 
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { Skill, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
@@ -55,7 +54,7 @@ export type CheckRules<S extends CheckSkill = CheckSkill> = {
  * The world's rules for checks: its Skills Compendium, its super characteristics setting and its Uncoupling Skills
  * from Characteristics setting.
  */
-export function worldCheckRules(): CheckRules<Stored<GenesysItem<SkillDataModel>>> {
+export function worldCheckRules(): CheckRules<Stored<GenesysItem<'skill'>>> {
 	return {
 		compendiumSkills: CONFIG.genesys.skills,
 		useSuperCharacteristics: CONFIG.genesys.settings.useSuperCharacteristics,
@@ -148,7 +147,7 @@ export function resolveCheck<S extends CheckSkill>(
 		};
 	}
 
-	const data = actor.systemData as CheckActorData;
+	const data = actor.system as CheckActorData;
 	const rolledSkill = request.skillName ? skillToRoll(actor.skills, rules.compendiumSkills, request.skillName) : undefined;
 	const characteristic = characteristicToRoll(rolledSkill?.skill, request, rules);
 

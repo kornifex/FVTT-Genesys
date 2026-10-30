@@ -16,7 +16,7 @@ import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
 
-const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
@@ -24,7 +24,7 @@ const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeFor
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const passengersActors = shallowRef<Stored<GenesysActor>[]>([]);
 
-const sortedPassengers = computed(() => [...actor.value.systemData.passengers.list].sort(sortPassenger));
+const sortedPassengers = computed(() => [...actor.value.system.passengers.list].sort(sortPassenger));
 
 // Only the passengers whose actor still exists are shown. Resolving them is asynchronous: a later change of the
 // passengers replaces the actors still being resolved.

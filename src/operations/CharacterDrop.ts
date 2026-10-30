@@ -3,14 +3,12 @@
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advancementCharacter, writeCharacter } from '@/actor/data/character/Advancement';
 import { Character, decideCharacterDrop } from '@/actor/data/character/CharacterItems';
 import { isRelevantToCharacter } from '@/actor/data/RelevantTypes';
 import { CareerSkillPrompt } from '@/app/CareerSkillPrompt';
 import type { Stored } from '@/data/Stored';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { notify } from '@/notifications';
 import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 
@@ -19,7 +17,7 @@ import { receiveInventoryDrop } from '@/operations/InventoryDrop';
  * plan. A Career first asks the player which skills get its Free Ranks, before anything is written. Returns the created
  * items, or false when the drop is refused.
  */
-export async function receiveCharacterDrop(actor: Stored<GenesysActor<CharacterDataModel>>, item: GenesysItem) {
+export async function receiveCharacterDrop(actor: Stored<GenesysActor<'character'>>, item: GenesysItem) {
 	if (isRelevantToCharacter('INVENTORY', item.type)) {
 		return receiveInventoryDrop(actor, item);
 	}
@@ -32,7 +30,7 @@ export async function receiveCharacterDrop(actor: Stored<GenesysActor<CharacterD
 	const newId = () => foundry.utils.randomID();
 	let decision = decideCharacterDrop(character(actor), dropped, newId);
 	if (decision.action === 'chooseFreeRanks') {
-		const skills = decision.skillIds.map((id) => actor.items.get(id) as Stored<GenesysItem<SkillDataModel>>);
+		const skills = decision.skillIds.map((id) => actor.items.get(id) as Stored<GenesysItem<'skill'>>);
 		const freeRankSkillIds = await CareerSkillPrompt.promptForSkills(skills);
 		// The character is read again: it may have changed while the player chose.
 		decision = decideCharacterDrop(character(actor), dropped, newId, freeRankSkillIds);
@@ -49,6 +47,6 @@ export async function receiveCharacterDrop(actor: Stored<GenesysActor<CharacterD
 	return false;
 }
 
-function character(actor: GenesysActor<CharacterDataModel>): Character {
-	return { id: actor.id, system: actor.systemData, items: actor.items.contents, advancement: advancementCharacter(actor) };
+function character(actor: GenesysActor<'character'>): Character {
+	return { id: actor.id, system: actor.system, items: actor.items.contents, advancement: advancementCharacter(actor) };
 }

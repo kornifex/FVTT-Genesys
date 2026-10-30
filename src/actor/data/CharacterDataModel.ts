@@ -37,7 +37,7 @@ type Details = {
 	notableFeatures: string;
 };
 
-type CharacterActor = GenesysActor<CharacterDataModel>;
+type CharacterActor = GenesysActor<'character'>;
 
 // A character's Dropped equipment counts towards neither the value nor the threshold, and their worn armor counts 3 less.
 const ENCUMBRANCE_RULES: EncumbranceRules = {
@@ -110,7 +110,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 	}
 
 	#wornArmor() {
-		return wornArmor(itemsOfType(this.parent, 'armor')).map((armor) => armor.systemData);
+		return wornArmor(itemsOfType(this.parent, 'armor')).map((armor) => armor.system);
 	}
 
 	/**
@@ -148,7 +148,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 	 */
 	get talentPyramidTotals() {
 		const allTalents = itemsOfType(this.parent, 'talent');
-		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
+		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.system));
 	}
 
 	/**

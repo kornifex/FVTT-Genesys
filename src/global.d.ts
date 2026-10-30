@@ -40,15 +40,15 @@ declare module 'fvtt-types/configuration' {
 		Token: typeof GenesysTokenDocument;
 	}
 
-	// The documents Foundry hands out (`Actor.Stored`, an embedded collection's contents) are read from these, whatever
-	// their subtype: the system's classes take their DataModel rather than their subtype.
-	/* eslint-disable @typescript-eslint/no-unused-vars -- Each merges with fvtt-types' own, whose type parameter it must name. */
+	// The documents Foundry hands out (`Actor.Stored`, an embedded collection's contents) are read from these: actors and
+	// items by their subtype, the others whatever their subtype.
 	interface ConfiguredActor<SubType extends Actor.SubType> {
-		document: GenesysActor;
+		document: GenesysActor<SubType>;
 	}
 	interface ConfiguredItem<SubType extends Item.SubType> {
-		document: GenesysItem;
+		document: GenesysItem<SubType>;
 	}
+	/* eslint-disable @typescript-eslint/no-unused-vars -- Each merges with fvtt-types' own, whose type parameter it must name. */
 	interface ConfiguredActiveEffect<SubType extends ActiveEffect.SubType> {
 		document: GenesysEffect;
 	}

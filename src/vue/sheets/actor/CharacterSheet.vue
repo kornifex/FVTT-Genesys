@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -14,7 +13,7 @@ import TalentsTab from '@/vue/sheets/actor/character/TalentsTab.vue';
 import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 
-const { system } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { system } = useSheetDocument<GenesysActor<'character'>>();
 
 const { effects, addEffect } = useDocumentEffects();
 </script>

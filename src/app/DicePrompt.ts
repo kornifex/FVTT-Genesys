@@ -1,8 +1,6 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysItem } from '@/item/GenesysItem';
 import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
-import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/CheckRoll';
@@ -22,7 +20,7 @@ export const RollType = {
  */
 export type DicePromptRoll =
 	| { type: typeof RollType.Skill }
-	| { type: typeof RollType.Attack; weapon: GenesysItem<WeaponDataModel | VehicleWeaponDataModel> }
+	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'> }
 	| { type: typeof RollType.Initiative; resolve: (checkRoll: CheckRoll) => void; reject: () => void };
 
 /**

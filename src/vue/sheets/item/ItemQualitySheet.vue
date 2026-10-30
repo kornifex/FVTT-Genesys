@@ -4,9 +4,8 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 
-const { system } = useSheetDocument<GenesysItem<ItemQualityDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'quality'>>();
 </script>
 
 <template>

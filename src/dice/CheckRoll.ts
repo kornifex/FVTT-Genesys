@@ -8,9 +8,7 @@ import { CardResults, cardResults, GenesysRollResults, rollResults, showsAttackD
 import { GenesysItem } from '@/item/GenesysItem';
 import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CharacteristicsContainer } from '@/data/Characteristics';
-import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
 const ATTACK_TEMPLATE = 'systems/genesys/templates/chat/rolls/attack.hbs';
@@ -36,7 +34,7 @@ type PoolRoll = {
 	results: GenesysRollResults;
 };
 
-type AttackWeapon = GenesysItem<WeaponDataModel | VehicleWeaponDataModel>;
+type AttackWeapon = GenesysItem<'weapon' | 'vehicleWeapon'>;
 
 /**
  * Roll a dice pool, and read its results.
@@ -75,14 +73,14 @@ export async function checkMessageData(check: Check, { roll, results }: PoolRoll
  */
 async function attackCardData(check: Check, weapon: AttackWeapon, results: GenesysRollResults, card: CardResults) {
 	// A vehicle has no characteristics to add to its weapons' damage.
-	const characteristics = (check.actor?.systemData as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
-	const { baseDamage, characteristic } = damageFormula(weapon.systemData);
+	const characteristics = (check.actor?.system as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
+	const { baseDamage, characteristic } = damageFormula(weapon.system);
 
 	return {
-		totalDamage: attackDamage(weapon.systemData, characteristics, results.netSuccess),
+		totalDamage: attackDamage(weapon.system, characteristics, results.netSuccess),
 		damageFormula: characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString(),
-		critical: weapon.systemData.critical,
-		qualities: await enrichedQualities(weapon.systemData.qualities),
+		critical: weapon.system.critical,
+		qualities: await enrichedQualities(weapon.system.qualities),
 		showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),
 	};
 }

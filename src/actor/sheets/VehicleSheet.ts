@@ -2,7 +2,6 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import VueVehicleSheet from '@/vue/sheets/actor/VehicleSheet.vue';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import { CrewDragTransferData, dragData } from '@/data/DragTransferData';
 import { isPassengerDrop, receiveCrewDrop } from '@/operations/CrewDrop';
@@ -16,7 +15,7 @@ const crewDrops = new WeakMap<DragEvent, CrewDragTransferData>();
 /**
  * Actor sheet used for vehicles.
  */
-export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
+export class VehicleSheet extends GenesysActorSheet<'vehicle'> {
 	override get vueComponent() {
 		return VueVehicleSheet;
 	}
@@ -25,8 +24,8 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 		return 'skills';
 	}
 
-	protected override async receiveItem(droppedItem: GenesysItem<BaseItemDataModel>) {
-		let clonedDroppedItem: GenesysItem<BaseItemDataModel>[] | undefined | boolean;
+	protected override async receiveItem(droppedItem: GenesysItem) {
+		let clonedDroppedItem: GenesysItem[] | undefined | boolean;
 		if (VehicleDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 			clonedDroppedItem = await receiveInventoryDrop(this.actor, droppedItem);
 		} else if (VehicleDataModel.isRelevantTypeForContext('COMBAT', droppedItem.type)) {

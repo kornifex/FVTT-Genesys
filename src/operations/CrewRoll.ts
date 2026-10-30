@@ -7,12 +7,11 @@ import { DicePrompt, DicePromptOptions } from '@/app/DicePrompt';
 import { SelectCrewMemberPrompt } from '@/app/SelectCrewMemberPrompt';
 import { worldCheckRules } from '@/dice/Check';
 import type { GenesysItem } from '@/item/GenesysItem';
-import type { SkillDataModel } from '@/item/data/SkillDataModel';
 
 /**
  * A skill a crew member rolls for the vehicle, resolved as a check of their actor.
  */
-export type ActorCrewMemberSkill = CrewMemberSkill<GenesysActor, GenesysItem<SkillDataModel>>;
+export type ActorCrewMemberSkill = CrewMemberSkill<GenesysActor, GenesysItem<'skill'>>;
 
 /**
  * The actors of crew members, by UUID. A member whose actor no longer exists is left out.

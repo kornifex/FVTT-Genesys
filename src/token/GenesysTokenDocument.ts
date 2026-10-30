@@ -41,12 +41,12 @@ export class GenesysTokenDocument extends TokenDocument {
 			return null;
 		}
 
-		const tokenAttributes = (this.actor.systemData.constructor as DataModelWithTokenAttributes).tokenAttributes;
+		const tokenAttributes = (this.actor.system.constructor as DataModelWithTokenAttributes).tokenAttributes;
 		if (!tokenAttributes) {
 			return super.getBarAttribute(barName, options);
 		}
 
-		const system = this.actor.systemData;
+		const system = this.actor.system;
 		const targetAttribute = tokenAttributes[attribute] as TokenAttributeDetails | undefined;
 		if (!targetAttribute) {
 			return null;

@@ -4,10 +4,9 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { CHARACTERISTICS } from '@/data/Characteristics';
 
-const { system } = useSheetDocument<GenesysItem<WeaponDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'weapon'>>();
 </script>
 
 <template>

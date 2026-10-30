@@ -2,9 +2,9 @@
  * @file Encumbrance of a character's or vehicle's equipment, including the equipment held in containers, and a character's threshold.
  */
 
-import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import type { GenesysItem } from '@/item/GenesysItem';
+import type { EquipmentType } from '@/item/ItemTypes';
 
 /**
  * How much less a worn armor's encumbrance counts, to a minimum of 0 (CRB p. 84, 92).
@@ -155,7 +155,7 @@ export function isEncumbered({ value, threshold }: Encumbrance) {
  */
 export function encumberingItems(items: Iterable<Item.Stored>): EncumberingItem[] {
 	return Array.from(items, (item) => {
-		const { encumbrance, quantity, state, container } = (item as GenesysItem<EquipmentDataModel>).systemData;
+		const { encumbrance, quantity, state, container } = (item as GenesysItem<EquipmentType>).system;
 		return { id: item.id, type: item.type, encumbrance, quantity, state, container };
 	});
 }

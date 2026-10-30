@@ -5,12 +5,12 @@ import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { BaseWeaponDataModel, type ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { withoutIndex } from '@/arrays';
 
-const { document: item, system } = useSheetDocument<GenesysItem<BaseWeaponDataModel>>();
+const { document: item, system } = useSheetDocument<GenesysItem<'weapon' | 'vehicleWeapon'>>();
 
 async function deleteSkill(index: number) {
 	await item.value.update({ system: { skills: withoutIndex(system.value.skills, index) } });

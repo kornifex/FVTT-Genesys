@@ -19,7 +19,7 @@ const ACTIVATION_LABELS: Record<AbilityDataModel['activation']['type'], string> 
 	active: 'Genesys.Labels.Active',
 };
 
-type Source<Type extends string, SystemData> = { type: Type; img: string | null; name: string; systemData: SystemData };
+type Source<Type extends string, System> = { type: Type; img: string | null; name: string; system: System };
 
 /**
  * What a card reads of the item it posts.
@@ -63,7 +63,7 @@ export type ItemCard = {
 		img: string | null;
 		name: string;
 		type: ItemSource['type'];
-		system: ItemSource['systemData'];
+		system: ItemSource['system'];
 		description: string;
 		weapon?: { skill: string; range: string; damage: string; firingArc?: string };
 		qualities?: ContainedItemQuality[];
@@ -84,7 +84,7 @@ export function chatCard(item: CardSource, i18n: Localizer): AbilityCard | ItemC
 		return itemCard(item, i18n);
 	}
 
-	const { description, activation } = item.systemData;
+	const { description, activation } = item.system;
 
 	return {
 		template: 'systems/genesys/templates/chat/ability.hbs',
@@ -94,9 +94,9 @@ export function chatCard(item: CardSource, i18n: Localizer): AbilityCard | ItemC
 			description,
 			activation: { label: ACTIVATION_LABELS[activation.type], detail: activation.detail },
 			...(item.type === 'talent' && {
-				effectiveTier: item.systemData.effectiveTier,
-				ranked: item.systemData.ranked === 'yes',
-				rank: item.systemData.rank,
+				effectiveTier: item.system.effectiveTier,
+				ranked: item.system.ranked === 'yes',
+				rank: item.system.rank,
 			}),
 		},
 	};
@@ -138,32 +138,32 @@ export function enrichedQualities(qualities: ContainedItemQuality[]) {
 function itemCard(item: ItemSource, i18n: Localizer): ItemCard {
 	const card: ItemCard = {
 		template: 'systems/genesys/templates/chat/item.hbs',
-		data: { img: item.img, name: item.name, type: item.type, system: item.systemData, description: item.systemData.description },
+		data: { img: item.img, name: item.name, type: item.type, system: item.system, description: item.system.description },
 	};
 
 	if (item.type === 'weapon') {
-		const { skills } = item.systemData;
-		const { baseDamage, characteristic } = damageFormula(item.systemData);
+		const { skills } = item.system;
+		const { baseDamage, characteristic } = damageFormula(item.system);
 		card.data.weapon = {
 			skill: skills[0] ?? '-',
-			range: i18n.localize(RANGE_LABELS[item.systemData.range]),
+			range: i18n.localize(RANGE_LABELS[item.system.range]),
 			damage: baseDamage.toString() + (characteristic ? ' + ' + i18n.localize(characteristic) : ''),
 		};
 	} else if (item.type === 'vehicleWeapon') {
-		const { skills, firingArc } = item.systemData;
+		const { skills, firingArc } = item.system;
 		card.data.weapon = {
 			skill: skills[0] ?? '-',
-			range: i18n.localize(RANGE_LABELS[item.systemData.range]),
-			damage: damageFormula(item.systemData).baseDamage.toString(),
+			range: i18n.localize(RANGE_LABELS[item.system.range]),
+			damage: damageFormula(item.system).baseDamage.toString(),
 			firingArc: firingArcLabels(firingArc)
 				.map((label) => i18n.localize(label))
 				.join(', '),
 		};
 	}
 
-	if ('qualities' in item.systemData) {
+	if ('qualities' in item.system) {
 		// Copies, so the card never writes into the item's qualities.
-		card.data.qualities = item.systemData.qualities.map((quality) => ({ ...quality }));
+		card.data.qualities = item.system.qualities.map((quality) => ({ ...quality }));
 	}
 
 	return card;

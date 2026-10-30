@@ -11,9 +11,17 @@ import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { characteristicsField, defenseField, Motivations, motivationsField } from '@/data/schemaFields';
 
 /**
+ * The actor types of the Adversaries.
+ */
+export type AdversaryType = 'minion' | 'rival' | 'nemesis';
+
+/**
  * The data that every Adversary shares: Minion Groups, Rivals and Nemeses.
  */
-export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<foundry.data.fields.DataSchema, GenesysActor> {
+export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<
+	foundry.data.fields.DataSchema,
+	GenesysActor<AdversaryType>
+> {
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;

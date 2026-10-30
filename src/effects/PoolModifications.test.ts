@@ -47,7 +47,7 @@ function effect(
 function actor(type: string, effects: PoolModificationEffect[], { totalDefense = { melee: 0, ranged: 0 } } = {}): PoolModificationActor {
 	return {
 		type,
-		systemData: { totalDefense },
+		system: { totalDefense },
 		allApplicableEffects: () => effects,
 	};
 }

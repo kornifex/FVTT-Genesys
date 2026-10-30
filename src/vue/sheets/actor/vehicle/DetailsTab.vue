@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 
-const { system } = useSheetDocument<GenesysActor<VehicleDataModel>>();
+const { system } = useSheetDocument<GenesysActor<'vehicle'>>();
 </script>
 
 <template>

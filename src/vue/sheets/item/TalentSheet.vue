@@ -5,10 +5,9 @@ import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import ActivationRow from '@/vue/components/item/ActivationRow.vue';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { MAX_TIER } from '@/item/data/Talents';
 
-const { system } = useSheetDocument<GenesysItem<TalentDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'talent'>>();
 </script>
 
 <template>

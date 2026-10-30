@@ -4,8 +4,6 @@
 
 import { describe, expect, it } from 'vitest';
 import type { GenesysActor } from '@/actor/GenesysActor';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import {
 	archetypeActorUpdate,
@@ -225,14 +223,14 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 
 	const actor = {
 		id: 'hero',
-		systemData: { ...character(), experienceJournal: { entries } },
+		system: { ...character(), experienceJournal: { entries } },
 		items: { contents: items },
 		update: async (changes: Record<string, unknown>) => {
 			operations.push(`update actor ${JSON.stringify(changes['system.experienceJournal.entries'])}`);
 		},
-	} as unknown as GenesysActor<CharacterDataModel>;
+	} as unknown as GenesysActor<'character'>;
 
-	const archetype = { systemData: archetypeGrants(), ...item('Brute', 'archetype') } as unknown as GenesysItem<ArchetypeDataModel>;
+	const archetype = item('Brute', 'archetype', archetypeGrants()) as unknown as GenesysItem<'archetype'>;
 
 	return { actor, archetype, operations };
 }

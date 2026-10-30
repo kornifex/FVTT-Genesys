@@ -2,9 +2,8 @@
 import { computed, toRef } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import type { AdversaryType } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { DicePrompt } from '@/app/DicePrompt';
 import { freeRank } from '@/data/Skills';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
@@ -22,17 +21,17 @@ const props = defineProps<{
 	groupRank?: number;
 }>();
 
-const { document: actor } = useSheetDocument<GenesysActor<AdversaryDataModel>>();
-const characteristics = toRef(() => actor.value.systemData.characteristics);
+const { document: actor } = useSheetDocument<GenesysActor<AdversaryType>>();
+const characteristics = toRef(() => actor.value.system.characteristics);
 const skills = computed(() => actor.value.skills);
 
-async function rollSkill(skill: GenesysItem<SkillDataModel>) {
+async function rollSkill(skill: GenesysItem<'skill'>) {
 	await DicePrompt.promptForRoll(actor.value, skill.name);
 }
 
-async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
+async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 	await skill.update({
-		system: { rank: freeRank(skill.systemData.rank, step) },
+		system: { rank: freeRank(skill.system.rank, step) },
 	});
 }
 </script>
@@ -55,10 +54,10 @@ async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
 			</template>
 
 			<a @click="rollSkill(skill)">
-				<span>{{ skill.name }}{{ props.groupRank === undefined ? ` ${skill.systemData.rank}` : null }}</span>
+				<span>{{ skill.name }}{{ props.groupRank === undefined ? ` ${skill.system.rank}` : null }}</span>
 				<SkillRanks
-					:skill-value="props.groupRank ?? skill.systemData.rank"
-					:characteristic-value="characteristics[skill.systemData.characteristic]"
+					:skill-value="props.groupRank ?? skill.system.rank"
+					:characteristic-value="characteristics[skill.system.characteristic]"
 				/>
 			</a>
 		</ContextMenu>

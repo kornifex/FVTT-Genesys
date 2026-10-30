@@ -3,8 +3,6 @@
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
-import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { ofType } from '@/item/ItemTypes';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
@@ -242,9 +240,9 @@ export function canRemoveArchetype(character: Pick<ArchetypeHolder, 'experienceJ
 /**
  * Remove everything an Archetype added to the character, then delete the Archetype item.
  */
-export async function removeArchetype(actor: GenesysActor<CharacterDataModel>, archetype: GenesysItem<ArchetypeDataModel>) {
-	const archetypeData = archetype.systemData;
-	const actorUpdate = archetypeActorUpdate(actor.systemData, archetypeData, -1);
+export async function removeArchetype(actor: GenesysActor<'character'>, archetype: GenesysItem<'archetype'>) {
+	const archetypeData = archetype.system;
+	const actorUpdate = archetypeActorUpdate(actor.system, archetypeData, -1);
 
 	await Promise.all(
 		heldNonSkillsGrantedBy(actor.items.contents, archetypeData.grantedItems, actor.id).map(async (i) => await i.delete()),

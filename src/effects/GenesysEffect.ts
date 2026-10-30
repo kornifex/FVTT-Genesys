@@ -42,7 +42,7 @@ export class GenesysEffect extends ActiveEffect {
 			return undefined;
 		}
 
-		return item.actor.items.get((item.systemData as EquipmentDataModel).container);
+		return item.actor.items.get((item.system as EquipmentDataModel).container);
 	}
 
 	/**

@@ -2,13 +2,11 @@
 import { computed } from 'vue';
 
 import type { Stored } from '@/data/Stored';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, buySkillRank, isAllowed, raiseCharacteristic } from '@/actor/data/character/Advancement';
 import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/data/character/CharacterCreation';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Localized from '@/vue/components/Localized.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -20,14 +18,14 @@ import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as Charac
 import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { document: actor, system, editable } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
 
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
 
-async function rollSkill(skill: Stored<GenesysItem<SkillDataModel>>) {
+async function rollSkill(skill: Stored<GenesysItem<'skill'>>) {
 	await DicePrompt.promptForRoll(actor.value, skill.name);
 }
 
@@ -43,25 +41,25 @@ function canPurchaseCharacteristic(characteristic: CharacteristicType) {
 	return isAllowed(raiseCharacteristic(advancement.value, characteristic));
 }
 
-async function purchaseSkillRank(skill: Stored<GenesysItem<SkillDataModel>>) {
+async function purchaseSkillRank(skill: Stored<GenesysItem<'skill'>>) {
 	await advance(actor.value, (character) => buySkillRank(character, skill.id));
 }
 
-function canPurchaseSkillRank(skill: Stored<GenesysItem<SkillDataModel>>) {
+function canPurchaseSkillRank(skill: Stored<GenesysItem<'skill'>>) {
 	return isAllowed(buySkillRank(advancement.value, skill.id));
 }
 
 // A skill can be marked as a career skill by hand at any time, whatever the character's Career: a talent or the GM
 // may grant one.
-async function toggleCareerSkill(skill: Stored<GenesysItem<SkillDataModel>>) {
+async function toggleCareerSkill(skill: Stored<GenesysItem<'skill'>>) {
 	await skill.update({
-		system: { career: !skill.systemData.career },
+		system: { career: !skill.system.career },
 	});
 }
 
-async function freeSkillRank(skill: Stored<GenesysItem<SkillDataModel>>, step: 1 | -1) {
+async function freeSkillRank(skill: Stored<GenesysItem<'skill'>>, step: 1 | -1) {
 	await skill.update({
-		system: { rank: freeRank(skill.systemData.rank, step) },
+		system: { rank: freeRank(skill.system.rank, step) },
 	});
 }
 
@@ -123,8 +121,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<template v-slot:menu-items>
 							<MenuItem
 								v-if="editable"
-								:icon="`${skill.systemData.career ? 'far' : 'fas'} fa-star`"
-								:label="skill.systemData.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill'"
+								:icon="`${skill.system.career ? 'far' : 'fas'} fa-star`"
+								:label="skill.system.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill'"
 								@click="toggleCareerSkill(skill)"
 							/>
 
@@ -149,16 +147,12 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 						<img :src="skill.img ?? undefined" :alt="skill.name" />
 						<a class="name" @click="rollSkill(skill)">
-							<span
-								>{{ skill.name }} (<Localized
-									:label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]"
-								/>)</span
-							>
-							<i v-if="skill.systemData.career" class="fas fa-star"></i>
+							<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic]" />)</span>
+							<i v-if="skill.system.career" class="fas fa-star"></i>
 						</a>
 
 						<span class="rank-display">
-							{{ skill.systemData.rank }}
+							{{ skill.system.rank }}
 
 							<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
 								<i class="fas fa-arrow-circle-up" />
@@ -166,8 +160,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						</span>
 
 						<SkillRanks
-							:skill-value="skill.systemData.rank"
-							:characteristic-value="system.characteristics[skill.systemData.characteristic]"
+							:skill-value="skill.system.rank"
+							:characteristic-value="system.characteristics[skill.system.characteristic]"
 						/>
 					</ContextMenu>
 				</div>

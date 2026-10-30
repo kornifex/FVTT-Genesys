@@ -75,7 +75,7 @@ export type StoredItem<System = SystemSource<BaseItemDataModel>> = {
 /**
  * An item type whose DataModel is a piece of equipment, with an Equipment State.
  */
-type EquipmentType = { [T in ItemType]: ItemDataModels[T] extends EquipmentDataModel ? T : never }[ItemType];
+export type EquipmentType = { [T in ItemType]: ItemDataModels[T] extends EquipmentDataModel ? T : never }[ItemType];
 
 /**
  * The item types whose DataModel is a piece of equipment.
@@ -105,6 +105,6 @@ export function ofType<I extends { type: string }, T extends ItemType>(items: It
  */
 export function itemsOfType<T extends ItemType>(actor: { items: Iterable<{ type: string }> }, type: T | readonly T[]) {
 	// An actor stores its items, and Foundry builds each item's data with the DataModel registered for its type, so the
-	// type tells the DataModel.
-	return ofType(actor.items, type) as unknown as Stored<GenesysItem<ItemDataModels[T]>>[];
+	// type is the item's subtype.
+	return ofType(actor.items, type) as unknown as Stored<GenesysItem<T>>[];
 }

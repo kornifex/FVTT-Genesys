@@ -2,7 +2,6 @@
 import { ref, shallowRef, watch } from 'vue';
 import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
 import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations/CrewRoll';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
@@ -27,7 +26,7 @@ type SkillRow = {
 
 type GroupingMode = 'member' | 'skill';
 
-const context = useSheetContext<DocumentSheetContext<GenesysActor<VehicleDataModel>>>();
+const context = useSheetContext<DocumentSheetContext<GenesysActor<'vehicle'>>>();
 
 const groupingMode = ref<GroupingMode>('member');
 const byMember = shallowRef<MemberRow[]>([]);
@@ -42,7 +41,7 @@ watch(
 		let stale = false;
 		onCleanup(() => (stale = true));
 
-		const crew = vehicle.systemData.crew;
+		const crew = vehicle.system.crew;
 		const actors = await crewActors(crew.roles.flatMap((role) => role.members));
 		if (stale) {
 			return;
@@ -90,7 +89,7 @@ watch(
 								<a class="skill-name" @click="rollForCrew([rolledSkill])">
 									<span
 										>{{ rolledSkill.skill.name }} (<Localized
-											:label="CHARACTERISTIC_ABBREVIATIONS[rolledSkill.skill.systemData.characteristic]"
+											:label="CHARACTERISTIC_ABBREVIATIONS[rolledSkill.skill.system.characteristic]"
 										/>)</span
 									>
 								</a>

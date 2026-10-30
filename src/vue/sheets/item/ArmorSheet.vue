@@ -4,12 +4,11 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { withoutIndex } from '@/arrays';
 
-const { document: item, system } = useSheetDocument<GenesysItem<ArmorDataModel>>();
+const { document: item, system } = useSheetDocument<GenesysItem<'armor'>>();
 
 async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {

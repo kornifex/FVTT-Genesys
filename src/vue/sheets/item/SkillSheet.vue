@@ -6,10 +6,9 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { SkillDataModel } from '@/item/data/SkillDataModel';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-const { system } = useSheetDocument<GenesysItem<SkillDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'skill'>>();
 </script>
 
 <template>

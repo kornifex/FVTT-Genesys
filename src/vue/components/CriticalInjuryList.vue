@@ -2,7 +2,6 @@
 import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
-import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
@@ -16,14 +15,14 @@ const KINDS = {
 
 const props = defineProps<{
 	kind: keyof typeof KINDS;
-	injuries: Stored<GenesysItem<InjuryDataModel>>[];
+	injuries: Stored<GenesysItem<'injury'>>[];
 }>();
 
 const emit = defineEmits<{
 	/**
 	 * The severity of an injury was clicked, to heal or repair it.
 	 */
-	(e: 'roll', injury: Stored<GenesysItem<InjuryDataModel>>): void;
+	(e: 'roll', injury: Stored<GenesysItem<'injury'>>): void;
 }>();
 
 const { editable } = useSheetDocument();
@@ -39,7 +38,7 @@ const kind = KINDS[props.kind];
 
 		<div v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']">
 			<div class="severity">
-				<a @click="emit('roll', injury)">{{ severityDifficulty(injury.systemData.severity) }}</a>
+				<a @click="emit('roll', injury)">{{ severityDifficulty(injury.system.severity) }}</a>
 			</div>
 			<div class="name">
 				<a @click="openSheet(injury)">{{ injury.name }}</a>
@@ -49,7 +48,7 @@ const kind = KINDS[props.kind];
 				<a @click="deleteItem(injury)"><i class="fas fa-trash"></i></a>
 			</div>
 			<div v-else />
-			<div class="description"><Enriched :value="injury.systemData.description" /></div>
+			<div class="description"><Enriched :value="injury.system.description" /></div>
 		</div>
 	</div>
 </template>

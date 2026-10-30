@@ -1,14 +1,13 @@
 /** @file Undoes an entry of a character's Experience Journal, once the user confirms the items the undo deletes. */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
-import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { advance, advancementCharacter, itemsRemovedByUndo, undoEntry } from '@/actor/data/character/Advancement';
 
 /**
  * Undo an entry of the Experience Journal, along with what it bought. When the undo deletes items, such as the talent
  * the entry bought, the user confirms first; an undo that only lowers a rating doesn't ask.
  */
-export async function undoJournalEntry(actor: GenesysActor<CharacterDataModel>, index: number) {
+export async function undoJournalEntry(actor: GenesysActor<'character'>, index: number) {
 	const removed = itemsRemovedByUndo(advancementCharacter(actor), index);
 	if (removed.length > 0 && !(await confirmRemoval(removed))) {
 		return;

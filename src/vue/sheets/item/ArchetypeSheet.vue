@@ -6,14 +6,13 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
-import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 
-const { document: item, system, editable } = useSheetDocument<GenesysItem<ArchetypeDataModel>>();
+const { document: item, system, editable } = useSheetDocument<GenesysItem<'archetype'>>();
 
 const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').split(' ');
 

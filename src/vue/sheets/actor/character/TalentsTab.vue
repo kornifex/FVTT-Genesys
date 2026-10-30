@@ -3,9 +3,7 @@ import { computed } from 'vue';
 import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import Localized from '@/vue/components/Localized.vue';
-import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
@@ -14,7 +12,7 @@ import { talentGroups, TIERS } from '@/item/data/Talents';
 import { heldNonSkillsGrantedBy } from '@/actor/data/character/Archetype';
 import { itemsOfType } from '@/item/ItemTypes';
 
-const { document: actor } = useSheetDocument<GenesysActor<CharacterDataModel>>();
+const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
 const abilities = computed(() => talentGroups(itemsOfType(actor.value, 'ability'), game.i18n.lang));
 // The ids of the items the Archetype granted, which only go away with it.
@@ -22,14 +20,14 @@ const grantedItemIds = computed(() => {
 	const character = actor.value;
 	const [archetype] = itemsOfType(character, 'archetype');
 	return new Set(
-		archetype ? heldNonSkillsGrantedBy(character.items.contents, archetype.systemData.grantedItems, character.id).map((i) => i.id) : [],
+		archetype ? heldNonSkillsGrantedBy(character.items.contents, archetype.system.grantedItems, character.id).map((i) => i.id) : [],
 	);
 });
 
 const talents = computed(() => talentGroups(itemsOfType(actor.value, 'talent'), game.i18n.lang));
 // Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
-const talentTotals = computed(() => actor.value.systemData.talentPyramidTotals);
+const talentTotals = computed(() => actor.value.system.talentPyramidTotals);
 
 function tierLimitText(tier: number) {
 	const limit = tierLimit(talentTotals.value, tier);
@@ -38,11 +36,11 @@ function tierLimitText(tier: number) {
 
 const advancement = computed(() => advancementCharacter(actor.value));
 
-function canUpgradeTalent(talent: Stored<GenesysItem<TalentDataModel>>) {
+function canUpgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 	return isAllowed(buyTalentRank(advancement.value, talent.id));
 }
 
-async function upgradeTalent(talent: Stored<GenesysItem<TalentDataModel>>) {
+async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 	await advance(actor.value, (character) => buyTalentRank(character, talent.id));
 }
 </script>

@@ -5,10 +5,10 @@ import { computed, createApp, isProxy, shallowReactive, watch, watchEffect } fro
 import { type DocumentSheetContext, provideSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 
-type FakeDocument = { name: string; systemData: { wounds: number } };
+type FakeDocument = { name: string; system: { wounds: number } };
 
 function fakeDocument(name: string): FakeDocument {
-	return { name, systemData: { wounds: 0 } };
+	return { name, system: { wounds: 0 } };
 }
 
 /**
@@ -95,7 +95,7 @@ describe('useSheetDocument', () => {
 		const shown: number[] = [];
 		watchEffect(() => shown.push(system.value.wounds), { flush: 'sync' });
 
-		actor.systemData.wounds = 3;
+		actor.system.wounds = 3;
 		sheet.render(documentContext(actor));
 
 		expect(shown).toEqual([0, 3]);

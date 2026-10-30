@@ -46,7 +46,7 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 		}
 
 		const [career] = itemsOfType(skill.actor, 'career');
-		const careerSkills = career?.systemData.careerSkills ?? [];
+		const careerSkills = career?.system.careerSkills ?? [];
 		skill.updateSource({
 			system: { career: createdSkillIsCareer({ name: skill.name, career: this.career }, careerSkills) },
 		});

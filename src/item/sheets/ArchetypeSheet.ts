@@ -1,4 +1,3 @@
-import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
@@ -15,7 +14,7 @@ const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
 /**
  * Item sheet used for Archetypes, which receives the items the Archetype grants.
  */
-export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
+export class ArchetypeSheet extends GenesysItemSheet<'archetype'> {
 	static override DEFAULT_OPTIONS = {
 		classes: ['archetype'],
 		position: { width: 720, height: 780 },
@@ -30,12 +29,12 @@ export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 			return;
 		}
 
-		if (grantsItem(this.item.systemData.grantedItems, droppedItem)) {
+		if (grantsItem(this.item.system.grantedItems, droppedItem)) {
 			return;
 		}
 
 		await this.item.update({
-			system: { grantedItems: [...this.item.systemData.grantedItems, droppedItem.toObject()] },
+			system: { grantedItems: [...this.item.system.grantedItems, droppedItem.toObject()] },
 		});
 	}
 }

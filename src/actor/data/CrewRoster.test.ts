@@ -400,7 +400,7 @@ describe('crewMemberSkills', () => {
 		return {
 			type: 'character',
 			skills,
-			systemData: { characteristics: { brawn: 2, agility, intellect: 2, cunning: 2, willpower: 2, presence: 2 } },
+			system: { characteristics: { brawn: 2, agility, intellect: 2, cunning: 2, willpower: 2, presence: 2 } },
 			allApplicableEffects: () => [],
 		};
 	}

@@ -3,9 +3,8 @@
  */
 
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
-import { AdversaryDataModel } from '@/actor/data/AdversaryDataModel';
+import { AdversaryDataModel, type AdversaryType } from '@/actor/data/AdversaryDataModel';
 import { GenesysItem } from '@/item/GenesysItem';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { itemsOfType } from '@/item/ItemTypes';
 import { decideAdversaryDrop } from '@/actor/data/AdversaryItems';
 import { notify } from '@/notifications';
@@ -14,7 +13,7 @@ import { receiveInventoryDrop } from '@/operations/InventoryDrop';
 /**
  * Actor sheet shared by the adversaries: minions, rivals and nemeses.
  */
-export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
+export class AdversarySheet extends GenesysActorSheet<AdversaryType> {
 	static override DEFAULT_OPTIONS = {
 		position: { width: 480 },
 	};
@@ -23,7 +22,7 @@ export class AdversarySheet extends GenesysActorSheet<AdversaryDataModel> {
 		return 'stats';
 	}
 
-	protected override async receiveItem(droppedItem: GenesysItem<BaseItemDataModel>) {
+	protected override async receiveItem(droppedItem: GenesysItem) {
 		if (AdversaryDataModel.isRelevantTypeForContext('INVENTORY', droppedItem.type)) {
 			return receiveInventoryDrop(this.actor, droppedItem);
 		}

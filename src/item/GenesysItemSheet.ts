@@ -1,7 +1,6 @@
 import type { DeepPartial } from 'fvtt-types/utils';
 import { GenesysItem } from '@/item/GenesysItem';
 import type { Stored } from '@/data/Stored';
-import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
 import { DocumentSheetContext } from '@/vue/SheetContext';
@@ -9,15 +8,15 @@ import { DocumentSheetContext } from '@/vue/SheetContext';
 import '@/item/GenesysItemSheet.scss';
 
 /**
- * The item a drop carries by its uuid, of the data model the receiver expects; undefined when it carries no item.
+ * The item a drop carries by its uuid, of the type the receiver expects; undefined when it carries no item.
  */
-export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data: DragTransferData) {
+export async function itemFromDrop<SubType extends Item.SubType = Item.SubType>(data: DragTransferData) {
 	if (!data.uuid) {
 		return undefined;
 	}
 
 	try {
-		return (await CONFIG.Item.documentClass.fromDropData(data)) as GenesysItem<ItemDataModel> | undefined;
+		return (await CONFIG.Item.documentClass.fromDropData(data)) as GenesysItem<SubType> | undefined;
 	} catch {
 		// Foundry throws when the uuid names no document, as once it is deleted, or one that isn't an item: the drop
 		// carries no item.
@@ -28,7 +27,7 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
 /**
  * Basic functionality shared by all item sheets, which render a Vue component.
  */
-export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends VueDocumentSheet(
+export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> extends VueDocumentSheet(
 	foundry.applications.sheets.ItemSheetV2,
 ) {
 	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
@@ -41,14 +40,14 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 	}
 
 	/**
-	 * The item, of the data model the sheet is registered for. A sheet shows an item the world, a compendium or an actor
+	 * The item, of the type the sheet is registered for. A sheet shows an item the world, a compendium or an actor
 	 * stores.
 	 */
 	override get item() {
-		return this.document as Stored<GenesysItem<ItemDataModel>>;
+		return this.document as Stored<GenesysItem<SubType>>;
 	}
 
-	override async getVueContext(): Promise<DocumentSheetContext<Stored<GenesysItem<ItemDataModel>>, this>> {
+	override async getVueContext(): Promise<DocumentSheetContext<Stored<GenesysItem<SubType>>, this>> {
 		return { sheet: this, document: this.item, editable: this.isEditable };
 	}
 

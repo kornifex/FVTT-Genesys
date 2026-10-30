@@ -3,9 +3,9 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
-import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import type { EquipmentType } from '@/item/ItemTypes';
 
-const { system } = useSheetDocument<GenesysItem<EquipmentDataModel>>();
+const { system } = useSheetDocument<GenesysItem<EquipmentType>>();
 </script>
 
 <template>

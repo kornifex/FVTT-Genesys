@@ -4,9 +4,8 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import ActivationRow from '@/vue/components/item/ActivationRow.vue';
-import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 
-const { system } = useSheetDocument<GenesysItem<AbilityDataModel>>();
+const { system } = useSheetDocument<GenesysItem<'ability'>>();
 </script>
 
 <template>
