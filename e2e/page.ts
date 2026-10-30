@@ -183,10 +183,19 @@ type PageHelpers = {
 	 * Setback, `A^` upgrades an Ability die.
 	 */
 	poolModification: (element: Element, icon?: Element | null) => string;
-	/** The rows of an Effects tab, each with the heading of its section and its row element, to click its buttons. */
-	effectRows: (view: Element) => EffectsTabRow[];
+	/** The Effects view of a sheet, by its element or its window, or null while the sheet shows none. */
+	effectsView: (sheet: Element | { element?: unknown }) => Element | null;
+	/**
+	 * The rows of a sheet's Effects tab, by the sheet's element or its window, each with the heading of its section and its
+	 * row element, to click its buttons; none when the sheet shows no Effects view.
+	 */
+	effectRows: (sheet: Element | { element?: unknown }) => EffectsTabRow[];
 	/** Clicks the power button of an Effects tab row, and waits for the row to show its effect turned on or off. */
 	toggleEffect: (row: EffectsTabRow) => Promise<void>;
+	/** Clicks the Edit button of an Effects tab row, which opens its effect's sheet: the caller waits for the one it expects. */
+	editEffect: (row: EffectsTabRow) => void;
+	/** Clicks the Add button of a section of a sheet's Effects tab, the first section being 1, and settles. */
+	addEffect: (sheet: Element | { element?: unknown }, section: number) => Promise<void>;
 	/** Gives a user, by name, a permission level on an actor; the user `default` stands for every user without one. */
 	setOwnership: (actor: Untyped, user: string, level: OwnershipLevel) => Promise<void>;
 	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
@@ -319,12 +328,9 @@ export function installHelpers() {
 			await helpers.deleteSetUp('Token', 'Actor');
 
 			const actors = await Actor.createDocuments(
-				combatants.map(({ name, type, disposition, owner }) => ({
+				combatants.map(({ name, type, disposition }) => ({
 					name: `E2E ${name}`,
 					type,
-					ownership: owner
-						? { default: 0, [game.users.getName(owner).id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER }
-						: { default: 0 },
 					prototypeToken: {
 						actorLink: type === 'character',
 						disposition:
@@ -332,6 +338,7 @@ export function installHelpers() {
 					},
 				})),
 			);
+			for (const { name, owner } of combatants) if (owner) await helpers.setOwnership(helpers.actor(name), owner, 'OWNER');
 			const tokens = await viewedScene().createEmbeddedDocuments(
 				'Token',
 				await Promise.all(
@@ -580,11 +587,16 @@ export function installHelpers() {
 			return `${helpers.text(element)}${operator}`;
 		},
 
-		effectRows(view) {
+		effectsView(sheet) {
+			const root = sheet instanceof Element ? sheet : helpers.htmlOf(sheet);
+			return root?.querySelector('.effects-view') ?? null;
+		},
+
+		effectRows(sheet) {
 			// Each section is a heading, then the rows of its effects.
 			const rows: EffectsTabRow[] = [];
 			let section = '';
-			for (const element of view.children) {
+			for (const element of helpers.effectsView(sheet)?.children ?? []) {
 				if (element.matches('.effects-header')) section = helpers.text(element.querySelector('.name'));
 				for (const row of element.matches('.effects-category') ? element.querySelectorAll<HTMLElement>('.effect') : []) {
 					rows.push({
@@ -606,6 +618,17 @@ export function installHelpers() {
 			const opacity = power.style.opacity;
 			power.click();
 			await helpers.waitFor(`${row.name} turned on or off`, () => !row.element.isConnected || power.style.opacity !== opacity);
+			await helpers.settle();
+		},
+
+		editEffect(row) {
+			row.element.querySelector<HTMLElement>('.fa-edit')!.closest('a')!.click();
+		},
+
+		async addEffect(sheet, section) {
+			const add = helpers.effectsView(sheet)?.querySelectorAll<HTMLElement>('.effects-header .buttons a')[section - 1];
+			if (!add) throw new Error(`No Add button in section ${section} of the Effects tab`);
+			add.click();
 			await helpers.settle();
 		},
 

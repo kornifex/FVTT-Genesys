@@ -142,6 +142,8 @@ type SheetsHelpers = {
 	};
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
+	/** Clicks the Add button of a section of a sheet's Effects tab, from 1. */
+	addEffect(name: string, section: number): Promise<void>;
 	effectsData(name: string): { name: string; disabled: boolean; rounds: number | null }[];
 	source(name: string): { html: string; links: number; rolls: number; checks: number; italic: boolean; smaller: boolean };
 	/** Opens a sheet while the enrichment takes a moment, and reads its source line before and after. */
@@ -191,7 +193,8 @@ declare global {
  */
 function installSheetsHelpers() {
 	if (window.sheetsE2E) return;
-	const { sleep, settle, waitFor, text, isSetUp, durationRounds, htmlOf, render, actor, apps, dragStart, drop, effectRows } = window.e2e;
+	const { sleep, settle, waitFor, text, isSetUp, durationRounds, htmlOf, render, actor, apps, dragStart, drop, effectRows, addEffect } =
+		window.e2e;
 	const ApplicationV2 = foundry.applications.api.ApplicationV2;
 	// An actor's name, a world item's name, or `Actor/Item` for an owned item.
 	const documentNamed = (name: string) => {
@@ -812,13 +815,17 @@ function installSheetsHelpers() {
 		},
 
 		effectRows(name) {
-			return effectRows(sheetElement(name).querySelector('.effects-view')!).map((row) => ({
+			return effectRows(sheetElement(name)).map((row) => ({
 				section: row.section,
 				name: row.name,
 				source: row.source,
 				tooltip: row.tooltip,
 				buttons: [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
 			}));
+		},
+
+		addEffect(name, section) {
+			return addEffect(sheetElement(name), section);
 		},
 
 		effectsData(name) {
@@ -1856,12 +1863,11 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#85 GM opens the effect sheet from the Effects tab of a character', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
-			const { htmlOf, waitFor, effectRows } = window.e2e;
+			const { htmlOf, waitFor, effectRows, editEffect } = window.e2e;
 			await sheets.open('Hero');
 			await sheets.clickTab('Hero', 'effects');
 			const hero = game.actors.getName('E2E Hero');
-			const row = effectRows(htmlOf(hero.sheet)!.querySelector('.effects-view')!).find((row) => row.name === 'E2E Edited')!;
-			row.element.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
+			editEffect(effectRows(hero.sheet).find((row) => row.name === 'E2E Edited')!);
 			const effectSheet = hero.effects.getName('E2E Edited').sheet;
 			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name$="changes.0.key"]'));
 		}),
@@ -2097,7 +2103,7 @@ export async function run(e2e: ScenarioContext) {
 			for (const name of names) {
 				await sheets.open(name);
 				await sheets.clickTab(name, 'effects');
-				for (const section of [1, 2, 3]) await sheets.click(name, '.effects-view .effects-header .buttons a', section);
+				for (const section of [1, 2, 3]) await sheets.addEffect(name, section);
 			}
 		}, added),
 	);
@@ -2281,14 +2287,11 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step("#102 GM edits and powers off an item's effect from the Rival's Effects tab", () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;
-			const { htmlOf, settle, effectRows, toggleEffect } = window.e2e;
+			const { settle, effectRows, toggleEffect, editEffect } = window.e2e;
 			await sheets.clickTab('Rival', 'effects');
-			const row = () =>
-				effectRows(htmlOf(game.actors.getName('E2E Rival').sheet)!.querySelector('.effects-view')!).find(
-					(row) => row.name === 'E2E Kit effect',
-				)!;
+			const row = () => effectRows(game.actors.getName('E2E Rival').sheet).find((row) => row.name === 'E2E Kit effect')!;
 			// Which effect sheet opens is under test: the step waits for the click's work to end, not for a sheet.
-			row().element.querySelector<HTMLElement>('.fa-edit')!.parentElement!.click();
+			editEffect(row());
 			await settle();
 			await toggleEffect(row());
 		}),

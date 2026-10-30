@@ -836,9 +836,9 @@ function installInventoryHelpers() {
 		},
 
 		async inactive(ref) {
-			const view = (await sheet(ref)).querySelector('.tab[data-tab="effects"] .effects-view');
+			const root = await sheet(ref);
 			const inactive = game.i18n.localize('Genesys.ActiveEffects.Suppressed');
-			return (view ? effectRows(view) : [])
+			return effectRows(root)
 				.filter((row) => row.section === inactive)
 				.map((row) => `${unprefixed(row.name)} | ${row.tooltip ?? ''}`);
 		},
