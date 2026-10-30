@@ -4,6 +4,7 @@ import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
 import { VueSheet } from '@/vue/VueSheet';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckRoll } from '@/dice/CheckRoll';
+import { diceRollerTarget } from '@/dice/DiceRoller';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -132,14 +133,49 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 }
 
 /**
- * Open a bare Dice Prompt on the `/gendr` chat command (GENesys Dice Roller), which a macro can send.
+ * Open the Dice Roller: a Dice Prompt for the actor of the user's single controlled token, or a bare one when no token is
+ * controlled.
+ */
+function openDiceRoller() {
+	const target = diceRollerTarget<GenesysActor>(
+		(canvas?.tokens?.controlled ?? []).map((token) => ({ actor: token.actor ?? undefined, vehicle: token.actor?.type === 'vehicle' })),
+	);
+	if ('error' in target) {
+		ui.notifications.error(game.i18n.localize(target.error));
+		return;
+	}
+	void DicePrompt.promptForRoll(target.actor, '');
+}
+
+/**
+ * Open the Dice Roller on the `/gendr` chat command (GENesys Dice Roller), which a macro can send, and from a button of
+ * the chat controls.
  */
 export function register() {
 	Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
 		if (/^\/gendr(?:oll)?/i.test(message)) {
-			void DicePrompt.promptForRoll(undefined, '');
+			openDiceRoller();
 			return false;
 		}
 		return true;
+	});
+
+	// The chat log moves its controls between the notifications, while the sidebar is collapsed, and the chat form, and
+	// fires this hook on each move: the button is added once, and moves with them.
+	Hooks.on('renderChatInput', (_app, elements) => {
+		const controls = elements['#chat-controls'];
+		if (!controls || controls.querySelector('.dice-roller')) return;
+
+		const button = document.createElement('button');
+		button.type = 'button';
+		button.className = 'ui-control icon fa-solid fa-dice-d20 dice-roller';
+		// An empty tooltip shows the aria-label, as on Foundry's own chat controls.
+		button.dataset.tooltip = '';
+		button.ariaLabel = game.i18n.localize('Genesys.DicePrompt.OpenDiceRoller');
+		button.addEventListener('click', openDiceRoller);
+
+		const modes = controls.querySelector('.split-button');
+		if (modes) modes.after(button);
+		else controls.prepend(button);
 	});
 }

@@ -164,6 +164,7 @@ Genesys:
   # Dice Prompt Labels
   DicePrompt:
     Title: Reserva de dados
+    OpenDiceRoller: Tirar dados
     Roll: ¡Tira!
     Hint: Utiliza el recuadro de dados de la derecha para añadir, incrementar y rebajar. Haz clic en los dados para eliminarlos.
     UseSuperCharacteristic: Tira como una supercaracterística
@@ -230,6 +231,8 @@ Genesys:
     NotEnoughStoryPoints: ¡No puedes gastar puntos de Historia que no tienes!
     SelectOneTokenForAction: Debes seleccionar un único token para realizar esta acción.
     NoActorForCheck: Selecciona un solo token o asígnate un personaje para hacer esta tirada.
+    SelectNoneOrOneTokenForAction: Selecciona un solo token, o ninguno, para realizar esta acción.
+    InvalidTokenTypeForAction: El token seleccionado es de un tipo no válido para realizar esta acción.
     TokenIsNotCombatant: El token seleccionado no participa en el combate actual.
     CannotClaimOppositeSlot: No puedes reclamar este puesto de iniciativa con {name} - ¡está en el lado equivocado!
     SlotAlreadyClaimed: Este puesto de iniciativa ya está reclamado.

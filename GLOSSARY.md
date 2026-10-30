@@ -70,6 +70,10 @@ _Avoid_: Super stat
 A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand.
 _Avoid_: Dice modifier, pool mod
 
+**Dice Roller**:
+The Dice Prompt opened from the `/gendr` chat command or the chat's dice button: for the actor of the single controlled token, or bare, without an actor, when no token is controlled.
+_Avoid_: Free roll, generic roll
+
 ### Advancement
 
 **Advancement**:

@@ -164,6 +164,7 @@ Genesys:
   # Dice Prompt Labels
   DicePrompt:
     Title: Dice Pool
+    OpenDiceRoller: Roll dice
     Roll: Roll!
     Hint: Use the dice box on the right to add, upgrade, and downgrade. Click dice in the pool to remove them!
     UseSuperCharacteristic: Roll as a super-characteristic
@@ -230,6 +231,8 @@ Genesys:
     NotEnoughStoryPoints: You can't spend Story Points you don't have!
     SelectOneTokenForAction: You need to selected a single token to perform this action.
     NoActorForCheck: Select a single token or assign yourself a character to roll this check.
+    SelectNoneOrOneTokenForAction: You need to select no tokens, or a single token, to perform this action.
+    InvalidTokenTypeForAction: The selected token is of an invalid type to perform this action.
     TokenIsNotCombatant: The selected token is not participating on the current combat.
     CannotClaimOppositeSlot: You can't claim this initiative slot with {name} - it's on the wrong side!
     SlotAlreadyClaimed: This initiative slot is already claimed.
