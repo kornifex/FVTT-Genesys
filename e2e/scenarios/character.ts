@@ -2285,7 +2285,7 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 
 /**
  * §#393: the chevron after the name of a Combat tab row opens and closes its description, each Weapon Profile's row on
- * its own; a row without a description shows none, and the name keeps its click.
+ * its own, on a sheet the user can't edit too; a row without a description shows none, and the name keeps its click.
  */
 async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const C = 'Duelist';
@@ -2423,8 +2423,61 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		skill: 'Ranged',
 		box: CLOSED_DESCRIPTION,
 	});
-
 	await page((name) => window.characterE2E.close(name), C);
+
+	// Reading a description edits nothing: a player who only observes the character opens it too.
+	const player = await e2e.player();
+	const playerPage = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) =>
+		(player.evaluate as (fn: unknown, arg: unknown) => Promise<R>)(fn, arg);
+	// The player's ownership of the character: a level, `OBSERVER` by its name, or null for none of its own.
+	const setOwnership = (level: number | 'OBSERVER' | null) =>
+		page(
+			async (args) => {
+				const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+				const value = args.level === 'OBSERVER' ? levels.OBSERVER : args.level ?? levels.INHERIT;
+				await game.actors.getName(`E2E ${args.name}`).update({ [`ownership.${game.users.getName(args.user).id}`]: value });
+			},
+			{ name: C, user: e2e.playerUser, level },
+		);
+	const previous = await page(
+		(args): number | null => game.actors.getName(`E2E ${args.name}`).ownership[game.users.getName(args.user).id] ?? null,
+		{ name: C, user: e2e.playerUser },
+	);
+	await e2e.step("#393 D1 the player given Observer on the character, its sheet's Combat tab shown in the player's page", async () => {
+		await setOwnership('OBSERVER');
+		await player.evaluate(installCharacterHelpers);
+		await playerPage((name) => window.characterE2E.open(name), C);
+		await playerPage((name) => window.e2e.showTab(name, 'combat'), C);
+	});
+	e2e.expect(
+		"#393 D1 on a sheet the player can't edit, the weapon's row shows its chevron, pointing right",
+		{
+			editable: await playerPage((name) => game.actors.getName(`E2E ${name}`).sheet.isEditable, C),
+			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
+		},
+		{ editable: false, chevron: SHOW },
+	);
+
+	await e2e.step("#393 D2 the chevron of the dagger's main row clicked in the player's page", () =>
+		playerPage((args) => window.characterE2E.clickChevron(args.name, args.row), { name: C, row: MAIN }),
+	);
+	e2e.expect(
+		"#393 D2 the weapon's description opens on the sheet the player can't edit, at its full height past 200px, its chevron pointing down",
+		{
+			box: await playerPage((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), {
+				name: C,
+				row: MAIN,
+				cap: 200,
+			}),
+			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
+		},
+		{ box: shownDescription(200), chevron: HIDE },
+	);
+
+	// The player leaves as it came: the steps after these run without it.
+	await playerPage((name) => window.characterE2E.close(name), C);
+	await setOwnership(previous);
+	await player.leave();
 }
 
 /** §#200: a talent's tier kept from 1 to 5, and one saved above 5 read as 5. */
