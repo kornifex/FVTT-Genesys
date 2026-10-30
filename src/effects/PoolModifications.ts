@@ -6,7 +6,7 @@ import { Characteristic } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
-import { PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 
@@ -70,19 +70,57 @@ export type CheckForPoolModifications = {
 	 * Range of the weapon, for an attack.
 	 */
 	attackRange?: string;
+
+	/**
+	 * The actor that makes the attack, for an attack: the one making the check, or the vehicle whose weapon they fire.
+	 * Left undefined for any other check.
+	 */
+	attacker?: SilhouettedActor;
 };
 
 /**
- * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, or from
- * the target's defense.
+ * What this module needs of an actor whose silhouette it compares. A vehicle's silhouette can be emptied in its sheet.
+ */
+export type SilhouettedActor = {
+	system: { silhouette?: number | null };
+};
+
+/**
+ * The silhouettes of a target and of its attacker.
+ */
+type Silhouettes = { target: number; attacker: number };
+
+/**
+ * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, or the silhouette
+ * difference between the target and its attacker.
+ */
+type PoolModificationOrigin = { effect: string } | { defense: keyof Defense } | { silhouette: Silhouettes };
+
+/**
+ * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
+ * target's defense, or from the silhouette difference between the attacker and the target.
  */
 export type ExternalPoolModification = {
 	source: PoolModificationSource;
-	from: { effect: string } | { defense: keyof Defense };
+	from: PoolModificationOrigin;
 	mods: string[];
 };
 
-// The actor types whose effects and defense modify the checks that target them. A vehicle's defense works as a
+/**
+ * The value that the function for its kind of origin gives a Pool Modification's origin.
+ */
+export function matchOrigin<T>(
+	from: PoolModificationOrigin,
+	cases: { effect(name: string): T; defense(defense: keyof Defense): T; silhouette(silhouettes: Silhouettes): T },
+): T {
+	if ('effect' in from) {
+		return cases.effect(from.effect);
+	}
+
+	return 'defense' in from ? cases.defense(from.defense) : cases.silhouette(from.silhouette);
+}
+
+// The actor types whose effects, defense and silhouette modify the checks that target them. A vehicle's defense works as a
 // character's (CRB p. 223).
 const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis', 'vehicle'];
 
@@ -168,7 +206,8 @@ export function scaledChangeValue(item: SourceItem | undefined, { key, value }: 
 }
 
 /**
- * The Pool Modifications that the effects of the actor and of their target, and the target's defense, bring to a check.
+ * The Pool Modifications that the effects of the actor and of their target, the target's defense and, for an attack,
+ * the silhouette difference with the target bring to a check.
  */
 export function poolModificationsForCheck(
 	actor: PoolModificationActor | undefined,
@@ -199,9 +238,41 @@ export function poolModificationsForCheck(
 				});
 			}
 		}
+
+		if (check.attacker) {
+			modifications.push(...silhouetteDifferenceModifications(check.attacker, target));
+		}
 	}
 
 	return modifications;
+}
+
+// An attack against a target two or more silhouettes larger is one difficulty easier, and one difficulty harder against
+// a target two or more smaller (CRB p. 109, which p. 222 applies to vehicles).
+function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: SilhouettedActor): ExternalPoolModification[] {
+	const targetSilhouette = silhouetteOf(target);
+	const attackerSilhouette = silhouetteOf(attacker);
+	if (targetSilhouette === undefined || attackerSilhouette === undefined) {
+		return [];
+	}
+
+	const difference = targetSilhouette - attackerSilhouette;
+	if (Math.abs(difference) < 2) {
+		return [];
+	}
+
+	return [
+		{
+			source: 'target',
+			from: { silhouette: { target: targetSilhouette, attacker: attackerSilhouette } },
+			mods: [difference > 0 ? removalGlyph(DIE_GLYPHS.Difficulty) : DIE_GLYPHS.Difficulty],
+		},
+	];
+}
+
+function silhouetteOf({ system }: SilhouettedActor) {
+	const silhouette: unknown = system.silhouette;
+	return typeof silhouette === 'number' ? silhouette : undefined;
 }
 
 function effectModifications(

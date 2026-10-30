@@ -1,4 +1,4 @@
-/** @file #215, #246, #269, #300 and #343: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
+/** @file #215, #246, #269, #300, #343 and #380: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
 import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
@@ -20,6 +20,17 @@ type PromptState = { pool: string; modifications: { name: string; mods: string }
 type PrototypeToken = { bar1: string | null; bar2: string | null; actorLink: boolean; disposition: number };
 
 type MenuTarget = { actor: string; kind: 'skill' | 'talent'; name: string };
+
+/**
+ * The silhouette field of an actor's sheet: where it sits, its label, value and bounds.
+ */
+type SilhouetteField = {
+	place: 'character meta' | 'adversary header' | 'elsewhere';
+	label: string;
+	value: string;
+	min: string;
+	step: string;
+};
 
 /**
  * The description area of an adversary's sheet, on its Stats tab, in px: its height, the bottom of its edit toggle, shown
@@ -62,6 +73,8 @@ type AdversariesHelpers = {
 	attack(args: { actor: string; weapon: string; target: string }): Promise<PromptState>;
 	/** The values of the inputs of an actor's sheet, by name. */
 	sheetInputs(args: { actor: string; names: string[] }): Promise<Record<string, string>>;
+	/** The silhouette field of an actor's sheet, null when it has none. */
+	silhouetteField(actor: string): Promise<SilhouetteField | null>;
 	/** The element and computed `text-align` of each characteristic value of an actor's sheet, by label. */
 	characteristicAlignment(args: { actor: string }): Promise<Record<string, string>>;
 	/** Types a value in a number field of an actor's sheet, then returns the value stored. */
@@ -366,6 +379,20 @@ function installAdversariesHelpers() {
 			return Object.fromEntries(
 				names.map((inputName) => [inputName, root.querySelector<HTMLInputElement>(`input[name="${inputName}"]`)?.value ?? '']),
 			);
+		},
+
+		async silhouetteField(name) {
+			const root = await sheet(name);
+			const input = root.querySelector<HTMLInputElement>('input[name="system.silhouette"]');
+			if (!input) return null;
+			const place = input.closest('.character-meta')
+				? 'character meta'
+				: input.closest('.adversary-sheet > header')
+					? 'adversary header'
+					: 'elsewhere';
+			// An adversary's label holds its input, a character's sits before it.
+			const label = input.closest('label') ?? input.previousElementSibling;
+			return { place, label: text(label), value: input.value, min: input.min, step: input.step };
 		},
 
 		async characteristicAlignment({ actor: name }) {
@@ -938,6 +965,65 @@ export async function run(e2e: ScenarioContext) {
 		'#359 I5 saving the description of 25 paragraphs closes its editor, back to the height of its area before',
 		Math.round(savedText.height),
 		Math.round(closedText.height),
+	);
+
+	// J: the silhouette of characters and Adversaries (§#380).
+	const characterAndAdversaries = ['Hero', 'Grunts', 'Rival', 'Nemesis'];
+	e2e.expect(
+		'#380 J1 a character or an Adversary stored before it had a silhouette reads 1, and a new one is created at 1',
+		await gm.evaluate((names) => {
+			const stored = (name: string) => {
+				const data = game.actors.getName(`E2E ${name}`).toObject();
+				delete data.system.silhouette;
+				return new Actor.implementation(data).system.silhouette;
+			};
+			return {
+				stored: Object.fromEntries(names.map((name) => [name, stored(name)])),
+				created: Object.fromEntries(names.map((name) => [name, game.actors.getName(`E2E ${name}`)._source.system.silhouette])),
+			};
+		}, characterAndAdversaries),
+		{
+			stored: { Hero: 1, Grunts: 1, Rival: 1, Nemesis: 1 },
+			created: { Hero: 1, Grunts: 1, Rival: 1, Nemesis: 1 },
+		},
+	);
+	const silhouetteFields: Record<string, unknown> = {};
+	for (const actor of characterAndAdversaries) {
+		silhouetteFields[actor] = await gm.evaluate((name) => window.adversariesE2E.silhouetteField(name), actor);
+	}
+	const expectedSilhouetteField = (place: string) => ({ place, label: 'Silhouette', value: '1', min: '0', step: '1' });
+	e2e.expect("#380 J2 the silhouette is edited in the character's meta block and under an Adversary's name", silhouetteFields, {
+		Hero: expectedSilhouetteField('character meta'),
+		Grunts: expectedSilhouetteField('adversary header'),
+		Rival: expectedSilhouetteField('adversary header'),
+		Nemesis: expectedSilhouetteField('adversary header'),
+	});
+	const typeSilhouette = (actor: string, value: string) =>
+		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), {
+			actor,
+			name: 'system.silhouette',
+			value,
+			path: 'system.silhouette',
+		});
+	e2e.expect(
+		'#380 J3 a silhouette typed in a sheet is stored, from 0 and without maximum; a negative one becomes 0, a fraction is rounded',
+		{
+			'Grunts 0': await typeSilhouette('Grunts', '0'),
+			'Nemesis 12': await typeSilhouette('Nemesis', '12'),
+			'Hero -2': await typeSilhouette('Hero', '-2'),
+			'Rival 2.6': await typeSilhouette('Rival', '2.6'),
+		},
+		{ 'Grunts 0': 0, 'Nemesis 12': 12, 'Hero -2': 0, 'Rival 2.6': 3 },
+	);
+
+	await update('Attacker', { 'system.silhouette': 3 });
+	await update('Hero', { 'system.silhouette': 1 });
+	e2e.expect(
+		'#380 J4 a silhouette 3 Adversary attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
+		(
+			await gm.evaluate((args) => window.adversariesE2E.attack(args), { actor: 'Attacker', weapon: 'Knife', target: 'Hero' })
+		).modifications.filter(({ name }) => name.includes('Silhouette')),
+		[{ name: 'From Target: Silhouette (1 vs 3)', mods: 'D+' }],
 	);
 
 	await gm.evaluate(() => window.adversariesE2E.cleanUp());

@@ -1893,9 +1893,10 @@ export async function run(e2e: ScenarioContext) {
 		'system.defense',
 		'system.armor',
 	];
-	const keyGroup = (label: string, names: string[], vehicle: string[]) => ({
+	// §#380: the silhouette applies to any actor.
+	const keyGroup = (label: string, names: string[], silhouette: string, vehicle: string[]) => ({
 		label,
-		options: [...names.map((name) => `🧑 ${name}`), ...vehicle.map((name) => `🚗 ${name}`)],
+		options: [...names.map((name) => `🧑 ${name}`), `🌐 ${silhouette}`, ...vehicle.map((name) => `🚗 ${name}`)],
 		values: keyValues,
 	});
 	const state = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Hero'));
@@ -1913,11 +1914,12 @@ export async function run(e2e: ScenarioContext) {
 		'#140 A2 the key select lists the six characteristics in their order, then the vehicle characteristics, and keeps its selection',
 		{ group: state.keyGroup, selected: state.keySelected },
 		{
-			group: keyGroup(
-				'Modify Characteristic',
-				['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'],
-				['Silhouette', 'Speed', 'Handling', 'Defense', 'Armor'],
-			),
+			group: keyGroup('Modify Characteristic', ['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'], 'Silhouette', [
+				'Speed',
+				'Handling',
+				'Defense',
+				'Armor',
+			]),
 			selected: 'system.characteristics.cunning',
 		},
 	);
@@ -1932,7 +1934,7 @@ export async function run(e2e: ScenarioContext) {
 				'system.characteristics.cunning=🧑 Cunning',
 				'system.characteristics.willpower=🧑 Willpower',
 				'system.characteristics.presence=🧑 Presence',
-				'system.silhouette=🚗 Silhouette',
+				'system.silhouette=🌐 Silhouette',
 				'system.speed=🚗 Speed',
 				'system.handling=🚗 Handling',
 				'system.defense=🚗 Defense',
@@ -2049,7 +2051,8 @@ export async function run(e2e: ScenarioContext) {
 			group: keyGroup(
 				'Caractéristique à modifier',
 				['Vigueur', 'Agilité', 'Intelligence', 'Ruse', 'Volonté', 'Présence'],
-				['Gabarit', 'Vitesse', 'Maniabilité', 'Défense', 'Armure'],
+				'Gabarit',
+				['Vitesse', 'Maniabilité', 'Défense', 'Armure'],
 			),
 			selected: 'system.characteristics.cunning',
 		},

@@ -177,6 +177,7 @@ Genesys:
       ManualChanges: Modifications manuelles
       SelfEffects: 'Du personnage : '
       TargetEffects: 'De la cible : '
+      SilhouetteDifference: Gabarit ({target} contre {attacker})
     ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
     ChanceToSucceedBySimulationDisclaimer: La probabilité affichée est une approximation calculée à partir de la méthode de Monte Carlo.

@@ -7,7 +7,13 @@ import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } f
 import { Skill, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
-import { ExternalPoolModification, PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
+import {
+	ExternalPoolModification,
+	matchOrigin,
+	PoolModificationActor,
+	poolModificationsForCheck,
+	SilhouettedActor,
+} from '@/effects/PoolModifications';
 
 /**
  * The kind of a check:
@@ -89,8 +95,8 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	purpose?: CheckPurpose;
 
 	/**
-	 * The target of the check, whose effects and defense bring Pool Modifications. Initiative has none: a target given for
-	 * it is ignored.
+	 * The target of the check, whose effects, defense and silhouette bring Pool Modifications. Initiative has none: a
+	 * target given for it is ignored.
 	 */
 	target?: CheckActor<S>;
 
@@ -98,6 +104,12 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	 * Range of the weapon, for an attack.
 	 */
 	attackRange?: string;
+
+	/**
+	 * The actor that makes an attack when it isn't the one rolling it: the vehicle whose weapon a crew member fires, as
+	 * {@link vehicleAttacker} finds it.
+	 */
+	attacker?: SilhouettedActor;
 
 	/**
 	 * Whether the Proficiency dice explode, for a dice pool rolled without an actor.
@@ -167,6 +179,7 @@ export function resolveCheck<S extends CheckSkill>(
 		characteristic,
 		skillName: rolledSkill?.skill.name,
 		attackRange: request.attackRange,
+		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
 	});
 
 	return {
@@ -220,7 +233,19 @@ export function canRollWithoutCharacteristic(check: Pick<Check, 'skill'>) {
 }
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
-	return `${source}.${'effect' in from ? `effect.${from.effect}` : `defense.${from.defense}`}`;
+	return matchOrigin(from, {
+		effect: (name) => `${source}.effect.${name}`,
+		defense: (defense) => `${source}.defense.${defense}`,
+		silhouette: () => `${source}.silhouette`,
+	});
+}
+
+/**
+ * The actor that makes an attack with a weapon when it isn't the one rolling it: the vehicle that owns a vehicle weapon,
+ * which a crew member fires (CRB p. 222). Undefined for any other weapon, whose attacker is the one rolling.
+ */
+export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | undefined): A | undefined {
+	return weapon?.type === 'vehicleWeapon' ? weapon.actor ?? undefined : undefined;
 }
 
 /**

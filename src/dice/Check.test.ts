@@ -16,6 +16,7 @@ import {
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
+	vehicleAttacker,
 } from '@/dice/Check';
 import { PoolModificationEffect } from '@/effects/PoolModifications';
 
@@ -36,12 +37,13 @@ function actor(
 		superCharacteristics = [] as Characteristic[],
 		groupSkillRank = undefined as number | undefined,
 		totalDefense = { melee: 0, ranged: 0 },
+		silhouette = 1,
 	} = {},
 ): CheckActor {
 	return {
 		type,
 		skills,
-		system: { characteristics, superCharacteristics: new Set(superCharacteristics), groupSkillRank, totalDefense },
+		system: { characteristics, superCharacteristics: new Set(superCharacteristics), groupSkillRank, totalDefense, silhouette },
 		allApplicableEffects: () => effects,
 	};
 }
@@ -192,6 +194,45 @@ describe('resolveCheck', () => {
 				(modification) => modification.key,
 			),
 		).toEqual(['self.effect.Dueling', 'target.effect.Shield', 'target.defense.melee']);
+	});
+
+	it("compares the attacker's silhouette to the target's for an attack, and for no other check (CRB p. 109)", () => {
+		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)]);
+		const giant = actor('rival', [], { silhouette: 3 });
+		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
+
+		expect(resolveCheck(hero, { purpose: attack, skillName: 'Melee', target: giant }, rules).poolModifications).toEqual([
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] },
+		]);
+		expect(resolveCheck(hero, { skillName: 'Melee', target: giant }, rules).poolModifications).toEqual([]);
+	});
+
+	it('takes the silhouette of the vehicle whose weapon is fired, not the crew member rolling the attack (CRB p. 222)', () => {
+		const gunner = actor('character', [skill('Gunnery', Characteristic.Agility, 1)]);
+		const vehicle = actor('vehicle', [], { silhouette: 3 });
+		const request = {
+			purpose: { kind: 'attack', weaponName: 'Cannon' },
+			skillName: 'Gunnery',
+			target: actor('character', []),
+			attacker: vehicle,
+		} as const;
+
+		expect(resolveCheck(gunner, request, rules).poolModifications).toEqual([
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
+		]);
+	});
+});
+
+describe('vehicleAttacker', () => {
+	it('is the vehicle that owns a vehicle weapon, which a crew member fires (CRB p. 222)', () => {
+		const vehicle = actor('vehicle', [], { silhouette: 3 });
+
+		expect(vehicleAttacker({ type: 'vehicleWeapon', actor: vehicle })).toBe(vehicle);
+	});
+
+	it('is nothing for a weapon of the actor rolling, or without a weapon', () => {
+		expect(vehicleAttacker({ type: 'weapon', actor: actor('character', []) })).toBeUndefined();
+		expect(vehicleAttacker(undefined)).toBeUndefined();
 	});
 });
 
