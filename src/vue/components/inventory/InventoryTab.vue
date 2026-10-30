@@ -10,7 +10,7 @@ import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 import { draggedGenesysType } from '@/data/DragTransferData';
-import { sectionItems } from '@/actor/data/Inventory';
+import { rowDropTarget, RowEdge, sectionItems } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
 
@@ -83,6 +83,11 @@ async function dropInventoryToSortSlot(event: DragEvent, state: EquipmentState, 
 	await receiveInventoryEvent(actor.value, event, { kind: 'section', state, after });
 }
 
+// An item dropped on a row lands as on the sort slot at the edge of the row it is dropped next to.
+async function dropInventoryOnRow(event: DragEvent, state: EquipmentState, index: number, edge: RowEdge) {
+	await receiveInventoryEvent(actor.value, event, rowDropTarget(state, index, edge));
+}
+
 function isSectionDragged(state: EquipmentState) {
 	return (state === EquipmentState.Equipped ? equipableDrag : inventoryDrag).isHovered.value;
 }
@@ -133,7 +138,9 @@ function resetDrags() {
 								:item="item"
 								:draggable="isDraggable"
 								:dragging="inventoryDrag.isHovered.value"
+								:sortable="isSectionDragged(section.state)"
 								:can-type-be-inside-container="canTypeBeInsideContainer"
+								@drop="(event: DragEvent, edge: RowEdge) => dropInventoryOnRow(event, section.state, index, edge)"
 							/>
 
 							<SortSlot

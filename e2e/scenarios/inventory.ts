@@ -16,10 +16,15 @@ type Source =
 	| { held: string; by: string };
 
 /**
- * Where a drop lands on an actor's sheet: on the n-th sort slot of a section (from 0, the slot above its first item), on
- * an item's row, or on another element of the sheet.
+ * The half of an inventory row a drag points at: the upper one, before its item, or the lower one, after it.
  */
-type Target = { section: EquipmentState; slot: number } | { item: string } | { on: string };
+type RowEdge = 'before' | 'after';
+
+/**
+ * Where a drop lands on an actor's sheet: on the n-th sort slot of a section (from 0, the slot above its first item), on
+ * an item's row, maybe on one of its halves (at the top of the window otherwise), or on another element of the sheet.
+ */
+type Target = { section: EquipmentState; slot: number } | { item: string; edge?: RowEdge } | { on: string };
 
 type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
 
@@ -44,6 +49,17 @@ type InventoryHelpers = {
 	editItemSheet(actor: string, item: string, field: string, value: string): Promise<void>;
 	/** The entries of the menu of an item's inventory row, as `Label [icon]`, a separator as `---`. */
 	menuEntries(actor: string, item: string): Promise<string[]>;
+	/**
+	 * Right-clicks an item's inventory row, on its image or on its quantity, and reads the entries of the menu that opens
+	 * in the Inventory tab as {@link menuEntries} does, or null when none opens. An item held in a Container is
+	 * right-clicked in the Container's opened row.
+	 */
+	rightClickMenu(actor: string, item: string, on?: 'image' | 'quantity'): Promise<string[] | null>;
+	/**
+	 * Drags an item from its source over the halves of an item's row, one after the other, then out of it: the edge each
+	 * half shows, or null when it shows none.
+	 */
+	edgesShown(source: Source, actor: string, item: string, edges: RowEdge[]): Promise<(RowEdge | null)[]>;
 	/**
 	 * Steps an item's quantity down or its damage up once from its row, which asks to confirm its deletion, reads the
 	 * dialog, and answers it.
@@ -214,8 +230,21 @@ function installInventoryHelpers() {
 		}
 		return dropData(source);
 	};
-	const dropOn = async (element: Element, data: object | DataTransfer) => {
-		window.e2e.drop(element, data);
+	// The point of a half of a row, on the Inventory tab shown, as a drag pointing at it gives.
+	const edgePoint = async (ref: string, row: HTMLElement, edge: RowEdge) => {
+		await helpers.showTab(ref, 'inventory');
+		const rect = row.getBoundingClientRect();
+		if (!rect.height) throw new Error(`The row of ${text(row.querySelector('.name a'))} isn't shown`);
+		return { x: rect.left + rect.width / 2, y: rect.top + rect.height * (edge === 'before' ? 0.25 : 0.75) };
+	};
+	const menuEntriesOf = (menu: Element) =>
+		[...menu.children].map((entry) =>
+			entry.matches('hr')
+				? '---'
+				: `${text(entry.querySelector('.menu-label'))} [${[...(entry.querySelector('.menu-icon i')?.classList ?? [])].filter((name) => name !== 'fas').join(' ')}]`,
+		);
+	const dropOn = async (element: Element, data: object | DataTransfer, point?: { x: number; y: number }) => {
+		window.e2e.drop(element, data, point);
 		// The sheets handle a drop asynchronously, and a refused drop changes nothing.
 		await settle();
 	};
@@ -389,10 +418,13 @@ function installInventoryHelpers() {
 			await Actor.createDocuments([
 				character('Hero', { ownership: { default: 0, [playerId]: OWNER } }),
 				character('Ally', { ownership: { default: OBSERVER } }),
-				...['Receiver', 'Sorter', 'Wearer', 'Packer', 'Looper', 'Deleter', 'Smith', 'Stepper'].map((name) => character(name)),
+				...['Receiver', 'Sorter', 'Wearer', 'Packer', 'Looper', 'Deleter', 'Smith', 'Stepper', 'Placer'].map((name) =>
+					character(name),
+				),
 				{ name: full('Vehicle'), type: 'vehicle' },
 				{ name: full('Hauler'), type: 'vehicle' },
 				{ name: full('Barge'), type: 'vehicle' },
+				{ name: full('Rover'), type: 'vehicle' },
 				{ name: full('Rival'), type: 'rival' },
 				{ name: full('Minion'), type: 'minion' },
 				{ name: full('Brute'), type: 'rival', system: { characteristics: { brawn: 3 } } },
@@ -488,6 +520,23 @@ function installInventoryHelpers() {
 				{ data: vehicleWeapon('Harpoon', {}), state: 'carried' },
 				{ data: gear('Tarp'), state: 'carried' },
 			]);
+			await give(actor('Placer'), [
+				{ data: weapon('Glaive'), state: 'equipped', sort: 1 },
+				{ data: weapon('Halberd'), state: 'equipped', sort: 2 },
+				{ data: weapon('Lance'), state: 'carried', sort: 1 },
+				{ data: weapon('Pike'), state: 'carried', sort: 2 },
+				{ data: gear('Twig', { quantity: 3 }), state: 'carried', sort: 3 },
+				{ data: container('Basket'), state: 'carried', sort: 4 },
+				{ data: gear('Berry'), state: 'carried', in: 'Basket' },
+				{ data: gear('Pinecone'), state: 'dropped', sort: 1 },
+			]);
+			await give(actor('Rover'), [
+				{ data: vehicleWeapon('Laser', {}), state: 'equipped', sort: 1 },
+				{ data: vehicleWeapon('Railgun', {}), state: 'equipped', sort: 2 },
+				{ data: vehicleWeapon('Flak', {}), state: 'carried', sort: 1 },
+				{ data: gear('Winch'), state: 'carried', sort: 2 },
+				{ data: container('Locker'), state: 'carried', sort: 3 },
+			]);
 
 			await window.e2e.ensureScene();
 			const tokenData = (await actor('Token Rival').getTokenDocument()).toObject();
@@ -542,15 +591,17 @@ function installInventoryHelpers() {
 			const dragged = await dragFrom(source);
 			const root = await sheet(ref);
 			let target: Element | null | undefined;
+			let point: { x: number; y: number } | undefined;
 			if ('item' in at) {
 				target = findRow(root, at.item);
+				if (at.edge) point = await edgePoint(ref, target as HTMLElement, at.edge);
 			} else if ('on' in at) {
 				target = root.querySelector(at.on);
 			} else {
 				target = sectionParts(root, at.section).filter((part) => part.matches('.sortTarget'))[at.slot];
 			}
 			if (!target) throw new Error(`No target ${JSON.stringify(at)} on ${ref}`);
-			await dropOn(target, dragged);
+			await dropOn(target, dragged, point);
 		},
 
 		async dropOnItemSheet(source, name, ref) {
@@ -595,15 +646,44 @@ function installInventoryHelpers() {
 			const row = await rowOf(ref, name);
 			row.querySelector<HTMLElement>(':scope > .actions')!.click();
 			const menu = await waitFor(`the menu of ${name}`, () => row.querySelector(':scope > .actions .context-menu'));
-			const entries = [...menu.children].map((entry) =>
-				entry.matches('hr')
-					? '---'
-					: `${text(entry.querySelector('.menu-label'))} [${[...(entry.querySelector('.menu-icon i')?.classList ?? [])].filter((name) => name !== 'fas').join(' ')}]`,
-			);
+			const entries = menuEntriesOf(menu);
 			// Any click outside closes the menu.
 			document.body.click();
 			await waitFor(`the menu of ${name} to close`, () => !row.querySelector(':scope > .actions .context-menu'));
 			return entries;
+		},
+
+		async rightClickMenu(ref, name, on = 'image') {
+			const root = await sheet(ref);
+			const row = await heldRow(ref, name);
+			const target = row.querySelector(on === 'image' ? ':scope > img' : ':scope > .quantity');
+			if (!target) throw new Error(`No ${on} on the row of ${name}`);
+			target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			// Opening a menu changes no document: the row's render is waited for.
+			await settle();
+			const menu = root.querySelector('.tab-inventory .context-menu');
+			if (!menu) return null;
+			const entries = menuEntriesOf(menu);
+			document.body.click();
+			await waitFor(`the menu of ${name} to close`, () => !root.querySelector('.tab-inventory .context-menu'));
+			return entries;
+		},
+
+		async edgesShown(source, ref, name, edges) {
+			const dataTransfer = await dragFrom(source);
+			if (!(dataTransfer instanceof DataTransfer)) throw new Error('Only a held item is dragged over a row');
+			const row = findRow(await sheet(ref), name);
+			const shown: (RowEdge | null)[] = [];
+			row.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
+			for (const edge of edges) {
+				const { x, y } = await edgePoint(ref, row, edge);
+				row.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: x, clientY: y }));
+				await settle();
+				shown.push(row.classList.contains('drop-before') ? 'before' : row.classList.contains('drop-after') ? 'after' : null);
+			}
+			row.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer }));
+			await settle();
+			return shown;
 		},
 
 		async stepToDeletion(ref, name, kind, answer) {
@@ -1100,9 +1180,10 @@ export async function run(e2e: ScenarioContext) {
 		(await effects('Hero')).suppressed,
 		['Elixir Effect', 'Potion Effect'],
 	);
-	await e2e.step("#103 D4 Ally's Dropped Whistle dropped on Hero's Mail row", drop(held('Whistle', 'Ally'), 'Hero', { item: 'Mail' }));
+	// Since #358 a row that is no Container places a drop in its section, as its sort slots do: on a Carried row, in Carried.
+	await e2e.step("#103 D4 Ally's Dropped Whistle dropped on Hero's Bell row", drop(held('Whistle', 'Ally'), 'Hero', { item: 'Bell' }));
 	e2e.expect(
-		'#103 D4 an item from another actor dropped on a row that is no Container lands in Carried',
+		'#103 D4 an item from another actor dropped on a Carried row that is no Container lands in Carried',
 		{
 			Ally: (await items('Ally')).filter((name) => name.startsWith('Whistle')),
 			Hero: (await items('Hero')).filter((name) => name.startsWith('Whistle')),
@@ -1115,7 +1196,7 @@ export async function run(e2e: ScenarioContext) {
 		drops(drop(held('Whistle', 'Hero'), 'Hero', { item: 'Mail' }), drop(held('Whistle', 'Hero'), 'Hero', onSheet)),
 	);
 	e2e.expect(
-		'#103 D5 an item dropped on a row or elsewhere on the sheet of the actor that owns it stays where it is',
+		'#103 D5 an item dropped on the row of a section that refuses it, or elsewhere on the sheet of the actor that owns it, stays where it is',
 		{
 			items: await items('Hero'),
 			carried: await sorts('Hero', 'carried'),
@@ -1810,6 +1891,8 @@ export async function run(e2e: ScenarioContext) {
 
 	await itemActions(e2e);
 
+	await rowMenuAndDrops(e2e);
+
 	await usedState(e2e);
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
@@ -1906,6 +1989,178 @@ async function itemActions(e2e: ScenarioContext) {
 		asked = await deleteFromMenu('Twine', 'yes');
 	});
 	e2e.expect("#252 D2 Yes deletes the item from the row's Delete", await twine(), []);
+}
+
+/** §#358: an inventory row's menu opens on a right-click, and an item dropped on a row lands before or after it. */
+async function rowMenuAndDrops(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const entries = (actor: string, item: string) =>
+		gm.evaluate((args) => window.inventoryE2E.menuEntries(args.actor, args.item), { actor, item });
+	const rightClick = (actor: string, item: string, on: 'image' | 'quantity' = 'image') =>
+		gm.evaluate((args) => window.inventoryE2E.rightClickMenu(args.actor, args.item, args.on), { actor, item, on });
+	const drop = (source: Source, actor: string, at: Target) => () =>
+		gm.evaluate((args) => window.inventoryE2E.drop(args.source, args.actor, args.at), { source, actor, at });
+	const drops =
+		(...actions: (() => Promise<unknown>)[]) =>
+		async () => {
+			for (const action of actions) await action();
+		};
+	const edgesShown = (source: Source, actor: string, item: string, edges: RowEdge[]) =>
+		gm.evaluate((args) => window.inventoryE2E.edgesShown(args.source, args.actor, args.item, args.edges), {
+			source,
+			actor,
+			item,
+			edges,
+		});
+	const section = (actor: string, state: EquipmentState) =>
+		gm.evaluate((args) => window.inventoryE2E.section(args.actor, args.state), { actor, state });
+	const items = (actor: string) => gm.evaluate((ref) => window.inventoryE2E.items(ref), actor);
+	const placer = async () => ({
+		equipped: await section('Placer', 'equipped'),
+		carried: await section('Placer', 'carried'),
+		dropped: await section('Placer', 'dropped'),
+	});
+	const rover = async () => ({ equipped: await section('Rover', 'equipped'), carried: await section('Rover', 'carried') });
+	const held = (item: string, by: string): Source => ({ held: item, by });
+	const rest = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
+
+	await gm.evaluate(() => window.inventoryE2E.showTab('Placer', 'inventory'));
+	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...rest];
+	e2e.expect(
+		"#358 A1 a right-click on a character's inventory row opens the menu of its … button, which a left-click still opens",
+		{ rightClick: await rightClick('Placer', 'Lance'), button: await entries('Placer', 'Lance') },
+		{ rightClick: lanceMenu, button: lanceMenu },
+	);
+	let quantityMenu: string[] | null = null;
+	await e2e.step("#358 A2 Placer's Twig, at a quantity of 3, right-clicked on its quantity", async () => {
+		quantityMenu = await rightClick('Placer', 'Twig', 'quantity');
+	});
+	e2e.expect(
+		"#358 A2 a right-click on a row's quantity steps it down, and opens no menu",
+		{
+			menu: quantityMenu,
+			quantity: await gm.evaluate(() => game.actors.getName('E2E Placer').items.getName('E2E Twig').system.quantity),
+		},
+		{ menu: null, quantity: 2 },
+	);
+	const player = await e2e.player();
+	await player.evaluate(installInventoryHelpers);
+	e2e.expect(
+		"#358 A3 a right-click opens no menu on the row of a sheet the user can't edit, nor on a Container's contents",
+		{
+			observer: await player.evaluate(() => window.inventoryE2E.rightClickMenu('Ally', 'Lockpick')),
+			contents: await rightClick('Placer', 'Berry'),
+		},
+		{ observer: null, contents: null },
+	);
+
+	e2e.expect(
+		'#358 B1 a weapon dragged over the halves of an Equipped row shows the edge it would land next to; a gear item, which Equipped refuses, none',
+		{
+			weapon: await edgesShown(held('Pike', 'Placer'), 'Placer', 'Glaive', ['after', 'before']),
+			gear: await edgesShown(held('Twig', 'Placer'), 'Placer', 'Glaive', ['after', 'before']),
+		},
+		{ weapon: ['after', 'before'], gear: [null, null] },
+	);
+	await e2e.step(
+		"#358 B2 Placer's Carried Lance dropped on the lower half of the Equipped Glaive's row",
+		drop(held('Lance', 'Placer'), 'Placer', { item: 'Glaive', edge: 'after' }),
+	);
+	e2e.expect("#358 B2 an item dropped on the lower half of an Equipped weapon's row is equipped right after it", await placer(), {
+		equipped: ['Glaive', 'Lance', 'Halberd'],
+		carried: ['Pike', 'Twig', 'Basket'],
+		dropped: ['Pinecone'],
+	});
+	await e2e.step(
+		"#358 B3 Placer's Carried Pike dropped on the upper half of the Equipped Halberd's row",
+		drop(held('Pike', 'Placer'), 'Placer', { item: 'Halberd', edge: 'before' }),
+	);
+	e2e.expect("#358 B3 an item dropped on the upper half of an Equipped weapon's row is equipped right before it", await placer(), {
+		equipped: ['Glaive', 'Lance', 'Pike', 'Halberd'],
+		carried: ['Twig', 'Basket'],
+		dropped: ['Pinecone'],
+	});
+	await e2e.step(
+		"#358 B4 a weapon from the sidebar dropped on the lower half of Placer's Glaive row",
+		drop({ sidebar: 'Sword' }, 'Placer', { item: 'Glaive', edge: 'after' }),
+	);
+	e2e.expect('#358 B4 an item from the sidebar dropped on a row is placed the same way', await placer(), {
+		equipped: ['Glaive', 'Sword', 'Lance', 'Pike', 'Halberd'],
+		carried: ['Twig', 'Basket'],
+		dropped: ['Pinecone'],
+	});
+	await e2e.step(
+		"#358 B5 Placer's Carried Twig dropped on the lower half of the Dropped Pinecone's row",
+		drop(held('Twig', 'Placer'), 'Placer', { item: 'Pinecone', edge: 'after' }),
+	);
+	e2e.expect('#358 B5 an item dropped on a row of the Dropped section is dropped there', await placer(), {
+		equipped: ['Glaive', 'Sword', 'Lance', 'Pike', 'Halberd'],
+		carried: ['Basket'],
+		dropped: ['Pinecone', 'Twig'],
+	});
+	const placerBeforeB6 = { items: await items('Placer'), rows: await placer() };
+	await e2e.step(
+		"#358 B6 Placer's Dropped Twig dropped on the upper, then the lower half of the Equipped Glaive's row",
+		drops(
+			drop(held('Twig', 'Placer'), 'Placer', { item: 'Glaive', edge: 'before' }),
+			drop(held('Twig', 'Placer'), 'Placer', { item: 'Glaive', edge: 'after' }),
+		),
+	);
+	e2e.expect(
+		"#358 B6 an item that can't be equipped dropped on an Equipped row is refused, as on the Equipped sort slots",
+		{ items: await items('Placer'), rows: await placer() },
+		placerBeforeB6,
+	);
+	await e2e.step(
+		"#358 B7 Placer's Dropped Twig dropped on the lower half of the Carried Basket's row",
+		drop(held('Twig', 'Placer'), 'Placer', { item: 'Basket', edge: 'after' }),
+	);
+	e2e.expect(
+		"#358 B7 an item dropped anywhere on a Container's row goes inside it",
+		(await items('Placer')).filter((name) => /^(Twig|Berry)/.test(name)),
+		['Berry:carried@Basket', 'Twig:carried@Basket'],
+	);
+
+	await gm.evaluate(() => window.inventoryE2E.showTab('Rover', 'inventory'));
+	const railgunMenu = ['Unequip [fa-suitcase]', '---', ...rest];
+	e2e.expect(
+		"#358 C1 a right-click on a vehicle's inventory row opens the menu of its … button",
+		{ rightClick: await rightClick('Rover', 'Railgun'), button: await entries('Rover', 'Railgun') },
+		{ rightClick: railgunMenu, button: railgunMenu },
+	);
+	await e2e.step(
+		"#358 C2 Rover's Carried Flak dropped on the lower half of the Equipped Laser's row",
+		drop(held('Flak', 'Rover'), 'Rover', { item: 'Laser', edge: 'after' }),
+	);
+	e2e.expect("#358 C2 a vehicle weapon dropped on the lower half of a vehicle's Equipped row is equipped right after it", await rover(), {
+		equipped: ['Laser', 'Flak', 'Railgun'],
+		carried: ['Winch', 'Locker'],
+	});
+	await e2e.step(
+		"#358 C3 Rover's Carried Winch dropped on the upper half of the Equipped Laser's row",
+		drop(held('Winch', 'Rover'), 'Rover', { item: 'Laser', edge: 'before' }),
+	);
+	e2e.expect("#358 C3 a gear item dropped on a vehicle's Equipped row is refused", await rover(), {
+		equipped: ['Laser', 'Flak', 'Railgun'],
+		carried: ['Winch', 'Locker'],
+	});
+	await e2e.step(
+		"#358 C4 Rover's Equipped Railgun dropped on the upper half of the Carried Winch's row",
+		drop(held('Railgun', 'Rover'), 'Rover', { item: 'Winch', edge: 'before' }),
+	);
+	e2e.expect("#358 C4 an item dropped on the upper half of a vehicle's Carried row is carried right before it", await rover(), {
+		equipped: ['Laser', 'Flak'],
+		carried: ['Railgun', 'Winch', 'Locker'],
+	});
+	await e2e.step(
+		"#358 C5 Rover's Carried Winch dropped on the upper half of the Locker's row",
+		drop(held('Winch', 'Rover'), 'Rover', { item: 'Locker', edge: 'before' }),
+	);
+	e2e.expect(
+		"#358 C5 an item dropped on a vehicle's Container row goes inside it",
+		(await items('Rover')).filter((name) => name.startsWith('Winch')),
+		['Winch:carried@Locker'],
+	);
 }
 
 /** §#239: the Used Equipment State is gone, a consumable saved in it loads as Carried, and a consumable's effects never apply. */

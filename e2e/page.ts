@@ -129,9 +129,10 @@ type PageHelpers = {
 	dragStart: (element: Element) => DataTransfer;
 	/**
 	 * Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does.
-	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then.
+	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then. The drop lands at
+	 * a point of the window when one is given, for a target that reads where it lands.
 	 */
-	drop: (element: Element, data: object | DataTransfer) => void;
+	drop: (element: Element, data: object | DataTransfer, point?: { x: number; y: number }) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
 	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
 	/** Creates and views the scene `E2E` when no scene is viewed. */
@@ -437,10 +438,11 @@ export function installHelpers() {
 			return dataTransfer;
 		},
 
-		drop(element, data) {
+		drop(element, data, point) {
 			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
 			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
-			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+			const at = point ? { clientX: point.x, clientY: point.y } : {};
+			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer, ...at }));
 			dataTransfer.clearData();
 		},
 
