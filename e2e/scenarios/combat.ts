@@ -79,6 +79,8 @@ type CombatHelpers = {
 	/** A refusal notification, as the client words it. */
 	warning(key: string, name?: string): string;
 	effectRemaining(combatant: string, effect: string): number | undefined;
+	/** Each combatant's turn number, by name, as Foundry v14 reads it to start an effect created out of the combat. */
+	turnNumbers(): Record<string, number | null>;
 	/** Gives a combatant's token actor an effect adding 1 to its melee defense, from the current turn. */
 	addDefenseEffect(combatant: string, effect: string, duration: { rounds?: number; turns?: number }): Promise<void>;
 	/** An effect of a combatant's token actor, found through its token: it outlives the combat. */
@@ -284,6 +286,15 @@ function installCombatHelpers() {
 			return combatant(name).actor.effects.getName(effect)?.duration.remaining;
 		},
 
+		turnNumbers() {
+			return Object.fromEntries(
+				game.combat.combatants.map((combatant: { name: string; turnNumber?: number | null }) => [
+					combatant.name,
+					combatant.turnNumber ?? null,
+				]),
+			);
+		},
+
 		async addDefenseEffect(name, effect, duration) {
 			const combat = game.combat;
 			await combatant(name).actor.createEmbeddedDocuments('ActiveEffect', [
@@ -441,6 +452,7 @@ export async function run(e2e: ScenarioContext) {
 	await trackerClass();
 	await extraSlotKeepsTurn();
 	await expiredEffects();
+	await firstSlotTurnNumbers();
 	await rollKeepsTurn();
 	await claims();
 	await claimedRows();
@@ -650,6 +662,39 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect('#357 C2 with no GM online, the run-out effect was left unmarked, and still applies', await expiry(), applying);
 		await e2e.step("#357 C3 GM ends Boss's turn, starting round 2", nextTurn);
 		e2e.expect('#357 C3 the next turn change with a GM online marks the effect expired', await expiry(), expired);
+	}
+
+	/**
+	 * §#247: a combatant's turn number is the turn of its first Initiative Slot in the round. Foundry v14 starts an effect in
+	 * turns created out of the combat at the turn after it, and numbers the turns by their place, which would give a
+	 * combatant with an Extra Slot the number of its last.
+	 */
+	async function firstSlotTurnNumbers() {
+		const turnNumbers = async () => {
+			const values: Record<string, Record<string, number | null>> = {};
+			for (const client of clients()) values[client.user] = await client.evaluate(() => window.combatE2E.turnNumbers());
+			return values;
+		};
+
+		// Hero's slot, then Boss's own, then Boss's Extra Slot.
+		await setUp({ Hero: 3, Boss: 2 }, { extraSlots: [{ name: 'Boss', initiative: 1 }], start: false });
+		e2e.expect(
+			'#247 A0 before the combat starts, no combatant has a turn number',
+			await turnNumbers(),
+			bothClients({ Hero: null, Boss: null }),
+		);
+
+		await e2e.step('#247 A1 GM starts the combat', () => gm.evaluate(() => game.combat.startCombat()));
+		e2e.expect(
+			"#247 A1 Boss's turn number is its own slot's, before its Extra Slot",
+			await turnNumbers(),
+			bothClients({ Hero: 0, Boss: 1 }),
+		);
+
+		await e2e.step("#247 A2 GM raises Boss's initiative above Hero's", () =>
+			gm.evaluate(() => game.combat.setInitiative(game.combat.combatants.getName('Boss').id, 4)),
+		);
+		e2e.expect("#247 A2 Boss's turn number follows its own slot, now first", await turnNumbers(), bothClients({ Boss: 0, Hero: 1 }));
 	}
 
 	/** §#59, from `rollKeepsTurn.ts` (#58): a roll that moves a slot before the current one keeps the turn, with no turn events. */

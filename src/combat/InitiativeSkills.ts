@@ -17,6 +17,21 @@ export type InitiativeSkill = {
 // is Vigilance (CRB p. 95). Skill names aren't localized, so a compendium that renames it falls back to the first.
 const DEFAULT_INITIATIVE_SKILL_NAME = 'Vigilance';
 
+/**
+ * The Initiative Skills: the skills marked for initiative, in their order. Without any, initiative is a Characteristic
+ * Check on Brawn, named `brawnName`.
+ */
+export function initiativeSkillsOf(
+	skills: { name: string; system: { characteristic: Characteristic; initiative: boolean } }[],
+	brawnName: string,
+): InitiativeSkill[] {
+	const initiativeSkills = skills
+		.filter((skill) => skill.system.initiative)
+		.map((skill) => ({ skillName: skill.name, skillChar: skill.system.characteristic }));
+
+	return initiativeSkills.length > 0 ? initiativeSkills : [{ skillName: brawnName, skillChar: Characteristic.Brawn }];
+}
+
 function findInitiativeSkill(initiativeSkills: InitiativeSkill[], skillName: string) {
 	return initiativeSkills.find((skill) => skillNamesMatch(skill.skillName, skillName));
 }
