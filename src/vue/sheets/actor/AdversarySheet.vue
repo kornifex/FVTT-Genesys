@@ -491,6 +491,11 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 				// An empty description takes the room of its edit toggle alone, which shows in it rather than over it, and
 				// the editor's minimum height once it opens.
 				&.empty {
+					// v13 gives the editor's `prosemirror` class Foundry's minimum height of an editor, 150px.
+					> .vue-editor {
+						min-height: 0;
+					}
+
 					> .vue-editor:has(.editor-container) {
 						min-height: 10rem;
 					}

@@ -7,13 +7,16 @@ function fit(textarea: HTMLTextAreaElement) {
 		if (parent.scrollTop) scrolled.push([parent, parent.scrollTop]);
 	}
 
-	textarea.style.height = 'auto';
+	// Foundry flexes the textarea (`flex: 1`, a basis of 0%) in the editor's column, which has no definite height: the
+	// flex layout sizes it from its content, two rows, whatever its height. A minimum height holds, and lets it still fill
+	// a taller editor.
+	textarea.style.minHeight = '';
 	const style = getComputedStyle(textarea);
 	const frame =
 		style.boxSizing === 'border-box'
 			? textarea.offsetHeight - textarea.clientHeight
 			: -(parseFloat(style.paddingTop) + parseFloat(style.paddingBottom));
-	textarea.style.height = `${textarea.scrollHeight + frame}px`;
+	textarea.style.minHeight = `${textarea.scrollHeight + frame}px`;
 
 	for (const [parent, scrollTop] of scrolled) parent.scrollTop = scrollTop;
 }
