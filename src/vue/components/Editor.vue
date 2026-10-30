@@ -2,6 +2,7 @@
 import { inject, onMounted, onUpdated, ref, toRaw } from 'vue';
 import { BaseSheetContext, RootContext } from '@/vue/SheetContext';
 import * as log from '@/log';
+import { useFitSourceTextarea } from '@/vue/useFitSourceTextarea.v12';
 
 const props = withDefaults(
 	defineProps<{
@@ -75,6 +76,9 @@ const rootContext = inject<BaseSheetContext>(RootContext)!;
  * Ensure the base content is enriched on mount.
  */
 onMounted(enrichContent);
+
+// v12: the HTML source textarea grows with its HTML, as v13's <code-mirror> does.
+useFitSourceTextarea(rootDiv);
 
 /**
  * When we're updated, we need to update the base content. This is a little more complex than simply calling enrichContent,

@@ -29,6 +29,7 @@ import { weaponDamage } from '@/item/Weapons';
 
 const context = inject<ActorSheetContext<AdversaryDataModel>>(RootContext)!;
 const system = computed(() => toRaw(context.data.actor).systemData);
+const hasDescription = computed(() => system.value.description.trim() !== '');
 
 const talents = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'talent') as GenesysItem<TalentDataModel>[]);
 const abilities = computed(() => toRaw(context.data.actor).items.filter((i) => i.type === 'ability') as GenesysItem<AbilityDataModel>[]);
@@ -158,8 +159,9 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 		<section class="sheet-body">
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
-					<div class="description-area">
-						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
+					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
+					<div v-if="context.data.editable || hasDescription || system.source.trim() !== ''" class="description-area">
+						<div :class="['adversary-description', { empty: !hasDescription }]">
 							<Editor name="system.description" :content="system.description" button />
 							<Enriched class="source" :value="system.source" />
 						</div>
@@ -449,6 +451,8 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
+// Unscoped: these rules reach into the child components the sheet renders (the editors, skills and motivations), which
+// scoped rules would reach only through :deep().
 .adversary-sheet {
 	display: flex;
 	flex-direction: column;
@@ -484,8 +488,33 @@ function dragStart(event: DragEvent, item: GenesysItem) {
 					}
 				}
 
-				&.empty > :first-of-type {
-					min-height: 10rem;
+				// An empty description takes the room of its edit toggle alone, which shows in it rather than over it, and
+				// the editor's minimum height once it opens.
+				&.empty {
+					// v13 gives the editor's `prosemirror` class Foundry's minimum height of an editor, 150px.
+					> .vue-editor {
+						min-height: 0;
+					}
+
+					> .vue-editor:has(.editor-container) {
+						min-height: 10rem;
+					}
+
+					> .vue-editor > .editor-edit {
+						display: block;
+						visibility: hidden;
+						position: static;
+						width: fit-content;
+						margin: 5px 5px 0 auto;
+					}
+
+					> .vue-editor:hover > .editor-edit {
+						visibility: visible;
+					}
+
+					> .source:empty {
+						display: none;
+					}
 				}
 			}
 		}
