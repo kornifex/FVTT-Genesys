@@ -59,3 +59,39 @@
 	color: revert;
 	font-size: revert;
 }
+
+// The components render no heading of their own: these are the rich text's, such as a description's. ApplicationV2 gives
+// headings its own look (v12: light text with a dark shadow, v13 on: a larger size), and wide margins. These restore
+// AppV1's headings, which the descriptions were written for.
+.application .vue-app :is(h1, h2, h3, h4) {
+	margin: 0 0 0.5rem;
+	padding: 0;
+	font-family: inherit;
+	font-weight: normal;
+	line-height: normal;
+	color: inherit;
+	text-shadow: none;
+
+	&:is(h1) {
+		font-size: 2em;
+		border-bottom: 2px solid appv1.$underline-header;
+	}
+
+	&:is(h2) {
+		font-size: 1.5em;
+		border-bottom: 1px solid appv1.$underline-header;
+	}
+
+	&:is(h3) {
+		font-size: 1.25em;
+		border-bottom: 1px solid appv1.$underline-header;
+	}
+
+	&:is(h4) {
+		font-size: 1em;
+	}
+
+	&.noborder {
+		border: none;
+	}
+}
