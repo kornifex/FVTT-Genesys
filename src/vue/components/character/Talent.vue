@@ -58,7 +58,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 			<a @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
-			<div>
+			<!-- The expandable description opens its only child. -->
+			<div class="desc-content">
 				<div v-if="talent" class="tier-container">
 					<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
 				</div>

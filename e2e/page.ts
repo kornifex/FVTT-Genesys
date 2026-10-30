@@ -166,6 +166,13 @@ type PageHelpers = {
 	 * Setback, `A^` upgrades an Ability die.
 	 */
 	poolModification: (element: Element, icon?: Element | null) => string;
+	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
+	showTab: (name: string, tab: string) => Promise<void>;
+	/**
+	 * Gives an element the `active` class, or takes it away: opens or closes an expandable description that no click
+	 * toggles, as in the Combat tabs.
+	 */
+	setActive: (element: Element, active: boolean) => void;
 	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
 	descriptionBox: (description: Element, cap: number) => DescriptionBox;
 };
@@ -534,6 +541,18 @@ export function installHelpers() {
 		poolModification(element, icon = element.querySelector('i')) {
 			const operator = Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?';
 			return `${helpers.text(element)}${operator}`;
+		},
+
+		async showTab(name, tab) {
+			const root = await helpers.render(helpers.actor(name).sheet);
+			const link = root.querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`);
+			if (!link) throw new Error(`No ${tab} tab on the sheet of E2E ${name}`);
+			link.click();
+			await helpers.waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
+		},
+
+		setActive(element, active) {
+			element.classList.toggle('active', active);
 		},
 
 		descriptionBox(description, cap) {

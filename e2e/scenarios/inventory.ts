@@ -57,8 +57,6 @@ type InventoryHelpers = {
 	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
 	rollPrompt(): Promise<void>;
-	/** Shows a tab of an actor's sheet. */
-	showTab(actor: string, tab: string): Promise<void>;
 	/** Runs a script on the setup's documents. */
 	updateItem(actor: string, item: string, changes: object): Promise<void>;
 	/** Writes an Equipment State by script, and tells whether the write threw and which state the item and the database keep. */
@@ -653,12 +651,6 @@ function installInventoryHelpers() {
 			if (!roll) throw new Error('No dice prompt');
 			roll.click();
 			await settle();
-		},
-
-		async showTab(ref, tab) {
-			const root = await sheet(ref);
-			root.querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`)!.click();
-			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
 		},
 
 		async updateItem(ref, name, changes) {
@@ -1688,7 +1680,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step(
 		"#134 M1 Smith's Inventory tab shown, then the Club's damage field emptied in its sheet",
 		drops(
-			() => page.evaluate(() => window.inventoryE2E.showTab('Smith', 'inventory')),
+			() => page.evaluate(() => window.e2e.showTab('Smith', 'inventory')),
 			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Club', 'system.baseDamage', '')),
 		),
 	);
@@ -1781,7 +1773,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step(
 		"#203 M6 Hauler's Inventory tab shown, then the Turret's firing arc updated",
 		drops(
-			() => page.evaluate(() => window.inventoryE2E.showTab('Hauler', 'inventory')),
+			() => page.evaluate(() => window.e2e.showTab('Hauler', 'inventory')),
 			updateItem('Hauler', 'Turret', { 'system.firingArc.aft': true }),
 		),
 	);

@@ -1,4 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab and Critical Injuries. */
+import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
 import type { ConfirmDialog, DescriptionBox } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 
@@ -82,8 +83,6 @@ type CharacterHelpers = {
 	talentsTab(actor: string): { abilities: string[]; talents: string[] };
 	/** Clicks the trash icon of a row of the Talents tab. */
 	trashTalentRow(actor: string, name: string): void;
-	/** Shows a tab of the actor's sheet, by its nav. */
-	showTab(actor: string, tab: string): Promise<void>;
 	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
 	toggleTalent(actor: string, talent: string): void;
 	/**
@@ -178,15 +177,16 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.tab-talents .talent')].find(
 			(row) => text(row.querySelector('.name a')).replace(/ \d+$/, '') === talent,
 		);
+	const armorRow = (name: string, armor: string) =>
+		[...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')].find(
+			(candidate) => text(candidate.querySelector('.name')) === `E2E ${armor}`,
+		);
+	// The element of a row that its `active` class opens.
 	const description = (name: string, row: DescriptionRow) => {
-		const found =
-			'talent' in row
-				? talentRow(name, `E2E ${row.talent}`)?.querySelector('.desc-container')
-				: 'armor' in row
-					? [...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')]
-							.find((candidate) => text(candidate.querySelector('.name')) === `E2E ${row.armor}`)
-							?.querySelector('.description')
-					: injuryRow(name, row.injury)?.querySelector('.description');
+		let found: Element | null | undefined;
+		if ('talent' in row) found = talentRow(name, `E2E ${row.talent}`)?.querySelector('.desc-container');
+		else if ('armor' in row) found = armorRow(name, row.armor)?.querySelector('.description');
+		else found = injuryRow(name, row.injury)?.querySelector('.description');
 		if (!found) throw new Error(`No description for ${JSON.stringify(row)}`);
 		return found;
 	};
@@ -639,18 +639,12 @@ function installCharacterHelpers() {
 			click(row?.querySelector('.fa-trash')?.closest('a'), `trash icon of ${item}`);
 		},
 
-		async showTab(name, tab) {
-			const root = sheet(name);
-			click(root.querySelector(`nav.sheet-tabs [data-tab="${tab}"]`), `${tab} tab`);
-			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
-		},
-
 		toggleTalent(name, talent) {
 			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name a'), `name of the talent ${talent}`);
 		},
 
 		setDescriptionActive(name, row, active) {
-			description(name, row).classList.toggle('active', active);
+			window.e2e.setActive(description(name, row), active);
 		},
 
 		descriptionBox(name, row, cap) {
@@ -2071,16 +2065,9 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
  */
 async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const D = 'Reader';
-	// Forty paragraphs stand well past the caps of 500px and 200px the descriptions had.
-	const long = Array.from({ length: 40 }, (_, index) => `<p>Line ${index + 1} of a long description.</p>`).join('');
-	const transition = 'grid-template-rows 0.5s';
 	const box = (row: DescriptionRow, cap: number) =>
 		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row, cap });
-	const shown = (cap: number): DescriptionBox => ({ height: `>${cap}`, clipped: 0, lastInside: true, transition });
-	const closed = async (row: DescriptionRow) => {
-		const { height, transition } = await box(row, 100_000);
-		return { height, transition };
-	};
+	const closed = async (row: DescriptionRow) => closedParts(await box(row, 100_000));
 	const setActive = (row: DescriptionRow, active: boolean) =>
 		page((args) => window.characterE2E.setDescriptionActive(args.name, args.row, args.active), { name: D, row, active });
 
@@ -2092,42 +2079,44 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 				{
 					name: 'E2E Verbose',
 					type: 'talent',
-					system: { activation: { type: 'passive', detail: '' }, tier: 1, description: long },
+					system: { activation: { type: 'passive', detail: '' }, tier: 1, description: LONG_DESCRIPTION },
 				},
-				{ name: 'E2E Padded Coat', type: 'armor', system: { state: 'equipped', description: long } },
-				{ name: 'E2E Deep Gash', type: 'injury', system: { severity: 'easy', description: long } },
+				{ name: 'E2E Padded Coat', type: 'armor', system: { state: 'equipped', description: LONG_DESCRIPTION } },
+				{ name: 'E2E Deep Gash', type: 'injury', system: { severity: 'easy', description: LONG_DESCRIPTION } },
 			],
 		});
 		await page((name) => window.characterE2E.open(name), D);
-		await page((name) => window.characterE2E.showTab(name, 'talents'), D);
+		await page((name) => window.e2e.showTab(name, 'talents'), D);
 		await page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D);
 	});
 	e2e.expect(
 		"#325 A1 the talent's description shows its last line, at its full height past 500px",
 		await box({ talent: 'Verbose' }, 500),
-		shown(500),
+		shownDescription(500),
 	);
 	await e2e.step('#325 A2 the talent clicked closed', () => page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D));
-	e2e.expect("#325 A2 the talent's closed description takes no height, and animates its rows", await closed({ talent: 'Verbose' }), {
-		height: 0,
-		transition,
-	});
+	e2e.expect(
+		"#325 A2 the talent's closed description takes no height, and animates its rows",
+		await closed({ talent: 'Verbose' }),
+		CLOSED_DESCRIPTION,
+	);
 
 	// No click opens a description in the Combat tab: the steps give it the class a toggle would.
 	await e2e.step('#325 B1 the description of an armor taller than 200px opened in the Combat tab, by its active class', async () => {
-		await page((name) => window.characterE2E.showTab(name, 'combat'), D);
+		await page((name) => window.e2e.showTab(name, 'combat'), D);
 		await setActive({ armor: 'Padded Coat' }, true);
 	});
 	e2e.expect(
 		"#325 B1 the armor's description shows its last line, at its full height past 200px",
 		await box({ armor: 'Padded Coat' }, 200),
-		shown(200),
+		shownDescription(200),
 	);
 	await e2e.step('#325 B2 the description of the armor closed', () => setActive({ armor: 'Padded Coat' }, false));
-	e2e.expect("#325 B2 the armor's closed description takes no height, and animates its rows", await closed({ armor: 'Padded Coat' }), {
-		height: 0,
-		transition,
-	});
+	e2e.expect(
+		"#325 B2 the armor's closed description takes no height, and animates its rows",
+		await closed({ armor: 'Padded Coat' }),
+		CLOSED_DESCRIPTION,
+	);
 
 	await e2e.step('#325 C1 the description of a Critical Injury taller than 200px opened in the Combat tab, by its active class', () =>
 		setActive({ injury: 'Deep Gash' }, true),
@@ -2135,13 +2124,13 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#325 C1 the Critical Injury's description shows its last line, at its full height past 200px",
 		await box({ injury: 'Deep Gash' }, 200),
-		shown(200),
+		shownDescription(200),
 	);
 	await e2e.step('#325 C2 the description of the Critical Injury closed', () => setActive({ injury: 'Deep Gash' }, false));
 	e2e.expect(
 		"#325 C2 the Critical Injury's closed description takes no height, and animates its rows",
 		await closed({ injury: 'Deep Gash' }),
-		{ height: 0, transition },
+		CLOSED_DESCRIPTION,
 	);
 	await page((name) => window.characterE2E.close(name), D);
 }

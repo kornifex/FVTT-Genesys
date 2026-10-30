@@ -1,4 +1,5 @@
 /** @file #214: a vehicle's Crew and its Roles, its Skills tab, the crew members who roll its checks, and deleting vehicles with their crew. */
+import { CLOSED_DESCRIPTION, closedParts, LONG_DESCRIPTION, shownDescription } from '../descriptions.ts';
 import type { DescriptionBox } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 
@@ -88,8 +89,6 @@ type VehicleHelpers = {
 	deleteScene(name: string): Promise<void>;
 	/** Deletes the n-th token of a scene from the left, from 1. */
 	deleteToken(args: { scene: string; n: number }): Promise<void>;
-	/** Shows a tab of an actor's sheet, by its nav. */
-	showTab(args: { actor: string; tab: string }): Promise<void>;
 	/** Gives an element of an actor's sheet the `active` class, or takes it away. */
 	setActive(args: { actor: string; target: Target; active: boolean }): Promise<void>;
 	/** An expandable description of an actor's sheet, as laid out: its height is given as `>cap` past `cap` px. */
@@ -471,14 +470,8 @@ function installVehicleHelpers() {
 			await tokensOf(scene)[n - 1].delete();
 		},
 
-		async showTab({ actor: name, tab }) {
-			const root = await sheet(name);
-			(find(root, [`nav.sheet-tabs [data-tab="${tab}"]|1`]) as HTMLElement).click();
-			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
-		},
-
 		async setActive({ actor: name, target, active }) {
-			find(await sheet(name), target).classList.toggle('active', active);
+			window.e2e.setActive(find(await sheet(name), target), active);
 		},
 
 		async descriptionBox({ actor: name, target, cap }) {
@@ -539,9 +532,6 @@ export async function run(e2e: ScenarioContext) {
  */
 async function expandedDescriptions(e2e: ScenarioContext) {
 	const vehicleE2E = helpersOf(e2e.gm);
-	// Forty paragraphs stand well past the cap of 200px the descriptions had.
-	const long = Array.from({ length: 40 }, (_, index) => `<p>Line ${index + 1} of a long description.</p>`).join('');
-	const transition = 'grid-template-rows 0.5s';
 	const description: Target = ['.tab-combat .critical-hits .critical-hit|=Hull Fire', '.description|1'];
 
 	// No click opens a description in the Combat tab: the step gives it the class a toggle would.
@@ -552,17 +542,17 @@ async function expandedDescriptions(e2e: ScenarioContext) {
 				{
 					name: 'Barge',
 					type: 'vehicle',
-					items: [{ name: 'E2E Hull Fire', type: 'injury', system: { severity: 'easy', description: long } }],
+					items: [{ name: 'E2E Hull Fire', type: 'injury', system: { severity: 'easy', description: LONG_DESCRIPTION } }],
 				},
 			]);
-			await vehicleE2E('showTab', { actor: 'Barge', tab: 'combat' });
+			await e2e.gm.evaluate(() => window.e2e.showTab('Barge', 'combat'));
 			await vehicleE2E('setActive', { actor: 'Barge', target: description, active: true });
 		},
 	);
 	e2e.expect(
 		"#325 D1 the Critical Hit's description shows its last line, at its full height past 200px",
 		await vehicleE2E('descriptionBox', { actor: 'Barge', target: description, cap: 200 }),
-		{ height: '>200', clipped: 0, lastInside: true, transition },
+		shownDescription(200),
 	);
 	await e2e.step('#325 D2 the description of the Critical Hit closed', () =>
 		vehicleE2E('setActive', { actor: 'Barge', target: description, active: false }),
@@ -570,8 +560,8 @@ async function expandedDescriptions(e2e: ScenarioContext) {
 	const closed = await vehicleE2E('descriptionBox', { actor: 'Barge', target: description, cap: 100_000 });
 	e2e.expect(
 		"#325 D2 the Critical Hit's closed description takes no height, and animates its rows",
-		{ height: closed.height, transition: closed.transition },
-		{ height: 0, transition },
+		closedParts(closed),
+		CLOSED_DESCRIPTION,
 	);
 }
 
