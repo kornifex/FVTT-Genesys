@@ -27,7 +27,7 @@ export class CareerSheet extends GenesysItemSheet<CareerDataModel> {
 		}
 
 		await this.item.update({
-			'system.careerSkills': [...this.item.systemData.careerSkills, droppedItem.toObject()],
+			system: { careerSkills: [...this.item.systemData.careerSkills, droppedItem.toObject()] },
 		});
 	}
 }

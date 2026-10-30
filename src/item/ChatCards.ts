@@ -115,7 +115,8 @@ export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
 	});
 
 	await ChatMessage.create({
-		speaker: ChatMessage.getSpeaker({ actor }),
+		// The actor whose sheet sends the card is stored.
+		speaker: ChatMessage.getSpeaker({ actor: actor as Actor.Stored }),
 		content,
 		style: CONST.CHAT_MESSAGE_STYLES.IC,
 	});

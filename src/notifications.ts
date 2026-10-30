@@ -10,5 +10,5 @@ export type Notification = {
  * Show a notification to the user.
  */
 export function notify({ key, data }: Notification) {
-	ui.notifications.info(game.i18n.format(key, data as Record<string, string>));
+	ui.notifications.info(game.i18n.format(key, data));
 }

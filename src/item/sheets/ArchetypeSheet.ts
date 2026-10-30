@@ -35,7 +35,7 @@ export class ArchetypeSheet extends GenesysItemSheet<ArchetypeDataModel> {
 		}
 
 		await this.item.update({
-			'system.grantedItems': [...this.item.systemData.grantedItems, droppedItem.toObject()],
+			system: { grantedItems: [...this.item.systemData.grantedItems, droppedItem.toObject()] },
 		});
 	}
 }

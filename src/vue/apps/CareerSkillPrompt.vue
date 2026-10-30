@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 
+import type { Stored } from '@/data/Stored';
 import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
 import { toggledFreeRankChoice } from '@/actor/data/character/Career';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
@@ -14,7 +15,7 @@ const context = useSheetContext<CareerSkillPromptContext>();
 const selectedSkillIDs = ref<string[]>([]);
 const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - selectedSkillIDs.value.length);
 
-function selectSkill(event: Event, skill: GenesysItem<SkillDataModel>) {
+function selectSkill(event: Event, skill: Stored<GenesysItem<SkillDataModel>>) {
 	event.preventDefault();
 
 	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, CONFIG.genesys.settings.freeCareerSkillRanks);
@@ -39,7 +40,7 @@ function confirm(event: Event) {
 				@click="(ev) => selectSkill(ev, skill)"
 			>
 				<i v-if="selectedSkillIDs.includes(skill.id)" class="fas fa-check-circle" />
-				<img :src="skill.img" :alt="skill.name" />
+				<img :src="skill.img ?? undefined" :alt="skill.name" />
 				<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.systemData.characteristic]" />)</span>
 			</button>
 		</div>

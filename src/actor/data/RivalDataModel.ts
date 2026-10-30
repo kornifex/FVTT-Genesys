@@ -21,12 +21,7 @@ export abstract class RivalDataModel extends AdversaryDataModel implements HasPr
 		...AdversaryDataModel.tokenAttributes,
 	};
 
-	async preCreate(
-		actor: GenesysActor<RivalDataModel>,
-		_data: unknown,
-		_options: DocumentModificationContext<GenesysActor<RivalDataModel>>,
-		_user: foundry.documents.BaseUser,
-	) {
+	async preCreate(actor: GenesysActor<RivalDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 		};

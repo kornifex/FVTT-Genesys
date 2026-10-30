@@ -50,12 +50,7 @@ export abstract class MinionDataModel extends AdversaryDataModel implements HasP
 		return groupSkillRank(this);
 	}
 
-	async preCreate(
-		actor: GenesysActor<MinionDataModel>,
-		_data: unknown,
-		_options: DocumentModificationContext<GenesysActor<MinionDataModel>>,
-		_user: foundry.documents.BaseUser,
-	) {
+	async preCreate(actor: GenesysActor<MinionDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },
 			bar2: { attribute: 'members' },

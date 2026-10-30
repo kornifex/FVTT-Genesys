@@ -12,7 +12,7 @@ const RootContext: InjectionKey<Readonly<ShallowRef<unknown>>> = Symbol('Vue Roo
 /**
  * What a document sheet hands its Vue app: the sheet, its document, and whether the user can edit it.
  */
-export type DocumentSheetContext<DocumentType, SheetType = foundry.applications.api.DocumentSheetV2> = {
+export type DocumentSheetContext<DocumentType, SheetType = foundry.applications.api.DocumentSheetV2.Any> = {
 	sheet: SheetType;
 	document: DocumentType;
 	editable: boolean;

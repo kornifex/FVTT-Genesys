@@ -35,8 +35,7 @@
 		],
 		"types": [
 			"dice-so-nice",
-			"foundry",
-			"foundry-v13",
+			"fvtt-types",
 			"handlebars",
 			"jquery",
 			"node",

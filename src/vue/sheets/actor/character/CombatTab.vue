@@ -69,7 +69,7 @@ function skillForWeapon(
 				</div>
 
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
-					<img :src="weapon.img" :alt="weapon.name" />
+					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 					<div class="name">
 						<a v-if="weapon.systemData.skills.length > 0" @click="attackWith(actor, weapon)">{{ weapon.name }}</a>
 						<span v-else>{{ weapon.name }}</span>
@@ -109,7 +109,7 @@ function skillForWeapon(
 				</div>
 
 				<div v-for="armor in armors" :key="armor.id" class="armor">
-					<img :src="armor.img" :alt="armor.name" />
+					<img :src="armor.img ?? undefined" :alt="armor.name" />
 					<div class="name">
 						<a @click="openSheet(armor)">{{ armor.name }}</a>
 					</div>

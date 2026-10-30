@@ -46,7 +46,7 @@ async function repairHit(criticalHit: GenesysItem<InjuryDataModel>) {
 				</div>
 
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
-					<img :src="weapon.img" :alt="weapon.name" />
+					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 
 					<div class="name">
 						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>

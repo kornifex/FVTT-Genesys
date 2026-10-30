@@ -22,7 +22,7 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
  * The data of a vehicle, with its Crew and its cargo.
  */
 export abstract class VehicleDataModel
-	extends foundry.abstract.DataModel
+	extends foundry.abstract.DataModel<foundry.data.fields.DataSchema>
 	implements HasPreCreate<GenesysActor<VehicleDataModel>>, HasOnDelete<GenesysActor<VehicleDataModel>>
 {
 	abstract silhouette: number;
@@ -93,7 +93,7 @@ export abstract class VehicleDataModel
 		return super.migrateData(source) as typeof source;
 	}
 
-	constructor(...args: ConstructorParameters<typeof foundry.abstract.DataModel>) {
+	constructor(...args: foundry.abstract.DataModel.ConstructorArgs<foundry.data.fields.DataSchema>) {
 		super(...args);
 
 		const actor = this.parent as unknown as GenesysActor<this>;
@@ -172,16 +172,11 @@ export abstract class VehicleDataModel
 		}
 
 		const actor = this.parent as unknown as GenesysActor<this>;
-		await actor.update({ 'system.passengers.list': crew.passengers, 'system.roles': crew.roles });
+		await actor.update({ system: { passengers: { list: crew.passengers }, roles: crew.roles } });
 		return true;
 	}
 
-	async preCreate(
-		actor: GenesysActor<VehicleDataModel>,
-		_data: unknown,
-		_options: DocumentModificationContext<GenesysActor<VehicleDataModel>>,
-		_user: User,
-	) {
+	async preCreate(actor: GenesysActor<VehicleDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
 		const prototypeToken = {
 			bar1: { attribute: 'trauma' },
 			bar2: { attribute: 'strain' },
@@ -191,11 +186,7 @@ export abstract class VehicleDataModel
 		actor.updateSource({ prototypeToken });
 	}
 
-	onDelete(
-		actor: GenesysActor<VehicleDataModel>,
-		_options: DocumentModificationContext<GenesysActor<VehicleDataModel>>,
-		_userId: string,
-	) {
+	onDelete(actor: GenesysActor<VehicleDataModel>, _options: unknown, _userId: string) {
 		VehicleDataModel._GAME_VEHICLES.delete(actor);
 	}
 
@@ -243,12 +234,14 @@ export abstract class VehicleDataModel
  * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills.
  */
 function renderVehiclesCrewedBy(actor: GenesysActor) {
-	if (actor.type === 'vehicle') {
+	// The hooks hand over stored actors: the guard only tells the types that they have a uuid.
+	const uuid = actor.uuid;
+	if (actor.type === 'vehicle' || !uuid) {
 		return;
 	}
 
 	for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-		if (vehicle.sheet.rendered && vehicle.systemData.hasCrew(actor.uuid)) {
+		if (vehicle.sheet?.rendered && vehicle.systemData.hasCrew(uuid)) {
 			void vehicle.sheet.render(true);
 		}
 	}
@@ -261,12 +254,12 @@ function renderVehiclesCrewedBy(actor: GenesysActor) {
  */
 function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
 	if (!vehicle.isToken) {
-		return game.actors.has(vehicle.id);
+		return !!vehicle.id && game.actors.has(vehicle.id);
 	}
 
 	const token = vehicle.token;
 	const scene = token?.parent;
-	return !!scene && game.scenes.has(scene.id) && scene.tokens.has(token.id);
+	return !!token?.id && !!scene?.id && game.scenes.has(scene.id) && scene.tokens.has(token.id);
 }
 
 /**
@@ -274,11 +267,11 @@ function isInWorld(vehicle: GenesysActor<VehicleDataModel>) {
  * from the Crew of every vehicle in the world.
  */
 export function register() {
-	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor as GenesysActor));
+	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor));
 
 	// A skill rank can change without its actor being updated, like a free rank or an adversary's rank.
-	const renderVehiclesCrewedByParent = (item: unknown) => {
-		const actor = (item as GenesysItem).parent;
+	const renderVehiclesCrewedByParent = (item: GenesysItem) => {
+		const actor = item.parent;
 		if (actor) {
 			renderVehiclesCrewedBy(actor);
 		}
@@ -288,14 +281,12 @@ export function register() {
 	Hooks.on('deleteItem', renderVehiclesCrewedByParent);
 
 	Hooks.on('deleteActor', (actor) => {
-		const targetActor = actor as GenesysActor;
-
-		if (targetActor.type === 'vehicle') {
-			VehicleDataModel._GAME_VEHICLES.delete(targetActor as GenesysActor<VehicleDataModel>);
+		if (actor.type === 'vehicle') {
+			VehicleDataModel._GAME_VEHICLES.delete(actor as GenesysActor<VehicleDataModel>);
 		} else {
 			// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
-			if (isActingGm()) {
-				const genesysActorUuid = targetActor.uuid;
+			const genesysActorUuid = actor.uuid;
+			if (isActingGm() && genesysActorUuid) {
 				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
 					if (!isInWorld(vehicle)) {
 						continue;

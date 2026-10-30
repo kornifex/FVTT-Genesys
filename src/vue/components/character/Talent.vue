@@ -38,7 +38,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 
 <template>
 	<div class="talent">
-		<img :src="item.img" :alt="item.name" />
+		<img :src="item.img ?? undefined" :alt="item.name" />
 		<span class="name">
 			<a @click="expanded = !expanded">
 				{{ item.name }}

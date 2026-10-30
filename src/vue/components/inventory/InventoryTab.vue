@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
+import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 
@@ -55,7 +56,7 @@ const droppedItems = computed(() => sectionItems(inventory.value, EquipmentState
 type ItemSection = {
 	state: EquipmentState;
 	label: string;
-	items: GenesysItem<EquipmentDataModel>[];
+	items: Stored<GenesysItem<EquipmentDataModel>>[];
 };
 
 // The item sections in display order.

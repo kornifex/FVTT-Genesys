@@ -70,11 +70,6 @@ Some components of this project are used under alternative licensing terms. Each
 > 1) Contributions must only use FontAwesome Free icons, even though Foundry also displays Pro ones.
 > 2) If you fork this project and want to use FontAwesome Pro icons, you are responsible for purchasing an appropriate license.
 
-#### Foundry Type Data
-> Foundry type data was initially pulled from the [Pathfinder 2E System](https://github.com/foundryvtt/pf2e), and has been modified in multiple places to suit the needs of this project.
->
-> **License:** [Apache 2.0](types/foundry/LICENSE)
-
 #### Fonts: Bebas Neue, Roboto Serif, Roboto Slab, Roboto Mono
 > **License:** [Open Font License](public/assets/fonts/OFL.txt)
 

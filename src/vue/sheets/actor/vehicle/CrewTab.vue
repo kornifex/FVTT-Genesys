@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Stored } from '@/data/Stored';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { computed, shallowRef, watch } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
@@ -21,7 +22,7 @@ const { document: actor, system } = useSheetDocument<GenesysActor<VehicleDataMod
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
 const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? ''));
 // Shallow, so that Vue never wraps the actors in reactive proxies.
-const passengersActors = shallowRef<GenesysActor[]>([]);
+const passengersActors = shallowRef<Stored<GenesysActor>[]>([]);
 
 const sortedPassengers = computed(() => [...actor.value.systemData.passengers.list].sort(sortPassenger));
 
@@ -53,7 +54,7 @@ function dropToPassengers(event: DragEvent, place: CrewPlace) {
 	void receiveCrewEvent(actor.value, event, place);
 }
 
-function dropToRole(event: DragEvent, roleId: string, memberUnder?: ActorUUID | TokenDocumentUUID) {
+function dropToRole(event: DragEvent, roleId: string, memberUnder?: string) {
 	void receiveCrewEvent(actor.value, event, { kind: 'role', roleId, before: memberUnder });
 }
 
@@ -119,7 +120,7 @@ function resetDrags() {
 			<TransitionGroup name="crew-trans">
 				<template v-for="passenger in passengersActors" :key="passenger.uuid">
 					<ActorTile
-						:actor="passenger as GenesysActor"
+						:actor="passenger"
 						:mini="true"
 						:dragging="passengerDrag.isHovered.value"
 						draggable="true"

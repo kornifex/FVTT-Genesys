@@ -6,6 +6,7 @@ import type { GenesysItem } from '@/item/GenesysItem';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { Skill, skillToRoll } from '@/data/Skills';
+import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import { ExternalPoolModification, PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
 
@@ -54,7 +55,7 @@ export type CheckRules<S extends CheckSkill = CheckSkill> = {
  * The world's rules for checks: its Skills Compendium, its super characteristics setting and its Uncoupling Skills
  * from Characteristics setting.
  */
-export function worldCheckRules(): CheckRules<GenesysItem<SkillDataModel>> {
+export function worldCheckRules(): CheckRules<Stored<GenesysItem<SkillDataModel>>> {
 	return {
 		compendiumSkills: CONFIG.genesys.skills,
 		useSuperCharacteristics: CONFIG.genesys.settings.useSuperCharacteristics,

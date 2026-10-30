@@ -50,7 +50,10 @@ const ENCUMBRANCE_RULES: EncumbranceRules = {
 /**
  * The data of a player character.
  */
-export abstract class CharacterDataModel extends foundry.abstract.DataModel implements HasPreCreate<CharacterActor> {
+export abstract class CharacterDataModel
+	extends foundry.abstract.DataModel<foundry.data.fields.DataSchema>
+	implements HasPreCreate<CharacterActor>
+{
 	abstract characteristics: CharacteristicsContainer;
 	abstract soak: number;
 	abstract defense: Defense;
@@ -152,7 +155,7 @@ export abstract class CharacterDataModel extends foundry.abstract.DataModel impl
 		return TalentPyramid.countTalentsPerTier(allTalents.map((talent) => talent.systemData));
 	}
 
-	async preCreate(actor: CharacterActor, _data: unknown, _options: DocumentModificationContext<CharacterActor>, _user: User) {
+	async preCreate(actor: CharacterActor, _data: unknown, _options: unknown, _user: User.Stored) {
 		// Player character tokens should default to being Friendly.
 		const prototypeToken = {
 			bar1: { attribute: 'wounds' },

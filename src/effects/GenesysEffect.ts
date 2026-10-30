@@ -42,7 +42,7 @@ export class GenesysEffect extends ActiveEffect {
 			return undefined;
 		}
 
-		return item.actor.items.get((item.systemData as EquipmentDataModel).container) as GenesysItem | undefined;
+		return item.actor.items.get((item.systemData as EquipmentDataModel).container);
 	}
 
 	/**
@@ -56,19 +56,21 @@ export class GenesysEffect extends ActiveEffect {
 	 * Applies a change scaled by the rank of the talent its effect comes from. Foundry v14's `Actor#applyActiveEffects`
 	 * calls this method, with the effect in `change.effect`.
 	 */
-	static applyChange(targetDoc: unknown, change: { key: string; value: unknown; effect?: GenesysEffect }, options?: object): unknown {
-		change.value = scaledChangeValue(change.effect?.originItem, change);
+	static override applyChange(
+		targetDoc: ActiveEffect.ChangeTarget,
+		change: ActiveEffect.ChangeData,
+		options?: ActiveEffect.ApplyChangeOptions,
+	) {
+		change.value = scaledChangeValue(change.effect?.originItem, { key: change.key ?? '', value: change.value });
 
-		// The vendored Foundry types predate v14, which added the static `applyChange`.
-		const { applyChange } = ActiveEffect as unknown as { applyChange: (...args: unknown[]) => unknown };
-		return applyChange.call(this, targetDoc, change, options);
+		return super.applyChange(targetDoc, change, options);
 	}
 
 	// v13: `Actor#applyActiveEffects` calls the instance `apply`. On v14 it is a deprecated shim that calls the static
 	// `applyChange`, which scales the change itself.
-	override apply(actor: Actor, change: ApplicableChangeData<this>): unknown {
+	override apply(actor: Actor.Implementation, change: ActiveEffect.ChangeData) {
 		if (isFoundryV13()) {
-			change.value = scaledChangeValue(this.originItem, change);
+			change.value = scaledChangeValue(this.originItem, { key: change.key ?? '', value: change.value });
 		}
 
 		return super.apply(actor, change);

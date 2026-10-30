@@ -2,6 +2,8 @@
  * @file System settings data related to the Story Point Tracker.
  */
 
+import type { NAMESPACE } from '@/settings';
+
 /**
  * Current Story Points data.
  */
@@ -25,7 +27,7 @@ export type StoryPointData = {
 /**
  * Register the world setting that stores the Story Points.
  */
-export function register(namespace: string) {
+export function register(namespace: typeof NAMESPACE) {
 	game.settings.register(namespace, KEY_STORY_POINTS, {
 		name: 'StoryPoints',
 		scope: 'world',

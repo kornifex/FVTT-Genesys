@@ -33,7 +33,7 @@ function submitSelection(event: Event) {
 			}"
 			@click="selectOption(index)"
 		>
-			<img class="member-image" :src="memberSkill.actor.img" :alt="memberSkill.actor.name" draggable="false" />
+			<img class="member-image" :src="memberSkill.actor.img ?? undefined" :alt="memberSkill.actor.name" draggable="false" />
 			<div class="member-name">{{ memberSkill.actor.name }}</div>
 
 			<div class="skill-name">{{ memberSkill.skill.name }}</div>

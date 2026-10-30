@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
@@ -15,14 +16,14 @@ const KINDS = {
 
 const props = defineProps<{
 	kind: keyof typeof KINDS;
-	injuries: GenesysItem<InjuryDataModel>[];
+	injuries: Stored<GenesysItem<InjuryDataModel>>[];
 }>();
 
 const emit = defineEmits<{
 	/**
 	 * The severity of an injury was clicked, to heal or repair it.
 	 */
-	(e: 'roll', injury: GenesysItem<InjuryDataModel>): void;
+	(e: 'roll', injury: Stored<GenesysItem<InjuryDataModel>>): void;
 }>();
 
 const { editable } = useSheetDocument();

@@ -31,12 +31,15 @@ import {
 const FLAG_CLAIMS = 'slotClaims';
 const FLAG_EXTRA_SLOTS = 'extraSlots';
 
-type ClaimData = Record<number, RoundClaims>;
+/**
+ * The Claims on the Initiative Slots, by round.
+ */
+export type ClaimData = Record<number, RoundClaims>;
 
 /**
  * Foundry's options for rolling initiative, with the system's own.
  */
-export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
+export type GenesysRollInitiativeOptions = Combat.InitiativeOptions & {
 	/**
 	 * Roll the Initiative Slots that the combatants' initiative gives this round, all of them or only those without
 	 * initiative, rather than their own slots. {@link GenesysActor.rollInitiative} passes it.
@@ -47,7 +50,7 @@ export type GenesysRollInitiativeOptions = RollInitiativeOptions & {
 /**
  * The options of a roll of Initiative Slots, which roll each slot's Initiative Skill rather than a formula.
  */
-export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
+export type RollSlotsOptions = Omit<Combat.InitiativeOptions, 'formula'> & {
 	/**
 	 * Open the Dice Prompt for each slot, rather than rolling its Initiative Skill at once.
 	 */
@@ -58,6 +61,13 @@ export type RollSlotsOptions = Omit<RollInitiativeOptions, 'formula'> & {
  * A combat whose turns are Initiative Slots, which the combatants of their side Claim (CRB p. 96).
  */
 export class GenesysCombat extends Combat {
+	/**
+	 * The id the socket operations name the combat by: the world stores the combats they run on.
+	 */
+	get #storedId() {
+		return this.id!;
+	}
+
 	/**
 	 * Skills from the Skills Compendium that can be used for initiative.
 	 */
@@ -78,14 +88,14 @@ export class GenesysCombat extends Combat {
 	 * The Claims on the Initiative Slots of a round, by slot id.
 	 */
 	claimsForRound(round: number): RoundClaims {
-		return this.getFlag<ClaimData | undefined>('genesys', FLAG_CLAIMS)?.[round] ?? {};
+		return this.getFlag('genesys', FLAG_CLAIMS)?.[round] ?? {};
 	}
 
 	/**
 	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
 	slotsForRound(round: number): InitiativeSlot[] {
-		const combatants = (this.combatants.contents as GenesysCombatant[]).map((combatant) => ({
+		const combatants = this.combatants.contents.map((combatant) => ({
 			id: combatant.id,
 			initiative: combatant.initiative,
 			hasPlayerOwner: combatant.actorHasPlayerOwner,
@@ -114,7 +124,7 @@ export class GenesysCombat extends Combat {
 	slotViewForUser(slot: InitiativeSlot) {
 		return slotView(slot, this.started, {
 			isGM: game.user.isGM,
-			isPlayerOf: (combatantId) => (this.combatants.get<GenesysCombatant>(combatantId)?.players ?? []).includes(game.user),
+			isPlayerOf: (combatantId) => (this.combatants.get(combatantId)?.players ?? []).includes(game.user),
 			isOwnerOf: (combatantId) => this.combatants.get(combatantId)?.isOwner ?? false,
 		});
 	}
@@ -176,7 +186,7 @@ export class GenesysCombat extends Combat {
 	 */
 	async cycleInitiativeSkill(slotId: string) {
 		const slot = this.#slot(slotId);
-		const combatant = slot ? this.combatants.get<GenesysCombatant>(slot.originId) : undefined;
+		const combatant = slot ? this.combatants.get(slot.originId) : undefined;
 		if (combatant?.isOwner) {
 			await combatant.cycleInitiativeSkill();
 		}
@@ -185,7 +195,7 @@ export class GenesysCombat extends Combat {
 	/**
 	 * Why a combatant can't claim an Initiative Slot, as a localization key, or undefined if it can.
 	 */
-	claimRefusal(round: number, slotId: string, combatant: GenesysCombatant): string | undefined {
+	claimRefusal(round: number, slotId: string, combatant: Combatant.Stored): string | undefined {
 		return claimRefusal(this.slotsForRound(round), this.claimsForRound(round), slotId, {
 			id: combatant.id,
 			side: combatant.initiativeSide,
@@ -203,7 +213,7 @@ export class GenesysCombat extends Combat {
 
 		// Foundry finds a token's combatant in `game.combat`, which may not be this one: a macro can call on any combat, and
 		// v14's `game.combat` is the active combat until the tracker renders.
-		const combatant = canvas.tokens.controlled[0].combatant as GenesysCombatant | null;
+		const combatant = canvas.tokens.controlled[0].combatant;
 		if (!combatant || combatant.parent !== this) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.TokenIsNotCombatant'));
 			return undefined;
@@ -237,7 +247,7 @@ export class GenesysCombat extends Combat {
 	async claimSlot(round: number, slotId: string, combatantId: string) {
 		if (!game.user.isGM) {
 			socketEmit(SocketOperation.ClaimInitiativeSlot, {
-				combatId: this.id,
+				combatId: this.#storedId,
 				combatantId,
 				round,
 				slotId,
@@ -246,7 +256,7 @@ export class GenesysCombat extends Combat {
 		}
 
 		// Check the claim again, in case another one reached the GM first.
-		const combatant = this.combatants.get<GenesysCombatant>(combatantId);
+		const combatant = this.combatants.get(combatantId);
 		if (!combatant || this.claimRefusal(round, slotId, combatant)) {
 			return;
 		}
@@ -262,14 +272,15 @@ export class GenesysCombat extends Combat {
 			return;
 		}
 
-		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}`);
+		// Foundry unsets a key within a flag too, which the types don't take.
+		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}` as typeof FLAG_CLAIMS);
 	}
 
 	/**
 	 * Every extra slot the combat stores, whatever round it starts from.
 	 */
 	get storedExtraSlots() {
-		return this.getFlag<StoredExtraSlot[] | undefined>('genesys', FLAG_EXTRA_SLOTS) ?? [];
+		return this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? [];
 	}
 
 	/**
@@ -322,7 +333,7 @@ export class GenesysCombat extends Combat {
 	 */
 	refreshTurns() {
 		this.refreshLocalTurns();
-		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.id });
+		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.#storedId });
 	}
 
 	/**
@@ -367,14 +378,15 @@ export class GenesysCombat extends Combat {
 		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];
 		const messages: object[] = [];
 		for (const slot of slots) {
-			const combatant = this.combatants.get(slot.originId) as Embedded<GenesysCombatant>;
+			// The slots to roll are those of combatants the combat holds.
+			const combatant = this.combatants.get(slot.originId)!;
 
 			const initiativeSkill = combatant.initiativeSkillToRoll;
 			let checkRoll: CheckRoll;
 
 			if (prompt) {
 				try {
-					checkRoll = await DicePrompt.promptForInitiative(combatant.actor, initiativeSkill.skillName, {
+					checkRoll = await DicePrompt.promptForInitiative(combatant.actor ?? undefined, initiativeSkill.skillName, {
 						difficulty: '',
 						characteristic: initiativeSkill.skillChar,
 					});
@@ -384,7 +396,7 @@ export class GenesysCombat extends Combat {
 			} else {
 				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
 				const check = resolveCheck(
-					combatant.actor,
+					combatant.actor ?? undefined,
 					{
 						purpose: { kind: 'initiative' },
 						skillName: initiativeSkill.skillName,
@@ -408,9 +420,8 @@ export class GenesysCombat extends Combat {
 			};
 			const rollMode = (
 				'rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode
-			) as RollMode;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- Foundry's types take the data of a message to create for a whole ChatMessageSource.
-			ChatMessage.applyRollMode(chatData as any, rollMode);
+			) as ChatMessage.PassableRollMode;
+			ChatMessage.applyRollMode(chatData, rollMode);
 
 			messages.push(chatData);
 		}
@@ -426,11 +437,10 @@ export class GenesysCombat extends Combat {
 		if (writes.combatants.length) {
 			// Without a turn, Foundry keeps it on the current combatant's first slot.
 			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { combatants: writes.combatants });
-			// The types we have lack Foundry's turn options.
 			await this.updateEmbeddedDocuments(
 				'Combatant',
 				writes.combatants,
-				combatTurn === undefined ? {} : ({ combatTurn, turnEvents: false } as DocumentModificationContext<this>),
+				combatTurn === undefined ? {} : { combatTurn, turnEvents: false },
 			);
 		}
 
@@ -440,7 +450,7 @@ export class GenesysCombat extends Combat {
 			} else {
 				// The GM writes them and keeps the turn, once the combatants' initiative is written.
 				socketEmit(SocketOperation.UpdateInitiativeForExtraSlot, {
-					combatId: this.id,
+					combatId: this.#storedId,
 					updates: writes.extraSlots,
 					updateTurn,
 				});
@@ -464,19 +474,17 @@ export class GenesysCombat extends Combat {
 		this.refreshTurns();
 	}
 
-	override async resetAll(...args: unknown[]) {
+	override async resetAll(options?: Combat.ResetAllOptions) {
 		// The extra slots are reset before Foundry orders the turns again.
 		const resets = extraSlotResets(this.storedExtraSlots);
 		if (resets.length > 0) {
 			await this.writeExtraSlotsInitiative(resets);
 		}
 
-		// v12: the Foundry types we have are v12's, whose `resetAll` takes no options.
-		// @ts-expect-error: Foundry v13 takes options that v12 doesn't.
-		return await super.resetAll(...args);
+		return await super.resetAll(options);
 	}
 
-	override async rollAll(options?: RollInitiativeOptions, onlyNPCs: boolean = false) {
+	override async rollAll(options?: Combat.InitiativeOptions, onlyNPCs: boolean = false) {
 		const combatantIds = this.combatants
 			.filter((combatant) => combatant.isOwner && (!onlyNPCs || combatant.isNPC))
 			.map((combatant) => combatant.id);
@@ -484,15 +492,11 @@ export class GenesysCombat extends Combat {
 		return this.rollSlotsInitiative(slotIdsOf(this.slots, combatantIds, { unrolledOnly: true }), options);
 	}
 
-	override async rollNPC(options?: RollInitiativeOptions) {
+	override async rollNPC(options?: Combat.InitiativeOptions) {
 		return this.rollAll(options, true);
 	}
 
-	protected override async _preUpdate(
-		changed: DeepPartial<this['_source']>,
-		options: DocumentUpdateContext<this>,
-		user: foundry.documents.BaseUser,
-	) {
+	protected override async _preUpdate(changed: Combat.UpdateData, options: Combat.Database.PreUpdateOptions, user: User.Stored) {
 		// Foundry picks the last turn of a round from the turns of the round it leaves, but a round only has the extra slots
 		// added up to it.
 		if (typeof changed.round === 'number' && typeof changed.turn === 'number') {
@@ -502,15 +506,14 @@ export class GenesysCombat extends Combat {
 		return super._preUpdate(changed, options, user);
 	}
 
-	protected override _onUpdate(changed: DeepPartial<this['_source']>, options: DocumentUpdateContext<this>, userId: string) {
+	protected override _onUpdate(changed: Combat.UpdateData, options: Combat.Database.OnUpdateOptions, userId: string) {
 		// Foundry only orders the turns again when combatants change, but extra slots add turns too, and a round only has
 		// the extra slots added up to it. Order them before Foundry works out the current turn from them.
 		if (foundry.utils.hasProperty(changed, `flags.genesys.${FLAG_EXTRA_SLOTS}`)) {
 			this.setupTurns();
 		} else if ('round' in changed) {
 			// Leave the current turn to Foundry, which compares it with the new one for its turn events.
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment -- Foundry's types tie the turns to the polymorphic this, which no array of combatants matches.
-			this.turns = this.slotTurns() as any;
+			this.turns = this.slotTurns();
 		}
 
 		super._onUpdate(changed, options, userId);
@@ -527,11 +530,10 @@ export class GenesysCombat extends Combat {
 		const turns = this.slotTurns();
 
 		if (this.turn !== null) {
-			// @ts-expect-error -- The types we have make turn read-only, but Foundry's own setupTurns clamps it the same way.
 			this.turn = Math.clamp(this.turn, 0, turns.length - 1);
 		}
 
-		const currentCombatant = turns[this.turn];
+		const currentCombatant = this.turn === null ? undefined : turns[this.turn];
 		this.current = {
 			round: this.round,
 			turn: this.turn,
@@ -543,8 +545,7 @@ export class GenesysCombat extends Combat {
 			this.previous = this.current;
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return -- Foundry's types tie the turns to the polymorphic this, which no array of combatants matches.
-		return (this.turns = turns as any);
+		return (this.turns = turns);
 	}
 
 	/**
@@ -563,7 +564,7 @@ export class GenesysCombat extends Combat {
  */
 export function register() {
 	const combatOf = (operation: SocketOperation, combatId: string) => {
-		const combat = game.combats.get<GenesysCombat>(combatId);
+		const combat = game.combats.get(combatId);
 		if (!combat) {
 			log.error(`Socket received ${operation} payload with invalid combat ID ${combatId}`);
 		}

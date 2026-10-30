@@ -1,12 +1,10 @@
-import { GenesysActor } from '@/actor/GenesysActor';
-import { GenesysCombat } from '@/combat/GenesysCombat';
 import { chosenInitiativeSkill, InitiativeSkill, initiativeSkillToRoll, nextInitiativeSkill } from '@/combat/InitiativeSkills';
 import { InitiativeSide, sideOf } from '@/combat/InitiativeSlots';
 
 /**
  * A combatant, which rolls its initiative with the Initiative Skill chosen for it.
  */
-export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
+export class GenesysCombatant extends Combatant {
 	/**
 	 * The Initiative Skill chosen for this combatant, if it's still one of the combat's Initiative Skills.
 	 */
@@ -22,7 +20,7 @@ export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	}
 
 	get #chosenInitiativeSkillName() {
-		return this.getFlag<string | undefined>('genesys', 'initiativeSkill');
+		return this.getFlag('genesys', 'initiativeSkill');
 	}
 
 	/**
@@ -60,7 +58,8 @@ export class GenesysCombatant extends Combatant<GenesysCombat, GenesysActor> {
 	 * Roll this combatant's initiative as the combat rolls it, with a chat message.
 	 */
 	override async rollInitiative() {
-		await this.parent.rollInitiative([this.id]);
+		// A combatant that rolls is in its combat, which stores it.
+		await this.parent.rollInitiative([this.id!]);
 		return this;
 	}
 }

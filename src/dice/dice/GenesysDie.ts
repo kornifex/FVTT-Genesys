@@ -2,6 +2,8 @@
  * @file Root type of all the custom Die types in the Genesys system.
  */
 
+import type { InexactPartial } from 'fvtt-types/utils';
+
 export type DieCategory = 'positive' | 'negative';
 
 /**
@@ -36,11 +38,11 @@ export abstract class GenesysDie extends foundry.dice.terms.Die {
 	/**
 	 * Utility method for accessing the class's static denomination from the child.
 	 */
-	get denomination() {
+	override get denomination() {
 		return (this.constructor as typeof GenesysDie).DENOMINATION;
 	}
 
-	constructor(termData: DiceTermData) {
+	constructor(termData: InexactPartial<foundry.dice.terms.Die.TermData>) {
 		super({ ...termData, faces: 1 });
 
 		this.faces = (this.constructor as typeof GenesysDie).FACES.length;
@@ -49,14 +51,14 @@ export abstract class GenesysDie extends foundry.dice.terms.Die {
 	/**
 	 * Result display should always use the symbol font class.
 	 */
-	override getResultCSS(_: DiceTermResult): (string | null)[] {
+	override getResultCSS(_: foundry.dice.terms.DiceTerm.Result): (string | null)[] {
 		return ['font-genesys-symbols'];
 	}
 
 	/**
 	 * Fetch the actual label for each result from the die class's specified faces.
 	 */
-	override getResultLabel(result: DiceTermResult): string {
+	override getResultLabel(result: foundry.dice.terms.DiceTerm.Result): string {
 		const FACES = (this.constructor as typeof GenesysDie).FACES;
 
 		return FACES[result.result - 1] ?? 'unknown';

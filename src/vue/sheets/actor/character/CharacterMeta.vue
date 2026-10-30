@@ -75,7 +75,7 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 			<div class="underline"></div>
 		</div>
 
-		<img :src="actor.img" data-edit="img" :alt="actor.name" />
+		<img :src="actor.img ?? undefined" data-edit="img" :alt="actor.name" />
 	</header>
 </template>
 

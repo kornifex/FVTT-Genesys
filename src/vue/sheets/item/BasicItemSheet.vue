@@ -29,7 +29,7 @@ const { effects, addEffect } = useDocumentEffects();
 <template>
 	<div class="item-sheet-basic">
 		<header :class="hasDecoration ? 'with-decoration' : ''">
-			<img :src="item.img" data-edit="img" :title="item.name" :alt="item.name" />
+			<img :src="item.img ?? undefined" data-edit="img" :title="item.name" :alt="item.name" />
 			<input type="text" name="name" :value="item.name" v-localize:placeholder="'Genesys.Labels.Name'" />
 			<slot v-if="hasDecoration" name="decoration"></slot>
 		</header>

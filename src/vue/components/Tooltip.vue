@@ -10,7 +10,7 @@ const props = withDefaults(
 		 */
 		content: string;
 		localized?: boolean;
-		direction?: TooltipDirection;
+		direction?: foundry.helpers.interaction.TooltipManager.TOOLTIP_DIRECTIONS;
 		cssClass?: string;
 	}>(),
 	{
@@ -25,7 +25,8 @@ async function showTooltip(event: Event) {
 	const content = document.createRange().createContextualFragment(enriched);
 
 	game.tooltip.activate(event.currentTarget as HTMLElement, {
-		content: content,
+		// Foundry appends a fragment as it does an element, which the types don't take.
+		content: content as unknown as HTMLElement,
 		direction: props.direction,
 		cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys',
 	});

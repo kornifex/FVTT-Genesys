@@ -43,7 +43,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	 * The Story Points of each pool, as the world stores them.
 	 */
 	get storyPoints() {
-		return <StoryPointData>game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS);
+		return game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS);
 	}
 
 	override async getVueContext(): Promise<StoryPointTrackerContext> {
@@ -154,7 +154,6 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			message: SPEND_MESSAGES[pool],
 		});
 		const message = {
-			// v12 renamed the message's `user` to `author`, which the types we have don't know; v14 drops `user`.
 			author: user.id,
 			speaker: {
 				actor: user.character?.id,
@@ -162,7 +161,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			content: chatTemplate,
 			style: CONST.CHAT_MESSAGE_STYLES.OOC,
 		};
-		await ChatMessage.create(message as unknown as PreCreate<foundry.data.ChatMessageSource>);
+		await ChatMessage.create(message);
 	}
 
 	/**

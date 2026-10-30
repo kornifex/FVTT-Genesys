@@ -2,11 +2,10 @@
  * @file Utility type to mark Document DataModel instances that have custom preCreate callbacks.
  */
 
-export type HasPreCreate<DocumentType extends foundry.abstract.Document> = {
-	preCreate?(
-		document: DocumentType,
-		data: PreDocumentId<DocumentType['_source']>,
-		options: DocumentModificationContext<DocumentType>,
-		user: foundry.documents.BaseUser,
-	): Promise<void>;
+/**
+ * A DataModel that prepares its document before Foundry creates it. The document hands on the data and options of its
+ * own `_preCreate`, which no DataModel reads.
+ */
+export type HasPreCreate<DocumentType> = {
+	preCreate?(document: DocumentType, data: unknown, options: unknown, user: User.Stored): Promise<void>;
 };

@@ -1,4 +1,5 @@
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import VueVehicleSheet from '@/vue/sheets/actor/VehicleSheet.vue';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
@@ -47,7 +48,7 @@ export class VehicleSheet extends GenesysActorSheet<VehicleDataModel> {
 	/**
 	 * Called when an Actor is dropped on the sheet: it joins the passengers, unless it comes from the vehicle's own Crew.
 	 */
-	protected override async _onDropActor(event: DragEvent, actor: Actor) {
+	protected override async _onDropActor(event: DragEvent, actor: GenesysActor) {
 		// Actors moved within the Crew are received by the Crew tab; anywhere else on the sheet, they stay where they are.
 		const data = crewDrops.get(event) ?? {};
 		if (!isPassengerDrop(data) || data.sourceVehicleUuid === this.actor.uuid || !this.isEditable) {

@@ -4,3 +4,7 @@ allowBuilds:
   '@parcel/watcher': false
   # Its script compiles from source only when no prebuilt binary fits; the package ships the prebuilt binaries.
   classic-level: false
+
+# fvtt-types depends on three git forks (pixi.js, @pixi/basis and @pixi/particle-emitter), which pnpm refuses as
+# subdependencies unless this is off (ADR 0006). It applies to every package's subdependencies, so the lockfile review covers them.
+blockExoticSubdeps: false

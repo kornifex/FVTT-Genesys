@@ -14,6 +14,7 @@ import { crewForSkills } from '@/actor/data/CrewRoster';
 import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName } from '@/data/Skills';
+import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
@@ -94,8 +95,11 @@ export async function removeCareer(character: GenesysActor<CharacterDataModel>, 
 	}
 
 	const { careerSkills, selectedSkillIDs } = career.systemData;
+	// Foundry takes the updates' dot-notation keys, which the types don't.
 	await Promise.all(
-		careerSkillUpdates(character.items.contents, careerSkills, selectedSkillIDs, -1).map(({ skill, update }) => skill.update(update)),
+		careerSkillUpdates(character.items.contents, careerSkills, selectedSkillIDs, -1).map(({ skill, update }) =>
+			skill.update(update as Item.UpdateData),
+		),
 	);
 	await career.delete();
 }
@@ -135,7 +139,7 @@ export async function stepEquipment(
  * Raise or lower the rank of an adversary's talent from its menu. Lowering it below rank 1 deletes it once the user
  * confirms, as a step of an item's quantity down to 0 does; a refused change tells the user why, when there is a reason.
  */
-export async function stepTalentRank(adversary: GenesysActor, talent: GenesysItem<TalentDataModel>, direction: StepDirection) {
+export async function stepTalentRank(adversary: GenesysActor, talent: Stored<GenesysItem<TalentDataModel>>, direction: StepDirection) {
 	const change = talentRankChange(talent, direction);
 	switch (change.action) {
 		case 'update':

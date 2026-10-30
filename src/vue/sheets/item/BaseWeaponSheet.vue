@@ -13,12 +13,12 @@ import { withoutIndex } from '@/arrays';
 const { document: item, system } = useSheetDocument<GenesysItem<BaseWeaponDataModel>>();
 
 async function deleteSkill(index: number) {
-	await item.value.update({ 'system.skills': withoutIndex(system.value.skills, index) });
+	await item.value.update({ system: { skills: withoutIndex(system.value.skills, index) } });
 }
 
 async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {
-		await item.value.update({ 'system.qualities': qualities });
+		await item.value.update({ system: { qualities } });
 	}
 }
 

@@ -1,4 +1,6 @@
+import type { DeepPartial } from 'fvtt-types/utils';
 import { GenesysItem } from '@/item/GenesysItem';
+import type { Stored } from '@/data/Stored';
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
@@ -14,11 +16,8 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
 		return undefined;
 	}
 
-	// The types we have lack the configured item class's own methods, read the drop data of a canvas, and return an item
-	// of any data model.
-	const itemClass = GenesysItem.implementation as typeof GenesysItem;
 	try {
-		return (await itemClass.fromDropData(data as DropCanvasData<'Item'>)) as GenesysItem<ItemDataModel> | undefined;
+		return (await CONFIG.Item.documentClass.fromDropData(data)) as GenesysItem<ItemDataModel> | undefined;
 	} catch {
 		// Foundry throws when the uuid names no document, as once it is deleted, or one that isn't an item: the drop
 		// carries no item.
@@ -31,8 +30,8 @@ export async function itemFromDrop<ItemDataModel extends BaseItemDataModel>(data
  */
 export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItemDataModel> extends VueDocumentSheet(
 	foundry.applications.sheets.ItemSheetV2,
-)<GenesysItem<ItemDataModel>> {
-	static override DEFAULT_OPTIONS: DeepPartial<foundry.applications.ApplicationConfiguration> = {
+) {
+	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 		classes: ['genesys', 'sheet', 'item'],
 		position: { width: 480, height: 300 },
 	};
@@ -41,13 +40,21 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 		return 'description';
 	}
 
-	override async getVueContext(): Promise<DocumentSheetContext<GenesysItem<ItemDataModel>, this>> {
+	/**
+	 * The item, of the data model the sheet is registered for. A sheet shows an item the world, a compendium or an actor
+	 * stores.
+	 */
+	override get item() {
+		return this.document as Stored<GenesysItem<ItemDataModel>>;
+	}
+
+	override async getVueContext(): Promise<DocumentSheetContext<Stored<GenesysItem<ItemDataModel>>, this>> {
 		return { sheet: this, document: this.item, editable: this.isEditable };
 	}
 
 	protected override async _onRender(
-		context: foundry.applications.ApplicationRenderContext,
-		options: foundry.applications.ApplicationRenderOptions,
+		context: DeepPartial<foundry.applications.api.ApplicationV2.RenderContext>,
+		options: DeepPartial<foundry.applications.api.ApplicationV2.RenderOptions>,
 	) {
 		await super._onRender(context, options);
 
@@ -62,7 +69,7 @@ export class GenesysItemSheet<ItemDataModel extends BaseItemDataModel = BaseItem
 	/**
 	 * Handle data dropped on the sheet: an item the user can edit receives the item a drop carries, and nothing else.
 	 */
-	protected async _onDrop(event: DragEvent) {
+	protected override async _onDrop(event: DragEvent) {
 		const data = dragData(event.dataTransfer);
 		if (!this.isEditable || data.type !== 'Item') {
 			return;

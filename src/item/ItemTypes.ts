@@ -1,5 +1,6 @@
 /** @file The item types of the system and their DataModels, and an actor's items read by type. */
 
+import type { Stored } from '@/data/Stored';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import type { AbilityDataModel } from '@/item/data/AbilityDataModel';
@@ -48,7 +49,7 @@ type IsReadonly<O, K extends keyof O> =
  * members every DataModel has. A getter is told from a field by being read-only, so a DataModel declares no read-only
  * field.
  */
-export type SystemSource<DataModel extends foundry.abstract.DataModel> = Omit<
+export type SystemSource<DataModel extends foundry.abstract.DataModel.Any> = Omit<
 	{
 		[K in keyof DataModel as DataModel[K] extends (...args: never[]) => unknown
 			? never
@@ -56,7 +57,7 @@ export type SystemSource<DataModel extends foundry.abstract.DataModel> = Omit<
 				? never
 				: K]: DataModel[K];
 	},
-	keyof foundry.abstract.DataModel
+	keyof foundry.abstract.DataModel.Any
 >;
 
 /**
@@ -102,7 +103,8 @@ export function ofType<I extends { type: string }, T extends ItemType>(items: It
 /**
  * The items an actor holds of a type, or of any of several types, in item order.
  */
-export function itemsOfType<T extends ItemType>(actor: { items: Iterable<Item> }, type: T | readonly T[]) {
-	// Foundry builds each item's data with the DataModel registered for its type, so the type tells the DataModel.
-	return ofType(actor.items, type) as unknown as GenesysItem<ItemDataModels[T]>[];
+export function itemsOfType<T extends ItemType>(actor: { items: Iterable<{ type: string }> }, type: T | readonly T[]) {
+	// An actor stores its items, and Foundry builds each item's data with the DataModel registered for its type, so the
+	// type tells the DataModel.
+	return ofType(actor.items, type) as unknown as Stored<GenesysItem<ItemDataModels[T]>>[];
 }

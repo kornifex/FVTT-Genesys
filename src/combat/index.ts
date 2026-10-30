@@ -9,7 +9,8 @@ export function register() {
 	CONFIG.Combat.documentClass = GenesysCombat;
 	CONFIG.Combatant.documentClass = GenesysCombatant;
 
-	CONFIG.ui.combat = GenesysCombatTracker;
+	// The types take the core class, whose generic constructor no subclass of a fixed instantiation matches.
+	CONFIG.ui.combat = GenesysCombatTracker as typeof foundry.applications.sidebar.tabs.CombatTracker;
 
 	registerCombatSocket();
 }

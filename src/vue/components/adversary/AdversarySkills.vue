@@ -32,7 +32,7 @@ async function rollSkill(skill: GenesysItem<SkillDataModel>) {
 
 async function freeSkillRank(skill: GenesysItem<SkillDataModel>, step: 1 | -1) {
 	await skill.update({
-		'system.rank': freeRank(skill.systemData.rank, step),
+		system: { rank: freeRank(skill.systemData.rank, step) },
 	});
 }
 </script>

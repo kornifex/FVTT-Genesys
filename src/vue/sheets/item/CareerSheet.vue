@@ -13,7 +13,7 @@ const { document: item, system, editable } = useSheetDocument<GenesysItem<Career
 const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 
 async function removeSkill(index: number) {
-	await item.value.update({ 'system.careerSkills': withoutIndex(system.value.careerSkills, index) });
+	await item.value.update({ system: { careerSkills: withoutIndex(system.value.careerSkills, index) } });
 }
 </script>
 

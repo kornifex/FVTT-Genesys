@@ -22,7 +22,7 @@ const { effects, addEffect } = useDocumentEffects();
 <template>
 	<div class="vehicle-sheet">
 		<header>
-			<img :src="actor.img" :alt="actor.name" data-edit="img" />
+			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
 			<input type="text" name="name" :value="actor.name" />
 		</header>
 

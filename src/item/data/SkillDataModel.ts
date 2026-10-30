@@ -39,19 +39,16 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	 * Make a skill added to a character a Career skill when their Career lists it, whether it is dropped on the sheet or
 	 * created by a macro. Foundry runs no item `preCreate` for the skills created with their actor.
 	 */
-	async preCreate(
-		skill: GenesysItem<SkillDataModel>,
-		_data: unknown,
-		_options: DocumentModificationContext<GenesysItem<SkillDataModel>>,
-		_user: foundry.documents.BaseUser,
-	) {
+	async preCreate(skill: GenesysItem<SkillDataModel>, _data: unknown, _options: unknown, _user: User.Stored) {
 		if (skill.actor?.type !== 'character') {
 			return;
 		}
 
 		const [career] = itemsOfType(skill.actor, 'career');
 		const careerSkills = career?.systemData.careerSkills ?? [];
-		skill.updateSource({ 'system.career': createdSkillIsCareer({ name: skill.name, career: skill.systemData.career }, careerSkills) });
+		skill.updateSource({
+			system: { career: createdSkillIsCareer({ name: skill.name, career: skill.systemData.career }, careerSkills) },
+		});
 	}
 
 	static override defineSchema() {
