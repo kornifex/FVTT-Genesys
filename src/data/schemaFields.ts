@@ -51,6 +51,14 @@ export function characteristicsField(initial: number) {
 }
 
 /**
+ * The silhouette of a character or an adversary: a whole number from 0, without maximum. Every one starts human-sized,
+ * at 1 (CRB p. 109), which an actor stored before it had a silhouette reads too.
+ */
+export function silhouetteField() {
+	return new foundry.data.fields.NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 1 });
+}
+
+/**
  * The melee and ranged defenses of a character or an adversary.
  */
 export function defenseField() {

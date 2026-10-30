@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, ref, toRef, useTemplateRef } from 'vue';
 import type { Stored } from '@/data/Stored';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -13,10 +13,19 @@ import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { draggedGenesysType, startDocumentDrag } from '@/data/DragTransferData';
-import { containerContents, equipmentStateMoves, equipmentStateUpdates, StepDirection, SteppedValue } from '@/actor/data/Inventory';
+import {
+	containerContents,
+	equipmentStateMoves,
+	equipmentStateUpdates,
+	rowEdge,
+	type RowEdge,
+	StepDirection,
+	SteppedValue,
+} from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
 
@@ -31,11 +40,17 @@ const props = withDefaults(
 	defineProps<{
 		item: Stored<GenesysItem<EquipmentType>>;
 		dragging?: boolean;
+		/**
+		 * Whether a drag the row's section takes is over the inventory: the row then shows the edge the item would land
+		 * next to.
+		 */
+		sectionTakesDrag?: boolean;
 		mini?: boolean;
 		canTypeBeInsideContainer?: (type: string) => boolean;
 	}>(),
 	{
 		dragging: false,
+		sectionTakesDrag: false,
 		mini: false,
 		canTypeBeInsideContainer: () => false,
 	},
@@ -44,6 +59,10 @@ const props = withDefaults(
 const emit = defineEmits<{
 	(e: 'dragstart', event: DragEvent): void;
 	(e: 'dragend', event: DragEvent): void;
+	/**
+	 * An item dropped on the row of an item that is no Container, next to one of its edges.
+	 */
+	(e: 'drop-on-row', event: DragEvent, edge: RowEdge): void;
 }>();
 
 const damageStateToIcon = new Map([
@@ -71,6 +90,16 @@ const containerDrag = useDragHover((event) => {
 	return type !== undefined && (!type || props.canTypeBeInsideContainer(type));
 });
 const isBeingDragged = ref(false);
+
+// The row of an item that is no Container places a drop next to its item, before or after it as the drag points at.
+const takesSortDrop = computed(() => props.item.type !== 'container' && !props.mini);
+const sortDrag = useDragHover(() => takesSortDrop.value);
+const sortEdge = ref<RowEdge>();
+const shownEdge = computed(() =>
+	props.sectionTakesDrag && sortDrag.isHovered.value && !isBeingDragged.value ? sortEdge.value : undefined,
+);
+
+const menu = useTemplateRef<ContextMenuHandle>('menu');
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
@@ -102,7 +131,7 @@ function firingArcs() {
 	return 'firingArc' in weapon ? firingArcLabels(weapon.firingArc) : undefined;
 }
 
-const dimForDrag = computed(() => props.dragging && props.item.type !== 'container');
+const dimForDrag = computed(() => props.dragging && props.item.type !== 'container' && !shownEdge.value);
 
 const displayContainerContents = ref(false);
 const containedItems = computed(() => containerContents(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id));
@@ -163,13 +192,54 @@ async function step(event: MouseEvent, kind: SteppedValue, direction: StepDirect
 	}
 }
 
-async function dropInventoryIntoContainer(event: DragEvent) {
-	containerDrag.reset();
+function edgeOf(event: DragEvent) {
+	return rowEdge(event.clientY, (event.currentTarget as HTMLElement).getBoundingClientRect());
+}
 
-	// Only a Container receives drops: those on other items go on to the sheet.
+function dragEnter(event: DragEvent) {
+	containerDrag.enter(event);
+	sortDrag.enter(event);
+}
+
+function dragLeave(event: DragEvent) {
+	containerDrag.leave(event);
+	sortDrag.leave(event);
+
+	// A drag entering the row again shows no edge until it points at one.
+	if (!sortDrag.isHovered.value) {
+		sortEdge.value = undefined;
+	}
+}
+
+function dragOver(event: DragEvent) {
+	if (takesSortDrop.value) {
+		sortEdge.value = edgeOf(event);
+	}
+}
+
+async function drop(event: DragEvent) {
+	containerDrag.reset();
+	sortDrag.reset();
+	sortEdge.value = undefined;
+
+	// A Container receives the drop. The inventory tab places one on another row in the row's section, and the row of a
+	// Container's contents lets it go on to the Container.
 	if (props.item.type === 'container') {
 		await receiveInventoryEvent(actor.value, event, { kind: 'container', id: props.item.id });
+	} else if (takesSortDrop.value) {
+		emit('drop-on-row', event, edgeOf(event));
 	}
+}
+
+// A right-click anywhere on the row opens its menu, as a click on its button does. The row of a Container's contents
+// has no menu, and keeps the right-click from opening the Container's; the browser's own menu is left to Foundry.
+function openMenu(event: MouseEvent) {
+	if (props.mini) {
+		event.stopPropagation();
+		return;
+	}
+
+	menu.value?.open(event);
 }
 </script>
 
@@ -182,12 +252,16 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			hover: containerDrag.isHovered.value,
 			'drag-dim': dimForDrag && !isBeingDragged,
 			'drag-source': isBeingDragged,
+			'drop-before': shownEdge === 'before',
+			'drop-after': shownEdge === 'after',
 		}"
-		@dragenter="containerDrag.enter"
-		@dragleave="containerDrag.leave"
+		@dragenter="dragEnter"
+		@dragleave="dragLeave"
+		@dragover="dragOver"
 		@dragstart="dragStart"
 		@dragend="dragEnd"
-		@drop="dropInventoryIntoContainer"
+		@drop="drop"
+		@contextmenu="openMenu"
 	>
 		<img :src="item.img ?? undefined" :alt="item.name" />
 
@@ -257,7 +331,7 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 			v-if="item.type !== 'container'"
 			class="quantity"
 			@click="step($event, 'quantity', 1)"
-			@contextmenu="step($event, 'quantity', -1)"
+			@contextmenu.prevent.stop="step($event, 'quantity', -1)"
 			data-tooltip="Genesys.Labels.Quantity"
 		>
 			{{ item.system.quantity }}
@@ -271,13 +345,13 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 		<a
 			class="damage"
 			@click="step($event, 'damage', 1)"
-			@contextmenu="step($event, 'damage', -1)"
+			@contextmenu.prevent.stop="step($event, 'damage', -1)"
 			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 		>
 			<i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i>
 		</a>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
+		<ContextMenu ref="menu" class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
 					v-for="move in stateMoves()"
@@ -367,6 +441,15 @@ async function dropInventoryIntoContainer(event: DragEvent) {
 				background: color.adjust(#333, $alpha: -0.75);
 				border: 1px solid color.adjust(#333, $alpha: -0.5);
 			}
+		}
+
+		// The edge a drop on the row lands next to.
+		&.drop-before {
+			box-shadow: 0 -3px 0 0 colors.$gold;
+		}
+
+		&.drop-after {
+			box-shadow: 0 3px 0 0 colors.$gold;
 		}
 
 		&.drag-dim {

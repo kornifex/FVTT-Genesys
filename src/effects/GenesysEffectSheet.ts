@@ -42,7 +42,7 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				appliesTo: ACTOR_GLYPH,
 				label,
 			})),
-			{ key: 'system.silhouette', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Silhouette' },
+			{ key: 'system.silhouette', appliesTo: ANY_ACTOR_GLYPH, label: 'Genesys.Labels.Silhouette' },
 			{ key: 'system.speed', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Speed' },
 			{ key: 'system.handling', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Handling' },
 			{ key: 'system.defense', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Defense' },

@@ -1,4 +1,4 @@
-/** @file Tests for the schemas of the Adversaries: their wounds and strain are whole numbers, as a character's are. */
+/** @file Tests for the schemas of the Adversaries: their wounds and strain are whole numbers, as a character's are, and their silhouette starts at 1. */
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -45,5 +45,13 @@ describe('adversary schemas', () => {
 
 	it("holds a Minion Group's wounds as integers", () => {
 		expect(MinionDataModel.defineSchema().wounds).toMatchObject({ fields: { value: integer, threshold: integer } });
+	});
+
+	it('holds one silhouette per Adversary, a whole number from 0 that starts at 1, as a human-sized one is', () => {
+		for (const model of [MinionDataModel, RivalDataModel, NemesisDataModel]) {
+			expect(model.defineSchema().silhouette).toMatchObject({
+				options: { required: true, nullable: false, integer: true, min: 0, initial: 1 },
+			});
+		}
 	});
 });

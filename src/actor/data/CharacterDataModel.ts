@@ -23,6 +23,7 @@ import {
 	defenseField,
 	Motivations,
 	motivationsField,
+	silhouetteField,
 	valueWithThresholdField,
 } from '@/data/schemaFields';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
@@ -63,6 +64,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 	abstract currency: number;
 	abstract notes: string;
 	abstract superCharacteristics: Set<Characteristic>;
+	abstract silhouette: number;
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
@@ -217,6 +219,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 			encumbrance: valueWithThresholdField(),
 			currency: new fields.NumberField({ initial: 500 }),
 			superCharacteristics: new fields.SetField(new fields.StringField()),
+			silhouette: silhouetteField(),
 		};
 	}
 }

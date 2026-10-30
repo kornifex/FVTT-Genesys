@@ -32,6 +32,8 @@ import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
+const hasDescription = computed(() => system.value.description.trim() !== '');
+
 const talents = computed(() => itemsOfType(actor.value, 'talent'));
 const abilities = computed(() => itemsOfType(actor.value, 'ability'));
 const equipment = computed(() =>
@@ -89,6 +91,10 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		<header>
 			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
 			<input type="text" name="name" :value="actor.name" />
+			<label class="silhouette">
+				<Localized label="Genesys.Labels.Silhouette" />
+				<input type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />
+			</label>
 		</header>
 
 		<nav class="sheet-tabs" data-group="primary">
@@ -104,8 +110,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		<section class="sheet-body">
 			<div class="tab" data-tab="stats">
 				<section class="stats-tab">
-					<div class="description-area">
-						<div :class="`adversary-description ${system.description.trim() === '' ? 'empty' : ''}`">
+					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
+					<div v-if="editable || hasDescription || system.source.trim() !== ''" class="description-area">
+						<div :class="['adversary-description', { empty: !hasDescription }]">
 							<Editor name="system.description" />
 							<Enriched class="source" :value="system.source" />
 						</div>
@@ -349,8 +356,35 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					}
 				}
 
-				&.empty > :first-of-type {
-					min-height: 10rem;
+				// An empty description takes the room of its edit toggle alone, which shows in it rather than over it, and
+				// the editor's minimum height once it opens.
+				&.empty {
+					> .editor {
+						min-height: 0;
+
+						:deep(prose-mirror.inactive) {
+							gap: 0;
+
+							> button.toggle:enabled {
+								display: block;
+								visibility: hidden;
+								position: static;
+								align-self: flex-end;
+							}
+
+							&:hover > button.toggle:enabled {
+								visibility: visible;
+							}
+						}
+					}
+
+					> .editor:has(> prose-mirror.active) {
+						min-height: 10rem;
+					}
+
+					> .source:empty {
+						display: none;
+					}
 				}
 			}
 		}
@@ -381,14 +415,15 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	header {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 0.5rem;
+		column-gap: 0.5rem;
 		align-items: center;
 
 		img {
+			grid-row: 1 / span 2;
 			border: 1px solid colors.$gold;
 			background: colors.alpha(colors.$gold, 0.5);
 			border-radius: 1em;
-			height: 2.5rem;
+			height: 3.5rem;
 		}
 
 		@include reset.input;
@@ -406,6 +441,22 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 			&:focus {
 				font-family: 'Modesto Condensed', sans-serif;
+			}
+		}
+
+		// The silhouette sits under the name, with the actor's identity rather than its combat stats.
+		.silhouette {
+			display: flex;
+			gap: 0.5em;
+			align-items: baseline;
+			font-family: 'Bebas Neue', sans-serif;
+			color: colors.$blue;
+
+			input {
+				width: 3em;
+				text-align: center;
+				font-family: 'Roboto', sans-serif;
+				border-bottom: 1px solid colors.$dark-blue;
 			}
 		}
 	}

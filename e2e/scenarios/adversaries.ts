@@ -1,4 +1,4 @@
-/** @file #215, #246, #269, #300 and #343: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, and a minion's sheet following its independence. */
+/** @file #215, #246, #269, #300, #343 and #380: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
 import type { ConfirmDialog } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
@@ -22,6 +22,37 @@ type PrototypeToken = { bar1: string | null; bar2: string | null; actorLink: boo
 
 type MenuTarget = { actor: string; kind: 'skill' | 'talent'; name: string };
 
+/**
+ * The silhouette field of an actor's sheet: where it sits, its label, value and bounds.
+ */
+type SilhouetteField = {
+	place: 'character meta' | 'adversary header' | 'elsewhere';
+	label: string;
+	value: string;
+	min: string;
+	step: string;
+};
+
+/**
+ * The description area of an adversary's sheet, on its Stats tab, in px: its height, the bottom of its edit toggle, shown
+ * as on hover (null on a sheet the user can't edit), the bottom of its last paragraph (null without one), and its line
+ * height. A sheet that shows no area gives a height of 0.
+ */
+type DescriptionArea = { height: number; toggleBottom: number | null; textBottom: number | null; lineHeight: number };
+
+/**
+ * The open description editor of an adversary's sheet: its height in px, whether it shows its HTML source, whether it
+ * scrolls inside, the scroll and client heights of the part showing its rich text or its HTML source, and the computed
+ * `position` of the HTML source's scroller (null in rich text).
+ */
+type OpenEditor = {
+	height: number;
+	source: boolean;
+	scrolls: boolean;
+	content: { scrollHeight: number; clientHeight: number };
+	sourcePosition: string | null;
+};
+
 type AdversariesHelpers = {
 	setUp(): Promise<void>;
 	cleanUp(): Promise<void>;
@@ -43,6 +74,8 @@ type AdversariesHelpers = {
 	attack(args: { actor: string; weapon: string; target: string }): Promise<PromptState>;
 	/** The values of the inputs of an actor's sheet, by name. */
 	sheetInputs(args: { actor: string; names: string[] }): Promise<Record<string, string>>;
+	/** The silhouette field of an actor's sheet, null when it has none. */
+	silhouetteField(actor: string): Promise<SilhouetteField | null>;
 	/** The element and computed `text-align` of each characteristic value of an actor's sheet, by label. */
 	characteristicAlignment(args: { actor: string }): Promise<Record<string, string>>;
 	/** Types a value in a number field of an actor's sheet, then returns the value stored. */
@@ -63,6 +96,15 @@ type AdversariesHelpers = {
 		skill: string;
 		defense: PromptState['modifications'];
 	} | null>;
+	/** Gives a user the Observer permission on actors: the user can view their sheets but not edit them. */
+	grantObserver(args: { user: string; actors: string[] }): Promise<void>;
+	descriptionArea(args: { actor: string }): Promise<DescriptionArea>;
+	/** Clicks the edit toggle of an adversary's description and returns its editor once open. */
+	openDescription(args: { actor: string }): Promise<OpenEditor>;
+	/** Clicks the HTML source button of the menu of an adversary's open description editor, and returns the editor. */
+	toggleDescriptionSource(args: { actor: string }): Promise<OpenEditor>;
+	/** Clicks the save button of the menu of an adversary's open description editor, and returns the area once closed. */
+	saveDescription(args: { actor: string }): Promise<DescriptionArea>;
 };
 
 declare global {
@@ -150,6 +192,59 @@ function installAdversariesHelpers() {
 		return state;
 	};
 
+	// The Stats tab of an adversary's sheet, once its editor shows the description, which it enriches first.
+	const statsTab = (name: string) =>
+		render(actor(name).sheet, (root) => {
+			const tab = root.querySelector('.tab.active[data-tab="stats"] .stats-tab');
+			const area = tab?.querySelector('.description-area');
+			return tab && (!area || area.querySelector(actor(name).system.description ? 'prose-mirror p' : 'prose-mirror'));
+		});
+	const measureArea = (root: HTMLElement): DescriptionArea => {
+		const area = root.querySelector<HTMLElement>('.stats-tab .description-area');
+		if (!area) return { height: 0, toggleBottom: null, textBottom: null, lineHeight: 0 };
+		const top = area.getBoundingClientRect().top;
+		const toggle = area.querySelector<HTMLButtonElement>('prose-mirror > button.toggle:enabled');
+		let toggleBottom = null;
+		if (toggle) {
+			// The edit toggle shows on hover only.
+			const display = toggle.style.display;
+			toggle.style.display = 'block';
+			toggleBottom = toggle.getBoundingClientRect().bottom - top;
+			toggle.style.display = display;
+		}
+		const paragraph = area.querySelector('prose-mirror p:last-of-type');
+		const style = getComputedStyle(area);
+		return {
+			height: area.getBoundingClientRect().height,
+			toggleBottom,
+			textBottom: paragraph ? paragraph.getBoundingClientRect().bottom - top : null,
+			lineHeight: parseFloat(style.lineHeight) || 1.2 * parseFloat(style.fontSize),
+		};
+	};
+	// The Editor component's wrapper, which holds the <prose-mirror> element and scrolls what its box can't show.
+	const editorOf = (root: HTMLElement) => root.querySelector<HTMLElement>('.stats-tab .adversary-description > .editor');
+	// The HTML source shows in a <code-mirror>, which scrolls in its .cm-scroller.
+	const sourceOf = (editor: HTMLElement) =>
+		editor.querySelector<HTMLElement>(':scope > prose-mirror > code-mirror.source-editor .cm-scroller');
+	const measureEditor = (editor: HTMLElement): OpenEditor => {
+		const source = sourceOf(editor);
+		const content = source ?? editor.querySelector<HTMLElement>('.editor-container .ProseMirror')!;
+		return {
+			height: Math.round(editor.getBoundingClientRect().height),
+			source: !!source,
+			scrolls: editor.scrollHeight > editor.clientHeight,
+			content: { scrollHeight: content.scrollHeight, clientHeight: content.clientHeight },
+			sourcePosition: source ? getComputedStyle(source).position : null,
+		};
+	};
+	const openEditor = async (name: string) => {
+		const root = await statsTab(name);
+		return waitFor(`the open description editor of ${name}`, () => {
+			const editor = editorOf(root);
+			return editor?.querySelector(':scope > prose-mirror.active .editor-container .ProseMirror') && editor;
+		});
+	};
+
 	window.adversariesE2E = {
 		async setUp() {
 			await window.adversariesE2E.cleanUp();
@@ -203,6 +298,11 @@ function installAdversariesHelpers() {
 					items: [skill('Cool', 'presence', 0)],
 				},
 				{ name: 'E2E Wagon', type: 'vehicle', system: { hullTrauma: { value: 0, max: 10 }, systemStrain: { value: 0, max: 10 } } },
+				{
+					name: 'E2E Chronicle',
+					type: 'rival',
+					system: { description: Array.from({ length: 25 }, (_, index) => `<p>Paragraph ${index + 1}</p>`).join('') },
+				},
 			]);
 			const bars: Record<string, string[]> = {
 				Grunts: ['wounds'],
@@ -303,6 +403,20 @@ function installAdversariesHelpers() {
 			);
 		},
 
+		async silhouetteField(name) {
+			const root = await sheet(name);
+			const input = root.querySelector<HTMLInputElement>('input[name="system.silhouette"]');
+			if (!input) return null;
+			const place = input.closest('.character-meta')
+				? 'character meta'
+				: input.closest('.adversary-sheet > header')
+					? 'adversary header'
+					: 'elsewhere';
+			// An adversary's label holds its input, a character's sits before it.
+			const label = input.closest('label') ?? input.previousElementSibling;
+			return { place, label: text(label), value: input.value, min: input.min, step: input.step };
+		},
+
 		async characteristicAlignment({ actor: name }) {
 			const root = await sheet(name);
 			return Object.fromEntries(
@@ -373,6 +487,45 @@ function installAdversariesHelpers() {
 			const { modifications } = await readPrompt();
 			target(null);
 			return { skill, defense: modifications.filter(({ name }) => name.endsWith('Defense')) };
+		},
+
+		async grantObserver({ user, actors }) {
+			const userId = game.users.getName(user).id;
+			for (const name of actors) {
+				await actor(name).update({ [`ownership.${userId}`]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER });
+			}
+		},
+
+		async descriptionArea({ actor: name }) {
+			return measureArea(await statsTab(name));
+		},
+
+		async openDescription({ actor: name }) {
+			const root = await statsTab(name);
+			editorOf(root)!.querySelector<HTMLElement>(':scope > prose-mirror > button.toggle')!.click();
+			const editor = await openEditor(name);
+			await settle();
+			return measureEditor(editor);
+		},
+
+		async toggleDescriptionSource({ actor: name }) {
+			const editor = await openEditor(name);
+			const source = !sourceOf(editor);
+			editor.querySelector<HTMLElement>('menu button[data-action="source-code"]')!.click();
+			await waitFor(`the ${source ? 'HTML source' : 'rich text'} of the description of ${name}`, () => !!sourceOf(editor) === source);
+			await settle();
+			return measureEditor(editor);
+		},
+
+		async saveDescription({ actor: name }) {
+			const editor = await openEditor(name);
+			editor.querySelector<HTMLElement>('menu button[data-action="save"]')!.click();
+			const root = await statsTab(name);
+			await waitFor(`the closed description editor of ${name}`, () =>
+				editorOf(root)?.querySelector(':scope > prose-mirror.inactive'),
+			);
+			await settle();
+			return measureArea(root);
 		},
 	};
 }
@@ -813,6 +966,151 @@ export async function run(e2e: ScenarioContext) {
 		"#343 A3 a minion's open sheet follows its independentMinion flag: an independent minion's wounds take a current value",
 		{ dependent, independent: await woundFields() },
 		{ dependent: ['system.wounds.threshold'], independent: ['system.wounds.value'] },
+	);
+
+	// H: an adversary's empty description (§#359). The Grunts, the Rival and the Nemesis have none.
+	const descriptionArea = (client: typeof gm, actor: string) =>
+		client.evaluate((args) => window.adversariesE2E.descriptionArea(args), { actor });
+	const openDescription = (actor: string) => gm.evaluate((args) => window.adversariesE2E.openDescription(args), { actor });
+	const toggleSource = (actor: string) => gm.evaluate((args) => window.adversariesE2E.toggleDescriptionSource(args), { actor });
+	const saveDescription = (actor: string) => gm.evaluate((args) => window.adversariesE2E.saveDescription(args), { actor });
+	const compact = ({ height, toggleBottom, lineHeight }: DescriptionArea) => ({
+		toggleFits: toggleBottom !== null && toggleBottom <= height + 0.5,
+		atMostOneLineAndTheToggle: toggleBottom !== null && height <= toggleBottom + lineHeight,
+	});
+	const COMPACT = { toggleFits: true, atMostOneLineAndTheToggle: true };
+
+	const editableAreas = await byAdversary(adversaries, (actor) => descriptionArea(gm, actor));
+	e2e.log('the empty description areas of the GM', editableAreas);
+	e2e.expect(
+		"#359 H1 an empty description on a minion's, a rival's and a nemesis' sheet the user can edit takes the room of its edit toggle, and one line at most",
+		Object.fromEntries(adversaries.map((name) => [name, compact(editableAreas[name]!)])),
+		eachAdversary(() => COMPACT),
+	);
+
+	const player = await e2e.player();
+	await player.evaluate(installAdversariesHelpers);
+	await gm.evaluate((args) => window.adversariesE2E.grantObserver(args), { user: e2e.playerUser, actors: adversaries });
+	await e2e.settle();
+	const observedAreas = await byAdversary(adversaries, (actor) => descriptionArea(player, actor));
+	e2e.log('the empty description areas of an observer', observedAreas);
+	e2e.expect(
+		"#359 H2 an empty description on a minion's, a rival's and a nemesis' sheet the user can't edit takes no room",
+		Object.fromEntries(adversaries.map((name) => [name, observedAreas[name]!.height])),
+		eachAdversary(() => 0),
+	);
+	await player.evaluate(() => window.e2e.closeSetUp());
+
+	const openEmpty = await openDescription('Rival');
+	e2e.log('the open editor of an empty description', openEmpty);
+	e2e.expect(
+		"#359 H3 the opened editor of an empty description takes the editor's minimum height, 150px or more",
+		{ source: openEmpty.source, atLeast150: openEmpty.height >= 150 },
+		{ source: false, atLeast150: true },
+	);
+	e2e.expect(
+		'#359 H4 saving an empty description closes its editor, back to the room of its edit toggle',
+		compact(await saveDescription('Rival')),
+		COMPACT,
+	);
+
+	// I: a description of 25 paragraphs, in rich text and in HTML source (§#359).
+	const closedText = await descriptionArea(gm, 'Chronicle');
+	e2e.log('the description area of 25 paragraphs', closedText);
+	e2e.expect(
+		'#359 I1 a description of 25 paragraphs, its editor closed, shows them all: its last paragraph ends within its area',
+		closedText.textBottom !== null && closedText.textBottom <= closedText.height + 0.5,
+		true,
+	);
+	const richText = await openDescription('Chronicle');
+	e2e.log('the open editor of 25 paragraphs, in rich text', richText);
+	e2e.expect(
+		'#359 I2 the opened editor of 25 paragraphs grows with its rich text, without scrolling inside',
+		{ source: richText.source, scrolls: richText.scrolls },
+		{ source: false, scrolls: false },
+	);
+	const htmlSource = await toggleSource('Chronicle');
+	e2e.log('the open editor of 25 paragraphs, in HTML source', htmlSource);
+	e2e.expect(
+		'#359 I3 the HTML source editor of 25 paragraphs shows every line: its scrolling content is as tall as its HTML',
+		{
+			source: htmlSource.source,
+			scrolls: htmlSource.scrolls,
+			showsEveryLine: htmlSource.content.scrollHeight === htmlSource.content.clientHeight,
+			// CodeMirror's base theme positions the scroller, which holds its cursor and selection layers.
+			sourcePosition: htmlSource.sourcePosition,
+		},
+		{ source: true, scrolls: false, showsEveryLine: true, sourcePosition: 'relative' },
+	);
+	e2e.expect(
+		'#359 I4 back in rich-text mode, the editor of 25 paragraphs is as tall as before its HTML source',
+		await toggleSource('Chronicle'),
+		richText,
+	);
+	const savedText = await saveDescription('Chronicle');
+	e2e.expect(
+		'#359 I5 saving the description of 25 paragraphs closes its editor, back to the height of its area before',
+		Math.round(savedText.height),
+		Math.round(closedText.height),
+	);
+
+	// J: the silhouette of characters and Adversaries (§#380).
+	const characterAndAdversaries = ['Hero', 'Grunts', 'Rival', 'Nemesis'];
+	e2e.expect(
+		'#380 J1 a character or an Adversary stored before it had a silhouette reads 1, and a new one is created at 1',
+		await gm.evaluate((names) => {
+			const stored = (name: string) => {
+				const data = game.actors.getName(`E2E ${name}`).toObject();
+				delete data.system.silhouette;
+				return new Actor.implementation(data).system.silhouette;
+			};
+			return {
+				stored: Object.fromEntries(names.map((name) => [name, stored(name)])),
+				created: Object.fromEntries(names.map((name) => [name, game.actors.getName(`E2E ${name}`)._source.system.silhouette])),
+			};
+		}, characterAndAdversaries),
+		{
+			stored: { Hero: 1, Grunts: 1, Rival: 1, Nemesis: 1 },
+			created: { Hero: 1, Grunts: 1, Rival: 1, Nemesis: 1 },
+		},
+	);
+	const silhouetteFields: Record<string, unknown> = {};
+	for (const actor of characterAndAdversaries) {
+		silhouetteFields[actor] = await gm.evaluate((name) => window.adversariesE2E.silhouetteField(name), actor);
+	}
+	const expectedSilhouetteField = (place: string) => ({ place, label: 'Silhouette', value: '1', min: '0', step: '1' });
+	e2e.expect("#380 J2 the silhouette is edited in the character's meta block and under an Adversary's name", silhouetteFields, {
+		Hero: expectedSilhouetteField('character meta'),
+		Grunts: expectedSilhouetteField('adversary header'),
+		Rival: expectedSilhouetteField('adversary header'),
+		Nemesis: expectedSilhouetteField('adversary header'),
+	});
+	const typeSilhouette = (actor: string, value: string) =>
+		gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), {
+			actor,
+			name: 'system.silhouette',
+			value,
+			path: 'system.silhouette',
+		});
+	e2e.expect(
+		'#380 J3 a silhouette typed in a sheet is stored, from 0 and without maximum; a negative one becomes 0, a fraction is rounded',
+		{
+			'Grunts 0': await typeSilhouette('Grunts', '0'),
+			'Nemesis 12': await typeSilhouette('Nemesis', '12'),
+			'Hero -2': await typeSilhouette('Hero', '-2'),
+			'Rival 2.6': await typeSilhouette('Rival', '2.6'),
+		},
+		{ 'Grunts 0': 0, 'Nemesis 12': 12, 'Hero -2': 0, 'Rival 2.6': 3 },
+	);
+
+	await update('Attacker', { 'system.silhouette': 3 });
+	await update('Hero', { 'system.silhouette': 1 });
+	e2e.expect(
+		'#380 J4 a silhouette 3 Adversary attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
+		(
+			await gm.evaluate((args) => window.adversariesE2E.attack(args), { actor: 'Attacker', weapon: 'Knife', target: 'Hero' })
+		).modifications.filter(({ name }) => name.includes('Silhouette')),
+		[{ name: 'From Target: Silhouette (1 vs 3)', mods: 'D+' }],
 	);
 
 	await gm.evaluate(() => window.adversariesE2E.cleanUp());

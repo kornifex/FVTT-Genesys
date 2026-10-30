@@ -55,6 +55,11 @@ export type FixedDie = { face: number; faces: number };
 export type ConfirmDialog = { application: string; title: string; content: string; buttons: string[]; defaultButton: string };
 
 /**
+ * A point of the window, in client coordinates.
+ */
+export type Point = { x: number; y: number };
+
+/**
  * An expandable description of a row as laid out (#325): its height in px, rounded, or `>cap` past the cap given, since
  * the height of a long text differs between the versions' fonts; how many px of its content it cuts off, it or its
  * content clipping; whether its last element ends inside its box; and how its height animates.
@@ -136,9 +141,10 @@ type PageHelpers = {
 	dragStart: (element: Element) => DataTransfer;
 	/**
 	 * Dispatches a drop of this drag data, or of a drag's `DataTransfer`, on an element, as Foundry's drag and drop does.
-	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then.
+	 * The data is cleared once the event has dispatched, as a browser makes a drop's data unreadable then. The drop lands at
+	 * a point of the window when one is given, for a target that reads where it lands.
 	 */
-	drop: (element: Element, data: object | DataTransfer) => void;
+	drop: (element: Element, data: object | DataTransfer, point?: Point) => void;
 	/** Deletes the documents set up in each collection, in the order given. */
 	deleteSetUp: (...collections: SetUpCollection[]) => Promise<void>;
 	/** Creates and views the scene `E2E` when no scene is viewed. */
@@ -166,6 +172,8 @@ type PageHelpers = {
 	 * Setback, `A^` upgrades an Ability die.
 	 */
 	poolModification: (element: Element, icon?: Element | null) => string;
+	/** The rows of an Effects tab, each with the heading of its section and its row element, to click its buttons. */
+	effectRows: (view: Element) => EffectsTabRow[];
 	/** Renders the sheet of the actor `E2E <name>` unless it is, and shows its tab by its nav. */
 	showTab: (name: string, tab: string) => Promise<void>;
 	/**
@@ -175,6 +183,18 @@ type PageHelpers = {
 	setActive: (element: Element, active: boolean) => void;
 	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
 	descriptionBox: (description: Element, cap: number) => DescriptionBox;
+};
+
+/**
+ * A row of a sheet's Effects tab.
+ */
+type EffectsTabRow = {
+	/** The heading of its section, as the sheet words it. */
+	section: string;
+	name: string;
+	source: string;
+	duration: string;
+	element: HTMLElement;
 };
 
 declare global {
@@ -453,10 +473,11 @@ export function installHelpers() {
 			return dataTransfer;
 		},
 
-		drop(element, data) {
+		drop(element, data, point) {
 			const dataTransfer = data instanceof DataTransfer ? data : new DataTransfer();
 			if (dataTransfer !== data) dataTransfer.setData('text/plain', JSON.stringify(data));
-			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+			const at = point ? { clientX: point.x, clientY: point.y } : {};
+			element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer, ...at }));
 			dataTransfer.clearData();
 		},
 
@@ -541,6 +562,25 @@ export function installHelpers() {
 		poolModification(element, icon = element.querySelector('i')) {
 			const operator = Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?';
 			return `${helpers.text(element)}${operator}`;
+		},
+
+		effectRows(view) {
+			// Each section is a heading, then the rows of its effects.
+			const rows: EffectsTabRow[] = [];
+			let section = '';
+			for (const element of view.children) {
+				if (element.matches('.effects-header')) section = helpers.text(element.querySelector('.name'));
+				for (const row of element.matches('.effects-category') ? element.querySelectorAll<HTMLElement>('.effect') : []) {
+					rows.push({
+						section,
+						name: helpers.text(row.querySelector('.name')),
+						source: helpers.text(row.querySelector('.source')),
+						duration: helpers.text(row.querySelector('.duration')),
+						element: row,
+					});
+				}
+			}
+			return rows;
 		},
 
 		async showTab(name, tab) {

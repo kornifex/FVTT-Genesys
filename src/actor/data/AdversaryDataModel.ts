@@ -8,7 +8,7 @@ import { adversaryDefense } from '@/actor/data/Protection';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import { characteristicsField, defenseField, Motivations, motivationsField } from '@/data/schemaFields';
+import { characteristicsField, defenseField, Motivations, motivationsField, silhouetteField } from '@/data/schemaFields';
 
 /**
  * The actor types of the Adversaries.
@@ -29,6 +29,7 @@ export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<
 	abstract source: string;
 	abstract motivations: Motivations;
 	abstract superCharacteristics: Set<Characteristic>;
+	abstract silhouette: number;
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		soak: {
@@ -64,6 +65,7 @@ export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<
 			source: new fields.HTMLField(),
 			motivations: motivationsField(),
 			superCharacteristics: new fields.SetField(new fields.StringField()),
+			silhouette: silhouetteField(),
 		};
 	}
 }

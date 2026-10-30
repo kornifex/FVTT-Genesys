@@ -25,8 +25,10 @@ import {
 	carriedPoolModificationStates,
 	checkDicePool,
 	resolveCheck,
+	vehicleAttacker,
 	worldCheckRules,
 } from '@/dice/Check';
+import { matchOrigin } from '@/effects/PoolModifications';
 import { type DicePool, parsePoolModifications, poolEntries, sortPoolModifications } from '@/dice/DicePool';
 
 type AlsoNone<T> = T | undefined;
@@ -114,6 +116,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			purpose: checkPurpose(),
 			target: target?.actor ?? undefined,
 			attackRange: attack?.profile.range,
+			attacker: vehicleAttacker(attack?.weapon),
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -157,7 +160,16 @@ function poolModificationName({ source, from }: CheckPoolModification) {
 	return (
 		game.i18n.localize(
 			source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects',
-		) + ('effect' in from ? from.effect : game.i18n.localize(DEFENSE_LABELS[from.defense]))
+		) +
+		matchOrigin(from, {
+			effect: (name) => name,
+			defense: (defense) => game.i18n.localize(DEFENSE_LABELS[defense]),
+			silhouette: ({ target, attacker }) =>
+				game.i18n.format('Genesys.DicePrompt.PoolModifications.SilhouetteDifference', {
+					target: String(target),
+					attacker: String(attacker),
+				}),
+		})
 	);
 }
 
