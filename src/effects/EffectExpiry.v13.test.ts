@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { effectsToExpire, rearms } from '@/effects/EffectExpiry.v13';
+import { effectsToExpire, extendsExpiredEffect } from '@/effects/EffectExpiry.v13';
 
 describe('effectsToExpire', () => {
 	const oneRound = { id: 'dazed', expired: false, duration: { rounds: 1, startRound: 1, startTurn: 0 } };
@@ -53,35 +53,39 @@ describe('effectsToExpire', () => {
 	});
 });
 
-describe('rearms', () => {
+describe('extendsExpiredEffect', () => {
 	const expiredOneRound = { expired: true, duration: { rounds: 1, startRound: 1, startTurn: 0 } };
 	const roundTwo = { round: 2, turn: 0, turnCount: 2 };
 
-	it('rearms an expired effect whose duration is extended so that it has time left', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration, rounds: 2 }, roundTwo)).toBe(true);
+	it('extends an expired effect given one more round, so that it has time left', () => {
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration, rounds: 2 }, roundTwo)).toBe(true);
 	});
 
-	it('rearms an expired effect whose duration starts again from the current round', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration, startRound: 2 }, roundTwo)).toBe(true);
+	it('extends an expired effect whose duration starts again from the current round', () => {
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration, startRound: 2 }, roundTwo)).toBe(true);
 	});
 
 	it('keeps an effect expired when its new duration has run out too', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration, rounds: 2 }, { round: 3, turn: 0, turnCount: 2 })).toBe(false);
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration, rounds: 2 }, { round: 3, turn: 0, turnCount: 2 })).toBe(
+			false,
+		);
 	});
 
 	it('keeps an effect expired when an update leaves its duration as it is, as turning it on by hand does', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration }, roundTwo)).toBe(false);
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration }, roundTwo)).toBe(false);
 	});
 
-	it('rearms an expired effect whose duration is changed out of combat, where no time is counted', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration, rounds: 3 }, undefined)).toBe(true);
+	it('extends an expired effect whose duration is changed out of combat, where no time is counted', () => {
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration, rounds: 3 }, undefined)).toBe(true);
 	});
 
-	it('rearms an expired effect whose duration is removed, since it is no longer temporary', () => {
-		expect(rearms(expiredOneRound, { ...expiredOneRound.duration, rounds: null }, roundTwo)).toBe(true);
+	it('extends an expired effect whose duration is removed, since it is no longer temporary', () => {
+		expect(extendsExpiredEffect(expiredOneRound, { ...expiredOneRound.duration, rounds: null }, roundTwo)).toBe(true);
 	});
 
-	it('has nothing to rearm in an effect that is not expired', () => {
-		expect(rearms({ ...expiredOneRound, expired: false }, { ...expiredOneRound.duration, rounds: 2 }, roundTwo)).toBe(false);
+	it('has nothing to extend in an effect that is not expired', () => {
+		expect(extendsExpiredEffect({ ...expiredOneRound, expired: false }, { ...expiredOneRound.duration, rounds: 2 }, roundTwo)).toBe(
+			false,
+		);
 	});
 });

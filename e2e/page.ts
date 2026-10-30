@@ -159,6 +159,20 @@ type PageHelpers = {
 	 * Setback, `A^` upgrades an Ability die.
 	 */
 	poolModification: (element: Element, icon?: Element | null) => string;
+	/** The rows of an Effects tab, each with the heading of its section and its row element, to click its buttons. */
+	effectRows: (view: Element) => EffectsTabRow[];
+};
+
+/**
+ * A row of a sheet's Effects tab.
+ */
+type EffectsTabRow = {
+	/** The heading of its section, as the sheet words it. */
+	section: string;
+	name: string;
+	source: string;
+	duration: string;
+	element: HTMLElement;
 };
 
 declare global {
@@ -525,6 +539,25 @@ export function installHelpers() {
 		poolModification(element, icon = element.querySelector('i')) {
 			const operator = Object.entries(OPERATORS).find(([name]) => icon?.classList.contains(name))?.[1] ?? '?';
 			return `${helpers.text(element)}${operator}`;
+		},
+
+		effectRows(view) {
+			// Each section is a heading, then the rows of its effects.
+			const rows: EffectsTabRow[] = [];
+			let section = '';
+			for (const element of view.children) {
+				if (element.matches('.effects-header')) section = helpers.text(element.querySelector('.name'));
+				for (const row of element.matches('.effects-category') ? element.querySelectorAll<HTMLElement>('.effect') : []) {
+					rows.push({
+						section,
+						name: helpers.text(row.querySelector('.name')),
+						source: helpers.text(row.querySelector('.source')),
+						duration: helpers.text(row.querySelector('.duration')),
+						element: row,
+					});
+				}
+			}
+			return rows;
 		},
 	};
 

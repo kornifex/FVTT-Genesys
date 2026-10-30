@@ -4,7 +4,9 @@ import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
-import { expireEffectsOfCombat } from '@/effects/GenesysEffect';
+// v13: the Acting GM marks the Expired Effects, which Foundry v13 never expires.
+import { expireEffectsOfCombat } from '@/effects/GenesysEffect.v13';
+import type { CombatClock } from '@/effects/EffectExpiry.v13';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { emit as socketEmit, handle as handleSocket, isActingGm, SocketOperation } from '@/socket';
 import { isFoundryV13 } from '@/foundryGeneration';
@@ -114,9 +116,10 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
-	 * The point the combat has reached, against which effect durations in rounds and turns are counted.
+	 * v13: the point the combat has reached, against which the system counts effect durations in rounds and turns. v14's
+	 * Active Effect registry counts them itself.
 	 */
-	get combatTime() {
+	get combatClock(): CombatClock {
 		return { round: this.round, turn: this.turn, turnCount: this.turns.length };
 	}
 
