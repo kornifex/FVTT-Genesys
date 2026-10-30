@@ -73,8 +73,6 @@ type InventoryHelpers = {
 	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
 	rollPrompt(): Promise<void>;
-	/** Shows a tab of an actor's sheet. */
-	showTab(actor: string, tab: string): Promise<void>;
 	/** Runs a script on the setup's documents. */
 	updateItem(actor: string, item: string, changes: object): Promise<void>;
 	/** Writes an Equipment State by script, and tells whether the write threw and which state the item and the database keep. */
@@ -594,7 +592,7 @@ function installInventoryHelpers() {
 			if ('item' in at) {
 				target = findRow(root, at.item);
 				if (at.edge) {
-					await helpers.showTab(ref, 'inventory');
+					await window.e2e.showTab(ref, 'inventory');
 					point = edgePoint(target as HTMLElement, at.edge);
 				}
 			} else if ('on' in at) {
@@ -676,7 +674,7 @@ function installInventoryHelpers() {
 			if (!(dataTransfer instanceof DataTransfer)) throw new Error('Only a held item is dragged over a row');
 			const row = findRow(await sheet(ref), name);
 			const shown: (RowEdge | null)[] = [];
-			await helpers.showTab(ref, 'inventory');
+			await window.e2e.showTab(ref, 'inventory');
 			row.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
 			for (const edge of edges) {
 				const { x, y } = edgePoint(row, edge);
@@ -736,12 +734,6 @@ function installInventoryHelpers() {
 			if (!roll) throw new Error('No dice prompt');
 			roll.click();
 			await settle();
-		},
-
-		async showTab(ref, tab) {
-			const root = await sheet(ref);
-			root.querySelector<HTMLElement>(`nav.sheet-tabs [data-tab="${tab}"]`)!.click();
-			await waitFor(`the ${tab} tab`, () => root.querySelector(`.tab[data-tab="${tab}"].active`));
 		},
 
 		async updateItem(ref, name, changes) {
@@ -1789,7 +1781,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step(
 		"#134 M1 Smith's Inventory tab shown, then the Club's damage field emptied in its sheet",
 		drops(
-			() => page.evaluate(() => window.inventoryE2E.showTab('Smith', 'inventory')),
+			() => page.evaluate(() => window.e2e.showTab('Smith', 'inventory')),
 			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Club', 'system.baseDamage', '')),
 		),
 	);
@@ -1882,7 +1874,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step(
 		"#203 M6 Hauler's Inventory tab shown, then the Turret's firing arc updated",
 		drops(
-			() => page.evaluate(() => window.inventoryE2E.showTab('Hauler', 'inventory')),
+			() => page.evaluate(() => window.e2e.showTab('Hauler', 'inventory')),
 			updateItem('Hauler', 'Turret', { 'system.firingArc.aft': true }),
 		),
 	);
@@ -2028,7 +2020,7 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		dropped: await section('Placer', 'dropped'),
 	});
 	const rover = async () => ({ equipped: await section('Rover', 'equipped'), carried: await section('Rover', 'carried') });
-	await gm.evaluate(() => window.inventoryE2E.showTab('Placer', 'inventory'));
+	await gm.evaluate(() => window.e2e.showTab('Placer', 'inventory'));
 	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 A1 a right-click on a character's inventory row opens the menu of its … button, which a left-click still opens",
@@ -2134,7 +2126,7 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		dropped: ['Packed Gear', 'Pinecone'],
 	});
 
-	await gm.evaluate(() => window.inventoryE2E.showTab('Rover', 'inventory'));
+	await gm.evaluate(() => window.e2e.showTab('Rover', 'inventory'));
 	const railgunMenu = ['Unequip [fa-suitcase]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 C1 a right-click on a vehicle's inventory row opens the menu of its … button",

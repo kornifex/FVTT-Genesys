@@ -58,19 +58,23 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 			<a @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
-			<div v-if="talent" class="tier-container">
-				<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
+			<!-- The expandable description opens its only child. -->
+			<div class="desc-content">
+				<div v-if="talent" class="tier-container">
+					<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
+				</div>
+
+				<Enriched class="desc" :value="item.system.description"></Enriched>
+
+				<div v-if="item.system.source" class="source">{{ item.system.source }}</div>
 			</div>
-
-			<Enriched class="desc" :value="item.system.description"></Enriched>
-
-			<div v-if="item.system.source" class="source">{{ item.system.source }}</div>
 		</div>
 	</div>
 </template>
 
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
+@use '@scss/mixins/expandable.scss';
 
 .talent {
 	display: grid;
@@ -104,16 +108,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 	.desc-container {
 		grid-column: 1 / span all;
 		grid-row: 2 / span 1;
-		transition: max-height 0.5s ease-out;
-		max-height: 0;
-		transform-origin: 50% 0;
-		overflow: hidden;
 		padding-left: 0.5em;
-
-		&.active {
-			max-height: 500px;
-			transition: max-height 1s ease-in;
-		}
+		@include expandable.description;
 
 		.tier-container {
 			margin-top: 0.5em;
