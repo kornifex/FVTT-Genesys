@@ -1,9 +1,38 @@
 import { describe, expect, it } from 'vitest';
-import { chosenInitiativeSkill, InitiativeSkill, initiativeSkillToRoll, nextInitiativeSkill } from '@/combat/InitiativeSkills';
+import {
+	chosenInitiativeSkill,
+	InitiativeSkill,
+	initiativeSkillsOf,
+	initiativeSkillToRoll,
+	nextInitiativeSkill,
+} from '@/combat/InitiativeSkills';
 import { Characteristic } from '@/data/Characteristics';
 
 const COOL: InitiativeSkill = { skillName: 'Cool', skillChar: Characteristic.Presence };
 const VIGILANCE: InitiativeSkill = { skillName: 'Vigilance', skillChar: Characteristic.Willpower };
+
+function skill(name: string, characteristic: Characteristic, initiative: boolean) {
+	return { name, system: { characteristic, initiative } };
+}
+
+describe('initiativeSkillsOf', () => {
+	it('lists the skills marked for initiative, in their order', () => {
+		const skills = [
+			skill('Vigilance', Characteristic.Willpower, true),
+			skill('Athletics', Characteristic.Brawn, false),
+			skill('Cool', Characteristic.Presence, true),
+		];
+
+		expect(initiativeSkillsOf(skills, 'Brawn')).toEqual([VIGILANCE, COOL]);
+	});
+
+	it('falls back to a Characteristic Check on Brawn, by its localized name, when no skill is marked for initiative', () => {
+		const brawn = { skillName: 'Vigueur', skillChar: Characteristic.Brawn };
+
+		expect(initiativeSkillsOf([skill('Athletics', Characteristic.Brawn, false)], 'Vigueur')).toEqual([brawn]);
+		expect(initiativeSkillsOf([], 'Vigueur')).toEqual([brawn]);
+	});
+});
 
 describe('initiativeSkillToRoll', () => {
 	it('defaults to Vigilance, whatever the order of the Initiative Skills (CRB p. 95)', () => {

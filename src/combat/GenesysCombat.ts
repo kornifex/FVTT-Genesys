@@ -1,5 +1,5 @@
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
-import { InitiativeSkill } from '@/combat/InitiativeSkills';
+import { InitiativeSkill, initiativeSkillsOf } from '@/combat/InitiativeSkills';
 import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -11,13 +11,11 @@ import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { emit as socketEmit, handle as handleSocket, isActingGm, SocketOperation } from '@/socket';
 import { isFoundryV13 } from '@/foundryGeneration';
 import {
-	buildSlots,
 	claimRefusal,
 	decodeInitiative,
 	encodeInitiative,
 	ExtraSlotInitiative,
 	extraSlotResets,
-	extraSlotsForRound,
 	InitiativeSlot,
 	initiativeWrites,
 	isExtraSlot,
@@ -30,15 +28,11 @@ import {
 	StoredExtraSlot,
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
+import { slotsForRound, TurnOrderChanges, turnNumbers, turnOfSlotAfter, TurnOrderState } from '@/combat/TurnOrder';
 
 // Claims are keyed by slot id. They replace the `claimants` flag, which keyed them by position in the turn order.
 const FLAG_CLAIMS = 'slotClaims';
 const FLAG_EXTRA_SLOTS = 'extraSlots';
-
-/**
- * The Claims on the Initiative Slots, by round.
- */
-export type ClaimData = Record<number, RoundClaims>;
 
 /**
  * Foundry's options for rolling initiative, with the system's own.
@@ -76,16 +70,7 @@ export class GenesysCombat extends Combat {
 	 * Skills from the Skills Compendium that can be used for initiative.
 	 */
 	get initiativeSkills(): InitiativeSkill[] {
-		const initiativeSkills = CONFIG.genesys.skills
-			.filter((skill) => skill.system.initiative)
-			.map((skill) => ({ skillName: skill.name, skillChar: skill.system.characteristic }));
-
-		// Without any, initiative is a Characteristic Check on Brawn.
-		if (initiativeSkills.length === 0) {
-			return [{ skillName: game.i18n.localize(CHARACTERISTIC_LABELS[Characteristic.Brawn]), skillChar: Characteristic.Brawn }];
-		}
-
-		return initiativeSkills;
+		return initiativeSkillsOf(CONFIG.genesys.skills, game.i18n.localize(CHARACTERISTIC_LABELS[Characteristic.Brawn]));
 	}
 
 	/**
@@ -96,16 +81,26 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
+	 * What the turn order needs of the combat. Not private: Foundry orders the turns while it constructs the combat, before
+	 * a subclass has its private members.
+	 */
+	get turnOrderState(): TurnOrderState {
+		return {
+			combatants: this.combatants.contents.map((combatant) => ({
+				id: combatant.id,
+				initiative: combatant.initiative,
+				hasPlayerOwner: combatant.actorHasPlayerOwner,
+			})),
+			storedExtraSlots: this.storedExtraSlots,
+			claims: this.getFlag('genesys', FLAG_CLAIMS) ?? {},
+		};
+	}
+
+	/**
 	 * The Initiative Slots of a round in turn order, with their Claims.
 	 */
 	slotsForRound(round: number): InitiativeSlot[] {
-		const combatants = this.combatants.contents.map((combatant) => ({
-			id: combatant.id,
-			initiative: combatant.initiative,
-			hasPlayerOwner: combatant.actorHasPlayerOwner,
-		}));
-
-		return buildSlots(combatants, extraSlotsForRound(this.storedExtraSlots, round), this.claimsForRound(round));
+		return slotsForRound(this.turnOrderState, round);
 	}
 
 	/**
@@ -319,7 +314,7 @@ export class GenesysCombat extends Combat {
 	 */
 	async updateExtraSlots(extraSlots: StoredExtraSlot[], keepTurnOn: string | undefined) {
 		const changes = { flags: { genesys: { [FLAG_EXTRA_SLOTS]: extraSlots } } };
-		const turn = this.turnOfSlotAfter(keepTurnOn, changes);
+		const turn = this.turnOfSlotAfter(keepTurnOn, { storedExtraSlots: extraSlots });
 
 		await this.update(turn === undefined ? changes : { ...changes, turn });
 	}
@@ -328,16 +323,12 @@ export class GenesysCombat extends Combat {
 	 * The turn of an Initiative Slot of the current round once changes to the combat are made. Written with them, it keeps
 	 * the turn on that slot: Foundry then sees no turn change and fires no turn events.
 	 */
-	turnOfSlotAfter(slotId: string | undefined, changes: object) {
+	turnOfSlotAfter(slotId: string | undefined, changes: TurnOrderChanges) {
 		if (!slotId || !this.started) {
 			return undefined;
 		}
 
-		const combat = this.clone() as GenesysCombat;
-		combat.updateSource(changes);
-		const turn = combat.slots.findIndex((slot) => slot.id === slotId);
-
-		return turn === -1 ? undefined : turn;
+		return turnOfSlotAfter(this.turnOrderState, this.round, slotId, changes);
 	}
 
 	/**
@@ -448,7 +439,7 @@ export class GenesysCombat extends Combat {
 
 		if (writes.combatants.length) {
 			// Without a turn, Foundry keeps it on the current combatant's first slot.
-			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { combatants: writes.combatants });
+			const combatTurn = this.turnOfSlotAfter(keepTurnOn, { initiatives: writes.combatants });
 			await this.updateEmbeddedDocuments(
 				'Combatant',
 				writes.combatants,
@@ -530,6 +521,11 @@ export class GenesysCombat extends Combat {
 
 		super._onUpdate(changed, options, userId);
 
+		if ('round' in changed) {
+			// v14: Foundry numbers the turns by their place once the combat starts.
+			this.numberTurns();
+		}
+
 		// v13: Foundry never expires an effect, so the Acting GM marks those whose duration ran out at this turn. v14's
 		// Active Effect registry does it at the turn events.
 		if (isFoundryV13() && ('round' in changed || 'turn' in changed) && isActingGm()) {
@@ -545,25 +541,36 @@ export class GenesysCombat extends Combat {
 	}
 
 	override setupTurns() {
-		const turns = this.slotTurns();
+		this.turns = this.slotTurns();
 
 		if (this.turn !== null) {
-			this.turn = Math.clamp(this.turn, 0, turns.length - 1);
+			this.turn = Math.clamp(this.turn, 0, this.turns.length - 1);
 		}
+		this.numberTurns();
 
-		const currentCombatant = this.turn === null ? undefined : turns[this.turn];
-		this.current = {
-			round: this.round,
-			turn: this.turn,
-			combatantId: currentCombatant ? currentCombatant.id : null,
-			tokenId: currentCombatant ? currentCombatant.tokenId : null,
-		};
+		this.current = this._getCurrentState();
+		this.previous ??= this.current;
 
-		if (!this.previous) {
-			this.previous = this.current;
+		return this.turns;
+	}
+
+	protected override async _manageTurnEvents() {
+		// v14: Foundry numbers the turns by their place once the combat starts, just before its turn events read them.
+		this.numberTurns();
+		return super._manageTurnEvents();
+	}
+
+	/**
+	 * Number each combatant's turn by its first Initiative Slot of the round, once the combat has started. Foundry v14
+	 * numbers them by their place in the turns, which gives a combatant with an Extra Slot the number of its last slot,
+	 * and counts an effect created out of this combat from the turn after it. v13 doesn't read them. Not private, as
+	 * {@link turnOrderState}.
+	 */
+	numberTurns() {
+		const numbers = this.turn === null ? new Map<string, number>() : turnNumbers(this.turnOrderState, this.round);
+		for (const combatant of this.combatants) {
+			combatant.turnNumber = numbers.get(combatant.id) ?? null;
 		}
-
-		return (this.turns = turns);
 	}
 
 	/**
