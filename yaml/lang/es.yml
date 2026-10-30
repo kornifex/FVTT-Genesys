@@ -151,6 +151,7 @@ Genesys:
     SuppressedByContainer: Inactivo mientras {item} esté en {container}.
     SuppressedByEquipmentState: Inactivo mientras el estado de {item} sea «{state}».
     Duration: Duración
+    Expired: Expirado
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada

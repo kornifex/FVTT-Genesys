@@ -151,6 +151,7 @@ Genesys:
     SuppressedByContainer: Inactive while {item} is in {container}.
     SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
+    Expired: Expired
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
