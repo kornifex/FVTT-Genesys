@@ -256,7 +256,20 @@ Genesys:
       Content: L'objet va être supprimé. Êtes-vous sûr ?
     ConfirmUndoEntry:
       Title: Annuler l'entrée
-      Content: Annuler cette entrée retire {items} du personnage. Voulez-vous continuer ?
+      Award: Annuler l'attribution d'XP « {reason} » ?
+      AwardWithoutReason: Annuler cette attribution d'XP ?
+      Characteristic: Annuler l'augmentation de {characteristic} à {rank} ? {characteristic} revient à {previous}.
+      Skill: Annuler l'augmentation de {name} au rang {rank} ? La compétence revient au rang {previous}.
+      SkillNotFound: "Annuler l'augmentation de {name} au rang {rank} ? La compétence est introuvable sur le personnage : aucun rang ne baisse."
+      NewTalent: Annuler l'achat du talent {name} ? Le talent est supprimé du personnage.
+      NewTalentNotFound: "Annuler l'achat du talent {name} ? Le talent acheté est introuvable sur le personnage : aucun talent n'est supprimé."
+      NewTalentNotLinked: >-
+        Annuler l'achat du talent {name} ? Le talent acheté est introuvable sur le personnage : le talent {name} de la fiche
+        n'est pas lié à cette entrée, et reste.
+      TalentRank: Annuler l'augmentation de {name} au rang {rank} ? Le talent revient au rang {previous}.
+      TalentRankNotFound: "Annuler l'augmentation de {name} au rang {rank} ? Le talent est introuvable sur le personnage : aucun rang ne baisse."
+      XPGivenBack: Le personnage récupère les {xp} XP dépensés.
+      XPTakenAway: Le personnage perd les {xp} XP attribués.
     ConfirmRemoveArchetype:
       Title: Retirer l'archétype
       Content: >-

@@ -256,7 +256,20 @@ Genesys:
       Content: Esto eliminará el item. ¿Deseas continuar?
     ConfirmUndoEntry:
       Title: Deshacer la entrada
-      Content: Deshacer esta entrada quitará {items} del personaje. ¿Deseas continuar?
+      Award: ¿Deshacer la concesión de PE «{reason}»?
+      AwardWithoutReason: ¿Deshacer esta concesión de PE?
+      Characteristic: ¿Deshacer la mejora de {characteristic} a {rank}? {characteristic} vuelve a {previous}.
+      Skill: ¿Deshacer el entrenamiento de {name} a rango {rank}? La habilidad vuelve a rango {previous}.
+      SkillNotFound: ¿Deshacer el entrenamiento de {name} a rango {rank}? La habilidad no está en el personaje, así que ningún rango baja.
+      NewTalent: ¿Deshacer la adquisición del talento {name}? El talento se elimina del personaje.
+      NewTalentNotFound: ¿Deshacer la adquisición del talento {name}? El talento adquirido no está en el personaje, así que no se elimina ninguno.
+      NewTalentNotLinked: >-
+        ¿Deshacer la adquisición del talento {name}? El talento adquirido no está en el personaje: el {name} de la hoja no
+        está vinculado a esta entrada, y se queda.
+      TalentRank: ¿Deshacer la mejora de {name} a rango {rank}? El talento vuelve a rango {previous}.
+      TalentRankNotFound: ¿Deshacer la mejora de {name} a rango {rank}? El talento no está en el personaje, así que ningún rango baja.
+      XPGivenBack: El personaje recupera los {xp} PE que costó.
+      XPTakenAway: El personaje pierde los {xp} PE que recibió.
     ConfirmRemoveArchetype:
       Title: Quitar el arquetipo
       Content: >-
