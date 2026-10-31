@@ -14,6 +14,28 @@ function slotIdOf(element: HTMLElement) {
 }
 
 /**
+ * The keys of core's labels for the controls of a combatant's row, which v14 renamed.
+ */
+function controlLabels({ hidden, isDefeated }: { hidden: boolean; isDefeated: boolean }) {
+	// v13: its keys name each toggle, whatever the combatant's state.
+	if (isFoundryV13()) {
+		return {
+			hidden: 'COMBAT.ToggleVis',
+			defeated: 'COMBAT.ToggleDead',
+			ping: 'COMBAT.PingCombatant',
+			panTo: 'COMBAT.PanToCombatant',
+		};
+	}
+
+	return {
+		hidden: hidden ? 'COMBATANT.Show' : 'COMBATANT.Hide',
+		defeated: isDefeated ? 'COMBATANT.UnmarkDefeated' : 'COMBATANT.MarkDefeated',
+		ping: 'COMBATANT.Ping',
+		panTo: 'COMBATANT.PanTo',
+	};
+}
+
+/**
  * The Combat Tracker, whose rows are the Initiative Slots of the round and the combatants that Claim them.
  */
 export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
@@ -69,7 +91,9 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 			return;
 		}
 
-		const turns: foundry.applications.sidebar.tabs.CombatTracker.TurnContext[] = [];
+		const turns: (foundry.applications.sidebar.tabs.CombatTracker.TurnContext & {
+			controlLabels: ReturnType<typeof controlLabels>;
+		})[] = [];
 		context.turns = turns;
 
 		for (const [index, slot] of combat.slots.entries()) {
@@ -82,7 +106,7 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
 			const claimant = slot.claimantId ? combat.combatants.get(slot.claimantId) : undefined;
 			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
-			turns.push({ ...turn, ...combat.slotTrackerContext(slot) });
+			turns.push({ ...turn, ...combat.slotTrackerContext(slot), controlLabels: controlLabels(turn) });
 		}
 	}
 

@@ -76,6 +76,10 @@ type CombatHelpers = {
 	openPrompts(): number;
 	/** The tokens highlighted while the pointer is over a tracker row. */
 	hover(slot: string): string[];
+	/** The labels of a tracker row's combatant controls, by action. */
+	controlLabels(slot: string): Record<string, string | null>;
+	/** Core's labels for the combatant controls, by action, as its own tracker words them for a combatant shown and standing. */
+	coreControlLabels(state: { hidden: boolean }): Record<string, string>;
 	/** A refusal notification, as the client words it. */
 	warning(key: string, name?: string): string;
 	effectRemaining(combatant: string, effect: string): number | undefined;
@@ -265,6 +269,33 @@ function installCombatHelpers() {
 
 		openPrompts() {
 			return prompts().length;
+		},
+
+		controlLabels(slot) {
+			const controls = row(slot).querySelectorAll<HTMLElement>('.combatant-control[data-action]:not(.roll):not(.initiative-skill)');
+			return Object.fromEntries([...controls].map((control) => [control.dataset.action!, control.getAttribute('aria-label')]));
+		},
+
+		coreControlLabels({ hidden }) {
+			// v13: core's keys before v14 renamed them and worded its toggles after the combatant's state.
+			const keys: Record<string, string> =
+				game.release.generation < 14
+					? {
+							toggleHidden: 'COMBAT.ToggleVis',
+							toggleDefeated: 'COMBAT.ToggleDead',
+							pingCombatant: 'COMBAT.PingCombatant',
+							panToCombatant: 'COMBAT.PanToCombatant',
+						}
+					: {
+							toggleHidden: hidden ? 'COMBATANT.Show' : 'COMBATANT.Hide',
+							toggleDefeated: 'COMBATANT.MarkDefeated',
+							pingCombatant: 'COMBATANT.Ping',
+							panToCombatant: 'COMBATANT.PanTo',
+						};
+			// A key core lacks would localize to itself.
+			return Object.fromEntries(
+				Object.entries(keys).map(([action, key]) => [action, game.i18n.has(key) ? game.i18n.localize(key) : `missing ${key}`]),
+			);
 		},
 
 		hover(slot) {
@@ -889,6 +920,31 @@ export async function run(e2e: ScenarioContext) {
 			'#94 A1 hovering a claimed row highlights its token, an unclaimed row none',
 			await gm.evaluate(() => ({ claimed: window.combatE2E.hover('Hero:-1'), unclaimed: window.combatE2E.hover('Ally:-1') })),
 			{ claimed: ['E2E Hero'], unclaimed: [] },
+		);
+
+		// §#421: the combatant controls carry core's labels on every Foundry version, never a raw key.
+		const labelsOf = async (client: typeof gm) => {
+			const [labels, core] = await client.evaluate(() => [
+				window.combatE2E.controlLabels('Hero:-1'),
+				window.combatE2E.coreControlLabels({ hidden: game.combat.combatants.getName('Hero').hidden }),
+			]);
+			return { actions: Object.keys(labels).sort(), unlike: Object.keys(labels).filter((action) => labels[action] !== core[action]) };
+		};
+		e2e.expect("#421 A1 the GM's controls of a claimed row carry core's labels", await labelsOf(gm), {
+			actions: ['pingCombatant', 'toggleDefeated', 'toggleHidden'],
+			unlike: [],
+		});
+		e2e.expect("#421 A2 the player's controls of a claimed row carry core's labels", await labelsOf(player), {
+			actions: ['panToCombatant', 'pingCombatant'],
+			unlike: [],
+		});
+		await e2e.step('#421 GM hides Hero', () => gm.evaluate(() => game.combat.combatants.getName('Hero').update({ hidden: true })));
+		e2e.expect("#421 A3 a hidden combatant's control is labelled to show it", await labelsOf(gm), {
+			actions: ['pingCombatant', 'toggleDefeated', 'toggleHidden'],
+			unlike: [],
+		});
+		await e2e.step('#421 GM shows Hero again', () =>
+			gm.evaluate(() => game.combat.combatants.getName('Hero').update({ hidden: false })),
 		);
 
 		e2e.expect("#35 the player controls Hero's turn", await player.evaluate(() => game.combat.userControlsTurn), true);
