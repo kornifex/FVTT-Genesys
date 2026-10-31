@@ -231,7 +231,7 @@ async function drop(event: DragEvent) {
 	}
 }
 
-// A right-click anywhere on the row opens its menu, as a click on its button does. The row of a Container's contents
+// A right-click anywhere on the row opens its menu at the pointer, as Foundry's context menus open. The row of a Container's contents
 // has no menu, and keeps the right-click from opening the Container's; the browser's own menu is left to Foundry.
 function openMenu(event: MouseEvent) {
 	if (props.mini) {
