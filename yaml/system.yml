@@ -1,7 +1,7 @@
 id: genesys
 title: Genesys
 description: (ALPHA) Unofficial implementation of EDGE Studio's Genesys RPG System.
-version: 0.5.0-rc.2 # x-release-please-version
+version: 0.5.0 # x-release-please-version
 compatibility:
   minimum: 13
   verified: 14
