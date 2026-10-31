@@ -45,7 +45,7 @@ Genesys:
     UncoupleSkillsAlternateRule: Desvincular las habilidades de las características
     UncoupleSkillsAlternateRuleHint: Permite seleccionar una característica alternativa para una habilidad en la ventana de dados, según la regla alternativa Desacoplar las habilidades de las características (Libro básico, p.205).
     ShowDamageOnFailure: Muestra el daño del ataque cuando falle
-    ShowDamageOnFailureHint: Mostrar o no el daño, el crítico y las cualidades en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso.
+    ShowDamageOnFailureHint: Mostrar o no el daño y el crítico en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso. Las cualidades se muestran siempre, ya que algunas se activan con un fracaso.
     SkillForInjuries: Nombre de la habilidad Aguante
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
