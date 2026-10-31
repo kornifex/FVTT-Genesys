@@ -2685,6 +2685,32 @@ async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 	});
 	e2e.expect('#373 C2 Yes deletes the Critical Injury', await held(D, 'injury', 'E2E Sprain'), 0);
 
+	const careerMenu = () => page((name) => window.characterE2E.menu(name, { meta: 'career' }), D);
+	const journal = () => page((name) => window.characterE2E.journal(name), D);
+	const withStartingXP = await journal();
+	await e2e.step('#436 A1 a rank of the career skill Ranged bought', async () => {
+		await page((name) => window.characterE2E.buySkill(name, 'Ranged'), D);
+		await e2e.settle();
+	});
+	e2e.expect(
+		"#436 A1 once a skill rank is bought, the Career's menu offers no Delete, as its drop is refused",
+		{ journal: await journal(), menu: await careerMenu() },
+		{ journal: [...withStartingXP, 'Skill -10 Ranged 2'], menu: ['Edit'] },
+	);
+	await e2e.step("#436 A2 the skill rank's entry undone from the Experience Journal", async () => {
+		await page(async (name) => {
+			window.characterE2E.undo(name, 'Skill');
+			// The build may ask before undoing (#432): Yes undoes the entry.
+			await window.e2e.answerConfirm('yes');
+		}, D);
+		await e2e.settle();
+	});
+	e2e.expect(
+		"#436 A2 once the skill rank's entry is undone, the Career's menu offers Delete again",
+		{ journal: await journal(), menu: await careerMenu() },
+		{ journal: withStartingXP, menu: ['Edit', 'Delete'] },
+	);
+
 	const withArchetype = await granted();
 	await e2e.step("#373 D1 the Archetype's Delete clicked, and No answered", async () => {
 		asked = await page((name) => window.characterE2E.removeArchetype(name, 'no'), D);
