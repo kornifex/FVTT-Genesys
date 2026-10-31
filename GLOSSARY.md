@@ -52,6 +52,10 @@ _Avoid_: Size, scale
 A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle.
 _Avoid_: Crit, wound
 
+**Status Effect**:
+A state that hinders an actor during an encounter: Immobilized (no maneuvers), Staggered (no actions) or Disoriented (a Setback die on every check). It lasts for the duration its source gives, or until the end of the actor's next turn when none is given; suffering it again adds to its duration, never beyond the encounter.
+_Avoid_: Condition
+
 **Expired Effect**:
 A temporary Active Effect whose duration in rounds or turns has run out. It stops applying but isn't deleted: it stays on its actor or item, suspended, until its duration is extended. Turning an effect off by hand is a different thing: an effect can be expired, turned off, both or neither.
 _Avoid_: Finished effect, ended effect
@@ -121,6 +125,10 @@ _Avoid_: Weight, load
 **Weapon Profile**:
 One way to attack with a weapon: its skills, damage, Critical rating, range and qualities. Every weapon has a main profile, and may have more, such as a dagger that is also thrown. The weapon stays one piece of equipment, whatever its number of profiles: it counts once towards Encumbrance, and has one Equipment State. An attack is made with one of its profiles. A vehicle weapon has a single profile.
 _Avoid_: Mode, stat line
+
+**Quality**:
+A rule that a weapon or an armor carries, such as Pierce, Disorient or Defensive, with a rating when it's rated. A passive quality always applies; an active one applies only when the attacker triggers it, usually by spending Advantage.
+_Avoid_: Trait, property
 
 ### Vehicles
 
