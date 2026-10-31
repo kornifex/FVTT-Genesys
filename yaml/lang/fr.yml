@@ -45,7 +45,7 @@ Genesys:
     UncoupleSkillsAlternateRule: Désolidariser les compétences des caractéristiques
     UncoupleSkillsAlternateRuleHint: "Autorise la sélection d'une caractéristique pour une compétence au moment de la boite de dialogue de lancement des dés, pour permettre la règle optionnelle 'Désolidariser les compétences des caractéristiques' (livre de base p 205)."
     ShowDamageOnFailure: "Montrer les dommages de l'attaque en cas d'échec"
-    ShowDamageOnFailureHint: "Afficher ou non les dégâts, les critiques et les attributs sur les cartes de discussion des jets d'attaque, même en cas d'échec."
+    ShowDamageOnFailureHint: "Afficher ou non les dégâts et le critique sur les cartes de discussion des jets d'attaque, même en cas d'échec. Les attributs s'affichent toujours, car certains se déclenchent sur un échec."
     SkillForInjuries: Compétence du jet de Récupération
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
