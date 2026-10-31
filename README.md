@@ -8,8 +8,30 @@ In [September 2026](https://github.com/Mezryss/FVTT-Genesys/issues/263#issuecomm
 
 This fork keeps the existing system going for tables with ongoing campaigns: support for newer Foundry versions, bug fixes, and optional house rules. It keeps the original system id (`genesys`), so your existing worlds, actors and settings work as they are, with no migration. The reasoning is recorded in [ADR 0002](docs/adr/0002-publish-fork-under-genesys-id.md).
 
+## What's new since the fork
+Since release 0.2.19 of the original system, this fork has:
+
+- moved the sheets to Foundry's ApplicationV2 and added support for Foundry v13 and v14;
+- added Weapon Profiles, a choice of Attack Skill for each weapon, and Silhouettes that change a targeted attack's difficulty;
+- let the roller set a check's Difficulty in the Dice Prompt, roll skills they lack as Unranked Skill Checks, and roll check links from journals, chat messages and item sheets;
+- fixed initiative, so Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots;
+- brought Character Creation, armor, Encumbrance and equipment effects in line with the Core Rulebook;
+- added optional house rules: Ignore Talent Pyramid, Talent Tier Versions, and a Realms of Terrinoth style.
+
+The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wiki/Changes-since-the-fork) page groups these changes by theme for players and GMs. The [changelog](CHANGELOG.md) lists every change with its issue.
+
 ## AI assistance
 Development on this fork, after release 0.2.19, is done with the assistance of Claude (Anthropic), through Claude Code. Every change is reviewed, tested in play and owned by the maintainer. Code inherited from the original project, up to and including release 0.2.19, predates the fork and is not covered by this note.
+
+## Foundry versions
+Each release line supports its own Foundry versions:
+
+| Release line | Foundry     |
+| ------------ | ----------- |
+| 0.5.x        | v13 and v14 |
+| 0.4.x        | v12 and v13 |
+
+The manifest URL below installs the latest release. From 0.5.0 on, that release needs Foundry v13 or later. A world still on Foundry v12 stays on 0.4.x: install each 0.4.x release from its own manifest, `https://github.com/kornifex/FVTT-Genesys/releases/download/v0.4.<n>/manifest.json`, where `v0.4.<n>` is the release's tag on the [releases](https://github.com/kornifex/FVTT-Genesys/releases) page. Once your table runs Foundry v13, switch back to the manifest URL below to get 0.5.x.
 
 ## Installation
 In Foundry's Setup screen, open **Game Systems → Install System**, and paste this manifest URL:
