@@ -48,7 +48,7 @@ function effect(
 		parent = null,
 	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown } = {},
 ): PoolModificationEffect {
-	return { name, isSuppressed, origin, parent, changes };
+	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes };
 }
 
 /**
@@ -173,7 +173,7 @@ describe('poolModificationsForCheck', () => {
 		]);
 
 		expect(poolModificationsForCheck(self, undefined, check)).toEqual([
-			{ source: 'self', from: { effect: 'Talent' }, mods: ['B', 'A', '^'] },
+			{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B', 'A', '^'] },
 		]);
 	});
 
@@ -181,7 +181,7 @@ describe('poolModificationsForCheck', () => {
 		const self = actor('character', [effect([{ key: 'genesys.pool.skill.self.Ranged (Light)', value: 'B' }], { name: 'Talent' })]);
 
 		expect(poolModificationsForCheck(self, undefined, { characteristic: Characteristic.Agility, skillName: 'Ranged (light)' })).toEqual(
-			[{ source: 'self', from: { effect: 'Talent' }, mods: ['B'] }],
+			[{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B'] }],
 		);
 	});
 
@@ -229,8 +229,8 @@ describe('poolModificationsForCheck', () => {
 		]);
 
 		expect(poolModificationsForCheck(self, target, check)).toEqual([
-			{ source: 'self', from: { effect: 'Mine' }, mods: ['B'] },
-			{ source: 'target', from: { effect: 'Theirs' }, mods: ['S', 'D'] },
+			{ source: 'self', from: { effect: 'Mine', uuid: 'ActiveEffect.Mine' }, mods: ['B'] },
+			{ source: 'target', from: { effect: 'Theirs', uuid: 'ActiveEffect.Theirs' }, mods: ['S', 'D'] },
 		]);
 	});
 
@@ -268,7 +268,9 @@ describe('poolModificationsForCheck', () => {
 			totalDefense: vehicleDefense(2),
 		});
 
-		expect(poolModificationsForCheck(self, vehicle, {})).toEqual([{ source: 'target', from: { effect: 'Smoke' }, mods: ['D'] }]);
+		expect(poolModificationsForCheck(self, vehicle, {})).toEqual([
+			{ source: 'target', from: { effect: 'Smoke', uuid: 'ActiveEffect.Smoke' }, mods: ['D'] },
+		]);
 		expect(poolModificationsForCheck(self, vehicle, { attackRange: 'medium' })).toContainEqual({
 			source: 'target',
 			from: { defense: 'ranged' },

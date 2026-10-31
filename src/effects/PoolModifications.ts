@@ -42,6 +42,7 @@ export type SourceItem = {
  */
 export type PoolModificationEffect = {
 	name: string;
+	uuid: string;
 	isSuppressed: boolean;
 	origin: string | null;
 	parent: unknown;
@@ -72,11 +73,12 @@ export type CheckForPoolModifications = {
 
 /**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, or from
- * the target's defense.
+ * the target's defense. An effect is named for the roller, and told apart by its uuid: effects often share a name, as
+ * the sheets name a new effect after its item.
  */
 export type ExternalPoolModification = {
 	source: PoolModificationSource;
-	from: { effect: string } | { defense: keyof Defense };
+	from: { effect: string; uuid: string } | { defense: keyof Defense };
 	mods: string[];
 };
 
@@ -223,7 +225,7 @@ function effectModifications(
 			.flatMap((change) => parsePoolModifications(scaledChangeValue(item, change)));
 
 		if (mods.length > 0) {
-			modifications.push({ source, from: { effect: effect.name }, mods: mods.sort(sortPoolModifications) });
+			modifications.push({ source, from: { effect: effect.name, uuid: effect.uuid }, mods: mods.sort(sortPoolModifications) });
 		}
 	}
 
