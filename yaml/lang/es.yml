@@ -169,13 +169,14 @@ Genesys:
     Title: Reserva de dados
     OpenDiceRoller: Tirar dados
     Roll: ¡Tira!
-    Hint: Utiliza el recuadro de dados de la derecha para añadir, incrementar y rebajar. Haz clic en los dados para eliminarlos.
+    Hint: Utiliza el recuadro de dados de la derecha para añadir, incrementar y rebajar. Haz clic en un dado de la reserva para eliminar uno de su tipo, después de todos los demás cambios.
     UseSuperCharacteristic: Tira como una supercaracterística
     UnrankedSkills: Sin rangos
     WeaponSkills: Habilidades del arma
     PoolModifications:
       Title: Modificaciones de la reserva
-      DefaultDifficulty: Dificultad por defecto
+      Difficulty: Dificultad
+      Upgrades: Incrementos
       ManualChanges: Cambios manuales
       SelfEffects: 'Propios: '
       TargetEffects: 'Objetivo: '

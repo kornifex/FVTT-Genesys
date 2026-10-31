@@ -105,6 +105,27 @@ describe('buildDicePool', () => {
 				Challenge: 0,
 			});
 		});
+
+		it('upgrades the difficulty set before them, which Difficulty dice removed by hand do not lower (CRB p. 20-23, #450)', () => {
+			const twoUpgrades = [{ name: 'Adversary 2', enabled: true, mods: ['*', '*'] }];
+			// An Easy check: its one Difficulty die is upgraded, and the second upgrade adds a Difficulty die.
+			expect(pool({ characteristicValue: 2, baseDifficulty: ['D'], effects: twoUpgrades }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 2,
+				Difficulty: 1,
+				Challenge: 1,
+			});
+			// A Hard check with two Difficulty dice removed by hand: the upgrades come first, and leave one Difficulty die to
+			// remove.
+			expect(
+				pool({ characteristicValue: 2, baseDifficulty: ['D', 'D', 'D'], manualChanges: ['-D', '-D'], effects: twoUpgrades }).dice,
+			).toEqual({
+				Proficiency: 0,
+				Ability: 2,
+				Difficulty: 0,
+				Challenge: 2,
+			});
+		});
 	});
 
 	describe('Step 3: modifying the dice pool, in the order add, upgrade, downgrade, remove (CRB p. 20-23)', () => {

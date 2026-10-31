@@ -29,7 +29,8 @@ import {
 	worldCheckRules,
 } from '@/dice/Check';
 import { matchOrigin } from '@/effects/PoolModifications';
-import { type DicePool, parsePoolModifications, poolEntries, sortPoolModifications } from '@/dice/DicePool';
+import { type DicePool, poolEntries, sortPoolModifications } from '@/dice/DicePool';
+import { type Difficulty, DIFFICULTY_LEVELS, difficultyGlyphs, receivedDifficulty, withLevel, withUpgrades } from '@/dice/Difficulty';
 
 type AlsoNone<T> = T | undefined;
 
@@ -63,8 +64,11 @@ const currentDicePool = shallowRef<DicePool>({
 	usesSuperCharacteristic: false,
 });
 const check = shallowRef<Check<PromptSkill>>();
-const baseDifficulty = parsePoolModifications(context.value.difficulty);
-const manualChanges = ref<string[]>([]);
+// The roller sets the Difficulty before any Pool Modification; whatever else the received difficulty holds starts as
+// manual changes.
+const received = receivedDifficulty(context.value.difficulty);
+const difficulty = ref<Difficulty>(received.difficulty);
+const manualChanges = ref<string[]>(received.manualChanges);
 // The Pool Modifications of the check, each turned on or off by the roller.
 const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
@@ -176,7 +180,7 @@ function poolModificationName({ source, from }: CheckPoolModification) {
 function buildDicePool() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
 	currentDicePool.value = checkDicePool(check.value!, {
-		difficulty: context.value.difficulty,
+		difficulty: difficultyGlyphs(difficulty.value),
 		manualChanges: manualChanges.value,
 		isEnabled: (modification) => enabledKeys.has(modification.key),
 	});
@@ -238,6 +242,16 @@ function onCharacteristicChange(event: Event) {
 
 function skillLabel(skill: { name: string; system: { characteristic: Characteristic } }) {
 	return `${skill.name} (${game.i18n.localize(CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic])})`;
+}
+
+function onDifficultyLevelChange(event: Event) {
+	difficulty.value = withLevel(difficulty.value, Number((event.currentTarget as HTMLSelectElement).value));
+	buildDicePool();
+}
+
+function changeDifficultyUpgrades(amount: 1 | -1) {
+	difficulty.value = withUpgrades(difficulty.value, difficulty.value.upgrades + amount);
+	buildDicePool();
 }
 
 function addManualChange(glyph: string) {
@@ -334,10 +348,37 @@ async function onRoll() {
 
 		<div :class="{ 'pool-modifications-expander': true, 'pool-modifications-expanded': showPoolModifications }">
 			<div class="pool-modifications-container">
-				<div>
-					<span><Localized label="Genesys.DicePrompt.PoolModifications.DefaultDifficulty" /></span>
+				<div class="pool-modifications-difficulty">
+					<span><Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" /></span>
 					<div>
-						<PoolModificationIcon v-for="(modification, index) in baseDifficulty" :key="index" :glyph="modification" />
+						<select name="difficulty" :value="difficulty.level" @change="onDifficultyLevelChange">
+							<option v-for="(label, level) in DIFFICULTY_LEVELS" :key="level" :value="level">
+								<Localized :label="label" />
+							</option>
+						</select>
+						<PoolModificationIcon v-for="(glyph, index) in difficultyGlyphs(difficulty)" :key="index" :glyph />
+					</div>
+				</div>
+				<div class="pool-modifications-upgrades">
+					<span><Localized label="Genesys.DicePrompt.PoolModifications.Upgrades" /></span>
+					<div>
+						<button
+							type="button"
+							name="fewer-upgrades"
+							:disabled="difficulty.upgrades <= 0"
+							@click="changeDifficultyUpgrades(-1)"
+						>
+							<i class="fas fa-minus"></i>
+						</button>
+						<span class="upgrades">{{ difficulty.upgrades }}</span>
+						<button
+							type="button"
+							name="more-upgrades"
+							:disabled="difficulty.upgrades >= difficulty.level"
+							@click="changeDifficultyUpgrades(1)"
+						>
+							<i class="fas fa-plus"></i>
+						</button>
 					</div>
 				</div>
 				<div class="pool-modifications-manual">
@@ -575,6 +616,35 @@ async function onRoll() {
 		.pool-modifications-manual {
 			a {
 				cursor: pointer;
+			}
+		}
+
+		.pool-modifications-difficulty select {
+			width: auto;
+			height: 1.4em;
+			margin-right: 0.3rem;
+			padding: 0 0.2em;
+			font-size: 0.9em;
+		}
+
+		.pool-modifications-upgrades {
+			button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 1.4em;
+				min-width: 0;
+				height: 1.4em;
+				margin: 0.1em 0;
+				padding: 0;
+				font-size: 0.7em;
+				line-height: 1;
+			}
+
+			.upgrades {
+				display: inline-block;
+				min-width: 1.5em;
+				text-align: center;
 			}
 		}
 

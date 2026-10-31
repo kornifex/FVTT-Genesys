@@ -58,6 +58,25 @@ type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 type CheckLink = { skill: string | null; difficulty: string | null; text: string };
 
 /**
+ * The prompt's Difficulty and manual changes, as the user sees them.
+ */
+type PromptDifficulty = {
+	/** The labels of the Difficulty's rows. */
+	labels: string[];
+	/** The selected level. */
+	level: string;
+	upgrades: number;
+	/** Whether the buttons that remove an upgrade and add one are enabled. */
+	fewer: boolean;
+	more: boolean;
+	/** The Difficulty's dice, as Pool Modifications: `D+ D+`. */
+	dice: string;
+	/** The manual changes, as Pool Modifications. */
+	manualChanges: string;
+	hint: string;
+};
+
+/**
  * The prompt's Pool Modifications as laid out: their expander, which folds them, and the container of their rows.
  */
 type PoolModificationsBox = {
@@ -92,6 +111,11 @@ type DicePromptHelpers = {
 	promptAdd(keys: string[]): Promise<PromptState>;
 	/** Removes a die or symbol of the pool preview, as a click on it does. */
 	promptRemove(glyph: string): Promise<PromptState>;
+	promptDifficulty(): PromptDifficulty;
+	/** Picks a level of the Difficulty by its name, then clicks its upgrade buttons, `+` adding one and `-` removing one. */
+	setPromptDifficulty(args: { level?: string; upgrades?: ('+' | '-')[] }): Promise<{ pool: string; difficulty: PromptDifficulty }>;
+	/** Clicks the manual change at an index, which removes it. */
+	removePromptManualChange(index: number): Promise<{ pool: string; difficulty: PromptDifficulty }>;
 	/** Waits until the prompt shows this chance to succeed, then returns the chance it shows. */
 	promptChance(args: { expected: string; timeout: number }): Promise<string | null>;
 	promptRoll(): Promise<MessageSummary>;
@@ -404,6 +428,21 @@ function installDicePromptHelpers() {
 						})),
 					],
 				})),
+				// An effect that upgrades the difficulty twice, as Adversary 2 does (§#450). Characteristics of 2, so a
+				// characteristic check rolls two Ability dice.
+				{
+					name: 'E2E Shadowed',
+					type: 'character',
+					system: { characteristics: characteristics([2, 2, 2, 2, 2, 2]) },
+					items: [
+						{
+							name: 'E2E Shroud',
+							type: 'gear',
+							system: { state: 'carried' },
+							effects: [effect('Shroud', 'check.self.', '**')],
+						},
+					],
+				},
 			]);
 			await window.e2e.setOwnership(actor('Rival'), 'default', 'OBSERVER');
 			for (const name of ['Bo', 'Cy']) await window.e2e.setOwnership(actor(name), user, 'OWNER');
@@ -556,6 +595,48 @@ function installDicePromptHelpers() {
 			element.click();
 			await waitFor(`the pool without ${glyph}`, () => poolPreview(root) !== before);
 			return promptState();
+		},
+
+		promptDifficulty() {
+			const root = htmlOf(thePrompt())!;
+			const level = root.querySelector('.pool-modifications-difficulty')!;
+			const upgrades = root.querySelector('.pool-modifications-upgrades')!;
+			const mods = (row: Element | null) =>
+				[...(row?.querySelectorAll(':scope > div > a') ?? [])].map((mod) => poolModification(mod)).join(' ');
+			return {
+				labels: [level, upgrades].map((row) => text(row.querySelector(':scope > span'))),
+				level: text(level.querySelector<HTMLSelectElement>('select')!.selectedOptions[0]),
+				upgrades: Number(text(upgrades.querySelector('.upgrades'))),
+				fewer: !upgrades.querySelector<HTMLButtonElement>('button[name=fewer-upgrades]')!.disabled,
+				more: !upgrades.querySelector<HTMLButtonElement>('button[name=more-upgrades]')!.disabled,
+				dice: mods(level),
+				manualChanges: mods(root.querySelector('.pool-modifications-manual')),
+				hint: text(root.querySelector('header .hint')),
+			};
+		},
+
+		async setPromptDifficulty({ level, upgrades = [] }) {
+			const root = htmlOf(thePrompt())!;
+			if (level !== undefined) {
+				const select = root.querySelector<HTMLSelectElement>('.pool-modifications-difficulty select')!;
+				const picked = [...select.options].find((option) => text(option) === level);
+				if (!picked) throw new Error(`No difficulty level ${level}`);
+				select.value = picked.value;
+				select.dispatchEvent(new Event('change'));
+				await settle();
+			}
+			for (const sign of upgrades) {
+				root.querySelector<HTMLButtonElement>(`button[name=${sign === '+' ? 'more' : 'fewer'}-upgrades]`)!.click();
+				await settle();
+			}
+			return { pool: poolPreview(root), difficulty: window.dicePromptE2E.promptDifficulty() };
+		},
+
+		async removePromptManualChange(index) {
+			const root = htmlOf(thePrompt())!;
+			root.querySelectorAll<HTMLElement>('.pool-modifications-manual > div > a')[index].click();
+			await settle();
+			return { pool: poolPreview(root), difficulty: window.dicePromptE2E.promptDifficulty() };
 		},
 
 		async promptChance({ expected, timeout }) {
@@ -2157,7 +2238,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 1s they always took.
 	await setSetting('dicePoolCollapseModificationsDetails', true);
-	// The Default Difficulty, DD, is a Pool Modification the prompt lists.
+	// The Difficulty, DD, shows its dice among the Pool Modifications.
 	await opened(gm, skillRoll('Cool'));
 	let unfolded: PoolModificationsBox | null = null;
 	await e2e.step('#396 A1 GM unfolds the Pool Modifications of a Cool check', async () => {
@@ -2221,6 +2302,121 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
 	await e2e.step('O end');
+
+	// P: the roller sets the Difficulty, before any Pool Modification; a die removed by hand still comes after them
+	// (§#450).
+	await setSetting('defaultDifficulty', 'DDD');
+	const difficultyState = () => gm.evaluate(() => window.dicePromptE2E.promptDifficulty());
+	const setDifficulty = (args: { level?: string; upgrades?: ('+' | '-')[] }) =>
+		gm.evaluate((args) => window.dicePromptE2E.setPromptDifficulty(args), args);
+	const shadowedCheck = () => opened(gm, characteristicRoll(1, { actor: 'Shadowed' }));
+	const difficultyOf = (level: string, upgrades: number, dice: string, manualChanges = '') => ({
+		level,
+		upgrades,
+		fewer: upgrades > 0,
+		more: upgrades < ['Simple', 'Easy', 'Average', 'Hard', 'Daunting', 'Formidable'].indexOf(level),
+		dice,
+		manualChanges,
+	});
+	const shown = ({ level, upgrades, fewer, more, dice, manualChanges }: PromptDifficulty) => ({
+		level,
+		upgrades,
+		fewer,
+		more,
+		dice,
+		manualChanges,
+	});
+	const opening = await shadowedCheck();
+	const openingDifficulty = await difficultyState();
+	e2e.expect(
+		'#450 P1 the prompt opens at the level of the Default Difficulty, without upgrades, in a Difficulty row and an Upgrades row',
+		{ pool: opening.pool, labels: openingDifficulty.labels, hint: openingDifficulty.hint, difficulty: shown(openingDifficulty) },
+		{
+			pool: 'AA|DDD',
+			labels: ['Difficulty', 'Upgrades'],
+			hint: 'Use the dice box on the right to add, upgrade and downgrade. Click a die in the pool to remove one of its kind, after every other change.',
+			difficulty: difficultyOf('Hard', 0, 'D+ D+ D+'),
+		},
+	);
+	const easy = await setDifficulty({ level: 'Easy' });
+	const easyUpgraded = await toggle('E2E Shroud');
+	e2e.expect(
+		'#450 P2 an Easy check whose difficulty an effect upgrades twice rolls a Challenge die and a Difficulty die',
+		{ easy: easy.pool, upgraded: easyUpgraded.pool, difficulty: shown(await difficultyState()) },
+		{ easy: 'AA|D', upgraded: 'AA|CD', difficulty: difficultyOf('Easy', 0, 'D+') },
+	);
+	await shadowedCheck();
+	await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+	const removed = await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+	const removedUpgraded = await toggle('E2E Shroud');
+	e2e.expect(
+		'#450 P3 two Difficulty dice removed by hand from a Hard check come after the upgrades, as the CRB orders (p. 21)',
+		{ removed: removed.pool, upgraded: removedUpgraded.pool, difficulty: shown(await difficultyState()) },
+		{ removed: 'AA|D', upgraded: 'AA|CC', difficulty: difficultyOf('Hard', 0, 'D+ D+ D+', 'D- D-') },
+	);
+	await shadowedCheck();
+	const bounds = {
+		easyUpgraded: await setDifficulty({ level: 'Easy', upgrades: ['+', '+'] }),
+		daunting: await setDifficulty({ level: 'Daunting', upgrades: ['+', '+'] }),
+		average: await setDifficulty({ level: 'Average' }),
+		fewer: await setDifficulty({ upgrades: ['-', '-', '-'] }),
+		simple: await setDifficulty({ level: 'Simple', upgrades: ['+'] }),
+	};
+	e2e.expect(
+		'#450 P4 the upgrades go from none to one for each Difficulty die, and lowering the level lowers them',
+		Object.fromEntries(Object.entries(bounds).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }])),
+		{
+			easyUpgraded: { pool: 'AA|C', difficulty: difficultyOf('Easy', 1, 'C+') },
+			daunting: { pool: 'AA|CCCD', difficulty: difficultyOf('Daunting', 3, 'C+ C+ C+ D+') },
+			average: { pool: 'AA|CC', difficulty: difficultyOf('Average', 2, 'C+ C+') },
+			fewer: { pool: 'AA|DD', difficulty: difficultyOf('Average', 0, 'D+ D+') },
+			simple: { pool: 'AA|', difficulty: difficultyOf('Simple', 0, '') },
+		},
+	);
+	await shadowedCheck();
+	await setDifficulty({ level: 'Easy' });
+	await toggle('E2E Shroud');
+	const rolled = await roll();
+	e2e.expect('#450 P5 the check rolls the pool of the Difficulty set', rolled.formula, '0dp + 2da + 1di + 1dc');
+	await setSetting('defaultDifficulty', 'DDB');
+	const withBoost = await shadowedCheck();
+	const withBoostDifficulty = shown(await difficultyState());
+	const boostRemoved = await gm.evaluate(() => window.dicePromptE2E.removePromptManualChange(0));
+	e2e.expect(
+		'#450 P6 a Default Difficulty holding a Boost die opens with its Difficulty dice as the level and the Boost die as a manual change',
+		{
+			pool: withBoost.pool,
+			difficulty: withBoostDifficulty,
+			removed: { pool: boostRemoved.pool, difficulty: shown(boostRemoved.difficulty) },
+		},
+		{
+			pool: 'AAB|DD',
+			difficulty: difficultyOf('Average', 0, 'D+ D+', 'B+'),
+			removed: { pool: 'AA|DD', difficulty: difficultyOf('Average', 0, 'D+ D+') },
+		},
+	);
+	await setSetting('defaultDifficulty', 'DDD');
+	await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
+	const injury = shown(await difficultyState());
+	await control(gm, ['Bo']);
+	await linkPrompt(gm, journal, 'Cool', 'CD');
+	const upgradedLink = shown(await difficultyState());
+	const impossible = await linkPrompt(gm, journal, 'Athletics', 'CCCCCD');
+	const impossibleDifficulty = shown(await difficultyState());
+	await control(gm, []);
+	e2e.expect(
+		"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is a Formidable one",
+		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
+		{
+			injury: difficultyOf('Average', 0, 'D+ D+'),
+			upgradedLink: difficultyOf('Average', 1, 'C+ D+'),
+			impossible: { pool: '|CCCCC', difficulty: difficultyOf('Formidable', 5, 'C+ C+ C+ C+ C+') },
+		},
+	);
+	await setSetting('defaultDifficulty', 'DD');
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	await e2e.step('P end');
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }

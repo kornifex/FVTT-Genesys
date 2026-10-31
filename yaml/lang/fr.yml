@@ -169,13 +169,14 @@ Genesys:
     Title: Réserve de dés
     OpenDiceRoller: Lancer des dés
     Roll: Lancer !
-    Hint: Utilisez la boîte à dés sur la droite pour ajouter, améliorer et rétrograder. Cliquez sur les dés dans la réserve pour les retirer
+    Hint: Utilisez la boîte à dés sur la droite pour ajouter, améliorer et rétrograder. Cliquez sur un dé de la réserve pour retirer un dé de ce type, après tous les autres changements.
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     UnrankedSkills: Sans rang
     WeaponSkills: Compétences de l'arme
     PoolModifications:
       Title: Modification de la réserve de dés
-      DefaultDifficulty: Difficulté par défaut
+      Difficulty: Difficulté
+      Upgrades: Améliorations
       ManualChanges: Modifications manuelles
       SelfEffects: 'Du personnage : '
       TargetEffects: 'De la cible : '
