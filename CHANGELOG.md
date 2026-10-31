@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.3...v0.4.0) (2026-10-31)
+
+
+### Bug Fixes
+
+* **dice:** turn each Pool Modification on alone, though another effect shares its name ([#448](https://github.com/kornifex/FVTT-Genesys/issues/448)) ([dd1d926](https://github.com/kornifex/FVTT-Genesys/commit/dd1d92660c1485f92f517fd8d426ccfe30822783))
+
+
+### Continuous Integration
+
+* set the next release to 0.4.0 ([#407](https://github.com/kornifex/FVTT-Genesys/issues/407)) ([294019d](https://github.com/kornifex/FVTT-Genesys/commit/294019d0c55e7a572a0ad09ae53e0f1b03b29eb6))
+
 ## [0.4.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.2...v0.4.0-rc.3) (2026-10-30)
 
 
