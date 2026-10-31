@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.5.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.1...v0.5.0-rc.2) (2026-10-31)
+
+
+### Features
+
+* **actor:** ask before undoing any entry of the Experience Journal ([#438](https://github.com/kornifex/FVTT-Genesys/issues/438)) ([42057a1](https://github.com/kornifex/FVTT-Genesys/commit/42057a1ccb981251837956afcba2c82bcfb596fd))
+* **ui:** open an inventory row's menu under the pointer on a right-click ([#440](https://github.com/kornifex/FVTT-Genesys/issues/440)) ([3bac011](https://github.com/kornifex/FVTT-Genesys/commit/3bac0119dbce9c4044daa86810e41d2df17c577d))
+
+
+### Bug Fixes
+
+* **actor:** offer to remove the Career only while it can be replaced ([#442](https://github.com/kornifex/FVTT-Genesys/issues/442)) ([c45cf50](https://github.com/kornifex/FVTT-Genesys/commit/c45cf50577ea6b82bccf12b2bb968ddc67400950))
+* **actor:** tell the user why a dropped Archetype or Career is refused ([#435](https://github.com/kornifex/FVTT-Genesys/issues/435)) ([6bb7763](https://github.com/kornifex/FVTT-Genesys/commit/6bb7763a464468b7bec9532333747397648b17b0))
+* **combat:** label the Combat Tracker's combatant controls with Foundry v14's keys ([#422](https://github.com/kornifex/FVTT-Genesys/issues/422)) ([86bd390](https://github.com/kornifex/FVTT-Genesys/commit/86bd390104e903271fa42b63a29ffd60f8869e68))
+* **i18n:** say in the damage-on-failure hint that a failed attack keeps its qualities ([#434](https://github.com/kornifex/FVTT-Genesys/issues/434)) ([51e33e1](https://github.com/kornifex/FVTT-Genesys/commit/51e33e115b5aa0fb1d05fafaede4a8e1cfa85a6b))
+* **item:** fit each Weapon Profile's block to its rows ([#439](https://github.com/kornifex/FVTT-Genesys/issues/439)) ([0eba5ed](https://github.com/kornifex/FVTT-Genesys/commit/0eba5edb0ca925632ff95236e61842828e52c3c6))
+* **migration:** link the talent purchases recorded without a talent id to their talent ([#443](https://github.com/kornifex/FVTT-Genesys/issues/443)) ([dab13ef](https://github.com/kornifex/FVTT-Genesys/commit/dab13ef97d2c519a0c832934111ca12d92e1df87))
+* **ui:** give a chat card's rich-text headings the look of a sheet's ([#437](https://github.com/kornifex/FVTT-Genesys/issues/437)) ([530d677](https://github.com/kornifex/FVTT-Genesys/commit/530d677a67a61fc610e3c2d4d32c400cdfde5fe1))
+
+
+### Documentation
+
+* define Status Effect and Quality in the glossary ([#426](https://github.com/kornifex/FVTT-Genesys/issues/426)) ([67a9c26](https://github.com/kornifex/FVTT-Genesys/commit/67a9c26b41843182e206474d722218641cb05aed))
+* record why the sheets don't follow the dark interface theme yet ([#427](https://github.com/kornifex/FVTT-Genesys/issues/427)) ([8ddf0a7](https://github.com/kornifex/FVTT-Genesys/commit/8ddf0a78832e28684340a4dd689f34e0bbdd8168))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#408](https://github.com/kornifex/FVTT-Genesys/issues/408)) ([1c3efae](https://github.com/kornifex/FVTT-Genesys/commit/1c3efae247f3a905ad09530b9b59ce8c050d835c))
+* set the next release to 0.5.0-rc.2 ([#444](https://github.com/kornifex/FVTT-Genesys/issues/444)) ([5cf5589](https://github.com/kornifex/FVTT-Genesys/commit/5cf55898309fd21eddbfe810905f248dfead45f3))
+
+
+### Tests
+
+* **ui:** prove that a sheet and the Dice Roller work detached into their own window on Foundry v14 ([#424](https://github.com/kornifex/FVTT-Genesys/issues/424)) ([073e12f](https://github.com/kornifex/FVTT-Genesys/commit/073e12f0cb041114bfa708133fd35a769d9714d2))
+
 ## [0.5.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.1...v0.5.0-rc.1) (2026-10-30)
 
 
