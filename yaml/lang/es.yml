@@ -232,6 +232,8 @@ Genesys:
     CannotDeleteExistingTalent: No puedes eliminar la entrada del diario de PE del talento mejorado '{name}' al rango {rank} - ¡primero debes eliminar los rangos superiores!
     CannotDeleteInvalidTalentPyramid: No puedes eliminar la entrada del diario de PE del talento de rango {rank} para preservar la pirámide de talentos. Intenta borrando talentos de rango mas bajo.
     CannotPurchaseTalentTier: No puedes comprar talentos de nivel {tier} - primero debes tener al menos {minimum} talentos de nivel {lowerTier}.
+    CannotReplaceArchetype: No puedes tomar el arquetipo '{name}' - el arquetipo solo puede cambiar mientras el diario de PE no contenga más que los PE iniciales. ¡Primero deshaz sus otras entradas!
+    CannotReplaceCareer: No puedes tomar la profesión '{name}' - la profesión solo puede cambiar hasta que se compre un rango de habilidad. ¡Primero deshaz las entradas de habilidad del diario de PE!
     NotEnoughStoryPoints: ¡No puedes gastar puntos de Historia que no tienes!
     SelectOneTokenForAction: Debes seleccionar un único token para realizar esta acción.
     NoActorForCheck: Selecciona un solo token o asígnate un personaje para hacer esta tirada.
