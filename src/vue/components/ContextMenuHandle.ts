@@ -4,7 +4,9 @@
  */
 export type ContextMenuHandle = {
 	/**
-	 * Opens the menu from an event of another element than its own, such as a right-click on the row it belongs to.
+	 * Opens the menu at the pointer of an event of another element than its own, such as a right-click on the row it
+	 * belongs to: its top-left corner under the pointer, flipped to the other side of it when it would leave what the
+	 * sheet shows.
 	 */
-	open: (event: Event) => void;
+	open: (event: MouseEvent) => void;
 };

@@ -56,6 +56,12 @@ type InventoryHelpers = {
 	 */
 	rightClickMenu(actor: string, item: string, on?: 'image' | 'quantity'): Promise<string[] | null>;
 	/**
+	 * Opens the menu of an item's inventory row, tells which corner of the menu lies on the point it opens from, and closes
+	 * it: a right-click on the row's image, or near the row's bottom-right corner with the sheet cut short right under the
+	 * row, opens it from the pointer; a click on the row's … button, from the button's bottom-right corner.
+	 */
+	menuCorner(actor: string, item: string, at: 'image' | 'sheetEdge' | 'button'): Promise<string>;
+	/**
 	 * Drags an item from its source over the halves of an item's row, one after the other, then out of it: the edge each
 	 * half shows, or null when it shows none.
 	 */
@@ -663,6 +669,53 @@ function installInventoryHelpers() {
 			document.body.click();
 			await waitFor(`the menu of ${name} to close`, () => !root.querySelector('.tab-inventory .context-menu'));
 			return entries;
+		},
+
+		async menuCorner(ref, name, at) {
+			const app = actor(ref).sheet;
+			await window.e2e.showTab(ref, 'inventory');
+			const row = await heldRow(ref, name);
+			const { height } = app.position;
+			const { minHeight } = app.element.style;
+			let point: Point;
+			if (at === 'button') {
+				const button = row.querySelector<HTMLElement>(':scope > .actions')!;
+				button.click();
+				const box = button.getBoundingClientRect();
+				point = { x: box.right, y: box.bottom };
+			} else {
+				if (at === 'sheetEdge') {
+					// The sheet's minimum height would keep room for the menu under the row.
+					app.element.style.minHeight = '0';
+					app.setPosition({ height: row.getBoundingClientRect().bottom - app.element.getBoundingClientRect().top + 8 });
+				}
+				const target = at === 'image' ? row.querySelector(':scope > img')! : row;
+				const box = target.getBoundingClientRect();
+				point =
+					at === 'image' ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: box.right - 4, y: box.bottom - 4 };
+				target.dispatchEvent(
+					new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: point.x, clientY: point.y }),
+				);
+			}
+			// Opening a menu changes no document: the row's render is waited for.
+			await settle();
+			const menu = row.querySelector(':scope > .actions .context-menu');
+			const box = menu?.getBoundingClientRect();
+			const corners = box && {
+				'top-left': [box.left, box.top],
+				'top-right': [box.right, box.top],
+				'bottom-left': [box.left, box.bottom],
+				'bottom-right': [box.right, box.bottom],
+			};
+			const corner = Object.entries(corners ?? {}).find(([, [x, y]]) => Math.abs(x - point.x) < 1 && Math.abs(y - point.y) < 1);
+			document.body.click();
+			await waitFor(`the menu of ${name} to close`, () => !row.querySelector(':scope > .actions .context-menu'));
+			if (at === 'sheetEdge') {
+				app.element.style.minHeight = minHeight;
+				app.setPosition({ height });
+			}
+			if (corner) return corner[0];
+			return box ? `none: top-left at ${Math.round(box.left - point.x)}, ${Math.round(box.top - point.y)}` : 'no menu';
 		},
 
 		async edgesShown(source, ref, name, edges) {
@@ -2004,6 +2057,8 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 	const { drop, items, section, entries } = inventorySteps(gm);
 	const rightClick = (actor: string, item: string, on: 'image' | 'quantity' = 'image') =>
 		gm.evaluate((args) => window.inventoryE2E.rightClickMenu(args.actor, args.item, args.on), { actor, item, on });
+	const menuCorner = (actor: string, item: string, at: 'image' | 'sheetEdge' | 'button') =>
+		gm.evaluate((args) => window.inventoryE2E.menuCorner(args.actor, args.item, args.at), { actor, item, at });
 	const edgesShown = (source: Source, actor: string, item: string, edges: RowEdge[]) =>
 		gm.evaluate((args) => window.inventoryE2E.edgesShown(args.source, args.actor, args.item, args.edges), {
 			source,
@@ -2023,6 +2078,22 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		"#358 A1 a right-click on a character's inventory row opens the menu of its … button, which a left-click still opens",
 		{ rightClick: await rightClick('Placer', 'Lance'), button: await entries('Placer', 'Lance') },
 		{ rightClick: lanceMenu, button: lanceMenu },
+	);
+	// §#429: a right-click opens the menu at the pointer, as Foundry's context menus open, and the … button under itself.
+	e2e.expect(
+		"#429 A1 a right-click on a character's inventory row opens its menu with the menu's top-left corner under the pointer",
+		await menuCorner('Placer', 'Glaive', 'image'),
+		'top-left',
+	);
+	e2e.expect(
+		"#429 A2 a right-click near the bottom-right corner of what the sheet shows opens the menu to the pointer's left and above it",
+		await menuCorner('Placer', 'Lance', 'sheetEdge'),
+		'bottom-right',
+	);
+	e2e.expect(
+		"#429 A3 a click on a row's … button still opens its menu under the button, its right edge on the button's, after a right-click opened it at the pointer",
+		await menuCorner('Placer', 'Lance', 'button'),
+		'top-right',
 	);
 	let quantityMenu: string[] | null = null;
 	await e2e.step("#358 A2 Placer's Twig, at a quantity of 3, right-clicked on its quantity", async () => {
@@ -2129,6 +2200,11 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		"#358 C1 a right-click on a vehicle's inventory row opens the menu of its … button",
 		{ rightClick: await rightClick('Rover', 'Railgun'), button: await entries('Rover', 'Railgun') },
 		{ rightClick: railgunMenu, button: railgunMenu },
+	);
+	e2e.expect(
+		"#429 A4 a right-click on a vehicle's inventory row opens its menu with the menu's top-left corner under the pointer",
+		await menuCorner('Rover', 'Railgun', 'image'),
+		'top-left',
 	);
 	await e2e.step(
 		"#358 C2 Rover's Carried Flak dropped on the lower half of the Equipped Laser's row",

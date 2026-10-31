@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { toRef } from 'vue';
 
+import { canReplaceCareer } from '@/actor/data/character/Advancement';
 import { canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
@@ -57,8 +58,9 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 						<template v-slot:menu-items>
 							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(career)" />
 
+							<!-- Deleting the Career then dropping another would get around the rule its drop follows. -->
 							<MenuItem
-								v-if="editable"
+								v-if="editable && canReplaceCareer(system.experienceJournal.entries)"
 								icon="fas fa-trash"
 								label="Genesys.Labels.Delete"
 								@click="removeCareer(actor, career)"

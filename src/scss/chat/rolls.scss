@@ -1,3 +1,4 @@
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 $size: 2rem;
@@ -26,6 +27,11 @@ $size: 2rem;
 
 		.hide-it {
 			display: none;
+		}
+
+		// A description is rich text, whose headings look as in a sheet rather than in a chat message.
+		:is(h1, h2, h3, h4) {
+			@include headings.appv1;
 		}
 	}
 

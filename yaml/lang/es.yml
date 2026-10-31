@@ -45,7 +45,7 @@ Genesys:
     UncoupleSkillsAlternateRule: Desvincular las habilidades de las características
     UncoupleSkillsAlternateRuleHint: Permite seleccionar una característica alternativa para una habilidad en la ventana de dados, según la regla alternativa Desacoplar las habilidades de las características (Libro básico, p.205).
     ShowDamageOnFailure: Muestra el daño del ataque cuando falle
-    ShowDamageOnFailureHint: Mostrar o no el daño, el crítico y las cualidades en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso.
+    ShowDamageOnFailureHint: Mostrar o no el daño y el crítico en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso. Las cualidades se muestran siempre, ya que algunas se activan con un fracaso.
     SkillForInjuries: Nombre de la habilidad Aguante
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
@@ -232,6 +232,8 @@ Genesys:
     CannotDeleteExistingTalent: No puedes eliminar la entrada del diario de PE del talento mejorado '{name}' al rango {rank} - ¡primero debes eliminar los rangos superiores!
     CannotDeleteInvalidTalentPyramid: No puedes eliminar la entrada del diario de PE del talento de rango {rank} para preservar la pirámide de talentos. Intenta borrando talentos de rango mas bajo.
     CannotPurchaseTalentTier: No puedes comprar talentos de nivel {tier} - primero debes tener al menos {minimum} talentos de nivel {lowerTier}.
+    CannotReplaceArchetype: No puedes tomar el arquetipo '{name}' - el arquetipo solo puede cambiar mientras el diario de PE no contenga más que los PE iniciales. ¡Primero deshaz sus otras entradas!
+    CannotReplaceCareer: No puedes tomar la profesión '{name}' - la profesión solo puede cambiar hasta que se compre un rango de habilidad. ¡Primero deshaz las entradas de habilidad del diario de PE!
     NotEnoughStoryPoints: ¡No puedes gastar puntos de Historia que no tienes!
     SelectOneTokenForAction: Debes seleccionar un único token para realizar esta acción.
     NoActorForCheck: Selecciona un solo token o asígnate un personaje para hacer esta tirada.
@@ -254,7 +256,20 @@ Genesys:
       Content: Esto eliminará el item. ¿Deseas continuar?
     ConfirmUndoEntry:
       Title: Deshacer la entrada
-      Content: Deshacer esta entrada quitará {items} del personaje. ¿Deseas continuar?
+      Award: ¿Deshacer la concesión de PE «{reason}»?
+      AwardWithoutReason: ¿Deshacer esta concesión de PE?
+      Characteristic: ¿Deshacer la mejora de {characteristic} a {rank}? {characteristic} vuelve a {previous}.
+      Skill: ¿Deshacer el entrenamiento de {name} a rango {rank}? La habilidad vuelve a rango {previous}.
+      SkillNotFound: ¿Deshacer el entrenamiento de {name} a rango {rank}? La habilidad no está en el personaje, así que ningún rango baja.
+      NewTalent: ¿Deshacer la adquisición del talento {name}? El talento se elimina del personaje.
+      NewTalentNotFound: ¿Deshacer la adquisición del talento {name}? El talento adquirido no está en el personaje, así que no se elimina ninguno.
+      NewTalentNotLinked: >-
+        ¿Deshacer la adquisición del talento {name}? El talento adquirido no está en el personaje: el {name} de la hoja no
+        está vinculado a esta entrada, y se queda.
+      TalentRank: ¿Deshacer la mejora de {name} a rango {rank}? El talento vuelve a rango {previous}.
+      TalentRankNotFound: ¿Deshacer la mejora de {name} a rango {rank}? El talento no está en el personaje, así que ningún rango baja.
+      XPGivenBack: El personaje recupera los {xp} PE que costó.
+      XPTakenAway: El personaje pierde los {xp} PE que recibió.
     ConfirmRemoveArchetype:
       Title: Quitar el arquetipo
       Content: >-

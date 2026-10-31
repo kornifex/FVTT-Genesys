@@ -37,6 +37,13 @@ type CreateDialog = { position: Position; asked: Position; types: string[]; decl
 type Size = { width: number; height: number };
 
 /**
+ * The Data tab of a weapon's sheet at a window height: the window's height; the blank between the last row of each of
+ * its blocks and the next block (each Weapon Profile's, then the Add Weapon Profile button's), beyond that block's top
+ * margin; the height its blocks span; and the top of each row of the main profile, from the tab's top.
+ */
+type WeaponDataLayout = { window: number; gaps: number[]; content: number; mainRows: number[] };
+
+/**
  * A `<prose-mirror>` editor of a sheet: its toggle button (`null` when it has none), whether it is open, the text it
  * shows, and the document links in it.
  */
@@ -59,6 +66,8 @@ type SheetsHelpers = {
 	minimizeAndMaximize(name: string): Promise<{ open: Size; minimized: Size; headerHeight: number; maximized: Size }>;
 	/** Asks an open sheet for a size below any minimum, and reads the size its window takes. */
 	resizeBelowMinimum(name: string): Promise<Size>;
+	/** Resizes an open weapon sheet, its Data tab shown, to each height, and lays the tab out at each. */
+	weaponDataLayout(name: string, heights: number[]): Promise<WeaponDataLayout[]>;
 	/** The header buttons and controls menu entries of a sheet. */
 	header(name: string): { buttons: string[]; controls: string[] };
 	clickTab(name: string, tab: string): Promise<void>;
@@ -179,6 +188,16 @@ type SheetsHelpers = {
 	descriptionHeadings(name: string): Promise<Record<string, HeadingStyle>>;
 	/** Reads the look of an `h3` in a journal's text page, which the sheets' styles must leave alone. */
 	journalHeading(): Promise<HeadingStyle>;
+	/**
+	 * Posts the cards of a gear and a talent of Hero whose descriptions hold an `h1` to `h4`, a check's card whose
+	 * description holds an `h3`, and a plain message holding an `h3`, then reads their look in the chat log.
+	 */
+	cardHeadings(): Promise<{
+		gear: Record<string, HeadingStyle>;
+		talent: HeadingStyle;
+		check: HeadingStyle;
+		message: HeadingStyle;
+	}>;
 	cleanUp(): Promise<void>;
 };
 
@@ -411,6 +430,31 @@ function installSheetsHelpers() {
 			documentNamed(name).sheet.setPosition({ width: 100, height: 100 });
 			await settle();
 			return sizeOf(sheetElement(name));
+		},
+
+		async weaponDataLayout(name, heights) {
+			const layouts: WeaponDataLayout[] = [];
+			for (const height of heights) {
+				// From the top of the screen, so that Foundry doesn't shorten the window to keep it on screen.
+				documentNamed(name).sheet.setPosition({ top: 10, height });
+				await settle();
+				const tab = find(sheetElement(name), '.tab[data-tab="data"]');
+				const box = (element: Element) => element.getBoundingClientRect();
+				const blocks = [...tab.querySelectorAll('section.data-grid, .add-profile')];
+				const [main] = blocks;
+				const lastRowBottom = (block: Element) => Math.max(...[...block.children].map((child) => box(child).bottom));
+				layouts.push({
+					window: Math.round(box(sheetElement(name)).height),
+					gaps: blocks
+						.slice(1)
+						.map((block, index) =>
+							Math.round(box(block).top - lastRowBottom(blocks[index]) - parseFloat(getComputedStyle(block).marginTop)),
+						),
+					content: Math.round(box(blocks.at(-1)!).bottom - box(main).top),
+					mainRows: [...main.querySelectorAll('.row')].map((row) => Math.round(box(row).top - box(tab).top)),
+				});
+			}
+			return layouts;
 		},
 
 		header(name) {
@@ -1101,6 +1145,46 @@ function installSheetsHelpers() {
 			}
 		},
 
+		async cardHeadings() {
+			const tags = ['h1', 'h2', 'h3', 'h4'];
+			const description = `${tags.map((tag) => `<${tag}>E2E ${tag}</${tag}>`).join('')}<p>E2E text.</p>`;
+			const items = await actor('Hero').createEmbeddedDocuments('Item', [
+				{ name: 'E2E Headings Gear', type: 'gear', system: { description } },
+				{ name: 'E2E Headings Talent', type: 'talent', system: { description, tier: 1, ranked: 'no' } },
+			]);
+			const posted = createdMessages.length;
+			await helpers.open('Hero');
+			await helpers.sendToChat('Hero', 'Headings Gear');
+			await helpers.sendToChat('Hero', 'Headings Talent');
+			await helpers.close('Hero');
+			await actor('Hero').deleteEmbeddedDocuments(
+				'Item',
+				items.map((item: { id: string }) => item.id),
+			);
+			const content = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', {
+				description: '<h3>E2E h3</h3><p>E2E text.</p>',
+				results: { faces: {}, extraSymbols: {} },
+				card: { symbols: [], summary: [] },
+			});
+			await CONFIG.ChatMessage.documentClass.create({ content });
+			await CONFIG.ChatMessage.documentClass.create({ content: '<h3>E2E h3</h3><p>E2E text.</p>' });
+			// The messages stay: Foundry throws when one is deleted while its notification slides in.
+			const [gear, talent, check, message] = createdMessages.splice(posted);
+			// The heading in the message's content, as the chat log shows it rather than its notification.
+			const heading = (id: string, tag: string) =>
+				waitFor(`the ${tag} of the message ${id}`, () =>
+					[...document.querySelectorAll<HTMLElement>(`[data-message-id="${id}"] .message-content ${tag}`)].find(
+						(element) => !element.closest('#chat-notifications'),
+					),
+				);
+			return {
+				gear: Object.fromEntries(await Promise.all(tags.map(async (tag) => [tag, headingStyle(await heading(gear, tag))]))),
+				talent: headingStyle(await heading(talent, 'h3')),
+				check: headingStyle(await heading(check, 'h3')),
+				message: headingStyle(await heading(message, 'h3')),
+			};
+		},
+
 		async cleanUp() {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
@@ -1302,6 +1386,42 @@ export async function run(e2e: ScenarioContext) {
 			border: 'none',
 		},
 	);
+
+	// #430: Foundry gives a chat message's headings its own sizes and colours. The headings of a description in the
+	// system's cards look as in the sheet that shows it, and a plain message's are left alone.
+	let cardHeadings: Awaited<ReturnType<SheetsHelpers['cardHeadings']>> | undefined;
+	await e2e.step(
+		"#430 GM sends a gear's and a talent's card, then a check's card and a plain message, all holding headings",
+		async () => {
+			cardHeadings = await gm.evaluate(() => window.sheetsE2E.cardHeadings());
+		},
+	);
+	// The card's text colour, which its headings take as a sheet's do.
+	const cardHeading = (size: number, border: string) => ({ ...appV1Heading(size, border), color: 'rgb(17, 17, 17)' });
+	e2e.expect(
+		"#430 A1 a gear card's description headings look as in its sheet: the card's text colour, AppV1's sizes, margins and rules",
+		cardHeadings?.gear,
+		{
+			h1: cardHeading(2, underline('2px')),
+			h2: cardHeading(1.5, underline('1px')),
+			h3: cardHeading(1.25, underline('1px')),
+			h4: cardHeading(1, 'none'),
+		},
+	);
+	e2e.expect(
+		"#430 A2 a talent card's and a check card's description h3 look as in a sheet",
+		{ talent: cardHeadings?.talent, check: cardHeadings?.check },
+		{ talent: cardHeading(1.25, underline('1px')), check: cardHeading(1.25, underline('1px')) },
+	);
+	e2e.expect("#430 A3 a plain chat message's h3 keeps Foundry's look", cardHeadings?.message, {
+		size: 2,
+		margin: '0 0 1 0',
+		weight: '700',
+		lineHeight: '28px',
+		color: 'rgb(34, 34, 34)',
+		shadow: 'none',
+		border: 'none',
+	});
 
 	// Prompts and the story point tracker.
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));
@@ -2615,6 +2735,63 @@ export async function run(e2e: ScenarioContext) {
 				],
 			},
 		],
+	);
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	// §#428: a tab's own sections are as tall as it (nav.scss), and a tab is as tall as all its blocks together, or as the
+	// window when that is taller: each Weapon Profile's block took the whole tab.
+	const heights = [500, 950];
+	let profiled: WeaponDataLayout[] = [];
+	await e2e.step('#428 A1 GM gives the weapon a Thrown profile, then resizes its sheet to two heights', async () => {
+		profiled = await gm.evaluate(
+			async ({ profile, heights }) => {
+				const sheets = window.sheetsE2E;
+				await sheets.update('weapon', { 'system.extraProfiles': [profile] });
+				await sheets.open('weapon');
+				await sheets.clickTab('weapon', 'data');
+				return sheets.weaponDataLayout('weapon', heights);
+			},
+			{ profile: thrownProfile(['Ranged']), heights },
+		);
+	});
+	e2e.expect(
+		"#428 A1 the Thrown profile's block follows right under the main profile's rows, and the Add Weapon Profile button under its own, at either window height",
+		profiled.map(({ gaps }) => gaps),
+		[
+			[0, 0],
+			[0, 0],
+		],
+	);
+	e2e.expect(
+		"#428 A2 the Data tab's blocks keep their height when the window grows",
+		{ windowGrew: profiled[1].window > profiled[0].window, blocksGrew: profiled[1].content - profiled[0].content },
+		{ windowGrew: true, blocksGrew: 0 },
+	);
+	let single: Record<string, WeaponDataLayout[]> = {};
+	await e2e.step(
+		'#428 A3 GM deletes the Thrown profile, then resizes the sheets of the weapon and the vehicle weapon to two heights',
+		async () => {
+			single = await gm.evaluate(async (heights) => {
+				const sheets = window.sheetsE2E;
+				await sheets.update('weapon', { 'system.extraProfiles': [] });
+				await sheets.open('vehicleWeapon');
+				await sheets.clickTab('vehicleWeapon', 'data');
+				return {
+					weapon: await sheets.weaponDataLayout('weapon', heights),
+					vehicleWeapon: await sheets.weaponDataLayout('vehicleWeapon', heights),
+				};
+			}, heights);
+		},
+	);
+	e2e.expect(
+		"#428 A3 a weapon with no extra profile, and a vehicle weapon, keep their main profile's rows in place whatever the window's height",
+		{ weapon: single.weapon[1].mainRows, vehicleWeapon: single.vehicleWeapon[1].mainRows },
+		{ weapon: single.weapon[0].mainRows, vehicleWeapon: single.vehicleWeapon[0].mainRows },
+	);
+	e2e.expect(
+		'#428 A4 a weapon with no extra profile shows its Add Weapon Profile button right under its main profile, at either window height',
+		single.weapon.map(({ gaps }) => gaps),
+		[[0], [0]],
 	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 

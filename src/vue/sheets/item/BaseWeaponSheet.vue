@@ -17,15 +17,19 @@ async function updateMainProfile(changes: Partial<WeaponProfileData>) {
 <template>
 	<BasicItemSheet show-effects-tab>
 		<template v-slot:data>
-			<section class="data-grid">
-				<slot name="extra-data" />
+			<!-- A tab's own sections fill it (nav.scss): wrapped, each Weapon Profile's block is as tall as its rows, the next
+			 one right under it, whatever the window's height. -->
+			<div class="weapon-profiles">
+				<section class="data-grid">
+					<slot name="extra-data" />
 
-				<WeaponProfileFields :profile="system" named @change="updateMainProfile">
-					<EquipmentRows :system="system" />
-				</WeaponProfileFields>
-			</section>
+					<WeaponProfileFields :profile="system" named @change="updateMainProfile">
+						<EquipmentRows :system="system" />
+					</WeaponProfileFields>
+				</section>
 
-			<slot name="profiles" />
+				<slot name="profiles" />
+			</div>
 		</template>
 	</BasicItemSheet>
 </template>

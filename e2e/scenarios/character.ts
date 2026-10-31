@@ -39,8 +39,11 @@ type CharacterHelpers = {
 	raise(actor: string, characteristic: Characteristic): boolean;
 	buySkill(actor: string, skill: string): boolean;
 	upgradeTalent(actor: string, talent: string): boolean;
-	/** Clicks the trash of the last Experience Journal entry whose summary starts so. */
-	undo(actor: string, entry: string): void;
+	/**
+	 * Clicks the trash of the last Experience Journal entry whose summary starts so; false when the journal holds none, as
+	 * when a build that doesn't ask has already undone it.
+	 */
+	undo(actor: string, entry: string): boolean;
 	award(actor: string, amount: number, reason: string): Promise<void>;
 	/** Waits for the Career's Free Rank prompt to open. */
 	careerPromptOpen(): Promise<void>;
@@ -440,8 +443,9 @@ function installCharacterHelpers() {
 		undo(name, entry) {
 			const entries = actor(name).system.experienceJournal.entries.map(entryText);
 			const index = entries.findLastIndex((summary: string) => summary.startsWith(entry));
-			if (index < 0) throw new Error(`No entry ${entry} in ${entries.join(', ')}`);
+			if (index < 0) return false;
 			click(sheet(name).querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('a'), `trash of ${entry}`);
+			return true;
 		},
 
 		async award(name, amount, reason) {
@@ -873,9 +877,9 @@ export async function run(e2e: ScenarioContext) {
 			);
 		});
 
-		await archetypes(e2e, page);
+		await archetypes(e2e, page, notified, notifications);
 		await advancement(e2e, page, notified, notifications);
-		await careers(e2e, page);
+		await careers(e2e, page, notified, notifications);
 		await careerSkillsOnCreation(e2e, page);
 		await superCharacteristics(e2e, page, notifications);
 		await skillsTab(e2e, page);
@@ -958,8 +962,13 @@ async function weaponProfiles(e2e: ScenarioContext, page: Evaluate) {
 	await page((name) => window.characterE2E.close(name), W);
 }
 
-/** §#36, §#49, §#137: an Archetype's drop and removal, and the items it granted. */
-async function archetypes(e2e: ScenarioContext, page: Evaluate) {
+/** §#36, §#49, §#137, §#431: an Archetype's drop and removal, and the items it granted. */
+async function archetypes(
+	e2e: ScenarioContext,
+	page: Evaluate,
+	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
+	notifications: () => Promise<string[]>,
+) {
 	const granted = (name: string) =>
 		page(
 			(name) => ({
@@ -1107,6 +1116,27 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 		{ updateActor: 1, createItem: 1, updateItem: 1, deleteItem: 3 },
 	);
 
+	await e2e.step('#431 A1 an Archetype dropped on a character whose XP Journal holds an XP Award', async () => {
+		await page((name) => window.characterE2E.award(name, 10, 'E2E award'), 'Swapper');
+		await e2e.settle();
+		await notifications();
+		await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Archetype')), 'Swapper');
+	});
+	e2e.expect(
+		'#431 A1 the Archetype is refused with a notification that says to undo the entries past the Starting XP',
+		{ character: await granted('Swapper'), notifications: await notifications() },
+		{
+			character: {
+				characteristics: all(2),
+				thresholds: { wounds: 12, strain: 12 },
+				journal: ['Starting 30', 'Award 10 E2E award'],
+				items: ['archetype:E2E Small Archetype:none'],
+				athletics: 0,
+			},
+			notifications: [await notified('Genesys.Notifications.CannotReplaceArchetype', { name: 'E2E Archetype' })],
+		},
+	);
+
 	await page(async () => {
 		for (const name of ['Granted', 'Legacy', 'Renamed', 'Swapper']) await window.characterE2E.close(name);
 	}, undefined);
@@ -1128,15 +1158,22 @@ async function advancement(
 	const drop = (item: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.item)), { actor: A, item });
 	const undo = (entry: string) => page((args) => window.characterE2E.undo(args.actor, args.entry), { actor: A, entry });
-	// Undoes an entry whose undo deletes an item, which asks first, and answers the dialog; the dialog read.
+	// Undoes an entry, which asks first unless the undo is refused, and answers the dialog; the dialog read, or null when
+	// none opens or the entry is gone.
 	const undoAndAnswer = (entry: string, answer: 'yes' | 'no') =>
-		page(
-			async (args) => {
-				window.characterE2E.undo(args.actor, args.entry);
-				return window.e2e.answerConfirm(args.answer);
-			},
-			{ actor: A, entry, answer },
-		);
+		page(async (args) => (window.characterE2E.undo(args.actor, args.entry) ? window.e2e.answerConfirm(args.answer) : null), {
+			actor: A,
+			entry,
+			answer,
+		});
+	// The question asked before an undo (§#432).
+	const undoQuestion = (content: string) => ({
+		application: 'DialogV2',
+		title: 'Undo Entry',
+		content,
+		buttons: ['yes', 'no'],
+		defaultButton: 'no',
+	});
 	const setHouseRules = (rules: Record<string, unknown>) => page((rules) => window.e2e.setSettings(rules), rules);
 	const reopen = () => page((name) => window.characterE2E.reopen(name), A);
 
@@ -1290,7 +1327,7 @@ async function advancement(
 		{ ...steady, ...(await page((name) => window.characterE2E.appliedEffects(name), A)), xp: await xp(), entry: await journalTail(1) },
 		{ idInJournal: true, effects: ['E2E Steady'], soak: 1, xp: 1000 - spent, entry: ['NewTalent -5 E2E Steady tier 1 rank 1'] },
 	);
-	// §#252: an undo that deletes an item asks first.
+	// §#252, §#432: an undo that deletes an item asks first, saying what it does.
 	let asked: Awaited<ReturnType<typeof undoAndAnswer>> = null;
 	await e2e.step("#252 C4 the new talent's entry undone from the Experience Journal, and No answered", async () => {
 		asked = await undoAndAnswer('NewTalent -5 E2E Steady', 'no');
@@ -1299,13 +1336,9 @@ async function advancement(
 		'#252 C4 undoing a new talent asks in a dialog naming the talent, No by default, and No keeps the talent, its entry and its XP',
 		{ asked, rank: (await talent('E2E Steady'))?.rank, xp: await xp(), entry: await journalTail(1) },
 		{
-			asked: {
-				application: 'DialogV2',
-				title: 'Undo Entry',
-				content: 'Undoing this entry removes E2E Steady from the character. Do you want to proceed?',
-				buttons: ['yes', 'no'],
-				defaultButton: 'no',
-			},
+			asked: undoQuestion(
+				'Undo the purchase of the talent E2E Steady? The talent is deleted from the character. The character gets back the 5 XP it cost.',
+			),
 			rank: 1,
 			xp: 1000 - spent,
 			entry: ['NewTalent -5 E2E Steady tier 1 rank 1'],
@@ -1453,7 +1486,81 @@ async function advancement(
 		'Genesys.Notifications.CannotDeleteInvalidTalentPyramid',
 		{ rank: 1 },
 	);
-	await e2e.step('#36 E5 undo the latest talent rank', () => undo('TalentRank -5 E2E Grit'));
+	// §#432: every undo asks first, saying what it does, but a refused one, which tells why instead.
+	const characteristicRefused = await page((name) => window.characterE2E.journal(name), A);
+	await notifications();
+	await e2e.step('#432 A1 the Brawn raise a later raise builds on undone again', async () => {
+		asked = await undoAndAnswer('Characteristic -30 brawn 3', 'no');
+	});
+	e2e.expect(
+		'#432 A1 a refused undo asks nothing, and tells why',
+		{ asked, journal: await page((name) => window.characterE2E.journal(name), A), notifications: await notifications() },
+		{
+			asked: null,
+			journal: characteristicRefused,
+			notifications: [await notified('Genesys.Notifications.CannotDeleteCharacteristic', { characteristic: 'brawn', rank: 3 })],
+		},
+	);
+	// A talent's purchase recorded before 0.1.14 holds no talent id, so its undo finds no talent to delete.
+	const legacyQuestion = undoQuestion(
+		"Undo the purchase of the talent E2E Quick? The talent it bought isn't found on the character: the E2E Quick on the sheet isn't linked to this entry, and stays. The character gets back the 5 XP it cost.",
+	);
+	const beforeLegacy = await page((name) => window.characterE2E.journal(name), A);
+	await e2e.step('#432 A2 a purchase of the held talent, recorded without its id as before 0.1.14, undone, and No answered', async () => {
+		await page(async (name) => {
+			const actor = game.actors.getName(`E2E ${name}`);
+			const legacy = { amount: -5, type: 'NewTalent', data: { name: 'E2E Quick', tier: 1, rank: 1 } };
+			await actor.update({ 'system.experienceJournal.entries': [...actor.system.experienceJournal.entries, legacy] });
+		}, A);
+		await e2e.settle();
+		asked = await undoAndAnswer('NewTalent -5 E2E Quick', 'no');
+	});
+	spent += 5;
+	e2e.expect(
+		"#432 A2 undoing a talent purchase whose talent isn't found says that it deletes none and that the talent of its name stays, and No keeps the entry and the XP",
+		{ asked, rank: (await talent('E2E Quick'))?.rank, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked: legacyQuestion,
+			rank: 1,
+			xp: 1000 - spent,
+			entry: ['NewTalent -5 E2E Quick tier 1 rank 1'],
+		},
+	);
+	await e2e.step('#432 A3 the purchase recorded without its id undone again, and Yes answered', async () => {
+		asked = await undoAndAnswer('NewTalent -5 E2E Quick', 'yes');
+	});
+	spent -= 5;
+	e2e.expect(
+		'#432 A3 Yes to the same question removes the entry and gives its XP back, and the talent stays',
+		{
+			asked,
+			rank: (await talent('E2E Quick'))?.rank,
+			xp: await xp(),
+			journal: await page((name) => window.characterE2E.journal(name), A),
+		},
+		{
+			asked: legacyQuestion,
+			rank: 1,
+			xp: 1000 - spent,
+			journal: beforeLegacy,
+		},
+	);
+	await e2e.step('#432 A4 the latest talent rank undone, and No answered', async () => {
+		asked = await undoAndAnswer('TalentRank -5 E2E Grit', 'no');
+	});
+	e2e.expect(
+		'#432 A4 undoing a talent rank asks in the same dialog, naming the talent, the rank it lowers and the XP it gives back, and No keeps the entry, the rank and the XP',
+		{ asked, rank: (await talent('E2E Grit'))?.rank, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked: undoQuestion(
+				'Undo the increase of E2E Grit to rank 4? The talent goes back to rank 3. The character gets back the 5 XP it cost.',
+			),
+			rank: 4,
+			xp: 1000 - spent,
+			entry: ['TalentRank -5 E2E Grit tier 1 rank 4'],
+		},
+	);
+	await e2e.step('#36 E5 undo the latest talent rank', () => undoAndAnswer('TalentRank -5 E2E Grit', 'yes'));
 	spent -= 5;
 	e2e.expect(
 		'#36 E5 undoing the latest talent rank lowers the rank and gives its XP back',
@@ -1477,13 +1584,45 @@ async function advancement(
 		},
 		{ xp: 1050 - spent, entry: ['Award 50 E2E award'], canRaise: false, rangedCanBuy: true },
 	);
-	await e2e.step('#36 E7 undo the XP Award', () => undo('Award 50'));
+	await e2e.step("#432 A5 the XP Award's entry undone, and No answered", async () => {
+		asked = await undoAndAnswer('Award 50', 'no');
+	});
+	e2e.expect(
+		'#432 A5 undoing an XP Award asks in the same dialog, naming its reason and the XP it takes away, and No keeps the entry and the XP',
+		{ asked, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked: undoQuestion('Undo the XP award "E2E award"? The character loses the 50 XP it gave.'),
+			xp: 1050 - spent,
+			entry: ['Award 50 E2E award'],
+		},
+	);
+	await e2e.step('#36 E7 undo the XP Award', () => undoAndAnswer('Award 50', 'yes'));
 	e2e.expect(
 		'#36 E7 undoing the only XP Award goes back to Character Creation',
 		{ xp: await xp(), canRaise: (await characteristic('agility')).canRaise, rangedCanBuy: (await skills(['Ranged'])).Ranged?.canBuy },
 		{ xp: 1000 - spent, canRaise: true, rangedCanBuy: false },
 	);
-	await e2e.step('#36 E8 undo the latest skill rank', () => undo('Skill -10 Ranged 2'));
+	await e2e.step('#432 A6 the latest skill rank undone, and No answered', async () => {
+		asked = await undoAndAnswer('Skill -10 Ranged 2', 'no');
+	});
+	e2e.expect(
+		'#432 A6 undoing a skill rank asks in the same dialog, naming the skill, the rank it lowers and the XP it gives back, and No keeps the entry, the rank and the XP',
+		{
+			asked,
+			rank: (await skills(['Ranged'])).Ranged?.rank,
+			xp: await xp(),
+			kept: (await page((name) => window.characterE2E.journal(name), A)).includes('Skill -10 Ranged 2'),
+		},
+		{
+			asked: undoQuestion(
+				'Undo the increase of Ranged to rank 2? The skill goes back to rank 1. The character gets back the 10 XP it cost.',
+			),
+			rank: 2,
+			xp: 1000 - spent,
+			kept: true,
+		},
+	);
+	await e2e.step('#36 E8 undo the latest skill rank', () => undoAndAnswer('Skill -10 Ranged 2', 'yes'));
 	spent -= 10;
 	e2e.expect(
 		'#36 E8 undoing the latest skill rank lowers the rank and gives its XP back',
@@ -1493,7 +1632,25 @@ async function advancement(
 			xp: 1000 - spent,
 		},
 	);
-	await e2e.step('#36 E9 undo the latest Brawn raise', () => undo('Characteristic -40 brawn 4'));
+	await e2e.step('#432 A7 the latest Brawn raise undone, and No answered', async () => {
+		asked = await undoAndAnswer('Characteristic -40 brawn 4', 'no');
+	});
+	e2e.expect(
+		'#432 A7 undoing a characteristic raise asks in the same dialog, naming the characteristic, the rating it lowers and the XP it gives back, and No keeps the entry, the rating and the XP',
+		{
+			asked,
+			base: (await characteristic('brawn')).base,
+			xp: await xp(),
+			kept: (await page((name) => window.characterE2E.journal(name), A)).includes('Characteristic -40 brawn 4'),
+		},
+		{
+			asked: undoQuestion('Undo the increase of Brawn to 4? Brawn goes back to 3. The character gets back the 40 XP it cost.'),
+			base: 4,
+			xp: 1000 - spent,
+			kept: true,
+		},
+	);
+	await e2e.step('#36 E9 undo the latest Brawn raise', () => undoAndAnswer('Characteristic -40 brawn 4', 'yes'));
 	spent -= 40;
 	e2e.expect(
 		'#36 E9 undoing a characteristic raise lowers it with its threshold, and gives its XP back',
@@ -1548,7 +1705,10 @@ async function advancement(
 		);
 	}
 	await e2e.step('#198 F4 undo the last Brawn raise under the effect', () =>
-		page((name) => window.characterE2E.undo(name, 'Characteristic -50 brawn 5'), E),
+		page(async (name) => {
+			window.characterE2E.undo(name, 'Characteristic -50 brawn 5');
+			await window.e2e.answerConfirm('yes');
+		}, E),
 	);
 	e2e.expect('#198 F4 undoing the raise puts the base back, with the effect still on top', await brawn(), {
 		base: 4,
@@ -1561,8 +1721,13 @@ async function advancement(
 	await page((name) => window.characterE2E.close(name), E);
 }
 
-/** §#39: a Career whose skills differ in case from the character's, removed, then replaced. */
-async function careers(e2e: ScenarioContext, page: Evaluate) {
+/** §#39, §#431: a Career whose skills differ in case from the character's, removed, replaced, then refused. */
+async function careers(
+	e2e: ScenarioContext,
+	page: Evaluate,
+	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
+	notifications: () => Promise<string[]>,
+) {
 	const C = 'Careerist';
 	const listed = ['Ranged', 'Cool', 'Stealth', 'Perception', 'Charm', 'Brawl', 'Melee', 'Athletics', 'Discipline'];
 	const skills = async () => {
@@ -1658,6 +1823,53 @@ async function careers(e2e: ScenarioContext, page: Evaluate) {
 			writes: { createItem: 1, updateItem: 9, deleteItem: 1, updateActor: 0 },
 		},
 	);
+
+	const journal = () => page((name) => window.characterE2E.journal(name), C);
+	const prompts = () => page(() => window.e2e.apps('app-career-skill-prompt').length, undefined);
+	await e2e.step('#431 G1 another Career dropped once a skill rank is bought', async () => {
+		await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), C);
+		await e2e.settle();
+		await page((name) => window.characterE2E.buySkill(name, 'Ranged'), C);
+		await e2e.settle();
+		await notifications();
+		await dropCareer('Other Career');
+	});
+	const trained = { ...untouched, Ranged: 'career 2', Cool: 'career 1', Stealth: 'career 1', Perception: 'career 0', Charm: 'career 1' };
+	e2e.expect(
+		'#431 G1 the Career is refused before any prompt, with a notification that says to undo the skill ranks bought',
+		{
+			skills: await skills(),
+			careers: await careerItems(),
+			journal: await journal(),
+			prompts: await prompts(),
+			notifications: await notifications(),
+		},
+		{
+			skills: trained,
+			careers: ['career:E2E Career'],
+			journal: ['Starting 1000', 'Skill -10 Ranged 2'],
+			prompts: 0,
+			notifications: [await notified('Genesys.Notifications.CannotReplaceCareer', { name: 'E2E Other Career' })],
+		},
+	);
+	await e2e.step('#431 G2 a skill the character owns dropped again from the Skills Compendium', () =>
+		page((name) => window.characterE2E.drop(name, window.characterE2E.compendiumSkill('Ranged')), C),
+	);
+	e2e.expect(
+		'#431 G2 the skill the character owns is still refused without a notification',
+		{
+			skills: await skills(),
+			ranged: await page(
+				(name) =>
+					game.actors
+						.getName(`E2E ${name}`)
+						.items.filter((item: { type: string; name: string }) => item.type === 'skill' && item.name === 'Ranged').length,
+				C,
+			),
+			notifications: await notifications(),
+		},
+		{ skills: trained, ranged: 1, notifications: [] },
+	);
 	await page((name) => window.characterE2E.close(name), C);
 }
 
@@ -1734,7 +1946,16 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		),
 	);
 	e2e.expect('#199 H4 a skill created as a career skill stays one', await career(H, 'E2E Lore'), true);
-	await e2e.step('#199 H5 the Career removed', () => page((name) => window.characterE2E.removeCareer(name), H));
+	await e2e.step("#199 H5 Ranged's rank undone, then the Career removed", async () => {
+		// The Career can only be removed until a skill rank is bought (#436).
+		await page(async (name) => {
+			window.characterE2E.undo(name, 'Skill');
+			// The build may ask before undoing (#432): Yes undoes the entry.
+			await window.e2e.answerConfirm('yes');
+		}, H);
+		await e2e.settle();
+		await page((name) => window.characterE2E.removeCareer(name), H);
+	});
 	e2e.expect('#199 H5 removing the Career unmarks the dropped skill', await career(H, 'Ranged'), false);
 	await page((name) => window.characterE2E.close(name), H);
 
@@ -2684,6 +2905,32 @@ async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 		await deleteFromRow('injury', 'yes');
 	});
 	e2e.expect('#373 C2 Yes deletes the Critical Injury', await held(D, 'injury', 'E2E Sprain'), 0);
+
+	const careerMenu = () => page((name) => window.characterE2E.menu(name, { meta: 'career' }), D);
+	const journal = () => page((name) => window.characterE2E.journal(name), D);
+	const withStartingXP = await journal();
+	await e2e.step('#436 A1 a rank of the career skill Ranged bought', async () => {
+		await page((name) => window.characterE2E.buySkill(name, 'Ranged'), D);
+		await e2e.settle();
+	});
+	e2e.expect(
+		"#436 A1 once a skill rank is bought, the Career's menu offers no Delete, as its drop is refused",
+		{ journal: await journal(), menu: await careerMenu() },
+		{ journal: [...withStartingXP, 'Skill -10 Ranged 2'], menu: ['Edit'] },
+	);
+	await e2e.step("#436 A2 the skill rank's entry undone from the Experience Journal", async () => {
+		await page(async (name) => {
+			window.characterE2E.undo(name, 'Skill');
+			// The build may ask before undoing (#432): Yes undoes the entry.
+			await window.e2e.answerConfirm('yes');
+		}, D);
+		await e2e.settle();
+	});
+	e2e.expect(
+		"#436 A2 once the skill rank's entry is undone, the Career's menu offers Delete again",
+		{ journal: await journal(), menu: await careerMenu() },
+		{ journal: withStartingXP, menu: ['Edit', 'Delete'] },
+	);
 
 	const withArchetype = await granted();
 	await e2e.step("#373 D1 the Archetype's Delete clicked, and No answered", async () => {

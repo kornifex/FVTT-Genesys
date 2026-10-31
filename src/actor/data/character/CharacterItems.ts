@@ -95,7 +95,7 @@ export function decideCharacterDrop(
 		case 'archetype': {
 			// The Archetype can only be changed while the Experience Journal holds nothing but its Starting XP.
 			if (!canRemoveArchetype(character.system)) {
-				return { action: 'refuse' };
+				return { action: 'refuse', refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: dropped.name } } };
 			}
 
 			const [held] = ofType(character.items, 'archetype');
@@ -104,7 +104,7 @@ export function decideCharacterDrop(
 		case 'career': {
 			// A Career can be replaced until a skill rank is bought, since that rank's cost depends on the Career's skills.
 			if (!canReplaceCareer(character.advancement.entries)) {
-				return { action: 'refuse' };
+				return { action: 'refuse', refusal: { key: 'Genesys.Notifications.CannotReplaceCareer', data: { name: dropped.name } } };
 			}
 
 			const system = dropped.system as Pick<CareerData, 'careerSkills'>;

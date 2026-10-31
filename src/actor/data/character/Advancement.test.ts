@@ -2,6 +2,8 @@
  * @file Tests for Advancement: spending XP and undoing it from the Experience Journal.
  */
 
+import { readFileSync } from 'fs';
+import { load } from 'js-yaml';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import {
@@ -16,11 +18,11 @@ import {
 	buyTalentRank,
 	canReplaceCareer,
 	isAllowed,
-	itemsRemovedByUndo,
 	raiseCharacteristic,
 	thresholdUpdates,
 	totalXP,
 	undoEntry,
+	undoQuestion,
 	withoutStartingXP,
 	withStartingXP,
 } from '@/actor/data/character/Advancement';
@@ -419,37 +421,97 @@ describe('undoEntry', () => {
 		expect(isAllowed(buySkillRank(backInCreation, 'athletics'))).toBe(false);
 	});
 
+	it('refuses to undo the Starting XP, which leaves with its Archetype', () => {
+		expect(refusal(undoEntry(character(), 0))).toBeUndefined();
+	});
+
 	it('refuses an entry that does not exist', () => {
 		expect(refusal(undoEntry(character(), 3))).toBeUndefined();
 	});
 });
 
-describe('itemsRemovedByUndo', () => {
-	const newTalent: Entry = { amount: -5, type: EntryType.NewTalent, data: { name: 'Grit', id: 'grit', tier: 1, rank: 1 } };
+describe('undoQuestion', () => {
+	// The question in English, as Foundry formats it: each `{name}` of the template replaced by its argument.
+	const en = load(readFileSync('yaml/lang/en.yml', 'utf8'));
+	const template = (key: string) => key.split('.').reduce((node: unknown, part) => (node as Record<string, unknown>)[part], en) as string;
+	const i18n = {
+		localize: template,
+		format: (key: string, data: Record<string, string | number>) =>
+			template(key).replace(/{(\w+)}/g, (_, name: string) => String(data[name])),
+	};
+	const question = (overrides: Partial<AdvancementCharacter>, index = 0) => undoQuestion(character(overrides), index, i18n);
 
-	it('names the talent that undoing its purchase deletes', () => {
-		const grit = { ...talent('grit', 1), name: 'Grit' };
+	const grit = { ...talent('grit', 1), name: 'Grit' };
+	const newGrit: Entry = { amount: -5, type: EntryType.NewTalent, data: { name: 'Grit', id: 'grit', tier: 1, rank: 1 } };
+	const gritRank2: Entry = { amount: -10, type: EntryType.TalentRank, data: { name: 'Grit', id: 'grit', tier: 2, rank: 2 } };
+	const coolRank1: Entry = { amount: -10, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 1 } };
 
-		expect(itemsRemovedByUndo(character({ entries: [newTalent], talents: [grit] }), 0)).toEqual(['Grit']);
+	it('asks before undoing an XP award, naming its reason as the user wrote it and the XP it takes away', () => {
+		const award = (data?: { reason?: string }): Entry => ({ amount: 20, type: EntryType.Award, data });
+
+		expect(question({ entries: [award({ reason: '<b>Session</b> 3' })] })).toBe(
+			'Undo the XP award "<b>Session</b> 3"? The character loses the 20 XP it gave.',
+		);
+		expect(question({ entries: [award({ reason: ' ' })] })).toBe('Undo this XP award? The character loses the 20 XP it gave.');
+		expect(question({ entries: [award()] })).toBe('Undo this XP award? The character loses the 20 XP it gave.');
 	});
 
-	it("removes nothing when the undo only lowers a rank: a characteristic's, a skill's or a talent's", () => {
-		const entries: Entry[] = [
-			{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } },
-			{ amount: -10, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 1 } },
-			{ amount: -10, type: EntryType.TalentRank, data: { name: 'Grit', id: 'grit', tier: 2, rank: 2 } },
-		];
-		const grit = talent('grit', 1, 2);
-		const parry = talent('parry', 1);
+	it('asks before undoing a characteristic raise, naming the rating it lowers and the XP it gives back', () => {
+		const entries: Entry[] = [{ amount: -30, type: EntryType.Characteristic, data: { characteristic: Characteristic.Brawn, rank: 3 } }];
 
-		expect([0, 1, 2].map((index) => itemsRemovedByUndo(character({ entries, talents: [grit, parry] }), index))).toEqual([[], [], []]);
+		expect(question({ entries, woundThreshold: 13 })).toBe(
+			'Undo the increase of Brawn to 3? Brawn goes back to 2. The character gets back the 30 XP it cost.',
+		);
 	});
 
-	it('removes nothing when the undo is refused, or the talent is already gone', () => {
-		const later: Entry = { amount: -10, type: EntryType.TalentRank, data: { name: 'Grit', id: 'grit', tier: 2, rank: 2 } };
+	it('asks before undoing a skill rank, naming the rank it lowers, or saying that no rank is lowered when the skill is gone', () => {
+		expect(question({ entries: [coolRank1] })).toBe(
+			'Undo the increase of Cool to rank 1? The skill goes back to rank 0. The character gets back the 10 XP it cost.',
+		);
+		expect(question({ entries: [coolRank1], skills: [] })).toBe(
+			"Undo the increase of Cool to rank 1? The skill isn't found on the character, so no rank is lowered. The character gets back the 10 XP it cost.",
+		);
+	});
 
-		expect(itemsRemovedByUndo(character({ entries: [newTalent, later], talents: [talent('grit', 1, 2)] }), 0)).toEqual([]);
-		expect(itemsRemovedByUndo(character({ entries: [newTalent] }), 0)).toEqual([]);
+	it('asks before undoing a talent purchase, naming the talent it deletes', () => {
+		expect(question({ entries: [newGrit], talents: [grit] })).toBe(
+			'Undo the purchase of the talent Grit? The talent is deleted from the character. The character gets back the 5 XP it cost.',
+		);
+	});
+
+	it("says that undoing a talent purchase whose talent isn't found deletes no talent, and that a talent of its name stays", () => {
+		// Before 0.1.14, a talent's purchase was recorded without the talent's id.
+		const withoutId = { ...newGrit, data: { name: 'Grit', tier: 1, rank: 1 } } as Entry;
+
+		expect(question({ entries: [newGrit] })).toBe(
+			"Undo the purchase of the talent Grit? The talent it bought isn't found on the character, so none is deleted. The character gets back the 5 XP it cost.",
+		);
+		expect(question({ entries: [withoutId], talents: [grit] })).toBe(
+			"Undo the purchase of the talent Grit? The talent it bought isn't found on the character: the Grit on the sheet isn't linked to this entry, and stays. The character gets back the 5 XP it cost.",
+		);
+	});
+
+	it('asks before undoing a talent rank, naming the rank it lowers, or saying that no rank is lowered when the talent is gone', () => {
+		expect(question({ entries: [gritRank2], talents: [{ ...grit, rank: 2 }, talent('parry', 1)] })).toBe(
+			'Undo the increase of Grit to rank 2? The talent goes back to rank 1. The character gets back the 10 XP it cost.',
+		);
+		expect(question({ entries: [gritRank2] })).toBe(
+			"Undo the increase of Grit to rank 2? The talent isn't found on the character, so no rank is lowered. The character gets back the 10 XP it cost.",
+		);
+	});
+
+	it('asks nothing when the undo is refused, which tells the user why', () => {
+		const brawn = (rank: number): Entry => ({
+			amount: -10 * rank,
+			type: EntryType.Characteristic,
+			data: { characteristic: Characteristic.Brawn, rank },
+		});
+
+		expect(question({ entries: [brawn(3), brawn(4)] })).toBeUndefined();
+		expect(question({ entries: [newGrit, gritRank2], talents: [{ ...grit, rank: 2 }] })).toBeUndefined();
+		expect(question({ entries: [newGrit], talents: [grit, talent('parry', 1), talent('dodge', 2)] })).toBeUndefined();
+		expect(question({}, 0)).toBeUndefined();
+		expect(question({}, 3)).toBeUndefined();
 	});
 });
 

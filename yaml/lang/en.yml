@@ -45,7 +45,7 @@ Genesys:
     UncoupleSkillsAlternateRule: Uncouple Skills from Characteristics
     UncoupleSkillsAlternateRuleHint: Allows selecting an alternative Characteristic for a skill in the dice prompt window, per the Uncoupling Skills from Characteristics alternate rule (Core Rulebook, p.205).
     ShowDamageOnFailure: Show Attack Damage On Failure
-    ShowDamageOnFailureHint: Whether to show Damage, Critical, and Qualities on attack roll chat cards even when the roll was a failure.
+    ShowDamageOnFailureHint: Whether to show Damage and Critical on attack roll chat cards even when the roll was a failure. Qualities always show, since some trigger on a failure.
     SkillForInjuries: Resilience Skill Name
     SkillForInjuriesHint: Name of the skill used when recovering from Critical Injuries.
     SkillForRepairingVehicleHits: Mechanics Skill Name
@@ -232,6 +232,8 @@ Genesys:
     CannotDeleteExistingTalent: Cannot delete XP Journal Entry for increasing talent '{name}' to rank {rank} - you must delete the higher rank increases first!
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
     CannotPurchaseTalentTier: Cannot purchase talents at tier {tier} - you must have at least {minimum} talents at rank {lowerTier} first.
+    CannotReplaceArchetype: Cannot take the Archetype '{name}' - the Archetype can only change while the XP Journal holds nothing but the Starting XP. Undo its other entries first!
+    CannotReplaceCareer: Cannot take the Career '{name}' - the Career can only change until a skill rank is bought. Undo the skill entries of the XP Journal first!
     NotEnoughStoryPoints: You can't spend Story Points you don't have!
     SelectOneTokenForAction: You need to selected a single token to perform this action.
     NoActorForCheck: Select a single token or assign yourself a character to roll this check.
@@ -254,7 +256,20 @@ Genesys:
       Content: This will remove the item. Do you want to proceed?
     ConfirmUndoEntry:
       Title: Undo Entry
-      Content: Undoing this entry removes {items} from the character. Do you want to proceed?
+      Award: Undo the XP award "{reason}"?
+      AwardWithoutReason: Undo this XP award?
+      Characteristic: Undo the increase of {characteristic} to {rank}? {characteristic} goes back to {previous}.
+      Skill: Undo the increase of {name} to rank {rank}? The skill goes back to rank {previous}.
+      SkillNotFound: Undo the increase of {name} to rank {rank}? The skill isn't found on the character, so no rank is lowered.
+      NewTalent: Undo the purchase of the talent {name}? The talent is deleted from the character.
+      NewTalentNotFound: Undo the purchase of the talent {name}? The talent it bought isn't found on the character, so none is deleted.
+      NewTalentNotLinked: >-
+        Undo the purchase of the talent {name}? The talent it bought isn't found on the character: the {name} on the sheet
+        isn't linked to this entry, and stays.
+      TalentRank: Undo the increase of {name} to rank {rank}? The talent goes back to rank {previous}.
+      TalentRankNotFound: Undo the increase of {name} to rank {rank}? The talent isn't found on the character, so no rank is lowered.
+      XPGivenBack: The character gets back the {xp} XP it cost.
+      XPTakenAway: The character loses the {xp} XP it gave.
     ConfirmRemoveArchetype:
       Title: Remove Archetype
       Content: >-

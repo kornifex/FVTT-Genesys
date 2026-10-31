@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { onUnmounted, ref } from 'vue';
+import { nextTick, onUnmounted, ref, useTemplateRef } from 'vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import { menuAtPointer } from '@/vue/components/menuPlacement';
 
 const props = withDefaults(
 	defineProps<{
@@ -18,6 +19,10 @@ const props = withDefaults(
 );
 
 const showMenu = ref(false);
+const menu = useTemplateRef<HTMLElement>('menu');
+
+// How far a menu opened at the pointer is moved from its place by the container, in the sheet's own pixels.
+const shift = ref<{ x: number; y: number }>();
 
 function showContextMenu(event: Event) {
 	if (props.disableMenu) {
@@ -28,6 +33,7 @@ function showContextMenu(event: Event) {
 	event.preventDefault();
 
 	showMenu.value = true;
+	shift.value = undefined;
 
 	document.addEventListener('click', closeContextMenu, { capture: true });
 	document.addEventListener('contextmenu', closeContextMenu, { capture: true });
@@ -48,7 +54,46 @@ function removeDocumentListeners() {
 // A menu still open when its sheet closes would otherwise swallow the next click anywhere.
 onUnmounted(removeDocumentListeners);
 
-defineExpose({ open: showContextMenu } satisfies ContextMenuHandle);
+function openAtPointer(event: MouseEvent) {
+	showContextMenu(event);
+	if (!showMenu.value) {
+		return;
+	}
+
+	// The menu is laid out by its container first, then moved: the move keeps the size the container gives it.
+	void nextTick(() => {
+		if (!menu.value) {
+			return;
+		}
+
+		const placed = menu.value.getBoundingClientRect();
+		const corner = menuAtPointer({ x: event.clientX, y: event.clientY }, placed, visibleArea(menu.value));
+		// A sheet's window may be scaled, while the move is in the sheet's own pixels.
+		const scale = placed.width / menu.value.offsetWidth || 1;
+		shift.value = { x: (corner.x - placed.left) / scale, y: (corner.y - placed.top) / scale };
+	});
+}
+
+// The part of the viewport an element shows in: each ancestor that clips its overflow, such as the sheet's scrolling tab
+// and its window, cuts it down.
+function visibleArea(element: HTMLElement) {
+	const area = { left: 0, top: 0, right: document.documentElement.clientWidth, bottom: document.documentElement.clientHeight };
+	for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+		if (getComputedStyle(ancestor).overflow === 'visible') {
+			continue;
+		}
+
+		const box = ancestor.getBoundingClientRect();
+		area.left = Math.max(area.left, box.left);
+		area.top = Math.max(area.top, box.top);
+		area.right = Math.min(area.right, box.right);
+		area.bottom = Math.min(area.bottom, box.bottom);
+	}
+
+	return area;
+}
+
+defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 </script>
 
 <template>
@@ -59,6 +104,8 @@ defineExpose({ open: showContextMenu } satisfies ContextMenuHandle);
 	>
 		<div
 			v-if="showMenu"
+			ref="menu"
+			:style="shift && { transform: `translate(${shift.x}px, ${shift.y}px)` }"
 			:class="{
 				'context-menu': true,
 				[props.orientation]: true,

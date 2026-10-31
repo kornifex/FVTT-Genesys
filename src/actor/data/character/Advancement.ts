@@ -7,7 +7,7 @@ import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
-import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
+import { Characteristic, CHARACTERISTIC_LABELS, CharacteristicsContainer } from '@/data/Characteristics';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
 import { itemsOfType, type SystemSource } from '@/item/ItemTypes';
@@ -324,6 +324,10 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 	const entries = character.entries.filter((_, i) => i !== index);
 
 	switch (entry.type) {
+		// The Starting XP leaves with its Archetype, never on its own.
+		case EntryType.Starting:
+			return refuse();
+
 		case EntryType.Characteristic: {
 			const characteristic = entry.data.characteristic;
 
@@ -392,17 +396,83 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 }
 
 /**
- * The names of the items undoing an entry of the Experience Journal deletes, for the user to confirm first: the talent
- * its purchase brought. Empty when the undo deletes nothing, or is refused.
+ * The localization functions the question before an undo is written with: Foundry's `game.i18n` is one.
  */
-export function itemsRemovedByUndo(character: AdvancementCharacter, index: number) {
-	const result = undoEntry(character, index);
-	if (!('plan' in result)) {
-		return [];
+type Localizer = {
+	localize(key: string): string;
+	format(key: string, data: Record<string, string | number>): string;
+};
+
+/**
+ * The question to ask before undoing an entry of the Experience Journal, in the user's language: the entry, what its
+ * undo changes on the character, and the XP it gives back or takes away. Undefined when the undo is refused, which asks
+ * nothing. The user's text, such as a talent's name or an award's reason, is kept as written: the question is text,
+ * never HTML.
+ */
+export function undoQuestion(character: AdvancementCharacter, index: number, i18n: Localizer) {
+	const entry = character.entries[index];
+	// `undoEntry` refuses the Starting XP too: its test here only narrows the entry's type.
+	if (!entry || entry.type === EntryType.Starting || !isAllowed(undoEntry(character, index))) {
+		return undefined;
 	}
 
-	const items = [...character.talents, ...character.skills];
-	return result.plan.itemDeletes.flatMap((id) => items.find((item) => item.id === id)?.name ?? []);
+	const xp = Math.abs(entry.amount);
+	const xpChange =
+		entry.amount < 0
+			? i18n.format('Genesys.Dialogs.ConfirmUndoEntry.XPGivenBack', { xp })
+			: i18n.format('Genesys.Dialogs.ConfirmUndoEntry.XPTakenAway', { xp });
+	return `${undoneEntry(character, entry, i18n)} ${xpChange}`;
+}
+
+/**
+ * The entry an undo names, with what it changes on the character, from the same lookups as `undoEntry`.
+ */
+function undoneEntry(character: AdvancementCharacter, entry: Exclude<Entry, { type: typeof EntryType.Starting }>, i18n: Localizer) {
+	switch (entry.type) {
+		case EntryType.Award: {
+			const reason = entry.data?.reason?.trim();
+			return reason
+				? i18n.format('Genesys.Dialogs.ConfirmUndoEntry.Award', { reason })
+				: i18n.format('Genesys.Dialogs.ConfirmUndoEntry.AwardWithoutReason', {});
+		}
+
+		case EntryType.Characteristic: {
+			const { characteristic, rank } = entry.data;
+			return i18n.format('Genesys.Dialogs.ConfirmUndoEntry.Characteristic', {
+				characteristic: i18n.localize(CHARACTERISTIC_LABELS[characteristic]),
+				rank,
+				previous: rank - 1,
+			});
+		}
+
+		case EntryType.Skill: {
+			const { name, rank } = entry.data;
+			const skill = character.skills.find((candidate) => candidate.id === entry.data.id);
+			return skill
+				? i18n.format('Genesys.Dialogs.ConfirmUndoEntry.Skill', { name, rank, previous: Math.max(0, skill.rank - 1) })
+				: i18n.format('Genesys.Dialogs.ConfirmUndoEntry.SkillNotFound', { name, rank });
+		}
+
+		case EntryType.NewTalent: {
+			const { name } = entry.data;
+			if (character.talents.some((candidate) => candidate.id === entry.data.id)) {
+				return i18n.format('Genesys.Dialogs.ConfirmUndoEntry.NewTalent', { name });
+			}
+			// A purchase recorded before 0.1.14 holds no talent id, so the talent it bought is never found: say that the
+			// talent of its name stays.
+			return character.talents.some((candidate) => candidate.name === name)
+				? i18n.format('Genesys.Dialogs.ConfirmUndoEntry.NewTalentNotLinked', { name })
+				: i18n.format('Genesys.Dialogs.ConfirmUndoEntry.NewTalentNotFound', { name });
+		}
+
+		case EntryType.TalentRank: {
+			const { name, rank } = entry.data;
+			const talent = character.talents.find((candidate) => candidate.id === entry.data.id);
+			return talent
+				? i18n.format('Genesys.Dialogs.ConfirmUndoEntry.TalentRank', { name, rank, previous: talent.rank - 1 })
+				: i18n.format('Genesys.Dialogs.ConfirmUndoEntry.TalentRankNotFound', { name, rank });
+		}
+	}
 }
 
 /**
