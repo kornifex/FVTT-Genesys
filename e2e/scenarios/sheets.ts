@@ -179,6 +179,17 @@ type SheetsHelpers = {
 	descriptionHeadings(name: string): Promise<Record<string, HeadingStyle>>;
 	/** Reads the look of an `h3` in a journal's text page, which the sheets' styles must leave alone. */
 	journalHeading(): Promise<HeadingStyle>;
+	/**
+	 * Posts the cards of a gear and a talent of Hero whose descriptions hold an `h1` to `h4`, a check's card whose
+	 * description holds an `h3`, and a plain message holding an `h3`, then reads their look in the chat log.
+	 */
+	cardHeadings(): Promise<{
+		gear: Record<string, HeadingStyle>;
+		talent: HeadingStyle;
+		check: HeadingStyle;
+		message: HeadingStyle;
+		probe: Record<string, unknown>;
+	}>;
 	cleanUp(): Promise<void>;
 };
 
@@ -1101,6 +1112,72 @@ function installSheetsHelpers() {
 			}
 		},
 
+		async cardHeadings() {
+			const tags = ['h1', 'h2', 'h3', 'h4'];
+			const description = `${tags.map((tag) => `<${tag}>E2E ${tag}</${tag}>`).join('')}<p>E2E text.</p>`;
+			const items = await actor('Hero').createEmbeddedDocuments('Item', [
+				{ name: 'E2E Headings Gear', type: 'gear', system: { description } },
+				{ name: 'E2E Headings Talent', type: 'talent', system: { description, tier: 1, ranked: 'no' } },
+			]);
+			const posted = createdMessages.length;
+			await helpers.open('Hero');
+			await helpers.sendToChat('Hero', 'Headings Gear');
+			await helpers.sendToChat('Hero', 'Headings Talent');
+			await helpers.close('Hero');
+			const content = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/rolls/skill.hbs', {
+				description: '<h3>E2E h3</h3><p>E2E text.</p>',
+				results: { faces: {}, extraSymbols: {} },
+				card: { symbols: [], summary: [] },
+			});
+			await CONFIG.ChatMessage.documentClass.create({ content });
+			await CONFIG.ChatMessage.documentClass.create({ content: '<h3>E2E h3</h3><p>E2E text.</p>' });
+			const ids = createdMessages.splice(posted);
+			try {
+				// The message as the chat log shows it, rather than as a notification over the collapsed sidebar.
+				const heading = (id: string, tag: string) =>
+					waitFor(`the ${tag} of the message ${id}`, () => {
+						const shown = [...document.querySelectorAll<HTMLElement>(`[data-message-id="${id}"]`)]
+							.filter((element) => element.querySelector(tag))
+							.sort((a, b) => Number(!!a.closest('#chat-notifications')) - Number(!!b.closest('#chat-notifications')));
+						return shown[0]?.querySelector<HTMLElement>(tag) ?? undefined;
+					});
+				const [gear, talent, check, message] = ids;
+				const gearHeadings = Object.fromEntries(
+					await Promise.all(tags.map(async (tag) => [tag, headingStyle(await heading(gear, tag))])),
+				);
+				const probeOf = async (id: string, tag: string) => {
+					const element = await heading(id, tag);
+					const style = getComputedStyle(element);
+					return {
+						px: style.fontSize,
+						parentPx: getComputedStyle(element.parentElement!).fontSize,
+						font: style.fontFamily,
+						parentColor: getComputedStyle(element.parentElement!).color,
+						inNotifications: !!element.closest('#chat-notifications'),
+						inLog: !!element.closest('.chat-log'),
+					};
+				};
+				return {
+					gear: gearHeadings,
+					talent: headingStyle(await heading(talent, 'h3')),
+					check: headingStyle(await heading(check, 'h3')),
+					message: headingStyle(await heading(message, 'h3')),
+					probe: {
+						ids: ids.length,
+						gearH1: await probeOf(gear, 'h1'),
+						check: await probeOf(check, 'h3'),
+						message: await probeOf(message, 'h3'),
+					},
+				};
+			} finally {
+				await CONFIG.ChatMessage.documentClass.deleteDocuments(ids);
+				await actor('Hero').deleteEmbeddedDocuments(
+					'Item',
+					items.map((item: { id: string }) => item.id),
+				);
+			}
+		},
+
 		async cleanUp() {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
@@ -1301,6 +1378,35 @@ export async function run(e2e: ScenarioContext) {
 			shadow: 'none',
 			border: 'none',
 		},
+	);
+
+	// #430: Foundry gives a chat message's headings its own sizes and colours. The headings of a description in the
+	// system's cards look as in the sheet that shows it, and a plain message's are left alone.
+	let cardHeadings: Awaited<ReturnType<SheetsHelpers['cardHeadings']>> | undefined;
+	await e2e.step(
+		"#430 GM sends a gear's and a talent's card, then a check's card and a plain message, all holding headings",
+		async () => {
+			cardHeadings = await gm.evaluate(() => window.sheetsE2E.cardHeadings());
+		},
+	);
+	e2e.expect('#430 PROBE cards', cardHeadings, 'probe');
+	e2e.expect(
+		'#430 PROBE sheet',
+		await gm.evaluate(async () => {
+			await window.sheetsE2E.update('skill', { 'system.description': '<h1>E2E h1</h1><p>E2E text.</p>' });
+			await window.sheetsE2E.open('skill');
+			const element = await window.e2e.waitFor('h1', () => document.querySelector<HTMLElement>('.vue-app .editor-content h1'));
+			const style = getComputedStyle(element);
+			const result = {
+				px: style.fontSize,
+				parentPx: getComputedStyle(element.parentElement!).fontSize,
+				font: style.fontFamily,
+				parentColor: getComputedStyle(element.parentElement!).color,
+			};
+			await window.sheetsE2E.close('skill');
+			return result;
+		}),
+		'probe',
 	);
 
 	// Prompts and the story point tracker.

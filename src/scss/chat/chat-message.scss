@@ -1,4 +1,5 @@
 @use '@scss/mixins/backgrounds.scss';
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .chat-message {
@@ -54,6 +55,11 @@
 		.description {
 			&:empty {
 				display: none;
+			}
+
+			// Foundry gives a chat message's headings its own sizes and colours, unlike the sheet that shows the description.
+			:is(h1, h2, h3, h4) {
+				@include headings.appv1;
 			}
 		}
 
