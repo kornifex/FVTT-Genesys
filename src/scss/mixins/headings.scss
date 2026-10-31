@@ -1,0 +1,31 @@
+@use '@scss/vars/appv1.scss';
+
+// AppV1's rich-text headings, which the descriptions were written for. Their sizes are in em, so that they follow the
+// text around them.
+@mixin appv1 {
+	margin: 0 0 0.5rem;
+	padding: 0;
+	font-family: inherit;
+	font-weight: normal;
+	line-height: normal;
+	color: inherit;
+
+	&:is(h1) {
+		font-size: 2em;
+		border-bottom: 2px solid appv1.$underline-header;
+	}
+
+	&:is(h2) {
+		font-size: 1.5em;
+		border-bottom: 1px solid appv1.$underline-header;
+	}
+
+	&:is(h3) {
+		font-size: 1.25em;
+		border-bottom: 1px solid appv1.$underline-header;
+	}
+
+	&:is(h4) {
+		font-size: 1em;
+	}
+}
