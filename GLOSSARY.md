@@ -78,8 +78,12 @@ _Avoid_: Unskilled check, raw roll
 A characteristic marked as super, under the optional rule the world settings turn on: the Proficiency dice of a check that uses it explode. A character marks or unmarks super-characteristics only during Character Creation; an Adversary at any time.
 _Avoid_: Super stat
 
+**Difficulty**:
+The Difficulty and Challenge dice a check starts with, before any Pool Modification: a level from Simple (none) to Formidable (five Difficulty dice), some of whose dice may be upgraded into Challenge dice, for skilled opposition, an opposed check or a Story Point. Boost and Setback dice are not part of it. What asks for the check sets it (a check link, a Critical Injury's severity), or the world's default difficulty when nothing does, and the roller can change it in the Dice Prompt. Pool Modifications then apply to it: upgrades and downgrades of the difficulty act on it, and a die removed by hand is removed after them, so removing a die does not lower the difficulty.
+_Avoid_: Base difficulty, difficulty modifier
+
 **Pool Modification**:
-A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand.
+A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand. The Difficulty is not one.
 _Avoid_: Dice modifier, pool mod
 
 **Dice Roller**:
