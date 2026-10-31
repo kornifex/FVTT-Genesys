@@ -232,6 +232,8 @@ Genesys:
     CannotDeleteExistingTalent: "Impossible de supprimer l'entrée du journal de XP pour l'augmentation du talent '{name}' au rang {rank} - Vous devez d'abord supprimer les augmentations de rang supérieur !"
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
     CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de catégorie {tier} - vous devez avoir au moins {minimum} talents de catégorie {lowerTier} d'abord"
+    CannotReplaceArchetype: "Impossible de prendre l'archétype '{name}' : l'archétype ne peut changer que tant que le Journal des XP ne contient que l'XP de départ. Annulez d'abord ses autres entrées !"
+    CannotReplaceCareer: "Impossible de prendre la carrière '{name}' : la carrière ne peut changer que tant qu'aucun rang de compétence n'a été acheté. Annulez d'abord les entrées de compétence du Journal des XP !"
     NotEnoughStoryPoints: Vous ne pouvez pas dépenser de Point Narratif que vous ne possédez pas!
     SelectOneTokenForAction: Vous devez selectionner un unique token pour réaliser cette action.
     NoActorForCheck: Sélectionnez un seul token ou attribuez-vous un personnage pour faire ce test.

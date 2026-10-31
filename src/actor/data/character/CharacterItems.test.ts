@@ -262,13 +262,16 @@ describe('decideCharacterDrop', () => {
 			});
 		});
 
-		it('refuses an Archetype once the Experience Journal holds more than the Starting XP', () => {
+		it('refuses an Archetype once the Experience Journal holds more than the Starting XP, and says what to undo', () => {
 			const awarded = brutish([
 				{ amount: 100, type: EntryType.Starting },
 				{ amount: 5, type: EntryType.Award },
 			]);
 
-			expect(decideCharacterDrop(awarded, dropped('archetype', 'Scholar', scholar), ids())).toEqual({ action: 'refuse' });
+			expect(decideCharacterDrop(awarded, dropped('archetype', 'Scholar', scholar), ids())).toEqual({
+				action: 'refuse',
+				refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: 'Scholar' } },
+			});
 		});
 	});
 
@@ -326,7 +329,7 @@ describe('decideCharacterDrop', () => {
 			});
 		});
 
-		it('refuses a Career once a skill rank is bought, whose cost depended on the Career, before asking anything', () => {
+		it('refuses a Career once a skill rank is bought, whose cost depended on the Career, before asking anything, and says what to undo', () => {
 			const trained = character(skills(), {
 				advancement: {
 					...character().advancement,
@@ -337,7 +340,10 @@ describe('decideCharacterDrop', () => {
 				},
 			});
 
-			expect(decideCharacterDrop(trained, dropped('career', 'Ranger', ranger), ids())).toEqual({ action: 'refuse' });
+			expect(decideCharacterDrop(trained, dropped('career', 'Ranger', ranger), ids())).toEqual({
+				action: 'refuse',
+				refusal: { key: 'Genesys.Notifications.CannotReplaceCareer', data: { name: 'Ranger' } },
+			});
 		});
 	});
 

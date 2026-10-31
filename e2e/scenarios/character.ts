@@ -873,9 +873,9 @@ export async function run(e2e: ScenarioContext) {
 			);
 		});
 
-		await archetypes(e2e, page);
+		await archetypes(e2e, page, notified, notifications);
 		await advancement(e2e, page, notified, notifications);
-		await careers(e2e, page);
+		await careers(e2e, page, notified, notifications);
 		await careerSkillsOnCreation(e2e, page);
 		await superCharacteristics(e2e, page, notifications);
 		await skillsTab(e2e, page);
@@ -958,8 +958,13 @@ async function weaponProfiles(e2e: ScenarioContext, page: Evaluate) {
 	await page((name) => window.characterE2E.close(name), W);
 }
 
-/** §#36, §#49, §#137: an Archetype's drop and removal, and the items it granted. */
-async function archetypes(e2e: ScenarioContext, page: Evaluate) {
+/** §#36, §#49, §#137, §#431: an Archetype's drop and removal, and the items it granted. */
+async function archetypes(
+	e2e: ScenarioContext,
+	page: Evaluate,
+	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
+	notifications: () => Promise<string[]>,
+) {
 	const granted = (name: string) =>
 		page(
 			(name) => ({
@@ -1105,6 +1110,27 @@ async function archetypes(e2e: ScenarioContext, page: Evaluate) {
 			deleteItem: swapWrites.deleteItem,
 		},
 		{ updateActor: 1, createItem: 1, updateItem: 1, deleteItem: 3 },
+	);
+
+	await e2e.step('#431 A1 an Archetype dropped on a character whose XP Journal holds an XP Award', async () => {
+		await page((name) => window.characterE2E.award(name, 10, 'E2E award'), 'Swapper');
+		await e2e.settle();
+		await notifications();
+		await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Archetype')), 'Swapper');
+	});
+	e2e.expect(
+		'#431 A1 the Archetype is refused with a notification that says to undo the entries past the Starting XP',
+		{ character: await granted('Swapper'), notifications: await notifications() },
+		{
+			character: {
+				characteristics: all(2),
+				thresholds: { wounds: 12, strain: 12 },
+				journal: ['Starting 30', 'Award 10 E2E award'],
+				items: ['archetype:E2E Small Archetype:none'],
+				athletics: 0,
+			},
+			notifications: [await notified('Genesys.Notifications.CannotReplaceArchetype', { name: 'E2E Archetype' })],
+		},
 	);
 
 	await page(async () => {
@@ -1561,8 +1587,13 @@ async function advancement(
 	await page((name) => window.characterE2E.close(name), E);
 }
 
-/** §#39: a Career whose skills differ in case from the character's, removed, then replaced. */
-async function careers(e2e: ScenarioContext, page: Evaluate) {
+/** §#39, §#431: a Career whose skills differ in case from the character's, removed, replaced, then refused. */
+async function careers(
+	e2e: ScenarioContext,
+	page: Evaluate,
+	notified: (key: string, data?: Record<string, unknown>) => Promise<string>,
+	notifications: () => Promise<string[]>,
+) {
 	const C = 'Careerist';
 	const listed = ['Ranged', 'Cool', 'Stealth', 'Perception', 'Charm', 'Brawl', 'Melee', 'Athletics', 'Discipline'];
 	const skills = async () => {
@@ -1657,6 +1688,53 @@ async function careers(e2e: ScenarioContext, page: Evaluate) {
 			// The four skills the Other Career lists and the five the Career lists; the Career is created with its Free Ranks.
 			writes: { createItem: 1, updateItem: 9, deleteItem: 1, updateActor: 0 },
 		},
+	);
+
+	const journal = () => page((name) => window.characterE2E.journal(name), C);
+	const prompts = () => page(() => window.e2e.apps('app-career-skill-prompt').length, undefined);
+	await e2e.step('#431 G1 another Career dropped once a skill rank is bought', async () => {
+		await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), C);
+		await e2e.settle();
+		await page((name) => window.characterE2E.buySkill(name, 'Ranged'), C);
+		await e2e.settle();
+		await notifications();
+		await dropCareer('Other Career');
+	});
+	const trained = { ...untouched, Ranged: 'career 2', Cool: 'career 1', Stealth: 'career 1', Perception: 'career 0', Charm: 'career 1' };
+	e2e.expect(
+		'#431 G1 the Career is refused before any prompt, with a notification that says to undo the skill ranks bought',
+		{
+			skills: await skills(),
+			careers: await careerItems(),
+			journal: await journal(),
+			prompts: await prompts(),
+			notifications: await notifications(),
+		},
+		{
+			skills: trained,
+			careers: ['career:E2E Career'],
+			journal: ['Starting 1000', 'Skill -10 Ranged 2'],
+			prompts: 0,
+			notifications: [await notified('Genesys.Notifications.CannotReplaceCareer', { name: 'E2E Other Career' })],
+		},
+	);
+	await e2e.step('#431 G2 a skill the character owns dropped again from the Skills Compendium', () =>
+		page((name) => window.characterE2E.drop(name, window.characterE2E.compendiumSkill('Ranged')), C),
+	);
+	e2e.expect(
+		'#431 G2 the skill the character owns is still refused without a notification',
+		{
+			skills: await skills(),
+			ranged: await page(
+				(name) =>
+					game.actors
+						.getName(`E2E ${name}`)
+						.items.filter((item: { type: string; name: string }) => item.type === 'skill' && item.name === 'Ranged').length,
+				C,
+			),
+			notifications: await notifications(),
+		},
+		{ skills: trained, ranged: 1, notifications: [] },
 	);
 	await page((name) => window.characterE2E.close(name), C);
 }
