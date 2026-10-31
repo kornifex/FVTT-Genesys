@@ -59,6 +59,21 @@ describe('linkTalentPurchases', () => {
 		]);
 	});
 
+	it('leaves an unlinked purchase whose talent another purchase holds, as once the talent was deleted and bought again', () => {
+		const source = character(
+			[unlinkedPurchase('Grit'), { amount: -5, type: 'NewTalent', data: { name: 'Grit', id: 'grit', tier: 1, rank: 1 } }],
+			[item('grit', 'Grit')],
+		);
+
+		expect(linkTalentPurchases(source)).toBeUndefined();
+	});
+
+	it('leaves the unlinked purchases of a name bought more than once, which the one talent of that name tells apart from none', () => {
+		const source = character([unlinkedPurchase('Grit'), unlinkedPurchase('Grit')], [item('grit', 'Grit')]);
+
+		expect(linkTalentPurchases(source)).toBeUndefined();
+	});
+
 	it('leaves a purchase that holds a talent id, and the entries of the other types', () => {
 		const source = character(
 			[
