@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.2...v0.5.0) (2026-10-31)
+
+
+### Bug Fixes
+
+* **dice:** turn each Pool Modification on alone, though another effect shares its name ([#449](https://github.com/kornifex/FVTT-Genesys/issues/449)) ([4897a90](https://github.com/kornifex/FVTT-Genesys/commit/4897a9090af5d2654001d1c74a2bb20e06fd55c9))
+
+
+### Documentation
+
+* define the Difficulty of a check in the glossary ([#451](https://github.com/kornifex/FVTT-Genesys/issues/451)) ([c241733](https://github.com/kornifex/FVTT-Genesys/commit/c241733484ec0cb8a0fd7931247a2d31642dbd0b))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#446](https://github.com/kornifex/FVTT-Genesys/issues/446)) ([22819f2](https://github.com/kornifex/FVTT-Genesys/commit/22819f21df82e35c54f85eaa5890475c002bdf1b))
+
 ## [0.5.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.1...v0.5.0-rc.2) (2026-10-31)
 
 
