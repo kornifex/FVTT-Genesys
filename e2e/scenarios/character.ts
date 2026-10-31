@@ -1581,14 +1581,19 @@ async function advancement(
 	});
 	e2e.expect(
 		'#432 A6 undoing a skill rank asks in the same dialog, naming the skill, the rank it lowers and the XP it gives back, and No keeps the entry, the rank and the XP',
-		{ asked, rank: (await skills(['Ranged'])).Ranged?.rank, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked,
+			rank: (await skills(['Ranged'])).Ranged?.rank,
+			xp: await xp(),
+			kept: (await page((name) => window.characterE2E.journal(name), A)).includes('Skill -10 Ranged 2'),
+		},
 		{
 			asked: undoQuestion(
 				'Undo the increase of Ranged to rank 2? The skill goes back to rank 1. The character gets back the 10 XP it cost.',
 			),
 			rank: 2,
 			xp: 1000 - spent,
-			entry: ['Skill -10 Ranged 2'],
+			kept: true,
 		},
 	);
 	await e2e.step('#36 E8 undo the latest skill rank', () => undoAndAnswer('Skill -10 Ranged 2', 'yes'));
@@ -1606,12 +1611,17 @@ async function advancement(
 	});
 	e2e.expect(
 		'#432 A7 undoing a characteristic raise asks in the same dialog, naming the characteristic, the rating it lowers and the XP it gives back, and No keeps the entry, the rating and the XP',
-		{ asked, base: (await characteristic('brawn')).base, xp: await xp(), entry: await journalTail(1) },
+		{
+			asked,
+			base: (await characteristic('brawn')).base,
+			xp: await xp(),
+			kept: (await page((name) => window.characterE2E.journal(name), A)).includes('Characteristic -40 brawn 4'),
+		},
 		{
 			asked: undoQuestion('Undo the increase of Brawn to 4? Brawn goes back to 3. The character gets back the 40 XP it cost.'),
 			base: 4,
 			xp: 1000 - spent,
-			entry: ['Characteristic -40 brawn 4'],
+			kept: true,
 		},
 	);
 	await e2e.step('#36 E9 undo the latest Brawn raise', () => undoAndAnswer('Characteristic -40 brawn 4', 'yes'));
