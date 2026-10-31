@@ -10,7 +10,7 @@ import { upgradeDie } from '@/dice/DieGrades';
 /**
  * The localization keys of the difficulty levels' names, by their number of Difficulty dice (CRB p. 18, Table I.1–3).
  */
-export const DIFFICULTY_LEVELS = [
+export const DIFFICULTY_LABELS = [
 	'Genesys.Difficulty.Simple',
 	'Genesys.Difficulty.Easy',
 	'Genesys.Difficulty.Average',
@@ -19,7 +19,10 @@ export const DIFFICULTY_LEVELS = [
 	'Genesys.Difficulty.Formidable',
 ];
 
-const FORMIDABLE = DIFFICULTY_LEVELS.length - 1;
+/**
+ * The highest difficulty level, Formidable, of five Difficulty dice.
+ */
+export const FORMIDABLE = DIFFICULTY_LABELS.length - 1;
 
 /**
  * The Difficulty of a check: its level, the number of its Difficulty dice, and how many of them are upgraded into
@@ -60,7 +63,7 @@ export function receivedDifficulty(glyphs: string): ReceivedDifficulty {
  * The dice of a difficulty: a Difficulty die for each level, of which each upgrade turns one into a Challenge die, or
  * adds a Difficulty die when none is left, as the Dice Prompt upgrades them (CRB p. 20, 22).
  */
-export function difficultyDice({ level, upgrades }: Difficulty) {
+export function difficultyDieCounts({ level, upgrades }: Difficulty) {
 	const dice: DicePool['dice'] = { Difficulty: level };
 	for (let upgrade = 0; upgrade < upgrades; upgrade++) {
 		upgradeDie(dice, 'Difficulty', 'Challenge');
@@ -73,8 +76,8 @@ export function difficultyDice({ level, upgrades }: Difficulty) {
  * The glyphs of a Difficulty's dice, Challenge dice first, as the pool takes them.
  */
 export function difficultyGlyphs(difficulty: Difficulty) {
-	const { challengeDice, difficultyDice: dice } = difficultyDice(difficulty);
-	return DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(dice);
+	const { challengeDice, difficultyDice } = difficultyDieCounts(difficulty);
+	return DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
 }
 
 function clamp(value: number, min: number, max: number) {

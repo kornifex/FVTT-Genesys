@@ -30,7 +30,7 @@ import {
 } from '@/dice/Check';
 import { matchOrigin } from '@/effects/PoolModifications';
 import { type DicePool, poolEntries, sortPoolModifications } from '@/dice/DicePool';
-import { type Difficulty, DIFFICULTY_LEVELS, difficultyGlyphs, receivedDifficulty, withLevel, withUpgrades } from '@/dice/Difficulty';
+import { type Difficulty, DIFFICULTY_LABELS, difficultyGlyphs, receivedDifficulty, withLevel, withUpgrades } from '@/dice/Difficulty';
 
 type AlsoNone<T> = T | undefined;
 
@@ -352,7 +352,7 @@ async function onRoll() {
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" /></span>
 					<div>
 						<select name="difficulty" :value="difficulty.level" @change="onDifficultyLevelChange">
-							<option v-for="(label, level) in DIFFICULTY_LEVELS" :key="level" :value="level">
+							<option v-for="(label, level) in DIFFICULTY_LABELS" :key="level" :value="level">
 								<Localized :label="label" />
 							</option>
 						</select>

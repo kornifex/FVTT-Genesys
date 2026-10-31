@@ -33,7 +33,7 @@ export type DicePool = {
  * The Pool Modification glyphs a dice pool is built with, by where they come from.
  */
 export type DicePoolModifications = {
-	baseDifficulty: string[];
+	difficulty: string[];
 	manualChanges: string[];
 	effects: Array<{
 		name: string;
@@ -160,7 +160,7 @@ export function buildDicePool({ characteristicValue, skillRank, usesSuperCharact
 	};
 
 	// Step 2: Applying Task Difficulty
-	applyDicePoolModifications(dicePool, modifications.baseDifficulty);
+	applyDicePoolModifications(dicePool, modifications.difficulty);
 
 	// Step 3: Modifying a Dice Pool
 	const activeModifications = [...modifications.manualChanges];

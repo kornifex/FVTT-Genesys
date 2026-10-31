@@ -2,7 +2,7 @@
  * @file Check links: the difficulty of a `@check` link, and which actor rolls its check wherever the link is rendered.
  */
 
-import { DIFFICULTY_LEVELS, difficultyDice } from '@/dice/Difficulty';
+import { DIFFICULTY_LABELS, difficultyDieCounts, FORMIDABLE } from '@/dice/Difficulty';
 
 /**
  * The actors a `@check` link can roll for.
@@ -55,7 +55,7 @@ export type CheckLinkDifficulty = {
  */
 export function checkLinkDifficulty(level: number, upgrades: number): CheckLinkDifficulty {
 	return {
-		label: DIFFICULTY_LEVELS[level] ?? IMPOSSIBLE_LABEL,
-		...difficultyDice({ level: Math.min(level, DIFFICULTY_LEVELS.length - 1), upgrades }),
+		label: DIFFICULTY_LABELS[level] ?? IMPOSSIBLE_LABEL,
+		...difficultyDieCounts({ level: Math.min(level, FORMIDABLE), upgrades }),
 	};
 }

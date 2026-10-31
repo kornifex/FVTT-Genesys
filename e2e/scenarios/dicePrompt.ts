@@ -466,7 +466,16 @@ function installDicePromptHelpers() {
 					system: { description: '<p>@check[Athletics,3]</p>' },
 				},
 			]);
-			const links = ['Athletics,3', 'Cool,2^1', 'Athletics|Cool', 'Athletics,1^3', 'Athletics,2^3', 'Athletics,0^1', 'Athletics,7^6'];
+			const links = [
+				'Athletics,3',
+				'Cool,2^1',
+				'Athletics|Cool',
+				'Athletics,1^3',
+				'Athletics,2^3',
+				'Athletics,0^1',
+				'Athletics,7^6',
+				'Athletics,3^1',
+			];
 			const pools = ['@pool[p]', '@pool[T]', '@pool[Pp]', '@pool[PA^]', '@POOL[PA^]', '@pool-mod[a]'];
 			await CONFIG.JournalEntry.documentClass.create({
 				name: 'E2E Links',
@@ -1791,6 +1800,7 @@ export async function run(e2e: ScenarioContext) {
 			{ skill: 'Athletics', difficulty: 'CCD', text: 'Average [CCD] Athletics check' },
 			{ skill: 'Athletics', difficulty: 'D', text: 'Simple [D] Athletics check' },
 			{ skill: 'Athletics', difficulty: 'CCCCCD', text: 'Impossible [CCCCCD] Athletics check' },
+			{ skill: 'Athletics', difficulty: 'CDD', text: 'Hard [CDD] Athletics check' },
 		],
 	);
 	const linkPrompt = async (client: Client, doc: Doc | { message: string }, skill: string, difficulty?: string) => {
@@ -2399,7 +2409,7 @@ export async function run(e2e: ScenarioContext) {
 	await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
 	const injury = shown(await difficultyState());
 	await control(gm, ['Bo']);
-	await linkPrompt(gm, journal, 'Cool', 'CD');
+	await linkPrompt(gm, journal, 'Athletics', 'CDD');
 	const upgradedLink = shown(await difficultyState());
 	const impossible = await linkPrompt(gm, journal, 'Athletics', 'CCCCCD');
 	const impossibleDifficulty = shown(await difficultyState());
@@ -2409,7 +2419,7 @@ export async function run(e2e: ScenarioContext) {
 		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
 		{
 			injury: difficultyOf('Average', 0, 'D+ D+'),
-			upgradedLink: difficultyOf('Average', 1, 'C+ D+'),
+			upgradedLink: difficultyOf('Hard', 1, 'C+ D+ D+'),
 			impossible: { pool: '|CCCCC', difficulty: difficultyOf('Formidable', 5, 'C+ C+ C+ C+ C+') },
 		},
 	);
