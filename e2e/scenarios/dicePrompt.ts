@@ -344,6 +344,26 @@ function installDicePromptHelpers() {
 				// Characters created without skills get every skill of the Skills Compendium.
 				{ name: 'E2E Bo', type: 'character', ownership: playerOwns, system: { notes: '<p>@check[Athletics,3]</p>' } },
 				{ name: 'E2E Cy', type: 'character', ownership: playerOwns },
+				// Effects named alike, as the sheets name a new effect after its item: on one item, and on two copies of an item
+				// (§#445). Characteristics of 1, so a characteristic check rolls one Ability die.
+				...[
+					{ name: 'Ring Bearer', items: [['^', '*']] },
+					{ name: 'Twin Rings', items: [['^'], ['^']] },
+					{ name: 'Uneven Rings', items: [['^'], ['^^']] },
+				].map(({ name, items }) => ({
+					name: `E2E ${name}`,
+					type: 'character',
+					system: { characteristics: characteristics([1, 1, 1, 1, 1, 1]) },
+					items: [
+						skill('Cool', 'presence', 0),
+						...items.map((values) => ({
+							name: 'E2E Ring',
+							type: 'gear',
+							system: { state: 'carried' },
+							effects: values.map((value) => effect('Ring', 'check.self.', value)),
+						})),
+					],
+				})),
 			]);
 			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy'];
 			await canvas.scene.createEmbeddedDocuments(
@@ -778,8 +798,8 @@ export async function run(e2e: ScenarioContext) {
 	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
 	const ada = { actor: 'Ada' };
 	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill a.name|${skill} (`);
-	const characteristicRoll = (index: number) =>
-		click(gm, ada, `.tab-skills .characteristics-row .characteristic-field:nth-child(${index}) label a`);
+	const characteristicRoll = (index: number, doc: Doc = ada) =>
+		click(gm, doc, `.tab-skills .characteristics-row .characteristic-field:nth-child(${index}) label a`);
 	const attack = (weapon: string) => click(gm, ada, `.tab-combat .weapon .name a|E2E ${weapon}`);
 	const rows = (state: PromptState) => state.modifications;
 	const named = (state: PromptState, prefix: string) => state.modifications.filter(({ name }) => name.startsWith(prefix));
@@ -1686,6 +1706,40 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	await e2e.step('L end');
+
+	// O: Pool Modifications of effects named alike are turned on one at a time (§#445).
+	const poolAndRows = (state: PromptState) => ({ pool: state.pool, rows: rows(state) });
+	// The pool and the rows of an Intellect check, once the first Ring is turned on.
+	const ringsCheck = async (name: string) => {
+		await opened(gm, characteristicRoll(3, { actor: name }));
+		return poolAndRows(await toggle('E2E Ring'));
+	};
+	const ring = (enabled: boolean, mods: string) => ({ name: 'From Self: E2E Ring', enabled, mods });
+	e2e.expect(
+		'#445 O1 one item with two effects named alike: turning on the first applies its upgrade only',
+		await ringsCheck('Ring Bearer'),
+		{
+			pool: 'P|DD',
+			rows: [ring(true, 'A^'), ring(false, 'D^')],
+		},
+	);
+	e2e.expect('#445 O2 two copies of an item: turning on the first applies its upgrade only', await ringsCheck('Twin Rings'), {
+		pool: 'P|DD',
+		rows: [ring(true, 'A^'), ring(false, 'A^')],
+	});
+	e2e.expect(
+		'#445 O3 two copies of an item upgrading once and twice: turning on the first applies its upgrade only',
+		await ringsCheck('Uneven Rings'),
+		{ pool: 'P|DD', rows: [ring(true, 'A^'), ring(false, 'A^ A^')] },
+	);
+	const brawnCheck = await select('characteristic', 'brawn');
+	e2e.expect('#445 O4 switching the characteristic keeps each of them in its own state', poolAndRows(brawnCheck), {
+		pool: 'P|DD',
+		rows: [ring(true, 'A^'), ring(false, 'A^ A^')],
+	});
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	await e2e.step('O end');
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }
