@@ -234,7 +234,7 @@ export function canRollWithoutCharacteristic(check: Pick<Check, 'skill'>) {
 
 function poolModificationKey({ source, from }: ExternalPoolModification) {
 	return matchOrigin(from, {
-		effect: (name) => `${source}.effect.${name}`,
+		effect: (_name, uuid) => `${source}.effect.${uuid}`,
 		defense: (defense) => `${source}.defense.${defense}`,
 		silhouette: () => `${source}.silhouette`,
 	});

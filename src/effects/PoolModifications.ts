@@ -43,6 +43,7 @@ export type SourceItem = {
  */
 export type PoolModificationEffect = {
 	name: string;
+	uuid: string;
 	isSuppressed: boolean;
 	origin: string | null;
 	parent: unknown;
@@ -92,9 +93,10 @@ type Silhouettes = { target: number; attacker: number };
 
 /**
  * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, or the silhouette
- * difference between the target and its attacker.
+ * difference between the target and its attacker. An effect is named for the roller, and told apart by its uuid: effects
+ * often share a name, as the sheets name a new effect after its item.
  */
-type PoolModificationOrigin = { effect: string } | { defense: keyof Defense } | { silhouette: Silhouettes };
+type PoolModificationOrigin = { effect: string; uuid: string } | { defense: keyof Defense } | { silhouette: Silhouettes };
 
 /**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
@@ -111,10 +113,10 @@ export type ExternalPoolModification = {
  */
 export function matchOrigin<T>(
 	from: PoolModificationOrigin,
-	cases: { effect(name: string): T; defense(defense: keyof Defense): T; silhouette(silhouettes: Silhouettes): T },
+	cases: { effect(name: string, uuid: string): T; defense(defense: keyof Defense): T; silhouette(silhouettes: Silhouettes): T },
 ): T {
 	if ('effect' in from) {
-		return cases.effect(from.effect);
+		return cases.effect(from.effect, from.uuid);
 	}
 
 	return 'defense' in from ? cases.defense(from.defense) : cases.silhouette(from.silhouette);
@@ -310,7 +312,7 @@ function effectModifications(
 		);
 
 		if (mods.length > 0) {
-			modifications.push({ source, from: { effect: effect.name }, mods: mods.sort(sortPoolModifications) });
+			modifications.push({ source, from: { effect: effect.name, uuid: effect.uuid }, mods: mods.sort(sortPoolModifications) });
 		}
 	}
 
