@@ -37,6 +37,13 @@ type CreateDialog = { position: Position; asked: Position; types: string[]; decl
 type Size = { width: number; height: number };
 
 /**
+ * The Data tab of a weapon's sheet at a window height: the window's height; the blank between the last row of each of
+ * its blocks and the next block (each Weapon Profile's, then the Add Weapon Profile button's), beyond that block's top
+ * margin; the height its blocks span; and the top of each row of the main profile, from the tab's top.
+ */
+type WeaponDataLayout = { window: number; gaps: number[]; content: number; mainRows: number[] };
+
+/**
  * A `<prose-mirror>` editor of a sheet: its toggle button (`null` when it has none), whether it is open, the text it
  * shows, and the document links in it.
  */
@@ -59,6 +66,8 @@ type SheetsHelpers = {
 	minimizeAndMaximize(name: string): Promise<{ open: Size; minimized: Size; headerHeight: number; maximized: Size }>;
 	/** Asks an open sheet for a size below any minimum, and reads the size its window takes. */
 	resizeBelowMinimum(name: string): Promise<Size>;
+	/** Resizes an open weapon sheet, its Data tab shown, to each height, and lays the tab out at each. */
+	weaponDataLayout(name: string, heights: number[]): Promise<WeaponDataLayout[]>;
 	/** The header buttons and controls menu entries of a sheet. */
 	header(name: string): { buttons: string[]; controls: string[] };
 	clickTab(name: string, tab: string): Promise<void>;
@@ -411,6 +420,31 @@ function installSheetsHelpers() {
 			documentNamed(name).sheet.setPosition({ width: 100, height: 100 });
 			await settle();
 			return sizeOf(sheetElement(name));
+		},
+
+		async weaponDataLayout(name, heights) {
+			const layouts: WeaponDataLayout[] = [];
+			for (const height of heights) {
+				// From the top of the screen, so that Foundry doesn't shorten the window to keep it on screen.
+				documentNamed(name).sheet.setPosition({ top: 10, height });
+				await settle();
+				const tab = find(sheetElement(name), '.tab[data-tab="data"]');
+				const box = (element: Element) => element.getBoundingClientRect();
+				const blocks = [...tab.querySelectorAll('section.data-grid, .add-profile')];
+				const [main] = blocks;
+				const lastRowBottom = (block: Element) => Math.max(...[...block.children].map((child) => box(child).bottom));
+				layouts.push({
+					window: Math.round(box(sheetElement(name)).height),
+					gaps: blocks
+						.slice(1)
+						.map((block, index) =>
+							Math.round(box(block).top - lastRowBottom(blocks[index]) - parseFloat(getComputedStyle(block).marginTop)),
+						),
+					content: Math.round(box(blocks.at(-1)!).bottom - box(main).top),
+					mainRows: [...main.querySelectorAll('.row')].map((row) => Math.round(box(row).top - box(tab).top)),
+				});
+			}
+			return layouts;
 		},
 
 		header(name) {
@@ -2615,6 +2649,63 @@ export async function run(e2e: ScenarioContext) {
 				],
 			},
 		],
+	);
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	// §#428: a tab's own sections are as tall as it (nav.scss), and a tab is as tall as all its blocks together, or as the
+	// window when that is taller: each Weapon Profile's block took the whole tab.
+	const heights = [500, 950];
+	let profiled: WeaponDataLayout[] = [];
+	await e2e.step('#428 A1 GM gives the weapon a Thrown profile, then resizes its sheet to two heights', async () => {
+		profiled = await gm.evaluate(
+			async ({ profile, heights }) => {
+				const sheets = window.sheetsE2E;
+				await sheets.update('weapon', { 'system.extraProfiles': [profile] });
+				await sheets.open('weapon');
+				await sheets.clickTab('weapon', 'data');
+				return sheets.weaponDataLayout('weapon', heights);
+			},
+			{ profile: thrownProfile(['Ranged']), heights },
+		);
+	});
+	e2e.expect(
+		"#428 A1 the Thrown profile's block follows right under the main profile's rows, and the Add Weapon Profile button under its own, at either window height",
+		profiled.map(({ gaps }) => gaps),
+		[
+			[0, 0],
+			[0, 0],
+		],
+	);
+	e2e.expect(
+		"#428 A2 the Data tab's blocks keep their height when the window grows",
+		{ windowGrew: profiled[1].window > profiled[0].window, blocksGrew: profiled[1].content - profiled[0].content },
+		{ windowGrew: true, blocksGrew: 0 },
+	);
+	let single: Record<string, WeaponDataLayout[]> = {};
+	await e2e.step(
+		'#428 A3 GM deletes the Thrown profile, then resizes the sheets of the weapon and the vehicle weapon to two heights',
+		async () => {
+			single = await gm.evaluate(async (heights) => {
+				const sheets = window.sheetsE2E;
+				await sheets.update('weapon', { 'system.extraProfiles': [] });
+				await sheets.open('vehicleWeapon');
+				await sheets.clickTab('vehicleWeapon', 'data');
+				return {
+					weapon: await sheets.weaponDataLayout('weapon', heights),
+					vehicleWeapon: await sheets.weaponDataLayout('vehicleWeapon', heights),
+				};
+			}, heights);
+		},
+	);
+	e2e.expect(
+		"#428 A3 a weapon with no extra profile, and a vehicle weapon, keep their main profile's rows in place whatever the window's height",
+		{ weapon: single.weapon[1].mainRows, vehicleWeapon: single.vehicleWeapon[1].mainRows },
+		{ weapon: single.weapon[0].mainRows, vehicleWeapon: single.vehicleWeapon[0].mainRows },
+	);
+	e2e.expect(
+		'#428 A4 a weapon with no extra profile shows its Add Weapon Profile button right under its main profile, at either window height',
+		single.weapon.map(({ gaps }) => gaps),
+		[[0], [0]],
 	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
