@@ -1734,7 +1734,16 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 		),
 	);
 	e2e.expect('#199 H4 a skill created as a career skill stays one', await career(H, 'E2E Lore'), true);
-	await e2e.step('#199 H5 the Career removed', () => page((name) => window.characterE2E.removeCareer(name), H));
+	await e2e.step("#199 H5 Ranged's rank undone, then the Career removed", async () => {
+		// The Career can only be removed until a skill rank is bought (#436).
+		await page(async (name) => {
+			window.characterE2E.undo(name, 'Skill');
+			// The build may ask before undoing (#432): Yes undoes the entry.
+			await window.e2e.answerConfirm('yes');
+		}, H);
+		await e2e.settle();
+		await page((name) => window.characterE2E.removeCareer(name), H);
+	});
 	e2e.expect('#199 H5 removing the Career unmarks the dropped skill', await career(H, 'Ranged'), false);
 	await page((name) => window.characterE2E.close(name), H);
 
