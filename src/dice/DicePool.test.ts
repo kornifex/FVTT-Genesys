@@ -27,7 +27,7 @@ function pool({
 	characteristicValue = 0,
 	skillRank = 0,
 	usesSuperCharacteristic = false,
-	baseDifficulty = [],
+	difficulty = [],
 	manualChanges = [],
 	effects = [],
 }: PoolInputs = {}) {
@@ -35,7 +35,7 @@ function pool({
 		characteristicValue,
 		skillRank,
 		usesSuperCharacteristic,
-		modifications: { baseDifficulty, manualChanges, effects },
+		modifications: { difficulty, manualChanges, effects },
 	});
 }
 
@@ -75,7 +75,7 @@ describe('buildDicePool', () => {
 
 	describe('Step 2: task difficulty (CRB p. 16-20)', () => {
 		it('adds the Difficulty dice of the difficulty', () => {
-			expect(pool({ characteristicValue: 2, baseDifficulty: ['D', 'D'] }).dice).toEqual({
+			expect(pool({ characteristicValue: 2, difficulty: ['D', 'D'] }).dice).toEqual({
 				Proficiency: 0,
 				Ability: 2,
 				Difficulty: 2,
@@ -83,7 +83,7 @@ describe('buildDicePool', () => {
 		});
 
 		it('upgrades the Difficulty dice of the difficulty', () => {
-			expect(pool({ baseDifficulty: ['D', 'D', 'D', '*'] }).dice).toEqual({
+			expect(pool({ difficulty: ['D', 'D', 'D', '*'] }).dice).toEqual({
 				Proficiency: 0,
 				Ability: 0,
 				Difficulty: 2,
@@ -93,16 +93,37 @@ describe('buildDicePool', () => {
 
 		it('applies the difficulty in the order given', () => {
 			// An upgrade given first finds no Difficulty die and adds one, so callers sort the difficulty beforehand.
-			expect(pool({ baseDifficulty: ['*', 'D', 'D'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 3 });
+			expect(pool({ difficulty: ['*', 'D', 'D'] }).dice).toEqual({ Proficiency: 0, Ability: 0, Difficulty: 3 });
 		});
 
 		it('applies the difficulty with the basic pool, before the other modifications (CRB p. 20)', () => {
 			// The downgrade comes after the difficulty's upgrade even though it would be sorted before an added die.
-			expect(pool({ baseDifficulty: ['D', '*'], manualChanges: ['~'] }).dice).toEqual({
+			expect(pool({ difficulty: ['D', '*'], manualChanges: ['~'] }).dice).toEqual({
 				Proficiency: 0,
 				Ability: 0,
 				Difficulty: 1,
 				Challenge: 0,
+			});
+		});
+
+		it('upgrades the difficulty set before them, which Difficulty dice removed by hand do not lower (CRB p. 20-23, #450)', () => {
+			const twoUpgrades = [{ name: 'Adversary 2', enabled: true, mods: ['*', '*'] }];
+			// An Easy check: its one Difficulty die is upgraded, and the second upgrade adds a Difficulty die.
+			expect(pool({ characteristicValue: 2, difficulty: ['D'], effects: twoUpgrades }).dice).toEqual({
+				Proficiency: 0,
+				Ability: 2,
+				Difficulty: 1,
+				Challenge: 1,
+			});
+			// A Hard check with two Difficulty dice removed by hand: the upgrades come first, and leave one Difficulty die to
+			// remove.
+			expect(
+				pool({ characteristicValue: 2, difficulty: ['D', 'D', 'D'], manualChanges: ['-D', '-D'], effects: twoUpgrades }).dice,
+			).toEqual({
+				Proficiency: 0,
+				Ability: 2,
+				Difficulty: 0,
+				Challenge: 2,
 			});
 		});
 	});
@@ -115,7 +136,7 @@ describe('buildDicePool', () => {
 
 		it('upgrades dice before downgrading them', () => {
 			expect(pool({ characteristicValue: 2, manualChanges: ['_', '^'] }).dice).toEqual({ Proficiency: 0, Ability: 2 });
-			expect(pool({ baseDifficulty: ['D'], manualChanges: ['~', '*'] }).dice).toEqual({
+			expect(pool({ difficulty: ['D'], manualChanges: ['~', '*'] }).dice).toEqual({
 				Proficiency: 0,
 				Ability: 0,
 				Difficulty: 1,
@@ -154,14 +175,14 @@ describe('buildDicePool', () => {
 
 		it('leaves the modifications it is given untouched', () => {
 			const modifications: DicePoolModifications = {
-				baseDifficulty: ['D'],
+				difficulty: ['D'],
 				manualChanges: ['^', 'A'],
 				effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }],
 			};
 			buildDicePool({ characteristicValue: 2, skillRank: 1, usesSuperCharacteristic: false, modifications });
 
 			expect(modifications).toEqual({
-				baseDifficulty: ['D'],
+				difficulty: ['D'],
 				manualChanges: ['^', 'A'],
 				effects: [{ name: 'Self: Talent', enabled: true, mods: ['-s', 's'] }],
 			});
@@ -173,7 +194,7 @@ describe('buildDicePool', () => {
 		const result = pool({
 			characteristicValue: 3,
 			skillRank: 1,
-			baseDifficulty: ['D', 'D'],
+			difficulty: ['D', 'D'],
 			manualChanges: ['B'],
 			effects: [
 				{ name: 'Self: Talent', enabled: true, mods: ['^'] },

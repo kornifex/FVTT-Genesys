@@ -282,7 +282,7 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 		skillRank: check.rank,
 		usesSuperCharacteristic: check.usesSuperCharacteristic,
 		modifications: {
-			baseDifficulty: parsePoolModifications(difficulty),
+			difficulty: parsePoolModifications(difficulty),
 			manualChanges,
 			effects: check.poolModifications.map((modification) => ({
 				name: modification.key,

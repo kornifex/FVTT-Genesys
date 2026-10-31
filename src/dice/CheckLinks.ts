@@ -2,8 +2,7 @@
  * @file Check links: the difficulty of a `@check` link, and which actor rolls its check wherever the link is rendered.
  */
 
-import type { DicePool } from '@/dice/DicePool';
-import { upgradeDie } from '@/dice/DieGrades';
+import { DIFFICULTY_LABELS, difficultyDieCounts, FORMIDABLE } from '@/dice/Difficulty';
 
 /**
  * The actors a `@check` link can roll for.
@@ -35,16 +34,7 @@ export function checkLinkActor<A>({ sheetActor, controlledActors, assignedCharac
 	return sheetActor ?? controlledActor ?? assignedCharacter;
 }
 
-// The difficulty levels a `@check` link names, by their number of Difficulty dice. A level above Formidable is an
-// Impossible task, which rolls as many dice as a Formidable one.
-const DIFFICULTY_LABELS = [
-	'Genesys.Difficulty.Simple',
-	'Genesys.Difficulty.Easy',
-	'Genesys.Difficulty.Average',
-	'Genesys.Difficulty.Hard',
-	'Genesys.Difficulty.Daunting',
-	'Genesys.Difficulty.Formidable',
-];
+// A level above Formidable is an Impossible task, which rolls as many dice as a Formidable one.
 const IMPOSSIBLE_LABEL = 'Genesys.Difficulty.Impossible';
 
 /**
@@ -64,14 +54,8 @@ export type CheckLinkDifficulty = {
  * Challenge die, or adds a Difficulty die when none is left, as the dice prompt upgrades them.
  */
 export function checkLinkDifficulty(level: number, upgrades: number): CheckLinkDifficulty {
-	const dice: DicePool['dice'] = { Difficulty: Math.min(level, DIFFICULTY_LABELS.length - 1) };
-	for (let upgrade = 0; upgrade < upgrades; upgrade++) {
-		upgradeDie(dice, 'Difficulty', 'Challenge');
-	}
-
 	return {
 		label: DIFFICULTY_LABELS[level] ?? IMPOSSIBLE_LABEL,
-		challengeDice: dice.Challenge ?? 0,
-		difficultyDice: dice.Difficulty ?? 0,
+		...difficultyDieCounts({ level: Math.min(level, FORMIDABLE), upgrades }),
 	};
 }

@@ -169,13 +169,14 @@ Genesys:
     Title: Dice Pool
     OpenDiceRoller: Roll dice
     Roll: Roll!
-    Hint: Use the dice box on the right to add, upgrade, and downgrade. Click dice in the pool to remove them!
+    Hint: Use the dice box on the right to add, upgrade and downgrade. Click a die in the pool to remove one of its kind, after every other change.
     UseSuperCharacteristic: Roll as a super-characteristic
     UnrankedSkills: Unranked
     WeaponSkills: Weapon Skills
     PoolModifications:
       Title: Pool Modifications
-      DefaultDifficulty: Default Difficulty
+      Difficulty: Difficulty
+      Upgrades: Upgrades
       ManualChanges: Manual Changes
       SelfEffects: 'From Self: '
       TargetEffects: 'From Target: '
