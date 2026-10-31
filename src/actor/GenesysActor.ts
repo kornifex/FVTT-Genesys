@@ -19,12 +19,13 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 	}
 
 	/**
-	 * Migrate an actor created with legacy copies of its items' effects.
+	 * Migrate an actor created from older data.
 	 * @inheritDoc
 	 */
 	protected override async _preCreate(data: Actor.CreateData, options: Actor.Database.PreCreateOptions, user: User.Stored) {
-		// An actor created with legacy copies of its items' effects, for instance imported from an older module compendium,
-		// loses them and gets its equipment's effects enabled, as the world's actors did in migrations 3 and 4.
+		// An actor created from older data, for instance imported from an older module compendium, gets the migrations
+		// the world's actors got: it loses its legacy copies of its items' effects and gets its equipment's effects
+		// enabled (migrations 3 and 4), and its talent purchases linked to their talent (migration 5).
 		const changes = migrateCreatedActor(this.toObject() as ActorSource);
 		if (changes) {
 			this.#applyToSource(changes);
@@ -33,12 +34,18 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 		return super._preCreate(data, options, user);
 	}
 
-	#applyToSource({ itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+	#applyToSource({ update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+		if (update) {
+			this.updateSource(update);
+		}
+
 		this.updateSource({ items: Object.entries(itemEffects).map(([_id, effects]) => ({ _id, effects })) });
 
-		// A non-recursive update replaces the effects with those listed.
-		const keptEffects = this.toObject().effects.filter((effect) => effect._id === null || !deletedEffects.includes(effect._id));
-		this.updateSource({ effects: keptEffects }, { recursive: false });
+		if (deletedEffects.length > 0) {
+			// A non-recursive update replaces the effects with those listed.
+			const keptEffects = this.toObject().effects.filter((effect) => effect._id === null || !deletedEffects.includes(effect._id));
+			this.updateSource({ effects: keptEffects }, { recursive: false });
+		}
 	}
 
 	/**

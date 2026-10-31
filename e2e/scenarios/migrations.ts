@@ -1,4 +1,4 @@
-/** @file #56, #102 and #280: the migrations a world runs on load, over its actors, its unlinked tokens and its actor compendiums, once. */
+/** @file #56, #102, #280 and #441: the migrations a world runs on load, over its actors, its unlinked tokens and its actor compendiums, once. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -26,6 +26,8 @@ type WorldState = {
 	effects: Record<'Mira' | 'Recent' | 'Odd' | 'Raider token' | 'Raider base' | 'Packed pack' | 'Veteran pack', ActorEffects>;
 	/** The values the effects' changes add to, from 0: each effect that applies once adds its change once. */
 	applied: Record<'Mira' | 'Raider token' | 'Raider base', Record<string, number>>;
+	/** The talent purchases of a character's Experience Journal, as `<name recorded> → <the talent its id names>`. */
+	purchases: Record<'Elder', string[]>;
 };
 
 type EffectsTab = { temporary: string[]; passive: string[]; suppressed: string[] };
@@ -37,6 +39,14 @@ type MigrationHelpers = {
 	createWithCopies(): Promise<void>;
 	/** Imports an actor holding legacy copies from a world compendium. */
 	importWithCopies(): Promise<void>;
+	/** Creates a character holding a talent purchase recorded without the talent's id, as an older compendium held it. */
+	createWithUnlinkedPurchase(): Promise<void>;
+	/** The talent purchases of a world character, as `<name recorded> → <the talent its id names>`. */
+	purchases(name: string): string[];
+	/** Clicks the trash of a world character's purchase of a talent in its Experience Journal; whether a dialog asked, answered Yes. */
+	undoPurchase(args: { actor: string; talent: string }): Promise<boolean>;
+	/** The talents of a world character, sorted, and its available XP. */
+	talents(name: string): { talents: string[]; xp: number };
 	/** The effects of a world actor and the values they add to. */
 	created(name: string): { effects: ActorEffects; soak: number };
 	/** Puts an item of a world actor in an Equipment State, then reads which of its effects apply and the soak they add to. */
@@ -180,6 +190,16 @@ function installMigrationHelpers() {
 		items: [...actor.items].flatMap((item) => [...item.effects].map((effect) => `${item.name} / ${shownEffect(effect)}`)).sort(),
 	});
 
+	type Purchase = { type: string; data: { name: string; id?: string } };
+	type Journaled = { system: { experienceJournal: { entries: Purchase[] } }; items: { get(id: string): { name: string } | undefined } };
+	const talent = (name: string) => item(name, 'talent', [], { tier: 1, rank: 1 });
+	// A talent purchase as it was recorded before upstream 0.1.14, without the talent's id.
+	const unlinkedPurchase = (name: string) => ({ amount: -5, type: 'NewTalent', data: { name, tier: 1, rank: 1 } });
+	const purchasesOf = (actor: Journaled) =>
+		actor.system.experienceJournal.entries
+			.filter((entry) => entry.type === 'NewTalent')
+			.map(({ data }) => `${data.name} → ${data.id ? actor.items.get(data.id)?.name ?? 'missing' : 'unlinked'}`);
+
 	window.migrationsE2E = {
 		async setUp() {
 			await window.e2e.deleteSetUp('Actor', 'Scene');
@@ -271,6 +291,21 @@ function installMigrationHelpers() {
 			await veteran.createEmbeddedDocuments('ActiveEffect', [
 				copyOf(veteran.id, focus, { name: 'E2E Focus (edited)', changes: change('soak', 2) }),
 			]);
+
+			// #441: a character whose talent purchases were recorded without the talent's id, before upstream 0.1.14: of a
+			// talent it holds once, of a talent it holds twice, and of a talent it no longer holds. The journal is written
+			// after the creation, which would link them.
+			const elder = await Actor.create({
+				name: 'E2E Elder',
+				type: 'character',
+				items: [talent('E2E Stalwart'), talent('E2E Twin'), talent('E2E Twin')],
+			});
+			await elder.update({
+				'system.experienceJournal.entries': [
+					{ amount: 100, type: 'Starting' },
+					...['E2E Stalwart', 'E2E Twin', 'E2E Lost'].map(unlinkedPurchase),
+				],
+			});
 		},
 
 		async createWithCopies() {
@@ -301,6 +336,43 @@ function installMigrationHelpers() {
 			const pack = packNamed('E2E Old Actors');
 			const veteran = await packActor('E2E Old Actors', 'Veteran');
 			await game.actors.importFromCompendium(pack, veteran.id);
+		},
+
+		async createWithUnlinkedPurchase() {
+			await Actor.create({
+				name: 'E2E Heir',
+				type: 'character',
+				items: [talent('E2E Stalwart')],
+				system: { experienceJournal: { entries: [unlinkedPurchase('E2E Stalwart')] } },
+			});
+		},
+
+		purchases(name) {
+			return purchasesOf(actorNamed(name));
+		},
+
+		async undoPurchase({ actor: name, talent: talentName }) {
+			await window.e2e.showTab(name, 'journal');
+			const actor = actorNamed(name);
+			const root = await render(actor.sheet);
+			const index = (actor.system.experienceJournal.entries as Purchase[]).findIndex(
+				(entry) => entry.type === 'NewTalent' && entry.data.name === talentName,
+			);
+			const trash = root.querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('a');
+			if (!trash) throw new Error(`No trash for the purchase of ${talentName}`);
+			trash.click();
+			return (await window.e2e.answerConfirm('yes')) !== null;
+		},
+
+		talents(name) {
+			const actor = actorNamed(name);
+			return {
+				talents: actor.items
+					.filter((candidate: { type: string }) => candidate.type === 'talent')
+					.map((candidate: { name: string }) => candidate.name)
+					.sort(),
+				xp: actor.system.availableXP,
+			};
 		},
 
 		created(name) {
@@ -368,6 +440,7 @@ function installMigrationHelpers() {
 					'Raider token': { soak: tokenActor('Raider').system.soak },
 					'Raider base': { soak: actorNamed('Raider').system.soak },
 				},
+				purchases: { Elder: purchasesOf(actorNamed('Elder')) },
 			};
 		},
 
@@ -500,6 +573,16 @@ export async function run(e2e: ScenarioContext) {
 		{ effects: { own: [], items: [`E2E Brace / E2E Brace | ${SHIELD} | soak +1 | disabled`] }, soak: 0 },
 	);
 
+	// §#441: a talent purchase recorded without the talent's id, before upstream 0.1.14, gets linked at creation.
+	await e2e.step('#441 A1 an actor created with a talent purchase recorded without an id', () =>
+		gm.evaluate(() => window.migrationsE2E.createWithUnlinkedPurchase()),
+	);
+	e2e.expect(
+		'#441 A1 an actor created with a talent purchase recorded without an id gets it linked to the one talent of its name',
+		await gm.evaluate(() => window.migrationsE2E.purchases('Heir')),
+		['E2E Stalwart → E2E Stalwart'],
+	);
+
 	const reload = async (name: string) => {
 		await e2e.step(name, async () => {
 			await gm.reload();
@@ -519,7 +602,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 4);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 5);
 	e2e.expect('#56 A2 a world vehicle crew holds uuids, each actor once', migrated.crew.V1, MIGRATED_CREW);
 	e2e.expect(
 		'#56 A3 an unlinked token vehicle crew is migrated, its base actor left alone',
@@ -606,6 +689,16 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.unpairedNotice('E2E Odd', 'E2E Knack')?.permanent),
 		true,
 	);
+	e2e.expect(
+		"#441 A2 a legacy character's talent purchase recorded without an id is linked to the one talent of its name",
+		migrated.purchases.Elder[0],
+		'E2E Stalwart → E2E Stalwart',
+	);
+	e2e.expect(
+		'#441 A3 a purchase whose name two talents hold, and one whose talent is gone, stay without an id',
+		migrated.purchases.Elder.slice(1),
+		['E2E Twin → unlinked', 'E2E Lost → unlinked'],
+	);
 
 	// A second load runs nothing.
 	const reloaded = await reload('GM loads the migrated world again');
@@ -636,6 +729,17 @@ export async function run(e2e: ScenarioContext) {
 			carried: ['E2E Blessing', 'E2E Grit (edited)', 'E2E Lantern', 'E2E Mail'],
 			'soak added while Equipped': 5,
 		},
+	);
+
+	// §#441: the purchase the migration linked is undone with its talent.
+	let asked = false;
+	await e2e.step("#441 A4 the linked purchase undone from Elder's Experience Journal, and Yes answered", async () => {
+		asked = await gm.evaluate(() => window.migrationsE2E.undoPurchase({ actor: 'Elder', talent: 'E2E Stalwart' }));
+	});
+	e2e.expect(
+		'#441 A4 undoing the linked purchase asks to confirm, and Yes deletes the talent and gives its XP back',
+		{ asked, ...(await gm.evaluate(() => window.migrationsE2E.talents('Elder'))) },
+		{ asked: true, talents: ['E2E Twin', 'E2E Twin'], xp: 90 },
 	);
 
 	await e2e.step('scenario documents deleted', () => gm.evaluate(() => window.migrationsE2E.cleanUp()));

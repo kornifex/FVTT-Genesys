@@ -15,6 +15,7 @@ import { useUuidForVehicles } from '@/migrations/1-use-uuid-for-vehicle';
 import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
 import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';
+import { linkTalentPurchases } from '@/migrations/5-link-talent-purchases';
 import * as log from '@/log';
 import { isActingGm } from '@/socket';
 
@@ -74,6 +75,7 @@ const migrations: readonly (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(actorOnlyOnceInCrew),
 	() => migrateEveryActor(effectsStayOnItemsWithNotifications),
 	() => migrateEveryActor(effectsFollowEquipmentState),
+	() => migrateEveryActor(linkTalentPurchases),
 ];
 
 /**

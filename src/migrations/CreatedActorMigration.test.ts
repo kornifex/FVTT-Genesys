@@ -31,12 +31,21 @@ function effect(_id: string, fields: Partial<Effect> = {}): Effect {
 	};
 }
 
-function item(_id: string, type: string, effects: Effect[]) {
+function item(_id: string | null, type: string, effects: Effect[]) {
 	return { _id, name: `${type} ${_id}`, type, system: {}, effects };
 }
 
-function actor(items: ReturnType<typeof item>[], effects: Effect[] = []): ActorSource {
-	return { name: 'Hero', type: 'character', system: {}, items, effects };
+function actor(items: ReturnType<typeof item>[], effects: Effect[] = [], entries: object[] = []): ActorSource {
+	return { name: 'Hero', type: 'character', system: { experienceJournal: { entries } }, items, effects } as ActorSource;
+}
+
+// A purchase of a talent as it was recorded before upstream 0.1.14, without the talent's id.
+function unlinkedPurchase(name: string) {
+	return { amount: -5, type: 'NewTalent', data: { name, tier: 1, rank: 1 } };
+}
+
+function linkedPurchase(name: string, id: string) {
+	return { amount: -5, type: 'NewTalent', data: { name, id, tier: 1, rank: 1 } };
 }
 
 // A copy of an item's effect, as legacy transferral made it on the actor.
@@ -73,6 +82,31 @@ describe('createdActorMigration', () => {
 
 	it('keeps the disabled effects of the equipment of an actor without legacy copies, as a duplicate of a migrated actor', () => {
 		const source = actor([item('armor', 'armor', [effect('padded', { disabled: true })])], [effect('own')]);
+
+		expect(migrate(source)).toBeUndefined();
+	});
+
+	it('links the unlinked talent purchases of an actor created with legacy copies, which it loses', () => {
+		const source = actor([item('grit', 'talent', [effect('grit')])], [copy('gritCopy', 'grit')], [unlinkedPurchase('talent grit')]);
+
+		expect(migrate(source)).toEqual({
+			update: { 'system.experienceJournal.entries': [linkedPurchase('talent grit', 'grit')] },
+			deletedEffects: ['gritCopy'],
+		});
+	});
+
+	it('links the unlinked talent purchases of an actor created without legacy copies, its disabled equipment effects kept', () => {
+		const source = actor(
+			[item('grit', 'talent', []), item('armor', 'armor', [effect('padded', { disabled: true })])],
+			[],
+			[unlinkedPurchase('talent grit')],
+		);
+
+		expect(migrate(source)).toEqual({ update: { 'system.experienceJournal.entries': [linkedPurchase('talent grit', 'grit')] } });
+	});
+
+	it('leaves the unlinked purchase of a talent created without an id', () => {
+		const source = actor([item(null, 'talent', [])], [], [unlinkedPurchase('talent null')]);
 
 		expect(migrate(source)).toBeUndefined();
 	});
