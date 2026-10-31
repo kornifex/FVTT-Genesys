@@ -254,7 +254,20 @@ Genesys:
       Content: This will remove the item. Do you want to proceed?
     ConfirmUndoEntry:
       Title: Undo Entry
-      Content: Undoing this entry removes {items} from the character. Do you want to proceed?
+      Award: Undo the XP award "{reason}"?
+      AwardWithoutReason: Undo this XP award?
+      Characteristic: Undo the increase of {characteristic} to {rank}? {characteristic} goes back to {previous}.
+      Skill: Undo the increase of {name} to rank {rank}? The skill goes back to rank {previous}.
+      SkillNotFound: Undo the increase of {name} to rank {rank}? The skill isn't found on the character, so no rank is lowered.
+      NewTalent: Undo the purchase of the talent {name}? The talent is deleted from the character.
+      NewTalentNotFound: Undo the purchase of the talent {name}? The talent it bought isn't found on the character, so none is deleted.
+      NewTalentNotLinked: >-
+        Undo the purchase of the talent {name}? The talent it bought isn't found on the character: the {name} on the sheet
+        isn't linked to this entry, and stays.
+      TalentRank: Undo the increase of {name} to rank {rank}? The talent goes back to rank {previous}.
+      TalentRankNotFound: Undo the increase of {name} to rank {rank}? The talent isn't found on the character, so no rank is lowered.
+      XPGivenBack: The character gets back the {xp} XP it cost.
+      XPTakenAway: The character loses the {xp} XP it gave.
     ConfirmRemoveArchetype:
       Title: Remove Archetype
       Content: >-
