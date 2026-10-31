@@ -48,8 +48,18 @@ function actor(
 	};
 }
 
-function effect(name: string, changes: { key: string; value: string }[]): PoolModificationEffect {
-	return { name, isSuppressed: false, origin: null, parent: null, changes };
+function effect(name: string, changes: { key: string; value: string }[], uuid = `ActiveEffect.${name}`): PoolModificationEffect {
+	return { name, uuid, isSuppressed: false, origin: null, parent: null, changes };
+}
+
+/**
+ * The effects of rings named alike, one Pool Modification each, as the sheets name a new effect after its item: each ring
+ * is another copy of the item.
+ */
+function rings(...values: string[]) {
+	return values.map((value, index) =>
+		effect('Ring', [{ key: 'genesys.pool.check.self.', value }], `Actor.hero.Item.ring${index + 1}.ActiveEffect.grade`),
+	);
 }
 
 const compendium = [
@@ -187,13 +197,39 @@ describe('resolveCheck', () => {
 		});
 
 		expect(resolveCheck(hero, { skillName: 'Melee' }, rules).poolModifications).toEqual([
-			{ key: 'self.effect.Dueling', source: 'self', from: { effect: 'Dueling' }, mods: ['B'] },
+			{
+				key: 'self.effect.ActiveEffect.Dueling',
+				source: 'self',
+				from: { effect: 'Dueling', uuid: 'ActiveEffect.Dueling' },
+				mods: ['B'],
+			},
 		]);
 		expect(
 			resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged' }, rules).poolModifications.map(
 				(modification) => modification.key,
 			),
-		).toEqual(['self.effect.Dueling', 'target.effect.Shield', 'target.defense.melee']);
+		).toEqual(['self.effect.ActiveEffect.Dueling', 'target.effect.ActiveEffect.Shield', 'target.defense.melee']);
+	});
+
+	it('tells apart the Pool Modifications of effects that share a name, as the effects of two copies of an item do (#445)', () => {
+		const hero = actor('character', [], {
+			effects: rings('^', '^^'),
+		});
+
+		expect(resolveCheck(hero, { fallbackCharacteristic: Characteristic.Brawn }, rules).poolModifications).toEqual([
+			{
+				key: 'self.effect.Actor.hero.Item.ring1.ActiveEffect.grade',
+				source: 'self',
+				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring1.ActiveEffect.grade' },
+				mods: ['^'],
+			},
+			{
+				key: 'self.effect.Actor.hero.Item.ring2.ActiveEffect.grade',
+				source: 'self',
+				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring2.ActiveEffect.grade' },
+				mods: ['^', '^'],
+			},
+		]);
 	});
 
 	it("compares the attacker's silhouette to the target's for an attack, and for no other check (CRB p. 109)", () => {
@@ -305,6 +341,21 @@ describe('checkDicePool', () => {
 			usesSuperCharacteristic: false,
 		});
 	});
+
+	it("applies only the Pool Modifications turned on, though another effect shares their effect's name (#445)", () => {
+		// One Ability die; the roller turns on the first Ring's upgrade only.
+		const wearer = actor('character', [], {
+			effects: rings('^', '^^'),
+		});
+		const intellectCheck = resolveCheck(wearer, { fallbackCharacteristic: Characteristic.Intellect }, rules);
+		const [first] = intellectCheck.poolModifications;
+
+		expect(checkDicePool(intellectCheck, { difficulty: 'DD', isEnabled: ({ key }) => key === first.key }).dice).toEqual({
+			Proficiency: 1,
+			Ability: 0,
+			Difficulty: 2,
+		});
+	});
 });
 
 describe('carriedPoolModificationStates', () => {
@@ -317,8 +368,8 @@ describe('carriedPoolModificationStates', () => {
 	});
 	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
 	const before = [
-		{ key: 'self.effect.Steady', enabled: false },
-		{ key: 'self.effect.Dueling', enabled: true },
+		{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
+		{ key: 'self.effect.ActiveEffect.Dueling', enabled: true },
 	];
 	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
 	const states = (autoApply: boolean) =>
@@ -326,15 +377,38 @@ describe('carriedPoolModificationStates', () => {
 
 	it('keeps the state of the Pool Modifications still listed, and turns new ones on when auto-apply is on', () => {
 		expect(states(true)).toEqual([
-			{ key: 'self.effect.Steady', enabled: false },
-			{ key: 'self.effect.Alert', enabled: true },
+			{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
+			{ key: 'self.effect.ActiveEffect.Alert', enabled: true },
 		]);
 	});
 
 	it('leaves new Pool Modifications off when auto-apply is off', () => {
 		expect(states(false)).toEqual([
-			{ key: 'self.effect.Steady', enabled: false },
-			{ key: 'self.effect.Alert', enabled: false },
+			{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
+			{ key: 'self.effect.ActiveEffect.Alert', enabled: false },
+		]);
+	});
+
+	it("keeps the state of each Pool Modification apart, though another effect shares their effect's name (#445)", () => {
+		const wearer = actor('character', [skill('Cool', Characteristic.Presence, 1)], {
+			effects: rings('^', 'B'),
+		});
+		// The roller turned the first Ring on and left the second off, then picks Cool.
+		const [first, second] = resolveCheck(wearer, {}, rules).poolModifications;
+		const picked = resolveCheck(wearer, { skillName: 'Cool' }, rules);
+
+		expect(
+			carriedPoolModificationStates(
+				[
+					{ key: first.key, enabled: true },
+					{ key: second.key, enabled: false },
+				],
+				picked.poolModifications,
+				false,
+			).map(({ mods, enabled }) => ({ mods, enabled })),
+		).toEqual([
+			{ mods: ['^'], enabled: true },
+			{ mods: ['B'], enabled: false },
 		]);
 	});
 
@@ -359,7 +433,7 @@ describe('an initiative check', () => {
 		});
 		const check = resolveCheck(hero, { purpose: { kind: 'initiative' }, skillName: 'Cool', target: foe }, rules);
 
-		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.Alert']);
+		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.ActiveEffect.Alert']);
 		expect(checkDicePool(check, { difficulty: '', isEnabled: () => true }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });
 	});
 });
