@@ -18,6 +18,7 @@
 		"e2e:all": "node e2e/run.ts e2e/scenarios",
 		"lint": "eslint --max-warnings=0 src build e2e *.config.ts",
 		"knip": "knip",
+		"checklist": "node build/checklist.ts",
 		"i18n": "node build/checkI18n.ts",
 		"format": "prettier --write src/ types/ build/ \"e2e/**/*.ts\" yaml/ *.config.ts",
 		"format:check": "prettier --check src/ types/ build/ \"e2e/**/*.ts\" yaml/ *.config.ts",
