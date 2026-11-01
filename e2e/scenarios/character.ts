@@ -118,7 +118,7 @@ type CharacterHelpers = {
 	 * whether both its top corners are rounded.
 	 */
 	talentsTop(actor: string): { gapAbove: number; roundedCorners: boolean };
-	/** The dim and bright light radii of the actor's token on the viewed scene, as prepared. */
+	/** The dim and bright light radii of the token on the scene `E2E <actor>`, as prepared. */
 	tokenLight(actor: string): { dim: number; bright: number };
 	appliedEffects(actor: string): { effects: string[]; soak: number };
 	severities(actor: string): Record<string, string>;
@@ -769,9 +769,7 @@ function installCharacterHelpers() {
 		},
 
 		tokenLight(name) {
-			const token = game.scenes.viewed.tokens.find(
-				(candidate: { actor?: { name: string } }) => candidate.actor?.name === `E2E ${name}`,
-			);
+			const [token] = game.scenes.getName(`E2E ${name}`)?.tokens ?? [];
 			if (!token) throw new Error(`No token of E2E ${name}`);
 			return { dim: token.light.dim, bright: token.light.bright };
 		},
@@ -2432,14 +2430,12 @@ async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 async function talentTokenChanges(e2e: ScenarioContext, page: Evaluate) {
 	const T = 'Lantern';
 	const light = () => page((name) => window.characterE2E.tokenLight(name), T);
-	await e2e.step('#242 B0 a character without talents, with a linked token on the viewed scene', () =>
+	// A scene of its own, which no client views: a token's data is prepared whether a canvas draws it or not.
+	await e2e.step('#242 B0 a character without talents, with a linked token on a scene', () =>
 		page(async (name) => {
-			await window.e2e.ensureScene();
-			const scene = game.scenes.viewed;
-			const left = scene.tokens
-				.filter((token: { name: string }) => token.name === `E2E ${name}`)
-				.map((token: { id: string }) => token.id);
-			await scene.deleteEmbeddedDocuments('Token', left);
+			const left = game.scenes.getName(`E2E ${name}`);
+			await left?.delete();
+			const scene = await Scene.create({ name: `E2E ${name}`, width: 1000, height: 1000 });
 			const actor = await Actor.create({ name: `E2E ${name}`, type: 'character', prototypeToken: { actorLink: true } });
 			await scene.createEmbeddedDocuments('Token', [{ ...(await actor.getTokenDocument()).toObject(), x: 100, y: 100 }]);
 		}, T),
@@ -2478,18 +2474,12 @@ async function talentTokenChanges(e2e: ScenarioContext, page: Evaluate) {
 	});
 	await e2e.step('#242 B2 the token moved, which prepares it again', () =>
 		page(async (name) => {
-			const token = game.scenes.viewed.tokens.find(
-				(candidate: { actor?: { name: string } }) => candidate.actor?.name === `E2E ${name}`,
-			);
+			const [token] = game.scenes.getName(`E2E ${name}`).tokens;
 			await token.update({ x: token.x + 100 });
 		}, T),
 	);
 	e2e.expect('#242 B2 a token prepared again still counts each token change three times', await added(), { dim: 6, bright: 3 });
-	await page(async (name) => {
-		const scene = game.scenes.viewed;
-		const ids = scene.tokens.filter((token: { name: string }) => token.name === `E2E ${name}`).map((token: { id: string }) => token.id);
-		await scene.deleteEmbeddedDocuments('Token', ids);
-	}, T);
+	await page((name) => game.scenes.getName(`E2E ${name}`).delete(), T);
 }
 
 /** §#252: the Talents tab's groups, and their order. */
