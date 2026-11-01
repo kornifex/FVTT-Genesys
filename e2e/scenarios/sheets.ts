@@ -1575,7 +1575,52 @@ export async function run(e2e: ScenarioContext) {
 			await gm.evaluate((name) => window.sheetsE2E.close(name), name);
 		}
 	});
-	e2e.expect('#95 B1 PROBE field looks', fieldLooks, 'probe');
+	// A look reads `<tag> <shadow> | <background> | <border> | <radius>`, or `option <background> | <colour>`. A field
+	// either takes AppV1's flat look, or a component draws it itself without a border, as a name in a header or a value in
+	// a circle; neither has a shadow.
+	const flat = 'none | rgba(0, 0, 0, 0.05) | 1px solid rgb(122, 121, 113) | 3px';
+	const lookKinds = (looks: Record<string, number>) => {
+		const kinds = new Set<string>();
+		for (const look of Object.keys(looks)) {
+			const [tag, ...rest] = look.split(' ');
+			const style = rest.join(' ');
+			if (tag === 'option' || tag === 'characteristic') kinds.add(look);
+			else if (style === flat) kinds.add(`${tag} flat`);
+			else if (/^none \| .+ \| 0px none .+ \| 0px$/.test(style)) kinds.add(`${tag} drawn by its component`);
+			else kinds.add(look);
+		}
+		return [...kinds].sort();
+	};
+	e2e.log('#95 field looks', fieldLooks);
+	const optionLook = 'option rgb(247, 243, 232) | rgb(0, 0, 0)';
+	const characterLooks = ['input drawn by its component'];
+	const adversaryLooks = ['characteristic center', 'input drawn by its component', 'input flat'];
+	const itemLooks = ['input drawn by its component', 'input flat'];
+	const withSelects = [...itemLooks, optionLook, 'select flat'].sort();
+	e2e.expect(
+		"#95 B1 every sheet's text fields and selects have the system's flat look or their component's, with no shadow, and an archetype's characteristic values aren't centred",
+		Object.fromEntries(Object.entries(fieldLooks).map(([name, looks]) => [name, lookKinds(looks)])),
+		{
+			Hero: characterLooks,
+			Minion: adversaryLooks,
+			Rival: adversaryLooks,
+			Nemesis: adversaryLooks,
+			Vehicle: [...characterLooks, optionLook, 'select flat'].sort(),
+			ability: withSelects,
+			archetype: ['characteristic start', ...itemLooks],
+			armor: itemLooks,
+			career: itemLooks,
+			consumable: itemLooks,
+			container: itemLooks,
+			injury: withSelects,
+			gear: itemLooks,
+			skill: withSelects,
+			talent: withSelects,
+			quality: withSelects,
+			weapon: 'PROBE',
+			vehicleWeapon: 'PROBE',
+		},
+	);
 
 	// #304: a minimized sheet collapses to its header, as wide as Foundry's --minimized-width (200px), and keeps its
 	// minimum size while open.
@@ -1611,11 +1656,21 @@ export async function run(e2e: ScenarioContext) {
 
 	// §#315: ApplicationV2 closes a window by bringing its max-height to 0 through a transition, which a minimum height
 	// on the window would block. Its height is read at each frame while it closes.
-	const closings: Record<string, unknown> = {};
+	const closings: Record<string, { open: number; lowest: number; frames: number; transitions: string[] }> = {};
 	await e2e.step('#315 GM closes a character, a rival, a gear and an archetype sheet', async () => {
 		for (const name of sizedSheets) closings[name] = await gm.evaluate((name) => window.sheetsE2E.closeAnimation(name), name);
 	});
-	e2e.expect('#315 A1 PROBE closings', closings, 'probe');
+	e2e.log('#315 closings', closings);
+	e2e.expect(
+		"#315 A1 a closing sheet collapses through its max-height's transition, to a tenth of its height or less",
+		Object.fromEntries(
+			Object.entries(closings).map(([name, { open, lowest, transitions }]) => [
+				name,
+				{ transitions, collapsed: lowest <= open / 10 },
+			]),
+		),
+		Object.fromEntries(sizedSheets.map((name) => [name, { transitions: ['max-height'], collapsed: true }])),
+	);
 
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look, and a journal's are left alone.
@@ -2474,7 +2529,14 @@ export async function run(e2e: ScenarioContext) {
 				unregistered = await gm.evaluate(() => window.sheetsE2E.unregisteredChangeType());
 			},
 		);
-		e2e.expect('#297 A1 PROBE unregistered', unregistered, 'probe');
+		e2e.expect(
+			'#297 A1 a change whose type no module registers keeps its type in the sheet and when the sheet is saved, beside an edited change',
+			unregistered,
+			{
+				shown: 'e2eremoved',
+				stored: ['system.characteristics.brawn e2eremoved "1"', 'system.characteristics.agility add 2'],
+			},
+		);
 	}
 
 	// §#82 in French: the abilities' activation and the notification of a character created without skills.
@@ -2609,7 +2671,11 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#101 GM opens the sheets of an adversary, an item, a career and an archetype, watching their source line', async () => {
 		for (const name of sources) shownSources[name] = await gm.evaluate((name) => window.sheetsE2E.sourceAsShown(name), name);
 	});
-	e2e.expect('#101 A4 PROBE shown sources', shownSources, 'probe');
+	e2e.expect(
+		"#101 A4 with Foundry's own enrichment, the source line shows its raw text, then its link, and never an empty line",
+		shownSources,
+		Object.fromEntries(sources.map((name) => [name, ['raw', 'enriched']])),
+	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 	// §#82: the Crew tab follows its passengers and role members.
@@ -2868,7 +2934,12 @@ export async function run(e2e: ScenarioContext) {
 			}
 		},
 	);
-	e2e.expect('#130 A3 PROBE tooltips', tooltips, 'probe');
+	const pierceTooltip = { text: 'E2E Hero pierces.', links: 1 };
+	e2e.expect(
+		"#130 A3 hovering a card's quality shows its description in Foundry's tooltip, with its link, on a weapon's, a vehicle weapon's and an attack's card",
+		tooltips,
+		{ weapon: pierceTooltip, vehicleWeapon: pierceTooltip, attack: pierceTooltip },
+	);
 
 	// §#134: the weapons of an adversary and a vehicle, and the drawn firing arcs and separators of the rows of both
 	// weapon types.
@@ -2885,24 +2956,39 @@ export async function run(e2e: ScenarioContext) {
 			await window.sheetsE2E.clickTab('Vehicle', 'inventory');
 		}),
 	);
+	// The Nemesis has Brawn 3: an adversary's list reads the damage total.
 	e2e.expect(
-		'#134 N1 PROBE lists',
+		"#134 N1 an adversary lists a weapon's damage with its characteristic, without one, and with a negative base damage",
 		await gm.evaluate(() => {
-			const sheets = window.sheetsE2E;
 			const { text, htmlOf, actor } = window.e2e;
-			return {
-				nemesis: [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row)),
-				heroSword: sheets.renderedText('Hero', '.tab-inventory .inventory-item .details', 'E2E Sword'),
-				cannonRow: sheets.renderedText('Vehicle', '.tab-inventory .inventory-item .details', 'E2E Cannon'),
-			};
+			return [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row));
 		}),
-		'probe',
+		[
+			'E2E Sword (MeleeDamage 6Critical 0Range [Engaged]E2E Pierce 3)',
+			'E2E Rock (MeleeDamage 2Critical 0Range [Engaged])',
+			'E2E Shiv (MeleeDamage 2Critical 0Range [Engaged])',
+		],
 	);
+	// The separators are drawn by CSS, after each part: a comma between two firing arcs, a semicolon between two details.
+	e2e.expect(
+		"#134 N2 the inventory rows of a weapon and of a vehicle weapon draw their details' semicolons, and the commas between the firing arcs",
+		await gm.evaluate(() => ({
+			weapon: window.sheetsE2E.renderedText('Hero', '.tab-inventory .inventory-item .details', 'E2E Sword'),
+			vehicleWeapon: window.sheetsE2E.renderedText('Vehicle', '.tab-inventory .inventory-item .details', 'E2E Cannon'),
+		})),
+		{
+			weapon: 'E2E SwordMelee;Damage Br+3 (3);Critical 0;Range [Engaged];E2E Pierce 1',
+			vehicleWeapon: 'E2E CannonGunnery;Firing Arc Fore,Port;Damage 6;Critical 0;Range [Engaged];E2E Pierce 1',
+		},
+	);
+	// The Combat tab lists the equipped vehicle weapons.
+	const cannonState = await gm.evaluate(() => window.e2e.actor('Vehicle').items.getName('E2E Cannon').system.state);
 	await gm.evaluate(async () => {
+		await window.sheetsE2E.update('Vehicle/Cannon', { 'system.state': 'equipped' });
 		await window.sheetsE2E.clickTab('Vehicle', 'combat');
 	});
 	e2e.expect(
-		'#134 N2 PROBE combat',
+		"#134 N3 PROBE a vehicle's Combat tab draws the commas between a weapon's firing arcs",
 		await gm.evaluate(() => window.sheetsE2E.renderedText('Vehicle', '.tab-combat .weapon:not(.header)', 'E2E Cannon')),
 		'probe',
 	);
@@ -2921,18 +3007,19 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.sheetsE2E.rollDicePrompt());
 	});
 	e2e.expect(
-		'#134 N3 PROBE attack',
+		'#134 N4 PROBE attack',
 		await gm.evaluate(() => window.sheetsE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
 		'probe',
 	);
-	await gm.evaluate(async () => {
+	await gm.evaluate(async (state) => {
 		await window.e2e.actor('Nemesis').deleteEmbeddedDocuments(
 			'Item',
 			['E2E Rock', 'E2E Shiv'].map((name) => window.e2e.actor('Nemesis').items.getName(name).id),
 		);
 		await window.sheetsE2E.update('Vehicle', { 'system.roles': [] });
+		await window.sheetsE2E.update('Vehicle/Cannon', { 'system.state': state });
 		await window.sheetsE2E.closeAll();
-	});
+	}, cannonState);
 
 	// §#262: the directories' create dialogs. Foundry's `createDialog` gets the position the directory asks for, so the
 	// dialog opens there, and the system doesn't pass a dialog option where v13 reads a database option.
