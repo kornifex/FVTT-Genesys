@@ -1956,6 +1956,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.join();
 		await gm.evaluate(installSheetsHelpers);
 	});
+	await storyPointSpends(e2e, player);
 
 	// §#343: the tracker edits one pool at a time.
 	let edited: string[] = [];
@@ -2904,4 +2905,76 @@ export async function run(e2e: ScenarioContext) {
 	}
 
 	await e2e.step('cleanup', () => gm.evaluate(() => window.sheetsE2E.cleanUp()));
+}
+
+/**
+ * §#335: a player's Story Point spend is written by the Acting GM, who renders its message: in the GM's language, and one
+ * spend after the other when two players spend at once.
+ */
+async function storyPointSpends(e2e: ScenarioContext, player: Client) {
+	const { gm } = e2e;
+	const message = (client: Client) => client.evaluate(() => game.i18n.localize('Genesys.StoryPoints.ChatMessagePlayerPool'));
+	// Setting the pools renders the GM's tracker alone.
+	const setStoryPoints = async (points: { gm: number; player: number }, players: Client[]) => {
+		await gm.evaluate((points) => window.sheetsE2E.setStoryPoints(points), points);
+		for (const client of players) {
+			await client.evaluate(async () => {
+				await foundry.applications.instances.get('story-point-tracker')?.render(true);
+				await window.e2e.settle();
+			});
+		}
+	};
+	const playerLanguage = (language: string) => async () => {
+		await player.evaluate((language) => game.settings.set('core', 'language', language), language);
+		await player.reload();
+		await player.evaluate(installSheetsHelpers);
+	};
+
+	// The player plays in French, the GM in the world's language.
+	const language = await player.evaluate(() => game.settings.get('core', 'language') as string);
+	await e2e.step('#335 player reloads in French', playerLanguage('fr'));
+	await setStoryPoints({ gm: 0, player: 1 }, [player]);
+	await player.evaluate(() => window.sheetsE2E.storyPointLog());
+	const languages = { gm: await message(gm), player: await message(player) };
+	await e2e.step('#335 A1 player spends a Story Point, in French', () =>
+		player.evaluate(() => window.sheetsE2E.clickStoryPoints('a.points')),
+	);
+	e2e.expect(
+		"#335 A1 the message of a player's spend reads in the GM's language, not the player's",
+		{
+			languagesDiffer: languages.gm !== languages.player,
+			pools: await player.evaluate(() => window.sheetsE2E.storyPoints()),
+			...(await player.evaluate(() => window.sheetsE2E.storyPointLog())),
+		},
+		{ languagesDiffer: true, pools: { gm: 1, player: 0 }, writes: [gm.user], messages: [`${e2e.playerUser}: ${languages.gm}`] },
+	);
+	await e2e.step('#335 player reloads in their own language', playerLanguage(language));
+
+	// Both players click at the same moment, by the clock their pages share.
+	const second = await e2e.secondPlayer();
+	await second.evaluate(installSheetsHelpers);
+	await setStoryPoints({ gm: 0, player: 2 }, [player, second]);
+	await player.evaluate(() => window.sheetsE2E.storyPointLog());
+	const at = Date.now() + 1000;
+	await e2e.step('#335 B1 two players spend a Story Point at once', () =>
+		Promise.all(
+			[player, second].map((client) =>
+				client.evaluate(async (at) => {
+					await window.e2e.sleep(at - Date.now());
+					await window.sheetsE2E.clickStoryPoints('a.points');
+				}, at),
+			),
+		),
+	);
+	const log = await player.evaluate(() => window.sheetsE2E.storyPointLog());
+	e2e.expect(
+		'#335 B1 two players spending at once move two points to the GM pool, each written by the GM, with a message from each',
+		{ pools: await gm.evaluate(() => window.sheetsE2E.storyPoints()), writes: log.writes, messages: [...log.messages].sort() },
+		{
+			pools: { gm: 2, player: 0 },
+			writes: [gm.user, gm.user],
+			messages: [`${e2e.playerUser}: ${languages.gm}`, `${second.user}: ${languages.gm}`].sort(),
+		},
+	);
+	await e2e.step('#335 second player leaves', () => second.leave());
 }
