@@ -9,6 +9,8 @@ ADR 0003 sets two lines, each with its own release PR and its own `release-pleas
 - `main` prepares 0.5.0, for Foundry v13 and v14.
 - `0.4.x` prepares 0.4.0 and its fixes, for Foundry v12 and v13. It was cut from the code of `0.4.0-rc.1`, so the rest of 0.4.0's candidates and the final version come from it. It only takes the fixes our table needs, and is retired once the table runs v13.
 
+A release PR with nothing for the table, only `ci:`, `docs:` or `chore:` commits, can be closed, with its `autorelease: pending` label removed: release-please ignores a closed PR, and opens a new one on the line's next push, such as a fix's merge. `0.4.x`'s stays closed until a fix needs releasing.
+
 A fix goes to the line of the release that needs it: a PR whose base is `0.4.x` for 0.4.0, then a cherry-pick PR to `main` when the code is still shared. A `feat` would bump `0.4.x`'s minor, so it doesn't go there.
 
 A release is marked latest, the one Foundry offers as an update, unless a higher version already is: once 0.5.0 is out, a 0.4.x fix stays off `releases/latest`, and the table installs it from its versioned manifest.
