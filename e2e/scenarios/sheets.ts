@@ -3449,5 +3449,14 @@ export async function run(e2e: ScenarioContext) {
 		compatibilityWarnings.filter((warning) => replacedGlobals.some((name) => new RegExp(`\\b${name}\\b`).test(warning))),
 		[],
 	);
+	// A global deprecated since v13 that no step reads shows that the console's warnings are read at all.
+	await e2e.step('#349 GM reads the deprecated global SortingHelpers', async () => {
+		await gm.evaluate(() => void (globalThis as unknown as Record<string, unknown>).SortingHelpers);
+	});
+	e2e.expect(
+		"#349 A2 a deprecated global's compatibility warning is read from the console",
+		compatibilityWarnings.filter((warning) => warning.includes('SortingHelpers')),
+		[`${gm.user}: Error: You are accessing the global "SortingHelpers" which is now namespaced under foundry.utils.SortingHelpers`],
+	);
 	await e2e.step('cleanup', () => gm.evaluate(() => window.sheetsE2E.cleanUp()));
 }
