@@ -233,8 +233,8 @@ Genesys:
     CannotDeleteExistingTalent: "Impossible de supprimer l'entrée du journal de XP pour l'augmentation du talent '{name}' au rang {rank} - Vous devez d'abord supprimer les augmentations de rang supérieur !"
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
     CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de catégorie {tier} - vous devez avoir au moins {minimum} talents de catégorie {lowerTier} d'abord"
-    CannotReplaceArchetype: "Impossible de prendre l'archétype '{name}' : l'archétype ne peut changer que tant que le Journal des XP ne contient que l'XP de départ. Annulez d'abord ses autres entrées !"
-    CannotReplaceCareer: "Impossible de prendre la carrière '{name}' : la carrière ne peut changer que tant qu'aucun rang de compétence n'a été acheté. Annulez d'abord les entrées de compétence du Journal des XP !"
+    CannotReplaceArchetype: "Impossible de prendre l'archétype '{name}' : l'archétype ne peut changer que si le Journal des XP ne contient rien d'autre que l'XP de départ. Annulez d'abord ses autres entrées !"
+    CannotReplaceCareer: "Impossible de prendre la carrière '{name}' : la carrière ne peut plus changer une fois un rang de compétence acheté. Annulez d'abord les entrées de compétence du Journal des XP !"
     NotEnoughStoryPoints: Vous ne pouvez pas dépenser de Point Narratif que vous ne possédez pas!
     SelectOneTokenForAction: Vous devez selectionner un unique token pour réaliser cette action.
     NoActorForCheck: Sélectionnez un seul token ou attribuez-vous un personnage pour faire ce test.
@@ -266,7 +266,7 @@ Genesys:
       NewTalentNotFound: "Annuler l'achat du talent {name} ? Le talent acheté est introuvable sur le personnage : aucun talent n'est supprimé."
       NewTalentNotLinked: >-
         Annuler l'achat du talent {name} ? Le talent acheté est introuvable sur le personnage : le talent {name} de la fiche
-        n'est pas lié à cette entrée, et reste.
+        n'est pas lié à cette entrée, et est conservé.
       TalentRank: Annuler l'augmentation de {name} au rang {rank} ? Le talent revient au rang {previous}.
       TalentRankNotFound: "Annuler l'augmentation de {name} au rang {rank} ? Le talent est introuvable sur le personnage : aucun rang ne baisse."
       XPGivenBack: Le personnage récupère les {xp} XP dépensés.
@@ -279,7 +279,7 @@ Genesys:
     ConfirmRemoveCareer:
       Title: Retirer la carrière
       Content: >-
-        Retirer {name} retire la marque de carrière de ses compétences et reprend les rangs gratuits qu'elle leur a donnés.
+        Retirer {name} enlève la marque de carrière de ses compétences et reprend les rangs gratuits qu'elle leur a donnés.
         Voulez-vous continuer ?
 
   # Migration Related Messages

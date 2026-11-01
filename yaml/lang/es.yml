@@ -275,7 +275,7 @@ Genesys:
       Title: Quitar el arquetipo
       Content: >-
         Quitar {name} retira las características, los umbrales de heridas y de tensión y los PE iniciales que dio, elimina los
-        items que concedió y baja un rango cada habilidad que concedió. ¿Deseas continuar?
+        objetos que concedió y baja un rango cada habilidad que concedió. ¿Deseas continuar?
     ConfirmRemoveCareer:
       Title: Quitar la profesión
       Content: >-
