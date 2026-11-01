@@ -76,11 +76,35 @@ export function runSummary(run: string, scenarios: { scenario: string; steps: St
 }
 
 /**
- * A step's line in the run's output.
+ * The longest value a terse step line prints in full, as a `log` step's: a combat state is longer, and stays in the
+ * step log saved as JSON.
  */
-export function stepLine(run: string, step: Step) {
-	const expected = step.failed && isAssertion(step) ? ` (expected ${JSON.stringify(step.expected)})` : '';
-	return `${step.failed ? 'FAILED ' : ''}[${run}] ${step.name} ${JSON.stringify(step.value)}${expected}`;
+const SHORT_VALUE = 120;
+
+/**
+ * A step's line in the run's output. A failed step, or any step with `verbose`, prints its value; otherwise a passed
+ * assertion prints `✓`, a short value prints in full, and a long one prints only the client errors it holds, which
+ * fail no assertion and would be lost in the step log.
+ */
+export function stepLine(run: string, step: Step, { verbose = false } = {}) {
+	if (step.failed || verbose) {
+		const expected = step.failed && isAssertion(step) ? ` (expected ${JSON.stringify(step.expected)})` : '';
+		return `${step.failed ? 'FAILED ' : ''}[${run}] ${step.name} ${JSON.stringify(step.value)}${expected}`;
+	}
+	if (isAssertion(step)) return `[${run}] ${step.name} ✓`;
+	const value = JSON.stringify(step.value) ?? '';
+	if (value.length <= SHORT_VALUE) return `[${run}] ${step.name} ${value}`;
+	const errors = clientErrors(step.value);
+	return `[${run}] ${step.name}${errors ? ` ${JSON.stringify(errors)}` : ''}`;
+}
+
+/**
+ * The client errors a step's value holds, under the `<user> errors` keys the scenario adds, or none.
+ */
+function clientErrors(value: unknown) {
+	if (typeof value !== 'object' || value === null) return undefined;
+	const errors = Object.entries(value).filter(([key]) => key.endsWith(' errors'));
+	return errors.length ? Object.fromEntries(errors) : undefined;
 }
 
 /**

@@ -98,8 +98,32 @@ describe('runSummary', () => {
 });
 
 describe('stepLine', () => {
-	it('prints a step with its run and value', () => {
+	const combatState = { Gamemaster: { started: true, slots: ['Hero:-1=2.02', 'Foe:-1=0'], trackerActive: ['Hero:-1'] } };
+	const longState = { ...combatState, Joueur: combatState.Gamemaster };
+
+	it('prints a step with its run and a short value', () => {
 		expect(stepLine('v13 head', { name: 'A0 before', value: { turn: 1 } })).toBe('[v13 head] A0 before {"turn":1}');
+	});
+
+	it('leaves out a long value, which the saved step log holds', () => {
+		expect(stepLine('v13 head', { name: 'A0 set up', value: longState })).toBe('[v13 head] A0 set up');
+	});
+
+	it('prints the client errors of a long value, which fail no assertion', () => {
+		const value = { ...longState, 'Gamemaster errors': ['TypeError: x is undefined'] };
+		expect(stepLine('v13 head', { name: 'A2 drop', value })).toBe(
+			'[v13 head] A2 drop {"Gamemaster errors":["TypeError: x is undefined"]}',
+		);
+	});
+
+	it('marks a passed assertion without its value', () => {
+		expect(stepLine('v13 head', assertionStep('A1 turn kept', longState, longState))).toBe('[v13 head] A1 turn kept ✓');
+	});
+
+	it('prints every value with verbose', () => {
+		expect(stepLine('v13 head', assertionStep('A1 turn kept', 'Hero:-1', 'Hero:-1'), { verbose: true })).toBe(
+			'[v13 head] A1 turn kept "Hero:-1"',
+		);
 	});
 
 	it('marks a failed assertion and gives the value it expected', () => {
