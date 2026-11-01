@@ -13,7 +13,8 @@ type Source =
 	| { compendium: string }
 	| { compendiumActorItem: string }
 	| { folder: string }
-	| { held: string; by: string };
+	| { held: string; by: string }
+	| { deleted: { sidebar: string } | { held: string; by: string } };
 
 /**
  * The half of an inventory row a drag points at: the upper one, before its item, or the lower one, after it.
@@ -27,6 +28,13 @@ type RowEdge = 'before' | 'after';
 type Target = { section: EquipmentState; slot: number } | { item: string; edge?: RowEdge } | { on: string };
 
 type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
+
+/**
+ * A row's menu as it opened: the corner of it that lies on the point it opened from, if any; whether it lies inside what
+ * the sheet and the viewport show; the points of it where another element shows instead (its entries' middles and its
+ * inner corners); and its look, the computed styles of it and of its first entry, but the transform that moves it.
+ */
+type OpenMenu = { corner: string; inside: boolean; covered: string[]; look: Record<string, string> };
 
 /**
  * The helpers name an actor of the setup by its name without `E2E `, or `token:<name>` for the actor of an unlinked token.
@@ -79,6 +87,22 @@ type InventoryHelpers = {
 	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
 	rollPrompt(): Promise<void>;
+	/**
+	 * Brings an actor's sheet to the front on its Inventory tab, cut short so that the tab scrolls, and scrolls the tab so
+	 * that an item's row shows in its upper part, or at its lower edge with the sheet's bottom on the viewport's: the middle of
+	 * the row's image, which nothing covers, for a real mouse to click, and how far the tab is scrolled.
+	 */
+	pointAtRow(actor: string, item: string, where: 'middle' | 'lowerEdge'): Promise<{ point: Point; scrolled: number }>;
+	/** The middle of the … button of an item's row, which nothing covers. */
+	buttonPoint(actor: string, item: string): Promise<Point>;
+	/** Reads the menu open on an item's row, opened from that point; null when none is open. */
+	openMenu(actor: string, item: string, from: Point): Promise<OpenMenu | null>;
+	/** Closes the menu of an item's row, as a click elsewhere does. */
+	closeMenu(actor: string, item: string): Promise<void>;
+	/** Puts an actor's sheet back to the size and place it had before {@link pointAtRow}. */
+	restoreSheet(actor: string): Promise<void>;
+	/** Writes an item's damage state to the database, past the client's data model, as a broken world may hold it. */
+	seedDamage(actor: string, item: string, damage: string): Promise<void>;
 	/** Runs a script on the setup's documents. */
 	updateItem(actor: string, item: string, changes: object): Promise<void>;
 	/** Writes an Equipment State by script, and tells whether the write threw and which state the item and the database keep. */
@@ -204,7 +228,7 @@ function installInventoryHelpers() {
 		return findRow(root, name);
 	};
 
-	const dropData = async (source: Source) => {
+	const dropData = async (source: Exclude<Source, { deleted: unknown }>) => {
 		if ('sidebar' in source) return { type: 'Item', uuid: game.items.getName(full(source.sidebar)).uuid };
 		if ('folder' in source) return { type: 'Folder', uuid: game.folders.getName(full(source.folder)).uuid };
 		if ('compendium' in source) {
@@ -221,7 +245,14 @@ function installInventoryHelpers() {
 		throw new Error('A held item is dragged from its row');
 	};
 	// A held item is dragged from its sheet, which writes the drag data as the user's drag does.
-	const dragFrom = async (source: Source) => {
+	const dragFrom = async (source: Source): Promise<object | DataTransfer> => {
+		if ('deleted' in source) {
+			const dragged = await dragFrom(source.deleted);
+			await (
+				'held' in source.deleted ? item(source.deleted.by, source.deleted.held) : game.items.getName(full(source.deleted.sidebar))
+			).delete();
+			return dragged;
+		}
 		if ('held' in source) {
 			const root = await sheet(source.by);
 			const element = ['character', 'vehicle'].includes(actor(source.by).type)
@@ -354,6 +385,60 @@ function installInventoryHelpers() {
 		const document = place === 'actor' ? held : game.scenes.viewed.tokens.getName(full('Token Rival')).actor.items.getName(full(name));
 		return { id: held.id, operation: { parentUuid: window.e2e.actor(ref).uuid } as Record<string, string>, document };
 	};
+
+	// The sheets pointAtRow moved and cut short, with the size, place and minimum height to put back.
+	const movedSheets = new Map<string, { position: object; minHeight: string }>();
+	// The element that scrolls a row into view: its nearest ancestor that scrolls its overflow, and has some.
+	const scrollerOf = (element: Element) => {
+		for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+			if (/auto|scroll/.test(getComputedStyle(ancestor).overflowY) && ancestor.scrollHeight > ancestor.clientHeight) return ancestor;
+		}
+		throw new Error(`Nothing scrolls ${text(element)}`);
+	};
+	// The middle of an element, which a real mouse can click only when the element shows there, under no other.
+	const uncoveredMiddle = (element: Element): Point => {
+		const box = element.getBoundingClientRect();
+		const point = { x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2) };
+		if (!element.contains(document.elementFromPoint(point.x, point.y))) {
+			throw new Error(`${element.className} is covered at ${point.x}, ${point.y}`);
+		}
+		return point;
+	};
+	// What the viewport shows of an element: each ancestor that clips its overflow cuts it down.
+	const shownArea = (element: Element) => {
+		const area = { left: 0, top: 0, right: document.documentElement.clientWidth, bottom: document.documentElement.clientHeight };
+		for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+			if (getComputedStyle(ancestor).overflow === 'visible') continue;
+			const box = ancestor.getBoundingClientRect();
+			area.left = Math.max(area.left, box.left);
+			area.top = Math.max(area.top, box.top);
+			area.right = Math.min(area.right, box.right);
+			area.bottom = Math.min(area.bottom, box.bottom);
+		}
+		return area;
+	};
+	const MENU_LOOK = [
+		'display',
+		'position',
+		'flex-direction',
+		'gap',
+		'min-width',
+		'width',
+		'z-index',
+		'background-image',
+		'background-color',
+		'border-top-width',
+		'border-top-style',
+		'border-top-color',
+		'border-top-left-radius',
+		'padding-top',
+		'padding-left',
+		'font-family',
+		'font-size',
+		'color',
+		'opacity',
+	];
+	const ENTRY_LOOK = ['display', 'height', 'padding-top', 'padding-left', 'font-family', 'font-size', 'color', 'background-color'];
 
 	const helpers: InventoryHelpers = {
 		async setUp(playerUser) {
@@ -716,6 +801,109 @@ function installInventoryHelpers() {
 			}
 			if (corner) return corner[0];
 			return box ? `none: top-left at ${Math.round(box.left - point.x)}, ${Math.round(box.top - point.y)}` : 'no menu';
+		},
+
+		async pointAtRow(ref, name, where) {
+			const app = actor(ref).sheet;
+			await window.e2e.showTab(ref, 'inventory');
+			if (!movedSheets.has(ref)) movedSheets.set(ref, { position: { ...app.position }, minHeight: app.element.style.minHeight });
+			app.bringToFront();
+			// The sheet's minimum height would show the whole tab, which then wouldn't scroll.
+			app.element.style.minHeight = '0';
+			const height = 560;
+			app.setPosition({ left: 300, top: where === 'lowerEdge' ? document.documentElement.clientHeight - height : 80, height });
+			await settle();
+			const row = await heldRow(ref, name);
+			const scroller = scrollerOf(row);
+			const shown = scroller.getBoundingClientRect();
+			const box = row.getBoundingClientRect();
+			scroller.scrollTop += where === 'middle' ? box.top - (shown.top + shown.height / 5) : box.bottom - (shown.bottom - 2);
+			await settle();
+			return { point: uncoveredMiddle(row.querySelector(':scope > img')!), scrolled: Math.round(scroller.scrollTop) };
+		},
+
+		async buttonPoint(ref, name) {
+			return uncoveredMiddle((await heldRow(ref, name)).querySelector(':scope > .actions')!);
+		},
+
+		async openMenu(ref, name, from) {
+			// Opening a menu changes no document: the row's render is waited for.
+			await settle();
+			const menu = (await heldRow(ref, name)).querySelector<HTMLElement>(':scope > .actions .context-menu');
+			if (!menu) return null;
+			const box = menu.getBoundingClientRect();
+			const corners: Record<string, Point> = {
+				'top-left': { x: box.left, y: box.top },
+				'top-right': { x: box.right, y: box.top },
+				'bottom-left': { x: box.left, y: box.bottom },
+				'bottom-right': { x: box.right, y: box.bottom },
+			};
+			const corner = Object.entries(corners).find(([, { x, y }]) => Math.abs(x - from.x) < 1 && Math.abs(y - from.y) < 1)?.[0];
+			const area = shownArea(menu);
+			// The points a user aims at: each entry's middle, and the menu's corners, inside its rounded border.
+			const inset = 8;
+			const points: Record<string, Point> = {
+				'inner top-left': { x: box.left + inset, y: box.top + inset },
+				'inner top-right': { x: box.right - inset, y: box.top + inset },
+				'inner bottom-left': { x: box.left + inset, y: box.bottom - inset },
+				'inner bottom-right': { x: box.right - inset, y: box.bottom - inset },
+			};
+			for (const entry of menu.querySelectorAll('.menu-item')) {
+				const entryBox = entry.getBoundingClientRect();
+				points[text(entry.querySelector('.menu-label'))] = {
+					x: entryBox.left + entryBox.width / 2,
+					y: entryBox.top + entryBox.height / 2,
+				};
+			}
+			const look = (element: Element | null, prefix: string, properties: string[]) => {
+				const style = element ? getComputedStyle(element) : undefined;
+				return Object.fromEntries(properties.map((property) => [`${prefix}${property}`, style?.getPropertyValue(property) ?? '']));
+			};
+			return {
+				corner: corner ?? `none: top-left at ${Math.round(box.left - from.x)}, ${Math.round(box.top - from.y)}`,
+				inside:
+					box.left >= area.left - 0.5 &&
+					box.top >= area.top - 0.5 &&
+					box.right <= area.right + 0.5 &&
+					box.bottom <= area.bottom + 0.5,
+				covered: Object.entries(points)
+					.filter(([, { x, y }]) => !menu.contains(document.elementFromPoint(x, y)))
+					.map(([point]) => point),
+				look: {
+					class: menu.className,
+					...look(menu, '', MENU_LOOK),
+					...look(menu.querySelector('.menu-item'), 'entry ', ENTRY_LOOK),
+				},
+			};
+		},
+
+		async closeMenu(ref, name) {
+			const row = await heldRow(ref, name);
+			document.body.click();
+			await waitFor(`the menu of ${name} to close`, () => !row.querySelector(':scope > .actions .context-menu'));
+		},
+
+		async restoreSheet(ref) {
+			const moved = movedSheets.get(ref);
+			if (!moved) return;
+			const app = actor(ref).sheet;
+			app.element.style.minHeight = moved.minHeight;
+			app.setPosition(moved.position);
+			movedSheets.delete(ref);
+			await settle();
+		},
+
+		async seedDamage(ref, name, damage) {
+			await raw({
+				type: 'Item',
+				action: 'update',
+				operation: {
+					parentUuid: actor(ref).uuid,
+					updates: [{ _id: item(ref, name).id, system: { damage } }],
+					diff: true,
+					recursive: true,
+				},
+			});
 		},
 
 		async edgesShown(source, ref, name, edges) {
@@ -1955,6 +2143,10 @@ export async function run(e2e: ScenarioContext) {
 
 	await rowMenuAndDrops(e2e);
 
+	await deletedDrops(e2e);
+
+	await unknownDamageState(e2e);
+
 	await usedState(e2e);
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
@@ -2095,6 +2287,59 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		await menuCorner('Placer', 'Lance', 'button'),
 		'top-right',
 	);
+	// §#429: with a real mouse, which only reaches what shows under it, on a sheet whose Inventory tab is scrolled, then near
+	// the sheet's lower edge, which lies on the viewport's. The menu the row's … button opens is the one to look like.
+	const realMouse = async (item: string, where: 'middle' | 'lowerEdge') => {
+		const { point, scrolled } = await gm.evaluate((args) => window.inventoryE2E.pointAtRow('Placer', args.item, args.where), {
+			item,
+			where,
+		});
+		await gm.page.mouse.click(point.x, point.y, { button: 'right' });
+		const menu = await gm.evaluate((args) => window.inventoryE2E.openMenu('Placer', args.item, args.point), { item, point });
+		await gm.evaluate((name) => window.inventoryE2E.closeMenu('Placer', name), item);
+		const button = await gm.evaluate((name) => window.inventoryE2E.buttonPoint('Placer', name), item);
+		await gm.page.mouse.click(button.x, button.y);
+		const byButton = await gm.evaluate((args) => window.inventoryE2E.openMenu('Placer', args.item, args.button), { item, button });
+		await gm.evaluate((name) => window.inventoryE2E.closeMenu('Placer', name), item);
+		return { scrolled, menu, byButton };
+	};
+	let mouse: Awaited<ReturnType<typeof realMouse>> | undefined;
+	const placed = () => mouse?.menu && { corner: mouse.menu.corner, inside: mouse.menu.inside, covered: mouse.menu.covered };
+	const looks = () => ({ rightClick: mouse?.menu?.look, button: mouse?.byButton?.look });
+	await e2e.step(
+		"#429 B1 Placer's Inventory tab scrolled to the Pike row, right-clicked with a real mouse, then its … button clicked",
+		async () => {
+			mouse = await realMouse('Pike', 'middle');
+		},
+	);
+	e2e.expect(
+		'#429 B1 a real right-click on a row of a scrolled Inventory tab opens its menu with its top-left corner under the pointer, inside what the sheet shows, with nothing over it',
+		{ scrolled: (mouse?.scrolled ?? 0) > 0, ...placed() },
+		{ scrolled: true, corner: 'top-left', inside: true, covered: [] },
+	);
+	e2e.expect(
+		"#429 B1 the menu a real right-click opens has the look of the one the row's … button opens",
+		looks().rightClick,
+		looks().button,
+	);
+	await e2e.step(
+		"#429 B2 Placer's sheet moved down to the viewport's lower edge, its Pinecone row scrolled to the tab's lower edge and right-clicked with a real mouse, then its … button clicked",
+		async () => {
+			mouse = await realMouse('Pinecone', 'lowerEdge');
+			await gm.evaluate(() => window.inventoryE2E.restoreSheet('Placer'));
+		},
+	);
+	e2e.expect(
+		"#429 B2 a real right-click near the sheet's lower edge opens the menu above the pointer, its bottom-left corner under it, inside what the sheet shows, with nothing over it",
+		placed(),
+		{ corner: 'bottom-left', inside: true, covered: [] },
+	);
+	e2e.expect(
+		"#429 B2 the menu a real right-click opens above the pointer has the look of the one the row's … button opens",
+		looks().rightClick,
+		looks().button,
+	);
+
 	let quantityMenu: string[] | null = null;
 	await e2e.step("#358 A2 Placer's Twig, at a quantity of 3, right-clicked on its quantity", async () => {
 		quantityMenu = await rightClick('Placer', 'Twig', 'quantity');
@@ -2238,6 +2483,130 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		"#358 C5 an item dropped on a vehicle's Container row goes inside it",
 		(await items('Rover')).filter((name) => name.startsWith('Winch')),
 		['Winch:carried@Locker'],
+	);
+}
+
+/** §#271: a drop carrying an item deleted since its drag began, or since its link was made, on an item's sheet or an inventory. */
+async function deletedDrops(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const { drop, items } = inventorySteps(gm);
+	const spear = () => gm.evaluate(() => window.inventoryE2E.sidebarItem('Spear'));
+	const carried: Target = { section: 'carried', slot: 0 };
+	const spearBefore = await spear();
+	let errors = gm.errors.length;
+	await e2e.step("#271 A1 a link to a deleted world quality dropped on a weapon's sheet", async () => {
+		await gm.evaluate(() => Item.create({ name: 'E2E Ghost Quality', type: 'quality', system: { isRated: true } }));
+		await gm.evaluate(() => window.inventoryE2E.dropOnItemSheet({ deleted: { sidebar: 'Ghost Quality' } }, 'Spear'));
+	});
+	e2e.expect(
+		"#271 A1 a link to a deleted item dropped on an item's sheet does nothing, with no error in the console",
+		{ spear: await spear(), errors: gm.errors.slice(errors) },
+		{ spear: spearBefore, errors: [] },
+	);
+
+	const receiverBefore = await items('Receiver');
+	errors = gm.errors.length;
+	await e2e.step(
+		"#271 A2 Sorter's Wisp dragged from its inventory row, deleted, then dropped on Receiver's Carried section",
+		async () => {
+			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Wisp', type: 'gear' }]));
+			await e2e.settle();
+			await drop({ deleted: { held: 'Wisp', by: 'Sorter' } }, 'Receiver', carried)();
+		},
+	);
+	e2e.expect(
+		"#271 A2 an inventory row's drag whose item is deleted before the drop, dropped on an inventory, does nothing, with no error in the console",
+		{
+			receiver: await items('Receiver'),
+			wisp: (await items('Sorter')).filter((name) => name.startsWith('Wisp')),
+			errors: gm.errors.slice(errors),
+		},
+		{ receiver: receiverBefore, wisp: [], errors: [] },
+	);
+
+	// §#254: a link carries no Genesys type, so the inventory leaves it to the sheet, whose Foundry handler logs an error
+	// when the item the link names is gone.
+	errors = gm.errors.length;
+	await e2e.step("#271 A3 a link to a deleted world gear dropped on Receiver's Carried section", async () => {
+		await gm.evaluate(() => Item.create({ name: 'E2E Ghost Gear', type: 'gear' }));
+		await drop({ deleted: { sidebar: 'Ghost Gear' } }, 'Receiver', carried)();
+	});
+	e2e.expect(
+		"#271 A3 a link to a deleted item dropped on an inventory changes nothing, and the actor's sheet logs Foundry's error in the console",
+		{
+			receiver: await items('Receiver'),
+			errors: gm.errors.slice(errors).map((error) => /Failed to resolve Document from provided DragData/.test(error)),
+		},
+		{ receiver: receiverBefore, errors: [true] },
+	);
+}
+
+/**
+ * §#348: a damage state none of the four known gets no tooltip. A world can't load one: Foundry keeps an item whose stored
+ * state fails the schema's choices out of its actor. Only its prepared data can hold one, as a module or a script may write.
+ */
+async function unknownDamageState(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	await e2e.step(
+		"#348 B1 Sorter's Splinter saved with the damage state wrecked, past the client's data model, then the world reloaded",
+		async () => {
+			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Splinter', type: 'gear' }]));
+			await gm.evaluate(() => window.inventoryE2E.seedDamage('Sorter', 'Splinter', 'wrecked'));
+			await gm.reload();
+			await gm.evaluate(installInventoryHelpers);
+		},
+	);
+	e2e.expect(
+		'#348 B1 an item stored with an unknown damage state loads as an invalid document, which the inventory leaves out',
+		{
+			invalid: await gm.evaluate(() => {
+				const items = game.actors.getName('E2E Sorter').items;
+				return [...items.invalidDocumentIds].map((id: string) => items.getInvalid(id).name);
+			}),
+			items: (await gm.evaluate(() => window.inventoryE2E.items('Sorter'))).filter((name) => name.startsWith('Splinter')),
+		},
+		{ invalid: ['E2E Splinter'], items: [] },
+	);
+	e2e.log(
+		'#348 B1 invalid items left on Sorter once deleted',
+		await gm.evaluate(async () => {
+			const sorter = game.actors.getName('E2E Sorter');
+			await sorter.deleteEmbeddedDocuments('Item', [...sorter.items.invalidDocumentIds]);
+			return [
+				...sorter.items.invalidDocumentIds,
+				...sorter._source.items
+					.filter((item: { name: string }) => item.name === 'E2E Splinter')
+					.map((item: { _id: string }) => item._id),
+			];
+		}),
+	);
+
+	let tooltips: (string | null)[] = [];
+	let errors = gm.errors.length;
+	await e2e.step(
+		"#348 B2 Sorter's Sliver given the damage state wrecked in its prepared data, and the sheet rendered again",
+		async () => {
+			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Sliver', type: 'gear' }]));
+			await e2e.settle();
+			e2e.log('#348 B2 console errors while Sliver is created', gm.errors.slice(errors));
+			errors = gm.errors.length;
+			const before = (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Sliver'))).damageState;
+			await gm.evaluate(async () => {
+				game.actors.getName('E2E Sorter').items.getName('E2E Sliver').system.damage = 'wrecked';
+				await game.actors.getName('E2E Sorter').sheet.render();
+			});
+			await e2e.settle();
+			tooltips = [before, (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Sliver'))).damageState];
+			await gm.evaluate(async () => {
+				game.actors.getName('E2E Sorter').items.getName('E2E Sliver').reset();
+				await game.actors.getName('E2E Sorter').sheet.render();
+			});
+		},
+	);
+	e2e.expect(
+		"#348 B2 an item whose damage state is none of the four known shows its row's damage with no tooltip, and no error",
+		{ tooltips, errors: gm.errors.slice(errors) },
+		{ tooltips: ['Genesys.Equipment.DamageState.Undamaged', null], errors: [] },
 	);
 }
 
