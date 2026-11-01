@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.4...v0.5.0) (2026-11-01)
+
+
+### Bug Fixes
+
+* **i18n:** translate the Formidable difficulty as Exceptionnel in French ([#485](https://github.com/kornifex/FVTT-Genesys/issues/485)) ([fd68679](https://github.com/kornifex/FVTT-Genesys/commit/fd68679e4ab7c00cb26e5921d659473f340f358e))
+
+
+### Documentation
+
+* say a release PR with nothing to ship can be closed ([#481](https://github.com/kornifex/FVTT-Genesys/issues/481)) ([bd4998b](https://github.com/kornifex/FVTT-Genesys/commit/bd4998bd7d2c099ff810ff7ce5c8d894118d25a1))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#477](https://github.com/kornifex/FVTT-Genesys/issues/477)) ([8341ec1](https://github.com/kornifex/FVTT-Genesys/commit/8341ec181cf964780fcd79f341dbd620fc78bf03))
+
+
+### Miscellaneous Chores
+
+* add a pnpm checklist script that edits the test checklist issue without printing its body ([#479](https://github.com/kornifex/FVTT-Genesys/issues/479)) ([224709f](https://github.com/kornifex/FVTT-Genesys/commit/224709ff0e8b829985130cfa09fd43b8ca554ddc))
+* keep Claude Code's worktrees out of vitest, knip and git ([#475](https://github.com/kornifex/FVTT-Genesys/issues/475)) ([f8f7fe6](https://github.com/kornifex/FVTT-Genesys/commit/f8f7fe60a87260571e3f2bcf98d60d418dcdb6f4))
+
+
+### Tests
+
+* print terse e2e step lines, with --verbose for their values ([#476](https://github.com/kornifex/FVTT-Genesys/issues/476)) ([6dbe0c9](https://github.com/kornifex/FVTT-Genesys/commit/6dbe0c9ba891a136ee5d53b086bda582323052ab))
+
 ## [0.5.0-rc.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.3...v0.5.0-rc.4) (2026-11-01)
 
 
