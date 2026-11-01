@@ -57,7 +57,7 @@ type CombatHelpers = {
 	writes: string[];
 	/** The users who wrote Claims since the last {@link reset}, one entry per write. */
 	claimWriters: string[];
-	/** The turns, by combatant, as this client ordered them when each write of the Extra Slots reached it, since the last {@link reset}. */
+	/** The turns, by combatant, as this client ordered them as each write of the Extra Slots reached it, since the last {@link reset}. */
 	turnsAtUpdate: string[][];
 	/** The socket refreshes of the turn order this client dropped since the last {@link reset}. */
 	droppedRefreshes: number;
@@ -423,7 +423,7 @@ function installCombatHelpers() {
 	Hooks.on('updateCombat', (combat: { turns: { name: string }[] }, changed: object, _options: unknown, userId: string) => {
 		if (foundry.utils.hasProperty(changed, 'flags.genesys.extraSlots')) {
 			helpers.writes.push('Extra Slots');
-			// Foundry calls the hook once the update has reached the combat: the turns as they are then are the client's own order.
+			// Foundry calls the hook once the combat has taken the update: its turns are then the order this client made.
 			helpers.turnsAtUpdate.push(combat.turns.map((turn) => turn.name));
 		}
 		if (foundry.utils.hasProperty(changed, 'flags.genesys.slotClaims'))
@@ -867,8 +867,8 @@ export async function run(e2e: ScenarioContext) {
 		turnKept('D1', d1, 'Hero:-1');
 		await noTick('D1', 'Hero');
 
-		// The GM rolls all, whose slots move before Boss's own slot, whose turn it is: the GM's client would play its "your
-		// turn" sound for Boss, an NPC, the player's for Hero.
+		// The GM rolls all, whose slots move before Boss's own slot, whose turn it is: a turn change back to Boss, an NPC,
+		// would play the GM's "your turn" sound.
 		await setUpRolls({ 'Hero:-1': null, 'Hero:0': null, 'Boss:-1': -50, 'Boss:1': null }, 'Boss:-1');
 		await e2e.step('#59 E0 before');
 		await noTick('E0', 'Boss');
