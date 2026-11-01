@@ -52,13 +52,13 @@ pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing bui
 
 ## The suite
 
-`e2e/scenarios/` holds one scenario per domain, each covering the items of the release's test checklist it can prove: `combat`, `dicePrompt`, `inventory`, `character`, `vehicle`, `adversaries`, `migrations` (isolated: it needs a pristine world) and `sheets`. A checklist item an `expect` step proves is ticked with a link to it: `e2e/scenarios/combat.ts › step "#59 A1 the turn stays on Hero:-1, with no turn event"`.
+`e2e/scenarios/` holds one scenario per domain, each covering the items of the release's test checklist it can prove: `combat`, `dicePrompt`, `inventory`, `character`, `vehicle`, `adversaries`, `migrations` (isolated: it needs a pristine world), `sheets` and `routePrefix` (isolated: its Foundry serves the world under a route prefix). A checklist item an `expect` step proves is ticked with a link to it: `e2e/scenarios/combat.ts › step "#59 A1 the turn stays on Hero:-1, with no turn event"`.
 
 A Foundry-dependent change adds or extends its domain's scenario, rather than keeping a one-off scenario out of the repo. Every `.ts` file of `e2e/scenarios/` is a scenario: helpers shared by several scenarios go in `e2e/`, and those that run in the page in `window.e2e` ([`page.ts`](page.ts)).
 
 ## Writing a scenario
 
-A scenario is a TypeScript file exporting `run`, `isolated = true` when it must not share its world, and `needsCanvas = true` when it uses tokens on the canvas ([Canvas](#canvas)).
+A scenario is a TypeScript file exporting `run`, `isolated = true` when it must not share its world, `needsCanvas = true` when it uses tokens on the canvas ([Canvas](#canvas)), and `routePrefix` when an isolated scenario's Foundry serves the world under a path, as behind a reverse proxy (`'e2e'` serves it at `/e2e/`, through the `routePrefix` of its data dir's `Config/options.json`).
 
 ```ts
 import type { ScenarioContext } from '../scenario.ts';
@@ -119,4 +119,4 @@ Every page records its activity: each hook Foundry or the system calls, each soc
 
 ## Canvas
 
-Headless Chromium draws Foundry's WebGL canvas without a GPU, which takes most of the run's CPU: on a machine with one, `E2E_ANGLE=vulkan` (or `gl-egl`) draws on it instead. A scenario's clients join in Foundry's no-canvas mode (the `core.noCanvas` client setting): they view the scene without drawing it, and `canvas.scene`, `canvas.tokens` and the token HUD don't exist. A scenario exporting `needsCanvas = true` keeps the canvas, at Foundry's lowest frame rate (`core.maxFPS`, 10): `combat` (controlled and hovered tokens), `dicePrompt` (controlled and targeted tokens, the targeted vehicle checks of #201), `adversaries` (a token's bars in its HUD), and `inventory` and `vehicle`, which delete tokens: Foundry v13 throws in no-canvas mode when a token is deleted, its `CanvasDocument#_onDelete` reading the clipboard of a layer that doesn't exist. `character`, `sheets` and `migrations` run without it; the page helpers reach the viewed scene through `game.scenes.viewed` there.
+Headless Chromium draws Foundry's WebGL canvas without a GPU, which takes most of the run's CPU: on a machine with one, `E2E_ANGLE=vulkan` (or `gl-egl`) draws on it instead. A scenario's clients join in Foundry's no-canvas mode (the `core.noCanvas` client setting): they view the scene without drawing it, and `canvas.scene`, `canvas.tokens` and the token HUD don't exist. A scenario exporting `needsCanvas = true` keeps the canvas, at Foundry's lowest frame rate (`core.maxFPS`, 10): `combat` (controlled and hovered tokens), `dicePrompt` (controlled and targeted tokens, the targeted vehicle checks of #201), `adversaries` (a token's bars in its HUD), and `inventory` and `vehicle`, which delete tokens: Foundry v13 throws in no-canvas mode when a token is deleted, its `CanvasDocument#_onDelete` reading the clipboard of a layer that doesn't exist. `character`, `sheets`, `migrations` and `routePrefix` run without it; the page helpers reach the viewed scene through `game.scenes.viewed` there.
