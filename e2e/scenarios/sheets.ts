@@ -1617,8 +1617,8 @@ export async function run(e2e: ScenarioContext) {
 			skill: withSelects,
 			talent: withSelects,
 			quality: withSelects,
-			weapon: 'PROBE',
-			vehicleWeapon: 'PROBE',
+			weapon: withSelects,
+			vehicleWeapon: withSelects,
 		},
 	);
 
@@ -2988,28 +2988,34 @@ export async function run(e2e: ScenarioContext) {
 		await window.sheetsE2E.clickTab('Vehicle', 'combat');
 	});
 	e2e.expect(
-		"#134 N3 PROBE a vehicle's Combat tab draws the commas between a weapon's firing arcs",
+		"#134 N3 a vehicle's Combat tab draws the commas between a weapon's firing arcs",
 		await gm.evaluate(() => window.sheetsE2E.renderedText('Vehicle', '.tab-combat .weapon:not(.header)', 'E2E Cannon')),
-		'probe',
+		'E2E CannonGunnery60EngagedFore,PortE2E Pierce 1',
 	);
+	// Hero rolls Gunnery with Agility 2 and no rank: two Ability dice against the attack's two Difficulty dice.
 	await e2e.step('#134 GM gives the Vehicle a Gunner, Hero, and opens the attack of its Cannon', () =>
 		gm.evaluate(async () => {
 			const { actor } = window.e2e;
+			await window.sheetsE2E.update('Hero', { 'system.characteristics.agility': 2 });
 			await window.sheetsE2E.update('Vehicle', {
 				'system.roles': [{ id: foundry.utils.randomID(), name: 'E2E Gunner', skills: ['Gunnery'], members: [actor('Hero').uuid] }],
 			});
 			await window.sheetsE2E.attackWithVehicleWeapon('Vehicle', 'Cannon');
 		}),
 	);
-	e2e.log('#134 attack prompt', await gm.evaluate(() => window.e2e.poolPreview(document.querySelector('.app-dice-prompt')!)));
+	const attackPool = await gm.evaluate(() => window.e2e.poolPreview(document.querySelector('.app-dice-prompt')!));
+	// The fourth face of an Ability die holds two Successes, a Difficulty die's a Threat: four Successes are left.
 	await e2e.step("#134 GM rolls the Cannon's attack, every die on its fourth face", async () => {
-		await gm.fixDice([4, 4, 4, 4, 4, 4].map((face) => ({ face, faces: 8 })));
+		await gm.fixDice([4, 4, 4, 4].map((face) => ({ face, faces: 8 })));
 		await gm.evaluate(() => window.sheetsE2E.rollDicePrompt());
 	});
 	e2e.expect(
-		'#134 N4 PROBE attack',
-		await gm.evaluate(() => window.sheetsE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
-		'probe',
+		"#134 N4 an attack with a vehicle weapon posts its base damage plus a damage per Success left, without its gunner's characteristic",
+		{
+			pool: attackPool,
+			summary: await gm.evaluate(() => window.sheetsE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
+		},
+		{ pool: 'AA|DD', summary: 'PROBE' },
 	);
 	await gm.evaluate(async (state) => {
 		await window.e2e.actor('Nemesis').deleteEmbeddedDocuments(
@@ -3018,6 +3024,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		await window.sheetsE2E.update('Vehicle', { 'system.roles': [] });
 		await window.sheetsE2E.update('Vehicle/Cannon', { 'system.state': state });
+		await window.sheetsE2E.update('Hero', { 'system.characteristics.agility': 0 });
 		await window.sheetsE2E.closeAll();
 	}, cannonState);
 
@@ -3289,7 +3296,23 @@ export async function run(e2e: ScenarioContext) {
 				thrownProfile(['Ranged']),
 			),
 	);
-	e2e.expect('#439 A1 PROBE drops', await weaponProfiles(), 'probe');
+	e2e.expect(
+		"#439 A1 a quality dropped under the Data tab's blocks and a skill dropped on the window's header go to the main profile, leaving the extra profile's",
+		await weaponProfiles(),
+		{
+			main: { skills: ['E2E skill'], qualities: [{ name: 'E2E quality', rating: 1 }] },
+			extraProfiles: [
+				{
+					...thrownProfile(['Ranged']),
+					qualities: [
+						{ name: 'Accurate', rating: 1 },
+						{ name: 'Limited Ammo', rating: 1 },
+					],
+				},
+			],
+			blocks: 1,
+		},
+	);
 	await gm.evaluate(async () => {
 		await window.sheetsE2E.update('weapon', { 'system.extraProfiles': [], 'system.skills': [], 'system.qualities': [] });
 		await window.sheetsE2E.closeAll();
