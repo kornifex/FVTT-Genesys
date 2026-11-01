@@ -52,6 +52,11 @@ type CharacterHelpers = {
 	 * character's skills are updated; the skills it offered.
 	 */
 	careerPrompt(actor: string, picks: string[] | null): Promise<string[]>;
+	/**
+	 * Waits for the Career's Free Rank prompt, picks those skills and confirms, without waiting for the character's
+	 * update, which a refused Career never makes; the skills it offered.
+	 */
+	pickFreeRanks(picks: string[]): Promise<string[]>;
 	/** Clicks the severity of a Critical Injury or Hit. */
 	clickSeverity(actor: string, name: string): void;
 	/** Clicks the trash icon of a Critical Injury or Hit. */
@@ -108,6 +113,10 @@ type CharacterHelpers = {
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
+	/** The space between the top of the shown Talents tab's content and its first block, in px. */
+	talentsGapAbove(actor: string): number;
+	/** The dim and bright light radii of the actor's token on the viewed scene, as prepared. */
+	tokenLight(actor: string): { dim: number; bright: number };
 	appliedEffects(actor: string): { effects: string[]; soak: number };
 	severities(actor: string): Record<string, string>;
 	socialSkills(actor: string): { categories: string[]; social: string[] };
@@ -467,6 +476,20 @@ function installCharacterHelpers() {
 			await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
 		},
 
+		async pickFreeRanks(picks) {
+			const app = await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
+			const buttons = [...app.element.querySelectorAll('.career-skill-prompt .select-skill')] as HTMLElement[];
+			const skillName = (button: Element) => text(button.querySelector('span')).replace(/ \([^()]*\)$/, '');
+			for (const pick of picks) {
+				const button = buttons.find((candidate) => skillName(candidate) === pick);
+				click(button, `skill ${pick} in the prompt`);
+				await waitFor(`skill ${pick} picked in the prompt`, () => button?.classList.contains('selected'));
+			}
+			click(app.element.querySelector('.career-skill-prompt footer button'), 'Confirm button');
+			await waitFor('the Free Rank prompt to close', () => !app.rendered);
+			return buttons.map(skillName);
+		},
+
 		async careerPrompt(name, picks) {
 			const app = await findApp('app-career-skill-prompt', '.career-skill-prompt .select-skill');
 			const buttons = [...app.element.querySelectorAll('.career-skill-prompt .select-skill')] as HTMLElement[];
@@ -726,6 +749,26 @@ function installCharacterHelpers() {
 			};
 		},
 
+		talentsGapAbove(name) {
+			const tab = sheet(name).querySelector('.tab-talents');
+			const block = tab?.querySelector(':scope > .block');
+			if (!tab || !block) throw new Error(`No Talents tab on the sheet of E2E ${name}`);
+			const box = tab.getBoundingClientRect();
+			if (!box.height) throw new Error(`The Talents tab of E2E ${name} isn't shown`);
+			const style = getComputedStyle(tab);
+			return Math.round(
+				block.getBoundingClientRect().top - box.top - parseFloat(style.borderTopWidth) - parseFloat(style.paddingTop),
+			);
+		},
+
+		tokenLight(name) {
+			const token = game.scenes.viewed.tokens.find(
+				(candidate: { actor?: { name: string } }) => candidate.actor?.name === `E2E ${name}`,
+			);
+			if (!token) throw new Error(`No token of E2E ${name}`);
+			return { dim: token.light.dim, bright: token.light.bright };
+		},
+
 		appliedEffects(name) {
 			const owner = actor(name);
 			return { effects: owner.appliedEffects.map((effect: { name: string }) => effect.name), soak: owner.system.soak };
@@ -885,6 +928,8 @@ export async function run(e2e: ScenarioContext) {
 		await skillsTab(e2e, page);
 		await talentPyramidSummary(e2e, page);
 		await talentRanks(e2e, page);
+		// v13 has no token changes.
+		if (e2e.version >= 14) await talentTokenChanges(e2e, page);
 		await talentsTab(e2e, page);
 		await injuries(e2e, page);
 		await weaponProfiles(e2e, page);
@@ -1871,6 +1916,74 @@ async function careers(
 		{ skills: trained, ranged: 1, notifications: [] },
 	);
 	await page((name) => window.characterE2E.close(name), C);
+
+	// §#254: the Career is decided again once its Free Ranks are chosen, since the character may change meanwhile, as when
+	// another user, or a script, buys a skill rank.
+	const H = 'Hesitant';
+	const hesitant = async () => ({
+		skills: Object.fromEntries(
+			Object.entries(await page((args) => window.characterE2E.skills(args.actor, args.names), { actor: H, names: listed })).map(
+				([name, skill]) => [name, skill && `${skill.career ? 'career' : 'non-career'} ${skill.rank}`],
+			),
+		),
+		careers: (await page((name) => window.characterE2E.items(name), H)).filter((item) => item.startsWith('career:')),
+		journal: await page((name) => window.characterE2E.journal(name), H),
+		prompts: await prompts(),
+		notifications: await notifications(),
+	});
+	let bought = false;
+	await e2e.step(
+		'#254 G5 a Career dropped, a skill rank bought from the sheet while its Free Rank prompt is open, then four Free Ranks picked',
+		async () => {
+			await page((name) => window.characterE2E.create(name), H);
+			await page((name) => window.characterE2E.open(name), H);
+			await page((name) => window.characterE2E.applyArchetype(name, 'Plain Archetype'), H);
+			await e2e.settle();
+			await notifications();
+			await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Career')), H);
+			await page(() => window.characterE2E.careerPromptOpen(), undefined);
+			bought = await page((name) => window.characterE2E.buySkill(name, 'Brawl'), H);
+			await e2e.settle();
+			await page(() => window.characterE2E.pickFreeRanks(['Ranged', 'Cool', 'Stealth', 'Charm']), undefined);
+		},
+	);
+	e2e.expect(
+		'#254 G5 a skill rank bought while the Free Rank prompt is open makes the Career refused once the Free Ranks are chosen',
+		{ bought, ...(await hesitant()) },
+		{
+			bought: true,
+			skills: { ...untouched, Brawl: 'non-career 1' },
+			careers: [],
+			journal: ['Starting 1000', 'Skill -10 Brawl 1'],
+			prompts: 0,
+			notifications: [await notified('Genesys.Notifications.CannotReplaceCareer', { name: 'E2E Career' })],
+		},
+	);
+
+	// §#254: Foundry's own drop handler resolves what a drop on an actor's sheet carries, and logs an error when the item
+	// a link names is gone.
+	const heldBefore = await page((name) => window.characterE2E.items(name), H);
+	let dropErrors: string[] = [];
+	await e2e.step("#254 P1 a link to a deleted world item dropped on a character's sheet", async () => {
+		const errors = e2e.gm.errors.length;
+		await page(async (name) => {
+			const [gone] = await Item.createDocuments([{ name: 'E2E Gone', type: 'talent', system: { tier: 1 } }]);
+			const uuid = gone.uuid;
+			await gone.delete();
+			window.characterE2E.drop(name, uuid);
+		}, H);
+		await e2e.settle();
+		dropErrors = e2e.gm.errors.slice(errors);
+	});
+	e2e.expect(
+		"#254 P1 a link to a deleted item dropped on an actor's sheet changes nothing, and logs Foundry's error in the console",
+		{
+			items: await page((name) => window.characterE2E.items(name), H),
+			errors: dropErrors.map((error) => /Failed to resolve Document from provided DragData/.test(error)),
+		},
+		{ items: heldBefore, errors: [true] },
+	);
+	await page((name) => window.characterE2E.close(name), H);
 }
 
 /** §#199: a skill added to a character whose Career lists it is a career skill. */
@@ -2180,6 +2293,10 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	const P = 'Pyramid';
 	const pyramid = () => page((name) => window.characterE2E.pyramid(name), P);
+	const gapAbove = async () => {
+		await page((name) => window.e2e.showTab(name, 'talents'), P);
+		return page((name) => window.characterE2E.talentsGapAbove(name), P);
+	};
 	const counts = ['2/∞', '1/1', '0/0', '0/0', '0/0'];
 	await e2e.step('#110 K1 a character with two tier 1 talents and one tier 2 talent, its sheet open', async () => {
 		await page((name) => window.characterE2E.create(name), P);
@@ -2232,11 +2349,36 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 			roundedTop: true,
 		},
 	);
+	e2e.expect('#110 K3 the block below leaves no gap above it', await gapAbove(), 0);
 	await e2e.step('#110 K4 Ignore Talent Pyramid turned off and the sheet reopened', async () => {
 		await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: false });
 		await page((name) => window.characterE2E.reopen(name), P);
 	});
 	e2e.expect('#110 K4 the summary is back with its counts and limits', await pyramid(), { summary: counts, roundedTop: false });
+
+	// §#365: the reload the game settings ask for, as the GM confirms it: the page loads again, and the sheet with it.
+	const changedAndReloaded = async (ignoreTalentPyramid: boolean) => {
+		await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid });
+		await e2e.gm.reload();
+		await e2e.gm.evaluate(installCharacterHelpers);
+		await page((name) => window.characterE2E.open(name), P);
+	};
+	await e2e.step('#110 K5 Ignore Talent Pyramid turned on with the sheet open, then the page reloaded and the sheet opened', async () => {
+		await page((name) => window.characterE2E.open(name), P);
+		await changedAndReloaded(true);
+	});
+	e2e.expect(
+		'#110 K5 after the reload, the Talents tab shows no summary, and the block below takes its rounded top with no gap above it',
+		{ ...(await pyramid()), gapAbove: await gapAbove() },
+		{ summary: null, roundedTop: true, gapAbove: 0 },
+	);
+	await e2e.step('#110 K6 Ignore Talent Pyramid turned off with the sheet open, then the page reloaded and the sheet opened', () =>
+		changedAndReloaded(false),
+	);
+	e2e.expect('#110 K6 after the reload, the Talents tab shows the summary again, with its counts and limits', await pyramid(), {
+		summary: counts,
+		roundedTop: false,
+	});
 	await page((name) => window.characterE2E.close(name), P);
 }
 
@@ -2271,6 +2413,73 @@ async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 		),
 	);
 	e2e.expect('#242 A1 each numeric change of a rank 3 talent counts three times', { added: (await soak()) - before }, { added: 9 });
+}
+
+/**
+ * §#242: on Foundry v14, a talent's `token.*` changes, which apply to its actor's tokens, count once per rank too, each
+ * time a token is prepared.
+ */
+async function talentTokenChanges(e2e: ScenarioContext, page: Evaluate) {
+	const T = 'Lantern';
+	const light = () => page((name) => window.characterE2E.tokenLight(name), T);
+	await e2e.step('#242 B0 a character without talents, with a linked token on the viewed scene', () =>
+		page(async (name) => {
+			await window.e2e.ensureScene();
+			const scene = game.scenes.viewed;
+			const left = scene.tokens
+				.filter((token: { name: string }) => token.name === `E2E ${name}`)
+				.map((token: { id: string }) => token.id);
+			await scene.deleteEmbeddedDocuments('Token', left);
+			const actor = await Actor.create({ name: `E2E ${name}`, type: 'character', prototypeToken: { actorLink: true } });
+			await scene.createEmbeddedDocuments('Token', [{ ...(await actor.getTokenDocument()).toObject(), x: 100, y: 100 }]);
+		}, T),
+	);
+	const before = await light();
+	const added = async () => {
+		const now = await light();
+		return { dim: now.dim - before.dim, bright: now.bright - before.bright };
+	};
+	await e2e.step("#242 B1 a rank 3 talent added, whose effect adds 2 to its token's dim light radius and 1 to its bright one", () =>
+		page(
+			(name) =>
+				window.characterE2E.createItems(name, [
+					{
+						name: 'E2E Glowing',
+						type: 'talent',
+						system: { activation: { type: 'passive', detail: '' }, tier: 1, ranked: 'yes', rank: 3 },
+						effects: [
+							{
+								name: 'E2E Glowing',
+								transfer: true,
+								changes: [
+									{ key: 'token.light.dim', mode: 2, value: 2 },
+									{ key: 'token.light.bright', mode: 2, value: '1' },
+								],
+							},
+						],
+					},
+				]),
+			T,
+		),
+	);
+	e2e.expect("#242 B1 each token change of a rank 3 talent counts three times on the actor's token", await added(), {
+		dim: 6,
+		bright: 3,
+	});
+	await e2e.step('#242 B2 the token moved, which prepares it again', () =>
+		page(async (name) => {
+			const token = game.scenes.viewed.tokens.find(
+				(candidate: { actor?: { name: string } }) => candidate.actor?.name === `E2E ${name}`,
+			);
+			await token.update({ x: token.x + 100 });
+		}, T),
+	);
+	e2e.expect('#242 B2 a token prepared again still counts each token change three times', await added(), { dim: 6, bright: 3 });
+	await page(async (name) => {
+		const scene = game.scenes.viewed;
+		const ids = scene.tokens.filter((token: { name: string }) => token.name === `E2E ${name}`).map((token: { id: string }) => token.id);
+		await scene.deleteEmbeddedDocuments('Token', ids);
+	}, T);
 }
 
 /** §#252: the Talents tab's groups, and their order. */
