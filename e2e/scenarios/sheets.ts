@@ -3015,7 +3015,7 @@ export async function run(e2e: ScenarioContext) {
 			pool: attackPool,
 			summary: await gm.evaluate(() => window.sheetsE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
 		},
-		{ pool: 'AA|DD', summary: 'PROBE' },
+		{ pool: 'AA|DD', summary: ['Damage (6)', 'Critical', 'Successes', 'Threat', '10', '0', '4', '2'] },
 	);
 	await gm.evaluate(async (state) => {
 		await window.e2e.actor('Nemesis').deleteEmbeddedDocuments(
