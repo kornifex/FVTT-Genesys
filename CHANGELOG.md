@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0-rc.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.3...v0.5.0-rc.4) (2026-11-01)
+
+
+### Bug Fixes
+
+* **dice:** pick the Difficulty by clicking one of five dice in the Dice Prompt ([#470](https://github.com/kornifex/FVTT-Genesys/issues/470)) ([27e7277](https://github.com/kornifex/FVTT-Genesys/commit/27e7277d1ac254baef805c0a3e5812d44e5ac45d))
+* **effects:** count a talent's token changes once per rank at every token preparation ([#467](https://github.com/kornifex/FVTT-Genesys/issues/467)) ([d391e0d](https://github.com/kornifex/FVTT-Genesys/commit/d391e0df875d8b99709782b6cdba6eb842844b30))
+* **i18n:** smooth the French and Spanish wording of the Archetype, Career and Journal messages ([#465](https://github.com/kornifex/FVTT-Genesys/issues/465)) ([194e47a](https://github.com/kornifex/FVTT-Genesys/commit/194e47aec2742f2c56330c2a4f618818246c27a7))
+
+
+### Documentation
+
+* add a CONTRIBUTING.md ([#459](https://github.com/kornifex/FVTT-Genesys/issues/459)) ([3bc5a94](https://github.com/kornifex/FVTT-Genesys/commit/3bc5a949f0c32169664059cc6c6cd455d9a62ce9))
+* explain the fork's changes and its supported Foundry versions in the README ([#457](https://github.com/kornifex/FVTT-Genesys/issues/457)) ([d2924cc](https://github.com/kornifex/FVTT-Genesys/commit/d2924cc67eff38ed694c56dc7cf1603a770f0225))
+* record in ADR 0003 that Foundry v12 refuses a release for v13 ([#462](https://github.com/kornifex/FVTT-Genesys/issues/462)) ([7c91a2e](https://github.com/kornifex/FVTT-Genesys/commit/7c91a2ee63e92853367f42c3a4a860640c04afea))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#454](https://github.com/kornifex/FVTT-Genesys/issues/454)) ([77c06e5](https://github.com/kornifex/FVTT-Genesys/commit/77c06e506cc8e534e82fe138d1c47adcaf9d5bd2))
+* set the next release to 0.5.0-rc.4 ([#471](https://github.com/kornifex/FVTT-Genesys/issues/471)) ([899c6fb](https://github.com/kornifex/FVTT-Genesys/commit/899c6fbd2aa765361744084baa9bbbd7481dc0b7))
+
+
+### Tests
+
+* automate the open items of the 0.5.0 test checklist ([#468](https://github.com/kornifex/FVTT-Genesys/issues/468)) ([fe39e0a](https://github.com/kornifex/FVTT-Genesys/commit/fe39e0a9d9291563494489d3c787dfdc1001722e))
+
 ## [0.5.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.2...v0.5.0-rc.3) (2026-10-31)
 
 
