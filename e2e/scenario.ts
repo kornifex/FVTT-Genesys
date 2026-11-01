@@ -48,6 +48,8 @@ export type ScenarioContext = {
 	 * world lacks it.
 	 */
 	assistantGM(): Promise<Client>;
+	/** Joins as a second player, once: the user {@link SECOND_PLAYER}, whom the GM creates when the world lacks it. */
+	secondPlayer(): Promise<Client>;
 	/** Runs `setUpCombat` as the GM, then clears every client's recorded events. */
 	setUpCombat(setup: CombatSetup): Promise<void>;
 	/** Waits until every connected client has done nothing for a while: the updates of what came before have reached them. */
@@ -91,6 +93,11 @@ export type ScenarioModule = {
  * any random one (Foundry compares ids by code point), so that only the role can elect the Gamemaster over it.
  */
 const ASSISTANT = { name: 'E2E Assistant GM', id: '0000E2EAssistant' };
+
+/**
+ * The second player user, for what two players do at once.
+ */
+const SECOND_PLAYER = 'E2E Second Player';
 
 // A client has settled once it has gone this long without a hook, a socket message, a request awaiting its answer or a
 // running CSS transition (window.e2e.idleFor). Each update an action causes reaches the clients and calls hooks, and the updates their hooks make in turn (the GM
@@ -145,6 +152,7 @@ export async function runScenario(
 
 		let player: Client | undefined;
 		let assistant: Client | undefined;
+		let secondPlayer: Client | undefined;
 		const resetAll = () => Promise.all(connected().map((client) => client.evaluate(() => window.e2e.reset())));
 		const loggedErrors = new Map<Client, number>();
 
@@ -173,6 +181,16 @@ export async function runScenario(
 					clients.push(assistant);
 				}
 				return assistant;
+			},
+			async secondPlayer() {
+				if (!secondPlayer) {
+					await gm.evaluate(async (name) => {
+						if (!game.users.getName(name)) await User.create({ name, role: CONST.USER_ROLES.PLAYER });
+					}, SECOND_PLAYER);
+					secondPlayer = await join(browser, url, SECOND_PLAYER, needsCanvas);
+					clients.push(secondPlayer);
+				}
+				return secondPlayer;
 			},
 			async setUpCombat(setup) {
 				await gm.evaluate((setup) => window.e2e.setUpCombat(setup), setup);
