@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0...v0.4.1) (2026-11-01)
+
+
+### Continuous Integration
+
+* stop forcing the next release of the 0.4.x line ([#460](https://github.com/kornifex/FVTT-Genesys/issues/460)) ([94a2637](https://github.com/kornifex/FVTT-Genesys/commit/94a26374ff4a5d1f673ce46f4caa0fb3f231c6e0))
+
 ## [0.4.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.4.0-rc.3...v0.4.0) (2026-10-31)
 
 
