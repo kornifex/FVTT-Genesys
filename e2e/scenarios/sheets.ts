@@ -199,6 +199,46 @@ type SheetsHelpers = {
 		message: HeadingStyle;
 	}>;
 	cleanUp(): Promise<void>;
+	/**
+	 * The looks the text fields, number fields and selects of an open sheet take over all its tabs, as
+	 * `<tag> shadow | background | border | radius`, each with how many fields take it; then the look of their options.
+	 */
+	fieldLooks(name: string): Promise<Record<string, number>>;
+	/**
+	 * v14: gives Hero an effect whose first change has a type no module registers, opens its sheet, edits its second change
+	 * and saves it. Reads the type its select shows, then each change as stored, as `<key> <type> <value>`.
+	 */
+	unregisteredChangeType(): Promise<{ shown: string | null; stored: string[] }>;
+	/**
+	 * Opens a sheet, and records each content its source line shows until the line holds a link, as `raw`, `enriched` or
+	 * `empty`: the page is observed from before the sheet renders, each mutation read before the browser paints it.
+	 */
+	sourceAsShown(name: string): Promise<string[]>;
+	/**
+	 * Marks the first quality of the last card an actor spoke in the chat log, an attack's or not, for the scenario to hover
+	 * it with Playwright, and shows the chat log; false when there is no such quality.
+	 */
+	markQuality(speaker: string, attack: boolean): Promise<boolean>;
+	/** Foundry's tooltip, once it shows: its text and the document links in it. */
+	shownTooltip(): Promise<{ text: string; links: number }>;
+	/** Waits for Foundry's tooltip to hide. */
+	tooltipHidden(): Promise<void>;
+	/**
+	 * Closes an open sheet while sampling its window's height at each frame: its height when open, the lowest it took
+	 * while closing, and the properties of its element whose CSS transition ran.
+	 */
+	closeAnimation(name: string): Promise<{ open: number; lowest: number; frames: number; transitions: string[] }>;
+	/**
+	 * The text of the element a selector finds in an open sheet, as the browser draws it: with the content of its
+	 * `::before` and `::after`, without what isn't displayed.
+	 */
+	renderedText(name: string, selector: string, which?: number | string): string;
+	/** Clicks the attack link of a vehicle weapon on the Combat tab, and waits for the Dice Prompt to be ready to roll. */
+	attackWithVehicleWeapon(vehicle: string, weapon: string): Promise<void>;
+	/** Rolls the open Dice Prompt and waits for its message. */
+	rollDicePrompt(): Promise<void>;
+	/** The texts of the elements of the last chat message these selectors match. */
+	lastMessage(selectors: string[]): string[];
 };
 
 declare global {
@@ -1189,6 +1229,199 @@ function installSheetsHelpers() {
 			await helpers.closeAll();
 			await window.e2e.deleteSetUp('Actor', 'Item');
 		},
+
+		async fieldLooks(name) {
+			const looks: Record<string, number> = {};
+			const count = (look: string) => (looks[look] = (looks[look] ?? 0) + 1);
+			const seen = new Set<Element>();
+			const tabs = [...sheetElement(name).querySelectorAll<HTMLElement>('.sheet-tabs [data-tab]')].map((tab) => tab.dataset.tab!);
+			// A tab's fields may render only while it shows.
+			for (const tab of tabs.length ? tabs : [null]) {
+				if (tab) await helpers.clickTab(name, tab);
+				const fields = sheetElement(name).querySelectorAll<HTMLElement>(
+					'.vue-app input[type="text"], .vue-app input[type="number"], .vue-app select',
+				);
+				for (const field of fields) {
+					if (seen.has(field)) continue;
+					seen.add(field);
+					const style = getComputedStyle(field);
+					const border = `${style.borderTopWidth} ${style.borderTopStyle} ${style.borderTopColor}`;
+					count(
+						`${field.tagName.toLowerCase()} ${style.boxShadow} | ${style.backgroundColor} | ${border} | ${style.borderTopLeftRadius}`,
+					);
+					if (field.getAttribute('name')?.startsWith('system.characteristics.')) count(`characteristic ${style.textAlign}`);
+					for (const option of field.querySelectorAll('option')) {
+						const optionStyle = getComputedStyle(option);
+						count(`option ${optionStyle.backgroundColor} | ${optionStyle.color}`);
+					}
+				}
+			}
+			if (tabs.length) await helpers.clickTab(name, tabs[0]);
+			return looks;
+		},
+
+		async unregisteredChangeType() {
+			const [effect] = await actor('Hero').createEmbeddedDocuments('ActiveEffect', [
+				{
+					name: 'E2E Unregistered',
+					// The effect stays off: Foundry would look for a handler of the unregistered type to apply it.
+					disabled: true,
+					system: {
+						changes: [
+							{ key: 'system.characteristics.brawn', type: 'e2eremoved', value: '1' },
+							{ key: 'system.characteristics.agility', type: 'add', value: '1' },
+						],
+					},
+				},
+			]);
+			try {
+				const element = await render(effect.sheet, (root) => root.querySelector('[name="system.changes.1.value"]'));
+				const shown = element.querySelector<HTMLSelectElement>('select[name="system.changes.0.type"]')?.value ?? null;
+				setSelect(element, 'input[name="system.changes.1.value"]', '2');
+				await settle();
+				await effect.sheet.submit();
+				await settle();
+				const stored = effect._source.system.changes.map(
+					(change: { key: string; type: string; value: unknown }) =>
+						`${change.key} ${change.type} ${JSON.stringify(change.value)}`,
+				);
+				return { shown, stored };
+			} finally {
+				await effect.sheet.close();
+				await effect.delete();
+				await settle();
+			}
+		},
+
+		async sourceAsShown(name) {
+			const app = documentNamed(name).sheet;
+			if (app.rendered) await app.close();
+			await settle();
+			const shown: string[] = [];
+			const record = () => {
+				const source = document.getElementById(app.id)?.querySelector('.source');
+				if (!source) return;
+				const content = source.querySelector('a.content-link')
+					? 'enriched'
+					: text(source) === ''
+						? 'empty'
+						: text(source).includes('@UUID[')
+							? 'raw'
+							: `other: ${text(source)}`;
+				if (shown.at(-1) !== content) shown.push(content);
+			};
+			// A MutationObserver's callback runs before the browser paints what the mutations changed.
+			const observer = new MutationObserver(record);
+			observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+			try {
+				await app.render(true);
+				// A source never enriched leaves the step's assertion to fail, rather than the wait to stop the scenario.
+				await waitFor(`the enriched source of ${name}`, () => htmlOf(app)?.querySelector('.source a.content-link')).catch(
+					() => undefined,
+				);
+				record();
+			} finally {
+				observer.disconnect();
+			}
+			return shown;
+		},
+
+		async markQuality(speaker, attack) {
+			await helpers.closeAll();
+			const speakerId = actor(speaker).id;
+			const message = game.messages.contents.findLast(
+				(candidate: { speaker: { actor?: string }; rolls: unknown[]; content: string }) =>
+					candidate.speaker.actor === speakerId && candidate.rolls.length > 0 === attack && candidate.content.includes('quality'),
+			);
+			if (!message) return false;
+			// v13: the sidebar is collapsed in the headless window.
+			ui.sidebar.expand();
+			ui.sidebar.changeTab('chat', 'primary');
+			const quality = await waitFor('the quality in the chat log', () =>
+				[...document.querySelectorAll<HTMLElement>(`[data-message-id="${message.id}"] .quality`)].find(
+					(element) => !element.closest('#chat-notifications') && element.getBoundingClientRect().width > 0,
+				),
+			);
+			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e="hovered-quality"]')) delete marked.dataset.e2e;
+			quality.dataset.e2e = 'hovered-quality';
+			quality.scrollIntoView({ block: 'center' });
+			await settle();
+			return true;
+		},
+
+		async shownTooltip() {
+			const tooltip = await waitFor('the tooltip', () => document.querySelector<HTMLElement>('#tooltip.active'), 3000).catch(
+				() => null,
+			);
+			return { text: text(tooltip), links: tooltip?.querySelectorAll('a.content-link').length ?? 0 };
+		},
+
+		async tooltipHidden() {
+			await waitFor('the tooltip to hide', () => !document.querySelector('#tooltip.active'), 3000).catch(() => undefined);
+		},
+
+		async closeAnimation(name) {
+			const app = documentNamed(name).sheet;
+			const element = await render(app);
+			await settle();
+			const open = element.getBoundingClientRect().height;
+			const transitions = new Set<string>();
+			element.addEventListener('transitionrun', (event) => {
+				if (event.target === element) transitions.add(event.propertyName);
+			});
+			let lowest = open;
+			let frames = 0;
+			const sample = () => {
+				if (!element.isConnected) return;
+				lowest = Math.min(lowest, element.getBoundingClientRect().height);
+				frames++;
+				requestAnimationFrame(sample);
+			};
+			requestAnimationFrame(sample);
+			await app.close();
+			await settle();
+			return { open: Math.round(open), lowest: Math.round(lowest), frames, transitions: [...transitions].sort() };
+		},
+
+		renderedText(name, selector, which = 1) {
+			const pseudo = (element: Element, which: '::before' | '::after') => {
+				const style = getComputedStyle(element, which);
+				if (style.display === 'none' || ['none', 'normal'].includes(style.content)) return '';
+				return style.content.replace(/^"(.*)"$/, '$1');
+			};
+			const drawn = (node: Node): string => {
+				if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
+				if (!(node instanceof Element) || getComputedStyle(node).display === 'none') return '';
+				return `${pseudo(node, '::before')}${[...node.childNodes].map(drawn).join('')}${pseudo(node, '::after')}`;
+			};
+			return drawn(find(sheetElement(name), selector, which))
+				.replace(/\s+/g, ' ')
+				.trim();
+		},
+
+		async attackWithVehicleWeapon(vehicle, weapon) {
+			await helpers.open(vehicle);
+			await helpers.clickTab(vehicle, 'combat');
+			find(sheetElement(vehicle), '.tab-combat .weapon .name a', `E2E ${weapon}`).click();
+			// The prompt shows a spinner while it counts its chance to succeed, which may roll dice: the attack's dice are
+			// fixed after it.
+			await waitFor('the dice prompt', () => {
+				const prompt = document.querySelector('.app-dice-prompt');
+				return prompt?.querySelector('.roll-button') && !prompt.querySelector('.chance-to-succeed .fa-spinner');
+			});
+			await settle();
+		},
+
+		async rollDicePrompt() {
+			find(document.body, '.app-dice-prompt .roll-button').click();
+			await settle();
+		},
+
+		lastMessage(selectors) {
+			const content = document.createElement('div');
+			content.innerHTML = game.messages.contents.at(-1)?.content ?? '';
+			return selectors.flatMap((selector) => [...content.querySelectorAll(selector)].map((element) => text(element)));
+		},
 	};
 
 	window.sheetsE2E = helpers;
@@ -1197,6 +1430,26 @@ function installSheetsHelpers() {
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const page = () => gm.page;
+
+	// §#349: Foundry's compatibility warnings, which it logs through `console.warn` as the page reaches a deprecated API.
+	// They are read from the console in Node, so that a warning logged as the system initializes is read too: the
+	// listener is on before the GM reloads below. A warning logged once per page load comes again after each reload.
+	const compatibilityWarnings: string[] = [];
+	const listened = new WeakSet<object>();
+	const recordCompatibilityWarnings = (client: Client) => {
+		if (listened.has(client.page)) return;
+		listened.add(client.page);
+		client.page.on('console', (message) => {
+			const text = message.text();
+			if (
+				message.type() === 'warning' &&
+				/Deprecated since Version|You are accessing the global|You are assigning globalThis/.test(text)
+			) {
+				compatibilityWarnings.push(`${client.user}: ${text.split('\n')[0]}`);
+			}
+		});
+	};
+	recordCompatibilityWarnings(gm);
 
 	// §#97: a GM who updates from an older version is welcomed with the documentation link. Reloading runs the ready hook
 	// again; a last version of 0.0.0 skips the migrations.
@@ -1249,6 +1502,7 @@ export async function run(e2e: ScenarioContext) {
 
 	const player = await e2e.player();
 	await player.evaluate(installSheetsHelpers);
+	recordCompatibilityWarnings(player);
 	await e2e.step('setup', () => gm.evaluate((name) => window.sheetsE2E.setUp(name), e2e.playerUser));
 
 	// §#348: the token configuration names an actor's bars and values in the game's language. Replacing their
@@ -1311,6 +1565,18 @@ export async function run(e2e: ScenarioContext) {
 		{ buttons: ['close', 'copyUuid', 'toggleControls'], controls: headerControls },
 	);
 
+	// §#95: ApplicationV2 gives text fields and selects Foundry's look, with an inset shadow in a light theme. The sheets
+	// give them the flat look of AppV1's fields, which the components are written over.
+	const fieldLooks: Record<string, Record<string, number>> = {};
+	await e2e.step('#95 GM opens each sheet and reads the look of its fields on each tab', async () => {
+		for (const name of [...actorTypes, ...itemTypes]) {
+			await gm.evaluate((name) => window.sheetsE2E.open(name), name);
+			fieldLooks[name] = await gm.evaluate((name) => window.sheetsE2E.fieldLooks(name), name);
+			await gm.evaluate((name) => window.sheetsE2E.close(name), name);
+		}
+	});
+	e2e.expect('#95 B1 PROBE field looks', fieldLooks, 'probe');
+
 	// #304: a minimized sheet collapses to its header, as wide as Foundry's --minimized-width (200px), and keeps its
 	// minimum size while open.
 	const sizedSheets = ['Hero', 'Rival', 'gear', 'archetype'];
@@ -1342,6 +1608,14 @@ export async function run(e2e: ScenarioContext) {
 		gear: { width: 320, height: 200 },
 		archetype: { width: 580, height: 600 },
 	});
+
+	// §#315: ApplicationV2 closes a window by bringing its max-height to 0 through a transition, which a minimum height
+	// on the window would block. Its height is read at each frame while it closes.
+	const closings: Record<string, unknown> = {};
+	await e2e.step('#315 GM closes a character, a rival, a gear and an archetype sheet', async () => {
+		for (const name of sizedSheets) closings[name] = await gm.evaluate((name) => window.sheetsE2E.closeAnimation(name), name);
+	});
+	e2e.expect('#315 A1 PROBE closings', closings, 'probe');
 
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look, and a journal's are left alone.
@@ -1819,6 +2093,7 @@ export async function run(e2e: ScenarioContext) {
 	// document or to one of its items. The character shows its current wounds, the other sheets their source.
 	const assistant = await e2e.assistantGM();
 	await assistant.evaluate(installSheetsHelpers);
+	recordCompatibilityWarnings(assistant);
 	await gm.evaluate(
 		async (names) => {
 			await window.sheetsE2E.closeAll();
@@ -1956,6 +2231,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.join();
 		await gm.evaluate(installSheetsHelpers);
 	});
+	recordCompatibilityWarnings(gm);
 
 	// §#343: the tracker edits one pool at a time.
 	let edited: string[] = [];
@@ -2187,6 +2463,20 @@ export async function run(e2e: ScenarioContext) {
 		editedChanges,
 	);
 
+	// §#297: on v14, a change's type is one a module registers, and Foundry's form processing leaves a change of a type
+	// no module registers as stored. A module removed leaves such a change; Foundry's types are cached once read, so the
+	// effect is created with a type never registered rather than with one unregistered.
+	if (e2e.version >= 14) {
+		let unregistered: unknown;
+		await e2e.step(
+			'#297 GM opens the sheet of an effect whose change has a type no module registers, edits another change and saves it',
+			async () => {
+				unregistered = await gm.evaluate(() => window.sheetsE2E.unregisteredChangeType());
+			},
+		);
+		e2e.expect('#297 A1 PROBE unregistered', unregistered, 'probe');
+	}
+
 	// §#82 in French: the abilities' activation and the notification of a character created without skills.
 	await e2e.step('#82 GM sends a passive and an active ability to chat in French, and creates a character without skills', () =>
 		gm.evaluate(async () => {
@@ -2311,6 +2601,15 @@ export async function run(e2e: ScenarioContext) {
 		enriched,
 		Object.fromEntries(sources.map((name) => [name, { links: 1, rolls: 1, checks: 1, italic: true, smaller: true, edited: true }])),
 	);
+	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	// §#101: with Foundry's own enrichment, as the table sees it, every content the source line shows from the sheet's
+	// first paint on is its raw text or its enriched text, never an empty line.
+	const shownSources: Record<string, string[]> = {};
+	await e2e.step('#101 GM opens the sheets of an adversary, an item, a career and an archetype, watching their source line', async () => {
+		for (const name of sources) shownSources[name] = await gm.evaluate((name) => window.sheetsE2E.sourceAsShown(name), name);
+	});
+	e2e.expect('#101 A4 PROBE shown sources', shownSources, 'probe');
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 	// §#82: the Crew tab follows its passengers and role members.
@@ -2543,6 +2842,97 @@ export async function run(e2e: ScenarioContext) {
 		{ rating: 3, description: '<p>@UUID[Actor.<id>]{E2E Hero} pierces.</p>', attack: [{ speaker: 'E2E Nemesis', rolls: 1 }] },
 	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
+
+	// §#130: a card's quality shows its description in Foundry's tooltip, under the pointer.
+	const tooltips: Record<string, unknown> = {};
+	await e2e.step(
+		"#130 GM hovers the quality of a weapon's card, a vehicle weapon's card and an attack's card in the chat log",
+		async () => {
+			for (const [card, speaker, attack] of [
+				['weapon', 'Hero', false],
+				['vehicleWeapon', 'Vehicle', false],
+				['attack', 'Nemesis', true],
+			] as const) {
+				const marked = await gm.evaluate(({ speaker, attack }) => window.sheetsE2E.markQuality(speaker, attack), {
+					speaker,
+					attack,
+				});
+				if (!marked) {
+					tooltips[card] = null;
+					continue;
+				}
+				await gm.page.hover('[data-e2e="hovered-quality"]');
+				tooltips[card] = await gm.evaluate(() => window.sheetsE2E.shownTooltip());
+				await gm.page.mouse.move(0, 0);
+				await gm.evaluate(() => window.sheetsE2E.tooltipHidden());
+			}
+		},
+	);
+	e2e.expect('#130 A3 PROBE tooltips', tooltips, 'probe');
+
+	// §#134: the weapons of an adversary and a vehicle, and the drawn firing arcs and separators of the rows of both
+	// weapon types.
+	await e2e.step('#134 GM gives the Nemesis a weapon without a damage characteristic and one with a negative damage', () =>
+		gm.evaluate(async () => {
+			await window.e2e.actor('Nemesis').createEmbeddedDocuments('Item', [
+				{ name: 'E2E Rock', type: 'weapon', system: { skills: ['Melee'], baseDamage: 2, damageCharacteristic: '-' } },
+				{ name: 'E2E Shiv', type: 'weapon', system: { skills: ['Melee'], baseDamage: -1, damageCharacteristic: 'brawn' } },
+			]);
+			await window.sheetsE2E.open('Nemesis');
+			await window.sheetsE2E.open('Hero');
+			await window.sheetsE2E.clickTab('Hero', 'inventory');
+			await window.sheetsE2E.open('Vehicle');
+			await window.sheetsE2E.clickTab('Vehicle', 'inventory');
+		}),
+	);
+	e2e.expect(
+		'#134 N1 PROBE lists',
+		await gm.evaluate(() => {
+			const sheets = window.sheetsE2E;
+			const { text, htmlOf, actor } = window.e2e;
+			return {
+				nemesis: [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row)),
+				heroSword: sheets.renderedText('Hero', '.tab-inventory .inventory-item .details', 'E2E Sword'),
+				cannonRow: sheets.renderedText('Vehicle', '.tab-inventory .inventory-item .details', 'E2E Cannon'),
+			};
+		}),
+		'probe',
+	);
+	await gm.evaluate(async () => {
+		await window.sheetsE2E.clickTab('Vehicle', 'combat');
+	});
+	e2e.expect(
+		'#134 N2 PROBE combat',
+		await gm.evaluate(() => window.sheetsE2E.renderedText('Vehicle', '.tab-combat .weapon:not(.header)', 'E2E Cannon')),
+		'probe',
+	);
+	await e2e.step('#134 GM gives the Vehicle a Gunner, Hero, and opens the attack of its Cannon', () =>
+		gm.evaluate(async () => {
+			const { actor } = window.e2e;
+			await window.sheetsE2E.update('Vehicle', {
+				'system.roles': [{ id: foundry.utils.randomID(), name: 'E2E Gunner', skills: ['Gunnery'], members: [actor('Hero').uuid] }],
+			});
+			await window.sheetsE2E.attackWithVehicleWeapon('Vehicle', 'Cannon');
+		}),
+	);
+	e2e.log('#134 attack prompt', await gm.evaluate(() => window.e2e.poolPreview(document.querySelector('.app-dice-prompt')!)));
+	await e2e.step("#134 GM rolls the Cannon's attack, every die on its fourth face", async () => {
+		await gm.fixDice([4, 4, 4, 4, 4, 4].map((face) => ({ face, faces: 8 })));
+		await gm.evaluate(() => window.sheetsE2E.rollDicePrompt());
+	});
+	e2e.expect(
+		'#134 N3 PROBE attack',
+		await gm.evaluate(() => window.sheetsE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
+		'probe',
+	);
+	await gm.evaluate(async () => {
+		await window.e2e.actor('Nemesis').deleteEmbeddedDocuments(
+			'Item',
+			['E2E Rock', 'E2E Shiv'].map((name) => window.e2e.actor('Nemesis').items.getName(name).id),
+		);
+		await window.sheetsE2E.update('Vehicle', { 'system.roles': [] });
+		await window.sheetsE2E.closeAll();
+	});
 
 	// §#262: the directories' create dialogs. Foundry's `createDialog` gets the position the directory asks for, so the
 	// dialog opens there, and the system doesn't pass a dialog option where v13 reads a database option.
@@ -2795,6 +3185,29 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 
+	// §#439: the sheet takes a drop on its whole element; a skill or a quality dropped outside an extra profile's block
+	// goes to the main profile.
+	await e2e.step(
+		"#439 GM drops a quality on the Data tab under the weapon's blocks and a skill on its header, the weapon having a Thrown profile",
+		() =>
+			gm.evaluate(
+				async (profile) => {
+					const sheets = window.sheetsE2E;
+					await sheets.update('weapon', { 'system.extraProfiles': [profile], 'system.skills': [], 'system.qualities': [] });
+					await sheets.open('weapon');
+					await sheets.clickTab('weapon', 'data');
+					await sheets.drop('weapon', { type: 'Item', name: 'quality' }, '.tab[data-tab="data"]');
+					await sheets.drop('weapon', { type: 'Item', name: 'skill' }, '.window-header');
+				},
+				thrownProfile(['Ranged']),
+			),
+	);
+	e2e.expect('#439 A1 PROBE drops', await weaponProfiles(), 'probe');
+	await gm.evaluate(async () => {
+		await window.sheetsE2E.update('weapon', { 'system.extraProfiles': [], 'system.skills': [], 'system.qualities': [] });
+		await window.sheetsE2E.closeAll();
+	});
+
 	// §#423: v14 lets a user detach any window into its own browser window, moving its element into that window's
 	// document. A Genesys sheet and the Dice Prompt keep working there.
 	if (e2e.version >= 14) {
@@ -2903,5 +3316,28 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect('#423 A3 the detached windows log no error', detachedErrors, []);
 	}
 
+	// §#349: the globals the system read before #245 go through their namespaces: no compatibility warning names them.
+	const replacedGlobals = [
+		'renderTemplate',
+		'TextEditor',
+		'FilePicker',
+		'Tabs',
+		'Dialog',
+		'Actors',
+		'Items',
+		'ActorSheet',
+		'ItemSheet',
+		'DocumentSheetConfig',
+		'ActiveEffectConfig',
+		'ActorDirectory',
+		'ItemDirectory',
+		'Compendium',
+	];
+	e2e.log('#349 compatibility warnings', compatibilityWarnings);
+	e2e.expect(
+		'#349 A1 no compatibility warning logged while the sheets are used names a global the system read before #245',
+		compatibilityWarnings.filter((warning) => replacedGlobals.some((name) => new RegExp(`\\b${name}\\b`).test(warning))),
+		[],
+	);
 	await e2e.step('cleanup', () => gm.evaluate(() => window.sheetsE2E.cleanUp()));
 }
