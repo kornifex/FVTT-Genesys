@@ -79,6 +79,11 @@ export type ScenarioModule = {
 	 * no-canvas mode: headless Chromium draws the canvas without a GPU, which takes most of the run's CPU.
 	 */
 	needsCanvas?: boolean;
+	/**
+	 * Serves the world under this path (`e2e` serves it at `/e2e/`), as a Foundry behind a reverse proxy is. Only an
+	 * isolated scenario takes one, since it changes the launch.
+	 */
+	routePrefix?: string;
 };
 
 /**
