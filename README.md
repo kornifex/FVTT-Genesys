@@ -68,14 +68,7 @@ The [wiki](https://github.com/kornifex/FVTT-Genesys/wiki) documents the system f
 ![Archetype](screenshots/archetype.png)
 
 ## Contributing
-Bug reports and feature requests are welcome in the [issue tracker](https://github.com/kornifex/FVTT-Genesys/issues), and so are pull requests, with no guarantee on response time.
-
-All pull requests and forks must adhere to the following:
-- Respect the FontAwesome licensing: only use FontAwesome Free icons in your contributions.
-- If adapting code from other sources, you must update the "Further Licenses" section below to indicate its licensing and include an appropriately-placed license file where applicable.
-- All contributions to this project, unless otherwise noted through licenses as mentioned above, fall under the project's MIT License.
-- AI-assisted contributions are accepted, as long as you say so in the pull request, and you have reviewed and tested the changes yourself.
-- Contributors who act in a bad faith, hateful, or otherwise harmful manner will be blocked from making future contributions. This includes notable behavior outside this system and its community.
+Bug reports and feature requests are welcome in the [issue tracker](https://github.com/kornifex/FVTT-Genesys/issues), and so are pull requests, with no guarantee on response time. [CONTRIBUTING.md](CONTRIBUTING.md) covers the development setup, the checks, the pull request conventions and the rules every contribution follows, FontAwesome licensing included.
 
 ## License
 Code for this system is licensed under the [MIT License](https://mit-license.org/), see [LICENSE](LICENSE).
