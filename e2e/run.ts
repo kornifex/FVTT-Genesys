@@ -1,4 +1,7 @@
-/** @file `pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>]`: runs scenarios on each Foundry version. */
+/**
+ * @file `pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>] [--verbose]`: runs
+ * scenarios on each Foundry version.
+ */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,13 +18,14 @@ const root = path.resolve(import.meta.dirname, '..');
 const envFile = path.join(import.meta.dirname, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
-const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>]';
+const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>] [--verbose]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
 		versions: { type: 'string', default: '13,14' },
 		dist: { type: 'string' },
 		compare: { type: 'string' },
+		verbose: { type: 'boolean', default: false },
 	},
 });
 if (!positionals.length) {
@@ -107,7 +111,7 @@ async function runVersion(install: FoundryInstall) {
 				// A world that fails to launch fails its scenarios, and the suite goes on to its summary.
 				for (const scenario of group.filter(({ name }) => !logs.has(logKey(run, name)))) {
 					const step = fatalStep(error);
-					console.log(stepLine(`${run} ${scenario.name}`, step));
+					console.log(stepLine(`${run} ${scenario.name}`, step, options));
 					logs.set(logKey(run, scenario.name), [step]);
 				}
 			}
@@ -133,7 +137,7 @@ async function runLaunch(install: FoundryInstall, build: { label: string; dist: 
 				gmUser: config.gmUser,
 				playerUser: config.playerUser,
 				needsCanvas: scenario.needsCanvas,
-				onStep: (step) => console.log(stepLine(label, step)),
+				onStep: (step) => console.log(stepLine(label, step, options)),
 			});
 			logs.set(logKey(run, scenario.name), steps);
 			const resultsDir = path.join(config.workDir, 'results', scenario.name);

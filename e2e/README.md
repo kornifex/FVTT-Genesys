@@ -39,11 +39,12 @@ pnpm e2e:all                                                  # the suite: every
 pnpm e2e e2e/scenarios/combat.ts                              # builds the working tree, runs one scenario on v13 and v14
 pnpm e2e e2e/scenarios/combat.ts --compare origin/main        # also on origin/main's build, then the differing steps
 pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14 only
+pnpm e2e e2e/scenarios/combat.ts --verbose                    # prints every step's value, as the saved step logs hold them
 ```
 
 -   `pnpm e2e` takes scenario files and folders, a folder standing for its `.ts` files. Foundry is launched once per version and build: the scenarios run one after the other on the same world, each with newly joined clients and from its own setup. A scenario exporting `isolated = true` gets its own fresh world and launch, after the others.
 -   `--compare <ref>` builds the ref once per commit, from `git archive`, in `E2E_WORK_DIR/builds/`. Compare against `origin/main`: a local `main` may lag behind.
--   Each step prints as `[v13 head] <step> <json>`, `[v13 head <scenario>] …` when several scenarios run, and a failed step starts with `FAILED`. The step logs are saved as JSON in `E2E_WORK_DIR/results/<scenario>/`, each launch's `server.log` in `E2E_WORK_DIR/runs/`.
+-   Each step prints as `[v13 head] <step>`, `[v13 head <scenario>] …` when several scenarios run. A passed assertion ends with `✓`; a value of up to 120 characters (an `e2e.log`) prints in full; a longer one (a combat state) prints only the client errors it holds, which fail no assertion. A failed step starts with `FAILED` and prints its value and the value expected. `--verbose` prints every value. The step logs are saved in full as JSON in `E2E_WORK_DIR/results/<scenario>/`, each launch's `server.log` in `E2E_WORK_DIR/runs/`.
 -   A launch stops at once when Foundry refuses the world, as when the system's `compatibility` excludes that version. A client's join stops when the system didn't load, as when its module throws on a global that version removed: its message quotes the page's first error.
 -   The run ends with a summary per version and build: its assertion count, then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step).
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
