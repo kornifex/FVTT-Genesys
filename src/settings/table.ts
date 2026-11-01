@@ -146,7 +146,7 @@ export const SETTINGS = {
 		field: { name: 'uncoupleSkillsFromCharacteristics', normalize: asBoolean },
 	}),
 
-	/** Whether to show Damage, Critical, and Qualities on attack roll chat cards even when the roll was a failure. */
+	/** Whether to show Damage and Critical on attack roll chat cards even when the roll was a failure; Qualities always show. */
 	showDamageOnFailure: setting({
 		scope: 'world',
 		type: Boolean,

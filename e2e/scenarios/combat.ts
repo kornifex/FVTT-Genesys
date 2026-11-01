@@ -57,7 +57,14 @@ type CombatHelpers = {
 	writes: string[];
 	/** The users who wrote Claims since the last {@link reset}, one entry per write. */
 	claimWriters: string[];
+	/** The turns, by combatant, as this client ordered them as each write of the Extra Slots reached it, since the last {@link reset}. */
+	turnsAtUpdate: string[][];
+	/** The socket refreshes of the turn order this client dropped since the last {@link reset}. */
+	droppedRefreshes: number;
 	reset(): void;
+	/** Drops the socket refreshes of the turn order this client receives, until {@link keepTrackerRefreshes}. */
+	dropTrackerRefreshes(): void;
+	keepTrackerRefreshes(): void;
 	rows(): TrackerRow[];
 	stored(): StoredCombat;
 	/** Controls a combatant's token, alone. */
@@ -171,6 +178,17 @@ function installCombatHelpers() {
 	const click = async (entry: ContextMenuEntry, target: HTMLElement) => {
 		await (entry.onClick ? entry.onClick(new PointerEvent('click'), target) : entry.callback?.(target));
 	};
+	// The system's socket, and its `updateCombatTracker` operation: what every client receives after a write of the Extra
+	// Slots, to order the turns again.
+	const SOCKET = 'system.genesys';
+	let systemListeners: ((...args: unknown[]) => void)[] | undefined;
+	const dropRefreshes = (payload: { operation?: string }, ...rest: unknown[]) => {
+		if (payload?.operation === 'updateCombatTracker') {
+			helpers.droppedRefreshes++;
+			return;
+		}
+		for (const listener of systemListeners ?? []) listener(payload, ...rest);
+	};
 	const answered = new Set<unknown>();
 	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
 
@@ -179,12 +197,30 @@ function installCombatHelpers() {
 		sounds: [],
 		writes: [],
 		claimWriters: [],
+		turnsAtUpdate: [],
+		droppedRefreshes: 0,
 
 		reset() {
 			helpers.messages.length = 0;
 			helpers.sounds.length = 0;
 			helpers.writes.length = 0;
 			helpers.claimWriters.length = 0;
+			helpers.turnsAtUpdate.length = 0;
+			helpers.droppedRefreshes = 0;
+		},
+
+		dropTrackerRefreshes() {
+			if (systemListeners) return;
+			systemListeners = game.socket.listeners(SOCKET);
+			game.socket.off(SOCKET);
+			game.socket.on(SOCKET, dropRefreshes);
+		},
+
+		keepTrackerRefreshes() {
+			if (!systemListeners) return;
+			game.socket.off(SOCKET, dropRefreshes);
+			for (const listener of systemListeners) game.socket.on(SOCKET, listener);
+			systemListeners = undefined;
 		},
 
 		rows() {
@@ -384,8 +420,12 @@ function installCombatHelpers() {
 	Hooks.on('updateCombatant', (updated: { name: string }, changed: object) => {
 		if ('initiative' in changed) helpers.writes.push(`initiative of ${updated.name}`);
 	});
-	Hooks.on('updateCombat', (_combat: unknown, changed: object, _options: unknown, userId: string) => {
-		if (foundry.utils.hasProperty(changed, 'flags.genesys.extraSlots')) helpers.writes.push('Extra Slots');
+	Hooks.on('updateCombat', (combat: { turns: { name: string }[] }, changed: object, _options: unknown, userId: string) => {
+		if (foundry.utils.hasProperty(changed, 'flags.genesys.extraSlots')) {
+			helpers.writes.push('Extra Slots');
+			// Foundry calls the hook once the combat has taken the update: its turns are then the order this client made.
+			helpers.turnsAtUpdate.push(combat.turns.map((turn) => turn.name));
+		}
 		if (foundry.utils.hasProperty(changed, 'flags.genesys.slotClaims'))
 			helpers.claimWriters.push(game.users.get(userId)?.name ?? userId);
 	});
@@ -493,6 +533,9 @@ export async function run(e2e: ScenarioContext) {
 	await claimWithAssistantGM();
 	await noGM();
 	await trackerGuards();
+	await extraSlotOnAnotherCombat();
+	await extraSlotsOrderedAtOnce();
+	await slotRollsKeepTurn();
 
 	/** §#85: the tracker's class name, which Foundry names its render hook after. */
 	async function trackerClass() {
@@ -823,6 +866,26 @@ export async function run(e2e: ScenarioContext) {
 		sortsAs('D1', d1, ['Boss:-1', 'Boss:1', 'Hero:-1', 'Hero:0']);
 		turnKept('D1', d1, 'Hero:-1');
 		await noTick('D1', 'Hero');
+
+		// The GM rolls all, whose slots move before Boss's own slot, whose turn it is: a turn change back to Boss, an NPC,
+		// would play the GM's "your turn" sound.
+		await setUpRolls({ 'Hero:-1': null, 'Hero:0': null, 'Boss:-1': -50, 'Boss:1': null }, 'Boss:-1');
+		await e2e.step('#59 E0 before');
+		await noTick('E0', 'Boss');
+		const e1 = await e2e.step('#59 E1 GM rolls all', () => gm.evaluate(() => game.combat.rollAll()));
+		const rolledAll = await stored();
+		// The rolls are random: only Boss's own slot, the one already rolled, has its place.
+		e2e.expect(
+			"#59 E1 every slot is rolled, and Boss's own slot sorts last",
+			{
+				rolled: rolled(rolledAll.initiatives),
+				extraSlotsRolled: rolledAll.extraSlots.map((slot) => !slot.endsWith('=null')),
+				last: order(e1)?.at(-1),
+			},
+			{ rolled: { Hero: true, Boss: true }, extraSlotsRolled: [true, true], last: 'Boss:-1' },
+		);
+		turnKept('E1', e1, 'Boss:-1');
+		await noTick('E1', 'Boss');
 	}
 
 	/** §#35 and §#94: Claims, their refusals, revoking one, and a player ending their turn. */
@@ -1222,16 +1285,16 @@ export async function run(e2e: ScenarioContext) {
 		const autoApply = (on: boolean) => gm.evaluate((on) => game.settings.set('genesys', 'dicePoolAutoApplyModifications', on), on);
 		const resetAll = () => gm.evaluate(() => game.combat.resetAll());
 		const formulas = async () => Object.fromEntries((await messages()).map((message) => [message.speaker, message.formula ?? '']));
-		const promptedFormula = async (step: string) => {
+		const promptedFormula = async (step: string, combatant: 'Hero' | 'Boss' = 'Hero') => {
 			await resetAll();
 			await e2e.step(step, () =>
-				gm.evaluate(async () => {
-					const roll = game.combat.rollSlotInitiative(window.e2e.slotId('Hero'));
+				gm.evaluate(async (combatant) => {
+					const roll = game.combat.rollSlotInitiative(window.e2e.slotId(combatant));
 					await window.combatE2E.answerPrompts(['roll']);
 					await roll;
-				}),
+				}, combatant),
 			);
-			return (await formulas()).Hero;
+			return (await formulas())[combatant];
 		};
 
 		await autoApply(true);
@@ -1242,6 +1305,7 @@ export async function run(e2e: ScenarioContext) {
 		await resetAll();
 		await e2e.step('#50 GM rolls the NPCs, with auto-apply on', () => gm.evaluate(() => game.combat.rollNPC()));
 		const rollNPCOn = await formulas();
+		const promptedBossOn = await promptedFormula("#50 GM rolls Boss's slot from the Dice Prompt, with auto-apply on", 'Boss');
 		await resetAll();
 		await e2e.step("#50 GM rolls Hero's initiative from the actor, with auto-apply on", () =>
 			gm.evaluate(() => game.actors.getName('E2E Hero').rollInitiative()),
@@ -1258,14 +1322,47 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#50 GM rolls all, with auto-apply off', () => gm.evaluate(() => game.combat.rollAll()));
 		const rollAllOff = await formulas();
 		const promptedOff = await promptedFormula("#50 GM rolls Hero's slot from the Dice Prompt, with auto-apply off");
+		await resetAll();
+		await e2e.step('#50 GM rolls the NPCs, with auto-apply off', () => gm.evaluate(() => game.combat.rollNPC()));
+		const rollNPCOff = await formulas();
+		const promptedBossOff = await promptedFormula("#50 GM rolls Boss's slot from the Dice Prompt, with auto-apply off", 'Boss');
+		await resetAll();
+		await e2e.step("#50 GM rolls Hero's initiative from the actor, with auto-apply off", () =>
+			gm.evaluate(() => game.actors.getName('E2E Hero').rollInitiative()),
+		);
+		const actorOff = await formulas();
 
-		e2e.log('#50 the pools rolled', { rollAllOn, promptedOn, rollNPCOn, actorOn, combatantRoll, rollAllOff, promptedOff });
+		e2e.log('#50 the pools rolled', {
+			rollAllOn,
+			promptedOn,
+			rollNPCOn,
+			promptedBossOn,
+			actorOn,
+			combatantRoll,
+			rollAllOff,
+			promptedOff,
+			rollNPCOff,
+			promptedBossOff,
+			actorOff,
+		});
 		e2e.expect(
 			'#50 A1 with auto-apply on, every unprompted roll rolls the pool of a prompted roll, with the Boost of the effects',
 			{ rollAll: rollAllOn.Hero, rollNPC: rollNPCOn.Boss, actor: actorOn.Hero, effectAdds: rollAllOn.Hero !== rollAllOff.Hero },
 			{ rollAll: promptedOn, rollNPC: rollAllOn.Boss, actor: promptedOn, effectAdds: true },
 		);
 		e2e.expect('#50 A2 with auto-apply off, Roll All rolls the pool of a prompted roll', rollAllOff.Hero, promptedOff);
+		// §#50 (#286): Roll NPCs and a macro calling `actor.rollInitiative()` against a prompted roll of the same combatant,
+		// with auto-apply on and off.
+		e2e.expect(
+			"#50 A4 Roll NPCs rolls the pool of Boss's prompted roll, with auto-apply on and off, the Boost of Boss's effect only when on",
+			{ on: rollNPCOn.Boss, off: rollNPCOff.Boss, effectAdds: promptedBossOn !== promptedBossOff },
+			{ on: promptedBossOn, off: promptedBossOff, effectAdds: true },
+		);
+		e2e.expect(
+			'#50 A5 with auto-apply off, a macro calling actor.rollInitiative() rolls the pool of a prompted roll',
+			actorOff.Hero,
+			promptedOff,
+		);
 		e2e.expect("#50 A3 a combatant's initiative roll posts a message and writes its slot as the combat's roll does", combatantRoll, {
 			formulas: { Hero: rollAllOn.Hero },
 			rolled: { Hero: true, Boss: false },
@@ -1506,5 +1603,214 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect('#94 A2 with a combat, the slot actions do nothing on a row without a slot', await tryAll(), []);
 		await e2e.step('#94 GM deletes the combat', () => gm.evaluate(() => game.combat.delete()));
 		e2e.expect('#94 A3 with no combat, the slot actions do nothing', await tryAll(), []);
+	}
+
+	/**
+	 * §#328: a macro calling `addInitiativeSlot()` on a combat other than `game.combat` finds the controlled token's
+	 * combatant in `game.combat`, as Foundry does, so it adds no Extra Slot to either combat.
+	 */
+	async function extraSlotOnAnotherCombat() {
+		await setUp({ Hero: 1, Boss: 2 }, { turnOn: 'Boss:-1' });
+		const extraSlots = () =>
+			gm.evaluate(() => {
+				const other = game.combats.find((combat: unknown) => combat !== game.combat);
+				return {
+					viewed: window.combatE2E.stored().extraSlots,
+					other: other ? (other.getFlag('genesys', 'extraSlots') ?? []).length : null,
+				};
+			});
+		// The other combat holds Hero's token too, as a macro would expect to give it a slot there.
+		await e2e.step('#328 GM creates a second combat, not viewed, which holds Hero', () =>
+			gm.evaluate(async () => {
+				const token = window.e2e.token('Hero').document;
+				const [other] = await Combat.createDocuments([{ scene: token.parent.id, active: false }]);
+				await other.createEmbeddedDocuments('Combatant', [
+					{ tokenId: token.id, sceneId: token.parent.id, actorId: token.actor.id, name: 'Hero' },
+				]);
+			}),
+		);
+		e2e.expect(
+			'#328 the second combat is not the viewed one',
+			await gm.evaluate(() => game.combats.size === 2 && game.combat === ui.combat.viewed && !!game.combat.started),
+			true,
+		);
+
+		const other = await e2e.step("#328 A1 a macro controls Hero's token and calls addInitiativeSlot() on the second combat", () =>
+			gm.evaluate(async () => {
+				window.combatE2E.control('Hero');
+				await game.combats.find((combat: unknown) => combat !== game.combat).addInitiativeSlot();
+			}),
+		);
+		e2e.expect(
+			"#328 A1 addInitiativeSlot() on a combat other than game.combat warns that the token isn't its combatant, and adds no Extra Slot",
+			{ notifications: notifications(other, gm.user), extraSlots: await extraSlots() },
+			{ notifications: [await warning('Genesys.Notifications.TokenIsNotCombatant')], extraSlots: { viewed: [], other: 0 } },
+		);
+
+		const viewed = await e2e.step("#328 A2 a macro controls Hero's token and calls addInitiativeSlot() on game.combat", () =>
+			gm.evaluate(async () => {
+				window.combatE2E.control('Hero');
+				await game.combat.addInitiativeSlot();
+			}),
+		);
+		e2e.expect(
+			'#328 A2 addInitiativeSlot() on game.combat adds the Extra Slot, with no warning',
+			{ notifications: notifications(viewed, gm.user), extraSlots: await extraSlots() },
+			{ notifications: [], extraSlots: { viewed: ['Hero@1=null'], other: 0 } },
+		);
+	}
+
+	/**
+	 * §#35 (#286): when the Extra Slots change, every client orders the turns as the update reaches it, and renders its
+	 * tracker, without waiting for the `updateCombatTracker` socket refresh the writer sends after it. The player's client
+	 * drops that refresh here.
+	 */
+	async function extraSlotsOrderedAtOnce() {
+		// Boss's slot holds the turn; Hero's own slot sorts after it, an unrolled Extra Slot last, a rolled one first.
+		await setUp({ Hero: -50, Boss: -10 }, { turnOn: 'Boss:-1' });
+		await player.evaluate(() => window.combatE2E.dropTrackerRefreshes());
+		const seen = () =>
+			player.evaluate(() => {
+				const helpers = window.combatE2E;
+				const view = {
+					atUpdate: [...helpers.turnsAtUpdate],
+					turns: game.combat.turns.map((turn: { name: string }) => turn.name),
+					rows: helpers.rows().map((row) => row.slot),
+					droppedRefreshes: helpers.droppedRefreshes,
+				};
+				helpers.reset();
+				return view;
+			});
+
+		await e2e.step("#35 B1 GM adds an Extra Slot for Hero, the player's client dropping the socket refresh", () =>
+			gm.evaluate(() => window.e2e.addExtraSlotFor('Hero')),
+		);
+		e2e.expect(
+			"#35 B1 the player's client orders the turns as the added Extra Slot reaches it, and its tracker lists them, without the socket refresh",
+			await seen(),
+			{
+				atUpdate: [['Boss', 'Hero', 'Hero']],
+				turns: ['Boss', 'Hero', 'Hero'],
+				rows: ['Boss:-1', 'Hero:-1', 'Hero:0'],
+				droppedRefreshes: 1,
+			},
+		);
+
+		await e2e.step("#35 B2 player rolls Hero's Extra Slot from the tracker, their client dropping the socket refresh", () =>
+			player.evaluate(async () => {
+				window.combatE2E.clickRow('Hero:0', '.combatant-control.roll');
+				await window.combatE2E.answerPrompts(['roll']);
+			}),
+		);
+		e2e.expect(
+			"#35 B2 the player's client orders the turns as the rolled Extra Slot reaches it, and its tracker lists them, without the socket refresh",
+			await seen(),
+			{
+				atUpdate: [['Hero', 'Boss', 'Hero']],
+				turns: ['Hero', 'Boss', 'Hero'],
+				rows: ['Hero:0', 'Boss:-1', 'Hero:-1'],
+				droppedRefreshes: 1,
+			},
+		);
+		await player.evaluate(() => window.combatE2E.keepTrackerRefreshes());
+	}
+
+	/**
+	 * §#53 (#286): with a GM and a player, the tracker's roll and reroll of an own slot and of an Extra Slot, and a macro
+	 * calling `actor.rollInitiative()`, roll their slots and keep the turn on another slot, which they sort before.
+	 */
+	async function slotRollsKeepTurn() {
+		// Boss's slot holds the turn, and every roll of Hero's slots sorts it before.
+		const setUpRolls = () => setUp({ Hero: null, Boss: -50 }, { extraSlots: [{ name: 'Hero' }], turnOn: 'Boss:-1' });
+		const rollView = async (states: StepStates) => {
+			const now = await stored();
+			return {
+				initiatives: now.initiatives as Record<string, number | string | null>,
+				extraSlots: now.extraSlots.map((slot) => slot.replace(/=(?!null).*/, '=rolled')),
+				speakers: (await messages()).map((message) => message.speaker),
+				turn: Object.fromEntries(
+					Object.entries(states).map(([user, state]) => [user, { current: state?.current, events: state?.events }]),
+				),
+			};
+		};
+		const turnOnBoss = bothClients({ current: 'Boss:-1', events: [] });
+		// Hero's initiative, as rolled or not: the rolls are random.
+		const heroRolled = (view: Awaited<ReturnType<typeof rollView>>) => ({
+			...view,
+			initiatives: { ...view.initiatives, Hero: view.initiatives.Hero === null ? null : 'rolled' },
+		});
+
+		await setUpRolls();
+		// Core's context menu, which holds the tracker's reroll, opens on claimed rows only.
+		await e2e.step("#53 player claims Hero's own slot and Extra Slot for Hero", () =>
+			player.evaluate(async () => {
+				await window.combatE2E.claim('Hero:-1', 'Hero');
+				await window.combatE2E.claim('Hero:0', 'Hero');
+			}),
+		);
+		const own = await e2e.step("#53 B1 player rolls Hero's own slot from the tracker, with the turn on Boss", () =>
+			player.evaluate(async () => {
+				window.combatE2E.clickRow('Hero:-1', '.combatant-control.roll');
+				await window.combatE2E.answerPrompts(['roll']);
+			}),
+		);
+		e2e.expect(
+			"#53 B1 the player's tracker roll of Hero's own slot rolls it alone, and the turn stays on Boss:-1, with no turn event",
+			heroRolled(await rollView(own)),
+			{ initiatives: { Hero: 'rolled', Boss: -50 }, extraSlots: ['Hero@1=null'], speakers: ['Hero'], turn: turnOnBoss },
+		);
+		const heroInitiative = (await stored()).initiatives.Hero;
+
+		const extra = await e2e.step("#53 B2 player rolls Hero's Extra Slot from the tracker, with the turn on Boss", () =>
+			player.evaluate(async () => {
+				window.combatE2E.clickRow('Hero:0', '.combatant-control.roll');
+				await window.combatE2E.answerPrompts(['roll']);
+			}),
+		);
+		e2e.expect(
+			"#53 B2 the player's tracker roll of Hero's Extra Slot rolls it alone, and the turn stays on Boss:-1, with no turn event",
+			await rollView(extra),
+			{ initiatives: { Hero: heroInitiative, Boss: -50 }, extraSlots: ['Hero@1=rolled'], speakers: ['Hero'], turn: turnOnBoss },
+		);
+		const extraSlotsBefore = (await stored()).extraSlots;
+
+		// An initiative no check rolls (9 Successes and 99 Advantage), so that the reroll can't give the same.
+		await e2e.step("#53 GM gives Hero's own slot an initiative no check rolls", () =>
+			gm.evaluate(() => game.combat.combatants.getName('Hero').update({ initiative: 9.99 })),
+		);
+		const reroll = await e2e.step("#53 B3 GM rerolls Hero's own slot from the tracker's menu, with the turn on Boss", () =>
+			gm.evaluate(async () => {
+				const done = window.combatE2E.runMenuEntry('Hero:-1', 'reroll');
+				await window.combatE2E.answerPrompts(['roll']);
+				await done;
+			}),
+		);
+		const rerolled = await rollView(reroll);
+		e2e.expect(
+			"#53 B3 the GM's tracker reroll of Hero's own slot rerolls it alone, and the turn stays on Boss:-1, with no turn event",
+			{
+				...rerolled,
+				initiatives: { ...rerolled.initiatives, Hero: rerolled.initiatives.Hero === 9.99 ? 'kept' : 'rerolled' },
+				extraSlotKept: (await stored()).extraSlots[0] === extraSlotsBefore[0],
+			},
+			{
+				initiatives: { Hero: 'rerolled', Boss: -50 },
+				extraSlots: ['Hero@1=rolled'],
+				speakers: ['Hero'],
+				turn: turnOnBoss,
+				extraSlotKept: true,
+			},
+		);
+
+		// A macro, run by the player: Foundry's `Actor#rollInitiative` names the combatant, whose unrolled slots roll.
+		await setUpRolls();
+		const macro = await e2e.step('#53 C1 player runs a macro calling actor.rollInitiative() for Hero, with the turn on Boss', () =>
+			player.evaluate(() => window.e2e.actor('Hero').rollInitiative()),
+		);
+		e2e.expect(
+			"#53 C1 a macro calling actor.rollInitiative() rolls Hero's own slot and its Extra Slot, and the turn stays on Boss:-1, with no turn event",
+			heroRolled(await rollView(macro)),
+			{ initiatives: { Hero: 'rolled', Boss: -50 }, extraSlots: ['Hero@1=rolled'], speakers: ['Hero', 'Hero'], turn: turnOnBoss },
+		);
 	}
 }

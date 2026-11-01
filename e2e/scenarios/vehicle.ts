@@ -53,6 +53,8 @@ type VehicleHelpers = {
 	dragRefusedBySource(from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }): Promise<void>;
 	/** Drops a world document from the sidebar on a target of an actor's sheet. */
 	dropFromSidebar(document: { type: 'Actor' | 'Item'; name: string }, to: { actor: string; target: Target }): Promise<void>;
+	/** Drops plain text on a target of a vehicle's Crew tab, as a selection dragged from a web page carries. */
+	dropText(text: string, to: { actor: string; target: Target }): Promise<void>;
 	/**
 	 * Drops an actor from the sidebar on a vehicle's Role as the sheet shows it while the vehicle's data has no Role any
 	 * more, as when another user deleted it and the sheet hasn't rendered it yet, then gives the data its Roles back.
@@ -248,6 +250,14 @@ function installVehicleHelpers() {
 
 		async dropFromSidebar(document, to) {
 			drop(find(await sheet(to.actor), to.target), sidebarData(document));
+		},
+
+		async dropText(dropped, to) {
+			const dataTransfer = new DataTransfer();
+			dataTransfer.setData('text/plain', dropped);
+			drop(find(await sheet(to.actor), to.target), dataTransfer);
+			// A drop refused changes nothing to wait for.
+			await settle();
 		},
 
 		async dropOnStaleRole({ name, vehicle, role }) {
@@ -901,6 +911,22 @@ async function crewDrops(e2e: ScenarioContext) {
 		actorLink: false,
 		independentMinion: false,
 	});
+
+	// §#271: text dragged from outside Foundry carries no drag data.
+	const errors = gm.errors.length;
+	await step(
+		'#271 H1 plain text dropped on the passengers, then on the Role',
+		async () => {
+			await vehicleE2E('dropText', 'Not an actor', { actor: 'V3', target: passengerSlot(1) });
+			await vehicleE2E('dropText', 'Not an actor', { actor: 'V3', target: role(1) });
+		},
+		{ V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L', 'U2'] })] } },
+	);
+	e2e.expect(
+		'#271 H1 plain text dropped on the Crew tab does nothing, with no prompt and no error in the console',
+		{ prompts: await vehicleE2E('prompts'), errors: gm.errors.slice(errors) },
+		{ prompts: noPrompts, errors: [] },
+	);
 }
 
 /**

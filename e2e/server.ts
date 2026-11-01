@@ -29,9 +29,12 @@ export function prepareDataDir(install: FoundryInstall, dist: string, dataDir: s
 }
 
 /**
- * Starts Foundry on the data dir and resolves once its world is ready to be joined.
+ * Starts Foundry on the data dir and resolves once its world is ready to be joined: under `routePrefix` when given, as
+ * a Foundry behind a reverse proxy that serves it at a path is.
  */
-export async function launchFoundry(install: FoundryInstall, dataDir: string): Promise<FoundryServer> {
+export async function launchFoundry(install: FoundryInstall, dataDir: string, routePrefix?: string): Promise<FoundryServer> {
+	// The route prefix is an option of the server's options.json, read from the data dir's Config as it starts.
+	if (routePrefix) fs.writeFileSync(path.join(dataDir, 'Config', 'options.json'), JSON.stringify({ routePrefix }));
 	const log = path.join(dataDir, 'server.log');
 	const logFile = fs.openSync(log, 'w');
 	const server = spawn(
@@ -77,5 +80,5 @@ export async function launchFoundry(install: FoundryInstall, dataDir: string): P
 	// Joining right after the launch completes crashes it (null invitation links), and game.ready never comes.
 	await sleep(8000);
 
-	return { url: `http://localhost:${install.port}`, log, stop };
+	return { url: `http://localhost:${install.port}${routePrefix ? `/${routePrefix}` : ''}`, log, stop };
 }

@@ -122,7 +122,7 @@ async function runLaunch(install: FoundryInstall, build: { label: string; dist: 
 	const run = runName(install.version, build.label);
 	const dataDir = path.join(config.workDir, 'runs', safeFileName(group[0].isolated ? `${run} ${group[0].name}` : run));
 	prepareDataDir(install, build.dist, dataDir);
-	const server = await launchFoundry(install, dataDir);
+	const server = await launchFoundry(install, dataDir, group[0].routePrefix);
 	try {
 		for (const scenario of group) {
 			const label = scenarios.length > 1 ? `${run} ${scenario.name}` : run;
@@ -165,11 +165,14 @@ type LoadedScenario = Awaited<ReturnType<typeof loadScenario>>;
 async function loadScenario(file: string) {
 	const module = (await import(pathToFileURL(file).href)) as Partial<ScenarioModule>;
 	if (typeof module.run !== 'function') throw new Error(`${file} exports no run function.`);
+	// The scenarios sharing a launch share its route: a scenario served under its own prefix needs its own launch.
+	if (module.routePrefix !== undefined && module.isolated !== true) throw new Error(`${file} exports a routePrefix but isn't isolated.`);
 	return {
 		name: path.basename(file).replace(/\.ts$/, ''),
 		run: module.run,
 		isolated: module.isolated === true,
 		needsCanvas: module.needsCanvas === true,
+		routePrefix: module.routePrefix,
 	};
 }
 
