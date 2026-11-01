@@ -13,7 +13,7 @@ Code that only one version needs is marked where it lives: a `*.v12.*` suffix on
 
 Foundry updates a system from the manifest URL it installed, and `yaml/system.yml` points to `releases/latest`.
 
--   A release is the latest unless a higher version already is. 0.4.0 is the latest until 0.5.0 is out. Then a v13 world gets 0.5.0 through `releases/latest`; a v12 world is offered a release with `minimum: 13`, which Foundry should refuse as incompatible (to check on the e2e harness, #106).
+-   A release is the latest unless a higher version already is. 0.4.0 is the latest until 0.5.0 is out. Then a v13 world gets 0.5.0 through `releases/latest`; a v12 world is offered a release with `minimum: 13`, which Foundry refuses as incompatible, so the world keeps its 0.4.x. Checked on Foundry v12.343 against 0.5.0-rc.3 (#106): Setup's update check gets `REQUIRES_CORE_UPGRADE_UNSTABLE` and offers no update, and a direct install from the manifest is refused.
 -   Once 0.5.0 is out, `0.4.x`'s releases stay off `releases/latest`. The table installs each one from its versioned manifest, `releases/download/v0.4.<n>/manifest.json`.
 
 The branch is named `0.4.x`, not `release/0.4.x`: the old `release` branch already holds that ref prefix.
