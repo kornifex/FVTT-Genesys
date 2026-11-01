@@ -113,8 +113,11 @@ type CharacterHelpers = {
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
-	/** The space between the top of the shown Talents tab's content and its first block, in px. */
-	talentsGapAbove(actor: string): number;
+	/**
+	 * The top of the shown Talents tab's first block: the space between it and the top of the tab's content, in px, and
+	 * whether both its top corners are rounded.
+	 */
+	talentsTop(actor: string): { gapAbove: number; roundedCorners: boolean };
 	/** The dim and bright light radii of the actor's token on the viewed scene, as prepared. */
 	tokenLight(actor: string): { dim: number; bright: number };
 	appliedEffects(actor: string): { effects: string[]; soak: number };
@@ -749,16 +752,20 @@ function installCharacterHelpers() {
 			};
 		},
 
-		talentsGapAbove(name) {
+		talentsTop(name) {
 			const tab = sheet(name).querySelector('.tab-talents');
 			const block = tab?.querySelector(':scope > .block');
 			if (!tab || !block) throw new Error(`No Talents tab on the sheet of E2E ${name}`);
 			const box = tab.getBoundingClientRect();
 			if (!box.height) throw new Error(`The Talents tab of E2E ${name} isn't shown`);
 			const style = getComputedStyle(tab);
-			return Math.round(
-				block.getBoundingClientRect().top - box.top - parseFloat(style.borderTopWidth) - parseFloat(style.paddingTop),
-			);
+			const corners = getComputedStyle(block);
+			return {
+				gapAbove: Math.round(
+					block.getBoundingClientRect().top - box.top - parseFloat(style.borderTopWidth) - parseFloat(style.paddingTop),
+				),
+				roundedCorners: corners.borderTopLeftRadius !== '0px' && corners.borderTopRightRadius !== '0px',
+			};
 		},
 
 		tokenLight(name) {
@@ -2293,9 +2300,9 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	const P = 'Pyramid';
 	const pyramid = () => page((name) => window.characterE2E.pyramid(name), P);
-	const gapAbove = async () => {
+	const talentsTop = async () => {
 		await page((name) => window.e2e.showTab(name, 'talents'), P);
-		return page((name) => window.characterE2E.talentsGapAbove(name), P);
+		return page((name) => window.characterE2E.talentsTop(name), P);
 	};
 	const counts = ['2/∞', '1/1', '0/0', '0/0', '0/0'];
 	await e2e.step('#110 K1 a character with two tier 1 talents and one tier 2 talent, its sheet open', async () => {
@@ -2349,7 +2356,10 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 			roundedTop: true,
 		},
 	);
-	e2e.expect('#110 K3 the block below leaves no gap above it', await gapAbove(), 0);
+	e2e.expect('#110 K3 the block below takes both rounded top corners, with no gap above it', await talentsTop(), {
+		gapAbove: 0,
+		roundedCorners: true,
+	});
 	await e2e.step('#110 K4 Ignore Talent Pyramid turned off and the sheet reopened', async () => {
 		await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: false });
 		await page((name) => window.characterE2E.reopen(name), P);
@@ -2369,8 +2379,8 @@ async function talentPyramidSummary(e2e: ScenarioContext, page: Evaluate) {
 	});
 	e2e.expect(
 		'#110 K5 after the reload, the Talents tab shows no summary, and the block below takes its rounded top with no gap above it',
-		{ ...(await pyramid()), gapAbove: await gapAbove() },
-		{ summary: null, roundedTop: true, gapAbove: 0 },
+		{ summary: (await pyramid()).summary, ...(await talentsTop()) },
+		{ summary: null, gapAbove: 0, roundedCorners: true },
 	);
 	await e2e.step('#110 K6 Ignore Talent Pyramid turned off with the sheet open, then the page reloaded and the sheet opened', () =>
 		changedAndReloaded(false),
