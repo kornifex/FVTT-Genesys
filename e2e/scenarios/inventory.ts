@@ -2567,18 +2567,29 @@ async function unknownDamageState(e2e: ScenarioContext) {
 		},
 		{ invalid: ['E2E Splinter'], items: [] },
 	);
-	await gm.evaluate(async () => {
-		const sorter = game.actors.getName('E2E Sorter');
-		await sorter.deleteEmbeddedDocuments('Item', [...sorter.items.invalidDocumentIds]);
-	});
+	e2e.log(
+		'#348 B1 invalid items left on Sorter once deleted',
+		await gm.evaluate(async () => {
+			const sorter = game.actors.getName('E2E Sorter');
+			await sorter.deleteEmbeddedDocuments('Item', [...sorter.items.invalidDocumentIds]);
+			return [
+				...sorter.items.invalidDocumentIds,
+				...sorter._source.items
+					.filter((item: { name: string }) => item.name === 'E2E Splinter')
+					.map((item: { _id: string }) => item._id),
+			];
+		}),
+	);
 
 	let tooltips: (string | null)[] = [];
-	const errors = gm.errors.length;
+	let errors = gm.errors.length;
 	await e2e.step(
 		"#348 B2 Sorter's Sliver given the damage state wrecked in its prepared data, and the sheet rendered again",
 		async () => {
 			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Sliver', type: 'gear' }]));
 			await e2e.settle();
+			e2e.log('#348 B2 console errors while Sliver is created', gm.errors.slice(errors));
+			errors = gm.errors.length;
 			const before = (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Sliver'))).damageState;
 			await gm.evaluate(async () => {
 				game.actors.getName('E2E Sorter').items.getName('E2E Sliver').system.damage = 'wrecked';
