@@ -2541,7 +2541,10 @@ async function deletedDrops(e2e: ScenarioContext) {
 	);
 }
 
-/** §#348: a damage state none of the four known, as a broken world may store it, gets no tooltip. */
+/**
+ * §#348: a damage state none of the four known gets no tooltip. A world can't load one: Foundry keeps an item whose stored
+ * state fails the schema's choices out of its actor. Only its prepared data can hold one, as a module or a script may write.
+ */
 async function unknownDamageState(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await e2e.step(
@@ -2549,19 +2552,50 @@ async function unknownDamageState(e2e: ScenarioContext) {
 		async () => {
 			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Splinter', type: 'gear' }]));
 			await gm.evaluate(() => window.inventoryE2E.seedDamage('Sorter', 'Splinter', 'wrecked'));
-			const errors = gm.errors.length;
 			await gm.reload();
 			await gm.evaluate(installInventoryHelpers);
-			e2e.log('#348 B1 console errors while loading the world', gm.errors.slice(errors));
 		},
 	);
 	e2e.expect(
-		"#348 B1 an item whose damage state is none of the four known shows its row's damage with no tooltip",
+		'#348 B1 an item stored with an unknown damage state loads as an invalid document, which the inventory leaves out',
 		{
-			loaded: await gm.evaluate(() => game.actors.getName('E2E Sorter').items.getName('E2E Splinter')?.system.damage ?? null),
-			tooltip: (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Splinter'))).damageState,
+			invalid: await gm.evaluate(() => {
+				const items = game.actors.getName('E2E Sorter').items;
+				return [...items.invalidDocumentIds].map((id: string) => items.getInvalid(id).name);
+			}),
+			items: (await gm.evaluate(() => window.inventoryE2E.items('Sorter'))).filter((name) => name.startsWith('Splinter')),
 		},
-		{ loaded: 'wrecked', tooltip: null },
+		{ invalid: ['E2E Splinter'], items: [] },
+	);
+	await gm.evaluate(async () => {
+		const sorter = game.actors.getName('E2E Sorter');
+		await sorter.deleteEmbeddedDocuments('Item', [...sorter.items.invalidDocumentIds]);
+	});
+
+	let tooltips: (string | null)[] = [];
+	const errors = gm.errors.length;
+	await e2e.step(
+		"#348 B2 Sorter's Sliver given the damage state wrecked in its prepared data, and the sheet rendered again",
+		async () => {
+			await gm.evaluate(() => window.inventoryE2E.createItems('Sorter', [{ name: 'Sliver', type: 'gear' }]));
+			await e2e.settle();
+			const before = (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Sliver'))).damageState;
+			await gm.evaluate(async () => {
+				game.actors.getName('E2E Sorter').items.getName('E2E Sliver').system.damage = 'wrecked';
+				await game.actors.getName('E2E Sorter').sheet.render();
+			});
+			await e2e.settle();
+			tooltips = [before, (await gm.evaluate(() => window.inventoryE2E.row('Sorter', 'Sliver'))).damageState];
+			await gm.evaluate(async () => {
+				game.actors.getName('E2E Sorter').items.getName('E2E Sliver').reset();
+				await game.actors.getName('E2E Sorter').sheet.render();
+			});
+		},
+	);
+	e2e.expect(
+		"#348 B2 an item whose damage state is none of the four known shows its row's damage with no tooltip, and no error",
+		{ tooltips, errors: gm.errors.slice(errors) },
+		{ tooltips: ['Genesys.Equipment.DamageState.Undamaged', null], errors: [] },
 	);
 }
 
