@@ -175,8 +175,7 @@ Genesys:
     WeaponSkills: Weapon Skills
     PoolModifications:
       Title: Pool Modifications
-      Difficulty: Difficulty
-      Upgrades: Upgrades
+      Difficulty: 'Difficulty: {level}'
       ManualChanges: Manual Changes
       SelfEffects: 'From Self: '
       TargetEffects: 'From Target: '

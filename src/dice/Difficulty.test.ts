@@ -1,9 +1,10 @@
 /**
- * @file Tests for the Difficulty of a check: its level, its upgrades, and the difficulty the Dice Prompt receives.
+ * @file Tests for the Difficulty of a check: its level, its upgrades, its dice in the Dice Prompt, and the difficulty the
+ * Dice Prompt receives.
  */
 
 import { describe, expect, it } from 'vitest';
-import { difficultyGlyphs, receivedDifficulty, withLevel, withUpgrades } from '@/dice/Difficulty';
+import { clickedLevel, difficultyGlyphs, difficultyRow, receivedDifficulty, withLevel } from '@/dice/Difficulty';
 
 describe('receivedDifficulty', () => {
 	it('reads Difficulty dice as the level, without upgrades', () => {
@@ -60,14 +61,27 @@ describe('withLevel', () => {
 	});
 });
 
-describe('withUpgrades', () => {
-	it('sets the upgrades', () => {
-		expect(withUpgrades({ level: 3, upgrades: 0 }, 2)).toEqual({ level: 3, upgrades: 2 });
+describe('clickedLevel', () => {
+	it('sets the level to the clicked die, lighting it and those before it (#469)', () => {
+		expect(clickedLevel(0, 3)).toBe(3);
+		expect(clickedLevel(3, 1)).toBe(1);
+		expect(clickedLevel(2, 5)).toBe(5);
 	});
 
-	it('keeps the upgrades from none to one for each Difficulty die of the level', () => {
-		expect(withUpgrades({ level: 2, upgrades: 2 }, 3)).toEqual({ level: 2, upgrades: 2 });
-		expect(withUpgrades({ level: 2, upgrades: 0 }, -1)).toEqual({ level: 2, upgrades: 0 });
-		expect(withUpgrades({ level: 0, upgrades: 0 }, 1)).toEqual({ level: 0, upgrades: 0 });
+	it('lowers the level by one on a click on its highest die, down to Simple (#469)', () => {
+		expect(clickedLevel(3, 3)).toBe(2);
+		expect(clickedLevel(1, 1)).toBe(0);
+	});
+});
+
+describe('difficultyRow', () => {
+	it('lights a Difficulty die for each level, the others off (#469)', () => {
+		expect(difficultyRow({ level: 3, upgrades: 0 })).toEqual(['Difficulty', 'Difficulty', 'Difficulty', 'Off', 'Off']);
+		expect(difficultyRow({ level: 0, upgrades: 0 })).toEqual(['Off', 'Off', 'Off', 'Off', 'Off']);
+	});
+
+	it('shows the upgraded dice as Challenge dice, first (#469)', () => {
+		expect(difficultyRow({ level: 3, upgrades: 1 })).toEqual(['Challenge', 'Difficulty', 'Difficulty', 'Off', 'Off']);
+		expect(difficultyRow({ level: 5, upgrades: 5 })).toEqual(['Challenge', 'Challenge', 'Challenge', 'Challenge', 'Challenge']);
 	});
 });

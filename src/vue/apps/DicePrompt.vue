@@ -30,7 +30,15 @@ import {
 } from '@/dice/Check';
 import { matchOrigin } from '@/effects/PoolModifications';
 import { type DicePool, poolEntries, sortPoolModifications } from '@/dice/DicePool';
-import { type Difficulty, DIFFICULTY_LABELS, difficultyGlyphs, receivedDifficulty, withLevel, withUpgrades } from '@/dice/Difficulty';
+import {
+	clickedLevel,
+	type Difficulty,
+	DIFFICULTY_LABELS,
+	difficultyGlyphs,
+	difficultyRow,
+	receivedDifficulty,
+	withLevel,
+} from '@/dice/Difficulty';
 
 type AlsoNone<T> = T | undefined;
 
@@ -69,6 +77,7 @@ const check = shallowRef<Check<PromptSkill>>();
 const received = receivedDifficulty(context.value.difficulty);
 const difficulty = ref<Difficulty>(received.difficulty);
 const manualChanges = ref<string[]>(received.manualChanges);
+const difficultyName = computed(() => game.i18n.localize(DIFFICULTY_LABELS[difficulty.value.level]));
 // The Pool Modifications of the check, each turned on or off by the roller.
 const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
@@ -244,13 +253,8 @@ function skillLabel(skill: { name: string; system: { characteristic: Characteris
 	return `${skill.name} (${game.i18n.localize(CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic])})`;
 }
 
-function onDifficultyLevelChange(event: Event) {
-	difficulty.value = withLevel(difficulty.value, Number((event.currentTarget as HTMLSelectElement).value));
-	buildDicePool();
-}
-
-function changeDifficultyUpgrades(amount: 1 | -1) {
-	difficulty.value = withUpgrades(difficulty.value, difficulty.value.upgrades + amount);
+function onDifficultyDieClick(die: number) {
+	difficulty.value = withLevel(difficulty.value, clickedLevel(difficulty.value.level, die));
 	buildDicePool();
 }
 
@@ -349,35 +353,21 @@ async function onRoll() {
 		<div :class="{ 'pool-modifications-expander': true, 'pool-modifications-expanded': showPoolModifications }">
 			<div class="pool-modifications-container">
 				<div class="pool-modifications-difficulty">
-					<span><Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" /></span>
-					<div>
-						<select name="difficulty" :value="difficulty.level" @change="onDifficultyLevelChange">
-							<option v-for="(label, level) in DIFFICULTY_LABELS" :key="level" :value="level">
-								<Localized :label="label" />
-							</option>
-						</select>
-						<PoolModificationIcon v-for="(glyph, index) in difficultyGlyphs(difficulty)" :key="index" :glyph />
-					</div>
-				</div>
-				<div class="pool-modifications-upgrades">
-					<span><Localized label="Genesys.DicePrompt.PoolModifications.Upgrades" /></span>
+					<span>
+						<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
+					</span>
 					<div>
 						<button
+							v-for="(die, index) in difficultyRow(difficulty)"
+							:key="index"
 							type="button"
-							name="fewer-upgrades"
-							:disabled="difficulty.upgrades <= 0"
-							@click="changeDifficultyUpgrades(-1)"
+							:name="`difficulty-${index + 1}`"
+							:class="`difficulty-die difficulty-die-${die}`"
+							:data-tooltip="DIFFICULTY_LABELS[index + 1]"
+							v-localize:aria-label="DIFFICULTY_LABELS[index + 1]"
+							@click="onDifficultyDieClick(index + 1)"
 						>
-							<i class="fas fa-minus"></i>
-						</button>
-						<span class="upgrades">{{ difficulty.upgrades }}</span>
-						<button
-							type="button"
-							name="more-upgrades"
-							:disabled="difficulty.upgrades >= difficulty.level"
-							@click="changeDifficultyUpgrades(1)"
-						>
-							<i class="fas fa-plus"></i>
+							{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
 						</button>
 					</div>
 				</div>
@@ -619,32 +609,47 @@ async function onRoll() {
 			}
 		}
 
-		.pool-modifications-difficulty select {
+		// Five dice in a row, as many lit as the level has Difficulty dice (§#469).
+		.pool-modifications-difficulty .difficulty-die {
+			// Foundry styles every button as a box; the die is only its glyph.
+			display: inline;
 			width: auto;
-			height: 1.4em;
-			margin-right: 0.3rem;
-			padding: 0 0.2em;
-			font-size: 0.9em;
-		}
+			min-width: 0;
+			height: auto;
+			margin: 0 0.2rem 0 0;
+			padding: 0;
+			border: none;
+			border-radius: 0;
+			background: none;
+			box-shadow: none;
+			font-size: 1.4em;
+			line-height: 1;
+			font-family: 'Genesys Symbols', sans-serif;
+			-webkit-text-stroke: 0.5px black;
+			text-stroke: 0.5px black;
+			cursor: pointer;
 
-		.pool-modifications-upgrades {
-			button {
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
-				width: 1.4em;
-				min-width: 0;
-				height: 1.4em;
-				margin: 0.1em 0;
-				padding: 0;
-				font-size: 0.7em;
-				line-height: 1;
+			&.difficulty-die-Difficulty {
+				color: colors.$die-difficulty;
 			}
 
-			.upgrades {
-				display: inline-block;
-				min-width: 1.5em;
-				text-align: center;
+			&.difficulty-die-Challenge {
+				color: colors.$die-challenge;
+			}
+
+			&.difficulty-die-Off {
+				color: colors.$die-difficulty;
+				opacity: 0.25;
+			}
+
+			&:hover {
+				text-shadow: 0 0 4px colors.$die-difficulty;
+			}
+
+			// Foundry outlines a focused button; a click on a die leaves none, the keyboard still shows it.
+			&:focus:not(:focus-visible) {
+				outline: none;
+				box-shadow: none;
 			}
 		}
 
