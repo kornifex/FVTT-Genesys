@@ -94,8 +94,23 @@ export function withLevel(difficulty: Difficulty, level: number): Difficulty {
 }
 
 /**
- * A Difficulty with other upgrades, from none to one for each of its Difficulty dice.
+ * The level a click on one of the Difficulty's five dice sets: the clicked die and those before it, or one die fewer when
+ * the clicked die is the highest of the level, so that a click on the first die of an Easy difficulty makes it Simple.
+ *
+ * @param die The clicked die, from 1 to 5.
  */
-export function withUpgrades(difficulty: Difficulty, upgrades: number): Difficulty {
-	return { level: difficulty.level, upgrades: clamp(upgrades, 0, difficulty.level) };
+export function clickedLevel(level: number, die: number) {
+	return die === level ? die - 1 : die;
+}
+
+/**
+ * The five dice of the Dice Prompt's Difficulty row, from the first: the Challenge dice of the upgrades, the Difficulty
+ * dice of the level, and the dice past the level, which are off.
+ */
+export function difficultyRow(difficulty: Difficulty): ('Challenge' | 'Difficulty' | 'Off')[] {
+	const { challengeDice, difficultyDice } = difficultyDieCounts(difficulty);
+	return Array.from({ length: FORMIDABLE }, (_, index) => {
+		if (index < challengeDice) return 'Challenge';
+		return index < challengeDice + difficultyDice ? 'Difficulty' : 'Off';
+	});
 }

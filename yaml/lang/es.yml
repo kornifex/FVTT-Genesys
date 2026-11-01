@@ -175,8 +175,7 @@ Genesys:
     WeaponSkills: Habilidades del arma
     PoolModifications:
       Title: Modificaciones de la reserva
-      Difficulty: Dificultad
-      Upgrades: Incrementos
+      Difficulty: 'Dificultad: {level}'
       ManualChanges: Cambios manuales
       SelfEffects: 'Propios: '
       TargetEffects: 'Objetivo: '

@@ -175,8 +175,7 @@ Genesys:
     WeaponSkills: Compétences de l'arme
     PoolModifications:
       Title: Modification de la réserve de dés
-      Difficulty: Difficulté
-      Upgrades: Améliorations
+      Difficulty: 'Difficulté : {level}'
       ManualChanges: Modifications manuelles
       SelfEffects: 'Du personnage : '
       TargetEffects: 'De la cible : '
