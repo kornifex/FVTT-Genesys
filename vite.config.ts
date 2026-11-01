@@ -1,6 +1,5 @@
-/// <reference types="vitest/config" />
-
 import { AliasOptions, defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import dotenv from 'dotenv';
 import dotenvExpand from 'dotenv-expand';
 import pluginVue from '@vitejs/plugin-vue';
@@ -69,6 +68,8 @@ export default defineConfig({
 	plugins: [pluginVue(), yamlData('yaml'), packs('packs')],
 	test: {
 		setupFiles: ['src/testSetup.ts'],
+		// An agent's worktree under .claude/worktrees is a copy of the repo, whose tests would run against this one.
+		exclude: [...configDefaults.exclude, '.claude/**'],
 	},
 	resolve: {
 		alias: [

@@ -13,3 +13,7 @@ pnpm-debug.log*
 
 # Misc Files
 .env
+
+# Claude Code's local state: agents' worktrees (full copies of the repo) and personal settings
+.claude/worktrees/
+.claude/settings.local.json
