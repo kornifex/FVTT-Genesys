@@ -2957,17 +2957,18 @@ export async function run(e2e: ScenarioContext) {
 			await window.sheetsE2E.clickTab('Vehicle', 'inventory');
 		}),
 	);
-	// The Nemesis has Brawn 3: an adversary's list reads the damage total.
+	// The Nemesis has Brawn 3: an adversary's list reads the damage total. Rock and Shiv, created together, share a sort
+	// value, so their order varies between runs: the rows are compared sorted by name.
 	e2e.expect(
 		"#134 N1 an adversary lists a weapon's damage with its characteristic, without one, and with a negative base damage",
 		await gm.evaluate(() => {
 			const { text, htmlOf, actor } = window.e2e;
-			return [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row));
+			return [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row)).sort();
 		}),
 		[
-			'E2E Sword (MeleeDamage 6Critical 0Range [Engaged]E2E Pierce 3)',
 			'E2E Rock (MeleeDamage 2Critical 0Range [Engaged])',
 			'E2E Shiv (MeleeDamage 2Critical 0Range [Engaged])',
+			'E2E Sword (MeleeDamage 6Critical 0Range [Engaged]E2E Pierce 3)',
 		],
 	);
 	// The separators are drawn by CSS, after each part: a comma between two firing arcs, a semicolon between two details.
