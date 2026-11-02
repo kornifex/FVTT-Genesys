@@ -1,0 +1,8 @@
+// Unscoped: these style Foundry's own journal text pages. Foundry gives the page its body's line height of 1.25, while it
+// draws a content link or an inline roll with a border and a top padding, 3px taller than its text: the links of two lines
+// overlapped (#490). A text page takes the sheets' rich-text line height, shown in its journal entry or in its own
+// ProseMirror editor (both `.journal-page-content`); the other page types, and a Markdown page's source editor, keep
+// Foundry's. Foundry's rules sit in cascade layers, which this unlayered rule outweighs.
+.journal-entry-page.text .journal-page-content {
+	line-height: 1.5;
+}
