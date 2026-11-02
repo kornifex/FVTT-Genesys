@@ -5,4 +5,16 @@
 // Foundry's. Foundry's rules sit in cascade layers, which this unlayered rule outweighs.
 .journal-entry-page.text .journal-page-content {
 	line-height: 1.5;
+
+	// Foundry rules only a page's h1 and h2, and draws its h4 at the text's size. A text page's h3 and h4 take the sheets'
+	// rules, and the h4 their size between the h3 and the text (#486, #505), with Foundry's colour for the rule: journals
+	// follow Foundry's dark theme, which the sheets don't yet (#420).
+	h3,
+	h4 {
+		border-bottom: 1px solid var(--color-warm-3);
+	}
+
+	h4 {
+		font-size: 1.1em;
+	}
 }

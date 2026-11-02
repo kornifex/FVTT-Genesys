@@ -198,8 +198,11 @@ type SheetsHelpers = {
 	trackedAttributeLabels(name: string, translations: Record<string, string>): string[];
 	/** Opens a sheet whose description holds an `h1` to `h4`, and reads their look. */
 	descriptionHeadings(name: string): Promise<Record<string, HeadingStyle>>;
-	/** Reads the look of an `h3` in a journal's text page, which the sheets' styles must leave alone. */
-	journalHeading(): Promise<HeadingStyle>;
+	/**
+	 * Writes an `h3` and an `h4` in a journal's text page, and reads their look in the journal; then opens the page's own
+	 * sheet, and reads them in its editor.
+	 */
+	journalHeadings(): Promise<{ page: Record<string, HeadingStyle>; editor: Record<string, HeadingStyle> }>;
 	/**
 	 * Posts the cards of a gear and a talent of Hero whose descriptions hold an `h1` to `h4`, a check's card whose
 	 * description holds an `h3`, and a plain message holding an `h3`, then reads their look in the chat log.
@@ -1216,16 +1219,31 @@ function installSheetsHelpers() {
 			return headings;
 		},
 
-		async journalHeading() {
+		async journalHeadings() {
+			const tags = ['h3', 'h4'];
 			const journal = await CONFIG.JournalEntry.documentClass.create({
 				name: 'E2E Headings',
-				pages: [{ name: 'E2E Page', type: 'text', text: { content: '<h3>E2E h3</h3><p>E2E text.</p>' } }],
+				pages: [
+					{
+						name: 'E2E Page',
+						type: 'text',
+						text: { content: '<h3>E2E h3</h3><p>E2E text.</p><h4>E2E h4</h4><p>E2E text.</p>' },
+					},
+				],
 			});
+			const page = journal!.pages.contents[0];
+			// The page's content in the journal, and the editor's in the page's own sheet.
+			const shownIn = { page: '.journal-page-content', editor: '.journal-page-content .ProseMirror' };
+			const read = (root: Element, content: string) =>
+				Object.fromEntries(tags.map((tag) => [tag, headingStyle(root.querySelector<HTMLElement>(`${content} ${tag}`)!)]));
 			try {
-				const element = await render(journal!.sheet);
-				const heading = await waitFor('the journal heading', () => element.querySelector<HTMLElement>('.journal-entry-page h3'));
-				return headingStyle(heading);
+				const shown = await render(journal!.sheet, (root) => !!root.querySelector(`${shownIn.page} h4`));
+				const inPage = read(shown, shownIn.page);
+				await journal!.sheet.close();
+				const editor = await render(page.sheet, (root) => !!root.querySelector(`${shownIn.editor} h4`));
+				return { page: inPage, editor: read(editor, shownIn.editor) };
 			} finally {
+				await page.sheet.close();
 				await journal!.sheet.close();
 				await journal!.delete();
 			}
@@ -1732,12 +1750,10 @@ export async function run(e2e: ScenarioContext) {
 	);
 
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
-	// AppV1's look, and a journal's are left alone.
+	// AppV1's look.
 	let headings: Record<string, HeadingStyle> | undefined;
-	let journalHeading: HeadingStyle | undefined;
-	await e2e.step('#346 GM opens a skill whose description holds headings, and a journal page', async () => {
+	await e2e.step('#346 GM opens a skill whose description holds headings', async () => {
 		headings = await gm.evaluate(() => window.sheetsE2E.descriptionHeadings('skill'));
-		journalHeading = await gm.evaluate(() => window.sheetsE2E.journalHeading());
 	});
 	const appV1Heading = (size: number, border: string) => ({
 		size,
@@ -1761,20 +1777,28 @@ export async function run(e2e: ScenarioContext) {
 			h4: appV1Heading(1.1, underline('1px')),
 		},
 	);
-	e2e.expect(
-		"#346 A2 a journal page's h3 keeps Foundry's look",
-		journalHeading,
-		// Foundry draws a journal page's headings without a bottom rule.
-		{
-			size: 1.25,
-			margin: '0 0 0.5 0',
-			weight: '400',
-			lineHeight: '17.5px',
-			color: 'rgb(239, 230, 216)',
-			shadow: 'none',
-			border: 'none',
-		},
-	);
+	// #505: Foundry rules only a journal page's h1 and h2, and draws its h4 at the text's size. A text page's h3 and h4 take
+	// a sheet's sizes and rules, in Foundry's colour and with Foundry's spacing, in the journal and in the page's editor.
+	let journalHeadings: Awaited<ReturnType<SheetsHelpers['journalHeadings']>> | undefined;
+	await e2e.step('#505 GM opens a journal text page holding an h3 and an h4, then the page in its editor', async () => {
+		journalHeadings = await gm.evaluate(() => window.sheetsE2E.journalHeadings());
+	});
+	// Foundry's text colour and line height (one line of the heading's size) for a journal's headings, and its rule colour
+	// (`--color-warm-3`), in its dark theme. Foundry spaces a heading that isn't first by 1rem in the journal, not in the
+	// page's editor.
+	const journalHeading = (size: number, lineHeight: string, top: number) => ({
+		size,
+		margin: `${top} 0 0.5 0`,
+		weight: '400',
+		lineHeight,
+		color: 'rgb(239, 230, 216)',
+		shadow: 'none',
+		border: '1px solid rgb(93, 20, 43)',
+	});
+	e2e.expect("#505 A1 a journal text page's h3 and h4 take a sheet's sizes and rules, in the page and in its editor", journalHeadings, {
+		page: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 1) },
+		editor: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 0) },
+	});
 
 	// #430: Foundry gives a chat message's headings its own sizes and colours. The headings of a description in the
 	// system's cards look as in the sheet that shows it, and a plain message's are left alone.
