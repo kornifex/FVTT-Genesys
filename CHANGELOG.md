@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0-rc.6](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.5...v0.5.0-rc.6) (2026-11-02)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.5.0's changes in the welcome message, and rewrite the summary at each release ([#507](https://github.com/kornifex/FVTT-Genesys/issues/507)) ([19b70c2](https://github.com/kornifex/FVTT-Genesys/commit/19b70c2cc51c6cc4fb171d4f0f9a4c52103a7cac))
+* **ui:** give a journal text page's h3 and h4 the rules of a sheet's headings ([#508](https://github.com/kornifex/FVTT-Genesys/issues/508)) ([4888abd](https://github.com/kornifex/FVTT-Genesys/commit/4888abd3019f1c9fbe1fe1e3898fb8cf1571f06e))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#503](https://github.com/kornifex/FVTT-Genesys/issues/503)) ([bae3d88](https://github.com/kornifex/FVTT-Genesys/commit/bae3d88a24697a058ef46d87b5407b6ece78b425))
+* set the next release to 0.5.0-rc.6 ([#509](https://github.com/kornifex/FVTT-Genesys/issues/509)) ([fe33bf7](https://github.com/kornifex/FVTT-Genesys/commit/fe33bf7c00464faa3951454f018a6c829e33edd4))
+
 ## [0.5.0-rc.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.4...v0.5.0-rc.5) (2026-11-02)
 
 
