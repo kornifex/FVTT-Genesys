@@ -185,6 +185,8 @@ type SheetsHelpers = {
 	/** Creates each type with no system data, the items on a character too, and reads back the fields `template.json` gave a default. */
 	emptyDefaults(): Promise<Record<string, unknown>>;
 	welcomeLink(): string | null;
+	/** The release notes link of the last welcome message, whatever its language: where it leads and what it reads. */
+	welcomeReleaseNotes(): { href: string | null; text: string } | null;
 	/** The number of welcome messages in the chat. */
 	welcomeCount(): number;
 	/** The text of the documentation link of the last welcome message, whatever its language. */
@@ -1162,6 +1164,17 @@ function installSheetsHelpers() {
 			return [...card.querySelectorAll('a')].find((link) => text(link) === 'Project Documentation')?.getAttribute('href') ?? null;
 		},
 
+		welcomeReleaseNotes() {
+			const message = game.messages.contents.findLast((candidate: { content: string }) =>
+				candidate.content.includes('"https://github.com/kornifex/FVTT-Genesys/wiki"'),
+			);
+			if (!message) return null;
+			const card = document.createElement('div');
+			card.innerHTML = message.content;
+			const link = [...card.querySelectorAll('a')].find((link) => link.getAttribute('href')?.includes('/releases/'));
+			return link ? { href: link.getAttribute('href'), text: text(link) } : null;
+		},
+
 		welcomeDocumentationText() {
 			const href = 'https://github.com/kornifex/FVTT-Genesys/wiki';
 			const message = game.messages.contents.findLast((candidate: { content: string }) => candidate.content.includes(`"${href}"`));
@@ -1496,6 +1509,14 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.sheetsE2E.welcomeLink()),
 		'https://github.com/kornifex/FVTT-Genesys/wiki',
 	);
+	// §#506: the welcome message's summary of the changes ends with a link to all of them, in the running version's
+	// GitHub Release.
+	const version = await gm.evaluate(() => game.system.version);
+	e2e.expect(
+		"#506 A1 the welcome message's release notes link opens the running version's GitHub Release",
+		await gm.evaluate(() => window.sheetsE2E.welcomeReleaseNotes()),
+		{ href: `https://github.com/kornifex/FVTT-Genesys/releases/tag/v${version}`, text: `All the changes of ${version}` },
+	);
 
 	// §#347: the welcome shows for a version newer than the last one welcomed only. A GM back on an older version, as
 	// after a downgrade, isn't welcomed again.
@@ -1525,6 +1546,11 @@ export async function run(e2e: ScenarioContext) {
 		"#348 A2 in French, the welcome message's documentation link reads Documentation du projet",
 		await gm.evaluate(() => window.sheetsE2E.welcomeDocumentationText()),
 		'Documentation du projet',
+	);
+	e2e.expect(
+		"#506 A2 in French, the welcome message's release notes link reads Tous les changements de la",
+		(await gm.evaluate(() => window.sheetsE2E.welcomeReleaseNotes()))?.text,
+		`Tous les changements de la ${version}`,
 	);
 	await e2e.step('GM reloads in their own language', async () => {
 		await gm.evaluate((language) => game.settings.set('core', 'language', language), language);

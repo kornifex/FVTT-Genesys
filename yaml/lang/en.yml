@@ -306,15 +306,24 @@ Genesys:
       Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
-    Maintained: The system is now maintained at {repository}.
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    RepeatedDice: >-
-      Count every term of a repeated die in roll results, so a hand-typed formula such as <code>2da + 1da</code> keeps the
-      symbols of the second term
-    StyleSetting: Add a "Style" world setting, with a Realms of Terrinoth color variant chosen by the GM for every user
-    FreeIcons: 'Use only FontAwesome Free icons: a few sheet icons change (injuries, inventory, weapons, careers)'
+    FoundryVersions: Run on Foundry v13 and v14; a world that stays on Foundry v12 keeps the 0.4.x versions
+    WeaponProfiles: >-
+      Give a weapon extra profiles (an axe wielded or thrown), each with its own skill, damage and range, and attack with
+      each from its own row of the Combat tab
+    Silhouette: >-
+      Give characters and adversaries a silhouette: a targeted attack is easier against a target 2 or more silhouettes larger,
+      and harder against one 2 or more smaller
+    Difficulty: Pick the check's difficulty in the Dice Prompt by clicking one of five dice
+    PoolModificationSources: >-
+      Open the talent, equipment or effect behind a Pool Modification from its name in the Dice Prompt, which stays open
+    ChatDiceButton: Open the Dice Prompt from a button beside the chat's message modes, for the selected token's actor
+    StoryPointSpend: Record a Story Point a player spends once, even with several GMs or assistants connected
+    InventoryMenu: >-
+      Open an inventory row's menu with a right-click, and place an item dropped on a row before or after it
+    ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
     SourceCode: Project Source Code

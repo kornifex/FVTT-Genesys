@@ -307,17 +307,26 @@ Genesys:
       ¡Hola, y gracias por probar el sistema Genesys! Ten en cuenta que este sistema está todavía en fase alfa: está listo para
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
-    Maintained: El sistema se mantiene ahora en {repository}.
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
-    RepeatedDice: >-
-      Los resultados de una tirada cuentan cada término de un dado repetido, así que una fórmula escrita a mano como
-      <code>2da + 1da</code> conserva los símbolos del segundo término
-    StyleSetting: >-
-      Nuevo ajuste de mundo «Estilo», con una variante de colores de Realms of Terrinoth que el DJ elige para todos los
-      usuarios
-    FreeIcons: 'Solo se usan iconos de FontAwesome Free: cambian algunos iconos de las hojas (heridas, inventario, armas, profesiones)'
+    FoundryVersions: Funciona en Foundry v13 y v14; un mundo que sigue en Foundry v12 conserva las versiones 0.4.x
+    WeaponProfiles: >-
+      Un arma puede tener perfiles adicionales (un hacha empuñada o arrojada), cada uno con su habilidad, su daño y su
+      alcance, y se ataca con cada uno desde su fila de la pestaña Combate
+    Silhouette: >-
+      Los personajes y los adversarios tienen una silueta: un ataque dirigido es más fácil contra un objetivo 2 siluetas o más
+      grande, y más difícil contra uno 2 siluetas o más pequeño
+    Difficulty: La dificultad de la tirada se elige en la reserva de dados, con un clic en uno de los cinco dados
+    PoolModificationSources: >-
+      El nombre de una modificación de la reserva abre el talento, el equipo o el efecto del que viene, sin cerrar la
+      reserva de dados
+    ChatDiceButton: Un botón junto a los modos de mensaje del chat abre la reserva de dados, para el actor del token seleccionado
+    StoryPointSpend: >-
+      Un Punto de Historia que gasta un jugador se cuenta una sola vez, aunque haya varios DJ o asistentes conectados
+    InventoryMenu: >-
+      Un clic derecho en una fila del inventario abre su menú, y un objeto soltado sobre una fila se coloca antes o después
+    ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
     SourceCode: Código fuente del proyecto

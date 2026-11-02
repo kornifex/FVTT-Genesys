@@ -309,17 +309,26 @@ Genesys:
       premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
       sont possibles !
     Updates: Corrections et nouveautés
-    Maintained: Le système est désormais maintenu sur {repository}.
     Fix: CORRECTIF
     Feature: NOUVEAUTÉ
     Styling: STYLE
-    RepeatedDice: >-
-      Les résultats d'un jet comptent chaque terme d'un dé répété : une formule saisie à la main comme <code>2da + 1da</code>
-      garde les symboles du second terme
-    StyleSetting: >-
-      Ajout d'un paramètre de monde « Style », avec une variante de couleurs Royaumes de Terrinoth choisie par le MJ pour tous
-      les utilisateurs
-    FreeIcons: 'Seules les icônes FontAwesome Free sont utilisées : quelques icônes des fiches changent (blessures critiques, inventaire, armes, carrières)'
+    FoundryVersions: Fonctionne sur Foundry v13 et v14 ; un monde qui reste sur Foundry v12 garde les versions 0.4.x
+    WeaponProfiles: >-
+      Une arme peut avoir des profils supplémentaires (une hache maniée ou lancée), chacun avec sa compétence, ses dégâts et sa
+      portée, et l'on attaque avec chacun depuis sa ligne de l'onglet Combat
+    Silhouette: >-
+      Les personnages et les adversaires ont un gabarit : une attaque ciblée est plus facile contre une cible plus grande de
+      2 gabarits ou plus, et plus difficile contre une cible plus petite de 2 gabarits ou plus
+    Difficulty: La difficulté du test se choisit dans la réserve de dés, d'un clic sur l'un des cinq dés
+    PoolModificationSources: >-
+      Le nom d'une modification de la réserve de dés ouvre le talent, l'équipement ou l'effet dont elle vient, sans fermer la
+      réserve de dés
+    ChatDiceButton: Un bouton à côté des modes de message du chat ouvre la réserve de dés, pour l'acteur du token sélectionné
+    StoryPointSpend: >-
+      Un point de Destin dépensé par un joueur n'est compté qu'une fois, même avec plusieurs MJ ou assistants connectés
+    InventoryMenu: >-
+      Un clic droit sur une ligne de l'inventaire ouvre son menu, et un objet lâché sur une ligne se place avant ou après elle
+    ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
     SourceCode: Code source du projet
