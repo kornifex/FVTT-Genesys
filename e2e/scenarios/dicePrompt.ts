@@ -67,7 +67,7 @@ type InlineGlyph = { px: number; em: number; fontSize: number; aboveXHeight: num
  * The prompt's Difficulty and manual changes, as the user sees them.
  */
 type PromptDifficulty = {
-	/** The labels of the Pool Modifications' rows, before the effects' rows. */
+	/** The labels of the Pool Modifications' rows other than the effects'. */
 	rows: string[];
 	/** The Difficulty row's label, which names the level: `Difficulty: Hard`. */
 	label: string;
@@ -114,6 +114,8 @@ type DicePromptHelpers = {
 	/** Removes a die or symbol of the pool preview, as a click on it does. */
 	promptRemove(glyph: string): Promise<PromptState>;
 	promptDifficulty(): PromptDifficulty;
+	/** The labels of every Pool Modifications' row, in the order the prompt shows them. */
+	promptRows(): string[];
 	/** Clicks the Difficulty row's dice, numbered from 1, in this order. */
 	setPromptDifficulty(dice: number[]): Promise<{ pool: string; difficulty: PromptDifficulty }>;
 	/** Clicks the manual change at an index, which removes it. */
@@ -616,6 +618,10 @@ function installDicePromptHelpers() {
 			element.click();
 			await waitFor(`the pool without ${glyph}`, () => poolPreview(root) !== before);
 			return promptState();
+		},
+
+		promptRows() {
+			return [...htmlOf(thePrompt())!.querySelectorAll('.pool-modifications-container > div > span')].map((label) => text(label));
 		},
 
 		promptDifficulty() {
@@ -2433,6 +2439,11 @@ export async function run(e2e: ScenarioContext) {
 			hint: 'Use the dice box on the right to add, upgrade and downgrade. Click a die in the pool to remove one of its kind, after every other change.',
 			difficulty: difficultyOf('Hard', 'DDD··'),
 		},
+	);
+	e2e.expect(
+		"#496 P9 the Manual Changes row comes after the effects' rows, empty, the Difficulty row first",
+		await gm.evaluate(() => window.dicePromptE2E.promptRows()),
+		['Difficulty: Hard', 'From Self: E2E Shroud', 'Manual Changes'],
 	);
 	const easy = await setDifficulty([1]);
 	const easyUpgraded = await toggle('E2E Shroud');
