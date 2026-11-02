@@ -21,6 +21,8 @@ A release is marked latest, the one Foundry offers as an update, unless a higher
 2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
 3. For the final version only: the checklist items no test proves, listed atop that issue, are tested at the table, on a release candidate.
 
+Before that, a PR to the line rewrites the summary of the welcome message, which the GM reads in the chat when the world runs a new version: a handful of the changes that matter at the table, since the previous release candidate for a candidate, since the previous final version for a final version. Each change is a line of `public/templates/chat/alpha-notice.hbs`, tagged FIX, FEATURE or STYLING and linked to its PR, and a key under `Genesys.AlphaNotice` in every language file. The last line links to the version's GitHub Release, for every change.
+
 ## Versions
 
 - In 0.x, `feat` and breaking changes bump the minor, `fix` the patch.
