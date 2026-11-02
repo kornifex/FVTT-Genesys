@@ -106,6 +106,13 @@ async function show() {
 		user-select: text;
 	}
 
+	// Foundry draws a content link or an inline roll with a border and a top padding, 3px taller than a line of the sheets'
+	// `normal` height, so that the links of two lines overlapped. The text's line height leaves room for them, open or
+	// closed. Unitless, so that a heading or a smaller text keeps it in proportion.
+	.editor-content {
+		line-height: 1.5;
+	}
+
 	// Foundry shows the toggle button under the pointer as a block, where its base `button` is a centring flex box. As a
 	// block, the button's padding leaves its icon less room than the icon's width, and the icon overflows to the right:
 	// 2px off-centre on v13, 4px on v14's wider icon. A flex box centres it over the padding.
