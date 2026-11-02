@@ -1,12 +1,19 @@
 <script lang="ts" setup>
 import { useDragHover } from '@/vue/useDragHover';
 
-defineProps<{
-	/**
-	 * Whether the sort slot should be collapsed.
-	 */
-	active: boolean;
-}>();
+withDefaults(
+	defineProps<{
+		/**
+		 * Whether the sort slot should be collapsed.
+		 */
+		active: boolean;
+		/**
+		 * Whether the slot lights up as hovered while the drag hovers another target whose drop lands on it.
+		 */
+		lit?: boolean;
+	}>(),
+	{ lit: false },
+);
 
 const emit = defineEmits<{
 	/**
@@ -25,7 +32,7 @@ function drop(event: DragEvent) {
 </script>
 
 <template>
-	<div :class="{ sortTarget: true, active, hover: isHovered }" @dragenter="enter" @dragleave="leave" @drop="drop">
+	<div :class="{ sortTarget: true, active, hover: isHovered || lit }" @dragenter="enter" @dragleave="leave" @drop="drop">
 		<div class="inner"></div>
 	</div>
 </template>
