@@ -78,8 +78,23 @@ const received = receivedDifficulty(context.value.difficulty);
 const difficulty = ref<Difficulty>(received.difficulty);
 const manualChanges = ref<string[]>(received.manualChanges);
 const difficultyName = computed(() => game.i18n.localize(DIFFICULTY_LABELS[difficulty.value.level]));
-// The Pool Modifications of the check, each turned on or off by the roller.
-const effects = ref<{ key: string; name: string; enabled: boolean; mods: string[] }[]>([]);
+// What the prompt needs of the document a Pool Modification's row opens: the item its effect comes from, or the effect.
+type SourceDocument = {
+	name: string;
+	documentName: string;
+	sheet: { render(force: boolean): unknown } | null;
+	testUserPermission(user: User, level: 'OBSERVER'): boolean;
+};
+
+// The link to a source document: the row holds its uuid, not the document, which Vue would wrap in a reactive proxy.
+type SourceLink = { uuid: string; tooltip: string; icon: string };
+
+// The icons Foundry's content links show for these types of documents. v13's config gives effects none.
+const SOURCE_ICONS: Record<string, string> = { Item: 'fa-solid fa-suitcase', ActiveEffect: 'fa-solid fa-person-rays' };
+
+// The Pool Modifications of the check, each turned on or off by the roller. The origin is the actor or the target, the
+// name what the modification comes from.
+const effects = ref<{ key: string; origin: string; name: string; link?: SourceLink; enabled: boolean; mods: string[] }[]>([]);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
 const weaponSkills = shallowRef<PromptSkill[]>([]);
@@ -141,7 +156,13 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		CONFIG.genesys.settings.autoApplyPoolModifications,
 	).map((modification) => ({
 		key: modification.key,
+		origin: game.i18n.localize(
+			modification.source === 'self'
+				? 'Genesys.DicePrompt.PoolModifications.SelfEffects'
+				: 'Genesys.DicePrompt.PoolModifications.TargetEffects',
+		),
 		name: poolModificationName(modification),
+		link: sourceLink(modification),
 		enabled: modification.enabled,
 		mods: modification.mods,
 	}));
@@ -169,21 +190,52 @@ function checkPurpose(): CheckPurpose {
 	}
 }
 
-function poolModificationName({ source, from }: CheckPoolModification) {
-	return (
-		game.i18n.localize(
-			source === 'self' ? 'Genesys.DicePrompt.PoolModifications.SelfEffects' : 'Genesys.DicePrompt.PoolModifications.TargetEffects',
-		) +
-		matchOrigin(from, {
-			effect: (name) => name,
-			defense: (defense) => game.i18n.localize(DEFENSE_LABELS[defense]),
-			silhouette: ({ target, attacker }) =>
-				game.i18n.format('Genesys.DicePrompt.PoolModifications.SilhouetteDifference', {
-					target: String(target),
-					attacker: String(attacker),
-				}),
-		})
-	);
+/**
+ * What a Pool Modification comes from: its effect, followed by the item the effect comes from when they are named apart.
+ */
+function poolModificationName({ from }: CheckPoolModification) {
+	return matchOrigin(from, {
+		effect: (name, _uuid, item) =>
+			item && item.name !== name
+				? game.i18n.format('Genesys.DicePrompt.PoolModifications.EffectOfItem', { effect: name, item: item.name })
+				: name,
+		defense: (defense) => game.i18n.localize(DEFENSE_LABELS[defense]),
+		silhouette: ({ target, attacker }) =>
+			game.i18n.format('Genesys.DicePrompt.PoolModifications.SilhouetteDifference', {
+				target: String(target),
+				attacker: String(attacker),
+			}),
+	});
+}
+
+/**
+ * The link to the document the roller opens to read a Pool Modification's conditions: the item its effect comes from, or
+ * the effect when it comes from none. None when the user may not see that document, as a player on a target's item.
+ */
+function sourceLink({ from }: CheckPoolModification): SourceLink | undefined {
+	const uuid = matchOrigin(from, {
+		effect: (_name, uuid, item) => item?.uuid ?? uuid,
+		defense: () => undefined,
+		silhouette: () => undefined,
+	});
+	const document = sourceDocument(uuid);
+	if (!uuid || !document?.testUserPermission(game.user, 'OBSERVER')) {
+		return undefined;
+	}
+
+	return {
+		uuid,
+		tooltip: game.i18n.format('Genesys.DicePrompt.PoolModifications.OpenSource', { name: document.name }),
+		icon: SOURCE_ICONS[document.documentName],
+	};
+}
+
+function sourceDocument(uuid: string | undefined) {
+	return uuid ? (fromUuidSync(uuid) as SourceDocument | null) : null;
+}
+
+function openSource(link: SourceLink) {
+	void sourceDocument(link.uuid)?.sheet?.render(true);
 }
 
 function buildDicePool() {
@@ -385,7 +437,9 @@ async function onRoll() {
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
 					<span>
 						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
-						<label>{{ '\xa0' + effect.name }}</label>
+						<!-- The label names no input: a click on the name opens its source, the checkbox alone turns it on. -->
+						<!-- prettier-ignore -->
+						<label>{{ '\xa0' + effect.origin }}<a v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></a><template v-else>{{ effect.name }}</template></label>
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
@@ -657,6 +711,29 @@ async function onRoll() {
 			@include reset.input;
 			input {
 				height: 1em;
+			}
+
+			// The name of what a Pool Modification comes from, as plain text that opens it; not the glyph of a Pool
+			// Modification, which the rules above style.
+			a.source-link {
+				display: inline;
+				margin: 0;
+				font-family: inherit;
+				color: inherit;
+				cursor: pointer;
+
+				&:hover {
+					text-decoration: underline;
+					text-shadow: none;
+				}
+
+				i {
+					position: static;
+					top: 0;
+					margin-left: 0.25em;
+					font-size: 0.85em;
+					color: inherit;
+				}
 			}
 		}
 	}

@@ -79,6 +79,18 @@ type PromptDifficulty = {
 };
 
 /**
+ * The link a Pool Modification row makes of the name of what it comes from (§#495), as the user sees it.
+ */
+type SourceLink = {
+	/** The link's text: the effect, and its item when they are named apart. */
+	text: string;
+	tooltip: string | null;
+	/** The classes of the icon that follows the name. */
+	icon: string | null;
+	cursor: string;
+};
+
+/**
  * The prompt's Pool Modifications as laid out: their expander, which folds them, and the container of their rows.
  */
 type PoolModificationsBox = {
@@ -106,6 +118,14 @@ type DicePromptHelpers = {
 	/** Picks an option of the prompt's select: a characteristic by value, a skill by the start of its text. */
 	promptSelect(args: { name: 'characteristic' | 'skill'; option: string }): Promise<PromptState>;
 	promptToggle(name: string): Promise<PromptState>;
+	/** The Pool Modification rows' labels, each with the link to what it comes from, or null when it has none. */
+	promptSourceLinks(): { name: string; link: SourceLink | null }[];
+	/**
+	 * Clicks the link of the Pool Modification row whose label holds a name, then gives the document whose sheet it opened,
+	 * how many Dice Prompts are still open, and whether the row's checkbox is ticked. Null when the row has no link, as before
+	 * #495.
+	 */
+	openPromptSource(name: string): Promise<{ opened: { type: string; name: string }; prompts: number; enabled: boolean } | null>;
 	poolModificationsBox(): PoolModificationsBox;
 	/** Clicks the Pool Modifications' title, which folds or unfolds them, and waits for their transitions to end. */
 	togglePoolModifications(): Promise<PoolModificationsBox>;
@@ -454,10 +474,29 @@ function installDicePromptHelpers() {
 						},
 					],
 				},
+				// What a Pool Modification comes from, which the prompt opens (§#495): a talent whose effect has another
+				// name, a piece of equipment whose effect has its name, an effect of the actor itself, and a target the
+				// player may not see, whose talent's effect has another name.
+				{
+					name: 'E2E Seeker',
+					type: 'character',
+					system: { characteristics: characteristics([1, 1, 1, 1, 1, 1]) },
+					items: [
+						skill('Cool', 'presence', 0),
+						{ name: 'E2E Quick Draw', type: 'talent', effects: [effect('Fate', 'check.self.', 'B')] },
+						{ name: 'E2E Lens', type: 'gear', system: { state: 'carried' }, effects: [effect('Lens', 'check.self.', 'a')] },
+					],
+					effects: [effect('Grit', 'check.self.', 'S')],
+				},
+				{
+					name: 'E2E Veiled',
+					type: 'rival',
+					items: [{ name: 'E2E Shade', type: 'talent', effects: [effect('Haze', 'check.target.', 'S')] }],
+				},
 			]);
 			await window.e2e.setOwnership(actor('Rival'), 'default', 'OBSERVER');
-			for (const name of ['Bo', 'Cy']) await window.e2e.setOwnership(actor(name), user, 'OWNER');
-			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy'];
+			for (const name of ['Bo', 'Cy', 'Seeker']) await window.e2e.setOwnership(actor(name), user, 'OWNER');
+			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy', 'Veiled'];
 			await canvas.scene.createEmbeddedDocuments(
 				'Token',
 				await Promise.all(
@@ -558,6 +597,47 @@ function installDicePromptHelpers() {
 			row.querySelector('input')!.click();
 			await settle();
 			return promptState();
+		},
+
+		promptSourceLinks() {
+			return [...htmlOf(thePrompt())!.querySelectorAll('.pool-modifications-effects')].map((row) => {
+				const link = row.querySelector<HTMLElement>('label a');
+				return {
+					name: text(row.querySelector('label')),
+					link: link && {
+						text: text(link),
+						tooltip: link.dataset.tooltip ?? null,
+						icon: link.querySelector('i')?.className ?? null,
+						cursor: getComputedStyle(link).cursor,
+					},
+				};
+			});
+		},
+
+		async openPromptSource(name) {
+			const row = [...htmlOf(thePrompt())!.querySelectorAll('.pool-modifications-effects')].find((candidate) =>
+				text(candidate.querySelector('label')).includes(name),
+			);
+			const link = row?.querySelector<HTMLElement>('label a');
+			if (!row) throw new Error(`No Pool Modification ${name}`);
+			if (!link) return null;
+			type Sheet = { id: string; rendered: boolean; document?: { documentName: string; name: string } };
+			const sheets = () => [...foundry.applications.instances.values()] as Sheet[];
+			const before = new Set(
+				sheets()
+					.filter((app) => app.rendered)
+					.map((app) => app.id),
+			);
+			link.click();
+			const opened = await waitFor(`the sheet ${name} opens`, () =>
+				sheets().find((app) => app.rendered && app.document && !before.has(app.id)),
+			);
+			await settle();
+			return {
+				opened: { type: opened.document!.documentName, name: unprefixed(opened.document!.name) },
+				prompts: apps('app-dice-prompt').length,
+				enabled: row.querySelector('input')!.checked,
+			};
 		},
 
 		poolModificationsBox() {
@@ -2587,6 +2667,68 @@ export async function run(e2e: ScenarioContext) {
 	);
 	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
 	await e2e.step('R end');
+
+	// S: a Pool Modification's row opens the item its effect comes from, or the effect, for a user who may see it (§#495).
+	// The Seeker's Intellect check, with the Veiled targeted.
+	const seekerCheck = (client: Client) =>
+		opened(client, click(client, { actor: 'Seeker' }, '.tab-skills .characteristics-row .characteristic-field:nth-child(3) label a'));
+	const sourceLinks = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptSourceLinks());
+	const sourceLink = (text: string, opens: string, type: 'item' | 'effect') => ({
+		text,
+		tooltip: `Open E2E ${opens}`,
+		icon: type === 'item' ? 'fa-solid fa-suitcase' : 'fa-solid fa-person-rays',
+		cursor: 'pointer',
+	});
+	const seekerRows = (shade: ReturnType<typeof sourceLink> | null) => [
+		{ name: 'From Self: E2E Grit', link: sourceLink('E2E Grit', 'Grit', 'effect') },
+		{ name: 'From Self: E2E Fate (E2E Quick Draw)', link: sourceLink('E2E Fate (E2E Quick Draw)', 'Quick Draw', 'item') },
+		{ name: 'From Self: E2E Lens', link: sourceLink('E2E Lens', 'Lens', 'item') },
+		{ name: 'From Target: E2E Haze (E2E Shade)', link: shade },
+	];
+	await player.evaluate((name) => window.e2e.target(name), 'Veiled');
+	await seekerCheck(player);
+	e2e.expect(
+		"#495 S1 as a player, the rows link the actor's talent, equipment and effect, name the talent after its effect, and leave the target's talent unlinked",
+		await sourceLinks(player),
+		seekerRows(null),
+	);
+	await player.evaluate(() => window.dicePromptE2E.closePrompts());
+	await player.evaluate(() => window.e2e.target(null));
+	await target('Veiled');
+	await seekerCheck(gm);
+	e2e.expect(
+		"#495 S2 as the GM, the target's talent is linked too",
+		await sourceLinks(gm),
+		seekerRows(sourceLink('E2E Haze (E2E Shade)', 'Shade', 'item')),
+	);
+	const openedSources: Record<string, unknown> = {};
+	for (const name of ['E2E Fate', 'E2E Grit', 'E2E Haze']) {
+		openedSources[name] = await gm.evaluate((name) => window.dicePromptE2E.openPromptSource(name), name);
+		await gm.evaluate(() => window.e2e.closeSetUp());
+	}
+	const openedSource = (type: string, name: string) => ({ opened: { type, name }, prompts: 1, enabled: false });
+	e2e.expect(
+		"#495 S3 a click on a link opens the talent's sheet, the effect's sheet or the target's talent's sheet, and leaves the prompt open and the row off",
+		openedSources,
+		{
+			'E2E Fate': openedSource('Item', 'Quick Draw'),
+			'E2E Grit': openedSource('ActiveEffect', 'Grit'),
+			'E2E Haze': openedSource('Item', 'Shade'),
+		},
+	);
+	await target('Rival');
+	await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 1 } });
+	await opened(gm, attack('Pistol'));
+	e2e.expect(
+		"#495 S4 the target's defense has no link, even for the GM",
+		(await sourceLinks(gm)).filter(({ name }) => name.endsWith('Defense')),
+		[{ name: 'From Target: Ranged Defense', link: null }],
+	);
+	await target(null);
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	await player.evaluate(() => window.dicePromptE2E.closeSheets());
+	await e2e.step('S end');
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }
