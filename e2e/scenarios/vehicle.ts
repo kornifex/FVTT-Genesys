@@ -1009,17 +1009,18 @@ async function passengerTileDrops(e2e: ScenarioContext) {
 		() => vehicleE2E('dropFromSidebar', { type: 'Actor', name: 'Tile S' }, { actor: 'Tile Ship', target: [...tile('A'), 'img|1'] }),
 		{ ship: ['S', 'A', 'M', 'B', 'C'], other: ['O'] },
 	);
-	await step("#489 A4 C dragged onto M's tile moves before M", drag(tile('C'), tile('M')), {
-		ship: ['S', 'A', 'C', 'M', 'B'],
+	// The tiles dropped on are passengers from the start, so that the steps still run on a build that misplaces the drops.
+	await step("#489 A4 C dragged onto A's tile moves before A", drag(tile('C'), tile('A')), {
+		ship: ['S', 'C', 'A', 'M', 'B'],
 		other: ['O'],
 	});
 	await step("#489 A5 S dragged onto B's tile moves before B", drag(tile('S'), tile('B')), {
-		ship: ['A', 'C', 'M', 'S', 'B'],
+		ship: ['C', 'A', 'M', 'S', 'B'],
 		other: ['O'],
 	});
-	await step('#489 A6 B dropped on its own tile stays', drag(tile('B'), tile('B')), { ship: ['A', 'C', 'M', 'S', 'B'], other: ['O'] });
+	await step('#489 A6 B dropped on its own tile stays', drag(tile('B'), tile('B')), { ship: ['C', 'A', 'M', 'S', 'B'], other: ['O'] });
 	await step("#489 A7 O dragged from another vehicle onto A's tile joins before A", drag(tile('O'), tile('A'), 'Tile Other'), {
-		ship: ['O', 'A', 'C', 'M', 'S', 'B'],
+		ship: ['C', 'O', 'A', 'M', 'S', 'B'],
 	});
 }
 
