@@ -366,8 +366,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						:deep(prose-mirror.inactive) {
 							gap: 0;
 
+							// A flex box, as the editor shows its toggle, which centres the icon.
 							> button.toggle:enabled {
-								display: block;
+								display: flex;
 								visibility: hidden;
 								position: static;
 								align-self: flex-end;

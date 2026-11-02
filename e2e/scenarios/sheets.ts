@@ -53,7 +53,7 @@ type EditorState = { toggle: 'enabled' | 'disabled' | null; open: boolean; text:
  * The toggle button of an editor as laid out: its display, whether it shows, and how far its icon's centre is from its
  * own, in px (`x` positive to the right, `y` downwards), rounded to the half pixel.
  */
-type ToggleIcon = { display: string; visible: boolean; x: number; y: number; layout: string };
+type ToggleIcon = { display: string; visible: boolean; x: number; y: number };
 
 /**
  * The look of a heading: its size against its parent's, its margins in rem, its weight, line height, colour, shadow and
@@ -591,6 +591,9 @@ function installSheetsHelpers() {
 
 		async toggleIcon(name, field) {
 			const toggle = toggleOf(await editorOf(name, field));
+			// Foundry's buttons transition every property: an empty adversary description's toggle turns visible once its
+			// transition starts.
+			await settle();
 			const icon = toggle?.querySelector('i');
 			if (!toggle || !icon) throw new Error(`The editor ${field} of ${name} has no toggle icon`);
 			const button = toggle.getBoundingClientRect();
@@ -602,18 +605,6 @@ function installSheetsHelpers() {
 				visible: style.display !== 'none' && style.visibility === 'visible',
 				x: half(glyph.left + glyph.width / 2 - (button.left + button.width / 2)),
 				y: half(glyph.top + glyph.height / 2 - (button.top + button.height / 2)),
-				// Measuring #488: the boxes and the properties that place the icon.
-				layout: [
-					`button ${button.width}x${button.height}`,
-					`icon ${glyph.width}x${glyph.height} at ${glyph.left - button.left},${glyph.top - button.top}`,
-					`padding ${style.padding}`,
-					`border ${style.borderWidth}`,
-					`line-height ${style.lineHeight}`,
-					`text-align ${style.textAlign}`,
-					`font ${style.fontSize} ${style.fontFamily}`,
-					`icon display ${getComputedStyle(icon).display}`,
-					`classes ${toggle.closest('.application, .app')?.className}`,
-				].join(' | '),
 			};
 		},
 
@@ -2013,10 +2004,10 @@ export async function run(e2e: ScenarioContext) {
 
 	// §#488: an editor's toggle button shows while the pointer is over the editor, its icon centred in it; an adversary's
 	// empty description shows it in a room of its own.
-	const toggleIcons = async (fields: { sheet: string; tab: string; field: string }[]) => {
+	const toggleIcons = async (fields: { sheet: string; tab: string; field: string }[], label: string) => {
 		const icons: Record<string, ToggleIcon> = {};
 		for (const [index, { sheet, tab, field }] of fields.entries()) {
-			const mark = `toggle-${index}`;
+			const mark = `toggle-${label}-${index}`;
 			await gm.evaluate(
 				async ({ sheet, tab, field, mark }) => {
 					await window.sheetsE2E.open(sheet);
@@ -2043,9 +2034,9 @@ export async function run(e2e: ScenarioContext) {
 	];
 	let shownToggles: Record<string, ToggleIcon> = {};
 	await e2e.step('#488 B1 GM hovers an editor of each sheet type, then an adversary description left empty', async () => {
-		shownToggles = await toggleIcons(toggleFields);
+		shownToggles = await toggleIcons(toggleFields, 'described');
 		await gm.evaluate(() => window.sheetsE2E.update('Nemesis', { 'system.description': '' }));
-		const [empty] = Object.values(await toggleIcons(toggleFields.slice(0, 1)));
+		const [empty] = Object.values(await toggleIcons(toggleFields.slice(0, 1), 'empty'));
 		shownToggles['Nemesis empty system.description'] = empty;
 		await gm.evaluate(() => window.sheetsE2E.update('Nemesis', { 'system.description': '<p>E2E closed</p>' }));
 	});
