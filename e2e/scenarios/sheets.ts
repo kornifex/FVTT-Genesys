@@ -3639,8 +3639,11 @@ type LinkLineHelpers = {
 	 * talent's, opens their sheets, lays the links out, then puts the texts back.
 	 */
 	sheetLinkLines(): Promise<Record<string, LinkLines>>;
-	/** Writes the same paragraph in a journal's text page, and lays its links out. */
-	journalLinkLines(): Promise<LinkLines>;
+	/**
+	 * Writes the same paragraph in a journal's text page, and lays its links out in the journal; then opens the page's own
+	 * sheet, and reads the line height of the paragraph in its editor, which shows the links' source.
+	 */
+	journalLinkLines(): Promise<LinkLines & { editorLineHeight: string }>;
 };
 
 declare global {
@@ -3730,9 +3733,15 @@ function installLinkLineHelpers() {
 				name: 'E2E Link Lines',
 				pages: [{ name: 'E2E Page', type: 'text', text: { content: paragraph() } }],
 			});
+			const page = journal!.pages.contents[0];
 			try {
-				return layOut(await linkParagraph(await render(journal!.sheet), '.journal-entry-page'));
+				const laidOut = layOut(await linkParagraph(await render(journal!.sheet), '.journal-entry-page'));
+				await journal!.sheet.close();
+				const editor = await render(page.sheet, (root) => !!root.querySelector('.journal-page-content .ProseMirror p'));
+				const editorParagraph = editor.querySelector<HTMLElement>('.journal-page-content .ProseMirror p')!;
+				return { ...laidOut, editorLineHeight: getComputedStyle(editorParagraph).lineHeight };
 			} finally {
+				await page.sheet.close();
 				await journal!.sheet.close();
 				await journal!.delete();
 			}
@@ -3748,14 +3757,14 @@ async function linkLines(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installLinkLineHelpers);
 	let sheets: Record<string, LinkLines> = {};
-	let journal: LinkLines | undefined;
+	let journal: (LinkLines & { editorLineHeight: string }) | undefined;
 	await e2e.step(
 		"#490 A1 GM writes a paragraph of links in a gear's description, a Motivation, a nemesis's and its talent's",
 		async () => {
 			sheets = await gm.evaluate(() => window.linkLinesE2E.sheetLinkLines());
 		},
 	);
-	await e2e.step('#490 A2 GM writes a paragraph of links in a journal page', async () => {
+	await e2e.step("#490 A2 GM writes a paragraph of links in a journal text page, and opens the page's editor", async () => {
 		journal = await gm.evaluate(() => window.linkLinesE2E.journalLinkLines());
 	});
 	for (const [key, laidOut] of Object.entries({ ...sheets, journal })) {
@@ -3763,17 +3772,18 @@ async function linkLines(e2e: ScenarioContext) {
 		const { lines, gap, lineHeight, linkHeight, font } = laidOut;
 		e2e.log(`#490 ${key}`, `${lines} lines, gap ${gap}px, line height ${lineHeight}, link ${linkHeight}px, ${font}`);
 	}
+	e2e.log('#490 journal editor line height', journal?.editorLineHeight);
 	const apart = ({ gap }: LinkLines) => (gap === null ? 'on one line' : gap > 0 ? 'apart' : `overlapping by ${-gap}px`);
 	e2e.expect(
 		"#490 A1 in a sheet's rich text, the boxes of two links on consecutive lines keep a gap",
 		Object.fromEntries(Object.entries(sheets).map(([key, laidOut]) => [key, apart(laidOut)])),
 		{ gear: 'apart', motivation: 'apart', nemesis: 'apart', nemesisTalent: 'apart' },
 	);
-	// A journal page is Foundry's own rich text, which the system doesn't style: its line height (1.25) is shorter than a
-	// link's box, as without the system.
+	// Foundry gives a journal page its body's line height (1.25), shorter than a link's box: a text page takes the sheets'
+	// rich-text line height, in the journal and in the page's editor alike.
 	e2e.expect(
-		"#490 A2 a journal page keeps Foundry's line height, whose links on consecutive lines overlap as without the system",
-		journal && { lineHeight: journal.lineHeight, linkHeight: journal.linkHeight, gap: journal.gap },
-		{ lineHeight: '17.5px', linkHeight: 20, gap: -2.5 },
+		'#490 A2 in a journal text page, the boxes of two links on consecutive lines keep a gap, and its editor has the same line height',
+		journal && { links: apart(journal), sameInEditor: journal.editorLineHeight === journal.lineHeight },
+		{ links: 'apart', sameInEditor: true },
 	);
 }
