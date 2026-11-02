@@ -106,6 +106,13 @@ async function show() {
 		user-select: text;
 	}
 
+	// Foundry shows the toggle button under the pointer as a block, where its base `button` is a centring flex box. As a
+	// block, the button's padding leaves its icon less room than the icon's width, and the icon overflows to the right:
+	// 2px off-centre on v13, 4px on v14's wider icon. A flex box centres it over the padding.
+	&:hover > button.toggle:enabled {
+		display: flex;
+	}
+
 	// Foundry positions the text in a box of the element's height, which it scrolls. The text flows instead, closed or open,
 	// so that the editor takes the height of its text, as the previous editor did. Closed, its blocks are spaced by the
 	// editor's gap, as the previous editor laid them out.

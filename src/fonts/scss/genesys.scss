@@ -53,7 +53,30 @@
 	}
 }
 
-.die {
+// The glyphs an enricher sets in a line of text. Their ink is centred half an em above the baseline, about 0.15em above
+// the middle of the capitals of Foundry's text: they come down onto it, in em so that they follow the text's size.
+.inline-glyphs {
+	position: relative;
+	top: 0.15em;
+}
+
+// Foundry gives the class `die` to a core die's result in a roll's tooltip too (`li.roll.die.d6`, from the name of its
+// term's class), which keeps its own font: the glyphs go to an element that names a Genesys die, by its glyph or its name.
+// `:where` keeps the specificity of `.die`, so that the rules restyling a die, as the Dice Prompt's, still override it.
+.die:where(
+		.die-A,
+		.die-Ability,
+		.die-D,
+		.die-Difficulty,
+		.die-P,
+		.die-Proficiency,
+		.die-C,
+		.die-Challenge,
+		.die-B,
+		.die-Boost,
+		.die-S,
+		.die-Setback
+	) {
 	-webkit-text-stroke: 1px black;
 	text-stroke: 1px black;
 	font-style: normal;

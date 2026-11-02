@@ -18,7 +18,7 @@ const diceEnricher: Enricher = {
 		}
 
 		const container = document.createElement('span');
-		container.className = 'font-genesys-symbols';
+		container.className = 'font-genesys-symbols inline-glyphs';
 		for (const glyph of glyphs) {
 			const die = document.createElement('i');
 			die.className = `die die-${glyph}`;
@@ -37,7 +37,7 @@ const symbolsEnricher: Enricher = {
 	pattern: /@sym(bols?)?\[(?<symbols>[asthfd123]+)]/gim,
 	enricher: async (match) => {
 		const container = document.createElement('span');
-		container.className = `font-genesys-symbols nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
+		container.className = `font-genesys-symbols inline-glyphs nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
 		container.innerText = match.groups?.['symbols']?.toLowerCase() ?? '';
 
 		return container;
@@ -87,7 +87,7 @@ const checkEnricher: Enricher = {
 			parseInt(match.groups?.['upgrades'] ?? '0', 10),
 		);
 
-		const dieIcon = (glyph: string) => `<span class="die die-${glyph}">${glyph}</span>`;
+		const dieIcon = (glyph: string) => `<span class="die die-${glyph} inline-glyphs">${glyph}</span>`;
 		const difficultyIcons = dieIcon(DIE_GLYPHS.Challenge).repeat(challengeDice) + dieIcon(DIE_GLYPHS.Difficulty).repeat(difficultyDice);
 
 		const anchor = checkAnchor(
@@ -117,7 +117,7 @@ const poolModificationsEnricher: Enricher = {
 		}
 
 		const container = document.createElement('span');
-		container.className = 'font-genesys-symbols pool-modifications';
+		container.className = 'font-genesys-symbols inline-glyphs pool-modifications';
 		for (const { className, glyph, operator } of icons) {
 			const base = document.createElement('i');
 			base.className = className;
