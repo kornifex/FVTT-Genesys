@@ -51,6 +51,11 @@ type VehicleHelpers = {
 	drag(from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }): Promise<void>;
 	/** Drags as {@link drag} does, while the source vehicle refuses every update, then lets it update again. */
 	dragRefusedBySource(from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }): Promise<void>;
+	/**
+	 * Drags the tile of a Crew member of a vehicle, as the sheet does, in and out of targets of its Crew tab, then ends the
+	 * drag: after each move, the passengers' slots that show hovered, numbered from 1.
+	 */
+	dragOver(args: { vehicle: string; tile: Target; moves: { event: 'dragenter' | 'dragleave'; target: Target }[] }): Promise<number[][]>;
 	/** Drops a world document from the sidebar on a target of an actor's sheet. */
 	dropFromSidebar(document: { type: 'Actor' | 'Item'; name: string }, to: { actor: string; target: Target }): Promise<void>;
 	/** Drops plain text on a target of a vehicle's Crew tab, as a selection dragged from a web page carries. */
@@ -246,6 +251,24 @@ function installVehicleHelpers() {
 			} finally {
 				Hooks.off('preUpdateActor', hook);
 			}
+		},
+
+		async dragOver({ vehicle, tile, moves }) {
+			const root = await sheet(vehicle);
+			const source = find(root, tile);
+			const dataTransfer = dragStart(source);
+			const lit: number[][] = [];
+			try {
+				for (const move of moves) {
+					find(root, move.target).dispatchEvent(new DragEvent(move.event, { bubbles: true, cancelable: true, dataTransfer }));
+					await settle();
+					const slots = [...root.querySelectorAll('.tab-crew .passengers > .sortTarget')];
+					lit.push(slots.flatMap((slot, index) => (slot.classList.contains('hover') ? [index + 1] : [])));
+				}
+			} finally {
+				source.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+			}
+			return lit;
 		},
 
 		async dropFromSidebar(document, to) {
@@ -536,6 +559,7 @@ export async function run(e2e: ScenarioContext) {
 	await vehicleE2E('setUp');
 
 	await crewDrops(e2e);
+	await passengerTileDrops(e2e);
 	await deletingCrew(e2e);
 	await deletingCrewOfGoneTokens(e2e);
 	await skillsTabFollowsCrew(e2e);
@@ -927,6 +951,76 @@ async function crewDrops(e2e: ScenarioContext) {
 		{ prompts: await vehicleE2E('prompts'), errors: gm.errors.slice(errors) },
 		{ prompts: noPrompts, errors: [] },
 	);
+}
+
+/**
+ * §#489: an actor dropped on a passenger's tile lands before that passenger, wherever it comes from, and a drag over the
+ * tile lights the slot before it.
+ */
+async function passengerTileDrops(e2e: ScenarioContext) {
+	const vehicleE2E = helpersOf(e2e.gm);
+	await vehicleE2E('createActors', [
+		...['Tile A', 'Tile B', 'Tile C', 'Tile M', 'Tile S', 'Tile O'].map((name) => ({ name, type: 'character' as const, linked: true })),
+		{
+			name: 'Tile Ship',
+			type: 'vehicle',
+			passengers: ['Tile A', 'Tile B', 'Tile C'],
+			roles: [{ name: 'Deck', skills: [], members: ['Tile M'] }],
+		},
+		{ name: 'Tile Other', type: 'vehicle', passengers: ['Tile O'] },
+	]);
+	const tile = (name: string) => passengerTile(`Tile ${name}`);
+	const names = (letters: string[]) => letters.map((letter) => `Tile ${letter}`);
+	// Every step asserts the Crew of both vehicles: a drop can wrongly change the vehicle it came from.
+	const step = async (name: string, action: () => Promise<unknown>, expected: { ship: string[]; deck?: string[]; other?: string[] }) => {
+		await e2e.step(name, action);
+		e2e.expect(
+			`${name}, in both Crews`,
+			{ ship: await vehicleE2E('crew', 'Tile Ship'), other: await vehicleE2E('crew', 'Tile Other') },
+			{
+				ship: { passengers: names(expected.ship), roles: [expectedRole('Deck', { members: names(expected.deck ?? []) })] },
+				other: { passengers: names(expected.other ?? []), roles: [] },
+			},
+		);
+	};
+	const drag =
+		(from: Target, to: Target, vehicle = 'Tile Ship') =>
+		() =>
+			vehicleE2E('drag', { vehicle, tile: from }, { vehicle: 'Tile Ship', target: to });
+
+	let lit: number[][] = [];
+	await e2e.step("#489 A1 C dragged over B's tile, then over A's, then out of both", async () => {
+		const over = (event: 'dragenter' | 'dragleave', name: string) => ({ event, target: tile(name) });
+		lit = await vehicleE2E('dragOver', {
+			vehicle: 'Tile Ship',
+			tile: tile('C'),
+			moves: [over('dragenter', 'B'), over('dragenter', 'A'), over('dragleave', 'B'), over('dragleave', 'A')],
+		});
+	});
+	// The slots are numbered from 1, the one before A first.
+	e2e.expect('#489 A1 the slot before the hovered tile lights up, and none once the drag is out', lit, [[2], [1], [1], []]);
+
+	await step("#489 A2 M dragged from its Role onto B's tile lands before B", drag(roleMemberTile(1, 1), tile('B')), {
+		ship: ['A', 'M', 'B', 'C'],
+		other: ['O'],
+	});
+	await step(
+		"#489 A3 S dropped from the sidebar onto A's picture lands first",
+		() => vehicleE2E('dropFromSidebar', { type: 'Actor', name: 'Tile S' }, { actor: 'Tile Ship', target: [...tile('A'), 'img|1'] }),
+		{ ship: ['S', 'A', 'M', 'B', 'C'], other: ['O'] },
+	);
+	await step("#489 A4 C dragged onto M's tile moves before M", drag(tile('C'), tile('M')), {
+		ship: ['S', 'A', 'C', 'M', 'B'],
+		other: ['O'],
+	});
+	await step("#489 A5 S dragged onto B's tile moves before B", drag(tile('S'), tile('B')), {
+		ship: ['A', 'C', 'M', 'S', 'B'],
+		other: ['O'],
+	});
+	await step('#489 A6 B dropped on its own tile stays', drag(tile('B'), tile('B')), { ship: ['A', 'C', 'M', 'S', 'B'], other: ['O'] });
+	await step("#489 A7 O dragged from another vehicle onto A's tile joins before A", drag(tile('O'), tile('A'), 'Tile Other'), {
+		ship: ['O', 'A', 'C', 'M', 'S', 'B'],
+	});
 }
 
 /**
