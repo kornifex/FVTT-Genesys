@@ -1787,6 +1787,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 
 	await linkLines(e2e);
+	await storyPointTrackerPlace(e2e);
 
 	// Prompts and the story point tracker.
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));
@@ -3786,4 +3787,56 @@ async function linkLines(e2e: ScenarioContext) {
 		journal && { links: apart(journal), sameInEditor: journal.editorLineHeight === journal.lineHeight },
 		{ links: 'apart', sameInEditor: true },
 	);
+}
+
+/**
+ * §#499: the Story Point tracker sits at the bottom of the screen beside the sidebar, expanded or collapsed, below the
+ * chat notifications and their input.
+ */
+async function storyPointTrackerPlace(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const place = (collapsed: boolean) =>
+		gm.evaluate(async (collapsed) => {
+			if (collapsed) ui.sidebar.collapse();
+			else ui.sidebar.expand();
+			// The sidebar slides as it expands or collapses.
+			await window.e2e.sleep(1000);
+			const element = document.getElementById('story-point-tracker')!;
+			const tracker = element.getBoundingClientRect();
+			const sidebar = document.getElementById('sidebar')!.getBoundingClientRect();
+			const notifications = document.getElementById('chat-notifications')!.getBoundingClientRect();
+			const centre = document.elementFromPoint(tracker.left + tracker.width / 2, tracker.top + tracker.height / 2);
+			return {
+				column: element.parentElement?.id,
+				gapToSidebar: Math.round(sidebar.left - tracker.right),
+				gapToBottom: Math.round(window.innerHeight - tracker.bottom),
+				belowNotifications: notifications.bottom <= tracker.top,
+				clickable: element.contains(centre),
+			};
+		}, collapsed);
+	let expanded: Awaited<ReturnType<typeof place>> | undefined;
+	let collapsed: Awaited<ReturnType<typeof place>> | undefined;
+	await e2e.step('#499 A1 GM expands the sidebar, then collapses it', async () => {
+		expanded = await place(false);
+		collapsed = await place(true);
+	});
+	e2e.log('#499 expanded', expanded);
+	e2e.log('#499 collapsed', collapsed);
+	// Foundry's right-hand interface spaces its columns by 16px, and its column beside the sidebar ends 14px above the
+	// bottom of the screen.
+	const besideSidebar = (laidOut?: typeof expanded) =>
+		laidOut && {
+			column: laidOut.column,
+			besideSidebar: laidOut.gapToSidebar >= 0 && laidOut.gapToSidebar <= 20,
+			atBottom: laidOut.gapToBottom >= 0 && laidOut.gapToBottom <= 20,
+			belowNotifications: laidOut.belowNotifications,
+			clickable: laidOut.clickable,
+		};
+	const expected = { column: 'ui-right-column-1', besideSidebar: true, atBottom: true, belowNotifications: true, clickable: true };
+	e2e.expect(
+		'#499 A1 the Story Point tracker sits at the bottom beside the sidebar, expanded or collapsed, and takes clicks',
+		{ expanded: besideSidebar(expanded), collapsed: besideSidebar(collapsed) },
+		{ expanded: expected, collapsed: expected },
+	);
+	await gm.evaluate(() => ui.sidebar.expand());
 }
