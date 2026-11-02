@@ -3541,16 +3541,9 @@ async function storyPointSpends(e2e: ScenarioContext, player: Client) {
 /**
  * The links of a paragraph long enough to wrap, as laid out: how many lines they take, the least vertical gap between
  * the boxes of two links on consecutive lines in px (negative when they overlap, null on one line), the paragraph's line
- * height and font, and a link's height. `candidates`: the gap with each line height tried on the paragraph.
+ * height and font, and a link's height.
  */
-type LinkLines = {
-	lines: number;
-	gap: number | null;
-	lineHeight: string;
-	font: string;
-	linkHeight: number;
-	candidates: Record<string, number | null>;
-};
+type LinkLines = { lines: number; gap: number | null; lineHeight: string; font: string; linkHeight: number };
 
 type LinkLineHelpers = {
 	/**
@@ -3580,32 +3573,22 @@ function installLinkLineHelpers() {
 	const paragraph = () =>
 		`<p>E2E Place: ${Array.from({ length: count }, (_, index) => `@UUID[${actor('Hero').uuid}]{E2E Link ${index + 1}}`).join(', ')}</p>`;
 	const round = (value: number) => Math.round(value * 10) / 10;
-	const gapOf = (element: HTMLElement) => {
-		const boxes = [...element.querySelectorAll('a.content-link')].map((link) => link.getBoundingClientRect());
-		const lines = new Map<number, DOMRect[]>();
-		for (const box of boxes) lines.set(Math.round(box.top), [...(lines.get(Math.round(box.top)) ?? []), box]);
-		const ordered = [...lines.entries()].sort(([a], [b]) => a - b).map(([, line]) => line);
-		const gaps = ordered
-			.slice(1)
-			.map((line, index) => Math.min(...line.map((box) => box.top)) - Math.max(...ordered[index].map((box) => box.bottom)));
-		return { lines: ordered.length, gap: gaps.length > 0 ? round(Math.min(...gaps)) : null, height: boxes[0]?.height ?? 0 };
-	};
 	const layOut = (element: HTMLElement): LinkLines => {
-		const { lines, gap, height } = gapOf(element);
+		const boxes = [...element.querySelectorAll('a.content-link')].map((link) => link.getBoundingClientRect());
+		// The links of a line share their top.
+		const byTop = new Map<number, DOMRect[]>();
+		for (const box of boxes) byTop.set(Math.round(box.top), [...(byTop.get(Math.round(box.top)) ?? []), box]);
+		const lines = [...byTop.entries()].sort(([a], [b]) => a - b).map(([, line]) => line);
+		const gaps = lines
+			.slice(1)
+			.map((line, index) => Math.min(...line.map((box) => box.top)) - Math.max(...lines[index].map((box) => box.bottom)));
 		const style = getComputedStyle(element);
-		const candidates: Record<string, number | null> = {};
-		for (const candidate of ['1.25', '1.3', '1.35', '1.4', '1.5', 'calc(1em + 6px)']) {
-			element.style.lineHeight = candidate;
-			candidates[candidate] = gapOf(element).gap;
-		}
-		element.style.lineHeight = '';
 		return {
-			lines,
-			gap,
+			lines: lines.length,
+			gap: gaps.length > 0 ? round(Math.min(...gaps)) : null,
 			lineHeight: style.lineHeight,
 			font: `${style.fontSize} ${style.fontFamily.split(',')[0]}`,
-			linkHeight: round(height),
-			candidates,
+			linkHeight: round(boxes[0]?.height ?? 0),
 		};
 	};
 	// The paragraph of links in an open sheet, once enriched.
@@ -3689,16 +3672,20 @@ async function linkLines(e2e: ScenarioContext) {
 	});
 	for (const [key, laidOut] of Object.entries({ ...sheets, journal })) {
 		if (!laidOut) continue;
-		const { candidates, ...measures } = laidOut;
-		e2e.log(
-			`#490 ${key} measures`,
-			`${measures.lines} lines, gap ${measures.gap}, lh ${measures.lineHeight}, link ${measures.linkHeight}, ${measures.font}`,
-		);
-		e2e.log(
-			`#490 ${key} candidates`,
-			Object.entries(candidates)
-				.map(([lineHeight, gap]) => `${lineHeight}: ${gap}`)
-				.join(', '),
-		);
+		const { lines, gap, lineHeight, linkHeight, font } = laidOut;
+		e2e.log(`#490 ${key}`, `${lines} lines, gap ${gap}px, line height ${lineHeight}, link ${linkHeight}px, ${font}`);
 	}
+	const apart = ({ gap }: LinkLines) => (gap === null ? 'on one line' : gap > 0 ? 'apart' : `overlapping by ${-gap}px`);
+	e2e.expect(
+		"#490 A1 in a sheet's rich text, the boxes of two links on consecutive lines keep a gap",
+		Object.fromEntries(Object.entries(sheets).map(([key, laidOut]) => [key, apart(laidOut)])),
+		{ gear: 'apart', motivation: 'apart', nemesis: 'apart', nemesisTalent: 'apart' },
+	);
+	// A journal page is Foundry's own rich text, which the system doesn't style: its line height (1.25) is shorter than a
+	// link's box, as without the system.
+	e2e.expect(
+		"#490 A2 a journal page keeps Foundry's line height, whose links on consecutive lines overlap as without the system",
+		journal && { lineHeight: journal.lineHeight, linkHeight: journal.linkHeight, gap: journal.gap },
+		{ lineHeight: '17.5px', linkHeight: 20, gap: -2.5 },
+	);
 }

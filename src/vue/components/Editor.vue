@@ -106,6 +106,13 @@ async function show() {
 		user-select: text;
 	}
 
+	// Foundry draws a content link or an inline roll with a border and a top padding, 3px taller than a line of the sheets'
+	// `normal` height, so that the links of two lines overlapped. The text's line height leaves room for them, open or
+	// closed. Unitless, so that a heading or a smaller text keeps it in proportion.
+	.editor-content {
+		line-height: 1.5;
+	}
+
 	// Foundry positions the text in a box of the element's height, which it scrolls. The text flows instead, closed or open,
 	// so that the editor takes the height of its text, as the previous editor did. Closed, its blocks are spaced by the
 	// editor's gap, as the previous editor laid them out.
