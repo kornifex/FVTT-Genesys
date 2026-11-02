@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { Stored } from '@/data/Stored';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
-import { computed, shallowRef, watch } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 
 import Localized from '@/vue/components/Localized.vue';
@@ -20,7 +20,13 @@ const { document: actor, system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 // A drag over the tab lights up the places that take the dragged actor: the roles, and the passengers.
 const roleDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('ROLE', draggedGenesysType(event) ?? ''));
-const passengerDrag = useDragHover((event) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? ''));
+const takesPassenger = (event: DragEvent) => VehicleDataModel.isRelevantTypeForContext('PASSENGER', draggedGenesysType(event) ?? '');
+const passengerDrag = useDragHover(takesPassenger);
+// A drop on a passenger's tile lands before it, so a drag over the tile lights the slot before it. One count serves
+// every tile: a drag moving from a tile to the next enters the next before it leaves the first, so the tile it last
+// entered is the one it hovers.
+const passengerTileDrag = useDragHover(takesPassenger);
+const hoveredPassenger = ref<string>();
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const passengersActors = shallowRef<Stored<GenesysActor>[]>([]);
 
@@ -54,6 +60,10 @@ function dropToPassengers(event: DragEvent, place: CrewPlace) {
 	void receiveCrewEvent(actor.value, event, place);
 }
 
+function beforePassenger(passenger: string): CrewPlace {
+	return { kind: 'passengers', position: 'before', passenger };
+}
+
 function dropToRole(event: DragEvent, roleId: string, memberUnder?: string) {
 	void receiveCrewEvent(actor.value, event, { kind: 'role', roleId, before: memberUnder });
 }
@@ -68,9 +78,15 @@ function dragLeave(event: DragEvent) {
 	passengerDrag.leave(event);
 }
 
+function dragEnterPassenger(event: DragEvent, passenger: string) {
+	passengerTileDrag.enter(event);
+	hoveredPassenger.value = passenger;
+}
+
 function resetDrags() {
 	roleDrag.reset();
 	passengerDrag.reset();
+	passengerTileDrag.reset();
 }
 </script>
 
@@ -115,24 +131,29 @@ function resetDrags() {
 		</div>
 
 		<section class="passengers">
-			<SortSlot :active="passengerDrag.isHovered.value" @drop="dropToPassengers($event, { kind: 'passengers', position: 'first' })" />
-
 			<TransitionGroup name="crew-trans">
 				<template v-for="passenger in passengersActors" :key="passenger.uuid">
+					<SortSlot
+						:active="passengerDrag.isHovered.value"
+						:lit="passengerTileDrag.isHovered.value && hoveredPassenger === passenger.uuid"
+						@drop="dropToPassengers($event, beforePassenger(passenger.uuid))"
+					/>
+
+					<!-- A drop on the tile lands before the passenger, as one on a Role member's tile does. -->
 					<ActorTile
 						:actor="passenger"
 						:mini="true"
 						:dragging="passengerDrag.isHovered.value"
 						draggable="true"
+						@dragenter="dragEnterPassenger($event, passenger.uuid)"
+						@dragleave="passengerTileDrag.leave"
+						@drop="dropToPassengers($event, beforePassenger(passenger.uuid))"
 						@remove-member="system.updateCrew((crew) => removeActor(crew, passenger.uuid))"
-					/>
-
-					<SortSlot
-						:active="passengerDrag.isHovered.value"
-						@drop="dropToPassengers($event, { kind: 'passengers', position: 'after', passenger: passenger.uuid })"
 					/>
 				</template>
 			</TransitionGroup>
+
+			<SortSlot :active="passengerDrag.isHovered.value" @drop="dropToPassengers($event, { kind: 'passengers', position: 'last' })" />
 		</section>
 	</section>
 </template>
