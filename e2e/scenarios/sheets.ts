@@ -50,6 +50,12 @@ type WeaponDataLayout = { window: number; gaps: number[]; content: number; mainR
 type EditorState = { toggle: 'enabled' | 'disabled' | null; open: boolean; text: string; links: number };
 
 /**
+ * The toggle button of an editor as laid out: its display, whether it shows, and how far its icon's centre is from its
+ * own, in px (`x` positive to the right, `y` downwards), rounded to the half pixel.
+ */
+type ToggleIcon = { display: string; visible: boolean; x: number; y: number; layout: string };
+
+/**
  * The look of a heading: its size against its parent's, its margins in rem, its weight, line height, colour, shadow and
  * bottom rule.
  */
@@ -90,6 +96,10 @@ type SheetsHelpers = {
 	openEditor(name: string, field: string, mark: string): Promise<void>;
 	/** Saves an open editor with the save button of its menu, and waits for it to close. */
 	saveEditor(name: string, field: string): Promise<void>;
+	/** Marks the editor of a field so that the scenario can hover it with Playwright. */
+	markEditor(name: string, field: string, mark: string): Promise<void>;
+	/** The toggle button of an editor and its icon as laid out, while the pointer is over the editor. */
+	toggleIcon(name: string, field: string): Promise<ToggleIcon>;
 	/** A field of a document, as stored. */
 	stored(name: string, field: string): unknown;
 	isRendered(name: string): boolean;
@@ -573,6 +583,38 @@ function installSheetsHelpers() {
 			save.click();
 			await waitFor(`the editor ${field} of ${name} closed`, () => !element.open);
 			await settle();
+		},
+
+		async markEditor(name, field, mark) {
+			(await editorOf(name, field)).dataset.e2e = mark;
+		},
+
+		async toggleIcon(name, field) {
+			const toggle = toggleOf(await editorOf(name, field));
+			const icon = toggle?.querySelector('i');
+			if (!toggle || !icon) throw new Error(`The editor ${field} of ${name} has no toggle icon`);
+			const button = toggle.getBoundingClientRect();
+			const glyph = icon.getBoundingClientRect();
+			const style = getComputedStyle(toggle);
+			const half = (value: number) => Math.round(value * 2) / 2;
+			return {
+				display: style.display,
+				visible: style.display !== 'none' && style.visibility === 'visible',
+				x: half(glyph.left + glyph.width / 2 - (button.left + button.width / 2)),
+				y: half(glyph.top + glyph.height / 2 - (button.top + button.height / 2)),
+				// Measuring #488: the boxes and the properties that place the icon.
+				layout: [
+					`button ${button.width}x${button.height}`,
+					`icon ${glyph.width}x${glyph.height} at ${glyph.left - button.left},${glyph.top - button.top}`,
+					`padding ${style.padding}`,
+					`border ${style.borderWidth}`,
+					`line-height ${style.lineHeight}`,
+					`text-align ${style.textAlign}`,
+					`font ${style.fontSize} ${style.fontFamily}`,
+					`icon display ${getComputedStyle(icon).display}`,
+					`classes ${toggle.closest('.application, .app')?.className}`,
+				].join(' | '),
+			};
 		},
 
 		stored(name, field) {
@@ -1967,6 +2009,61 @@ export async function run(e2e: ScenarioContext) {
 		'#260 A4 closing a sheet saves the text of its open editor',
 		await gm.evaluate(() => window.sheetsE2E.stored('Nemesis', 'system.description')),
 		'<p>E2E closed</p>',
+	);
+
+	// §#488: an editor's toggle button shows while the pointer is over the editor, its icon centred in it; an adversary's
+	// empty description shows it in a room of its own.
+	const toggleIcons = async (fields: { sheet: string; tab: string; field: string }[]) => {
+		const icons: Record<string, ToggleIcon> = {};
+		for (const [index, { sheet, tab, field }] of fields.entries()) {
+			const mark = `toggle-${index}`;
+			await gm.evaluate(
+				async ({ sheet, tab, field, mark }) => {
+					await window.sheetsE2E.open(sheet);
+					await window.sheetsE2E.clickTab(sheet, tab);
+					await window.sheetsE2E.markEditor(sheet, field, mark);
+				},
+				{ sheet, tab, field, mark },
+			);
+			await page().hover(`[data-e2e="${mark}"]`);
+			icons[`${sheet} ${field}`] = await gm.evaluate(({ sheet, field }) => window.sheetsE2E.toggleIcon(sheet, field), {
+				sheet,
+				field,
+			});
+			await page().mouse.move(0, 0);
+			await gm.evaluate(() => window.sheetsE2E.closeAll());
+		}
+		return icons;
+	};
+	const toggleFields = [
+		{ sheet: 'Nemesis', tab: 'stats', field: 'system.description' },
+		{ sheet: 'Hero', tab: 'journal', field: 'system.notes' },
+		{ sheet: 'Vehicle', tab: 'details', field: 'system.description' },
+		{ sheet: 'weapon', tab: 'description', field: 'system.description' },
+	];
+	let shownToggles: Record<string, ToggleIcon> = {};
+	await e2e.step('#488 B1 GM hovers an editor of each sheet type, then an adversary description left empty', async () => {
+		shownToggles = await toggleIcons(toggleFields);
+		await gm.evaluate(() => window.sheetsE2E.update('Nemesis', { 'system.description': '' }));
+		const [empty] = Object.values(await toggleIcons(toggleFields.slice(0, 1)));
+		shownToggles['Nemesis empty system.description'] = empty;
+		await gm.evaluate(() => window.sheetsE2E.update('Nemesis', { 'system.description': '<p>E2E closed</p>' }));
+	});
+	e2e.log('#488 B1 the toggle icons as laid out', shownToggles);
+	e2e.expect(
+		"#488 B1 the toggle's icon is centred in its button (±1px), on every sheet type and on an adversary's empty description",
+		Object.fromEntries(
+			Object.entries(shownToggles).map(([editor, { visible, x, y }]) => [
+				editor,
+				{ visible, centred: Math.abs(x) <= 1 && Math.abs(y) <= 1 },
+			]),
+		),
+		Object.fromEntries(
+			[...toggleFields.map(({ sheet, field }) => `${sheet} ${field}`), 'Nemesis empty system.description'].map((editor) => [
+				editor,
+				{ visible: true, centred: true },
+			]),
+		),
 	);
 
 	// §#95 as a player who can't edit the sheet.

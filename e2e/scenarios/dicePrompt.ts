@@ -58,6 +58,12 @@ type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 type CheckLink = { skill: string | null; difficulty: string | null; text: string };
 
 /**
+ * A glyph set in a line of text, as drawn: how far the centre of its ink sits above the middle of the text's capitals,
+ * in px and in em of its font size; then the same against the middle of the text's x-height, in px.
+ */
+type InlineGlyph = { px: number; em: number; fontSize: number; aboveXHeight: number };
+
+/**
  * The prompt's Difficulty and manual changes, as the user sees them.
  */
 type PromptDifficulty = {
@@ -130,6 +136,13 @@ type DicePromptHelpers = {
 	links(doc: Doc | { message: string }): Promise<CheckLink[]>;
 	clickLink(args: { doc: Doc | { message: string }; skill: string | null; difficulty?: string }): Promise<void>;
 	pools(doc: Doc): Promise<{ text: string; icons: string }[]>;
+	/**
+	 * Rolls 6d6 to the chat, then reads whether the Genesys Symbols font draws a core die's result in the roll's tooltip,
+	 * and the Genesys dice of a document's `@dice`, `@check` and `@pool` links.
+	 */
+	glyphFonts(doc: Doc): Promise<Record<'coreDie' | 'diceLink' | 'checkLink' | 'poolLink', boolean>>;
+	/** The glyphs a document's enrichers set in its lines of text, each with how far it sits from the text around it. */
+	inlineGlyphs(doc: Doc): Promise<Record<string, InlineGlyph>>;
 	control(names: string[]): void;
 	/** Collapses the sidebar, expands it on the chat tab, then collapses it again, and reads the Dice Roller's buttons each time. */
 	diceRollerButtons(): Promise<Record<string, { count: number; place: string | null; label: string | null }>>;
@@ -486,6 +499,7 @@ function installDicePromptHelpers() {
 							content: [
 								...links.map((link) => `<p>@check[${link}]</p>`),
 								...pools.map((pool, index) => `<p class="e2e-pool">P${index + 1} ${pool}</p>`),
+								'<p class="e2e-inline">Hit @dice[AD] Hard, then @sym[sa] Exit</p>',
 							].join(''),
 						},
 					},
@@ -782,6 +796,77 @@ function installDicePromptHelpers() {
 					.map((glyph) => poolModification(glyph, glyph.nextElementSibling))
 					.join(' '),
 			}));
+		},
+
+		async glyphFonts(doc) {
+			const message = await (await new foundry.dice.Roll('6d6').evaluate()).toMessage();
+			const coreDie = await waitFor('the d6 results of the roll', () =>
+				document.querySelector(`[data-message-id="${message.id}"] .dice-tooltip li.roll.d6`),
+			);
+			const root = await sheet(doc);
+			const glyph = (selector: string) => waitFor(selector, () => root.querySelector(selector));
+			const drawsGenesys = (element: Element) => getComputedStyle(element).fontFamily.startsWith('"Genesys Symbols"');
+			return {
+				coreDie: drawsGenesys(coreDie),
+				diceLink: drawsGenesys(await glyph('p.e2e-inline .font-genesys-symbols > .die')),
+				checkLink: drawsGenesys(await glyph('a[data-skill-check] .die')),
+				poolLink: drawsGenesys(await glyph('.pool-modifications > .die')),
+			};
+		},
+
+		async inlineGlyphs(doc) {
+			const root = await sheet(doc);
+			const glyphs = {
+				'@dice A': await waitFor('a @dice die', () => root.querySelector<HTMLElement>('p.e2e-inline .font-genesys-symbols > .die')),
+				'@sym sa': await waitFor('a @sym symbol', () =>
+					root.querySelector<HTMLElement>('p.e2e-inline .font-genesys-symbols.nolig'),
+				),
+				'@check D': await waitFor('a @check die', () => root.querySelector<HTMLElement>('a[data-skill-check] .die')),
+				'@pool P': await waitFor('a @pool die', () => root.querySelector<HTMLElement>('.pool-modifications > .die')),
+			};
+			await document.fonts.ready;
+			const context = document.createElement('canvas').getContext('2d')!;
+			// The ink of a text in an element's font, above and below the baseline, each glyph alone: the symbols show no ligature.
+			const ink = (element: Element, characters: string) => {
+				const style = getComputedStyle(element);
+				context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+				const metrics = [...characters].map((character) => context.measureText(character));
+				return {
+					ascent: Math.max(...metrics.map((metric) => metric.actualBoundingBoxAscent)),
+					descent: Math.max(...metrics.map((metric) => metric.actualBoundingBoxDescent)),
+				};
+			};
+			// An empty inline block sits on the baseline of its line, which its bottom edge gives.
+			const baseline = (parent: Element, before: Node | null) => {
+				const probe = document.createElement('span');
+				probe.style.cssText = 'display: inline-block; width: 0; height: 0;';
+				parent.insertBefore(probe, before);
+				const { bottom } = probe.getBoundingClientRect();
+				probe.remove();
+				return bottom;
+			};
+			const round = (value: number, digits: number) => Math.round(value * 10 ** digits) / 10 ** digits;
+			return Object.fromEntries(
+				Object.entries(glyphs).map(([name, glyph]) => {
+					// The text around the glyph: the line that holds its enricher's container.
+					const container = glyph.closest('.font-genesys-symbols') ?? glyph;
+					const line = container.parentElement!;
+					const lift = baseline(line, container) - baseline(glyph, null);
+					const glyphInk = ink(glyph, glyph.textContent ?? '');
+					const centre = lift + (glyphInk.ascent - glyphInk.descent) / 2;
+					const fontSize = parseFloat(getComputedStyle(glyph).fontSize);
+					const px = centre - ink(line, 'H').ascent / 2;
+					return [
+						name,
+						{
+							px: round(px, 1),
+							em: round(px / fontSize, 2),
+							fontSize,
+							aboveXHeight: round(centre - ink(line, 'x').ascent / 2, 1),
+						},
+					];
+				}),
+			);
 		},
 
 		control(names) {
@@ -2480,6 +2565,28 @@ export async function run(e2e: ScenarioContext) {
 		},
 	);
 	await e2e.step('Q end');
+
+	// R: the glyphs of the Genesys dice (§#488). Foundry gives the class `die` to a core die's result in a roll's tooltip
+	// too, which keeps its own font; the glyphs the enrichers set in a line of text sit in it.
+	let fonts: Record<string, boolean> = {};
+	await e2e.step('#488 A1 GM rolls 6d6 to the chat and opens a journal page with @dice, @check and @pool links', async () => {
+		fonts = await gm.evaluate((doc) => window.dicePromptE2E.glyphFonts(doc), journal);
+	});
+	e2e.expect("#488 A1 a core d6's result keeps Foundry's font, the Genesys dice of the links draw in Genesys Symbols", fonts, {
+		coreDie: false,
+		diceLink: true,
+		checkLink: true,
+		poolLink: true,
+	});
+	const inline = await gm.evaluate((doc) => window.dicePromptE2E.inlineGlyphs(doc), journal);
+	e2e.log("#488 C1 each glyph's centre above the middle of the text's capitals", inline);
+	e2e.expect(
+		"#488 C1 the glyphs of the @dice, @sym, @check and @pool links are centred on the text's capitals (±1px)",
+		Object.fromEntries(Object.entries(inline).map(([name, { px }]) => [name, Math.abs(px) <= 1])),
+		{ '@dice A': true, '@sym sa': true, '@check D': true, '@pool P': true },
+	);
+	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	await e2e.step('R end');
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }
