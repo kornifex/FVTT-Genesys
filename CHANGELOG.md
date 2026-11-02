@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.5.0-rc.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.4...v0.5.0-rc.5) (2026-11-02)
+
+
+### Features
+
+* **dice:** move the Dice Prompt's Manual Changes row below the effects' Pool Modifications ([#498](https://github.com/kornifex/FVTT-Genesys/issues/498)) ([3e214c2](https://github.com/kornifex/FVTT-Genesys/commit/3e214c22e9548b9eaf4f9a2c5ebcf96c63613b64))
+* **dice:** open the item behind a Pool Modification from the Dice Prompt ([#497](https://github.com/kornifex/FVTT-Genesys/issues/497)) ([955839b](https://github.com/kornifex/FVTT-Genesys/commit/955839b6cd72c4f251dcd5fff81c80f8e4ea8bcc))
+
+
+### Bug Fixes
+
+* **i18n:** translate the Formidable difficulty as Exceptionnel in French ([#485](https://github.com/kornifex/FVTT-Genesys/issues/485)) ([fd68679](https://github.com/kornifex/FVTT-Genesys/commit/fd68679e4ab7c00cb26e5921d659473f340f358e))
+* **ui:** give a rich-text h4 its own size and rule ([#487](https://github.com/kornifex/FVTT-Genesys/issues/487)) ([9fa3b90](https://github.com/kornifex/FVTT-Genesys/commit/9fa3b905c02e2118f75aac8a6cb9436b7caef881))
+* **ui:** keep a gap between the content links of two lines in a journal text page ([#494](https://github.com/kornifex/FVTT-Genesys/issues/494)) ([7e1283b](https://github.com/kornifex/FVTT-Genesys/commit/7e1283be88f927f4f794dde474e608947cb73157))
+* **ui:** keep a gap between the content links of two lines in a sheet's rich text ([#493](https://github.com/kornifex/FVTT-Genesys/issues/493)) ([642098e](https://github.com/kornifex/FVTT-Genesys/commit/642098e2ab07f9704dba58a4694e8eb58df70315))
+* **ui:** keep core dice in Foundry's font, and centre the editor toggle's icon and inline Genesys glyphs ([#492](https://github.com/kornifex/FVTT-Genesys/issues/492)) ([b0df65a](https://github.com/kornifex/FVTT-Genesys/commit/b0df65a44512a1cf234c6fe49e2554e575d94a95))
+* **ui:** put the Story Point tracker back beside the sidebar ([#501](https://github.com/kornifex/FVTT-Genesys/issues/501)) ([f268331](https://github.com/kornifex/FVTT-Genesys/commit/f268331c64673aa3ce5f175949fbd6d854825ae9))
+* **vehicle:** put an actor dropped on a passenger tile before that passenger ([#491](https://github.com/kornifex/FVTT-Genesys/issues/491)) ([91f5b83](https://github.com/kornifex/FVTT-Genesys/commit/91f5b8303347e29c5cc9cf5826a90d6733cf8cbf))
+
+
+### Documentation
+
+* say a release PR with nothing to ship can be closed ([#481](https://github.com/kornifex/FVTT-Genesys/issues/481)) ([bd4998b](https://github.com/kornifex/FVTT-Genesys/commit/bd4998bd7d2c099ff810ff7ce5c8d894118d25a1))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#477](https://github.com/kornifex/FVTT-Genesys/issues/477)) ([8341ec1](https://github.com/kornifex/FVTT-Genesys/commit/8341ec181cf964780fcd79f341dbd620fc78bf03))
+* set the next release to 0.5.0-rc.5 ([#502](https://github.com/kornifex/FVTT-Genesys/issues/502)) ([5c45bde](https://github.com/kornifex/FVTT-Genesys/commit/5c45bdeb3c75b6b8ea5b50b7772d1a155b7fc82d))
+
+
+### Miscellaneous Chores
+
+* add a pnpm checklist script that edits the test checklist issue without printing its body ([#479](https://github.com/kornifex/FVTT-Genesys/issues/479)) ([224709f](https://github.com/kornifex/FVTT-Genesys/commit/224709ff0e8b829985130cfa09fd43b8ca554ddc))
+* keep Claude Code's worktrees out of vitest, knip and git ([#475](https://github.com/kornifex/FVTT-Genesys/issues/475)) ([f8f7fe6](https://github.com/kornifex/FVTT-Genesys/commit/f8f7fe60a87260571e3f2bcf98d60d418dcdb6f4))
+
+
+### Tests
+
+* print terse e2e step lines, with --verbose for their values ([#476](https://github.com/kornifex/FVTT-Genesys/issues/476)) ([6dbe0c9](https://github.com/kornifex/FVTT-Genesys/commit/6dbe0c9ba891a136ee5d53b086bda582323052ab))
+
 ## [0.5.0-rc.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.3...v0.5.0-rc.4) (2026-11-01)
 
 
