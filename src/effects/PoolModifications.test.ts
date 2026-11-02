@@ -26,7 +26,14 @@ import {
 type Change = { key: string; value: string };
 
 function talent(rank: number, scalesWithRank: 'yes' | 'no' = 'no') {
-	return { documentName: 'Item', id: 'talentId', type: 'talent', system: { rank, scalesWithRank } };
+	return {
+		documentName: 'Item',
+		id: 'talentId',
+		name: 'Talent',
+		uuid: 'Actor.actorId.Item.talentId',
+		type: 'talent',
+		system: { rank, scalesWithRank },
+	};
 }
 
 function effect(
@@ -213,6 +220,21 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(scaling, undefined, check)[0].mods).toEqual(['B', 'B']);
 		expect(poolModificationsForCheck(notScaling, undefined, check)[0].mods).toEqual(['B']);
 		expect(poolModificationsForCheck(onItem, undefined, check)[0].mods).toEqual(['B', 'B', 'B']);
+	});
+
+	it('carries the item an effect comes from, whether the effect lives on it or was copied onto the actor', () => {
+		const change = { key: 'genesys.pool.check.self.', value: 'B' };
+		const item = { name: 'Talent', uuid: 'Actor.actorId.Item.talentId' };
+
+		expect(poolModificationsForCheck(actorWithCopiedEffect(talent(1), [change]), undefined, check)[0].from).toEqual({
+			effect: 'Effect',
+			uuid: 'ActiveEffect.Effect',
+			item,
+		});
+		expect(
+			poolModificationsForCheck(actor('character', [effect([change], { name: 'Fate', parent: talent(1) })]), undefined, check)[0]
+				.from,
+		).toEqual({ effect: 'Fate', uuid: 'ActiveEffect.Fate', item });
 	});
 
 	it("collects the target's changes for checks that target it, after the actor's", () => {

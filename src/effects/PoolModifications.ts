@@ -94,9 +94,18 @@ type Silhouettes = { target: number; attacker: number };
 /**
  * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, or the silhouette
  * difference between the target and its attacker. An effect is named for the roller, and told apart by its uuid: effects
- * often share a name, as the sheets name a new effect after its item.
+ * often share a name, as the sheets name a new effect after its item. An effect that comes from an item, such as a
+ * talent or a piece of equipment, carries that item, which the roller opens to read the effect's conditions.
  */
-type PoolModificationOrigin = { effect: string; uuid: string } | { defense: keyof Defense } | { silhouette: Silhouettes };
+type PoolModificationOrigin =
+	| { effect: string; uuid: string; item?: EffectItem }
+	| { defense: keyof Defense }
+	| { silhouette: Silhouettes };
+
+/**
+ * The item an effect comes from, by its name and its uuid.
+ */
+type EffectItem = { name: string; uuid: string };
 
 /**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
@@ -113,10 +122,14 @@ export type ExternalPoolModification = {
  */
 export function matchOrigin<T>(
 	from: PoolModificationOrigin,
-	cases: { effect(name: string, uuid: string): T; defense(defense: keyof Defense): T; silhouette(silhouettes: Silhouettes): T },
+	cases: {
+		effect(name: string, uuid: string, item: EffectItem | undefined): T;
+		defense(defense: keyof Defense): T;
+		silhouette(silhouettes: Silhouettes): T;
+	},
 ): T {
 	if ('effect' in from) {
-		return cases.effect(from.effect, from.uuid);
+		return cases.effect(from.effect, from.uuid, from.item);
 	}
 
 	return 'defense' in from ? cases.defense(from.defense) : cases.silhouette(from.silhouette);
@@ -304,7 +317,7 @@ function effectModifications(
 			continue;
 		}
 
-		const item = sourceItem(effect);
+		const item = sourceItem<SourceItem & { name: string; uuid: string | null }>(effect);
 		const mods = effect.changes.flatMap(({ key = '', value }) =>
 			appliesToCheck(decodeKey(key)) && typeof value === 'string'
 				? parsePoolModifications(scaledChangeValue(item, { key, value }))
@@ -312,7 +325,11 @@ function effectModifications(
 		);
 
 		if (mods.length > 0) {
-			modifications.push({ source, from: { effect: effect.name, uuid: effect.uuid }, mods: mods.sort(sortPoolModifications) });
+			modifications.push({
+				source,
+				from: { effect: effect.name, uuid: effect.uuid, ...(item?.uuid && { item: { name: item.name, uuid: item.uuid } }) },
+				mods: mods.sort(sortPoolModifications),
+			});
 		}
 	}
 

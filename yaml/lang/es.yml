@@ -179,6 +179,8 @@ Genesys:
       ManualChanges: Cambios manuales
       SelfEffects: 'Propios: '
       TargetEffects: 'Objetivo: '
+      EffectOfItem: '{effect} ({item})'
+      OpenSource: Abrir {name}
       SilhouetteDifference: Silueta ({target} contra {attacker})
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.

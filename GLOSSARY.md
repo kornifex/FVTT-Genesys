@@ -83,7 +83,7 @@ The Difficulty and Challenge dice a check starts with, before any Pool Modificat
 _Avoid_: Base difficulty, difficulty modifier
 
 **Pool Modification**:
-A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect on the actor or on their target, from the target's defense, or is entered by hand. The Difficulty is not one.
+A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect of the actor or of their target, from the target's defense, from the silhouette difference of an attack, or is entered by hand. An effect comes from one of the actor's or target's items, such as a talent or a piece of equipment, or from the actor itself; the Dice Prompt names that item and opens it, so the roller can read when the effect applies. The Difficulty is not one.
 _Avoid_: Dice modifier, pool mod
 
 **Dice Roller**:
