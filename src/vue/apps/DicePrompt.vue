@@ -423,17 +423,6 @@ async function onRoll() {
 						</button>
 					</div>
 				</div>
-				<div class="pool-modifications-manual">
-					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
-					<div>
-						<PoolModificationIcon
-							v-for="(modification, index) in manualChanges"
-							:key="index"
-							:glyph="modification"
-							@click="removeManualChange(index)"
-						/>
-					</div>
-				</div>
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
 					<span>
 						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
@@ -443,6 +432,18 @@ async function onRoll() {
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
+					</div>
+				</div>
+				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
+				<div class="pool-modifications-manual">
+					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
+					<div>
+						<PoolModificationIcon
+							v-for="(modification, index) in manualChanges"
+							:key="index"
+							:glyph="modification"
+							@click="removeManualChange(index)"
+						/>
 					</div>
 				</div>
 			</div>
