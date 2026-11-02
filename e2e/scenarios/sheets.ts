@@ -1698,7 +1698,8 @@ export async function run(e2e: ScenarioContext) {
 			h1: appV1Heading(2, underline('2px')),
 			h2: appV1Heading(1.5, underline('1px')),
 			h3: appV1Heading(1.25, underline('1px')),
-			h4: appV1Heading(1, 'none'),
+			// #486: between the h3 and the text, with the same rule.
+			h4: appV1Heading(1.1, underline('1px')),
 		},
 	);
 	e2e.expect(
@@ -1734,7 +1735,7 @@ export async function run(e2e: ScenarioContext) {
 			h1: cardHeading(2, underline('2px')),
 			h2: cardHeading(1.5, underline('1px')),
 			h3: cardHeading(1.25, underline('1px')),
-			h4: cardHeading(1, 'none'),
+			h4: cardHeading(1.1, underline('1px')),
 		},
 	);
 	e2e.expect(

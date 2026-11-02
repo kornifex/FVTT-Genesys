@@ -1,7 +1,8 @@
 @use '@scss/vars/appv1.scss';
 
 // AppV1's rich-text headings, which the descriptions were written for. Their sizes are in em, so that they follow the
-// text around them.
+// text around them. AppV1 left the h4 at the text's size and relied on its bold weight; with every heading at a normal
+// weight, the h4 takes a size and a rule of its own so that it still reads as a heading.
 @mixin appv1 {
 	margin: 0 0 0.5rem;
 	padding: 0;
@@ -26,6 +27,7 @@
 	}
 
 	&:is(h4) {
-		font-size: 1em;
+		font-size: 1.1em;
+		border-bottom: 1px solid appv1.$underline-header;
 	}
 }
