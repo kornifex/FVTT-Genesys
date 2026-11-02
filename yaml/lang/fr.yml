@@ -179,6 +179,8 @@ Genesys:
       ManualChanges: Modifications manuelles
       SelfEffects: 'Du personnage : '
       TargetEffects: 'De la cible : '
+      EffectOfItem: '{effect} ({item})'
+      OpenSource: Ouvrir {name}
       SilhouetteDifference: Gabarit ({target} contre {attacker})
     ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
