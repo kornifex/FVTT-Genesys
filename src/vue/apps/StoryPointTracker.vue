@@ -92,19 +92,16 @@ async function toggleEdit(pool: StoryPointPool) {
 <style lang="scss">
 // Unscoped: these rules place the tracker's application element, which Foundry renders around the component.
 .story-point-tracker {
-	position: absolute;
-	bottom: 20px;
-	right: 320px;
+	// The column beside the sidebar stacks the chat notifications (order 99) above the tracker, which keeps to the
+	// sidebar's side.
+	order: 100;
+	align-self: flex-end;
+	// Foundry's right-hand interface lets clicks through to the canvas.
+	pointer-events: all;
 	color: var(--color-dark-1);
 	display: flex;
 	flex-direction: column;
 	gap: 1em;
-
-	&.move-to-left {
-		bottom: 15px;
-		left: 250px;
-		right: auto;
-	}
 }
 </style>
 
