@@ -26,6 +26,46 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			this.element.addEventListener('click', (event) => void editImage(this, event));
 		}
 
+		protected override async _onRender(context: RenderContext, options: RenderOptions) {
+			await super._onRender(context, options);
+
+			// A sheet opens at its content's height, on the tab it opens on, then keeps it as a height in pixels: Foundry's
+			// `height: 'auto'` would follow the content on every later render, a tab switch or an expanded description
+			// resizing the window.
+			if (options.isFirstRender) {
+				const { top } = this.position;
+				this.#fitHeight(top);
+
+				// The sheet shows at once, a text being enriched showing its raw text or nothing (#101): once the content of
+				// such a task shows, the window fits it, unless the user has used the window meanwhile (moved or resized it,
+				// switched its tab, opened a description), or something else placed it.
+				const element = this.element;
+				const { top: placed, height: fitted } = this.position;
+				let used = false;
+				const use = () => (used = true);
+				element.addEventListener('pointerdown', use, { capture: true, once: true });
+				element.addEventListener('keydown', use, { capture: true, once: true });
+				void this.contentShown().then(() => {
+					element.removeEventListener('pointerdown', use, { capture: true });
+					element.removeEventListener('keydown', use, { capture: true });
+					const { top: placedNow, height: fittedNow } = this.position;
+					const untouched = !used && placedNow === placed && fittedNow === fitted;
+					if (untouched && this.rendered && this.element === element && !this.minimized) {
+						this.#fitHeight(top);
+					}
+				});
+			}
+		}
+
+		/**
+		 * Fit the window's height to its content: placed at `top`, or centred when it is undefined.
+		 */
+		#fitHeight(top: number | undefined) {
+			// Foundry sizes a window once it has rendered: the window takes its width first, at which the content is measured.
+			this.setPosition();
+			this.setPosition({ top, height: naturalHeight(this.element, this.position.scale ?? 1) });
+		}
+
 		protected override async _preClose(options: RenderOptions) {
 			await super._preClose(options);
 
@@ -35,6 +75,21 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			}
 		}
 	};
+}
+
+/**
+ * The height a window takes to show its whole content, at its present width. Its blocks fill the window's height (a sheet's
+ * body and a tab's sections at `height: 100%`, a grid's `1fr` row), so its own height is measured with none set: the
+ * window then takes its content's height, and no less than its minimum height. Foundry's maximum height, which keeps a
+ * window on screen, is lifted too, as `setPosition` applies it and the viewport's.
+ */
+function naturalHeight(element: HTMLElement, scale: number) {
+	const { height, maxHeight } = element.style;
+	Object.assign(element.style, { height: '', maxHeight: 'none' });
+	// The bounding box is scaled by the window's transform; a fraction of a pixel cut off would make the window scroll.
+	const natural = Math.ceil(element.getBoundingClientRect().height / scale);
+	Object.assign(element.style, { height, maxHeight });
+	return natural;
 }
 
 /**

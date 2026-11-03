@@ -85,6 +85,7 @@ Genesys:
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
     ShowDescription: Afficher la description
     HideDescription: Masquer la description
+    OpenSkill: Ouvrir la fiche de la compétence
 
   # Dice Rolls
   Rolls:
@@ -339,6 +340,8 @@ Genesys:
   StoryPoints:
     Player: Points de Destin
     GM: Points de Fatalité
+    PlayerShort: Destin
+    GMShort: Fatalité
     Reset: Réinitialise les points Narratifs
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !

@@ -168,6 +168,10 @@ The rule that a character must have more talents at each tier than at the tier a
 The one connected GM who writes what a player's client may not, for the whole table: a player's Story Point spend, Claim or Extra Slot initiative. It is the connected Gamemaster, an Assistant GM only when no Gamemaster is connected, and the one of the lowest id among equals, as Foundry's `game.users.activeGM`.
 _Avoid_: Primary GM, GM hub, first GM
 
+**Story Point**:
+A point of one of the two pools the whole table shares: the Player pool (« Destin » in the French edition) and the GM pool (« Fatalité »). A session starts with one point per player in the Player pool and one in the GM pool, and a point spent from one pool goes to the other.
+_Avoid_: Destiny Point, narrative point
+
 ### Presentation
 
 **Palette**:
