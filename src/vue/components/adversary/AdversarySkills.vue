@@ -73,8 +73,9 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 
 <style lang="scss" scoped>
 // The icon opens the skill's sheet, to read its description; the name rolls it. It stands as tall as the line, before
-// the name.
+// the name: Foundry lays images out as blocks, which would put it above.
 .skill-icon {
+	display: inline-block;
 	width: 1.5em;
 	height: 1.5em;
 	margin-right: 0.25em;

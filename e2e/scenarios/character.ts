@@ -2990,7 +2990,7 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 		await openSheets(page);
 	});
 	e2e.expect(
-		"#512 A1 the icon of a skill on the Skills tab and on a rival's and a minion's sheet shows a pointer and the tooltip \"Open the skill's sheet\"",
+		"#512 A1 the icon of a skill on the Skills tab and on a rival's and a minion's sheet shows a pointer, and its tooltip reads Open the skill's sheet",
 		await skillIcon(page),
 		eachSheet(OPEN_SKILL),
 	);
