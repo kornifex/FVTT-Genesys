@@ -424,11 +424,11 @@ async function onRoll() {
 					</div>
 				</div>
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
+					<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
 					<span>
-						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
 						<!-- The label names no input: a click on the name opens its source, the checkbox alone turns it on. -->
 						<!-- prettier-ignore -->
-						<label>{{ '\xa0' + effect.origin }}<a v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></a><template v-else>{{ effect.name }}</template></label>
+						<label>{{ effect.origin }}<a v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></a><template v-else>{{ effect.name }}</template></label>
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
@@ -487,6 +487,17 @@ async function onRoll() {
 @use '@scss/mixins/reset.scss';
 @use '@scss/mixins/expandable.scss';
 
+// The Pool Modifications' title: its caret alone in the margin, its text on the table's left edge.
+$title-font-size: 1.2rem;
+$caret-column: 1rem;
+$caret-gap: 0.4 * $title-font-size;
+
+// The Pool Modifications' rows, in rem, as the checkbox's size, so that it is centred on a label's first line: Foundry
+// gives inputs a font of their own.
+$row-line-height: 1.25rem;
+$row-padding: 0.15rem;
+$checkbox-size: 1.25rem;
+
 .dice-prompt {
 	display: grid;
 	grid-template-columns: 2fr 1fr 2fr;
@@ -544,10 +555,19 @@ async function onRoll() {
 		grid-column: 1 / span all;
 		grid-row: 4 / span all;
 		display: grid;
-		grid-template-columns: 1rem 1fr;
+		// The caret's column keeps its width whichever way it points, so that the text doesn't move as the section folds;
+		// Bebas Neue's letters have almost no side bearing, which the gap makes up for.
+		grid-template-columns: $caret-column 1fr;
+		column-gap: $caret-gap;
+		align-items: center;
 		font-family: 'Bebas Neue', sans-serif;
-		font-size: 1.2rem;
+		font-size: $title-font-size;
 		margin-bottom: -0.5em;
+
+		// `caret-right` and `caret-down` are not as wide: centred, they turn on one axis.
+		i {
+			justify-self: center;
+		}
 	}
 
 	.pool-modifications-expander {
@@ -573,30 +593,34 @@ async function onRoll() {
 	.pool-modifications-container {
 		display: grid;
 		font-family: 'Roboto', sans-serif;
-		margin-left: 1rem;
+		margin-left: $caret-column + $caret-gap;
 		border-top: 1px dotted black;
 
 		transition: visibility 1s;
 		visibility: hidden;
 
+		// A row: its checkbox, left empty for the Difficulty and the manual changes, so that every label starts on one edge
+		// and a label that wraps goes on under its own text; then its label, and its modifications.
 		& > div {
 			display: grid;
-			grid-template-columns: 2fr 1.2fr;
+			grid-template-columns: $checkbox-size minmax(0, 2fr) minmax(0, 1.2fr);
+			column-gap: 0.4em;
 			border-bottom: 1px dotted black;
-			min-height: 1.2rem;
+			line-height: $row-line-height;
+
+			& > span,
+			& > div {
+				padding-block: $row-padding;
+			}
 
 			& > span {
-				padding-right: 4px;
+				grid-column: 2;
 			}
 
 			& > div {
+				grid-column: 3;
 				border-left: 1px dotted black;
 				padding-left: 0.5rem;
-
-				a {
-					position: relative;
-					top: 3px;
-				}
 			}
 		}
 
@@ -671,6 +695,7 @@ async function onRoll() {
 			width: auto;
 			min-width: 0;
 			height: auto;
+			min-height: 0;
 			margin: 0 0.2rem 0 0;
 			padding: 0;
 			border: none;
@@ -711,7 +736,14 @@ async function onRoll() {
 		.pool-modifications-effects {
 			@include reset.input;
 			input {
-				height: 1em;
+				grid-column: 1;
+				align-self: start;
+				// Foundry draws the checkbox as a glyph of this size, which its box takes too.
+				--checkbox-size: #{$checkbox-size};
+				width: $checkbox-size;
+				height: $checkbox-size;
+				// Centred on the label's first line.
+				margin-top: $row-padding + ($row-line-height - $checkbox-size) * 0.5;
 			}
 
 			// The name of what a Pool Modification comes from, as plain text that opens it; not the glyph of a Pool
