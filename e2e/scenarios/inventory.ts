@@ -37,6 +37,13 @@ type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
 type OpenMenu = { corner: string; inside: boolean; covered: string[]; look: Record<string, string> };
 
 /**
+ * A Container's contents as laid out in its row (#516): the rows they list; their height in px, rounded, or `>100` past
+ * the 100px that once capped them; whether they or their box show a scrollbar of their own; whether the last row ends
+ * inside them; and its visibility, which Tab follows.
+ */
+type ContentsBox = { rows: string[]; height: number | string; scrollbar: boolean; lastInside: boolean; visibility: string };
+
+/**
  * The helpers name an actor of the setup by its name without `E2E `, or `token:<name>` for the actor of an unlinked token.
  */
 type InventoryHelpers = {
@@ -124,6 +131,10 @@ type InventoryHelpers = {
 	section(actor: string, state: EquipmentState): Promise<string[]>;
 	/** The rows a Container's row lists once opened. */
 	contents(actor: string, container: string): Promise<string[]>;
+	/** Opens or closes a Container's row in the Inventory tab, and waits for its fold to end. */
+	foldContainer(actor: string, container: string, open: boolean): Promise<void>;
+	/** A Container's contents as laid out, or null while the row renders none. */
+	contentsBox(actor: string, container: string): Promise<ContentsBox | null>;
 	effects(actor: string): { onActor: number; applied: string[]; suppressed: string[] };
 	/** An item's effects, which live on the item. */
 	itemEffects(actor: string, item: string): string[];
@@ -212,14 +223,18 @@ function installInventoryHelpers() {
 		return row as HTMLElement;
 	};
 	const rowOf = async (ref: string, name: string) => findRow(await sheet(ref), name);
-	// Opening a Container's row only changes the row's own state: no document changes, so its contents are waited for.
-	const openContainer = async (row: HTMLElement) => {
-		const toggle = row.querySelector<HTMLElement>('[data-item-type="container"] a');
-		if (toggle?.querySelector('.fa-box')) {
-			toggle.click();
-			await waitFor(`the contents of ${text(row.querySelector('.name a'))}`, () => row.querySelector('.contents'));
+	// Opening or closing a Container's row only changes the row's own state: no document changes, so its toggle is waited
+	// for, then the fold of its contents, which stay rendered while closed since #516.
+	const foldRow = async (row: HTMLElement, open: boolean) => {
+		const toggle = () => row.querySelector<HTMLElement>('[data-item-type="container"] a');
+		const [from, to] = open ? ['.fa-box', '.fa-box-open'] : ['.fa-box-open', '.fa-box'];
+		if (toggle()?.querySelector(from)) {
+			toggle()!.click();
+			await waitFor(`the toggle of ${text(row.querySelector('.name a'))}`, () => toggle()?.querySelector(to));
+			await settle();
 		}
 	};
+	const openContainer = (row: HTMLElement) => foldRow(row, true);
 	// An item held in a Container has its row in the Container's row, once opened.
 	const heldRow = async (ref: string, name: string) => {
 		const root = await sheet(ref);
@@ -500,9 +515,20 @@ function installInventoryHelpers() {
 				prototypeToken: { actorLink: true },
 			});
 			await Actor.createDocuments([
-				...['Hero', 'Ally', 'Receiver', 'Sorter', 'Wearer', 'Packer', 'Looper', 'Deleter', 'Smith', 'Stepper', 'Placer'].map(
-					character,
-				),
+				...[
+					'Hero',
+					'Ally',
+					'Receiver',
+					'Sorter',
+					'Wearer',
+					'Packer',
+					'Looper',
+					'Deleter',
+					'Smith',
+					'Stepper',
+					'Placer',
+					'Hoarder',
+				].map(character),
 				{ name: full('Vehicle'), type: 'vehicle' },
 				{ name: full('Hauler'), type: 'vehicle' },
 				{ name: full('Barge'), type: 'vehicle' },
@@ -1055,6 +1081,30 @@ function installInventoryHelpers() {
 			const row = await rowOf(ref, name);
 			await openContainer(row);
 			return [...row.querySelectorAll('.contents .inventory-item .name a')].map((link) => unprefixed(text(link)));
+		},
+
+		async foldContainer(ref, name, open) {
+			await window.e2e.showTab(ref, 'inventory');
+			await foldRow(await rowOf(ref, name), open);
+		},
+
+		async contentsBox(ref, name) {
+			const contents = (await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .contents');
+			if (!contents) return null;
+			const rows = [...contents.querySelectorAll('.inventory-item')];
+			const box = contents.getBoundingClientRect();
+			const last = rows.at(-1);
+			return {
+				rows: rows.map((row) => unprefixed(text(row.querySelector('.name a')))),
+				height: box.height > 100 ? '>100' : Math.round(box.height),
+				// A scrollbar shows on an element that scrolls its overflow, and has some.
+				scrollbar: [contents, ...contents.children].some(
+					(element) => /auto|scroll/.test(getComputedStyle(element).overflowY) && element.scrollHeight - element.clientHeight > 1,
+				),
+				// Half a pixel of slack, for a box whose edges fall between two pixels.
+				lastInside: !!last && last.getBoundingClientRect().bottom <= box.bottom + 0.5,
+				visibility: last ? getComputedStyle(last).visibility : 'none',
+			};
 		},
 
 		effects(ref) {
@@ -2149,7 +2199,43 @@ export async function run(e2e: ScenarioContext) {
 
 	await usedState(e2e);
 
+	await containerFold(e2e);
+
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
+}
+
+/** §#516: an open Container shows all its contents, with no cap or scrollbar of its own, and closes over them. */
+async function containerFold(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const HELD = ['Awl', 'Bobbin', 'Candle', 'Dice', 'Eyeglass', 'Flint', 'Gloves', 'Hook'];
+	const box = () => gm.evaluate(() => window.inventoryE2E.contentsBox('Hoarder', 'Chest'));
+
+	await e2e.step("#516 A1 Hoarder's Chest, which holds eight items, opened in the Inventory tab", async () => {
+		await gm.evaluate(
+			(held) =>
+				window.inventoryE2E.createItems('Hoarder', [
+					{ name: 'Chest', type: 'container', system: { state: 'carried' } },
+					...held.map((name) => ({ name, type: 'gear', system: { state: 'carried' }, in: 'Chest' })),
+				]),
+			HELD,
+		);
+		await gm.evaluate(() => window.inventoryE2E.foldContainer('Hoarder', 'Chest', true));
+	});
+	e2e.expect('#516 A1 the open Container shows all its contents, past 100px, without a scrollbar of its own', await box(), {
+		rows: HELD,
+		height: '>100',
+		scrollbar: false,
+		lastInside: true,
+		visibility: 'visible',
+	});
+
+	await e2e.step("#516 A2 Hoarder's Chest closed", () => gm.evaluate(() => window.inventoryE2E.foldContainer('Hoarder', 'Chest', false)));
+	e2e.expect(
+		'#516 A2 the closed Container keeps its contents rendered, which take no height and are hidden from Tab once the fold ends',
+		await box(),
+		{ rows: HELD, height: 0, scrollbar: false, lastInside: false, visibility: 'hidden' },
+	);
+	await gm.evaluate(() => window.e2e.closeSetUp());
 }
 
 /** §#252: the Equipment State moves an inventory row's menu offers, and the dialogs confirming a deletion from its row and its menu. */

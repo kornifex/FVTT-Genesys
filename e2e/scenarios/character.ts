@@ -118,6 +118,11 @@ type CharacterHelpers = {
 	 * a weapon's row before #393.
 	 */
 	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox | null;
+	/**
+	 * Opens or closes a row's description, by a talent's name or a Combat tab row's chevron, and reads its fold halfway
+	 * through, its transitions paused at 100ms; then finishes them (#516).
+	 */
+	foldHalfway(actor: string, row: DescriptionRow): Promise<FoldHalfway>;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	/** The icon of a skill of the Skills tab or of an adversary's skills, as the user sees it; null when it opens nothing. */
@@ -172,6 +177,12 @@ type CharacterHelpers = {
  * the name it shows without its prefix, `Dagger (Thrown)`.
  */
 type DescriptionRow = { talent: string } | { armor: string } | { injury: string } | { weapon: string };
+
+/**
+ * A description halfway through its fold (#516): the properties whose transitions run on it and its content; how far it
+ * is open, `none`, `partway` or `whole`; and its last element's visibility, which Tab follows.
+ */
+type FoldHalfway = { transitions: string[]; height: 'none' | 'partway' | 'whole'; lastVisibility: string };
 
 /** A skill of a character's Skills tab, or of an adversary's skills, by its name. */
 type SkillTarget = { skill: string } | { adversarySkill: string };
@@ -765,6 +776,35 @@ function installCharacterHelpers() {
 			return element && window.e2e.descriptionBox(element, cap);
 		},
 
+		async foldHalfway(name, row) {
+			const element = description(name, row);
+			const content = element?.firstElementChild;
+			if (!element || !content) throw new Error(`No description for ${JSON.stringify(row)}`);
+			// A transition starts from the style the element had before the click: a tab just shown has none computed yet,
+			// as no frame has drawn it, so it is read now, as a user sees the tab before clicking in it.
+			const before = getComputedStyle(element).gridTemplateRows;
+			if (!before) throw new Error(`No style for ${JSON.stringify(row)}`);
+			if ('talent' in row) window.characterE2E.toggleTalent(name, row.talent);
+			else window.characterE2E.clickChevron(name, row);
+			// Vue renders the row's new class before the next frame, which starts its transitions.
+			await new Promise(requestAnimationFrame);
+			const transitions = [element, content].flatMap((animated) => animated.getAnimations()) as CSSTransition[];
+			for (const transition of transitions) {
+				transition.pause();
+				transition.currentTime = 100;
+			}
+			const height = element.getBoundingClientRect().height;
+			const last = [...element.querySelectorAll('*')].at(-1);
+			const read: FoldHalfway = {
+				transitions: transitions.map((transition) => transition.transitionProperty).sort(),
+				// A pixel of slack for the heights rounded apart.
+				height: height <= 1 ? 'none' : Math.abs(height - content.scrollHeight) <= 1 ? 'whole' : 'partway',
+				lastVisibility: last ? getComputedStyle(last).visibility : 'none',
+			};
+			for (const transition of transitions) transition.finish();
+			return read;
+		},
+
 		superCharacteristics(name) {
 			const fields = [...sheet(name).querySelectorAll('.characteristic-field')];
 			return {
@@ -1001,6 +1041,7 @@ export async function run(e2e: ScenarioContext) {
 		await combatRowDescriptions(e2e, page);
 		await talentRowDescriptions(e2e, page);
 		await skillIcons(e2e, page);
+		await folds(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -3306,6 +3347,59 @@ async function talentTiers(
 	);
 	await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: false });
 	await page((name) => window.characterE2E.close(name), 'Buyer');
+}
+
+/**
+ * §#516: a fold opens and closes in 0.2s, its content shown from its opening's start and until its closing's end, then
+ * hidden, so that Tab skips it; under `prefers-reduced-motion`, at once. Read on the talent of #325's Reader, whose long
+ * description ends with a link.
+ */
+async function folds(e2e: ScenarioContext, page: Evaluate) {
+	const D = 'Reader';
+	const TALENT = { talent: 'Verbose' };
+	const halfway = () => page((args) => window.characterE2E.foldHalfway(args.name, args.row), { name: D, row: TALENT });
+	const closed = () =>
+		closedDescription((cap) =>
+			page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row: TALENT, cap }),
+		);
+	const twoFolds = async () => {
+		const opening = await halfway();
+		await e2e.settle();
+		const closing = await halfway();
+		return { opening, closing };
+	};
+
+	let folded: { opening: FoldHalfway; closing: FoldHalfway } | null = null;
+	await e2e.step("#516 B1 the talent's long description clicked open, then closed, each fold read halfway", async () => {
+		await page((name) => window.characterE2E.open(name), D);
+		await page((name) => window.e2e.showTab(name, 'talents'), D);
+		folded = await twoFolds();
+	});
+	const moving: FoldHalfway = { transitions: ['grid-template-rows', 'visibility'], height: 'partway', lastVisibility: 'visible' };
+	e2e.expect('#516 B1 halfway through its opening and its closing, the description is partway open and its link visible', folded, {
+		opening: moving,
+		closing: moving,
+	});
+	e2e.expect(
+		'#516 B1 once its closing ends, the description takes no height and its link is hidden, so Tab skips it',
+		await closed(),
+		CLOSED_DESCRIPTION,
+	);
+
+	const { gm } = e2e;
+	await e2e.step('#516 C1 under prefers-reduced-motion, the talent clicked open, then closed, each fold read at its start', async () => {
+		await gm.page.emulateMedia({ reducedMotion: 'reduce' });
+		try {
+			folded = await twoFolds();
+		} finally {
+			await gm.page.emulateMedia({ reducedMotion: null });
+		}
+	});
+	e2e.expect('#516 C1 under prefers-reduced-motion, the description opens and closes at once, with no transition', folded, {
+		opening: { transitions: [], height: 'whole', lastVisibility: 'visible' },
+		closing: { transitions: [], height: 'none', lastVisibility: 'hidden' },
+	});
+	await page((name) => window.characterE2E.close(name), D);
 }
 
 /** §#373: each delete from a row of the Skills tab, an adversary's skills, the Critical Injuries and the character's header asks first. */
