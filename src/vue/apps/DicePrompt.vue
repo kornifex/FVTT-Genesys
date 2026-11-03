@@ -493,9 +493,10 @@ $caret-column: 1rem;
 $caret-gap: 0.4 * $title-font-size;
 
 // The Pool Modifications' rows, in rem, as the checkbox's size, so that it is centred on a label's first line: Foundry
-// gives inputs a font of their own.
+// gives inputs a font of their own. Their columns are as far apart as the caret is from the title.
 $row-line-height: 1.25rem;
 $row-padding: 0.15rem;
+$row-column-gap: 0.4em;
 $checkbox-size: 1.25rem;
 
 .dice-prompt {
@@ -604,7 +605,7 @@ $checkbox-size: 1.25rem;
 		& > div {
 			display: grid;
 			grid-template-columns: $checkbox-size minmax(0, 2fr) minmax(0, 1.2fr);
-			column-gap: 0.4em;
+			column-gap: $row-column-gap;
 			border-bottom: 1px dotted black;
 			line-height: $row-line-height;
 
@@ -742,7 +743,6 @@ $checkbox-size: 1.25rem;
 				--checkbox-size: #{$checkbox-size};
 				width: $checkbox-size;
 				height: $checkbox-size;
-				// Centred on the label's first line.
 				margin-top: $row-padding + ($row-line-height - $checkbox-size) * 0.5;
 			}
 

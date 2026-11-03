@@ -205,6 +205,7 @@ type DicePromptHelpers = {
 	breakChanceWorker(broken: boolean): void;
 	/** The language the page shows, and the name and hint of a setting in the game settings window, which it closes after. */
 	settingText(key: string): Promise<{ language: string; name: string; hint: string }>;
+	/** The Pool Modifications' title and rows as laid out (§#513). */
 	poolModificationsLayout(): PoolModificationsLayout;
 };
 
@@ -2852,12 +2853,14 @@ export async function run(e2e: ScenarioContext) {
 		{ edges: 1, afterCheckboxes: true, wrapped: 1, underItsText: true },
 	);
 	e2e.expect(
-		"#513 A4 the checkboxes are centred on their label's first line, and no top offset moves the modifications",
+		"#513 A4 the checkboxes and the modifications sit on their label's first line, with no top offset",
 		{
 			checkboxes: layoutRows.every(({ checkbox }) => checkbox === null || near(checkbox, 0, 0.5)),
+			// By the middle of their boxes, within a px: the glyphs of another font sit on the label's baseline in them.
+			modifications: layoutRows.every(({ modification }) => modification === null || near(modification, 0, 1)),
 			offsets: layoutRows.flatMap(({ offsets }) => offsets),
 		},
-		{ checkboxes: true, offsets: [] },
+		{ checkboxes: true, modifications: true, offsets: [] },
 	);
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await e2e.step('T end');
