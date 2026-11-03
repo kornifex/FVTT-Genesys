@@ -2363,15 +2363,26 @@ export async function run(e2e: ScenarioContext) {
 	);
 
 	// §#415: Foundry cleans each setting through its DataField as it reads it, and validates it before storing it.
+	// Each setting of the table and the Story Point pools, at a value other than its default but the Skills Compendium's,
+	// whose change would load another compendium.
 	const as050 = {
+		skillsCompendium: 'genesys.crb-skills',
 		defaultDifficulty: 'DDD',
 		skillForInjuries: 'Cool',
+		skillForRepairingVehicleHits: 'Computers',
 		currency: 'Credits',
 		careerSkillRanks: 6,
 		uncoupleSkills: true,
+		showDamageOnFailure: true,
+		useSuperCharacteristics: true,
+		ignoreTalentPyramid: true,
+		talentTierVersions: true,
 		style: 'terrinoth',
 		storyPoints: { gm: 2, player: 5 },
+		useMagicalGirlSymbols: true,
+		dicePoolCollapseModificationsDetails: true,
 		dicePoolAutoApplyModifications: true,
+		dicePoolChanceToSucceedByPermutation: true,
 		dicePoolApproximation: 250,
 	};
 	const settingKeys = Object.keys(as050);

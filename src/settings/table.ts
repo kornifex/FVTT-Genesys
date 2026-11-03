@@ -6,10 +6,10 @@ import { loadSkills } from '@/settings/skills';
 type DataField = foundry.data.fields.DataField.Any;
 
 /** The value Foundry gives the system for a setting stored by the given field. */
-type Value<T extends DataField> = foundry.data.fields.DataField.InitializedTypeFor<T>;
+type FieldValue<T extends DataField> = foundry.data.fields.DataField.InitializedTypeFor<T>;
 
 /** Turns a localization key into its text in the user's language. */
-type Localize = (key: string) => string;
+export type Localize = (key: string) => string;
 
 /**
  * A world or client setting shown in the settings menu.
@@ -24,7 +24,7 @@ type Setting<T extends DataField, F extends string, C> = {
 	 * for each registration, since Foundry names the field after its setting.
 	 */
 	type(localize: Localize): T;
-	default: Value<T>;
+	default: FieldValue<T>;
 	/** Localization key of the name. */
 	name: string;
 	/** Localization key of the hint. */
@@ -40,9 +40,9 @@ type Setting<T extends DataField, F extends string, C> = {
 	 * The field of `CONFIG.genesys.settings` the system reads the setting from, and its value for the setting's value
 	 * when it isn't that value.
 	 */
-	field?: { name: F; read?(value: Value<T>): C };
+	field?: { name: F; read?(value: FieldValue<T>): C };
 	/** What applying the value does besides writing `field`. */
-	effect?(value: Value<T>, config: C): unknown;
+	effect?(value: FieldValue<T>, config: C): unknown;
 	/** Applied on 'setup' instead of 'ready', for a setting the user interface needs before it first renders. */
 	onSetup?: boolean;
 };
@@ -50,7 +50,7 @@ type Setting<T extends DataField, F extends string, C> = {
 /** Any entry of the table, whatever its types. */
 export type AnySetting = Setting<DataField, string, unknown>;
 
-function setting<T extends DataField, F extends string = never, C = Value<T>>(definition: Setting<T, F, C>) {
+function setting<T extends DataField, F extends string = never, C = FieldValue<T>>(definition: Setting<T, F, C>) {
 	return definition;
 }
 
@@ -300,7 +300,7 @@ export function settingEntries() {
  * The value the system reads for a stored value. Foundry validates a value before storing it, but only cleans it when
  * reading it, so a value it refuses, which a version that didn't validate it could store, reads as the default.
  */
-export function readable(entry: AnySetting, stored: unknown): unknown {
+export function storedOrDefault(entry: AnySetting, stored: unknown): unknown {
 	// The text of a refusal is never shown here.
 	return entry.type((key) => key).validate(stored) ? entry.default : stored;
 }

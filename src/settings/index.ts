@@ -1,6 +1,6 @@
 import type { GenesysItem } from '@/item/GenesysItem';
 import { register as registerStoryPoints } from '@/settings/storyPoints';
-import { type AnySetting, configValue, readable, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
+import { type AnySetting, configValue, storedOrDefault, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
 
 import { register as registerAlpha } from '@/settings/alpha';
 
@@ -13,7 +13,7 @@ export const NAMESPACE = 'genesys';
  * Write a setting's value where the system reads it, and do what else applying it does.
  */
 function apply(entry: AnySetting, stored: unknown) {
-	const value = readable(entry, stored);
+	const value = storedOrDefault(entry, stored);
 	const config = configValue(entry, value);
 	if (entry.field) {
 		(CONFIG.genesys.settings as Record<string, unknown>)[entry.field.name] = config;

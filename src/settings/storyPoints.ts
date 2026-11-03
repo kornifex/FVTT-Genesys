@@ -3,7 +3,7 @@
  */
 
 import type { NAMESPACE } from '@/settings';
-import { countField } from '@/settings/table';
+import { countField, type Localize } from '@/settings/table';
 
 /**
  * Current Story Points data.
@@ -28,7 +28,7 @@ export type StoryPointData = {
 /**
  * The field the world stores the Story Points with: Foundry refuses to store a pool that isn't a count.
  */
-export function storyPointsField(localize: (key: string) => string) {
+export function storyPointsField(localize: Localize) {
 	return new foundry.data.fields.SchemaField({ gm: countField(localize), player: countField(localize) });
 }
 

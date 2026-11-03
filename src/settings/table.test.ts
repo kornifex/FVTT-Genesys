@@ -18,7 +18,7 @@ vi.hoisted(() => {
 	});
 });
 
-import { configDefaults, configValue, readable, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
+import { configDefaults, configValue, storedOrDefault, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
 
 const localize = (key: string) => `localized ${key}`;
 const fieldOf = (key: SettingKey) =>
@@ -124,17 +124,17 @@ describe('the DataField of each setting', () => {
 	});
 });
 
-describe('readable', () => {
+describe('storedOrDefault', () => {
 	it('reads a stored value its field refuses as the default, as a version that did not validate it could store', () => {
-		expect(readable(SETTINGS.careerSkillRanks, -3)).toBe(4);
-		expect(readable(SETTINGS.dicePoolApproximation, -100)).toBe(0);
-		expect(readable(SETTINGS.defaultDifficulty, 'not a pool')).toBe('DD');
+		expect(storedOrDefault(SETTINGS.careerSkillRanks, -3)).toBe(4);
+		expect(storedOrDefault(SETTINGS.dicePoolApproximation, -100)).toBe(0);
+		expect(storedOrDefault(SETTINGS.defaultDifficulty, 'not a pool')).toBe('DD');
 	});
 
 	it('reads a stored value its field accepts as it is', () => {
-		expect(readable(SETTINGS.careerSkillRanks, 6)).toBe(6);
-		expect(readable(SETTINGS.defaultDifficulty, '')).toBe('');
-		expect(readable(SETTINGS.currency, 'Credits')).toBe('Credits');
+		expect(storedOrDefault(SETTINGS.careerSkillRanks, 6)).toBe(6);
+		expect(storedOrDefault(SETTINGS.defaultDifficulty, '')).toBe('');
+		expect(storedOrDefault(SETTINGS.currency, 'Credits')).toBe('Credits');
 	});
 });
 

@@ -2230,6 +2230,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// J: the Default Difficulty and Skills Compendium settings (§#32, §#100).
 	const defaultDifficulty = async (value: string) => {
+		// A refused value rejects the setting's write, which is what the step reads.
 		const refused = await setSetting('defaultDifficulty', value).then(
 			() => false,
 			() => true,
