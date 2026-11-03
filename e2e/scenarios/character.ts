@@ -94,10 +94,18 @@ type CharacterHelpers = {
 	trashTalentRow(actor: string, name: string): void;
 	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
 	toggleTalent(actor: string, talent: string): void;
-	/** Clicks the chevron of a Combat tab row, which opens or closes its description; false when the row shows none. */
+	/**
+	 * Clicks the chevron of a row of the Combat or Talents tab, which opens or closes its description; false when the row
+	 * shows none.
+	 */
 	clickChevron(actor: string, row: DescriptionRow): boolean;
-	/** The chevron of a Combat tab row, or null when the row shows none. */
+	/** The chevron of a row of the Combat or Talents tab, or null when the row shows none. */
 	chevron(actor: string, row: DescriptionRow): Chevron | null;
+	/**
+	 * What the name of a Talents tab row shows, in order: its name and rank as text, `chevron` for its chevron and
+	 * `upgrade` for its rank upgrade arrow.
+	 */
+	talentNameParts(actor: string, talent: string): string[];
 	/** Clicks the name of a Combat tab row. */
 	clickName(actor: string, row: DescriptionRow): void;
 	/**
@@ -713,6 +721,14 @@ function installCharacterHelpers() {
 			return window.e2e.chevron(rowOf(name, row));
 		},
 
+		talentNameParts(name, talent) {
+			return [...(rowOf(name, { talent }).querySelector('.name')?.children ?? [])].map((child) => {
+				if (child.classList.contains('description-toggle')) return 'chevron';
+				if (child.querySelector('.fa-arrow-circle-up')) return 'upgrade';
+				return text(child);
+			});
+		},
+
 		clickName(name, row) {
 			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
 		},
@@ -941,6 +957,7 @@ export async function run(e2e: ScenarioContext) {
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
 		await combatRowDescriptions(e2e, page);
+		await talentRowDescriptions(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -2902,6 +2919,130 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	await playerPage((name) => window.characterE2E.close(name), C);
 	await setOwnership(previous);
 	await player.leave();
+}
+
+/**
+ * §#515: the chevron after the name of a Talents tab row, a talent's or a special ability's, opens and closes the
+ * description its name opens and closes; a row without a description shows none, and its name still shows its tier.
+ */
+async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
+	const S = 'Scholar';
+	const box = (row: DescriptionRow, cap: number) =>
+		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: S, row, cap });
+	const closed = (row: DescriptionRow) => closedDescription((cap) => box(row, cap));
+	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: S, row });
+	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: S, row });
+	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: S, row });
+	const LORE = { talent: 'Lore' };
+	const INSIGHT = { talent: 'Insight' };
+	const BLANK = { talent: 'Blank' };
+	const passive = { activation: { type: 'passive', detail: '' } };
+
+	await e2e.step(
+		'#515 A1 a character with 100 XP given a described ranked talent, a described special ability, and a talent without a description, its Talents tab shown',
+		async () => {
+			await page((name) => window.characterE2E.create(name), S);
+			await page(
+				(name) =>
+					game.actors.getName(`E2E ${name}`).update({ 'system.experienceJournal.entries': [{ type: 'Award', amount: 100 }] }),
+				S,
+			);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: S,
+				items: [
+					// A second tier 1 talent lets the ranked one rise to tier 2: its row shows the rank upgrade arrow.
+					{
+						name: 'E2E Lore',
+						type: 'talent',
+						system: { ...passive, tier: 1, ranked: 'yes', rank: 1, description: LONG_DESCRIPTION },
+					},
+					{ name: 'E2E Insight', type: 'ability', system: { ...passive, description: '<p>Sees through lies.</p>' } },
+					// Foundry's editor saves a description cleared in it as an empty paragraph.
+					{ name: 'E2E Blank', type: 'talent', system: { ...passive, tier: 1, description: '<p></p>', source: 'E2E p. 1' } },
+				],
+			});
+			await page((name) => window.characterE2E.open(name), S);
+			await page((name) => window.e2e.showTab(name, 'talents'), S);
+		},
+	);
+	e2e.expect(
+		"#515 A1 a talent's and a special ability's rows show a chevron after their name, pointing right, a talent without a description none, and every description starts closed",
+		{
+			lore: await chevron(LORE),
+			insight: await chevron(INSIGHT),
+			blank: await chevron(BLANK),
+			loreBox: await closed(LORE),
+			insightBox: await closed(INSIGHT),
+			blankBox: await closed(BLANK),
+		},
+		{
+			lore: SHOW_CHEVRON,
+			insight: SHOW_CHEVRON,
+			blank: null,
+			loreBox: CLOSED_DESCRIPTION,
+			insightBox: CLOSED_DESCRIPTION,
+			blankBox: CLOSED_DESCRIPTION,
+		},
+	);
+	e2e.expect(
+		"#515 A1 the chevron sits after the talent's name and rank, before its rank upgrade arrow",
+		await page((name) => window.characterE2E.talentNameParts(name, 'Lore'), S),
+		['E2E Lore 1', 'chevron', 'upgrade'],
+	);
+
+	await e2e.step("#515 A2 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		"#515 A2 the talent's description shows its last line, at its full height past 500px, its chevron pointing down, and the special ability's stays closed",
+		{ box: await box(LORE, 500), chevron: await chevron(LORE), insight: await closed(INSIGHT) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON, insight: CLOSED_DESCRIPTION },
+	);
+
+	await e2e.step("#515 A3 the talent's name clicked", () => clickName(LORE));
+	e2e.expect(
+		'#515 A3 the name closes the description the chevron opened, and the chevron points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A4 the talent's name clicked again", () => clickName(LORE));
+	e2e.expect(
+		'#515 A4 the name opens the description, and the chevron points down',
+		{ box: await box(LORE, 500), chevron: await chevron(LORE) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON },
+	);
+
+	await e2e.step("#515 A5 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		'#515 A5 the chevron closes the description the name opened, and points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A6 the special ability's chevron clicked", () => clickChevron(INSIGHT));
+	const insightOpen = await box(INSIGHT, 500);
+	e2e.expect(
+		"#515 A6 the special ability's description opens whole, its chevron pointing down",
+		{ open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside }, chevron: await chevron(INSIGHT) },
+		{ open: { clipped: 0, lastInside: true }, chevron: HIDE_CHEVRON },
+	);
+	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
+	e2e.expect(
+		"#515 A7 the special ability's description closes, its chevron pointing right",
+		{ box: await closed(INSIGHT), chevron: await chevron(INSIGHT) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step('#515 A8 the name of the talent without a description clicked', () => clickName(BLANK));
+	const blankOpen = await box(BLANK, 500);
+	e2e.expect(
+		'#515 A8 the name of a talent without a description still opens its tier and source, with no chevron',
+		{
+			open: blankOpen && { shown: typeof blankOpen.height === 'number' && blankOpen.height > 0, lastInside: blankOpen.lastInside },
+			chevron: await chevron(BLANK),
+		},
+		{ open: { shown: true, lastInside: true }, chevron: null },
+	);
+	await page((name) => window.characterE2E.close(name), S);
 }
 
 /** §#200: a talent's tier kept from 1 to 5, and one saved above 5 read as 5. */
