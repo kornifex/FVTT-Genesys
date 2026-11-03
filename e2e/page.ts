@@ -67,8 +67,8 @@ export type Point = { x: number; y: number };
 export type DescriptionBox = { height: number | string; clipped: number; lastInside: boolean; transition: string };
 
 /**
- * The chevron that opens and closes the description of a Combat tab row (#393): where it points, `right` closed and
- * `down` open, and its tooltip, localized.
+ * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515): where it
+ * points, `right` closed and `down` open, and its tooltip, localized.
  */
 export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
 

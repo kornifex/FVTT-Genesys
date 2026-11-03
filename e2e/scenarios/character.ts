@@ -106,7 +106,7 @@ type CharacterHelpers = {
 	 * `upgrade` for its rank upgrade arrow.
 	 */
 	talentNameParts(actor: string, talent: string): string[];
-	/** Clicks the name of a Combat tab row. */
+	/** Clicks the name of a row of the Combat or Talents tab. */
 	clickName(actor: string, row: DescriptionRow): void;
 	/**
 	 * Closes the sheet of the actor's item `E2E <item>` and the Dice Prompts, and gives which were open: a Combat tab row's
