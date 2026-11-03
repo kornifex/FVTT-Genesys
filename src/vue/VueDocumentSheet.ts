@@ -32,13 +32,29 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			// A sheet opens at its content's height, on the tab it opens on, then keeps it: Foundry's `height: 'auto'` would
 			// follow the content on every later render, a tab switch or an expanded description resizing the window.
 			if (options.isFirstRender) {
-				await this.contentShown();
-				// Foundry sizes a window once it has rendered: the content is measured at the window's width, then the window
-				// is placed for its height, centred unless it was placed before.
 				const { top } = this.position;
-				this.setPosition();
-				this.setPosition({ top, height: naturalHeight(this.element, this.position.scale ?? 1) });
+				this.#fitHeight(top);
+
+				// The sheet shows at once, a text being enriched showing its raw text or nothing (#101): once the content of
+				// such work shows, the window fits it, unless the user has moved or resized it meanwhile.
+				const element = this.element;
+				const { top: placed, height: fitted } = this.position;
+				void this.contentShown().then(() => {
+					const { top: placedNow, height: fittedNow } = this.position;
+					if (this.rendered && this.element === element && !this.minimized && placedNow === placed && fittedNow === fitted) {
+						this.#fitHeight(top);
+					}
+				});
 			}
+		}
+
+		/**
+		 * Fit the window's height to its content: placed at `top`, or centred when it is undefined.
+		 */
+		#fitHeight(top: number | undefined) {
+			// Foundry sizes a window once it has rendered: the window takes its width first, at which the content is measured.
+			this.setPosition();
+			this.setPosition({ top, height: naturalHeight(this.element, this.position.scale ?? 1) });
 		}
 
 		protected override async _preClose(options: RenderOptions) {

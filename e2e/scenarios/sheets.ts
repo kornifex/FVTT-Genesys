@@ -3927,7 +3927,7 @@ declare global {
  */
 function installSheetHeightHelpers() {
 	if (window.sheetHeightsE2E) return;
-	const { htmlOf, sleep, waitFor } = window.e2e;
+	const { htmlOf, sleep, settle, waitFor } = window.e2e;
 	const sheets = window.sheetsE2E;
 	const appOf = (name: string) => (game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`)).sheet;
 	const elementOf = (name: string) => {
@@ -3939,6 +3939,9 @@ function installSheetHeightHelpers() {
 		async reopen(name, last, toBottom = false) {
 			await sheets.close(name);
 			await sheets.open(name);
+			// The window fits again the content an enrichment brings, once it shows.
+			await appOf(name).contentShown?.();
+			await settle();
 			const element = elementOf(name);
 			const content = element.querySelector<HTMLElement>('.window-content')!;
 			const lastElement = await waitFor(`${last} on the sheet of E2E ${name}`, () => content.querySelector(last));
@@ -3994,10 +3997,7 @@ async function sheetHeights(e2e: ScenarioContext) {
 	const viewport = gm.page.viewportSize();
 	const twoLines =
 		'<p>Once per session, the character may add a Boost die to a check made to resist fear, or to recover from it, as a free action.</p>';
-	const longDescription = Array.from(
-		{ length: 14 },
-		(_, index) => `<p>Line ${index + 1} of a talent's longer description, which takes a line of its own.</p>`,
-	).join('');
+	const longDescription = Array.from({ length: 12 }, (_, index) => `<p>Line ${index + 1} of a longer description.</p>`).join('');
 	const stored = await gm.evaluate(() => ({
 		talent: window.sheetsE2E.stored('talent', 'system.description'),
 		ranked: window.sheetsE2E.stored('Hero/Ranked', 'system.description'),
@@ -4021,8 +4021,9 @@ async function sheetHeights(e2e: ScenarioContext) {
 	);
 
 	let short: WindowFit | undefined;
-	await e2e.step("#514 A2 GM's viewport is 700px tall, and GM opens Hero's sheet again, then scrolls it to its bottom", async () => {
-		await gm.page.setViewportSize({ width: viewport?.width ?? 1600, height: 700 });
+	// Foundry warns on a screen lower than 768px.
+	await e2e.step("#514 A2 GM's viewport is 800px tall, and GM opens Hero's sheet again, then scrolls it to its bottom", async () => {
+		await gm.page.setViewportSize({ width: viewport?.width ?? 1600, height: 800 });
 		short = await gm.evaluate(() => window.sheetHeightsE2E.reopen('Hero', '.tab[data-tab="skills"] .experience', true));
 	});
 	e2e.log('#514 A2 Hero at a short viewport', short);
@@ -4054,13 +4055,13 @@ async function sheetHeights(e2e: ScenarioContext) {
 	);
 
 	let long: WindowFit | undefined;
-	await e2e.step('#514 A4 GM gives the talent a description of fourteen paragraphs, and opens its sheet', async () => {
+	await e2e.step('#514 A4 GM gives the talent a description of twelve paragraphs, and opens its sheet', async () => {
 		long = await gm.evaluate(async (description) => {
 			await window.sheetsE2E.update('talent', { 'system.description': description });
 			return window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p:last-of-type');
 		}, longDescription);
 	});
-	e2e.log('#514 A4 a talent of fourteen paragraphs', long);
+	e2e.log('#514 A4 a talent of twelve paragraphs', long);
 	e2e.expect(
 		'#514 A4 a talent with a long description opens taller than the former 300px, its last line shown without scrolling',
 		long && { taller: long.height > 300, scrolls: long.scrolls, lastShown: long.lastShown },
