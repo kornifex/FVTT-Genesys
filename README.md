@@ -26,12 +26,12 @@ Development on this fork, after release 0.2.19, is done with the assistance of C
 ## Foundry versions
 Each release line supports its own Foundry versions:
 
-| Release line | Foundry     |
-| ------------ | ----------- |
-| 0.5.x        | v13 and v14 |
-| 0.4.x        | v12 and v13 |
+| Release line    | Foundry                            |
+| --------------- | ---------------------------------- |
+| 0.5.0 and later | v13 and v14                        |
+| 0.4.x           | v12 and v13 (no longer maintained) |
 
-The manifest URL below installs the latest release. From 0.5.0 on, that release needs Foundry v13 or later. A world still on Foundry v12 stays on 0.4.x: install each 0.4.x release from its own manifest, `https://github.com/kornifex/FVTT-Genesys/releases/download/v0.4.<n>/manifest.json`, where `v0.4.<n>` is the release's tag on the [releases](https://github.com/kornifex/FVTT-Genesys/releases) page. Once your table runs Foundry v13, switch back to the manifest URL below to get 0.5.x.
+The manifest URL below installs the latest release. From 0.5.0 on, that release needs Foundry v13 or later. A world still on Foundry v12 stays on 0.4.0, the last release of the 0.4.x line, which gets no more fixes: install it from its own manifest, `https://github.com/kornifex/FVTT-Genesys/releases/download/v0.4.0/manifest.json`. Once your table runs Foundry v13, switch back to the manifest URL below to get the latest release.
 
 ## Installation
 In Foundry's Setup screen, open **Game Systems → Install System**, and paste this manifest URL:
