@@ -112,6 +112,18 @@ type CharacterHelpers = {
 	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox | null;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
+	/** The icon of a skill of the Skills tab or of an adversary's skills, as the user sees it; null when it opens nothing. */
+	skillIcon(actor: string, target: SkillTarget): { tooltip: string; cursor: string } | null;
+	/**
+	 * Clicks the icon or the name of a skill of the Skills tab or of an adversary's skills, waits for the page to settle,
+	 * then closes the skill's sheet and the Dice Prompts and gives which were open. `clicked` is false when the skill shows
+	 * no icon that opens something.
+	 */
+	clickSkill(
+		actor: string,
+		target: SkillTarget,
+		part: 'icon' | 'name',
+	): Promise<{ clicked: boolean; sheet: boolean; dicePrompt: boolean }>;
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
 	/**
 	 * The top of the shown Talents tab's first block: the space between it and the top of the tab's content, in px, and
@@ -153,7 +165,10 @@ type CharacterHelpers = {
  */
 type DescriptionRow = { talent: string } | { armor: string } | { injury: string } | { weapon: string };
 
-type MenuTarget = { characteristic: Characteristic } | { skill: string } | { meta: 'archetype' | 'career' } | { adversarySkill: string };
+/** A skill of a character's Skills tab, or of an adversary's skills, by its name. */
+type SkillTarget = { skill: string } | { adversarySkill: string };
+
+type MenuTarget = { characteristic: Characteristic } | { meta: 'archetype' | 'career' } | SkillTarget;
 
 declare global {
 	interface Window {
@@ -209,6 +224,13 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.tab-skills .skill.row')].find(
 			(row) => text(row.querySelector('.name span')).replace(/ \([^()]*\)$/, '') === skill,
 		);
+	// A skill's row of the Skills tab, or its entry among an adversary's skills, which reads its rank after its name.
+	const skillContainer = (name: string, target: SkillTarget) =>
+		'skill' in target
+			? skillRow(name, target.skill)
+			: [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
+					(skill) => text(skill.querySelector('a span')).replace(/ \d+$/, '') === target.adversarySkill,
+				);
 	const injuryRow = (name: string, injury: string) =>
 		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
 			(candidate) => text(candidate.querySelector('.name')) === `E2E ${injury}`,
@@ -407,12 +429,8 @@ function installCharacterHelpers() {
 		async menu(name, target, label) {
 			let container: Element | undefined | null;
 			if ('characteristic' in target) container = characteristicField(name, target.characteristic)?.querySelector('.menu-container');
-			else if ('skill' in target) container = skillRow(name, target.skill);
 			else if ('meta' in target) container = sheet(name).querySelector(`.character-meta .${target.meta} .menu-container`);
-			else
-				container = [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
-					(skill) => text(skill.querySelector('a span')).replace(/ \d+$/, '') === target.adversarySkill,
-				);
+			else container = skillContainer(name, target);
 			if (!container) throw new Error(`No menu for ${JSON.stringify(target)}`);
 			container.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			// A const keeps the check above for the closure below.
@@ -743,6 +761,30 @@ function installCharacterHelpers() {
 			return [...sheet(name).querySelectorAll('.adversary-items .skill a span')].map(text);
 		},
 
+		skillIcon(name, target) {
+			const icon = skillContainer(name, target)?.querySelector<HTMLElement>('.skill-icon');
+			if (!icon) return null;
+			// Foundry localizes a tooltip's key as it shows it.
+			return { tooltip: game.i18n.localize(icon.dataset.tooltip ?? ''), cursor: getComputedStyle(icon).cursor };
+		},
+
+		async clickSkill(name, target, part) {
+			const container = skillContainer(name, target);
+			if (!container) throw new Error(`No skill ${JSON.stringify(target)} on the sheet of E2E ${name}`);
+			const element = container.querySelector<HTMLElement>(
+				part === 'icon' ? '.skill-icon' : 'skill' in target ? '.name' : ':scope > a',
+			);
+			element?.click();
+			await settle();
+			const skill = 'skill' in target ? target.skill : target.adversarySkill;
+			const itemSheet = actor(name).items.getName(skill).sheet;
+			const prompts = apps('app-dice-prompt').filter((app: App) => app.rendered);
+			const opened = { clicked: !!element, sheet: itemSheet.rendered, dicePrompt: prompts.length > 0 };
+			if (itemSheet.rendered) await itemSheet.close();
+			for (const prompt of prompts) await prompt.close();
+			return opened;
+		},
+
 		pyramid(name) {
 			const summary = sheet(name).querySelector('.tab-talents .pyramid');
 			const block = sheet(name).querySelector('.tab-talents .block');
@@ -941,6 +983,7 @@ export async function run(e2e: ScenarioContext) {
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
 		await combatRowDescriptions(e2e, page);
+		await skillIcons(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -2901,6 +2944,117 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	// The player leaves as it came: the steps after these run without it.
 	await playerPage((name) => window.characterE2E.close(name), C);
 	await setOwnership(previous);
+	await player.leave();
+}
+
+/**
+ * §#512: a skill's icon opens its sheet and its name rolls it, on a character's Skills tab and among a rival's and a
+ * minion's skills, on a sheet the user can't edit too.
+ */
+async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
+	// A character created with a skill gets none from the Skills Compendium.
+	const SKILL = 'E2E Lore';
+	const skill = { name: SKILL, type: 'skill', system: { category: 'knowledge', characteristic: 'intellect' } };
+	const sheets: { name: string; type: string; tab: string; target: SkillTarget }[] = [
+		{ name: 'Scholar', type: 'character', tab: 'skills', target: { skill: SKILL } },
+		{ name: 'Sage', type: 'rival', tab: 'stats', target: { adversarySkill: SKILL } },
+		{ name: 'Acolytes', type: 'minion', tab: 'stats', target: { adversarySkill: SKILL } },
+	];
+	const OPEN_SKILL = { tooltip: "Open the skill's sheet", cursor: 'pointer' };
+	const bySheet = async <T>(action: (sheet: (typeof sheets)[number]) => Promise<T>) => {
+		const results: Record<string, T> = {};
+		for (const sheet of sheets) results[sheet.name] = await action(sheet);
+		return results;
+	};
+	const eachSheet = (expected: unknown) => Object.fromEntries(sheets.map(({ name }) => [name, expected]));
+	const clickSkill = (client: Evaluate, part: 'icon' | 'name') =>
+		bySheet(({ name, target }) =>
+			client((args) => window.characterE2E.clickSkill(args.name, args.target, args.part), { name, target, part }),
+		);
+	const skillIcon = (client: Evaluate) =>
+		bySheet(({ name, target }) => client((args) => window.characterE2E.skillIcon(args.name, args.target), { name, target }));
+	const hasEdit = (client: Evaluate) =>
+		bySheet(async ({ name, target }) =>
+			(await client((args) => window.characterE2E.menu(args.name, args.target), { name, target })).includes('Edit'),
+		);
+	const openSheets = (client: Evaluate) =>
+		bySheet(async ({ name, tab }) => {
+			await client((name) => window.characterE2E.open(name), name);
+			await client((args) => window.e2e.showTab(args.name, args.tab), { name, tab });
+		});
+	const closeSheets = (client: Evaluate) => bySheet(({ name }) => client((name) => window.characterE2E.close(name), name));
+
+	await e2e.step('#512 A1 a character, a rival and a minion given the skill Lore, their sheets open on its list', async () => {
+		for (const { name, type } of sheets)
+			await page((args) => window.characterE2E.create(args.name, args.type, [args.skill]), { name, type, skill });
+		await openSheets(page);
+	});
+	e2e.expect(
+		"#512 A1 the icon of a skill on the Skills tab and on a rival's and a minion's sheet shows a pointer and the tooltip \"Open the skill's sheet\"",
+		await skillIcon(page),
+		eachSheet(OPEN_SKILL),
+	);
+
+	let opened: Record<string, unknown> = {};
+	await e2e.step("#512 A2 the skill's icon clicked on each sheet", async () => {
+		opened = await clickSkill(page, 'icon');
+	});
+	e2e.expect(
+		"#512 A2 a skill's icon opens the skill's sheet, and not the Dice Prompt",
+		opened,
+		eachSheet({ clicked: true, sheet: true, dicePrompt: false }),
+	);
+
+	await e2e.step("#512 A3 the skill's name clicked on each sheet", async () => {
+		opened = await clickSkill(page, 'name');
+	});
+	e2e.expect(
+		"#512 A3 a skill's name still opens the Dice Prompt, and not the skill's sheet",
+		opened,
+		eachSheet({ clicked: true, sheet: false, dicePrompt: true }),
+	);
+	e2e.expect("#512 A4 a skill's context menu keeps its Edit entry", await hasEdit(page), eachSheet(true));
+	await closeSheets(page);
+
+	// Reading a skill's description edits nothing: a player who only observes the actors opens it too.
+	const player = await e2e.player();
+	if (!player.connected) await player.join();
+	const playerPage = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) =>
+		(player.evaluate as (fn: unknown, arg: unknown) => Promise<R>)(fn, arg);
+	await e2e.step("#512 B1 the player given Observer on the three actors, their sheets open in the player's page", async () => {
+		await page(
+			async (args) => {
+				for (const name of args.names) await window.e2e.setOwnership(window.e2e.actor(name), args.user, 'OBSERVER');
+			},
+			{ names: sheets.map(({ name }) => name), user: e2e.playerUser },
+		);
+		await player.evaluate(installCharacterHelpers);
+		await openSheets(playerPage);
+	});
+	e2e.expect(
+		"#512 B1 on sheets the player can't edit, a skill's icon shows a pointer and its tooltip",
+		{
+			editable: await bySheet(({ name }) => playerPage((name) => game.actors.getName(`E2E ${name}`).sheet.isEditable, name)),
+			icons: await skillIcon(playerPage),
+		},
+		{ editable: eachSheet(false), icons: eachSheet(OPEN_SKILL) },
+	);
+	await e2e.step("#512 B2 the skill's icon clicked on each sheet in the player's page", async () => {
+		opened = await clickSkill(playerPage, 'icon');
+	});
+	e2e.expect(
+		"#512 B2 a skill's icon opens the skill's sheet on a sheet the player can't edit",
+		opened,
+		eachSheet({ clicked: true, sheet: true, dicePrompt: false }),
+	);
+	e2e.expect(
+		"#512 B3 a skill's context menu keeps its Edit entry on a sheet the player can't edit",
+		await hasEdit(playerPage),
+		eachSheet(true),
+	);
+
+	// The player leaves as it came: the steps after these run without it.
+	await closeSheets(playerPage);
 	await player.leave();
 }
 
