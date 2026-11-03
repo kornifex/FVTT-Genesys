@@ -131,8 +131,11 @@ type SheetsHelpers = {
 	readMessages(): { speaker: string; rolls: number; content: string }[];
 	storyPoints(): { gm: number; player: number };
 	clickStoryPoints(selector: string): Promise<void>;
-	/** Types a count into the GM pool, as the GM does after right-clicking it. */
-	editGMStoryPoints(input: string): Promise<void>;
+	/**
+	 * Types a count into the GM pool, as the GM does after right-clicking it, then confirms it with Enter (the default) or
+	 * a blur, or cancels it with Escape. Returns whether the input is still open.
+	 */
+	editGMStoryPoints(input: string, close?: 'Enter' | 'blur' | 'Escape'): Promise<boolean>;
 	/** Right-clicks the GM pool then the players' pool, and returns the pools that show an input, then leaves them as they were. */
 	editBothStoryPointPools(): Promise<string[]>;
 	setStoryPoints(points: { gm: number; player: number }): Promise<void>;
@@ -795,13 +798,17 @@ function installSheetsHelpers() {
 			await settle();
 		},
 
-		async editGMStoryPoints(input) {
+		async editGMStoryPoints(input, close = 'Enter') {
 			const tracker = htmlOf(foundry.applications.instances.get('story-point-tracker'))!;
-			find(tracker, '.points').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			find(tracker, '.gm .points').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			const field = await waitFor('the GM pool input', () => tracker.querySelector<HTMLInputElement>('input.points'));
 			field.value = input;
-			field.dispatchEvent(new Event('change', { bubbles: true }));
+			// The headless page may not hold the focus, so the blur is dispatched rather than left to `blur()`.
+			field.dispatchEvent(
+				close === 'blur' ? new FocusEvent('blur') : new KeyboardEvent('keydown', { key: close, bubbles: true, cancelable: true }),
+			);
 			await settle();
+			return !!tracker.querySelector('input.points');
 		},
 
 		async editBothStoryPointPools() {
@@ -812,8 +819,8 @@ function installSheetsHelpers() {
 				await settle();
 			}
 			const edited = ['gm', 'player'].filter((_, index) => pools[index].querySelector('input.points'));
-			// An input closes on a change, here to the count it holds.
-			for (const input of tracker.querySelectorAll('input.points')) input.dispatchEvent(new Event('change', { bubbles: true }));
+			// An input closes on a blur, here on the count it holds.
+			for (const input of tracker.querySelectorAll('input.points')) input.dispatchEvent(new FocusEvent('blur'));
 			await settle();
 			return edited;
 		},
@@ -2284,6 +2291,37 @@ export async function run(e2e: ScenarioContext) {
 		'#277 A1 GM: letters typed into a Story Point pool leave the pools unchanged, and a count sets that pool',
 		{ afterLetters, afterCount: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 		{ afterLetters: { gm: 1, player: 1 }, afterCount: { gm: 4, player: 1 } },
+	);
+
+	// §#528: the GM's input closes on the count the pool already holds, and Escape closes it without writing.
+	await gm.evaluate(() => window.sheetsE2E.storyPointLog());
+	let closing = {};
+	await e2e.step(
+		"#528 GM confirms the GM pool's own count with Enter then a blur, cancels another with Escape, then sets two with Enter and a blur",
+		async () => {
+			closing = await gm.evaluate(async () => {
+				const stillOpen = {
+					enter: await window.sheetsE2E.editGMStoryPoints('4', 'Enter'),
+					blur: await window.sheetsE2E.editGMStoryPoints('4', 'blur'),
+					escape: await window.sheetsE2E.editGMStoryPoints('7', 'Escape'),
+				};
+				const unchanged = { pools: window.sheetsE2E.storyPoints(), writes: window.sheetsE2E.storyPointLog().writes.length };
+				await window.sheetsE2E.editGMStoryPoints('2', 'Enter');
+				const afterEnter = window.sheetsE2E.storyPoints();
+				await window.sheetsE2E.editGMStoryPoints('3', 'blur');
+				return { stillOpen, unchanged, afterEnter, afterBlur: window.sheetsE2E.storyPoints() };
+			});
+		},
+	);
+	e2e.expect(
+		"#528 A1 GM: Enter, a blur and Escape close a Story Point pool's input, the same count and Escape write nothing, and a new count is written",
+		closing,
+		{
+			stillOpen: { enter: false, blur: false, escape: false },
+			unchanged: { pools: { gm: 4, player: 1 }, writes: 0 },
+			afterEnter: { gm: 2, player: 1 },
+			afterBlur: { gm: 3, player: 1 },
+		},
 	);
 
 	// §#249: an open sheet of each actor and item type shows at once an edit another client made with `update`, to the

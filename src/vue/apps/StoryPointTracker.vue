@@ -31,12 +31,20 @@ async function spendStoryPoint(pool: StoryPointPool) {
 	await StoryPointTracker.spendStoryPoint(pool);
 }
 
-async function manualStoryPoints(pool: StoryPointPool, event: Event) {
-	if (!isGM) {
+/**
+ * Closes the GM's input, writing the count it holds when `write` is set. Enter and a blur both confirm, since the
+ * input's `change` event only fires on a different value and would leave it open on the same count (#528).
+ */
+async function finishEditing(pool: StoryPointPool, event: Event, write: boolean) {
+	// Enter or Escape already closed the input: its removal must not confirm it again.
+	if (!isGM || editing.value !== pool) {
 		return;
 	}
 
 	editing.value = undefined;
+	if (!write) {
+		return;
+	}
 
 	const input = (event.currentTarget as HTMLInputElement).value;
 	const storyPoints = storyPointsAfterEditing(context.value, pool, input);
@@ -80,7 +88,9 @@ async function toggleEdit(pool: StoryPointPool) {
 			ref="editInputs"
 			class="points"
 			:value="context[pool.id]"
-			@change="manualStoryPoints(pool.id, $event)"
+			@keydown.enter="finishEditing(pool.id, $event, true)"
+			@keydown.escape="finishEditing(pool.id, $event, false)"
+			@blur="finishEditing(pool.id, $event, true)"
 		/>
 		<a v-else-if="canSpend(pool.id)" class="points" @click="spendStoryPoint(pool.id)" @contextmenu="toggleEdit(pool.id)">{{
 			context[pool.id]
