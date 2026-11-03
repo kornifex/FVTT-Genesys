@@ -58,12 +58,24 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 		}
 
 		/**
+		 * The highest height, in pixels on screen, a sheet opens at to fit its content, read at each fit. None by default:
+		 * `setPosition` still keeps the window within the viewport and Foundry's maximum height. Taller content scrolls;
+		 * the sheet's minimum height wins over the cap.
+		 */
+		protected get openingHeightCap() {
+			return Infinity;
+		}
+
+		/**
 		 * Fit the window's height to its content: placed at `top`, or centred when it is undefined.
 		 */
 		#fitHeight(top: number | undefined) {
 			// Foundry sizes a window once it has rendered: the window takes its width first, at which the content is measured.
 			this.setPosition();
-			this.setPosition({ top, height: naturalHeight(this.element, this.position.scale ?? 1) });
+			const scale = this.position.scale ?? 1;
+			// Foundry raises a height below the window's minimum height to it, as `setPosition` clamps it.
+			const height = Math.min(naturalHeight(this.element, scale), Math.floor(this.openingHeightCap / scale));
+			this.setPosition({ top, height });
 		}
 
 		protected override async _preClose(options: RenderOptions) {

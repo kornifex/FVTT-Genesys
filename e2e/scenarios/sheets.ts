@@ -4206,6 +4206,49 @@ async function sheetHeights(e2e: ScenarioContext) {
 		Object.fromEntries(types.map((name) => [name, 'whole'])),
 	);
 
+	// §#529: an item sheet opens no taller than 75% of the viewport; taller content scrolls. At the scenario's 1000px
+	// viewport, the twelve paragraphs of #514 A4 fit within it.
+	const screenfulDescription = Array.from(
+		{ length: 60 },
+		(_, index) => `<p>Line ${index + 1} of a description taller than the screen.</p>`,
+	).join('');
+	let capped: (WindowFit & { cap: number }) | undefined;
+	await e2e.step(
+		'#529 A1 GM gives the talent a description taller than 75% of the viewport, opens its sheet, then scrolls it to its bottom',
+		async () => {
+			capped = await gm.evaluate(async (description) => {
+				await window.sheetsE2E.update('talent', { 'system.description': description });
+				const fit = await window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p:last-of-type', true);
+				return { ...fit, cap: Math.round(window.innerHeight * 0.75) };
+			}, screenfulDescription);
+		},
+	);
+	e2e.log('#529 A1 a talent taller than 75% of the viewport', capped);
+	e2e.expect(
+		"#529 A1 a talent taller than 75% of the viewport opens at 75% of the viewport's height, and scrolls to its last line",
+		capped && { atCap: Math.abs(capped.height - capped.cap) <= 1, scrolls: capped.scrolls, lastShown: capped.lastShown },
+		{ atCap: true, scrolls: true, lastShown: true },
+	);
+
+	let floored: (WindowFit & { cap: number }) | undefined;
+	// The lowest viewport Foundry doesn't warn about, 768px, puts 75% of it, 576px, below the archetype's 600px minimum
+	// (ArchetypeSheet.scss).
+	await e2e.step("#529 A2 GM's viewport is 768px tall, and GM opens the archetype's sheet", async () => {
+		await gm.page.setViewportSize({ width: viewport?.width ?? 1600, height: 768 });
+		floored = await gm.evaluate(async () => {
+			const fit = await window.sheetHeightsE2E.reopen('archetype', '.vue-app');
+			return { ...fit, cap: Math.round(window.innerHeight * 0.75) };
+		});
+	});
+	e2e.log('#529 A2 the archetype at a short viewport', floored);
+	e2e.expect(
+		"#529 A2 where 75% of the viewport falls below an item sheet's minimum, the sheet opens at its minimum",
+		floored && { belowMinimum: floored.cap < 600, height: floored.height },
+		{ belowMinimum: true, height: 600 },
+	);
+	await gm.page.setViewportSize(viewport ?? { width: 1600, height: 1000 });
+	await e2e.settle();
+
 	await gm.evaluate(async (stored) => {
 		await window.sheetsE2E.update('talent', { 'system.description': stored.talent });
 		await window.sheetsE2E.update('Hero/Ranked', { 'system.description': stored.ranked });

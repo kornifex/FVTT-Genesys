@@ -36,6 +36,14 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 		position: { width: 480, height: 300 },
 	};
 
+	/**
+	 * An item sheet opens no taller than 75% of the viewport, like a journal at its fixed height: a long description
+	 * scrolls rather than filling the screen.
+	 */
+	protected override get openingHeightCap() {
+		return window.innerHeight * 0.75;
+	}
+
 	override get initialTab() {
 		return 'description';
 	}
