@@ -62,9 +62,16 @@ export type Point = { x: number; y: number };
 /**
  * An expandable description of a row as laid out (#325): its height in px, rounded, or `>cap` past the cap given, since
  * the height of a long text differs between the versions' fonts; how many px of its content it cuts off, it or its
- * content clipping; whether its last element ends inside its box; and how its height animates.
+ * content clipping; whether its last element ends inside its box; how its height animates, as `<property> <duration>
+ * <easing>`; and its last element's visibility, which Tab follows (#516).
  */
-export type DescriptionBox = { height: number | string; clipped: number; lastInside: boolean; transition: string };
+export type DescriptionBox = {
+	height: number | string;
+	clipped: number;
+	lastInside: boolean;
+	transition: string;
+	lastVisibility: string;
+};
 
 /**
  * The chevron that opens and closes the description of a Combat tab row (#393): where it points, `right` closed and
@@ -678,7 +685,8 @@ export function installHelpers() {
 				clipped: clipped > 1 ? clipped : 0,
 				// Half a pixel of slack, for a box whose edges fall between two pixels.
 				lastInside: !!last && last.getBoundingClientRect().bottom <= box.bottom + 0.5,
-				transition: `${style.transitionProperty} ${style.transitionDuration}`,
+				transition: `${style.transitionProperty} ${style.transitionDuration} ${style.transitionTimingFunction}`,
+				lastVisibility: last ? getComputedStyle(last).visibility : 'none',
 			};
 		},
 	};

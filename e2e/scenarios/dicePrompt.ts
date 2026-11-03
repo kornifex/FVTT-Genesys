@@ -95,11 +95,11 @@ type SourceLink = {
  */
 type PoolModificationsBox = {
 	unfolded: boolean;
-	/** The expander's transition, as `<property> <duration>`. */
+	/** The expander's transition, as `<property> <duration> <easing>`. */
 	transition: string;
 	/** The expander's height: `whole` when it shows its container whole, else in px. */
 	height: number | 'whole';
-	/** The container's visibility. */
+	/** The container's visibility, which Tab follows. */
 	visibility: string;
 	/** Whether the rows show a Pool Modification. */
 	modifications: boolean;
@@ -654,7 +654,7 @@ function installDicePromptHelpers() {
 				Math.abs(height - container.getBoundingClientRect().height) <= 1 && container.scrollHeight - container.clientHeight <= 1;
 			return {
 				unfolded: expander.classList.contains('pool-modifications-expanded'),
-				transition: `${style.transitionProperty} ${style.transitionDuration}`,
+				transition: `${style.transitionProperty} ${style.transitionDuration} ${style.transitionTimingFunction}`,
 				height: height > 0 && whole ? 'whole' : Math.round(height),
 				visibility: getComputedStyle(container).visibility,
 				modifications: !!container.querySelector('a[data-pool-entity]'),
@@ -2433,7 +2433,8 @@ export async function run(e2e: ScenarioContext) {
 		{ button: diceRollerCases, gendr: diceRollerCases },
 	);
 
-	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 1s they always took.
+	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 0.2s ease-out of every fold since
+	// #516 (1s before), and their folded container is hidden from Tab.
 	await setSetting('dicePoolCollapseModificationsDetails', true);
 	// The Difficulty, DD, shows its dice among the Pool Modifications.
 	await opened(gm, skillRoll('Cool'));
@@ -2441,9 +2442,9 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('#396 A1 GM unfolds the Pool Modifications of a Cool check', async () => {
 		unfolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
 	});
-	e2e.expect('#396 A1 the unfolded Pool Modifications show their container whole, after a 1s transition', unfolded, {
+	e2e.expect("#396 A1 the unfolded Pool Modifications show their container whole, after the fold's transition", unfolded, {
 		unfolded: true,
-		transition: 'grid-template-rows 1s',
+		transition: 'grid-template-rows 0.2s ease-out',
 		height: 'whole',
 		visibility: 'visible',
 		modifications: true,
@@ -2454,11 +2455,11 @@ export async function run(e2e: ScenarioContext) {
 	});
 	// Folded, the expander keeps the 1px of its container's dotted top border, as on main before the mixin.
 	e2e.expect(
-		'#396 A2 the folded Pool Modifications keep only their top border and hide their container, after a 1s transition',
+		"#396 A2 the folded Pool Modifications keep only their top border and hide their container from Tab, after the fold's transition",
 		refolded,
 		{
 			unfolded: false,
-			transition: 'grid-template-rows 1s',
+			transition: 'grid-template-rows 0.2s ease-out',
 			height: 1,
 			visibility: 'hidden',
 			modifications: true,

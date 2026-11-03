@@ -112,20 +112,14 @@ export async function sendToChat(item: GenesysItem, actor: GenesysActor) {
 
 /**
  * Step an item's quantity or damage one up or down from its row. An item whose quantity goes down to 0, or destroyed past
- * major damage, is deleted once the user confirms. `beforeWrite` runs right before the item is written, once confirmed.
+ * major damage, is deleted once the user confirms.
  */
-export async function stepEquipment(
-	item: GenesysItem<EquipmentType>,
-	kind: SteppedValue,
-	direction: StepDirection,
-	beforeWrite?: () => void,
-) {
+export async function stepEquipment(item: GenesysItem<EquipmentType>, kind: SteppedValue, direction: StepDirection) {
 	const step = equipmentStep({ system: item.system }, kind, direction);
 	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDeletion()))) {
 		return;
 	}
 
-	beforeWrite?.();
 	if (step.action === 'delete') {
 		// Already confirmed, in the step's own words.
 		await item.delete();

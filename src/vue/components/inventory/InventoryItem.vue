@@ -180,16 +180,8 @@ function dragEnd(event: DragEvent) {
 	emit('dragend', event);
 }
 
-async function step(event: MouseEvent, kind: SteppedValue, direction: StepDirection) {
-	// The row of an item in a Container sits in the Container's scrolling list of contents, whose scroll the re-render
-	// after the write can lose: the list gets back the scroll it has when the write starts, once a deletion is confirmed.
-	const contents = (event.currentTarget as HTMLElement | null)?.parentElement?.parentElement;
-	let scroll: number | undefined;
-	await stepEquipment(props.item, kind, direction, () => (scroll = contents?.scrollTop));
-
-	if (contents && scroll !== undefined) {
-		contents.scrollTop = scroll;
-	}
+function step(kind: SteppedValue, direction: StepDirection) {
+	return stepEquipment(props.item, kind, direction);
 }
 
 function edgeOf(event: DragEvent) {
@@ -330,8 +322,8 @@ function openMenu(event: MouseEvent) {
 		<a
 			v-if="item.type !== 'container'"
 			class="quantity"
-			@click="step($event, 'quantity', 1)"
-			@contextmenu.prevent.stop="step($event, 'quantity', -1)"
+			@click="step('quantity', 1)"
+			@contextmenu.prevent.stop="step('quantity', -1)"
 			data-tooltip="Genesys.Labels.Quantity"
 		>
 			{{ item.system.quantity }}
@@ -344,8 +336,8 @@ function openMenu(event: MouseEvent) {
 
 		<a
 			class="damage"
-			@click="step($event, 'damage', 1)"
-			@contextmenu.prevent.stop="step($event, 'damage', -1)"
+			@click="step('damage', 1)"
+			@contextmenu.prevent.stop="step('damage', -1)"
 			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 		>
 			<i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i>
@@ -375,8 +367,9 @@ function openMenu(event: MouseEvent) {
 			</a>
 		</ContextMenu>
 
-		<Transition name="container-contents">
-			<div v-if="displayContainerContents" class="contents">
+		<!-- The contents stay rendered while the Container is closed, for the fold to close over them. -->
+		<div v-if="item.type === 'container' && !mini" :class="{ contents: true, open: displayContainerContents }">
+			<div>
 				<InventoryItem
 					v-for="item in containedItems"
 					:item="item"
@@ -393,13 +386,14 @@ function openMenu(event: MouseEvent) {
 					"
 				/>
 			</div>
-		</Transition>
+		</div>
 	</div>
 </template>
 
 <style lang="scss" scoped>
 @use 'sass:color';
 @use '@scss/vars/colors.scss';
+@use '@scss/mixins/expandable.scss';
 
 .inventory-item {
 	display: grid;
@@ -414,7 +408,12 @@ function openMenu(event: MouseEvent) {
 	padding: 2px;
 
 	user-select: none;
-	transition: all 0.25s ease-in-out;
+	// What a hover or a drag changes, and nothing else: a transition of every property would animate whatever a re-render
+	// changes too (#516).
+	transition:
+		background-color 0.25s ease-in-out,
+		border-color 0.25s ease-in-out,
+		opacity 0.25s ease-in-out;
 
 	margin-bottom: 0.25em;
 
@@ -497,17 +496,12 @@ function openMenu(event: MouseEvent) {
 		grid-column: name / span 1;
 	}
 
+	// Open, a Container shows all its contents, which the sheet scrolls with its other rows.
 	.contents {
 		grid-column: icon / span all;
 		grid-row: 2 / span all;
-		transform-origin: top center;
-		max-height: 100px;
-		overflow-y: auto;
 		padding-right: 0.5em;
-
-		&:empty {
-			display: none;
-		}
+		@include expandable.description($open: open);
 	}
 
 	.name {
@@ -627,25 +621,6 @@ function openMenu(event: MouseEvent) {
 		grid-column: actions / span 1;
 		width: 1.25em;
 		text-align: center;
-	}
-}
-
-.container-contents-enter-active {
-	animation: expand 0.5s;
-}
-
-.container-contents-leave-active {
-	animation: expand 0.5s reverse;
-}
-
-@keyframes expand {
-	0% {
-		transform: scaleY(0);
-		max-height: 0;
-	}
-	100% {
-		transform: scaleY(1);
-		max-height: 100px;
 	}
 }
 </style>
