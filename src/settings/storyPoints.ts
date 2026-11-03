@@ -3,6 +3,7 @@
  */
 
 import type { NAMESPACE } from '@/settings';
+import { countField } from '@/settings/table';
 
 /**
  * Current Story Points data.
@@ -25,6 +26,13 @@ export type StoryPointData = {
 };
 
 /**
+ * The field the world stores the Story Points with: Foundry refuses to store a pool that isn't a count.
+ */
+export function storyPointsField(localize: (key: string) => string) {
+	return new foundry.data.fields.SchemaField({ gm: countField(localize), player: countField(localize) });
+}
+
+/**
  * Register the world setting that stores the Story Points.
  */
 export function register(namespace: typeof NAMESPACE) {
@@ -36,6 +44,6 @@ export function register(namespace: typeof NAMESPACE) {
 			gm: 0,
 			player: 0,
 		},
-		type: Object,
+		type: storyPointsField((key) => game.i18n.localize(key)),
 	});
 }

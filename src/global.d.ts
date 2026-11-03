@@ -20,13 +20,13 @@ import type { GenesysEffect } from '@/effects/GenesysEffect';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ItemDataModels } from '@/item/ItemTypes';
 import type { NAMESPACE } from '@/settings';
-import type { StoryPointData } from '@/settings/storyPoints';
+import type { storyPointsField } from '@/settings/storyPoints';
 import type { SETTINGS } from '@/settings/table';
 import type { GenesysActorDirectory } from '@/sidebar/GenesysActorDirectory';
 import type { GenesysItemDirectory } from '@/sidebar/GenesysItemDirectory';
 import type { GenesysTokenDocument } from '@/token/GenesysTokenDocument';
 
-/** The settings of the table in `src/settings/table.ts`, each holding the value its type stores. */
+/** The settings of the table in `src/settings/table.ts`, each stored by the DataField its type builds. */
 type TableSettings = {
 	[K in keyof typeof SETTINGS as `${typeof NAMESPACE}.${K}`]: ReturnType<(typeof SETTINGS)[K]['type']>;
 };
@@ -80,7 +80,7 @@ declare module 'fvtt-types/configuration' {
 	}
 
 	interface SettingConfig extends TableSettings {
-		'genesys.storyPoints': StoryPointData;
+		'genesys.storyPoints': ReturnType<typeof storyPointsField>;
 		'genesys.alphaVersion': string;
 		'genesys.migrationVersion': number;
 	}

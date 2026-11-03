@@ -1,6 +1,6 @@
 import type { GenesysItem } from '@/item/GenesysItem';
 import { register as registerStoryPoints } from '@/settings/storyPoints';
-import { type AnySetting, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
+import { type AnySetting, configValue, readable, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
 
 import { register as registerAlpha } from '@/settings/alpha';
 
@@ -12,12 +12,13 @@ export const NAMESPACE = 'genesys';
 /**
  * Write a setting's value where the system reads it, and do what else applying it does.
  */
-function apply(entry: AnySetting, value: unknown) {
-	const normalized = entry.field?.normalize(value as never);
+function apply(entry: AnySetting, stored: unknown) {
+	const value = readable(entry, stored);
+	const config = configValue(entry, value);
 	if (entry.field) {
-		(CONFIG.genesys.settings as Record<string, unknown>)[entry.field.name] = normalized;
+		(CONFIG.genesys.settings as Record<string, unknown>)[entry.field.name] = config;
 	}
-	void entry.effect?.(value as never, normalized);
+	void entry.effect?.(value, config);
 }
 
 function applyStored(key: SettingKey) {
@@ -31,11 +32,9 @@ function registerTable() {
 			hint: game.i18n.localize(entry.hint),
 			scope: entry.scope,
 			config: true,
-			default: entry.default,
-			type: entry.type,
-			...(entry.choices && {
-				choices: Object.fromEntries(Object.entries(entry.choices).map(([value, label]) => [value, game.i18n.localize(label)])),
-			}),
+			// The loop over the table loses which field goes with which key; `TableSettings` keeps it for `game.settings`.
+			default: entry.default as never,
+			type: entry.type((key) => game.i18n.localize(key)) as never,
 			...(entry.requiresReload && { requiresReload: true }),
 			...((!entry.requiresReload || entry.readLive) && { onChange: (value: unknown) => apply(entry, value) }),
 		});

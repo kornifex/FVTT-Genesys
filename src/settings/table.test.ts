@@ -1,6 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { configDefaults, SETTINGS, settingEntries } from '@/settings/table';
+// Foundry's fields, reduced to their kind and the options they are built with. Their validation is reduced to the
+// validator a setting gives its field: Foundry's own rules (types, blanks, choices) are left to the e2e scenarios.
+vi.hoisted(() => {
+	class DataField {
+		constructor(readonly options: { validate?: (value: unknown) => boolean } = {}) {}
+		validate(value: unknown) {
+			return this.options.validate?.(value) === false ? { invalidValue: value } : undefined;
+		}
+	}
+	const field = (kind: string) =>
+		class extends DataField {
+			kind = kind;
+		};
+	vi.stubGlobal('foundry', {
+		data: { fields: { BooleanField: field('boolean'), NumberField: field('number'), StringField: field('string') } },
+	});
+});
+
+import { configDefaults, configValue, readable, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
+
+const localize = (key: string) => `localized ${key}`;
+const fieldOf = (key: SettingKey) =>
+	SETTINGS[key].type(localize) as unknown as { kind: string; options: object; validate(value: unknown): unknown };
 
 describe('SETTINGS', () => {
 	it('keeps the keys worlds and clients stored their values under', () => {
@@ -38,6 +60,101 @@ describe('SETTINGS', () => {
 	});
 });
 
+describe('the DataField of each setting', () => {
+	it('holds each setting as a text, a switch or a count, as it stored it before', () => {
+		expect(Object.fromEntries(settingEntries().map(([key]) => [key, fieldOf(key).kind]))).toEqual({
+			skillsCompendium: 'string',
+			defaultDifficulty: 'string',
+			skillForInjuries: 'string',
+			skillForRepairingVehicleHits: 'string',
+			currency: 'string',
+			careerSkillRanks: 'number',
+			uncoupleSkills: 'boolean',
+			showDamageOnFailure: 'boolean',
+			useSuperCharacteristics: 'boolean',
+			ignoreTalentPyramid: 'boolean',
+			talentTierVersions: 'boolean',
+			style: 'string',
+			useMagicalGirlSymbols: 'boolean',
+			dicePoolCollapseModificationsDetails: 'boolean',
+			dicePoolAutoApplyModifications: 'boolean',
+			dicePoolChanceToSucceedByPermutation: 'boolean',
+			dicePoolApproximation: 'number',
+		});
+	});
+
+	it('requires a text, which may be empty', () => {
+		for (const key of [
+			'skillsCompendium',
+			'defaultDifficulty',
+			'skillForInjuries',
+			'skillForRepairingVehicleHits',
+			'currency',
+		] as const) {
+			expect(fieldOf(key).options).toMatchObject({ required: true });
+			expect(fieldOf(key).options).not.toHaveProperty('blank');
+		}
+	});
+
+	it('requires a whole count, and refuses one below 0 with a localized error', () => {
+		for (const key of ['careerSkillRanks', 'dicePoolApproximation'] as const) {
+			const field = fieldOf(key);
+			expect(field.options).toMatchObject({
+				required: true,
+				nullable: false,
+				integer: true,
+				validationError: 'localized Genesys.Settings.CountError',
+			});
+			expect([-1, 0, 250].map((count) => !field.validate(count))).toEqual([false, true, true]);
+		}
+	});
+
+	it('refuses a default difficulty that is no pool modification, with a localized error', () => {
+		const field = fieldOf('defaultDifficulty');
+		expect(field.options).toMatchObject({ validationError: 'localized Genesys.Settings.DefaultDifficultyError' });
+		// An empty difficulty is a valid pool modification: checks then start with no difficulty dice.
+		expect(['DDD', '', 'not a pool'].map((difficulty) => !field.validate(difficulty))).toEqual([true, true, false]);
+	});
+
+	it('offers the Styles as the only choices', () => {
+		expect(fieldOf('style').options).toEqual({
+			required: true,
+			choices: { genesys: 'Genesys.Settings.StyleGenesys', terrinoth: 'Genesys.Settings.StyleTerrinoth' },
+		});
+	});
+});
+
+describe('readable', () => {
+	it('reads a stored value its field refuses as the default, as a version that did not validate it could store', () => {
+		expect(readable(SETTINGS.careerSkillRanks, -3)).toBe(4);
+		expect(readable(SETTINGS.dicePoolApproximation, -100)).toBe(0);
+		expect(readable(SETTINGS.defaultDifficulty, 'not a pool')).toBe('DD');
+	});
+
+	it('reads a stored value its field accepts as it is', () => {
+		expect(readable(SETTINGS.careerSkillRanks, 6)).toBe(6);
+		expect(readable(SETTINGS.defaultDifficulty, '')).toBe('');
+		expect(readable(SETTINGS.currency, 'Credits')).toBe('Credits');
+	});
+});
+
+describe('configValue', () => {
+	it('falls back to the default Skills Compendium when the setting is emptied', () => {
+		expect(configValue(SETTINGS.skillsCompendium, '')).toBe('genesys.crb-skills');
+		expect(configValue(SETTINGS.skillsCompendium, 'world.skills')).toBe('world.skills');
+	});
+
+	it('turns the chance to succeed by simulation on with a number of rolls', () => {
+		expect(configValue(SETTINGS.dicePoolApproximation, 250)).toEqual({ enabled: true, amountOfRolls: 250 });
+		expect(configValue(SETTINGS.dicePoolApproximation, 0)).toEqual({ enabled: false, amountOfRolls: 0 });
+	});
+
+	it('gives the other settings their value as it is', () => {
+		expect(configValue(SETTINGS.careerSkillRanks, 6)).toBe(6);
+		expect(configValue(SETTINGS.uncoupleSkills, true)).toBe(true);
+	});
+});
+
 describe('configDefaults', () => {
 	it("holds each setting's default under its field", () => {
 		expect(configDefaults()).toEqual({
@@ -58,37 +175,5 @@ describe('configDefaults', () => {
 			showChanceToSucceedFromPermutations: false,
 			showChanceToSucceedFromSimulations: { enabled: false, amountOfRolls: 0 },
 		});
-	});
-});
-
-describe('normalize', () => {
-	it('falls back to the default Skills Compendium when the setting is emptied', () => {
-		expect(SETTINGS.skillsCompendium.field?.normalize('')).toBe('genesys.crb-skills');
-		expect(SETTINGS.skillsCompendium.field?.normalize(undefined)).toBe('genesys.crb-skills');
-		expect(SETTINGS.skillsCompendium.field?.normalize('world.skills')).toBe('world.skills');
-	});
-
-	it('falls back to the default difficulty when the value is no pool modification', () => {
-		expect(SETTINGS.defaultDifficulty.field?.normalize('DDD')).toBe('DDD');
-		expect(SETTINGS.defaultDifficulty.field?.normalize('not a pool')).toBe('DD');
-		// An empty difficulty is a valid pool modification: checks then start with no difficulty dice.
-		expect(SETTINGS.defaultDifficulty.field?.normalize(undefined)).toBe('');
-	});
-
-	it('turns a typed-in number of career skill ranks into a count', () => {
-		expect(SETTINGS.careerSkillRanks.field?.normalize(-3.7)).toBe(3);
-		expect(SETTINGS.careerSkillRanks.field?.normalize(undefined)).toBe(0);
-	});
-
-	it('turns the chance to succeed by simulation on with a number of rolls', () => {
-		expect(SETTINGS.dicePoolApproximation.field?.normalize(250.5)).toEqual({ enabled: true, amountOfRolls: 250 });
-		expect(SETTINGS.dicePoolApproximation.field?.normalize(0)).toEqual({ enabled: false, amountOfRolls: 0 });
-		expect(SETTINGS.dicePoolApproximation.field?.normalize(undefined)).toEqual({ enabled: false, amountOfRolls: 0 });
-	});
-
-	it('reads an unreadable text or switch as empty or off', () => {
-		expect(SETTINGS.currency.field?.normalize(undefined)).toBe('');
-		expect(SETTINGS.uncoupleSkills.field?.normalize(undefined)).toBe(false);
-		expect(SETTINGS.uncoupleSkills.field?.normalize(true)).toBe(true);
 	});
 });

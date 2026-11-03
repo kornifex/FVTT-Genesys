@@ -76,6 +76,8 @@ Genesys:
     StyleHint: 'Los colores de las fichas y las ventanas, para todos los usuarios. Solo cambian los colores, nunca la disposición.'
     StyleGenesys: Genesys
     StyleTerrinoth: Reinos de Terrinoth
+    CountError: debe ser un número entero, 0 o más
+    DefaultDifficultyError: debe estar hecha de glifos de modificación de la reserva de dados
 
   # Tooltips
   Tooltips:

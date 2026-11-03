@@ -2230,14 +2230,18 @@ export async function run(e2e: ScenarioContext) {
 
 	// J: the Default Difficulty and Skills Compendium settings (§#32, §#100).
 	const defaultDifficulty = async (value: string) => {
-		await setSetting('defaultDifficulty', value);
+		const refused = await setSetting('defaultDifficulty', value).then(
+			() => false,
+			() => true,
+		);
 		const state = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
-		return { applied: await gm.evaluate(() => CONFIG.genesys.settings.defaultDifficulty), pool: state.pool };
+		return { refused, applied: await gm.evaluate(() => CONFIG.genesys.settings.defaultDifficulty), pool: state.pool };
 	};
+	// §#415: a value that is not glyphs is refused, rather than stored and read as the default.
 	e2e.expect(
-		'#32 J1 the Default Difficulty setting rejects a value that is not glyphs',
+		'#32 J1 #415 the Default Difficulty setting refuses a value that is not glyphs, and keeps the one it held',
 		{ glyphs: await defaultDifficulty('DDD'), text: await defaultDifficulty('xyz') },
-		{ glyphs: { applied: 'DDD', pool: '|DDD' }, text: { applied: 'DD', pool: '|DD' } },
+		{ glyphs: { refused: false, applied: 'DDD', pool: '|DDD' }, text: { refused: true, applied: 'DDD', pool: '|DDD' } },
 	);
 	await setSetting('defaultDifficulty', 'DD');
 	const skillsCompendium = async (value: string) => {
