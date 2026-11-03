@@ -73,6 +73,13 @@ type PoolModificationsLayout = {
 	/** The caret's box, and its vertical axis. */
 	caret: { left: number; right: number; axis: number };
 	rows: {
+		/**
+		 * How far below the middle of the label's capitals the middle of the first modification's glyph sits, by the ink
+		 * the fonts draw rather than by their boxes; null without a modification.
+		 */
+		ink: number | null;
+		/** The row's height, its borders included. */
+		height: number;
 		/** The label's left edge. */
 		label: number;
 		/** Where each line of the label's text starts, from the label's left edge. */
@@ -1120,6 +1127,30 @@ function installDicePromptHelpers() {
 				}
 				return [...byTop.values()].sort((a, b) => a.top - b.top);
 			};
+			// The middle of the ink a text node's font draws for a sample, from the node's line box: a glyph of the Genesys
+			// Symbols font sits higher in its box than a letter of the label does in its own.
+			const canvas = document.createElement('canvas').getContext('2d')!;
+			const inkMiddle = (node: Node | null | undefined, sample?: string) => {
+				const element = node?.parentElement;
+				if (!node || !element) return null;
+				const box = document.createRange();
+				box.selectNodeContents(node);
+				const rect = box.getClientRects()[0];
+				if (!rect) return null;
+				const { fontStyle, fontWeight, fontSize, fontFamily } = getComputedStyle(element);
+				canvas.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+				const metrics = canvas.measureText(sample ?? node.textContent!);
+				const baseline = rect.top + metrics.fontBoundingBoxAscent;
+				return baseline - (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
+			};
+			const firstText = (element: Element | undefined) => {
+				const walker =
+					element &&
+					document.createTreeWalker(element, NodeFilter.SHOW_TEXT, (node) =>
+						node.textContent!.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP,
+					);
+				return walker?.nextNode();
+			};
 			const title = root.querySelector('.pool-modifications-title')!;
 			const caret = title.querySelector('i')!.getBoundingClientRect();
 			return {
@@ -1132,7 +1163,12 @@ function installDicePromptHelpers() {
 					const below = (element: Element | null) =>
 						element && textLines[0] ? px(middle(element.getBoundingClientRect()) - middle(textLines[0])) : null;
 					const modifications = [...row.querySelectorAll(':scope > div > *')];
+					// The middle of the label's capitals, which a die's glyph centres on.
+					const capitals = inkMiddle(firstText(label), 'H');
+					const glyph = inkMiddle(firstText(modifications[0]));
 					return {
+						ink: capitals !== null && glyph !== null ? px(glyph - capitals) : null,
+						height: px(row.getBoundingClientRect().height),
 						label: px(left - edge),
 						lineStarts: textLines.map((line) => px(line.left - left)),
 						checkbox: below(row.querySelector('input')),
@@ -2858,11 +2894,23 @@ export async function run(e2e: ScenarioContext) {
 		"#513 A4 the checkboxes and the modifications sit on their label's first line, with no top offset",
 		{
 			checkboxes: layoutRows.every(({ checkbox }) => checkbox === null || near(checkbox, 0, 0.5)),
-			// By the middle of their boxes, within a px: the glyphs of another font sit on the label's baseline in them.
-			modifications: layoutRows.every(({ modification }) => modification === null || near(modification, 0, 1)),
+			// By the ink their fonts draw, within a px, not by their boxes: Genesys Symbols draws a glyph high in its box (§#535).
+			modifications: layoutRows.every(({ ink }) => ink === null || near(ink, 0, 1)),
 			offsets: layoutRows.flatMap(({ offsets }) => offsets),
 		},
 		{ checkboxes: true, modifications: true, offsets: [] },
+	);
+	// §#535: the Difficulty row, first, against the one-line rows of the effects, between it and Manual Changes.
+	const [difficultyRow, ...otherRows] = layoutRows;
+	const oneLineEffects = otherRows.slice(0, -1).filter(({ lineStarts }) => lineStarts.length === 1);
+	e2e.expect(
+		"#535 A1 the Difficulty dice are centred on their label's capitals, and the Difficulty row is as tall as a one-line effect's",
+		{
+			centred: difficultyRow.ink !== null && near(difficultyRow.ink, 0, 1),
+			effects: oneLineEffects.length > 0,
+			asTall: oneLineEffects.every(({ height }) => near(height, difficultyRow.height)),
+		},
+		{ centred: true, effects: true, asTall: true },
 	);
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await e2e.step('T end');
