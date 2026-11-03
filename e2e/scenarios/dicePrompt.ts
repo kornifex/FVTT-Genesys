@@ -1,4 +1,5 @@
 /** @file #211: the Dice Prompt and checks: the pool a check rolls, its Pool Modifications, its links, its chance to succeed and its messages. */
+import { FOLD_TRANSITION } from '../descriptions.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
 
@@ -2444,7 +2445,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 	e2e.expect("#396 A1 the unfolded Pool Modifications show their container whole, after the fold's transition", unfolded, {
 		unfolded: true,
-		transition: 'grid-template-rows 0.2s ease-out',
+		transition: FOLD_TRANSITION,
 		height: 'whole',
 		visibility: 'visible',
 		modifications: true,
@@ -2459,7 +2460,7 @@ export async function run(e2e: ScenarioContext) {
 		refolded,
 		{
 			unfolded: false,
-			transition: 'grid-template-rows 0.2s ease-out',
+			transition: FOLD_TRANSITION,
 			height: 1,
 			visibility: 'hidden',
 			modifications: true,

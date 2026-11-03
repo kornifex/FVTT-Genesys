@@ -496,7 +496,8 @@ function openMenu(event: MouseEvent) {
 		grid-column: name / span 1;
 	}
 
-	// Open, a Container shows all its contents, which the sheet scrolls with its other rows.
+	// Open, a Container shows all its contents: a cap of their own, with its own scrollbar, hid some and nested a scroll
+	// inside the sheet's (#516).
 	.contents {
 		grid-column: icon / span all;
 		grid-row: 2 / span all;

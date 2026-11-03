@@ -20,7 +20,8 @@ $easing: ease-out;
 		// Each frame of the fold changes the content's height alone, not its width: its own layout stays as it is.
 		contain: layout;
 		// Closed, the content is hidden once the fold ends, so that Tab skips its links and fields. A transition of
-		// `visibility` keeps it visible as long as one end is: while the fold closes, and from the start of its opening.
+		// `visibility` keeps it visible as long as one end is: while the fold closes, and from the start of its opening. It
+		// takes the place of any transition the content's own rules give it.
 		visibility: hidden;
 		transition: visibility $duration $easing;
 	}

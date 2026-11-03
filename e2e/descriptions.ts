@@ -13,15 +13,15 @@ export const LONG_DESCRIPTION = [
 	'<p>Line 40 of a long description, with <a href="https://example.com/">a link</a></p>',
 ].join('');
 
-// Every fold opens and closes in 0.2s, fast from its start (#516).
-const TRANSITION = 'grid-template-rows 0.2s ease-out';
+/** How every fold opens and closes since #516, as a scenario reads it: `<property> <duration> <easing>`. */
+export const FOLD_TRANSITION = 'grid-template-rows 0.2s ease-out';
 
 /** An open description, as `window.e2e.descriptionBox` reads it with that cap: its whole text shows, past the cap. */
 export const shownDescription = (cap: number): DescriptionBox => ({
 	height: `>${cap}`,
 	clipped: 0,
 	lastInside: true,
-	transition: TRANSITION,
+	transition: FOLD_TRANSITION,
 	lastVisibility: 'visible',
 });
 
@@ -29,7 +29,7 @@ export const shownDescription = (cap: number): DescriptionBox => ({
  * A closed description, as {@link closedDescription} reads it: it takes no height, its rows animate, and once the fold
  * ends its content is hidden, so that Tab skips its links (#516).
  */
-export const CLOSED_DESCRIPTION = { height: 0, transition: TRANSITION, lastVisibility: 'hidden' };
+export const CLOSED_DESCRIPTION = { height: 0, transition: FOLD_TRANSITION, lastVisibility: 'hidden' };
 
 /**
  * A description as `read` lays it out with the cap it is given, by what a closed one is compared by: its height,
