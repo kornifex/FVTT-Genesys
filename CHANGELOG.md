@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.7...v0.5.0) (2026-11-03)
+
+
+### Features
+
+* **item:** open item sheets no taller than 75% of the viewport ([#539](https://github.com/kornifex/FVTT-Genesys/issues/539)) ([9ab3f83](https://github.com/kornifex/FVTT-Genesys/commit/9ab3f83465e0c4c25d807874a4da6bf44b8e0859))
+
+
+### Bug Fixes
+
+* **i18n:** shorten the French labels of the Pool Modifications' self and target effects ([#532](https://github.com/kornifex/FVTT-Genesys/issues/532)) ([163aa1e](https://github.com/kornifex/FVTT-Genesys/commit/163aa1ea917ce5d9a110319a73109851d9061748))
+* **i18n:** summarize 0.5.0's changes since 0.4.0 in the welcome message ([#533](https://github.com/kornifex/FVTT-Genesys/issues/533)) ([4fd2427](https://github.com/kornifex/FVTT-Genesys/commit/4fd2427d2c5b00f74a3f1b874211ab15acfb0ff0))
+* **ui:** align the Pool Modifications' glyphs with their labels in the Dice Prompt ([#536](https://github.com/kornifex/FVTT-Genesys/issues/536)) ([ab937cb](https://github.com/kornifex/FVTT-Genesys/commit/ab937cbd420390399cb28d2ffdf5b967162c0d7e))
+* **ui:** close the Story Point tracker's count input when the GM confirms the same number ([#531](https://github.com/kornifex/FVTT-Genesys/issues/531)) ([0f829f3](https://github.com/kornifex/FVTT-Genesys/commit/0f829f3ae44a1032d32e0701a36cd1417103d140))
+
+
+### Documentation
+
+* document the project board in the agents' issue tracker guide ([#538](https://github.com/kornifex/FVTT-Genesys/issues/538)) ([62cbe4f](https://github.com/kornifex/FVTT-Genesys/commit/62cbe4f071d2eeb2a151fd10de9dc23bd62cf623))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#526](https://github.com/kornifex/FVTT-Genesys/issues/526)) ([14a6f10](https://github.com/kornifex/FVTT-Genesys/commit/14a6f10b44f3e7b80b77a85c50c177cc1fe0375c))
+
 ## [0.5.0-rc.7](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.6...v0.5.0-rc.7) (2026-11-03)
 
 
