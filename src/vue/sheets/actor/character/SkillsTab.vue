@@ -145,7 +145,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 						</template>
 
-						<img :src="skill.img ?? undefined" :alt="skill.name" />
+						<img
+							class="skill-icon"
+							:src="skill.img ?? undefined"
+							:alt="skill.name"
+							data-tooltip="Genesys.Tooltips.OpenSkill"
+							@click="openSheet(skill)"
+						/>
 						<a class="name" @click="rollSkill(skill)">
 							<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic]" />)</span>
 							<i v-if="skill.system.career" class="fas fa-star"></i>
@@ -293,10 +299,12 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			padding: 0.2em;
 		}
 
-		img {
+		// The icon opens the skill's sheet, to read its description; the name rolls it.
+		.skill-icon {
 			border: none;
 			padding: 0;
 			margin-left: 0.1em;
+			cursor: pointer;
 		}
 
 		.name {

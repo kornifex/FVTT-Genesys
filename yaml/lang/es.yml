@@ -85,6 +85,7 @@ Genesys:
     AddExtraInitiativeSlot: Añade un puesto de iniciativa adicional.
     ShowDescription: Mostrar la descripción
     HideDescription: Ocultar la descripción
+    OpenSkill: Abrir la hoja de la habilidad
 
   # Dice Rolls
   Rolls:
