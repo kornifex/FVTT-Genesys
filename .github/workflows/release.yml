@@ -1,11 +1,11 @@
 name: Release
 
-# release-please keeps a release PR up to date on each release line, main and 0.4.x: the changelog and the version, from
+# release-please keeps a release PR up to date on main: the changelog and the version, from
 # the Conventional Commits. Merging it creates the tag and a draft release, which the publish job checks, builds, fills
 # and publishes.
 on:
   push:
-    branches: [main, 0.4.x]
+    branches: [main]
   # Publishes a draft release made by hand, such as a pre-release. A draft gets no tag until published, so push the tag first:
   # git push origin <sha>:refs/tags/<tag>, then gh release create <tag> --verify-tag --draft --prerelease
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
         description: Tag of the draft release to publish
         required: true
 
-# One group per line: a pending run of one line must not replace the other's.
+# One group per ref: a hand publish run on another ref must not replace main's pending run.
 concurrency:
   group: release-${{ github.ref_name }}
 
@@ -92,7 +92,7 @@ jobs:
 
       # A pre-release version (0.4.0-rc.1) stays out of releases/latest, which Foundry reads for updates. release-please
       # can't mark it: its prerelease option would also mark every 0.x version.
-      # A fix of an older line (0.4.1 once 0.5.0 is out) stays out too: a v13 world must not be offered it.
+      # A version lower than the latest stays out too, such as a fix of a retired line: Foundry must not offer it as an update.
       - name: Publish the Release
         run: |
           latest=$(gh release view --json tagName --jq .tagName | sed 's/^[^0-9]*//')

@@ -29,3 +29,7 @@ The branch is named `0.4.x`, not `release/0.4.x`: the old `release` branch alrea
 -   A fix goes to the line of the release that needs it, and is ported to the other while the two lines share the code.
 -   Dropping a version is a search for its marker, not an archaeology session.
 -   The vendored Foundry types are replaced once v12 has left `main`, by `fvtt-types` for the newest supported version (ADR 0006).
+
+## Outcome
+
+The table moved to Foundry v14 during 0.5.0's table tests, so `0.4.x` was retired once 0.5.0 was out (2026-11-03): 0.4.0 is its last release, and its branch takes no more fixes. A v12 world keeps 0.4.0 by installing `releases/download/v0.4.0/manifest.json`. `main` is the only line again.

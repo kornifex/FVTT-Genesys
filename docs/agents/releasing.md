@@ -1,19 +1,14 @@
 # Releasing
 
-release-please keeps a release PR open on each release line, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
+release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
 
 ## Release lines
 
-ADR 0003 sets two lines, each with its own release PR and its own `release-please-config.json`:
+`main` is the only release line: it prepares 0.6.0, for Foundry v13 and v14. ADR 0003's `0.4.x` line, for Foundry v12 and v13, was retired once 0.5.0 was out and the table ran v14: 0.4.0 is its last release, and its branch takes no more fixes.
 
-- `main` prepares 0.6.0, for Foundry v13 and v14.
-- `0.4.x` prepares 0.4.0 and its fixes, for Foundry v12 and v13. It was cut from the code of `0.4.0-rc.1`, so the rest of 0.4.0's candidates and the final version come from it. It only takes the fixes our table needs, and is retired once the table runs v13.
+A release PR with nothing for the table, only `ci:`, `docs:` or `chore:` commits, can be closed, with its `autorelease: pending` label removed: release-please ignores a closed PR, and opens a new one on the next push, such as a fix's merge.
 
-A release PR with nothing for the table, only `ci:`, `docs:` or `chore:` commits, can be closed, with its `autorelease: pending` label removed: release-please ignores a closed PR, and opens a new one on the line's next push, such as a fix's merge. `0.4.x`'s stays closed until a fix needs releasing.
-
-A fix goes to the line of the release that needs it: a PR whose base is `0.4.x` for 0.4.0, then a cherry-pick PR to `main` when the code is still shared. A `feat` would bump `0.4.x`'s minor, so it doesn't go there.
-
-A release is marked latest, the one Foundry offers as an update, unless a higher version already is: once 0.5.0 is out, a 0.4.x fix stays off `releases/latest`, and the table installs it from its versioned manifest.
+A release is marked latest, the one Foundry offers as an update, unless a higher version already is.
 
 ## Before merging the release PR
 
@@ -21,7 +16,16 @@ A release is marked latest, the one Foundry offers as an update, unless a higher
 2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
 3. For the final version only: the checklist items no test proves, listed atop that issue, are tested at the table, on a release candidate.
 
-Before that, a PR to the line rewrites the summary of the welcome message, which the GM reads in the chat when the world runs a new version: a handful of the changes that matter at the table, since the previous release candidate for a candidate, since the previous final version for a final version. Each change is a line of `public/templates/chat/alpha-notice.hbs`, tagged FIX, FEATURE or STYLING and linked to its PR, and a key under `Genesys.AlphaNotice` in every language file. The last line links to the version's GitHub Release, for every change.
+Before that, a PR rewrites the summary of the welcome message, which the GM reads in the chat when the world runs a new version: a handful of the changes that matter at the table, since the previous release candidate for a candidate, since the previous final version for a final version. Each change is a line of `public/templates/chat/alpha-notice.hbs`, tagged FIX, FEATURE or STYLING and linked to its PR, and a key under `Genesys.AlphaNotice` in every language file. The last line links to the version's GitHub Release, for every change.
+
+## Release notes
+
+release-please's list in a GitHub Release only holds the commits since the previous release, a candidate's included. Once the version is published, a hand-written summary goes above it:
+
+- For a candidate: a French "Pour la table, en bref" section for the testers, with the install link and the changes since the previous candidate.
+- For a final version: an "Upgrading from <previous final version>" section in English (the Foundry versions, the backup, what breaks a macro or a module), then the French section, with every change since the previous final version, as features, fixes and other changes, and last the ones since the last candidate.
+
+The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wiki/Changes-since-the-fork) page gets a final version's changes too, each with its first release, and the README's "What's new since the fork" its biggest ones.
 
 ## Versions
 
@@ -36,8 +40,6 @@ Before that, a PR to the line rewrites the summary of the welcome message, which
 1. A `ci:` PR sets `release-as` to the candidate (`0.4.0-rc.1`), and release-please updates its release PR. The maintainer merges that release PR once `e2e:all` passes, and the table tests run on the published candidate.
 2. Once that candidate is out, and before any other release PR is merged, the next `ci:` PR sets the next one (`0.4.0-rc.2`) when testers need to test again, or the final version (`0.4.0`).
 3. After the final version is out, a `ci:` PR removes `release-as`.
-
-These PRs target the line of the release: `0.4.x` for 0.4.0's candidates.
 
 ## Changelog
 
