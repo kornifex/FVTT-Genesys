@@ -334,6 +334,8 @@ Genesys:
   StoryPoints:
     Player: Player Story Points
     GM: GM Story Points
+    PlayerShort: Players
+    GMShort: GM
     Reset: Reset Story Points
     ChatMessageGmPool: Spending a GM Story Point!
     ChatMessagePlayerPool: Spending a Player Story Point!

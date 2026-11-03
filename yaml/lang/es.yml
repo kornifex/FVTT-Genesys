@@ -337,6 +337,8 @@ Genesys:
   StoryPoints:
     Player: Puntos de Historia de los PJ
     GM: Puntos de Historia del DJ
+    PlayerShort: PJ
+    GMShort: DJ
     Reset: Reiniciar puntos de Historia
     ChatMessageGmPool: ¡Punto de Historia gastado!
     ChatMessagePlayerPool: ¡Punto de Historia gastado!
