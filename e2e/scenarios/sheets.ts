@@ -3570,6 +3570,8 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect('#423 A3 the detached windows log no error', detachedErrors, []);
 	}
 
+	await sheetHeights(e2e);
+
 	// §#349: the globals the system read before #245 go through their namespaces: no compatibility warning names them.
 	const replacedGlobals = [
 		'renderTemplate',
@@ -3927,4 +3929,248 @@ async function storyPointTrackerPlace(e2e: ScenarioContext) {
 		{ labels: ['GM', 'Players'], tooltips: ['GM Story Points', 'Player Story Points'] },
 	);
 	await gm.evaluate(() => ui.sidebar.expand());
+}
+
+/**
+ * An open sheet's window, by what #514 asks of it: its height, the highest Foundry lets it take (its CSS maximum height,
+ * or the viewport's), whether its content scrolls, whether an element of its content shows whole, and whether the window
+ * lies within the viewport.
+ */
+type WindowFit = { height: number; ceiling: number; scrolls: boolean; lastShown: boolean; onScreen: boolean };
+
+type SheetHeightHelpers = {
+	/**
+	 * Closes a sheet, opens it again, and reads its window: `last` finds the element of its content that shows last, read
+	 * with the content scrolled to its bottom when `toBottom` is set.
+	 */
+	reopen(name: string, last: string, toBottom?: boolean): Promise<WindowFit>;
+	/** The height of an open sheet's window. */
+	height(name: string): number;
+	/**
+	 * Shows a tab of an open sheet, then opens the description of the first talent row of that tab: the window's height
+	 * before, after the tab, and after the description opened, and whether it opened.
+	 */
+	tabThenTalent(name: string, tab: string): Promise<{ opened: number; tab: number; talent: number; expanded: boolean }>;
+};
+
+declare global {
+	interface Window {
+		sheetHeightsE2E: SheetHeightHelpers;
+	}
+}
+
+/**
+ * Installs `window.sheetHeightsE2E`, over `window.sheetsE2E`. Playwright sends this function's source to the page, so it
+ * uses nothing from this module.
+ */
+function installSheetHeightHelpers() {
+	if (window.sheetHeightsE2E) return;
+	const { htmlOf, settle, waitFor } = window.e2e;
+	const sheets = window.sheetsE2E;
+	const appOf = (name: string) => (game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`)).sheet;
+	const elementOf = (name: string) => {
+		const element = htmlOf(appOf(name));
+		if (!element) throw new Error(`The sheet of E2E ${name} is closed`);
+		return element;
+	};
+	const helpers: SheetHeightHelpers = {
+		async reopen(name, last, toBottom = false) {
+			await sheets.close(name);
+			await sheets.open(name);
+			// The window fits again the content an enrichment brings, once it shows.
+			await appOf(name).contentShown?.();
+			await settle();
+			const element = elementOf(name);
+			const content = element.querySelector<HTMLElement>('.window-content')!;
+			const lastElement = await waitFor(`${last} on the sheet of E2E ${name}`, () => content.querySelector(last));
+			const scrolls = content.scrollHeight - content.clientHeight > 1;
+			if (toBottom) content.scrollTop = content.scrollHeight;
+			const box = element.getBoundingClientRect();
+			const shown = content.getBoundingClientRect();
+			const lastBox = lastElement.getBoundingClientRect();
+			const maxHeight = parseFloat(getComputedStyle(element).maxHeight);
+			return {
+				height: Math.round(box.height),
+				ceiling: Math.round(Math.min(Number.isNaN(maxHeight) ? Infinity : maxHeight, document.documentElement.clientHeight)),
+				scrolls,
+				// Half a pixel of slack, for a box whose edges fall between two pixels.
+				lastShown: lastBox.top >= shown.top - 0.5 && lastBox.bottom <= shown.bottom + 0.5,
+				onScreen: box.top >= 0 && box.bottom <= document.documentElement.clientHeight + 0.5,
+			};
+		},
+
+		height(name) {
+			return Math.round(elementOf(name).getBoundingClientRect().height);
+		},
+
+		async tabThenTalent(name, tab) {
+			const opened = helpers.height(name);
+			await sheets.clickTab(name, tab);
+			const afterTab = helpers.height(name);
+			const row = elementOf(name).querySelector<HTMLElement>(`.tab[data-tab="${tab}"] .talent`);
+			if (!row) throw new Error(`No talent on the ${tab} tab of E2E ${name}`);
+			// The talent's name opens its description, or its chevron once it has one (#515).
+			if (!window.e2e.clickChevron(row)) row.querySelector<HTMLElement>('.name a')!.click();
+			// The description opens through a transition, which settling waits for.
+			await waitFor(`the description of the talent on the ${tab} tab of E2E ${name}`, () => row.querySelector('.active'));
+			await settle();
+			return {
+				opened,
+				tab: afterTab,
+				talent: helpers.height(name),
+				expanded: !!row.querySelector('.active'),
+			};
+		},
+	};
+	window.sheetHeightsE2E = helpers;
+}
+
+/**
+ * §#514: a sheet opens at its content's height, measured once it has rendered, on the tab it opens on: no lower than its
+ * minimum height, no higher than Foundry lets a window be. Once open, its height stays put; a height set by hand is
+ * forgotten once it closes.
+ */
+async function sheetHeights(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	await gm.evaluate(installSheetHeightHelpers);
+	const viewport = gm.page.viewportSize();
+	const twoLines =
+		'<p>Once per session, the character may add a Boost die to a check made to resist fear, or to recover from it, as a free action.</p>';
+	const longDescription = Array.from({ length: 12 }, (_, index) => `<p>Line ${index + 1} of a longer description.</p>`).join('');
+	const stored = await gm.evaluate(() => ({
+		talent: window.sheetsE2E.stored('talent', 'system.description'),
+		ranked: window.sheetsE2E.stored('Hero/Ranked', 'system.description'),
+	}));
+
+	let tall: WindowFit | undefined;
+	await e2e.step("#514 A1 GM's viewport is 1400px tall, and GM opens Hero's sheet on its Skills tab", async () => {
+		await gm.page.setViewportSize({ width: viewport?.width ?? 1600, height: 1400 });
+		tall = await gm.evaluate(async () => {
+			// A sheet opens again on the tab it was closed on.
+			await window.sheetsE2E.open('Hero');
+			await window.sheetsE2E.clickTab('Hero', 'skills');
+			return window.sheetHeightsE2E.reopen('Hero', '.tab[data-tab="skills"] .experience');
+		});
+	});
+	e2e.log('#514 A1 Hero at a tall viewport', tall);
+	e2e.expect(
+		"#514 A1 the character's sheet opens taller than the former 640px, its whole Skills tab shown, its Experience included, without scrolling",
+		tall && { taller: tall.height > 640, scrolls: tall.scrolls, lastShown: tall.lastShown, onScreen: tall.onScreen },
+		{ taller: true, scrolls: false, lastShown: true, onScreen: true },
+	);
+
+	let short: WindowFit | undefined;
+	// Foundry warns on a screen lower than 768px.
+	await e2e.step("#514 A2 GM's viewport is 800px tall, and GM opens Hero's sheet again, then scrolls it to its bottom", async () => {
+		await gm.page.setViewportSize({ width: viewport?.width ?? 1600, height: 800 });
+		short = await gm.evaluate(() => window.sheetHeightsE2E.reopen('Hero', '.tab[data-tab="skills"] .experience', true));
+	});
+	e2e.log('#514 A2 Hero at a short viewport', short);
+	e2e.expect(
+		"#514 A2 the character's sheet opens as tall as Foundry lets a window be, within the viewport, and scrolls to its Experience",
+		short && {
+			atCeiling: Math.abs(short.height - short.ceiling) <= 1,
+			onScreen: short.onScreen,
+			scrolls: short.scrolls,
+			lastShown: short.lastShown,
+		},
+		{ atCeiling: true, onScreen: true, scrolls: true, lastShown: true },
+	);
+	await gm.page.setViewportSize(viewport ?? { width: 1600, height: 1000 });
+	await e2e.settle();
+
+	let brief: WindowFit | undefined;
+	await e2e.step('#514 A3 GM gives the talent a description of two lines, and opens its sheet', async () => {
+		brief = await gm.evaluate(async (description) => {
+			await window.sheetsE2E.update('talent', { 'system.description': description });
+			return window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p');
+		}, twoLines);
+	});
+	e2e.log('#514 A3 a talent of two lines', brief);
+	e2e.expect(
+		'#514 A3 a talent of two lines opens lower than the former 300px, no lower than its 200px minimum, its description shown whole',
+		brief && { lower: brief.height < 300, aboveMinimum: brief.height >= 200, scrolls: brief.scrolls, lastShown: brief.lastShown },
+		{ lower: true, aboveMinimum: true, scrolls: false, lastShown: true },
+	);
+
+	let long: WindowFit | undefined;
+	await e2e.step('#514 A4 GM gives the talent a description of twelve paragraphs, and opens its sheet', async () => {
+		long = await gm.evaluate(async (description) => {
+			await window.sheetsE2E.update('talent', { 'system.description': description });
+			return window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p:last-of-type');
+		}, longDescription);
+	});
+	e2e.log('#514 A4 a talent of twelve paragraphs', long);
+	e2e.expect(
+		'#514 A4 a talent with a long description opens taller than the former 300px, its last line shown without scrolling',
+		long && { taller: long.height > 300, scrolls: long.scrolls, lastShown: long.lastShown },
+		{ taller: true, scrolls: false, lastShown: true },
+	);
+
+	let forgotten: { resized: number; reopened: number } | undefined;
+	await e2e.step("#514 A5 GM resizes the talent's sheet to 500px by hand, closes it and opens it again", async () => {
+		forgotten = await gm.evaluate(async () => {
+			const app = game.items.getName('E2E talent').sheet;
+			app.setPosition({ height: 500 });
+			const resized = window.sheetHeightsE2E.height('talent');
+			const reopened = await window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p:last-of-type');
+			return { resized, reopened: reopened.height };
+		});
+	});
+	e2e.expect(
+		"#514 A5 a sheet resized by hand opens again at its content's height",
+		forgotten && { resized: forgotten.resized, reopened: forgotten.reopened },
+		{ resized: 500, reopened: long?.height },
+	);
+
+	let floor: WindowFit | undefined;
+	await e2e.step("#514 A6 GM opens the minion's sheet, which holds little", async () => {
+		floor = await gm.evaluate(() => window.sheetHeightsE2E.reopen('Minion', '.vue-app'));
+	});
+	e2e.log('#514 A6 the minion', floor);
+	e2e.expect("#514 A6 an actor's sheet with little content opens at its 600px minimum", floor?.height, 600);
+
+	let kept: Awaited<ReturnType<SheetHeightHelpers['tabThenTalent']>> | undefined;
+	await e2e.step(
+		"#514 A7 GM gives Hero's Ranked talent a long description, opens Hero's sheet, shows its Talents tab, then opens the talent's description",
+		async () => {
+			kept = await gm.evaluate(async (description) => {
+				await window.sheetsE2E.update('Hero/Ranked', { 'system.description': description });
+				await window.sheetsE2E.open('Hero');
+				await window.sheetsE2E.clickTab('Hero', 'skills');
+				await window.sheetHeightsE2E.reopen('Hero', '.tab[data-tab="skills"] .experience');
+				return window.sheetHeightsE2E.tabThenTalent('Hero', 'talents');
+			}, longDescription);
+		},
+	);
+	e2e.expect(
+		"#514 A7 switching the character's tab, then opening a talent's description, leaves the window's height as it opened",
+		kept && { tab: kept.tab, talent: kept.talent, expanded: kept.expanded },
+		{ tab: kept?.opened, talent: kept?.opened, expanded: true },
+	);
+
+	const types = await gm.evaluate(() => ['Hero', 'Minion', 'Rival', 'Nemesis', 'Vehicle', ...Object.keys(CONFIG.Item.dataModels)]);
+	let opening: Record<string, WindowFit> = {};
+	await e2e.step('#514 A8 GM opens the sheet of each actor and item type', async () => {
+		opening = await gm.evaluate(async (types) => {
+			const fits: Record<string, WindowFit> = {};
+			for (const name of types) {
+				fits[name] = await window.sheetHeightsE2E.reopen(name, '.vue-app');
+				await window.sheetsE2E.close(name);
+			}
+			return fits;
+		}, types);
+	});
+	e2e.log('#514 A8 opening heights', Object.fromEntries(Object.entries(opening).map(([name, fit]) => [name, fit.height])));
+	e2e.expect(
+		'#514 A8 the sheet of each actor and item type opens showing its whole content without scrolling',
+		Object.fromEntries(Object.entries(opening).map(([name, fit]) => [name, fit.scrolls ? 'scrolls' : 'whole'])),
+		Object.fromEntries(types.map((name) => [name, 'whole'])),
+	);
+
+	await gm.evaluate(async (stored) => {
+		await window.sheetsE2E.update('talent', { 'system.description': stored.talent });
+		await window.sheetsE2E.update('Hero/Ranked', { 'system.description': stored.ranked });
+		await window.sheetsE2E.closeAll();
+	}, stored);
 }

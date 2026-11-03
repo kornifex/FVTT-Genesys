@@ -17,7 +17,7 @@ const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
 export class ArchetypeSheet extends GenesysItemSheet<'archetype'> {
 	static override DEFAULT_OPTIONS = {
 		classes: ['archetype'],
-		position: { width: 720, height: 780 },
+		position: { width: 720 },
 	};
 
 	override get vueComponent() {

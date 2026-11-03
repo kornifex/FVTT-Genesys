@@ -1,18 +1,21 @@
 <script lang="ts" setup>
 import { onMounted, onUpdated, ref } from 'vue';
 import { enrich } from '@/enrich';
+import { usePendingContent } from '@/vue/PendingContent';
 
 const props = defineProps<{
 	value: string;
 }>();
 
 const enrichedContent = ref(props.value);
+const pendingContent = usePendingContent();
 
 async function enrichContent() {
 	enrichedContent.value = await enrich(props.value);
 }
 
-onMounted(enrichContent);
+// The sheet measures its content once the enriched text shows.
+onMounted(() => pendingContent(enrichContent()));
 onUpdated(enrichContent);
 </script>
 
