@@ -575,19 +575,12 @@ $checkbox-size: 1.25rem;
 		grid-column: 1 / span all;
 		grid-row: 5 / span all;
 		overflow: hidden;
-		@include expandable.description($duration: 1s, $easing: ease, $open: pool-modifications-expanded);
+		@include expandable.description($open: pool-modifications-expanded);
 
-		// The expander clips the folded Pool Modifications, and the container, which the mixin would clip too, doesn't, as
-		// before the mixin: its icons sit 3px below their place in a row (`top: 3px`), and in the last row their box can
-		// pass its bottom edge.
+		// The expander clips the folded Pool Modifications, and the container, which the mixin would clip too, doesn't: the
+		// glow and the focus outline of a Difficulty die, in the first row, pass its top edge.
 		& > .pool-modifications-container {
 			overflow: visible;
-		}
-
-		&.pool-modifications-expanded {
-			.pool-modifications-container {
-				visibility: visible;
-			}
 		}
 	}
 
@@ -596,9 +589,6 @@ $checkbox-size: 1.25rem;
 		font-family: 'Roboto', sans-serif;
 		margin-left: $caret-column + $caret-gap;
 		border-top: 1px dotted black;
-
-		transition: visibility 1s;
-		visibility: hidden;
 
 		// A row: its checkbox, left empty for the Difficulty and the manual changes, so that every label starts on one edge
 		// and a label that wraps goes on under its own text; then its label, and its modifications.

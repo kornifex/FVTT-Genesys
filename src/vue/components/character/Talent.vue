@@ -4,6 +4,7 @@ import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
@@ -44,6 +45,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 					{{ talent?.rank }}
 				</template>
 			</a>
+			<!-- The name keeps its click: it opens the tier and source of a talent without a description too. -->
+			<DescriptionToggle :description="item.system.description" :open="expanded" @toggle="expanded = !expanded" />
 
 			<a v-if="ranked && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
 		</span>
@@ -103,6 +106,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 		font-size: 1.1em;
 		display: flex;
 		gap: 0.25em;
+		// The chevron's smaller icon sits on the name's baseline, as it does in the Combat tab's names, which aren't flex rows.
+		align-items: baseline;
 	}
 
 	.desc-container {

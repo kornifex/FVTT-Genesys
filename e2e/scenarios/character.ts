@@ -94,11 +94,19 @@ type CharacterHelpers = {
 	trashTalentRow(actor: string, name: string): void;
 	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
 	toggleTalent(actor: string, talent: string): void;
-	/** Clicks the chevron of a Combat tab row, which opens or closes its description; false when the row shows none. */
+	/**
+	 * Clicks the chevron of a row of the Combat or Talents tab, which opens or closes its description; false when the row
+	 * shows none.
+	 */
 	clickChevron(actor: string, row: DescriptionRow): boolean;
-	/** The chevron of a Combat tab row, or null when the row shows none. */
+	/** The chevron of a row of the Combat or Talents tab, or null when the row shows none. */
 	chevron(actor: string, row: DescriptionRow): Chevron | null;
-	/** Clicks the name of a Combat tab row. */
+	/**
+	 * What the name of a Talents tab row shows, in order: its name and rank as text, `chevron` for its chevron and
+	 * `upgrade` for its rank upgrade arrow.
+	 */
+	talentNameParts(actor: string, talent: string): string[];
+	/** Clicks the name of a row of the Combat or Talents tab. */
 	clickName(actor: string, row: DescriptionRow): void;
 	/**
 	 * Closes the sheet of the actor's item `E2E <item>` and the Dice Prompts, and gives which were open: a Combat tab row's
@@ -110,6 +118,11 @@ type CharacterHelpers = {
 	 * a weapon's row before #393.
 	 */
 	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox | null;
+	/**
+	 * Opens or closes a row's description, by a talent's name or a Combat tab row's chevron, and reads its fold halfway
+	 * through, its transitions paused at 100ms; then finishes them (#516).
+	 */
+	foldHalfway(actor: string, row: DescriptionRow): Promise<FoldHalfway>;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
 	/** The icon of a skill of the Skills tab or of an adversary's skills, as the user sees it; null when it opens nothing. */
@@ -164,6 +177,12 @@ type CharacterHelpers = {
  * the name it shows without its prefix, `Dagger (Thrown)`.
  */
 type DescriptionRow = { talent: string } | { armor: string } | { injury: string } | { weapon: string };
+
+/**
+ * A description halfway through its fold (#516): the properties whose transitions run on it and its content; how far it
+ * is open, `none`, `partway` or `whole`; and its last element's visibility, which Tab follows.
+ */
+type FoldHalfway = { transitions: string[]; height: 'none' | 'partway' | 'whole'; lastVisibility: string };
 
 /** A skill of a character's Skills tab, or of an adversary's skills, by its name. */
 type SkillTarget = { skill: string } | { adversarySkill: string };
@@ -731,6 +750,14 @@ function installCharacterHelpers() {
 			return window.e2e.chevron(rowOf(name, row));
 		},
 
+		talentNameParts(name, talent) {
+			return [...(rowOf(name, { talent }).querySelector('.name')?.children ?? [])].map((child) => {
+				if (child.classList.contains('description-toggle')) return 'chevron';
+				if (child.querySelector('.fa-arrow-circle-up')) return 'upgrade';
+				return text(child);
+			});
+		},
+
 		clickName(name, row) {
 			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
 		},
@@ -747,6 +774,35 @@ function installCharacterHelpers() {
 		descriptionBox(name, row, cap) {
 			const element = description(name, row);
 			return element && window.e2e.descriptionBox(element, cap);
+		},
+
+		async foldHalfway(name, row) {
+			const element = description(name, row);
+			const content = element?.firstElementChild;
+			if (!element || !content) throw new Error(`No description for ${JSON.stringify(row)}`);
+			// A transition starts from the style the element had before the click: a tab just shown has none computed yet,
+			// as no frame has drawn it, so it is read now, as a user sees the tab before clicking in it.
+			const before = getComputedStyle(element).gridTemplateRows;
+			if (!before) throw new Error(`No style for ${JSON.stringify(row)}`);
+			if ('talent' in row) window.characterE2E.toggleTalent(name, row.talent);
+			else window.characterE2E.clickChevron(name, row);
+			// Vue renders the row's new class before the next frame, which starts its transitions.
+			await new Promise(requestAnimationFrame);
+			const transitions = [element, content].flatMap((animated) => animated.getAnimations()) as CSSTransition[];
+			for (const transition of transitions) {
+				transition.pause();
+				transition.currentTime = 100;
+			}
+			const height = element.getBoundingClientRect().height;
+			const last = [...element.querySelectorAll('*')].at(-1);
+			const read: FoldHalfway = {
+				transitions: transitions.map((transition) => transition.transitionProperty).sort(),
+				// A pixel of slack for the heights rounded apart.
+				height: height <= 1 ? 'none' : Math.abs(height - content.scrollHeight) <= 1 ? 'whole' : 'partway',
+				lastVisibility: last ? getComputedStyle(last).visibility : 'none',
+			};
+			for (const transition of transitions) transition.finish();
+			return read;
 		},
 
 		superCharacteristics(name) {
@@ -983,7 +1039,9 @@ export async function run(e2e: ScenarioContext) {
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
 		await combatRowDescriptions(e2e, page);
+		await talentRowDescriptions(e2e, page);
 		await skillIcons(e2e, page);
+		await folds(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
 	} finally {
@@ -2948,6 +3006,139 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 }
 
 /**
+ * §#515: the chevron after the name of a Talents tab row, a talent's or a special ability's, opens and closes the
+ * description its name opens and closes; a row without a description shows none, and its name still shows its tier.
+ */
+async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
+	const S = 'Scholar';
+	const box = (row: DescriptionRow, cap: number) =>
+		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: S, row, cap });
+	const closed = (row: DescriptionRow) => closedDescription((cap) => box(row, cap));
+	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: S, row });
+	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: S, row });
+	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: S, row });
+	const LORE = { talent: 'Lore' };
+	const INSIGHT = { talent: 'Insight' };
+	const BLANK = { talent: 'Blank' };
+	const passive = { activation: { type: 'passive', detail: '' } };
+
+	await e2e.step(
+		'#515 A1 a character with 100 XP given a described ranked talent, a described special ability, and a talent without a description, its Talents tab shown',
+		async () => {
+			await page((name) => window.characterE2E.create(name), S);
+			await page(
+				(name) =>
+					game.actors.getName(`E2E ${name}`).update({ 'system.experienceJournal.entries': [{ type: 'Award', amount: 100 }] }),
+				S,
+			);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: S,
+				items: [
+					{
+						name: 'E2E Lore',
+						type: 'talent',
+						system: { ...passive, tier: 1, ranked: 'yes', rank: 1, description: LONG_DESCRIPTION },
+					},
+					{ name: 'E2E Insight', type: 'ability', system: { ...passive, description: '<p>Sees through lies.</p>' } },
+					// Foundry's editor saves a description cleared in it as an empty paragraph. A second tier 1 talent lets
+					// Lore rise to tier 2: its row shows the rank upgrade arrow.
+					{ name: 'E2E Blank', type: 'talent', system: { ...passive, tier: 1, description: '<p></p>', source: 'E2E p. 1' } },
+				],
+			});
+			await page((name) => window.characterE2E.open(name), S);
+			await page((name) => window.e2e.showTab(name, 'talents'), S);
+		},
+	);
+	e2e.expect(
+		"#515 A1 a talent's and a special ability's rows show a chevron after their name, pointing right, a talent without a description none, and every description starts closed",
+		{
+			lore: await chevron(LORE),
+			insight: await chevron(INSIGHT),
+			blank: await chevron(BLANK),
+			loreBox: await closed(LORE),
+			insightBox: await closed(INSIGHT),
+			blankBox: await closed(BLANK),
+		},
+		{
+			lore: SHOW_CHEVRON,
+			insight: SHOW_CHEVRON,
+			blank: null,
+			loreBox: CLOSED_DESCRIPTION,
+			insightBox: CLOSED_DESCRIPTION,
+			blankBox: CLOSED_DESCRIPTION,
+		},
+	);
+	e2e.expect(
+		"#515 A1 the chevron sits after the talent's name and rank, before its rank upgrade arrow",
+		await page((name) => window.characterE2E.talentNameParts(name, 'Lore'), S),
+		['E2E Lore 1', 'chevron', 'upgrade'],
+	);
+
+	await e2e.step("#515 A2 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		"#515 A2 the talent's description shows its last line, at its full height past 500px, its chevron pointing down, and the special ability's stays closed",
+		{ box: await box(LORE, 500), chevron: await chevron(LORE), insight: await closed(INSIGHT) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON, insight: CLOSED_DESCRIPTION },
+	);
+
+	await e2e.step("#515 A3 the talent's name clicked", () => clickName(LORE));
+	e2e.expect(
+		'#515 A3 the name closes the description the chevron opened, and the chevron points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A4 the talent's name clicked again", () => clickName(LORE));
+	e2e.expect(
+		'#515 A4 the name opens the description, and the chevron points down',
+		{ box: await box(LORE, 500), chevron: await chevron(LORE) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON },
+	);
+
+	await e2e.step("#515 A5 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		'#515 A5 the chevron closes the description the name opened, and points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A6 the special ability's chevron clicked", () => clickChevron(INSIGHT));
+	const insightOpen = await box(INSIGHT, 500);
+	e2e.expect(
+		"#515 A6 the special ability's description opens whole, its chevron pointing down",
+		{
+			open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside, transition: insightOpen.transition },
+			chevron: await chevron(INSIGHT),
+		},
+		{ open: { clipped: 0, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, chevron: HIDE_CHEVRON },
+	);
+	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
+	e2e.expect(
+		"#515 A7 the special ability's description closes, its chevron pointing right",
+		{ box: await closed(INSIGHT), chevron: await chevron(INSIGHT) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step('#515 A8 the name of the talent without a description clicked', () => clickName(BLANK));
+	const blankOpen = await box(BLANK, 500);
+	e2e.expect(
+		'#515 A8 the name of a talent without a description still opens its tier and source, with no chevron',
+		{
+			open: blankOpen && {
+				shown: typeof blankOpen.height === 'number' && blankOpen.height > 0,
+				// Its last element is the source, under the tier.
+				lastInside: blankOpen.lastInside,
+				transition: blankOpen.transition,
+			},
+			tier: (await page((name) => window.characterE2E.talent(name, 'E2E Blank'), S))?.rowTier,
+			chevron: await chevron(BLANK),
+		},
+		{ open: { shown: true, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, tier: '1', chevron: null },
+	);
+	await page((name) => window.characterE2E.close(name), S);
+}
+
+/**
  * §#512: a skill's icon opens its sheet and its name rolls it, on a character's Skills tab and among a rival's and a
  * minion's skills, on a sheet the user can't edit too.
  */
@@ -2956,7 +3147,7 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 	const SKILL = 'E2E Lore';
 	const skill = { name: SKILL, type: 'skill', system: { category: 'knowledge', characteristic: 'intellect' } };
 	const sheets: { name: string; type: string; tab: string; target: SkillTarget }[] = [
-		{ name: 'Scholar', type: 'character', tab: 'skills', target: { skill: SKILL } },
+		{ name: 'Archivist', type: 'character', tab: 'skills', target: { skill: SKILL } },
 		{ name: 'Sage', type: 'rival', tab: 'stats', target: { adversarySkill: SKILL } },
 		{ name: 'Acolytes', type: 'minion', tab: 'stats', target: { adversarySkill: SKILL } },
 	];
@@ -3156,6 +3347,59 @@ async function talentTiers(
 	);
 	await page((rules) => window.e2e.setSettings(rules), { ignoreTalentPyramid: false });
 	await page((name) => window.characterE2E.close(name), 'Buyer');
+}
+
+/**
+ * §#516: a fold opens and closes in 0.2s, its content shown from its opening's start and until its closing's end, then
+ * hidden, so that Tab skips it; under `prefers-reduced-motion`, at once. Read on the talent of #325's Reader, whose long
+ * description ends with a link.
+ */
+async function folds(e2e: ScenarioContext, page: Evaluate) {
+	const D = 'Reader';
+	const TALENT = { talent: 'Verbose' };
+	const halfway = () => page((args) => window.characterE2E.foldHalfway(args.name, args.row), { name: D, row: TALENT });
+	const closed = () =>
+		closedDescription((cap) =>
+			page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: D, row: TALENT, cap }),
+		);
+	const twoFolds = async () => {
+		const opening = await halfway();
+		await e2e.settle();
+		const closing = await halfway();
+		return { opening, closing };
+	};
+
+	let folded: { opening: FoldHalfway; closing: FoldHalfway } | null = null;
+	await e2e.step("#516 B1 the talent's long description clicked open, then closed, each fold read halfway", async () => {
+		await page((name) => window.characterE2E.open(name), D);
+		await page((name) => window.e2e.showTab(name, 'talents'), D);
+		folded = await twoFolds();
+	});
+	const moving: FoldHalfway = { transitions: ['grid-template-rows', 'visibility'], height: 'partway', lastVisibility: 'visible' };
+	e2e.expect('#516 B1 halfway through its opening and its closing, the description is partway open and its link visible', folded, {
+		opening: moving,
+		closing: moving,
+	});
+	e2e.expect(
+		'#516 B1 once its closing ends, the description takes no height and its link is hidden, so Tab skips it',
+		await closed(),
+		CLOSED_DESCRIPTION,
+	);
+
+	const { gm } = e2e;
+	await e2e.step('#516 C1 under prefers-reduced-motion, the talent clicked open, then closed, each fold read at its start', async () => {
+		await gm.page.emulateMedia({ reducedMotion: 'reduce' });
+		try {
+			folded = await twoFolds();
+		} finally {
+			await gm.page.emulateMedia({ reducedMotion: null });
+		}
+	});
+	e2e.expect('#516 C1 under prefers-reduced-motion, the description opens and closes at once, with no transition', folded, {
+		opening: { transitions: [], height: 'whole', lastVisibility: 'visible' },
+		closing: { transitions: [], height: 'none', lastVisibility: 'hidden' },
+	});
+	await page((name) => window.characterE2E.close(name), D);
 }
 
 /** §#373: each delete from a row of the Skills tab, an adversary's skills, the Critical Injuries and the character's header asks first. */
