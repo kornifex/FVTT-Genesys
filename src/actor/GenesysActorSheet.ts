@@ -18,6 +18,8 @@ export class GenesysActorSheet<SubType extends Actor.SubType = Actor.SubType> ex
 ) {
 	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 		classes: ['genesys', 'sheet', 'actor'],
+		// The window opens at its content's height (VueDocumentSheet). A height in pixels keeps it there on the later
+		// renders, which Foundry's `'auto'` would fit to the content again.
 		position: { width: 720, height: 640 },
 	};
 

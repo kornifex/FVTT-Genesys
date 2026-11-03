@@ -26,6 +26,21 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			this.element.addEventListener('click', (event) => void editImage(this, event));
 		}
 
+		protected override async _onRender(context: RenderContext, options: RenderOptions) {
+			await super._onRender(context, options);
+
+			// A sheet opens at its content's height, on the tab it opens on, then keeps it: Foundry's `height: 'auto'` would
+			// follow the content on every later render, a tab switch or an expanded description resizing the window.
+			if (options.isFirstRender) {
+				await this.contentShown();
+				// Foundry sizes a window once it has rendered: the content is measured at the window's width, then the window
+				// is placed for its height, centred unless it was placed before.
+				const { top } = this.position;
+				this.setPosition();
+				this.setPosition({ top, height: naturalHeight(this.element, this.position.scale ?? 1) });
+			}
+		}
+
 		protected override async _preClose(options: RenderOptions) {
 			await super._preClose(options);
 
@@ -35,6 +50,21 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			}
 		}
 	};
+}
+
+/**
+ * The height a window takes to show its whole content, at its present width. Its blocks fill the window's height (a sheet's
+ * body and a tab's sections at `height: 100%`, a grid's `1fr` row), so its own height is measured with none set: the
+ * window then takes its content's height, and no less than its minimum height. Foundry's maximum height, which keeps a
+ * window on screen, is lifted too, as `setPosition` applies it and the viewport's.
+ */
+function naturalHeight(element: HTMLElement, scale: number) {
+	const { height, maxHeight } = element.style;
+	Object.assign(element.style, { height: '', maxHeight: 'none' });
+	// The bounding box is scaled by the window's transform; a fraction of a pixel cut off would make the window scroll.
+	const natural = Math.ceil(element.getBoundingClientRect().height / scale);
+	Object.assign(element.style, { height, maxHeight });
+	return natural;
 }
 
 /**

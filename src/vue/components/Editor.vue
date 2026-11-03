@@ -4,6 +4,7 @@ import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { enrich } from '@/enrich';
+import { usePendingContent } from '@/vue/PendingContent';
 
 type HTMLProseMirrorElement = foundry.applications.elements.HTMLProseMirrorElement;
 
@@ -17,6 +18,7 @@ const props = defineProps<{
 const context = useSheetContext<DocumentSheetContext<GenesysActor | GenesysItem>>();
 
 const container = ref<HTMLDivElement | null>(null);
+const pendingContent = usePendingContent();
 
 /**
  * The `<prose-mirror>` element shown, and what it was built from.
@@ -31,8 +33,8 @@ let builds = 0;
 
 // Each render of the sheet sets its context again: the editor watches it as its render tick. The text is read from the
 // document rather than passed as a prop: Foundry updates the document's data in place, so a parent passing the same
-// object (the Motivations) doesn't re-render.
-onMounted(show);
+// object (the Motivations) doesn't re-render. The sheet measures its content once the first text shows.
+onMounted(() => pendingContent(show()));
 watch(context, show);
 
 /**

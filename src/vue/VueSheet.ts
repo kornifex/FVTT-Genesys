@@ -5,6 +5,7 @@
 import { App, Component, createApp, nextTick } from 'vue';
 import type { DeepPartial } from 'fvtt-types/utils';
 import { provideSheetContext } from '@/vue/SheetContext';
+import { providePendingContent } from '@/vue/PendingContent';
 
 import '@/vue/VueSheet.scss';
 
@@ -43,6 +44,11 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		#renderContext?: (context: ContextType | undefined) => void;
 
 		/**
+		 * Waits until the active Vue app shows the content its components wait for.
+		 */
+		#contentShown?: () => Promise<void>;
+
+		/**
 		 * Tab controller, kept for the application's lifetime so that a reopened application shows the tab it was closed on.
 		 */
 		#tabs?: foundry.applications.ux.Tabs;
@@ -73,6 +79,14 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 			return undefined;
 		}
 
+		/**
+		 * Resolves once the Vue app shows the content its components render after some asynchronous work, such as an
+		 * enriched text.
+		 */
+		async contentShown(): Promise<void> {
+			await this.#contentShown?.();
+		}
+
 		protected override async _renderHTML(_context: RenderContext, _options: RenderOptions) {
 			return this.getVueContext();
 		}
@@ -87,6 +101,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 
 				this.vueApp = createApp(this.vueComponent);
 				this.#renderContext = provideSheetContext(this.vueApp, vueContext);
+				this.#contentShown = providePendingContent(this.vueApp);
 				this.vueApp.mount(mountPoint);
 			} else {
 				// Foundry changes the documents out of Vue's sight: each render signals the components to read them again.
@@ -121,6 +136,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 			this.vueApp?.unmount();
 			this.vueApp = undefined;
 			this.#renderContext = undefined;
+			this.#contentShown = undefined;
 
 			void super._onClose(options);
 		}
