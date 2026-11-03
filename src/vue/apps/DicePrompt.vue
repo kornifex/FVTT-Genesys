@@ -482,6 +482,7 @@ async function onRoll() {
 
 <style lang="scss" scoped>
 @use 'sass:color';
+@use 'sass:math';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/appv1.scss';
 @use '@scss/mixins/reset.scss';
@@ -498,6 +499,16 @@ $row-line-height: 1.25rem;
 $row-padding: 0.15rem;
 $row-column-gap: 0.4em;
 $checkbox-size: 1.25rem;
+
+// Genesys Symbols draws its dice and symbols with the middle of their ink 0.5em above the baseline, where Roboto has the
+// middle of its capitals 0.355em above (1456 of 2048 units): on the label's baseline, a glyph sits high, the more so the
+// larger it is (§#535). The vertical-align that lowers a glyph `$scale` times the label's size onto the capitals' middle.
+@function onto-capitals($scale) {
+	@return -(0.5 - math.div(0.355, $scale)) * 1em;
+}
+
+// The Difficulty dice, larger than the modifications' glyphs.
+$difficulty-die-scale: 1.4;
 
 .dice-prompt {
 	display: grid;
@@ -624,6 +635,13 @@ $checkbox-size: 1.25rem;
 			margin-right: 0.2rem;
 			cursor: default;
 
+			// A modification's icon; the label's link to its source keeps the label's line.
+			&[data-pool-entity] {
+				vertical-align: onto-capitals(1);
+				// A box no taller than the glyph, so that lowering it doesn't make the row taller.
+				line-height: 1;
+			}
+
 			&[data-pool-entity] > :deep(i.fas) {
 				-webkit-text-stroke: 0 transparent;
 				text-stroke: 0 transparent;
@@ -687,14 +705,17 @@ $checkbox-size: 1.25rem;
 			min-width: 0;
 			height: auto;
 			min-height: 0;
-			margin: 0 0.2rem 0 0;
+			// The negative margins keep the lowered die within the row's line, which takes the die's margin box: the
+			// focus outline still goes round the whole glyph.
+			margin: -0.25em 0.2rem -0.25em 0;
 			padding: 0;
 			border: none;
 			border-radius: 0;
 			background: none;
 			box-shadow: none;
-			font-size: 1.4em;
+			font-size: $difficulty-die-scale * 1em;
 			line-height: 1;
+			vertical-align: onto-capitals($difficulty-die-scale);
 			font-family: 'Genesys Symbols', sans-serif;
 			-webkit-text-stroke: 0.5px black;
 			text-stroke: 0.5px black;
