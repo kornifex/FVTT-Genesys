@@ -339,6 +339,8 @@ Genesys:
   StoryPoints:
     Player: Points de Destin
     GM: Points de Fatalité
+    PlayerShort: Destin
+    GMShort: Fatalité
     Reset: Réinitialise les points Narratifs
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !

@@ -6,11 +6,11 @@ import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTra
 import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
 import Localized from '@/vue/components/Localized.vue';
 
-// The GM pool above the players' pool.
+// The GM pool on the left of the players' pool, each under its short label, the full one in its tooltip.
 const POOLS = [
-	{ id: 'gm', label: 'Genesys.StoryPoints.GM' },
-	{ id: 'player', label: 'Genesys.StoryPoints.Player' },
-] as const satisfies { id: StoryPointPool; label: string }[];
+	{ id: 'gm', label: 'Genesys.StoryPoints.GMShort', tooltip: 'Genesys.StoryPoints.GM' },
+	{ id: 'player', label: 'Genesys.StoryPoints.PlayerShort', tooltip: 'Genesys.StoryPoints.Player' },
+] as const satisfies { id: StoryPointPool; label: string; tooltip: string }[];
 
 const isGM = game.user.isGM;
 const context = useSheetContext<StoryPointTrackerContext>();
@@ -68,7 +68,7 @@ async function toggleEdit(pool: StoryPointPool) {
 </script>
 
 <template>
-	<div v-for="pool in POOLS" :key="pool.id" class="tracker">
+	<div v-for="pool in POOLS" :key="pool.id" class="pool" :class="pool.id" v-localize:data-tooltip="pool.tooltip">
 		<header>
 			<Localized :label="pool.label" />
 			<a v-if="pool.id === 'gm' && isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"
@@ -90,18 +90,25 @@ async function toggleEdit(pool: StoryPointPool) {
 </template>
 
 <style lang="scss">
+@use '@scss/vars/colors.scss';
+
 // Unscoped: these rules place the tracker's application element, which Foundry renders around the component.
 .story-point-tracker {
-	// The column beside the sidebar stacks the chat notifications (order 99) above the tracker, which keeps to the
-	// sidebar's side.
-	order: 100;
+	// The column beside the sidebar holds nothing else above the chat notifications (order 99), whose input and
+	// messages stay at the bottom: the tracker keeps to the top, on the sidebar's side, clear of them and of the hotbar.
+	order: 1;
 	align-self: flex-end;
 	// Foundry's right-hand interface lets clicks through to the canvas.
 	pointer-events: all;
-	color: var(--color-dark-1);
-	display: flex;
-	flex-direction: column;
-	gap: 1em;
+	overflow: hidden;
+	border: 1px solid colors.$gold;
+	border-radius: 0.5em;
+	box-shadow: 0 0 6px rgb(0 0 0 / 50%);
+
+	// The element VueSheet mounts the component in, which lays the pools out side by side.
+	> .vue-app {
+		display: flex;
+	}
 }
 </style>
 
@@ -110,18 +117,30 @@ async function toggleEdit(pool: StoryPointPool) {
 @use '@scss/vars/colors.scss';
 
 .story-point-tracker {
-	.tracker {
-		@include backgrounds.crossboxes;
-
+	.pool {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.25em;
+		flex: 1 1 0;
+		min-width: 4.5em;
+		padding: 0.25em 0.75em 0.125em;
+	}
 
-		width: 100%;
-		border-radius: 0.5em;
-		border: 1px solid colors.$gold;
-		padding: 0.5em;
+	// The two sides of Genesys' Story Point token: the GM's dark, the players' light.
+	.gm {
+		background: colors.$dark-blue;
+		color: colors.$paper;
+
+		header {
+			color: colors.$gold;
+		}
+	}
+
+	.player {
+		@include backgrounds.crossboxes;
+
+		border-left: 1px solid colors.$gold;
+		color: var(--color-dark-1);
 	}
 
 	header {
@@ -130,7 +149,8 @@ async function toggleEdit(pool: StoryPointPool) {
 		align-items: center;
 
 		font-family: 'Bebas Neue', sans-serif;
-		font-size: 1.25em;
+		font-size: 1.1em;
+		line-height: 1;
 		color: colors.$blue;
 
 		a {
@@ -144,11 +164,14 @@ async function toggleEdit(pool: StoryPointPool) {
 		border: 1px dashed colors.$gold;
 		border-radius: 50%;
 		aspect-ratio: 1;
+		color: inherit;
 	}
 
 	.points {
 		font-family: 'Roboto Serif', serif;
-		font-size: 2em;
+		font-size: 1.75em;
+		line-height: 1.2;
+		color: inherit;
 	}
 }
 </style>
