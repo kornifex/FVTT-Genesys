@@ -6,7 +6,7 @@ release-please keeps a release PR open on each release line, titled `chore: rele
 
 ADR 0003 sets two lines, each with its own release PR and its own `release-please-config.json`:
 
-- `main` prepares 0.5.0, for Foundry v13 and v14.
+- `main` prepares 0.6.0, for Foundry v13 and v14.
 - `0.4.x` prepares 0.4.0 and its fixes, for Foundry v12 and v13. It was cut from the code of `0.4.0-rc.1`, so the rest of 0.4.0's candidates and the final version come from it. It only takes the fixes our table needs, and is retired once the table runs v13.
 
 A release PR with nothing for the table, only `ci:`, `docs:` or `chore:` commits, can be closed, with its `autorelease: pending` label removed: release-please ignores a closed PR, and opens a new one on the line's next push, such as a fix's merge. `0.4.x`'s stays closed until a fix needs releasing.
