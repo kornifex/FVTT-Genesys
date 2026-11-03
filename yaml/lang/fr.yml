@@ -178,8 +178,8 @@ Genesys:
       Title: Modification de la réserve de dés
       Difficulty: 'Difficulté : {level}'
       ManualChanges: Modifications manuelles
-      SelfEffects: 'Du personnage : '
-      TargetEffects: 'De la cible : '
+      SelfEffects: 'Soi : '
+      TargetEffects: 'Cible : '
       EffectOfItem: '{effect} ({item})'
       OpenSource: Ouvrir {name}
       SilhouetteDifference: Gabarit ({target} contre {attacker})
