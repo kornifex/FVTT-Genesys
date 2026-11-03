@@ -310,20 +310,26 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
+    FoundryVersions: Run on Foundry v13 and v14; a world that stays on Foundry v12 keeps the 0.4.x versions
+    WeaponProfiles: >-
+      Give a weapon extra profiles (an axe wielded or thrown), each with its own skill, damage and range, and attack with
+      each from its own row of the Combat tab
+    Silhouette: >-
+      Give characters and adversaries a silhouette: a targeted attack is easier against a target 2 or more silhouettes larger,
+      and harder against one 2 or more smaller
+    Difficulty: Pick the check's difficulty in the Dice Prompt by clicking one of five dice
+    PoolModificationSources: >-
+      Open the talent, equipment or effect behind a Pool Modification from its name in the Dice Prompt, which stays open
+    ChatDiceButton: Open the Dice Prompt from a button beside the chat's message modes, for the selected token's actor
     SkillSheet: >-
       Open a skill's sheet, to read its description, from its icon on the character and adversary sheets; its name still
       rolls it
-    TalentChevron: Open a talent's or ability's description from a chevron after its name in the Talents tab
+    StoryPointSpend: Record a Story Point a player spends once, even with several GMs or assistants connected
     StoryPointTracker: >-
       Show the Story Point tracker as one pill at the top of the column beside the sidebar, where it no longer pushes the
       chat input up
-    SheetHeight: Open each sheet at its content's height instead of a fixed size
-    Folds: >-
-      Open and close descriptions, Pool Modifications and a container's contents in one quick fold; an open container shows
-      all its contents
-    PoolModificationsLayout: >-
-      Space the caret from the Pool Modifications title in the Dice Prompt, and line up the section's checkboxes, labels and
-      dice in columns
+    InventoryMenu: >-
+      Open an inventory row's menu with a right-click, and place an item dropped on a row before or after it
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
