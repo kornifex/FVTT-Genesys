@@ -33,4 +33,9 @@ describe('storyPointsAfterEditing', () => {
 			expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'gm', input)).toBeUndefined();
 		}
 	});
+
+	it('changes nothing when the GM confirms the count the pool already holds (#528)', () => {
+		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'gm', '1')).toBeUndefined();
+		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'player', ' 03 ')).toBeUndefined();
+	});
 });
