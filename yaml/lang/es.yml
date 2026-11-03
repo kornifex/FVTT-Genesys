@@ -311,20 +311,28 @@ Genesys:
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
+    FoundryVersions: Funciona en Foundry v13 y v14; un mundo que sigue en Foundry v12 conserva las versiones 0.4.x
+    WeaponProfiles: >-
+      Un arma puede tener perfiles adicionales (un hacha empuñada o arrojada), cada uno con su habilidad, su daño y su
+      alcance, y se ataca con cada uno desde su fila de la pestaña Combate
+    Silhouette: >-
+      Los personajes y los adversarios tienen una silueta: un ataque dirigido es más fácil contra un objetivo 2 siluetas o más
+      grande, y más difícil contra uno 2 siluetas o más pequeño
+    Difficulty: La dificultad de la tirada se elige en la reserva de dados, con un clic en uno de los cinco dados
+    PoolModificationSources: >-
+      El nombre de una modificación de la reserva abre el talento, el equipo o el efecto del que viene, sin cerrar la
+      reserva de dados
+    ChatDiceButton: Un botón junto a los modos de mensaje del chat abre la reserva de dados, para el actor del token seleccionado
     SkillSheet: >-
       El icono de una habilidad abre su hoja, para leer su descripción, en las hojas de personaje y de adversario; su nombre
       sigue lanzando la tirada
-    TalentChevron: Una flecha tras el nombre de un talento o una capacidad, en la pestaña Talentos, abre su descripción
+    StoryPointSpend: >-
+      Un Punto de Historia que gasta un jugador se cuenta una sola vez, aunque haya varios DJ o asistentes conectados
     StoryPointTracker: >-
       Los Puntos de Historia se muestran en una sola píldora arriba de la columna junto a la barra lateral, y ya no empujan
       hacia arriba la entrada del chat
-    SheetHeight: Cada hoja se abre a la altura de su contenido, y no a un tamaño fijo
-    Folds: >-
-      Las descripciones, las modificaciones de la reserva y el contenido de un contenedor se abren y se cierran con un mismo
-      pliegue rápido; un contenedor abierto muestra todo su contenido
-    PoolModificationsLayout: >-
-      En la reserva de dados, la flecha del título de las modificaciones se separa del texto, y las casillas, las etiquetas y
-      los dados de la sección se alinean en columnas
+    InventoryMenu: >-
+      Un clic derecho en una fila del inventario abre su menú, y un objeto soltado sobre una fila se coloca antes o después
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
