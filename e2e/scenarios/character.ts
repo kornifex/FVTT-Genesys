@@ -746,6 +746,10 @@ function installCharacterHelpers() {
 			const element = description(name, row);
 			const content = element?.firstElementChild;
 			if (!element || !content) throw new Error(`No description for ${JSON.stringify(row)}`);
+			// A transition starts from the style the element had before the click: a tab just shown has none computed yet,
+			// as no frame has drawn it, so it is read now, as a user sees the tab before clicking in it.
+			const before = getComputedStyle(element).gridTemplateRows;
+			if (!before) throw new Error(`No style for ${JSON.stringify(row)}`);
 			if ('talent' in row) window.characterE2E.toggleTalent(name, row.talent);
 			else window.characterE2E.clickChevron(name, row);
 			// Vue renders the row's new class before the next frame, which starts its transitions.
