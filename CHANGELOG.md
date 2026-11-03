@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0...v0.5.0) (2026-11-03)
+
+
+### Continuous Integration
+
+* retire the 0.4.x release line, and point the docs at 0.6.0 ([#541](https://github.com/kornifex/FVTT-Genesys/issues/541)) ([63e0a90](https://github.com/kornifex/FVTT-Genesys/commit/63e0a90d1d71eee6b3888703c3887eef9b3ec51a))
+
 ## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.7...v0.5.0) (2026-11-03)
 
 
