@@ -32,8 +32,7 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 ) {
 	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 		classes: ['genesys', 'sheet', 'item'],
-		// The window opens at its content's height (VueDocumentSheet). A height in pixels keeps it there on the later
-		// renders, which Foundry's `'auto'` would fit to the content again.
+		// The window opens at its content's height; a height in pixels keeps it there (VueDocumentSheet).
 		position: { width: 480, height: 300 },
 	};
 

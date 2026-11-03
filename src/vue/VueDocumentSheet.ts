@@ -29,19 +29,28 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 		protected override async _onRender(context: RenderContext, options: RenderOptions) {
 			await super._onRender(context, options);
 
-			// A sheet opens at its content's height, on the tab it opens on, then keeps it: Foundry's `height: 'auto'` would
-			// follow the content on every later render, a tab switch or an expanded description resizing the window.
+			// A sheet opens at its content's height, on the tab it opens on, then keeps it as a height in pixels: Foundry's
+			// `height: 'auto'` would follow the content on every later render, a tab switch or an expanded description
+			// resizing the window.
 			if (options.isFirstRender) {
 				const { top } = this.position;
 				this.#fitHeight(top);
 
 				// The sheet shows at once, a text being enriched showing its raw text or nothing (#101): once the content of
-				// such work shows, the window fits it, unless the user has moved or resized it meanwhile.
+				// such a task shows, the window fits it, unless the user has used the window meanwhile (moved or resized it,
+				// switched its tab, opened a description), or something else placed it.
 				const element = this.element;
 				const { top: placed, height: fitted } = this.position;
+				let used = false;
+				const use = () => (used = true);
+				element.addEventListener('pointerdown', use, { capture: true, once: true });
+				element.addEventListener('keydown', use, { capture: true, once: true });
 				void this.contentShown().then(() => {
+					element.removeEventListener('pointerdown', use, { capture: true });
+					element.removeEventListener('keydown', use, { capture: true });
 					const { top: placedNow, height: fittedNow } = this.position;
-					if (this.rendered && this.element === element && !this.minimized && placedNow === placed && fittedNow === fitted) {
+					const untouched = !used && placedNow === placed && fittedNow === fitted;
+					if (untouched && this.rendered && this.element === element && !this.minimized) {
 						this.#fitHeight(top);
 					}
 				});

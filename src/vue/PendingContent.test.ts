@@ -1,11 +1,11 @@
-/** @file Tests for how a sheet waits for the content its components show once some asynchronous work ends. */
+/** @file Tests for how a sheet waits for the content its components show once an asynchronous task ends. */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from 'vue';
 import { providePendingContent, usePendingContent } from '@/vue/PendingContent';
 
 /**
- * A promise and the function that resolves it.
+ * A promise and the functions that resolve and reject it.
  */
 function deferred() {
 	let resolve!: () => void;
@@ -37,13 +37,13 @@ async function settled(promise: Promise<unknown>) {
 }
 
 describe('providePendingContent', () => {
-	it('is shown at once when no component started any work', async () => {
+	it('is shown at once when no component started any task', async () => {
 		const sheet = sheetApp();
 
 		expect(await settled(sheet.contentShown())).toBe(true);
 	});
 
-	it('waits for the work each component started', async () => {
+	it('waits for the task each component started', async () => {
 		const sheet = sheetApp();
 		const description = deferred();
 		const source = deferred();
@@ -58,7 +58,7 @@ describe('providePendingContent', () => {
 		expect(await settled(shown)).toBe(true);
 	});
 
-	it('waits for the work a component started while the sheet waited, as one mounted by the work before', async () => {
+	it('waits for the task a component started while the sheet waited, as one mounted by the task before', async () => {
 		const sheet = sheetApp();
 		const crew = deferred();
 		const description = deferred();
@@ -73,14 +73,18 @@ describe('providePendingContent', () => {
 		expect(await settled(shown)).toBe(true);
 	});
 
-	it('shows the content when a work fails', async () => {
+	it('shows the content when a task fails, and logs the failure', async () => {
+		const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const sheet = sheetApp();
 		const description = deferred();
 		sheet.setup(usePendingContent)(description.promise);
 
 		const shown = sheet.contentShown();
-		description.reject(new Error('The link names no document'));
+		const failure = new Error('The link names no document');
+		description.reject(failure);
 
 		expect(await settled(shown)).toBe(true);
+		expect(logged).toHaveBeenCalledWith('Genesys |', failure);
+		logged.mockRestore();
 	});
 });

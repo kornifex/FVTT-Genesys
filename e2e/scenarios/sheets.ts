@@ -3927,7 +3927,7 @@ declare global {
  */
 function installSheetHeightHelpers() {
 	if (window.sheetHeightsE2E) return;
-	const { htmlOf, sleep, settle, waitFor } = window.e2e;
+	const { htmlOf, settle, waitFor } = window.e2e;
 	const sheets = window.sheetsE2E;
 	const appOf = (name: string) => (game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`)).sheet;
 	const elementOf = (name: string) => {
@@ -3973,8 +3973,9 @@ function installSheetHeightHelpers() {
 			if (!row) throw new Error(`No talent on the ${tab} tab of E2E ${name}`);
 			// The talent's name opens its description, or its chevron once it has one (#515).
 			if (!window.e2e.clickChevron(row)) row.querySelector<HTMLElement>('.name a')!.click();
-			// The description opens through a transition of 0.5s.
-			await sleep(800);
+			// The description opens through a transition, which settling waits for.
+			await waitFor(`the description of the talent on the ${tab} tab of E2E ${name}`, () => row.querySelector('.active'));
+			await settle();
 			return {
 				opened,
 				tab: afterTab,
@@ -4110,16 +4111,24 @@ async function sheetHeights(e2e: ScenarioContext) {
 		{ tab: kept?.opened, talent: kept?.opened, expanded: true },
 	);
 
-	// What each sheet type opens at, for the record.
-	const opening = await gm.evaluate(async () => {
-		const heights: Record<string, number> = {};
-		for (const name of ['Hero', 'Minion', 'Rival', 'Nemesis', 'Vehicle', ...Object.keys(CONFIG.Item.dataModels)]) {
-			heights[name] = (await window.sheetHeightsE2E.reopen(name, '.vue-app')).height;
-			await window.sheetsE2E.close(name);
-		}
-		return heights;
+	const types = await gm.evaluate(() => ['Hero', 'Minion', 'Rival', 'Nemesis', 'Vehicle', ...Object.keys(CONFIG.Item.dataModels)]);
+	let opening: Record<string, WindowFit> = {};
+	await e2e.step('#514 A8 GM opens the sheet of each actor and item type', async () => {
+		opening = await gm.evaluate(async (types) => {
+			const fits: Record<string, WindowFit> = {};
+			for (const name of types) {
+				fits[name] = await window.sheetHeightsE2E.reopen(name, '.vue-app');
+				await window.sheetsE2E.close(name);
+			}
+			return fits;
+		}, types);
 	});
-	e2e.log('#514 opening heights', opening);
+	e2e.log('#514 A8 opening heights', Object.fromEntries(Object.entries(opening).map(([name, fit]) => [name, fit.height])));
+	e2e.expect(
+		'#514 A8 the sheet of each actor and item type opens showing its whole content without scrolling',
+		Object.fromEntries(Object.entries(opening).map(([name, fit]) => [name, fit.scrolls ? 'scrolls' : 'whole'])),
+		Object.fromEntries(types.map((name) => [name, 'whole'])),
+	);
 
 	await gm.evaluate(async (stored) => {
 		await window.sheetsE2E.update('talent', { 'system.description': stored.talent });

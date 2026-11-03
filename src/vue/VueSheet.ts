@@ -80,7 +80,7 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		}
 
 		/**
-		 * Resolves once the Vue app shows the content its components render after some asynchronous work, such as an
+		 * Resolves once the Vue app shows the content its components render after an asynchronous task, such as an
 		 * enriched text.
 		 */
 		async contentShown(): Promise<void> {
