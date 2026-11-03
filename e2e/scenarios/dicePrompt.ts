@@ -65,6 +65,28 @@ type CheckLink = { skill: string | null; difficulty: string | null; text: string
 type InlineGlyph = { px: number; em: number; fontSize: number; aboveXHeight: number };
 
 /**
+ * The Pool Modifications' title and rows as laid out (§#513), in px from the table's left edge, a tenth of a px apart.
+ */
+type PoolModificationsLayout = {
+	/** The title's text. */
+	titleText: number;
+	/** The caret's box, and its vertical axis. */
+	caret: { left: number; right: number; axis: number };
+	rows: {
+		/** The label's left edge. */
+		label: number;
+		/** Where each line of the label's text starts, from the label's left edge. */
+		lineStarts: number[];
+		/** How far below the middle of the label's first line the checkbox's middle sits; null in a row without one. */
+		checkbox: number | null;
+		/** How far below the middle of the label's first line the first modification's middle sits; null without one. */
+		modification: number | null;
+		/** The `top` offsets of the modifications, other than `auto` and `0px`. */
+		offsets: string[];
+	}[];
+};
+
+/**
  * The prompt's Difficulty and manual changes, as the user sees them.
  */
 type PromptDifficulty = {
@@ -184,6 +206,8 @@ type DicePromptHelpers = {
 	breakChanceWorker(broken: boolean): void;
 	/** The language the page shows, and the name and hint of a setting in the game settings window, which it closes after. */
 	settingText(key: string): Promise<{ language: string; name: string; hint: string }>;
+	/** The Pool Modifications' title and rows as laid out (§#513). */
+	poolModificationsLayout(): PoolModificationsLayout;
 };
 
 type Settings = Record<string, unknown> & { character: string | null };
@@ -1074,6 +1098,51 @@ function installDicePromptHelpers() {
 			};
 			await app.close();
 			return shown;
+		},
+
+		poolModificationsLayout() {
+			const root = htmlOf(thePrompt())!;
+			const container = root.querySelector('.pool-modifications-container')!;
+			const edge = container.getBoundingClientRect().left;
+			const px = (value: number) => Math.round(value * 10) / 10;
+			const middle = (box: { top: number; bottom: number }) => (box.top + box.bottom) / 2;
+			// The lines of a label's text, by the boxes of its text nodes: the link and the icon in a line don't share its top.
+			const lines = (label: Element) => {
+				const byTop = new Map<number, { left: number; top: number; bottom: number }>();
+				const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+				for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+					const range = document.createRange();
+					range.selectNodeContents(node);
+					for (const { left, top, bottom } of range.getClientRects()) {
+						const line = byTop.get(Math.round(top));
+						byTop.set(Math.round(top), { left: Math.min(left, line?.left ?? left), top, bottom });
+					}
+				}
+				return [...byTop.values()].sort((a, b) => a.top - b.top);
+			};
+			const title = root.querySelector('.pool-modifications-title')!;
+			const caret = title.querySelector('i')!.getBoundingClientRect();
+			return {
+				titleText: px(title.querySelector('span')!.getBoundingClientRect().left - edge),
+				caret: { left: px(caret.left - edge), right: px(caret.right - edge), axis: px((caret.left + caret.right) / 2 - edge) },
+				rows: [...container.querySelectorAll(':scope > div')].map((row) => {
+					const label = row.querySelector(':scope > span')!;
+					const left = label.getBoundingClientRect().left;
+					const textLines = lines(label);
+					const below = (element: Element | null) =>
+						element && textLines[0] ? px(middle(element.getBoundingClientRect()) - middle(textLines[0])) : null;
+					const modifications = [...row.querySelectorAll(':scope > div > *')];
+					return {
+						label: px(left - edge),
+						lineStarts: textLines.map((line) => px(line.left - left)),
+						checkbox: below(row.querySelector('input')),
+						modification: below(modifications[0] ?? null),
+						offsets: modifications
+							.map((element) => getComputedStyle(element).top)
+							.filter((top) => !['auto', '0px'].includes(top)),
+					};
+				}),
+			};
 		},
 	};
 }
@@ -2742,6 +2811,61 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
 	await player.evaluate(() => window.dicePromptE2E.closeSheets());
 	await e2e.step('S end');
+
+	// T: the Pool Modifications' columns (§#513). The Seeker's Intellect check, its talent's effect named long enough to
+	// wrap, with manual changes.
+	await gm.evaluate(() =>
+		window.e2e
+			.actor('Seeker')
+			.items.getName('E2E Quick Draw')
+			.effects.contents[0].update({ name: 'E2E Fate, a Pool Modification Named Long Enough to Wrap' }),
+	);
+	await seekerCheck(gm);
+	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A+', 'S+']));
+	if (!(await gm.evaluate(() => window.dicePromptE2E.poolModificationsBox())).unfolded) {
+		await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+	}
+	const layout = () => gm.evaluate(() => window.dicePromptE2E.poolModificationsLayout());
+	const unfoldedLayout = await layout();
+	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+	const foldedLayout = await layout();
+	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+	e2e.log('#513 the Pool Modifications as laid out, unfolded then folded', { unfolded: unfoldedLayout, folded: foldedLayout });
+	// A tenth of a px apart, as the layout rounds them, or half a px for a box centred on another.
+	const near = (a: number, b: number, slack = 0.1) => Math.abs(a - b) <= slack;
+	const { titleText, caret, rows: layoutRows } = unfoldedLayout;
+	e2e.expect(
+		"#513 A1 the title's text starts on the table's left edge, the caret alone in the margin before it",
+		{ textOnEdge: near(titleText, 0), caretInMargin: caret.right <= titleText },
+		{ textOnEdge: true, caretInMargin: true },
+	);
+	e2e.expect(
+		"#513 A2 folding the section moves neither the caret's axis nor the title's text",
+		{ axis: near(foldedLayout.caret.axis, caret.axis), text: near(foldedLayout.titleText, titleText) },
+		{ axis: true, text: true },
+	);
+	e2e.expect(
+		"#513 A3 every row's label starts on one edge, after the checkboxes' column, and a wrapped label goes on under its own text",
+		{
+			edges: new Set(layoutRows.map(({ label }) => label)).size,
+			afterCheckboxes: layoutRows.every(({ label }) => label > 0),
+			wrapped: layoutRows.filter(({ lineStarts }) => lineStarts.length > 1).length,
+			underItsText: layoutRows.every(({ lineStarts }) => lineStarts.every((start) => near(start, 0))),
+		},
+		{ edges: 1, afterCheckboxes: true, wrapped: 1, underItsText: true },
+	);
+	e2e.expect(
+		"#513 A4 the checkboxes and the modifications sit on their label's first line, with no top offset",
+		{
+			checkboxes: layoutRows.every(({ checkbox }) => checkbox === null || near(checkbox, 0, 0.5)),
+			// By the middle of their boxes, within a px: the glyphs of another font sit on the label's baseline in them.
+			modifications: layoutRows.every(({ modification }) => modification === null || near(modification, 0, 1)),
+			offsets: layoutRows.flatMap(({ offsets }) => offsets),
+		},
+		{ checkboxes: true, modifications: true, offsets: [] },
+	);
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	await e2e.step('T end');
 
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }
