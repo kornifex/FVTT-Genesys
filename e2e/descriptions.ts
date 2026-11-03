@@ -1,6 +1,6 @@
 /**
  * @file What the scenarios expect of an expandable description (#325): a text past its former caps, shown whole or
- * closed, and the chevron of a Combat tab row that opens and closes it (#393).
+ * closed, and the chevron of a Combat tab row (#393) or a Talents tab row (#515) that opens and closes it.
  */
 import type { Chevron, DescriptionBox } from './page.ts';
 

@@ -9,7 +9,7 @@ import { isCareerSkill } from '@/actor/data/character/Career';
 export class CareerSheet extends GenesysItemSheet<'career'> {
 	static override DEFAULT_OPTIONS = {
 		classes: ['career'],
-		position: { width: 500, height: 400 },
+		position: { width: 500 },
 	};
 
 	override get vueComponent() {

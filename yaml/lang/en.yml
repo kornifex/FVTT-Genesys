@@ -85,6 +85,7 @@ Genesys:
     AddExtraInitiativeSlot: Adds an extra initiative slot.
     ShowDescription: Show the description
     HideDescription: Hide the description
+    OpenSkill: Open the skill's sheet
 
   # Dice Rolls
   Rolls:
@@ -334,6 +335,8 @@ Genesys:
   StoryPoints:
     Player: Player Story Points
     GM: GM Story Points
+    PlayerShort: Players
+    GMShort: GM
     Reset: Reset Story Points
     ChatMessageGmPool: Spending a GM Story Point!
     ChatMessagePlayerPool: Spending a Player Story Point!

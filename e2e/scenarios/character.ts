@@ -94,11 +94,19 @@ type CharacterHelpers = {
 	trashTalentRow(actor: string, name: string): void;
 	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
 	toggleTalent(actor: string, talent: string): void;
-	/** Clicks the chevron of a Combat tab row, which opens or closes its description; false when the row shows none. */
+	/**
+	 * Clicks the chevron of a row of the Combat or Talents tab, which opens or closes its description; false when the row
+	 * shows none.
+	 */
 	clickChevron(actor: string, row: DescriptionRow): boolean;
-	/** The chevron of a Combat tab row, or null when the row shows none. */
+	/** The chevron of a row of the Combat or Talents tab, or null when the row shows none. */
 	chevron(actor: string, row: DescriptionRow): Chevron | null;
-	/** Clicks the name of a Combat tab row. */
+	/**
+	 * What the name of a Talents tab row shows, in order: its name and rank as text, `chevron` for its chevron and
+	 * `upgrade` for its rank upgrade arrow.
+	 */
+	talentNameParts(actor: string, talent: string): string[];
+	/** Clicks the name of a row of the Combat or Talents tab. */
 	clickName(actor: string, row: DescriptionRow): void;
 	/**
 	 * Closes the sheet of the actor's item `E2E <item>` and the Dice Prompts, and gives which were open: a Combat tab row's
@@ -117,6 +125,18 @@ type CharacterHelpers = {
 	foldHalfway(actor: string, row: DescriptionRow): Promise<FoldHalfway>;
 	superCharacteristics(actor: string): { stored: string[]; stars: string[] };
 	adversarySkills(actor: string): string[];
+	/** The icon of a skill of the Skills tab or of an adversary's skills, as the user sees it; null when it opens nothing. */
+	skillIcon(actor: string, target: SkillTarget): { tooltip: string; cursor: string } | null;
+	/**
+	 * Clicks the icon or the name of a skill of the Skills tab or of an adversary's skills, waits for the page to settle,
+	 * then closes the skill's sheet and the Dice Prompts and gives which were open. `clicked` is false when the skill shows
+	 * no icon that opens something.
+	 */
+	clickSkill(
+		actor: string,
+		target: SkillTarget,
+		part: 'icon' | 'name',
+	): Promise<{ clicked: boolean; sheet: boolean; dicePrompt: boolean }>;
 	pyramid(actor: string): { summary: string[] | null; roundedTop: boolean };
 	/**
 	 * The top of the shown Talents tab's first block: the space between it and the top of the tab's content, in px, and
@@ -164,7 +184,10 @@ type DescriptionRow = { talent: string } | { armor: string } | { injury: string 
  */
 type FoldHalfway = { transitions: string[]; height: 'none' | 'partway' | 'whole'; lastVisibility: string };
 
-type MenuTarget = { characteristic: Characteristic } | { skill: string } | { meta: 'archetype' | 'career' } | { adversarySkill: string };
+/** A skill of a character's Skills tab, or of an adversary's skills, by its name. */
+type SkillTarget = { skill: string } | { adversarySkill: string };
+
+type MenuTarget = { characteristic: Characteristic } | { meta: 'archetype' | 'career' } | SkillTarget;
 
 declare global {
 	interface Window {
@@ -220,6 +243,13 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.tab-skills .skill.row')].find(
 			(row) => text(row.querySelector('.name span')).replace(/ \([^()]*\)$/, '') === skill,
 		);
+	// A skill's row of the Skills tab, or its entry among an adversary's skills, which reads its rank after its name.
+	const skillContainer = (name: string, target: SkillTarget) =>
+		'skill' in target
+			? skillRow(name, target.skill)
+			: [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
+					(skill) => text(skill.querySelector('a span')).replace(/ \d+$/, '') === target.adversarySkill,
+				);
 	const injuryRow = (name: string, injury: string) =>
 		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
 			(candidate) => text(candidate.querySelector('.name')) === `E2E ${injury}`,
@@ -418,12 +448,8 @@ function installCharacterHelpers() {
 		async menu(name, target, label) {
 			let container: Element | undefined | null;
 			if ('characteristic' in target) container = characteristicField(name, target.characteristic)?.querySelector('.menu-container');
-			else if ('skill' in target) container = skillRow(name, target.skill);
 			else if ('meta' in target) container = sheet(name).querySelector(`.character-meta .${target.meta} .menu-container`);
-			else
-				container = [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
-					(skill) => text(skill.querySelector('a span')).replace(/ \d+$/, '') === target.adversarySkill,
-				);
+			else container = skillContainer(name, target);
 			if (!container) throw new Error(`No menu for ${JSON.stringify(target)}`);
 			container.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			// A const keeps the check above for the closure below.
@@ -724,6 +750,14 @@ function installCharacterHelpers() {
 			return window.e2e.chevron(rowOf(name, row));
 		},
 
+		talentNameParts(name, talent) {
+			return [...(rowOf(name, { talent }).querySelector('.name')?.children ?? [])].map((child) => {
+				if (child.classList.contains('description-toggle')) return 'chevron';
+				if (child.querySelector('.fa-arrow-circle-up')) return 'upgrade';
+				return text(child);
+			});
+		},
+
 		clickName(name, row) {
 			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
 		},
@@ -781,6 +815,30 @@ function installCharacterHelpers() {
 
 		adversarySkills(name) {
 			return [...sheet(name).querySelectorAll('.adversary-items .skill a span')].map(text);
+		},
+
+		skillIcon(name, target) {
+			const icon = skillContainer(name, target)?.querySelector<HTMLElement>('.skill-icon');
+			if (!icon) return null;
+			// Foundry localizes a tooltip's key as it shows it.
+			return { tooltip: game.i18n.localize(icon.dataset.tooltip ?? ''), cursor: getComputedStyle(icon).cursor };
+		},
+
+		async clickSkill(name, target, part) {
+			const container = skillContainer(name, target);
+			if (!container) throw new Error(`No skill ${JSON.stringify(target)} on the sheet of E2E ${name}`);
+			const element = container.querySelector<HTMLElement>(
+				part === 'icon' ? '.skill-icon' : 'skill' in target ? '.name' : ':scope > a',
+			);
+			element?.click();
+			await settle();
+			const skill = 'skill' in target ? target.skill : target.adversarySkill;
+			const itemSheet = actor(name).items.getName(skill).sheet;
+			const prompts = apps('app-dice-prompt').filter((app: App) => app.rendered);
+			const opened = { clicked: !!element, sheet: itemSheet.rendered, dicePrompt: prompts.length > 0 };
+			if (itemSheet.rendered) await itemSheet.close();
+			for (const prompt of prompts) await prompt.close();
+			return opened;
 		},
 
 		pyramid(name) {
@@ -981,6 +1039,8 @@ export async function run(e2e: ScenarioContext) {
 		await talentTiers(e2e, page, notified, notifications);
 		await expandedDescriptions(e2e, page);
 		await combatRowDescriptions(e2e, page);
+		await talentRowDescriptions(e2e, page);
+		await skillIcons(e2e, page);
 		await folds(e2e, page);
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
 		await confirmedRemovals(e2e, page);
@@ -2942,6 +3002,250 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	// The player leaves as it came: the steps after these run without it.
 	await playerPage((name) => window.characterE2E.close(name), C);
 	await setOwnership(previous);
+	await player.leave();
+}
+
+/**
+ * §#515: the chevron after the name of a Talents tab row, a talent's or a special ability's, opens and closes the
+ * description its name opens and closes; a row without a description shows none, and its name still shows its tier.
+ */
+async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
+	const S = 'Scholar';
+	const box = (row: DescriptionRow, cap: number) =>
+		page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), { name: S, row, cap });
+	const closed = (row: DescriptionRow) => closedDescription((cap) => box(row, cap));
+	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: S, row });
+	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: S, row });
+	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: S, row });
+	const LORE = { talent: 'Lore' };
+	const INSIGHT = { talent: 'Insight' };
+	const BLANK = { talent: 'Blank' };
+	const passive = { activation: { type: 'passive', detail: '' } };
+
+	await e2e.step(
+		'#515 A1 a character with 100 XP given a described ranked talent, a described special ability, and a talent without a description, its Talents tab shown',
+		async () => {
+			await page((name) => window.characterE2E.create(name), S);
+			await page(
+				(name) =>
+					game.actors.getName(`E2E ${name}`).update({ 'system.experienceJournal.entries': [{ type: 'Award', amount: 100 }] }),
+				S,
+			);
+			await page((args) => window.characterE2E.createItems(args.name, args.items), {
+				name: S,
+				items: [
+					{
+						name: 'E2E Lore',
+						type: 'talent',
+						system: { ...passive, tier: 1, ranked: 'yes', rank: 1, description: LONG_DESCRIPTION },
+					},
+					{ name: 'E2E Insight', type: 'ability', system: { ...passive, description: '<p>Sees through lies.</p>' } },
+					// Foundry's editor saves a description cleared in it as an empty paragraph. A second tier 1 talent lets
+					// Lore rise to tier 2: its row shows the rank upgrade arrow.
+					{ name: 'E2E Blank', type: 'talent', system: { ...passive, tier: 1, description: '<p></p>', source: 'E2E p. 1' } },
+				],
+			});
+			await page((name) => window.characterE2E.open(name), S);
+			await page((name) => window.e2e.showTab(name, 'talents'), S);
+		},
+	);
+	e2e.expect(
+		"#515 A1 a talent's and a special ability's rows show a chevron after their name, pointing right, a talent without a description none, and every description starts closed",
+		{
+			lore: await chevron(LORE),
+			insight: await chevron(INSIGHT),
+			blank: await chevron(BLANK),
+			loreBox: await closed(LORE),
+			insightBox: await closed(INSIGHT),
+			blankBox: await closed(BLANK),
+		},
+		{
+			lore: SHOW_CHEVRON,
+			insight: SHOW_CHEVRON,
+			blank: null,
+			loreBox: CLOSED_DESCRIPTION,
+			insightBox: CLOSED_DESCRIPTION,
+			blankBox: CLOSED_DESCRIPTION,
+		},
+	);
+	e2e.expect(
+		"#515 A1 the chevron sits after the talent's name and rank, before its rank upgrade arrow",
+		await page((name) => window.characterE2E.talentNameParts(name, 'Lore'), S),
+		['E2E Lore 1', 'chevron', 'upgrade'],
+	);
+
+	await e2e.step("#515 A2 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		"#515 A2 the talent's description shows its last line, at its full height past 500px, its chevron pointing down, and the special ability's stays closed",
+		{ box: await box(LORE, 500), chevron: await chevron(LORE), insight: await closed(INSIGHT) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON, insight: CLOSED_DESCRIPTION },
+	);
+
+	await e2e.step("#515 A3 the talent's name clicked", () => clickName(LORE));
+	e2e.expect(
+		'#515 A3 the name closes the description the chevron opened, and the chevron points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A4 the talent's name clicked again", () => clickName(LORE));
+	e2e.expect(
+		'#515 A4 the name opens the description, and the chevron points down',
+		{ box: await box(LORE, 500), chevron: await chevron(LORE) },
+		{ box: shownDescription(500), chevron: HIDE_CHEVRON },
+	);
+
+	await e2e.step("#515 A5 the talent's chevron clicked", () => clickChevron(LORE));
+	e2e.expect(
+		'#515 A5 the chevron closes the description the name opened, and points right again',
+		{ box: await closed(LORE), chevron: await chevron(LORE) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step("#515 A6 the special ability's chevron clicked", () => clickChevron(INSIGHT));
+	const insightOpen = await box(INSIGHT, 500);
+	e2e.expect(
+		"#515 A6 the special ability's description opens whole, its chevron pointing down",
+		{
+			open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside, transition: insightOpen.transition },
+			chevron: await chevron(INSIGHT),
+		},
+		{ open: { clipped: 0, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, chevron: HIDE_CHEVRON },
+	);
+	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
+	e2e.expect(
+		"#515 A7 the special ability's description closes, its chevron pointing right",
+		{ box: await closed(INSIGHT), chevron: await chevron(INSIGHT) },
+		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+	);
+
+	await e2e.step('#515 A8 the name of the talent without a description clicked', () => clickName(BLANK));
+	const blankOpen = await box(BLANK, 500);
+	e2e.expect(
+		'#515 A8 the name of a talent without a description still opens its tier and source, with no chevron',
+		{
+			open: blankOpen && {
+				shown: typeof blankOpen.height === 'number' && blankOpen.height > 0,
+				// Its last element is the source, under the tier.
+				lastInside: blankOpen.lastInside,
+				transition: blankOpen.transition,
+			},
+			tier: (await page((name) => window.characterE2E.talent(name, 'E2E Blank'), S))?.rowTier,
+			chevron: await chevron(BLANK),
+		},
+		{ open: { shown: true, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, tier: '1', chevron: null },
+	);
+	await page((name) => window.characterE2E.close(name), S);
+}
+
+/**
+ * §#512: a skill's icon opens its sheet and its name rolls it, on a character's Skills tab and among a rival's and a
+ * minion's skills, on a sheet the user can't edit too.
+ */
+async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
+	// A character created with a skill gets none from the Skills Compendium.
+	const SKILL = 'E2E Lore';
+	const skill = { name: SKILL, type: 'skill', system: { category: 'knowledge', characteristic: 'intellect' } };
+	const sheets: { name: string; type: string; tab: string; target: SkillTarget }[] = [
+		{ name: 'Archivist', type: 'character', tab: 'skills', target: { skill: SKILL } },
+		{ name: 'Sage', type: 'rival', tab: 'stats', target: { adversarySkill: SKILL } },
+		{ name: 'Acolytes', type: 'minion', tab: 'stats', target: { adversarySkill: SKILL } },
+	];
+	const OPEN_SKILL = { tooltip: "Open the skill's sheet", cursor: 'pointer' };
+	const bySheet = async <T>(action: (sheet: (typeof sheets)[number]) => Promise<T>) => {
+		const results: Record<string, T> = {};
+		for (const sheet of sheets) results[sheet.name] = await action(sheet);
+		return results;
+	};
+	const eachSheet = (expected: unknown) => Object.fromEntries(sheets.map(({ name }) => [name, expected]));
+	const clickSkill = (client: Evaluate, part: 'icon' | 'name') =>
+		bySheet(({ name, target }) =>
+			client((args) => window.characterE2E.clickSkill(args.name, args.target, args.part), { name, target, part }),
+		);
+	const skillIcon = (client: Evaluate) =>
+		bySheet(({ name, target }) => client((args) => window.characterE2E.skillIcon(args.name, args.target), { name, target }));
+	const hasEdit = (client: Evaluate) =>
+		bySheet(async ({ name, target }) =>
+			(await client((args) => window.characterE2E.menu(args.name, args.target), { name, target })).includes('Edit'),
+		);
+	const openSheets = (client: Evaluate) =>
+		bySheet(async ({ name, tab }) => {
+			await client((name) => window.characterE2E.open(name), name);
+			await client((args) => window.e2e.showTab(args.name, args.tab), { name, tab });
+		});
+	const closeSheets = (client: Evaluate) => bySheet(({ name }) => client((name) => window.characterE2E.close(name), name));
+
+	await e2e.step('#512 A1 a character, a rival and a minion given the skill Lore, their sheets open on its list', async () => {
+		for (const { name, type } of sheets)
+			await page((args) => window.characterE2E.create(args.name, args.type, [args.skill]), { name, type, skill });
+		await openSheets(page);
+	});
+	e2e.expect(
+		"#512 A1 the icon of a skill on the Skills tab and on a rival's and a minion's sheet shows a pointer, and its tooltip reads Open the skill's sheet",
+		await skillIcon(page),
+		eachSheet(OPEN_SKILL),
+	);
+
+	let opened: Record<string, unknown> = {};
+	await e2e.step("#512 A2 the skill's icon clicked on each sheet", async () => {
+		opened = await clickSkill(page, 'icon');
+	});
+	e2e.expect(
+		"#512 A2 a skill's icon opens the skill's sheet, and not the Dice Prompt",
+		opened,
+		eachSheet({ clicked: true, sheet: true, dicePrompt: false }),
+	);
+
+	await e2e.step("#512 A3 the skill's name clicked on each sheet", async () => {
+		opened = await clickSkill(page, 'name');
+	});
+	e2e.expect(
+		"#512 A3 a skill's name still opens the Dice Prompt, and not the skill's sheet",
+		opened,
+		eachSheet({ clicked: true, sheet: false, dicePrompt: true }),
+	);
+	e2e.expect("#512 A4 a skill's context menu keeps its Edit entry", await hasEdit(page), eachSheet(true));
+	await closeSheets(page);
+
+	// Reading a skill's description edits nothing: a player who only observes the actors opens it too.
+	const player = await e2e.player();
+	if (!player.connected) await player.join();
+	const playerPage = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) =>
+		(player.evaluate as (fn: unknown, arg: unknown) => Promise<R>)(fn, arg);
+	await e2e.step("#512 B1 the player given Observer on the three actors, their sheets open in the player's page", async () => {
+		await page(
+			async (args) => {
+				for (const name of args.names) await window.e2e.setOwnership(window.e2e.actor(name), args.user, 'OBSERVER');
+			},
+			{ names: sheets.map(({ name }) => name), user: e2e.playerUser },
+		);
+		await player.evaluate(installCharacterHelpers);
+		await openSheets(playerPage);
+	});
+	e2e.expect(
+		"#512 B1 on sheets the player can't edit, a skill's icon shows a pointer and its tooltip",
+		{
+			editable: await bySheet(({ name }) => playerPage((name) => game.actors.getName(`E2E ${name}`).sheet.isEditable, name)),
+			icons: await skillIcon(playerPage),
+		},
+		{ editable: eachSheet(false), icons: eachSheet(OPEN_SKILL) },
+	);
+	await e2e.step("#512 B2 the skill's icon clicked on each sheet in the player's page", async () => {
+		opened = await clickSkill(playerPage, 'icon');
+	});
+	e2e.expect(
+		"#512 B2 a skill's icon opens the skill's sheet on a sheet the player can't edit",
+		opened,
+		eachSheet({ clicked: true, sheet: true, dicePrompt: false }),
+	);
+	e2e.expect(
+		"#512 B3 a skill's context menu keeps its Edit entry on a sheet the player can't edit",
+		await hasEdit(playerPage),
+		eachSheet(true),
+	);
+
+	// The player leaves as it came: the steps after these run without it.
+	await closeSheets(playerPage);
 	await player.leave();
 }
 

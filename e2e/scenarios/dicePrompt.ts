@@ -1022,7 +1022,7 @@ function installDicePromptHelpers() {
 		},
 
 		storyPoints() {
-			const trackers = [...document.querySelectorAll('#story-point-tracker .tracker')];
+			const trackers = [...document.querySelectorAll('#story-point-tracker .pool')];
 			return {
 				setting: game.settings.get('genesys', 'storyPoints'),
 				shown: trackers.map((tracker) => text(tracker.querySelector('.points'))),
@@ -1031,7 +1031,7 @@ function installDicePromptHelpers() {
 		},
 
 		async clickStoryPoints(which) {
-			const trackers = [...document.querySelectorAll('#story-point-tracker .tracker')];
+			const trackers = [...document.querySelectorAll('#story-point-tracker .pool')];
 			const target =
 				which === 'reset' ? trackers[0].querySelector('header a') : trackers[which === 'gm' ? 0 : 1].querySelector('.points');
 			const before = JSON.stringify(game.settings.get('genesys', 'storyPoints'));

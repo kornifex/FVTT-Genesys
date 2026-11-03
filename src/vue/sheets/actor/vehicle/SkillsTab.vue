@@ -7,6 +7,7 @@ import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { worldCheckRules } from '@/dice/Check';
 import { openSheet } from '@/operations/ItemActions';
+import { usePendingContent } from '@/vue/PendingContent';
 
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -32,34 +33,43 @@ const groupingMode = ref<GroupingMode>('member');
 const byMember = shallowRef<MemberRow[]>([]);
 const bySkill = shallowRef<SkillRow[]>([]);
 
+const pendingContent = usePendingContent();
+
 // The sheet renders again after a change to the vehicle or to one of its crew, which sets its context again. The tab
 // watches the whole context as its render tick: a crew member's change leaves the vehicle and its system data as they were.
+// The sheet opens on this tab, and measures its content once the first tables show.
 watch(
 	context,
-	async ({ document: vehicle }, _oldContext, onCleanup) => {
+	({ document: vehicle }, _oldContext, onCleanup) => {
 		// Resolving the members is asynchronous: a later render's tables replace the ones still being computed.
 		let stale = false;
 		onCleanup(() => (stale = true));
-
-		const crew = vehicle.system.crew;
-		const actors = await crewActors(crew.roles.flatMap((role) => role.members));
-		if (stale) {
-			return;
-		}
-
-		const roleSkills = crewForSkills(
-			crew,
-			crew.roles.flatMap((role) => role.skills),
-		);
-		const memberSkills = crewMemberSkills(roleSkills, actors, worldCheckRules());
-		byMember.value = crewSkillsByMember(crew, memberSkills, game.i18n.lang).flatMap((row) => {
-			const actor = actors.get(row.member);
-			return actor ? [{ ...row, actor }] : [];
-		});
-		bySkill.value = crewSkillsBySkill(crew, memberSkills, CONFIG.genesys.skills, game.i18n.lang);
+		pendingContent(showCrewSkills(vehicle, () => stale));
 	},
 	{ immediate: true },
 );
+
+/**
+ * Show the tables of a vehicle's crew skills, unless a later render made them stale while its crew was being resolved.
+ */
+async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => boolean) {
+	const crew = vehicle.system.crew;
+	const actors = await crewActors(crew.roles.flatMap((role) => role.members));
+	if (isStale()) {
+		return;
+	}
+
+	const roleSkills = crewForSkills(
+		crew,
+		crew.roles.flatMap((role) => role.skills),
+	);
+	const memberSkills = crewMemberSkills(roleSkills, actors, worldCheckRules());
+	byMember.value = crewSkillsByMember(crew, memberSkills, game.i18n.lang).flatMap((row) => {
+		const actor = actors.get(row.member);
+		return actor ? [{ ...row, actor }] : [];
+	});
+	bySkill.value = crewSkillsBySkill(crew, memberSkills, CONFIG.genesys.skills, game.i18n.lang);
+}
 </script>
 
 <template>
