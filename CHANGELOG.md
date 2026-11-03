@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.0-rc.7](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.6...v0.5.0-rc.7) (2026-11-03)
+
+
+### Features
+
+* **ui:** open a skill's sheet from its icon on the character and adversary sheets ([#520](https://github.com/kornifex/FVTT-Genesys/issues/520)) ([d232745](https://github.com/kornifex/FVTT-Genesys/commit/d232745c245d8aa9b15aba58bd04187498e337c4))
+* **ui:** open a Talents tab row's description from a chevron after its name ([#521](https://github.com/kornifex/FVTT-Genesys/issues/521)) ([b22fadf](https://github.com/kornifex/FVTT-Genesys/commit/b22fadf10ce9c2eff18cb9085ff523e5c7eba00f))
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.5.0-rc.7's changes in the welcome message ([#525](https://github.com/kornifex/FVTT-Genesys/issues/525)) ([b436e9b](https://github.com/kornifex/FVTT-Genesys/commit/b436e9b1a5884f7748843ee2f945058a2546d98a))
+* **ui:** fold descriptions, Pool Modifications and Container contents in one quick 0.2s transition ([#523](https://github.com/kornifex/FVTT-Genesys/issues/523)) ([ee9c3f5](https://github.com/kornifex/FVTT-Genesys/commit/ee9c3f578f004df53be20c11d890824c0050548f))
+* **ui:** move the Story Point tracker to the top beside the sidebar, as one pill ([#518](https://github.com/kornifex/FVTT-Genesys/issues/518)) ([0a1bd8c](https://github.com/kornifex/FVTT-Genesys/commit/0a1bd8cec53cfaf7995dfdc15c0645fb43091863))
+* **ui:** open a sheet at its content's height ([#522](https://github.com/kornifex/FVTT-Genesys/issues/522)) ([f84f40e](https://github.com/kornifex/FVTT-Genesys/commit/f84f40e07d2d2fc91b662d9280b1938a78fd1ef9))
+* **ui:** space the caret from the Pool Modifications title and align the section's columns ([#524](https://github.com/kornifex/FVTT-Genesys/issues/524)) ([1825a0c](https://github.com/kornifex/FVTT-Genesys/commit/1825a0cc83ef92a04522368a84b7cc46ebca1e07))
+
+
+### Continuous Integration
+
+* set the next release to 0.5.0 ([#510](https://github.com/kornifex/FVTT-Genesys/issues/510)) ([acf8aeb](https://github.com/kornifex/FVTT-Genesys/commit/acf8aeb02602a315fda9924fe0b0db362bb94d56))
+* set the next release to 0.5.0-rc.7 ([#519](https://github.com/kornifex/FVTT-Genesys/issues/519)) ([4aae18f](https://github.com/kornifex/FVTT-Genesys/commit/4aae18fca2d3d0bc37711660f86fdd5ef003c426))
+
 ## [0.5.0-rc.6](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.5...v0.5.0-rc.6) (2026-11-02)
 
 
