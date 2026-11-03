@@ -20,6 +20,27 @@ The repository is still a GitHub fork of Mezryss/FVTT-Genesys (it stays in the f
 
 Third parties open issues through the forms in `.github/ISSUE_TEMPLATE/` (blank issues are disabled in the web UI): a bug report or a feature request, which applies its category label (`bug` or `enhancement`) and `needs-triage`. They may be written in French.
 
+## Project board
+
+Open issues are tracked on the user project [FVTT-genesys](https://github.com/users/kornifex/projects/2) (number `2`, owner `kornifex`), linked to the repository. Its built-in workflows add every new issue to the board and move an item to **Done** when it closes; pull requests are not added, they show on their issue through _Linked pull requests_.
+
+The triage labels above stay the source of truth for triage, since skills read labels, not project fields. The **Status** field only tracks the work:
+
+| Status      | Meaning                                         |
+| ----------- | ----------------------------------------------- |
+| Backlog     | Not triaged yet (`needs-triage`, `needs-info`)  |
+| Ready       | Triaged (`ready-for-agent`, `ready-for-human`) |
+| In progress | A branch is open for the issue                  |
+| In review   | A pull request is open for the issue            |
+| Done        | Closed (set by the board's workflow)            |
+
+Move the issue yourself when you triage it (→ Ready), create its branch (→ In progress) and open its pull request (→ In review):
+
+1. Find the issue's item id: `gh project item-list 2 --owner kornifex --limit 200 --format json --jq '.items[] | select(.content.number == <n>) | .id'`.
+2. Set its Status: `gh project item-edit --project-id PVT_kwHOAAbqX84BqD1q --id <item-id> --field-id PVTSSF_lAHOAAbqX84BqD1qzhocm6w --single-select-option-id <option-id>`, with the option id of the target Status: Backlog `f75ad846`, Ready `61e4505c`, In progress `47fc9ee4`, In review `df73e18b`, Done `98236657`.
+
+An issue missing from the board is added with `gh project item-add 2 --owner kornifex --url <issue-url>`. These commands need the `project` scope on the `gh` token (`gh auth refresh -h github.com -s project`).
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
