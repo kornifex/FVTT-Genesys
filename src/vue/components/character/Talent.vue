@@ -106,7 +106,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 		font-size: 1.1em;
 		display: flex;
 		gap: 0.25em;
-		// The chevron's smaller icon sits on the name's baseline, as in the Combat tab.
+		// The chevron's smaller icon sits on the name's baseline, as it does in the Combat tab's names, which aren't flex rows.
 		align-items: baseline;
 	}
 

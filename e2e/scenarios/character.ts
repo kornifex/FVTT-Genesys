@@ -2950,14 +2950,14 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			await page((args) => window.characterE2E.createItems(args.name, args.items), {
 				name: S,
 				items: [
-					// A second tier 1 talent lets the ranked one rise to tier 2: its row shows the rank upgrade arrow.
 					{
 						name: 'E2E Lore',
 						type: 'talent',
 						system: { ...passive, tier: 1, ranked: 'yes', rank: 1, description: LONG_DESCRIPTION },
 					},
 					{ name: 'E2E Insight', type: 'ability', system: { ...passive, description: '<p>Sees through lies.</p>' } },
-					// Foundry's editor saves a description cleared in it as an empty paragraph.
+					// Foundry's editor saves a description cleared in it as an empty paragraph. A second tier 1 talent lets
+					// Lore rise to tier 2: its row shows the rank upgrade arrow.
 					{ name: 'E2E Blank', type: 'talent', system: { ...passive, tier: 1, description: '<p></p>', source: 'E2E p. 1' } },
 				],
 			});
@@ -3022,8 +3022,11 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const insightOpen = await box(INSIGHT, 500);
 	e2e.expect(
 		"#515 A6 the special ability's description opens whole, its chevron pointing down",
-		{ open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside }, chevron: await chevron(INSIGHT) },
-		{ open: { clipped: 0, lastInside: true }, chevron: HIDE_CHEVRON },
+		{
+			open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside, transition: insightOpen.transition },
+			chevron: await chevron(INSIGHT),
+		},
+		{ open: { clipped: 0, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, chevron: HIDE_CHEVRON },
 	);
 	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
 	e2e.expect(
@@ -3037,10 +3040,16 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		'#515 A8 the name of a talent without a description still opens its tier and source, with no chevron',
 		{
-			open: blankOpen && { shown: typeof blankOpen.height === 'number' && blankOpen.height > 0, lastInside: blankOpen.lastInside },
+			open: blankOpen && {
+				shown: typeof blankOpen.height === 'number' && blankOpen.height > 0,
+				// Its last element is the source, under the tier.
+				lastInside: blankOpen.lastInside,
+				transition: blankOpen.transition,
+			},
+			tier: (await page((name) => window.characterE2E.talent(name, 'E2E Blank'), S))?.rowTier,
 			chevron: await chevron(BLANK),
 		},
-		{ open: { shown: true, lastInside: true }, chevron: null },
+		{ open: { shown: true, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, tier: '1', chevron: null },
 	);
 	await page((name) => window.characterE2E.close(name), S);
 }
