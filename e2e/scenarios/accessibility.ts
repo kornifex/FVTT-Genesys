@@ -231,28 +231,37 @@ export async function run(e2e: ScenarioContext) {
 
 	// Each window is checked in a step of its own, which logs the errors its rendering threw after its findings.
 	try {
-		for (const name of await gm.evaluate(() => window.accessibilityE2E.sheets())) {
-			await e2e.step(`${name} sheet checked and closed`, async () => {
-				const { selector, tabs } = await gm.evaluate((name) => window.accessibilityE2E.openSheet(name), name);
-				// The first tab is checked with the rest of the window, the others alone.
-				await check(`${name} sheet${tabs[0] ? `, ${tabs[0]} tab` : ''}`, `${selector} .window-content`);
-				for (const tab of tabs.slice(1)) {
-					const panel = await gm.evaluate((args) => window.accessibilityE2E.showTab(args.selector, args.tab), { selector, tab });
-					await check(`${name} sheet, ${tab} tab`, panel);
-				}
-				await gm.evaluate(() => window.accessibilityE2E.closeAll());
-			});
-		}
+		await e2e.part('sheets', async () => {
+			for (const name of await gm.evaluate(() => window.accessibilityE2E.sheets())) {
+				await e2e.step(`${name} sheet checked and closed`, async () => {
+					const { selector, tabs } = await gm.evaluate((name) => window.accessibilityE2E.openSheet(name), name);
+					// The first tab is checked with the rest of the window, the others alone.
+					await check(`${name} sheet${tabs[0] ? `, ${tabs[0]} tab` : ''}`, `${selector} .window-content`);
+					for (const tab of tabs.slice(1)) {
+						const panel = await gm.evaluate((args) => window.accessibilityE2E.showTab(args.selector, args.tab), {
+							selector,
+							tab,
+						});
+						await check(`${name} sheet, ${tab} tab`, panel);
+					}
+					await gm.evaluate(() => window.accessibilityE2E.closeAll());
+				});
+			}
+		});
 
-		for (const prompt of await gm.evaluate(() => window.accessibilityE2E.prompts())) {
-			await e2e.step(`${prompt} prompt checked and closed`, async () => {
-				const selector = await gm.evaluate((prompt) => window.accessibilityE2E.openPrompt(prompt), prompt);
-				await check(`${prompt} prompt`, `${selector} .window-content`);
-				await gm.evaluate(() => window.accessibilityE2E.closeAll());
-			});
-		}
+		await e2e.part('prompts', async () => {
+			for (const prompt of await gm.evaluate(() => window.accessibilityE2E.prompts())) {
+				await e2e.step(`${prompt} prompt checked and closed`, async () => {
+					const selector = await gm.evaluate((prompt) => window.accessibilityE2E.openPrompt(prompt), prompt);
+					await check(`${prompt} prompt`, `${selector} .window-content`);
+					await gm.evaluate(() => window.accessibilityE2E.closeAll());
+				});
+			}
+		});
 
-		await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
+		await e2e.part('storyPointTracker', async () => {
+			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
+		});
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
 	}

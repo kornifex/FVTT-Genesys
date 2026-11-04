@@ -1312,962 +1312,994 @@ export async function run(e2e: ScenarioContext) {
 	const onSheet: Target = { on: '.window-content' };
 	const tooltip = (item: string, state: string) => `Inactive while E2E ${item} is ${state}.`;
 
-	// #82: drops on item sheets.
-	await e2e.step(
-		'#82 A1 a skill and a rated quality, twice, dropped on a weapon sheet',
-		drops(
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Skill' }, 'Spear')),
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Spear')),
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Spear')),
-		),
-	);
-	e2e.expect(
-		'#82 A1 a weapon takes a skill and a quality dropped on its sheet, a rated quality again raising its rating',
-		await page.evaluate(() => window.inventoryE2E.sidebarItem('Spear')),
-		{ skills: ['Melee', 'E2E Skill'], qualities: ['E2E Quality 2'] },
-	);
+	// One part: the moves of §#103 read the items the drops before them left.
+	await e2e.part('dropsAndMoves', async () => {
+		// #82: drops on item sheets.
+		await e2e.step(
+			'#82 A1 a skill and a rated quality, twice, dropped on a weapon sheet',
+			drops(
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Skill' }, 'Spear')),
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Spear')),
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Spear')),
+			),
+		);
+		e2e.expect(
+			'#82 A1 a weapon takes a skill and a quality dropped on its sheet, a rated quality again raising its rating',
+			await page.evaluate(() => window.inventoryE2E.sidebarItem('Spear')),
+			{ skills: ['Melee', 'E2E Skill'], qualities: ['E2E Quality 2'] },
+		);
 
-	// #251: the qualities of a weapon's and an armor's sheet, each change written as a new list.
-	const editQuality = (item: string, rating: string | null) => () =>
-		page.evaluate((args) => window.inventoryE2E.editQuality(args.item, 0, args.rating), { item, rating });
-	const qualities = async (item: string) => (await page.evaluate((name) => window.inventoryE2E.sidebarItem(name), item)).qualities;
-	await e2e.step("#251 a rating of 3 typed for the Spear's quality in its sheet", editQuality('Spear', '3'));
-	e2e.expect("#251 a weapon's quality takes the rating typed in its sheet", await qualities('Spear'), ['E2E Quality 3']);
-	await e2e.step("#251 a rating of 0 typed for the Spear's quality in its sheet", editQuality('Spear', '0'));
-	e2e.expect("#251 a weapon's quality given a rating of 0 in its sheet is removed", await qualities('Spear'), []);
-	await e2e.step(
-		'#251 a rated quality, twice, dropped on an armor sheet',
-		drops(
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
-		),
-	);
-	e2e.expect('#251 an armor takes a quality dropped on its sheet, a rated quality again raising its rating', await qualities('Mail'), [
-		'E2E Quality 2',
-	]);
-	await e2e.step("#251 a rating of 4 typed for the Mail's quality in its sheet", editQuality('Mail', '4'));
-	e2e.expect("#251 an armor's quality takes the rating typed in its sheet", await qualities('Mail'), ['E2E Quality 4']);
-	await e2e.step("#251 the Mail's quality deleted from its sheet", editQuality('Mail', null));
-	e2e.expect("#251 an armor's quality deleted from its sheet is removed", await qualities('Mail'), []);
+		// #251: the qualities of a weapon's and an armor's sheet, each change written as a new list.
+		const editQuality = (item: string, rating: string | null) => () =>
+			page.evaluate((args) => window.inventoryE2E.editQuality(args.item, 0, args.rating), { item, rating });
+		const qualities = async (item: string) => (await page.evaluate((name) => window.inventoryE2E.sidebarItem(name), item)).qualities;
+		await e2e.step("#251 a rating of 3 typed for the Spear's quality in its sheet", editQuality('Spear', '3'));
+		e2e.expect("#251 a weapon's quality takes the rating typed in its sheet", await qualities('Spear'), ['E2E Quality 3']);
+		await e2e.step("#251 a rating of 0 typed for the Spear's quality in its sheet", editQuality('Spear', '0'));
+		e2e.expect("#251 a weapon's quality given a rating of 0 in its sheet is removed", await qualities('Spear'), []);
+		await e2e.step(
+			'#251 a rated quality, twice, dropped on an armor sheet',
+			drops(
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Mail')),
+			),
+		);
+		e2e.expect(
+			'#251 an armor takes a quality dropped on its sheet, a rated quality again raising its rating',
+			await qualities('Mail'),
+			['E2E Quality 2'],
+		);
+		await e2e.step("#251 a rating of 4 typed for the Mail's quality in its sheet", editQuality('Mail', '4'));
+		e2e.expect("#251 an armor's quality takes the rating typed in its sheet", await qualities('Mail'), ['E2E Quality 4']);
+		await e2e.step("#251 the Mail's quality deleted from its sheet", editQuality('Mail', null));
+		e2e.expect("#251 an armor's quality deleted from its sheet is removed", await qualities('Mail'), []);
 
-	await e2e.step('#82 A2 a talent dropped on an archetype sheet', () =>
-		page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Talent' }, 'Archetype')),
-	);
-	e2e.expect(
-		'#82 A2 an archetype grants a talent dropped on its sheet',
-		await page.evaluate(() => window.inventoryE2E.sidebarItem('Archetype')),
-		{
-			granted: ['E2E Talent'],
-		},
-	);
+		await e2e.step('#82 A2 a talent dropped on an archetype sheet', () =>
+			page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Talent' }, 'Archetype')),
+		);
+		e2e.expect(
+			'#82 A2 an archetype grants a talent dropped on its sheet',
+			await page.evaluate(() => window.inventoryE2E.sidebarItem('Archetype')),
+			{
+				granted: ['E2E Talent'],
+			},
+		);
 
-	// #416: a drag started from a directory or a compendium window carries the dragged document's type, for which the
-	// sections of an Inventory tab open: from the system's compendium, opened before the setup created the scenario's, and
-	// from those created during the session.
-	const fromWindows: Record<string, DragWindow> = {
-		'Items directory': { directory: 'Item', name: 'E2E Sword' },
-		'Actors directory': { directory: 'Actor', name: 'E2E Hero' },
-		'Core Skills': { pack: 'genesys.crb-skills', name: 'Athletics' },
-		'E2E Inventory Items': { pack: 'world.e2e-inventory-items', name: 'E2E Packed Mail' },
-		'E2E Inventory Actors': { pack: 'world.e2e-inventory-actors', name: 'E2E Packed Hero' },
-	};
-	const windowDrags: Record<string, WindowDrag> = {};
-	await e2e.step('#416 A1 drags from the directories and the compendium windows moved over the Inventory tab', async () => {
-		for (const [label, from] of Object.entries(fromWindows)) {
-			windowDrags[label] = await page.evaluate((args) => window.inventoryE2E.windowDrag(args.from, 'Receiver'), { from });
-		}
-	});
-	const allSections: EquipmentState[] = ['equipped', 'carried', 'dropped'];
-	e2e.expect('#416 A1 each drag carries its document type, and the sections taking it open', windowDrags, {
-		'Items directory': { genesysType: 'weapon', sections: allSections },
-		'Actors directory': { genesysType: 'character', sections: [] },
-		'Core Skills': { genesysType: 'skill', sections: [] },
-		'E2E Inventory Items': { genesysType: 'armor', sections: allSections },
-		'E2E Inventory Actors': { genesysType: 'character', sections: [] },
-	});
+		// #416: a drag started from a directory or a compendium window carries the dragged document's type, for which the
+		// sections of an Inventory tab open: from the system's compendium, opened before the setup created the scenario's, and
+		// from those created during the session.
+		const fromWindows: Record<string, DragWindow> = {
+			'Items directory': { directory: 'Item', name: 'E2E Sword' },
+			'Actors directory': { directory: 'Actor', name: 'E2E Hero' },
+			'Core Skills': { pack: 'genesys.crb-skills', name: 'Athletics' },
+			'E2E Inventory Items': { pack: 'world.e2e-inventory-items', name: 'E2E Packed Mail' },
+			'E2E Inventory Actors': { pack: 'world.e2e-inventory-actors', name: 'E2E Packed Hero' },
+		};
+		const windowDrags: Record<string, WindowDrag> = {};
+		await e2e.step('#416 A1 drags from the directories and the compendium windows moved over the Inventory tab', async () => {
+			for (const [label, from] of Object.entries(fromWindows)) {
+				windowDrags[label] = await page.evaluate((args) => window.inventoryE2E.windowDrag(args.from, 'Receiver'), { from });
+			}
+		});
+		const allSections: EquipmentState[] = ['equipped', 'carried', 'dropped'];
+		e2e.expect('#416 A1 each drag carries its document type, and the sections taking it open', windowDrags, {
+			'Items directory': { genesysType: 'weapon', sections: allSections },
+			'Actors directory': { genesysType: 'character', sections: [] },
+			'Core Skills': { genesysType: 'skill', sections: [] },
+			'E2E Inventory Items': { genesysType: 'armor', sections: allSections },
+			'E2E Inventory Actors': { genesysType: 'character', sections: [] },
+		});
 
-	// #103: drops from the sidebar and a compendium on each actor type.
-	await e2e.step(
-		'#103 B1 sidebar and compendium items dropped on the sections, a Container and elsewhere on a character',
-		drops(
-			drop(sidebar('Sword'), 'Receiver', slot('equipped', 0)),
-			drop(sidebar('Rope'), 'Receiver', slot('carried', 0)),
-			drop(sidebar('Torch'), 'Receiver', slot('dropped', 0)),
-			drop(compendium('Packed Gear'), 'Receiver', slot('carried', 0)),
-			drop(sidebar('Backpack'), 'Receiver', slot('carried', 0)),
-			drop(sidebar('Lantern'), 'Receiver', { item: 'Backpack' }),
-			drop(compendium('Packed Rations'), 'Receiver', { item: 'Backpack' }),
-			drop(sidebar('Knife'), 'Receiver', onSheet),
-		),
-	);
-	e2e.expect(
-		'#103 B1 each item dropped on a character is created once, in the state of the section or Container, or Carried',
-		await items('Receiver'),
-		[
-			'Backpack:carried',
-			'Knife:carried',
-			'Lantern:carried@Backpack',
-			'Packed Gear:carried',
-			'Packed Rations:carried@Backpack',
-			'Rope:carried',
-			'Sword:equipped',
-			'Torch:dropped',
-		],
-	);
-	await e2e.step(
-		'#103 B2 sidebar and compendium items dropped on the sections, a Container and elsewhere on a vehicle',
-		drops(
-			drop(sidebar('Blaster'), 'Vehicle', slot('equipped', 0)),
-			drop(sidebar('Rope'), 'Vehicle', slot('carried', 0)),
-			drop(sidebar('Backpack'), 'Vehicle', slot('carried', 0)),
-			drop(sidebar('Lantern'), 'Vehicle', { item: 'Backpack' }),
-			drop(compendium('Packed Gear'), 'Vehicle', onSheet),
-		),
-	);
-	e2e.expect(
-		'#103 B2 each item dropped on a vehicle is created once, in the state of the section or Container, or Carried',
-		await items('Vehicle'),
-		['Backpack:carried', 'Blaster:equipped', 'Lantern:carried@Backpack', 'Packed Gear:carried', 'Rope:carried'],
-	);
-	await e2e.step(
-		'#103 B3 sidebar and compendium items dropped on a rival and a minion',
-		drops(
-			drop(sidebar('Mail'), 'Rival', onSheet),
-			drop(compendium('Packed Gear'), 'Rival', onSheet),
-			drop(sidebar('Sword'), 'Minion', onSheet),
-			drop(compendium('Packed Mail'), 'Minion', onSheet),
-		),
-	);
-	e2e.expect('#103 B3 each item dropped on a rival is created once, Carried', await items('Rival'), [
-		'Mail:carried',
-		'Packed Gear:carried',
-	]);
-	e2e.expect('#103 B3 each item dropped on a minion is created once, Carried', await items('Minion'), [
-		'Packed Mail:carried',
-		'Sword:carried',
-	]);
-	e2e.expect("#102 B3 the effects of an adversary's equipment apply whatever its state", await effects('Rival'), {
-		onActor: 0,
-		applied: ['Mail Effect'],
-		suppressed: [],
-	});
-
-	// #103: what goes on to the sheet.
-	await e2e.step(
-		'#103 C1 a talent dropped on the Carried section and a skill on a Container of a character',
-		drops(drop(sidebar('Talent'), 'Receiver', slot('carried', 0)), drop(sidebar('Skill'), 'Receiver', { item: 'Backpack' })),
-	);
-	await e2e.step(
-		'#103 C2 items of an actor in a compendium dropped on the Dropped section and on a Container',
-		drops(
-			drop({ compendiumActorItem: 'Packed Lamp' }, 'Receiver', slot('dropped', 0)),
-			drop({ compendiumActorItem: 'Packed Map' }, 'Receiver', { item: 'Backpack' }),
-		),
-	);
-	await e2e.step(
-		'#103 C3 a folder of items dropped on the Inventory tab',
-		drop({ folder: 'Folder' }, 'Receiver', { on: '.tab-inventory .encumbrance-currency-row' }),
-	);
-	e2e.expect(
-		'#103 C1-C3 a talent and a skill go on to the sheet, items of a compendium actor and of a folder land Carried, each once',
-		await items('Receiver'),
-		[
-			'Backpack:carried',
-			'Folder Dagger:carried',
-			'Folder Lamp:carried',
-			'Knife:carried',
-			'Lantern:carried@Backpack',
-			'Packed Gear:carried',
-			'Packed Lamp:carried',
-			'Packed Map:carried',
-			'Packed Rations:carried@Backpack',
-			'Rope:carried',
-			'Skill (skill)',
-			'Sword:equipped',
-			'Talent (talent)',
-			'Torch:dropped',
-		],
-	);
-
-	// #103: moves between actors, from Ally (owned by the GM) to Hero.
-	await e2e.step(
-		"#103 D1 Ally's equipped Sword dragged to Hero's Carried section",
-		drop(held('Sword', 'Ally'), 'Hero', slot('carried', 0)),
-	);
-	e2e.expect(
-		'#103 D1 a weapon moved to another character leaves the first and takes the state of its new section',
-		{
-			Ally: (await items('Ally')).filter((name) => name.startsWith('Sword')),
-			Hero: (await items('Hero')).filter((name) => name.startsWith('Sword')),
-		},
-		{ Ally: [], Hero: ['Sword:carried'] },
-	);
-	await takeBatches();
-	await e2e.step(
-		"#103 D2 Ally's Satchel and its contents dragged to Hero's Carried section",
-		drop(held('Satchel', 'Ally'), 'Hero', slot('carried', 0)),
-	);
-	e2e.expect(
-		'#103 D2 a Container moved to another character takes its contents, with new ids, created then deleted in one batch each',
-		{
-			Ally: (await items('Ally')).filter((name) => /^(Satchel|Map|Compass)/.test(name)),
-			Hero: (await items('Hero')).filter((name) => /^(Satchel|Map|Compass)/.test(name)),
-			batches: (await takeBatches()).filter((batch) => !batch.startsWith('update')),
-		},
-		{
-			Ally: [],
-			Hero: ['Compass:carried@Satchel', 'Map:carried@Satchel', 'Satchel:carried'],
-			batches: ['create Hero: Compass, Map, Satchel', 'delete Ally: Compass, Map, Satchel'],
-		},
-	);
-	await takeNotifications();
-	const errorsBeforeD3 = errorCount();
-	await e2e.step(
-		"#102 D3 Ally's equipped Mail dragged to Hero's Equipped section",
-		drop(held('Mail', 'Ally'), 'Hero', slot('equipped', 0)),
-	);
-	e2e.expect(
-		'#102 D3 an armor moved to another character keeps its effect, which applies from the item, with no warning or error',
-		{
-			itemEffects: await page.evaluate(() => window.inventoryE2E.itemEffects('Hero', 'Mail')),
-			effects: await effects('Hero'),
-			woundsMax: await stat('Hero', 'wounds.max'),
-			notifications: await takeNotifications(),
-			errors: errorCount() - errorsBeforeD3,
-		},
-		{
-			itemEffects: ['Mail Effect'],
-			effects: { onActor: 0, applied: ['Bell Effect', 'Mail Effect', 'Rope Effect'], suppressed: ['Elixir Effect', 'Potion Effect'] },
-			woundsMax: 11,
-			notifications: [],
-			errors: 0,
-		},
-	);
-	e2e.expect(
-		'#102 D3 effects follow the Equipment State: equipped armor and carried gear apply, a carried consumable does not',
-		(await effects('Hero')).suppressed,
-		['Elixir Effect', 'Potion Effect'],
-	);
-	// Since #358 a row that is no Container places a drop in its section, as its sort slots do: on a Carried row, in Carried.
-	await e2e.step("#103 D4 Ally's Dropped Whistle dropped on Hero's Bell row", drop(held('Whistle', 'Ally'), 'Hero', { item: 'Bell' }));
-	e2e.expect(
-		'#103 D4 an item from another actor dropped on a Carried row that is no Container lands in Carried',
-		{
-			Ally: (await items('Ally')).filter((name) => name.startsWith('Whistle')),
-			Hero: (await items('Hero')).filter((name) => name.startsWith('Whistle')),
-		},
-		{ Ally: [], Hero: ['Whistle:carried'] },
-	);
-	const heroBeforeD5 = { items: await items('Hero'), carried: await sorts('Hero', 'carried') };
-	await e2e.step(
-		"#103 D5 Hero's Whistle dropped on Hero's Mail row, then elsewhere on Hero's sheet",
-		drops(drop(held('Whistle', 'Hero'), 'Hero', { item: 'Mail' }), drop(held('Whistle', 'Hero'), 'Hero', onSheet)),
-	);
-	e2e.expect(
-		'#103 D5 an item dropped on the row of a section that refuses it, or elsewhere on the sheet of the actor that owns it, stays where it is',
-		{
-			items: await items('Hero'),
-			carried: await sorts('Hero', 'carried'),
-		},
-		heroBeforeD5,
-	);
-	await e2e.step(
-		"#103 D6 Ally's Crate, holding the Box that holds a Coin, dragged to Hero's Carried section",
-		drop(held('Crate', 'Ally'), 'Hero', slot('carried', 0)),
-	);
-	e2e.expect(
-		'#103 D6 a Container held in another one moves with all it holds',
-		{
-			Ally: (await items('Ally')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
-			Hero: (await items('Hero')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
-		},
-		{ Ally: [], Hero: ['Box:carried@Crate', 'Coin:carried@Box', 'Crate:carried'] },
-	);
-	await e2e.step("#103 D7 Hero's Crate deleted by script", () => page.evaluate(() => window.inventoryE2E.deleteItem('Hero', 'Crate')));
-	e2e.expect(
-		'#103 D7 a Container held in another one is deleted with its outermost Container, with all it holds',
-		(await items('Hero')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
-		[],
-	);
-	await e2e.step(
-		"#103 D8 Hero's Sword equipped from its menu, then dragged to the rival",
-		drops(menu('Hero', 'Sword', 'equip'), drop(held('Sword', 'Hero'), 'Rival', onSheet)),
-	);
-	await e2e.step("#103 D9 Hero's Satchel and its contents dragged to the rival", drop(held('Satchel', 'Hero'), 'Rival', onSheet));
-	e2e.expect(
-		'#103 D8-D9 an equipped weapon and a Container with its contents moved to a rival leave the character and are Carried there',
-		{
-			Hero: (await items('Hero')).filter((name) => /^(Sword|Satchel|Map|Compass)/.test(name)),
-			Rival: await items('Rival'),
-		},
-		{
-			Hero: [],
-			Rival: [
-				'Compass:carried@Satchel',
-				'Mail:carried',
-				'Map:carried@Satchel',
+		// #103: drops from the sidebar and a compendium on each actor type.
+		await e2e.step(
+			'#103 B1 sidebar and compendium items dropped on the sections, a Container and elsewhere on a character',
+			drops(
+				drop(sidebar('Sword'), 'Receiver', slot('equipped', 0)),
+				drop(sidebar('Rope'), 'Receiver', slot('carried', 0)),
+				drop(sidebar('Torch'), 'Receiver', slot('dropped', 0)),
+				drop(compendium('Packed Gear'), 'Receiver', slot('carried', 0)),
+				drop(sidebar('Backpack'), 'Receiver', slot('carried', 0)),
+				drop(sidebar('Lantern'), 'Receiver', { item: 'Backpack' }),
+				drop(compendium('Packed Rations'), 'Receiver', { item: 'Backpack' }),
+				drop(sidebar('Knife'), 'Receiver', onSheet),
+			),
+		);
+		e2e.expect(
+			'#103 B1 each item dropped on a character is created once, in the state of the section or Container, or Carried',
+			await items('Receiver'),
+			[
+				'Backpack:carried',
+				'Knife:carried',
+				'Lantern:carried@Backpack',
 				'Packed Gear:carried',
-				'Satchel:carried',
-				'Sword:carried',
+				'Packed Rations:carried@Backpack',
+				'Rope:carried',
+				'Sword:equipped',
+				'Torch:dropped',
 			],
-		},
-	);
+		);
+		await e2e.step(
+			'#103 B2 sidebar and compendium items dropped on the sections, a Container and elsewhere on a vehicle',
+			drops(
+				drop(sidebar('Blaster'), 'Vehicle', slot('equipped', 0)),
+				drop(sidebar('Rope'), 'Vehicle', slot('carried', 0)),
+				drop(sidebar('Backpack'), 'Vehicle', slot('carried', 0)),
+				drop(sidebar('Lantern'), 'Vehicle', { item: 'Backpack' }),
+				drop(compendium('Packed Gear'), 'Vehicle', onSheet),
+			),
+		);
+		e2e.expect(
+			'#103 B2 each item dropped on a vehicle is created once, in the state of the section or Container, or Carried',
+			await items('Vehicle'),
+			['Backpack:carried', 'Blaster:equipped', 'Lantern:carried@Backpack', 'Packed Gear:carried', 'Rope:carried'],
+		);
+		await e2e.step(
+			'#103 B3 sidebar and compendium items dropped on a rival and a minion',
+			drops(
+				drop(sidebar('Mail'), 'Rival', onSheet),
+				drop(compendium('Packed Gear'), 'Rival', onSheet),
+				drop(sidebar('Sword'), 'Minion', onSheet),
+				drop(compendium('Packed Mail'), 'Minion', onSheet),
+			),
+		);
+		e2e.expect('#103 B3 each item dropped on a rival is created once, Carried', await items('Rival'), [
+			'Mail:carried',
+			'Packed Gear:carried',
+		]);
+		e2e.expect('#103 B3 each item dropped on a minion is created once, Carried', await items('Minion'), [
+			'Packed Mail:carried',
+			'Sword:carried',
+		]);
+		e2e.expect("#102 B3 the effects of an adversary's equipment apply whatever its state", await effects('Rival'), {
+			onActor: 0,
+			applied: ['Mail Effect'],
+			suppressed: [],
+		});
 
-	// #103: an unlinked rival token.
-	await e2e.step(
-		"#103 E1 the Token Knife dragged from the unlinked token's sheet to Hero's Carried section",
-		drop(held('Token Knife', 'token:Token Rival'), 'Hero', slot('carried', 0)),
-	);
-	e2e.expect(
-		'#103 E1 an item moved from an unlinked token to a character leaves the token, not its actor',
-		{
-			token: await items('token:Token Rival'),
-			actor: await items('Token Rival'),
-			Hero: (await items('Hero')).filter((name) => name.startsWith('Token Knife')),
-		},
-		{ token: [], actor: ['Token Knife:carried'], Hero: ['Token Knife:carried'] },
-	);
-	await e2e.step(
-		"#103 E2 the Token Knife dragged back from Hero to the token's sheet",
-		drop(held('Token Knife', 'Hero'), 'token:Token Rival', onSheet),
-	);
-	e2e.expect(
-		'#103 E2 an item moved from a character back to an unlinked token leaves the character',
-		{
-			token: await items('token:Token Rival'),
-			Hero: (await items('Hero')).filter((name) => name.startsWith('Token Knife')),
-		},
-		{ token: ['Token Knife:carried'], Hero: [] },
-	);
+		// #103: what goes on to the sheet.
+		await e2e.step(
+			'#103 C1 a talent dropped on the Carried section and a skill on a Container of a character',
+			drops(drop(sidebar('Talent'), 'Receiver', slot('carried', 0)), drop(sidebar('Skill'), 'Receiver', { item: 'Backpack' })),
+		);
+		await e2e.step(
+			'#103 C2 items of an actor in a compendium dropped on the Dropped section and on a Container',
+			drops(
+				drop({ compendiumActorItem: 'Packed Lamp' }, 'Receiver', slot('dropped', 0)),
+				drop({ compendiumActorItem: 'Packed Map' }, 'Receiver', { item: 'Backpack' }),
+			),
+		);
+		await e2e.step(
+			'#103 C3 a folder of items dropped on the Inventory tab',
+			drop({ folder: 'Folder' }, 'Receiver', { on: '.tab-inventory .encumbrance-currency-row' }),
+		);
+		e2e.expect(
+			'#103 C1-C3 a talent and a skill go on to the sheet, items of a compendium actor and of a folder land Carried, each once',
+			await items('Receiver'),
+			[
+				'Backpack:carried',
+				'Folder Dagger:carried',
+				'Folder Lamp:carried',
+				'Knife:carried',
+				'Lantern:carried@Backpack',
+				'Packed Gear:carried',
+				'Packed Lamp:carried',
+				'Packed Map:carried',
+				'Packed Rations:carried@Backpack',
+				'Rope:carried',
+				'Skill (skill)',
+				'Sword:equipped',
+				'Talent (talent)',
+				'Torch:dropped',
+			],
+		);
 
-	// #103: refused drops.
-	const player = await e2e.player();
-	await player.evaluate(installInventoryHelpers);
-	await player.evaluate(() => window.inventoryE2E.takeNotifications());
-	const heroBeforeF1 = await items('Hero');
-	await e2e.step(
-		"#103 F1 the player drops an item of an actor they don't own on a section and elsewhere on their character",
-		drops(
-			() =>
-				player.evaluate(() => window.inventoryE2E.drop({ held: 'Lockpick', by: 'Ally' }, 'Hero', { section: 'carried', slot: 0 })),
-			() => player.evaluate(() => window.inventoryE2E.drop({ held: 'Lockpick', by: 'Ally' }, 'Hero', { on: '.window-content' })),
-		),
-	);
-	e2e.expect(
-		"#103 F1 an item of an actor the player doesn't own is refused, in silence",
-		{
-			Hero: await items('Hero'),
-			Ally: (await items('Ally')).filter((name) => name.startsWith('Lockpick')),
-			notifications: await player.evaluate(() => window.inventoryE2E.takeNotifications()),
-		},
-		{ Hero: heroBeforeF1, Ally: ['Lockpick:carried'], notifications: [] },
-	);
-	await takeNotifications();
-	await e2e.step(
-		"#103 F2 the GM drops a Container from the sidebar into Hero's Pack",
-		drop(sidebar('Backpack'), 'Hero', { item: 'Pack' }),
-	);
-	e2e.expect(
-		'#103 F2 a Container dropped into a Container is refused, in silence',
-		{
-			Hero: await items('Hero'),
-			notifications: await takeNotifications(),
-		},
-		{ Hero: heroBeforeF1, notifications: [] },
-	);
+		// #103: moves between actors, from Ally (owned by the GM) to Hero.
+		await e2e.step(
+			"#103 D1 Ally's equipped Sword dragged to Hero's Carried section",
+			drop(held('Sword', 'Ally'), 'Hero', slot('carried', 0)),
+		);
+		e2e.expect(
+			'#103 D1 a weapon moved to another character leaves the first and takes the state of its new section',
+			{
+				Ally: (await items('Ally')).filter((name) => name.startsWith('Sword')),
+				Hero: (await items('Hero')).filter((name) => name.startsWith('Sword')),
+			},
+			{ Ally: [], Hero: ['Sword:carried'] },
+		);
+		await takeBatches();
+		await e2e.step(
+			"#103 D2 Ally's Satchel and its contents dragged to Hero's Carried section",
+			drop(held('Satchel', 'Ally'), 'Hero', slot('carried', 0)),
+		);
+		e2e.expect(
+			'#103 D2 a Container moved to another character takes its contents, with new ids, created then deleted in one batch each',
+			{
+				Ally: (await items('Ally')).filter((name) => /^(Satchel|Map|Compass)/.test(name)),
+				Hero: (await items('Hero')).filter((name) => /^(Satchel|Map|Compass)/.test(name)),
+				batches: (await takeBatches()).filter((batch) => !batch.startsWith('update')),
+			},
+			{
+				Ally: [],
+				Hero: ['Compass:carried@Satchel', 'Map:carried@Satchel', 'Satchel:carried'],
+				batches: ['create Hero: Compass, Map, Satchel', 'delete Ally: Compass, Map, Satchel'],
+			},
+		);
+		await takeNotifications();
+		const errorsBeforeD3 = errorCount();
+		await e2e.step(
+			"#102 D3 Ally's equipped Mail dragged to Hero's Equipped section",
+			drop(held('Mail', 'Ally'), 'Hero', slot('equipped', 0)),
+		);
+		e2e.expect(
+			'#102 D3 an armor moved to another character keeps its effect, which applies from the item, with no warning or error',
+			{
+				itemEffects: await page.evaluate(() => window.inventoryE2E.itemEffects('Hero', 'Mail')),
+				effects: await effects('Hero'),
+				woundsMax: await stat('Hero', 'wounds.max'),
+				notifications: await takeNotifications(),
+				errors: errorCount() - errorsBeforeD3,
+			},
+			{
+				itemEffects: ['Mail Effect'],
+				effects: {
+					onActor: 0,
+					applied: ['Bell Effect', 'Mail Effect', 'Rope Effect'],
+					suppressed: ['Elixir Effect', 'Potion Effect'],
+				},
+				woundsMax: 11,
+				notifications: [],
+				errors: 0,
+			},
+		);
+		e2e.expect(
+			'#102 D3 effects follow the Equipment State: equipped armor and carried gear apply, a carried consumable does not',
+			(await effects('Hero')).suppressed,
+			['Elixir Effect', 'Potion Effect'],
+		);
+		// Since #358 a row that is no Container places a drop in its section, as its sort slots do: on a Carried row, in Carried.
+		await e2e.step(
+			"#103 D4 Ally's Dropped Whistle dropped on Hero's Bell row",
+			drop(held('Whistle', 'Ally'), 'Hero', { item: 'Bell' }),
+		);
+		e2e.expect(
+			'#103 D4 an item from another actor dropped on a Carried row that is no Container lands in Carried',
+			{
+				Ally: (await items('Ally')).filter((name) => name.startsWith('Whistle')),
+				Hero: (await items('Hero')).filter((name) => name.startsWith('Whistle')),
+			},
+			{ Ally: [], Hero: ['Whistle:carried'] },
+		);
+		const heroBeforeD5 = { items: await items('Hero'), carried: await sorts('Hero', 'carried') };
+		await e2e.step(
+			"#103 D5 Hero's Whistle dropped on Hero's Mail row, then elsewhere on Hero's sheet",
+			drops(drop(held('Whistle', 'Hero'), 'Hero', { item: 'Mail' }), drop(held('Whistle', 'Hero'), 'Hero', onSheet)),
+		);
+		e2e.expect(
+			'#103 D5 an item dropped on the row of a section that refuses it, or elsewhere on the sheet of the actor that owns it, stays where it is',
+			{
+				items: await items('Hero'),
+				carried: await sorts('Hero', 'carried'),
+			},
+			heroBeforeD5,
+		);
+		await e2e.step(
+			"#103 D6 Ally's Crate, holding the Box that holds a Coin, dragged to Hero's Carried section",
+			drop(held('Crate', 'Ally'), 'Hero', slot('carried', 0)),
+		);
+		e2e.expect(
+			'#103 D6 a Container held in another one moves with all it holds',
+			{
+				Ally: (await items('Ally')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
+				Hero: (await items('Hero')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
+			},
+			{ Ally: [], Hero: ['Box:carried@Crate', 'Coin:carried@Box', 'Crate:carried'] },
+		);
+		await e2e.step("#103 D7 Hero's Crate deleted by script", () =>
+			page.evaluate(() => window.inventoryE2E.deleteItem('Hero', 'Crate')),
+		);
+		e2e.expect(
+			'#103 D7 a Container held in another one is deleted with its outermost Container, with all it holds',
+			(await items('Hero')).filter((name) => /^(Crate|Box|Coin)/.test(name)),
+			[],
+		);
+		await e2e.step(
+			"#103 D8 Hero's Sword equipped from its menu, then dragged to the rival",
+			drops(menu('Hero', 'Sword', 'equip'), drop(held('Sword', 'Hero'), 'Rival', onSheet)),
+		);
+		await e2e.step("#103 D9 Hero's Satchel and its contents dragged to the rival", drop(held('Satchel', 'Hero'), 'Rival', onSheet));
+		e2e.expect(
+			'#103 D8-D9 an equipped weapon and a Container with its contents moved to a rival leave the character and are Carried there',
+			{
+				Hero: (await items('Hero')).filter((name) => /^(Sword|Satchel|Map|Compass)/.test(name)),
+				Rival: await items('Rival'),
+			},
+			{
+				Hero: [],
+				Rival: [
+					'Compass:carried@Satchel',
+					'Mail:carried',
+					'Map:carried@Satchel',
+					'Packed Gear:carried',
+					'Satchel:carried',
+					'Sword:carried',
+				],
+			},
+		);
 
-	// #103, #102: a Container's contents share its state, and their effects follow.
-	const pack = async () => ({
-		items: (await items('Hero')).filter((name) => /^(Pack|Rope|Flask)/.test(name)),
-		rope: (await effects('Hero')).applied.includes('Rope Effect'),
-	});
-	const packIn = (state: EquipmentState, rope: boolean) => ({
-		items: [`Flask:${state}@Pack`, `Pack:${state}`, `Rope:${state}@Pack`],
-		rope,
-	});
-	await e2e.step("#103 G1 Hero's Pack dragged to the Dropped section", drop(held('Pack', 'Hero'), 'Hero', slot('dropped', 0)));
-	e2e.expect('#103 G1 a Container dragged to Dropped takes its contents, whose effects stop', await pack(), packIn('dropped', false));
-	await e2e.step("#103 G2 Hero's Pack dragged back to the Carried section", drop(held('Pack', 'Hero'), 'Hero', slot('carried', 0)));
-	e2e.expect(
-		'#103 G2 a Container dragged back to Carried brings its contents, whose effects apply again',
-		await pack(),
-		packIn('carried', true),
-	);
-	await e2e.step("#103 G3 Hero's Pack dropped from its menu", menu('Hero', 'Pack', 'drop'));
-	e2e.expect('#103 G3 a Container dropped from its menu takes its contents, whose effects stop', await pack(), packIn('dropped', false));
-	await e2e.step("#103 G4 Hero's Pack picked up from its menu", menu('Hero', 'Pack', 'carry'));
-	e2e.expect(
-		'#103 G4 a Container picked up from its menu brings its contents, whose effects apply again',
-		await pack(),
-		packIn('carried', true),
-	);
-	await e2e.step("#103 G5 Hero's Pack dropped by script", updateItem('Hero', 'Pack', { 'system.state': 'dropped' }));
-	e2e.expect('#103 G5 a Container whose state a script changes takes its contents along', await pack(), packIn('dropped', false));
-	await e2e.step(
-		"#103 G6 Hero's Pack carried by script, then the Rope in it dropped by script",
-		drops(updateItem('Hero', 'Pack', { 'system.state': 'carried' }), async () => {
-			// The Pack's contents take its state first, so that the Rope's own change comes after.
-			await e2e.settle();
-			await updateItem('Hero', 'Rope', { 'system.state': 'dropped' })();
-		}),
-	);
-	e2e.expect(
-		"#103 G6 an item in a Container whose state a script changes takes back the Container's state",
-		await pack(),
-		packIn('carried', true),
-	);
-	await e2e.step("#103 G7 a Coil created by script in Hero's Carried Pack, Dropped", () =>
-		page.evaluate(async () => {
-			const hero = game.actors.getName('E2E Hero');
-			await hero.createEmbeddedDocuments('Item', [
-				{ name: 'E2E Coil', type: 'gear', system: { state: 'dropped', container: hero.items.getName('E2E Pack').id } },
-			]);
-		}),
-	);
-	e2e.expect(
-		'#103 G7 an item created by script in a Container with another state keeps its own',
-		(await items('Hero')).filter((name) => name.startsWith('Coil')),
-		['Coil:dropped@Pack'],
-	);
-	await e2e.step("#103 G8 a Dagger created by script Equipped in Hero's Pack", () =>
-		page.evaluate(async () => {
-			const hero = game.actors.getName('E2E Hero');
-			await hero.createEmbeddedDocuments('Item', [
-				{ name: 'E2E Dagger', type: 'weapon', system: { state: 'equipped', container: hero.items.getName('E2E Pack').id } },
-			]);
-		}),
-	);
-	e2e.expect(
-		'#103 G8 the Equipped section leaves out an item held in a Container, which the Container lists',
-		{
-			equipped: await section('Hero', 'equipped'),
-			pack: await page.evaluate(() => window.inventoryE2E.contents('Hero', 'Pack')),
-		},
-		{ equipped: ['Mail'], pack: ['Rope', 'Flask', 'Coil', 'Dagger'] },
-	);
+		// #103: an unlinked rival token.
+		await e2e.step(
+			"#103 E1 the Token Knife dragged from the unlinked token's sheet to Hero's Carried section",
+			drop(held('Token Knife', 'token:Token Rival'), 'Hero', slot('carried', 0)),
+		);
+		e2e.expect(
+			'#103 E1 an item moved from an unlinked token to a character leaves the token, not its actor',
+			{
+				token: await items('token:Token Rival'),
+				actor: await items('Token Rival'),
+				Hero: (await items('Hero')).filter((name) => name.startsWith('Token Knife')),
+			},
+			{ token: [], actor: ['Token Knife:carried'], Hero: ['Token Knife:carried'] },
+		);
+		await e2e.step(
+			"#103 E2 the Token Knife dragged back from Hero to the token's sheet",
+			drop(held('Token Knife', 'Hero'), 'token:Token Rival', onSheet),
+		);
+		e2e.expect(
+			'#103 E2 an item moved from a character back to an unlinked token leaves the character',
+			{
+				token: await items('token:Token Rival'),
+				Hero: (await items('Hero')).filter((name) => name.startsWith('Token Knife')),
+			},
+			{ token: ['Token Knife:carried'], Hero: [] },
+		);
 
-	// #102: gear and armor effects follow their state, with the tooltip of the Inactive Effects.
-	const bell = async () => ({
-		state: (await items('Hero')).find((name) => name.startsWith('Bell:')),
-		strainMax: await stat('Hero', 'strain.max'),
-		inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Bell')),
-	});
-	const bellIn = (state: string, label?: string) => ({
-		state: `Bell:${state}`,
-		strainMax: label ? 10 : 110,
-		inactive: label ? [`Bell Effect | ${tooltip('Bell', label)}`] : [],
-	});
-	await e2e.step("#102 H1 Hero's Bell dropped from its menu", menu('Hero', 'Bell', 'drop'));
-	e2e.expect(
-		'#102 H1 gear dropped from its menu stops its effect, listed as inactive with the reason',
-		await bell(),
-		bellIn('dropped', 'Dropped'),
-	);
-	await e2e.step("#102 H2 Hero's Bell picked up from its menu", menu('Hero', 'Bell', 'carry'));
-	e2e.expect('#102 H2 gear picked up from its menu applies its effect again', await bell(), bellIn('carried'));
-	await e2e.step("#102 H3 Hero's Bell dragged to the Dropped section", drop(held('Bell', 'Hero'), 'Hero', slot('dropped', 0)));
-	e2e.expect(
-		'#102 H3 gear dragged to Dropped stops its effect, listed as inactive with the reason',
-		await bell(),
-		bellIn('dropped', 'Dropped'),
-	);
-	await e2e.step("#102 H4 Hero's Bell dragged into the Pack", drop(held('Bell', 'Hero'), 'Hero', { item: 'Pack' }));
-	e2e.expect('#102 H4 gear put in a Carried Container applies its effect', await bell(), bellIn('carried@Pack'));
-	await e2e.step("#102 H5 Ally's Horn dragged to Hero's Dropped section", drop(held('Horn', 'Ally'), 'Hero', slot('dropped', 0)));
-	e2e.expect(
-		'#102 H5 gear dropped by another actor on Dropped comes with its effect, stopped',
-		{
-			state: (await items('Hero')).find((name) => name.startsWith('Horn')),
-			inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Horn')),
-		},
-		{ state: 'Horn:dropped', inactive: [`Horn Effect | ${tooltip('Horn', 'Dropped')}`] },
-	);
-	await e2e.step("#102 H6 Hero's Mail unequipped from its menu", menu('Hero', 'Mail', 'carry'));
-	e2e.expect(
-		'#102 H6 armor unequipped from its menu stops its effect, listed as inactive with the reason',
-		{
-			woundsMax: await stat('Hero', 'wounds.max'),
-			inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Mail')),
-		},
-		{ woundsMax: 10, inactive: [`Mail Effect | ${tooltip('Mail', 'Carried')}`] },
-	);
-	await e2e.step("#102 H7 Hero's Mail equipped from its menu", menu('Hero', 'Mail', 'equip'));
-	e2e.expect(
-		'#102 H7 armor equipped from its menu applies its effect again',
-		{
-			woundsMax: await stat('Hero', 'wounds.max'),
-			inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Mail')),
-		},
-		{ woundsMax: 11, inactive: [] },
-	);
-	await e2e.step(
-		"#102 H8 armors dropped from the sidebar and a compendium on Hero's Carried section",
-		drops(drop(sidebar('Jacket'), 'Hero', slot('carried', 0)), drop(compendium('Packed Mail'), 'Hero', slot('carried', 0))),
-	);
-	e2e.expect(
-		'#102 H8 an armor dropped from the sidebar or a compendium on Carried has its effect stopped',
-		{
-			woundsMax: await stat('Hero', 'wounds.max'),
-			suppressed: (await effects('Hero')).suppressed.filter((name) => /^(Jacket|Packed Mail)/.test(name)),
-		},
-		{ woundsMax: 11, suppressed: ['Jacket Effect', 'Packed Mail Effect'] },
-	);
+		// #103: refused drops.
+		const player = await e2e.player();
+		await player.evaluate(installInventoryHelpers);
+		await player.evaluate(() => window.inventoryE2E.takeNotifications());
+		const heroBeforeF1 = await items('Hero');
+		await e2e.step(
+			"#103 F1 the player drops an item of an actor they don't own on a section and elsewhere on their character",
+			drops(
+				() =>
+					player.evaluate(() =>
+						window.inventoryE2E.drop({ held: 'Lockpick', by: 'Ally' }, 'Hero', { section: 'carried', slot: 0 }),
+					),
+				() => player.evaluate(() => window.inventoryE2E.drop({ held: 'Lockpick', by: 'Ally' }, 'Hero', { on: '.window-content' })),
+			),
+		);
+		e2e.expect(
+			"#103 F1 an item of an actor the player doesn't own is refused, in silence",
+			{
+				Hero: await items('Hero'),
+				Ally: (await items('Ally')).filter((name) => name.startsWith('Lockpick')),
+				notifications: await player.evaluate(() => window.inventoryE2E.takeNotifications()),
+			},
+			{ Hero: heroBeforeF1, Ally: ['Lockpick:carried'], notifications: [] },
+		);
+		await takeNotifications();
+		await e2e.step(
+			"#103 F2 the GM drops a Container from the sidebar into Hero's Pack",
+			drop(sidebar('Backpack'), 'Hero', { item: 'Pack' }),
+		);
+		e2e.expect(
+			'#103 F2 a Container dropped into a Container is refused, in silence',
+			{
+				Hero: await items('Hero'),
+				notifications: await takeNotifications(),
+			},
+			{ Hero: heroBeforeF1, notifications: [] },
+		);
 
-	// #193: a character wears one armor.
-	const worn = async () => ({
-		items: (await items('Wearer')).filter((name) => /^(Coat|Vest|Plate|Packed Mail)/.test(name)),
-		...(await protection('Wearer')),
-		woundsMax: await stat('Wearer', 'wounds.max'),
-	});
-	// Wearer's soak is Brawn 2 plus the worn armor's.
-	await takeBatches();
-	await e2e.step("#193 I1 Wearer's Vest equipped from its menu, while wearing the Coat", menu('Wearer', 'Vest', 'equip'));
-	e2e.expect(
-		'#193 I1 equipping an armor from its menu takes the worn one off in the same update, and soak, defense, the Combat tab and effects follow',
-		{
-			...(await worn()),
-			lastCarried: (await sorts('Wearer', 'carried')).at(-1)?.split('=')[0],
-			batches: (await takeBatches()).filter((batch) => batch.startsWith('update')),
-		},
-		{
-			items: ['Coat:carried', 'Plate:carried', 'Vest:equipped'],
-			soak: 3,
-			defense: [2, 2],
-			combatTab: ['Vest'],
-			woundsMax: 20,
-			lastCarried: 'Coat',
-			batches: ['update Wearer: Coat, Vest'],
-		},
-	);
-	await e2e.step(
-		"#193 I2 Wearer's Coat dragged back onto the Equipped section",
-		drop(held('Coat', 'Wearer'), 'Wearer', slot('equipped', 0)),
-	);
-	e2e.expect(
-		'#193 I2 an armor dragged onto Equipped takes the worn one off, and soak, defense, the Combat tab and effects follow',
-		await worn(),
-		{
-			items: ['Coat:equipped', 'Plate:carried', 'Vest:carried'],
+		// #103, #102: a Container's contents share its state, and their effects follow.
+		const pack = async () => ({
+			items: (await items('Hero')).filter((name) => /^(Pack|Rope|Flask)/.test(name)),
+			rope: (await effects('Hero')).applied.includes('Rope Effect'),
+		});
+		const packIn = (state: EquipmentState, rope: boolean) => ({
+			items: [`Flask:${state}@Pack`, `Pack:${state}`, `Rope:${state}@Pack`],
+			rope,
+		});
+		await e2e.step("#103 G1 Hero's Pack dragged to the Dropped section", drop(held('Pack', 'Hero'), 'Hero', slot('dropped', 0)));
+		e2e.expect('#103 G1 a Container dragged to Dropped takes its contents, whose effects stop', await pack(), packIn('dropped', false));
+		await e2e.step("#103 G2 Hero's Pack dragged back to the Carried section", drop(held('Pack', 'Hero'), 'Hero', slot('carried', 0)));
+		e2e.expect(
+			'#103 G2 a Container dragged back to Carried brings its contents, whose effects apply again',
+			await pack(),
+			packIn('carried', true),
+		);
+		await e2e.step("#103 G3 Hero's Pack dropped from its menu", menu('Hero', 'Pack', 'drop'));
+		e2e.expect(
+			'#103 G3 a Container dropped from its menu takes its contents, whose effects stop',
+			await pack(),
+			packIn('dropped', false),
+		);
+		await e2e.step("#103 G4 Hero's Pack picked up from its menu", menu('Hero', 'Pack', 'carry'));
+		e2e.expect(
+			'#103 G4 a Container picked up from its menu brings its contents, whose effects apply again',
+			await pack(),
+			packIn('carried', true),
+		);
+		await e2e.step("#103 G5 Hero's Pack dropped by script", updateItem('Hero', 'Pack', { 'system.state': 'dropped' }));
+		e2e.expect('#103 G5 a Container whose state a script changes takes its contents along', await pack(), packIn('dropped', false));
+		await e2e.step(
+			"#103 G6 Hero's Pack carried by script, then the Rope in it dropped by script",
+			drops(updateItem('Hero', 'Pack', { 'system.state': 'carried' }), async () => {
+				// The Pack's contents take its state first, so that the Rope's own change comes after.
+				await e2e.settle();
+				await updateItem('Hero', 'Rope', { 'system.state': 'dropped' })();
+			}),
+		);
+		e2e.expect(
+			"#103 G6 an item in a Container whose state a script changes takes back the Container's state",
+			await pack(),
+			packIn('carried', true),
+		);
+		await e2e.step("#103 G7 a Coil created by script in Hero's Carried Pack, Dropped", () =>
+			page.evaluate(async () => {
+				const hero = game.actors.getName('E2E Hero');
+				await hero.createEmbeddedDocuments('Item', [
+					{ name: 'E2E Coil', type: 'gear', system: { state: 'dropped', container: hero.items.getName('E2E Pack').id } },
+				]);
+			}),
+		);
+		e2e.expect(
+			'#103 G7 an item created by script in a Container with another state keeps its own',
+			(await items('Hero')).filter((name) => name.startsWith('Coil')),
+			['Coil:dropped@Pack'],
+		);
+		await e2e.step("#103 G8 a Dagger created by script Equipped in Hero's Pack", () =>
+			page.evaluate(async () => {
+				const hero = game.actors.getName('E2E Hero');
+				await hero.createEmbeddedDocuments('Item', [
+					{ name: 'E2E Dagger', type: 'weapon', system: { state: 'equipped', container: hero.items.getName('E2E Pack').id } },
+				]);
+			}),
+		);
+		e2e.expect(
+			'#103 G8 the Equipped section leaves out an item held in a Container, which the Container lists',
+			{
+				equipped: await section('Hero', 'equipped'),
+				pack: await page.evaluate(() => window.inventoryE2E.contents('Hero', 'Pack')),
+			},
+			{ equipped: ['Mail'], pack: ['Rope', 'Flask', 'Coil', 'Dagger'] },
+		);
+
+		// #102: gear and armor effects follow their state, with the tooltip of the Inactive Effects.
+		const bell = async () => ({
+			state: (await items('Hero')).find((name) => name.startsWith('Bell:')),
+			strainMax: await stat('Hero', 'strain.max'),
+			inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Bell')),
+		});
+		const bellIn = (state: string, label?: string) => ({
+			state: `Bell:${state}`,
+			strainMax: label ? 10 : 110,
+			inactive: label ? [`Bell Effect | ${tooltip('Bell', label)}`] : [],
+		});
+		await e2e.step("#102 H1 Hero's Bell dropped from its menu", menu('Hero', 'Bell', 'drop'));
+		e2e.expect(
+			'#102 H1 gear dropped from its menu stops its effect, listed as inactive with the reason',
+			await bell(),
+			bellIn('dropped', 'Dropped'),
+		);
+		await e2e.step("#102 H2 Hero's Bell picked up from its menu", menu('Hero', 'Bell', 'carry'));
+		e2e.expect('#102 H2 gear picked up from its menu applies its effect again', await bell(), bellIn('carried'));
+		await e2e.step("#102 H3 Hero's Bell dragged to the Dropped section", drop(held('Bell', 'Hero'), 'Hero', slot('dropped', 0)));
+		e2e.expect(
+			'#102 H3 gear dragged to Dropped stops its effect, listed as inactive with the reason',
+			await bell(),
+			bellIn('dropped', 'Dropped'),
+		);
+		await e2e.step("#102 H4 Hero's Bell dragged into the Pack", drop(held('Bell', 'Hero'), 'Hero', { item: 'Pack' }));
+		e2e.expect('#102 H4 gear put in a Carried Container applies its effect', await bell(), bellIn('carried@Pack'));
+		await e2e.step("#102 H5 Ally's Horn dragged to Hero's Dropped section", drop(held('Horn', 'Ally'), 'Hero', slot('dropped', 0)));
+		e2e.expect(
+			'#102 H5 gear dropped by another actor on Dropped comes with its effect, stopped',
+			{
+				state: (await items('Hero')).find((name) => name.startsWith('Horn')),
+				inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Horn')),
+			},
+			{ state: 'Horn:dropped', inactive: [`Horn Effect | ${tooltip('Horn', 'Dropped')}`] },
+		);
+		await e2e.step("#102 H6 Hero's Mail unequipped from its menu", menu('Hero', 'Mail', 'carry'));
+		e2e.expect(
+			'#102 H6 armor unequipped from its menu stops its effect, listed as inactive with the reason',
+			{
+				woundsMax: await stat('Hero', 'wounds.max'),
+				inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Mail')),
+			},
+			{ woundsMax: 10, inactive: [`Mail Effect | ${tooltip('Mail', 'Carried')}`] },
+		);
+		await e2e.step("#102 H7 Hero's Mail equipped from its menu", menu('Hero', 'Mail', 'equip'));
+		e2e.expect(
+			'#102 H7 armor equipped from its menu applies its effect again',
+			{
+				woundsMax: await stat('Hero', 'wounds.max'),
+				inactive: (await inactive('Hero')).filter((effect) => effect.startsWith('Mail')),
+			},
+			{ woundsMax: 11, inactive: [] },
+		);
+		await e2e.step(
+			"#102 H8 armors dropped from the sidebar and a compendium on Hero's Carried section",
+			drops(drop(sidebar('Jacket'), 'Hero', slot('carried', 0)), drop(compendium('Packed Mail'), 'Hero', slot('carried', 0))),
+		);
+		e2e.expect(
+			'#102 H8 an armor dropped from the sidebar or a compendium on Carried has its effect stopped',
+			{
+				woundsMax: await stat('Hero', 'wounds.max'),
+				suppressed: (await effects('Hero')).suppressed.filter((name) => /^(Jacket|Packed Mail)/.test(name)),
+			},
+			{ woundsMax: 11, suppressed: ['Jacket Effect', 'Packed Mail Effect'] },
+		);
+
+		// #193: a character wears one armor.
+		const worn = async () => ({
+			items: (await items('Wearer')).filter((name) => /^(Coat|Vest|Plate|Packed Mail)/.test(name)),
+			...(await protection('Wearer')),
+			woundsMax: await stat('Wearer', 'wounds.max'),
+		});
+		// Wearer's soak is Brawn 2 plus the worn armor's.
+		await takeBatches();
+		await e2e.step("#193 I1 Wearer's Vest equipped from its menu, while wearing the Coat", menu('Wearer', 'Vest', 'equip'));
+		e2e.expect(
+			'#193 I1 equipping an armor from its menu takes the worn one off in the same update, and soak, defense, the Combat tab and effects follow',
+			{
+				...(await worn()),
+				lastCarried: (await sorts('Wearer', 'carried')).at(-1)?.split('=')[0],
+				batches: (await takeBatches()).filter((batch) => batch.startsWith('update')),
+			},
+			{
+				items: ['Coat:carried', 'Plate:carried', 'Vest:equipped'],
+				soak: 3,
+				defense: [2, 2],
+				combatTab: ['Vest'],
+				woundsMax: 20,
+				lastCarried: 'Coat',
+				batches: ['update Wearer: Coat, Vest'],
+			},
+		);
+		await e2e.step(
+			"#193 I2 Wearer's Coat dragged back onto the Equipped section",
+			drop(held('Coat', 'Wearer'), 'Wearer', slot('equipped', 0)),
+		);
+		e2e.expect(
+			'#193 I2 an armor dragged onto Equipped takes the worn one off, and soak, defense, the Combat tab and effects follow',
+			await worn(),
+			{
+				items: ['Coat:equipped', 'Plate:carried', 'Vest:carried'],
+				soak: 4,
+				defense: [1, 1],
+				combatTab: ['Coat'],
+				woundsMax: 11,
+			},
+		);
+		await e2e.step(
+			"#193 I3 an armor dropped from a compendium on Wearer's Equipped section",
+			drop(compendium('Packed Mail'), 'Wearer', slot('equipped', 0)),
+		);
+		e2e.expect('#193 I3 an armor dropped from a compendium on Equipped takes the worn one off', await worn(), {
+			items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:carried', 'Vest:carried'],
 			soak: 4,
 			defense: [1, 1],
-			combatTab: ['Coat'],
-			woundsMax: 11,
-		},
-	);
-	await e2e.step(
-		"#193 I3 an armor dropped from a compendium on Wearer's Equipped section",
-		drop(compendium('Packed Mail'), 'Wearer', slot('equipped', 0)),
-	);
-	e2e.expect('#193 I3 an armor dropped from a compendium on Equipped takes the worn one off', await worn(), {
-		items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:carried', 'Vest:carried'],
-		soak: 4,
-		defense: [1, 1],
-		combatTab: ['Packed Mail'],
-		woundsMax: 1010,
-	});
-	await e2e.step("#193 I4 Wearer's Plate equipped by script", updateItem('Wearer', 'Plate', { 'system.state': 'equipped' }));
-	e2e.expect(
-		'#193 I4 an armor equipped by script leaves the worn one on: soak and defense count the best soak, every effect applies',
-		await worn(),
-		{
-			items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:equipped', 'Vest:carried'],
-			soak: 5,
-			defense: [0, 0],
-			combatTab: ['Plate', 'Packed Mail'],
-			woundsMax: 1110,
-		},
-	);
-	await e2e.step("#193 I5 Wearer's Plate unequipped from its menu", menu('Wearer', 'Plate', 'carry'));
-	e2e.expect('#193 I5 with two armors worn, unequipping one leaves the other counted', await worn(), {
-		items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:carried', 'Vest:carried'],
-		soak: 4,
-		defense: [1, 1],
-		combatTab: ['Packed Mail'],
-		woundsMax: 1010,
-	});
-	await e2e.step("#193 I6 Wearer's Plate equipped again from its menu", menu('Wearer', 'Plate', 'equip'));
-	e2e.expect('#193 I6 equipping it again from its menu takes the other off', await worn(), {
-		items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:carried'],
-		soak: 5,
-		defense: [0, 0],
-		combatTab: ['Plate'],
-		woundsMax: 110,
-	});
-	await e2e.step(
-		"#235 I7 Wearer's Backpack equipped by script, then the Vest dragged into it",
-		drops(
-			updateItem('Wearer', 'Backpack', { 'system.state': 'equipped' }),
-			drop(held('Vest', 'Wearer'), 'Wearer', { item: 'Backpack' }),
-		),
-	);
-	e2e.expect(
-		'#235 I7 an armor put in an Equipped Container adds no soak, defense or effect, and leaves the worn one on',
-		{ ...(await worn()), inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Vest')) },
-		{
-			items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:equipped@Backpack'],
+			combatTab: ['Packed Mail'],
+			woundsMax: 1010,
+		});
+		await e2e.step("#193 I4 Wearer's Plate equipped by script", updateItem('Wearer', 'Plate', { 'system.state': 'equipped' }));
+		e2e.expect(
+			'#193 I4 an armor equipped by script leaves the worn one on: soak and defense count the best soak, every effect applies',
+			await worn(),
+			{
+				items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:equipped', 'Vest:carried'],
+				soak: 5,
+				defense: [0, 0],
+				combatTab: ['Plate', 'Packed Mail'],
+				woundsMax: 1110,
+			},
+		);
+		await e2e.step("#193 I5 Wearer's Plate unequipped from its menu", menu('Wearer', 'Plate', 'carry'));
+		e2e.expect('#193 I5 with two armors worn, unequipping one leaves the other counted', await worn(), {
+			items: ['Coat:carried', 'Packed Mail:equipped', 'Plate:carried', 'Vest:carried'],
+			soak: 4,
+			defense: [1, 1],
+			combatTab: ['Packed Mail'],
+			woundsMax: 1010,
+		});
+		await e2e.step("#193 I6 Wearer's Plate equipped again from its menu", menu('Wearer', 'Plate', 'equip'));
+		e2e.expect('#193 I6 equipping it again from its menu takes the other off', await worn(), {
+			items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:carried'],
 			soak: 5,
 			defense: [0, 0],
 			combatTab: ['Plate'],
 			woundsMax: 110,
-			inactive: [`Vest Effect | Inactive while E2E Vest is in E2E Backpack.`],
-		},
-	);
-	const strainBeforeI8 = (await stat('Wearer', 'strain.max')) as number;
-	await e2e.step(
-		"#235 I8 Wearer's Equipped Dirk dragged into the Equipped Backpack",
-		drop(held('Dirk', 'Wearer'), 'Wearer', { item: 'Backpack' }),
-	);
-	e2e.expect(
-		'#235 I8 a weapon put in an Equipped Container stops its effect, listed as inactive with the Container',
-		{
-			item: (await items('Wearer')).find((name) => name.startsWith('Dirk')),
-			strainLost: strainBeforeI8 - ((await stat('Wearer', 'strain.max')) as number),
-			inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Dirk')),
-		},
-		{ item: 'Dirk:equipped@Backpack', strainLost: 5, inactive: [`Dirk Effect | Inactive while E2E Dirk is in E2E Backpack.`] },
-	);
+		});
+		await e2e.step(
+			"#235 I7 Wearer's Backpack equipped by script, then the Vest dragged into it",
+			drops(
+				updateItem('Wearer', 'Backpack', { 'system.state': 'equipped' }),
+				drop(held('Vest', 'Wearer'), 'Wearer', { item: 'Backpack' }),
+			),
+		);
+		e2e.expect(
+			'#235 I7 an armor put in an Equipped Container adds no soak, defense or effect, and leaves the worn one on',
+			{ ...(await worn()), inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Vest')) },
+			{
+				items: ['Coat:carried', 'Packed Mail:carried', 'Plate:equipped', 'Vest:equipped@Backpack'],
+				soak: 5,
+				defense: [0, 0],
+				combatTab: ['Plate'],
+				woundsMax: 110,
+				inactive: [`Vest Effect | Inactive while E2E Vest is in E2E Backpack.`],
+			},
+		);
+		const strainBeforeI8 = (await stat('Wearer', 'strain.max')) as number;
+		await e2e.step(
+			"#235 I8 Wearer's Equipped Dirk dragged into the Equipped Backpack",
+			drop(held('Dirk', 'Wearer'), 'Wearer', { item: 'Backpack' }),
+		);
+		e2e.expect(
+			'#235 I8 a weapon put in an Equipped Container stops its effect, listed as inactive with the Container',
+			{
+				item: (await items('Wearer')).find((name) => name.startsWith('Dirk')),
+				strainLost: strainBeforeI8 - ((await stat('Wearer', 'strain.max')) as number),
+				inactive: (await inactive('Wearer')).filter((effect) => effect.startsWith('Dirk')),
+			},
+			{ item: 'Dirk:equipped@Backpack', strainLost: 5, inactive: [`Dirk Effect | Inactive while E2E Dirk is in E2E Backpack.`] },
+		);
 
-	// #124, #39: encumbrance. Packer's threshold is 5 plus Brawn 2; Hauler's is read before the drop.
-	await e2e.step(
-		"#124 J1 Saddlebags (−2, quantity 2) dropped on Packer's Carried section",
-		drop(sidebar('Saddlebags'), 'Packer', slot('carried', 0)),
-	);
-	e2e.expect("#124 J1 two Saddlebags at −2 raise a character's threshold by 4, on the Inventory tab too", await encumbrance('Packer'), {
-		value: 0,
-		threshold: 11,
-		shown: '0/11',
-	});
-	const haulerBefore = await encumbrance('Hauler');
-	await e2e.step("#124 J2 Saddlebags dropped on Hauler's Carried section", drop(sidebar('Saddlebags'), 'Hauler', slot('carried', 0)));
-	const haulerAfter = await encumbrance('Hauler');
-	e2e.expect(
-		"#124 J2 two Saddlebags at −2 raise a vehicle's threshold by 4, on the Inventory tab too",
-		{
-			gain: haulerAfter.threshold - haulerBefore.threshold,
-			shown: haulerAfter.shown,
-		},
-		{ gain: 4, shown: `${haulerAfter.value}/${haulerBefore.threshold + 4}` },
-	);
-	await e2e.step(
-		"#124 J3 Packer's Saddlebags dragged into the Dropped Sack",
-		drop(held('Saddlebags', 'Packer'), 'Packer', { item: 'Sack' }),
-	);
-	e2e.expect(
-		"#124 J3 Saddlebags in a Dropped Container no longer raise a character's threshold",
-		{
-			saddlebags: (await items('Packer')).find((name) => name.startsWith('Saddlebags')),
-			...(await encumbrance('Packer')),
-		},
-		{ saddlebags: 'Saddlebags:dropped@Sack', value: 0, threshold: 7, shown: '0/7' },
-	);
-	await e2e.step(
-		"#124 J4 Packer's Saddlebags dragged out to the Carried section",
-		drop(held('Saddlebags', 'Packer'), 'Packer', slot('carried', 0)),
-	);
-	e2e.expect('#124 J4 Saddlebags taken out to Carried raise the threshold again', await encumbrance('Packer'), {
-		value: 0,
-		threshold: 11,
-		shown: '0/11',
-	});
-	await e2e.step("#124 J5 Packer's Saddlebags dropped from their menu", menu('Packer', 'Saddlebags', 'drop'));
-	e2e.expect("#124 J5 Dropped Saddlebags no longer raise a character's threshold", await encumbrance('Packer'), {
-		value: 0,
-		threshold: 7,
-		shown: '0/7',
-	});
-	await e2e.step("#124 J6 Hauler's Saddlebags dropped by script", updateItem('Hauler', 'Saddlebags', { 'system.state': 'dropped' }));
-	e2e.expect(
-		"#124 J6 a vehicle's Dropped Saddlebags still raise its threshold",
-		(await encumbrance('Hauler')).threshold,
-		haulerAfter.threshold,
-	);
-	await e2e.step('#124 J7 a vehicle weapon at −3 given to Packer by script', () =>
-		page.evaluate(() =>
-			window.inventoryE2E.createItems('Packer', [{ name: 'Mount', type: 'vehicleWeapon', system: { encumbrance: -3 } }]),
-		),
-	);
-	e2e.expect("#124 J7 a character's encumbrance leaves out an item type that doesn't count", await encumbrance('Packer'), {
-		value: 0,
-		threshold: 7,
-		shown: '0/7',
-	});
-	await e2e.step('#124 J8 an armor of encumbrance 4 given to Packer, Equipped', () =>
-		page.evaluate(() =>
-			window.inventoryE2E.createItems('Packer', [{ name: 'Hauberk', type: 'armor', system: { encumbrance: 4, state: 'equipped' } }]),
-		),
-	);
-	e2e.expect('#124 J8 a worn armor of encumbrance 4 counts 1', await encumbrance('Packer'), { value: 1, threshold: 7, shown: '1/7' });
-	await e2e.step("#124 J9 the Hauberk's quantity raised to 2", updateItem('Packer', 'Hauberk', { 'system.quantity': 2 }));
-	e2e.expect('#124 J9 a worn armor of encumbrance 4 counts 5 with a quantity of 2', await encumbrance('Packer'), {
-		value: 5,
-		threshold: 7,
-		shown: '5/7',
-	});
-	await e2e.step('#39 J10 a Chest holding a Bag holding an Anvil (3) given to Packer', () =>
-		page.evaluate(() =>
-			window.inventoryE2E.createItems('Packer', [
-				{ name: 'Chest', type: 'container' },
-				{ name: 'Bag', type: 'container', in: 'Chest' },
-				{ name: 'Anvil', type: 'gear', system: { encumbrance: 3 }, in: 'Bag' },
-			]),
-		),
-	);
-	e2e.expect(
-		'#39 J10 an item in a Container held in another one counts while the outermost is not Dropped',
-		await encumbrance('Packer'),
-		{
-			value: 8,
+		// #124, #39: encumbrance. Packer's threshold is 5 plus Brawn 2; Hauler's is read before the drop.
+		await e2e.step(
+			"#124 J1 Saddlebags (−2, quantity 2) dropped on Packer's Carried section",
+			drop(sidebar('Saddlebags'), 'Packer', slot('carried', 0)),
+		);
+		e2e.expect(
+			"#124 J1 two Saddlebags at −2 raise a character's threshold by 4, on the Inventory tab too",
+			await encumbrance('Packer'),
+			{
+				value: 0,
+				threshold: 11,
+				shown: '0/11',
+			},
+		);
+		const haulerBefore = await encumbrance('Hauler');
+		await e2e.step("#124 J2 Saddlebags dropped on Hauler's Carried section", drop(sidebar('Saddlebags'), 'Hauler', slot('carried', 0)));
+		const haulerAfter = await encumbrance('Hauler');
+		e2e.expect(
+			"#124 J2 two Saddlebags at −2 raise a vehicle's threshold by 4, on the Inventory tab too",
+			{
+				gain: haulerAfter.threshold - haulerBefore.threshold,
+				shown: haulerAfter.shown,
+			},
+			{ gain: 4, shown: `${haulerAfter.value}/${haulerBefore.threshold + 4}` },
+		);
+		await e2e.step(
+			"#124 J3 Packer's Saddlebags dragged into the Dropped Sack",
+			drop(held('Saddlebags', 'Packer'), 'Packer', { item: 'Sack' }),
+		);
+		e2e.expect(
+			"#124 J3 Saddlebags in a Dropped Container no longer raise a character's threshold",
+			{
+				saddlebags: (await items('Packer')).find((name) => name.startsWith('Saddlebags')),
+				...(await encumbrance('Packer')),
+			},
+			{ saddlebags: 'Saddlebags:dropped@Sack', value: 0, threshold: 7, shown: '0/7' },
+		);
+		await e2e.step(
+			"#124 J4 Packer's Saddlebags dragged out to the Carried section",
+			drop(held('Saddlebags', 'Packer'), 'Packer', slot('carried', 0)),
+		);
+		e2e.expect('#124 J4 Saddlebags taken out to Carried raise the threshold again', await encumbrance('Packer'), {
+			value: 0,
+			threshold: 11,
+			shown: '0/11',
+		});
+		await e2e.step("#124 J5 Packer's Saddlebags dropped from their menu", menu('Packer', 'Saddlebags', 'drop'));
+		e2e.expect("#124 J5 Dropped Saddlebags no longer raise a character's threshold", await encumbrance('Packer'), {
+			value: 0,
 			threshold: 7,
-			shown: '8/7',
-		},
-	);
-	await e2e.step("#39 J11 Packer's Chest dropped from its menu", menu('Packer', 'Chest', 'drop'));
-	e2e.expect(
-		'#39 J11 an item in a Container held in another one stops counting once the outermost is Dropped',
-		await encumbrance('Packer'),
-		{
+			shown: '0/7',
+		});
+		await e2e.step("#124 J6 Hauler's Saddlebags dropped by script", updateItem('Hauler', 'Saddlebags', { 'system.state': 'dropped' }));
+		e2e.expect(
+			"#124 J6 a vehicle's Dropped Saddlebags still raise its threshold",
+			(await encumbrance('Hauler')).threshold,
+			haulerAfter.threshold,
+		);
+		await e2e.step('#124 J7 a vehicle weapon at −3 given to Packer by script', () =>
+			page.evaluate(() =>
+				window.inventoryE2E.createItems('Packer', [{ name: 'Mount', type: 'vehicleWeapon', system: { encumbrance: -3 } }]),
+			),
+		);
+		e2e.expect("#124 J7 a character's encumbrance leaves out an item type that doesn't count", await encumbrance('Packer'), {
+			value: 0,
+			threshold: 7,
+			shown: '0/7',
+		});
+		await e2e.step('#124 J8 an armor of encumbrance 4 given to Packer, Equipped', () =>
+			page.evaluate(() =>
+				window.inventoryE2E.createItems('Packer', [
+					{ name: 'Hauberk', type: 'armor', system: { encumbrance: 4, state: 'equipped' } },
+				]),
+			),
+		);
+		e2e.expect('#124 J8 a worn armor of encumbrance 4 counts 1', await encumbrance('Packer'), { value: 1, threshold: 7, shown: '1/7' });
+		await e2e.step("#124 J9 the Hauberk's quantity raised to 2", updateItem('Packer', 'Hauberk', { 'system.quantity': 2 }));
+		e2e.expect('#124 J9 a worn armor of encumbrance 4 counts 5 with a quantity of 2', await encumbrance('Packer'), {
 			value: 5,
 			threshold: 7,
 			shown: '5/7',
-		},
-	);
-	await e2e.step('#39 J12 a Crate (1) holding a Brick (2) given to Packer', () =>
-		page.evaluate(() =>
-			window.inventoryE2E.createItems('Packer', [
-				{ name: 'Crate', type: 'container', system: { encumbrance: 1 } },
-				{ name: 'Brick', type: 'gear', system: { encumbrance: 2 }, in: 'Crate' },
-			]),
-		),
-	);
-	e2e.expect('#39 J12 a Carried Container counts with its contents', await encumbrance('Packer'), {
-		value: 8,
-		threshold: 7,
-		shown: '8/7',
+		});
+		await e2e.step('#39 J10 a Chest holding a Bag holding an Anvil (3) given to Packer', () =>
+			page.evaluate(() =>
+				window.inventoryE2E.createItems('Packer', [
+					{ name: 'Chest', type: 'container' },
+					{ name: 'Bag', type: 'container', in: 'Chest' },
+					{ name: 'Anvil', type: 'gear', system: { encumbrance: 3 }, in: 'Bag' },
+				]),
+			),
+		);
+		e2e.expect(
+			'#39 J10 an item in a Container held in another one counts while the outermost is not Dropped',
+			await encumbrance('Packer'),
+			{
+				value: 8,
+				threshold: 7,
+				shown: '8/7',
+			},
+		);
+		await e2e.step("#39 J11 Packer's Chest dropped from its menu", menu('Packer', 'Chest', 'drop'));
+		e2e.expect(
+			'#39 J11 an item in a Container held in another one stops counting once the outermost is Dropped',
+			await encumbrance('Packer'),
+			{
+				value: 5,
+				threshold: 7,
+				shown: '5/7',
+			},
+		);
+		await e2e.step('#39 J12 a Crate (1) holding a Brick (2) given to Packer', () =>
+			page.evaluate(() =>
+				window.inventoryE2E.createItems('Packer', [
+					{ name: 'Crate', type: 'container', system: { encumbrance: 1 } },
+					{ name: 'Brick', type: 'gear', system: { encumbrance: 2 }, in: 'Crate' },
+				]),
+			),
+		);
+		e2e.expect('#39 J12 a Carried Container counts with its contents', await encumbrance('Packer'), {
+			value: 8,
+			threshold: 7,
+			shown: '8/7',
+		});
+		await e2e.step("#39 J13 Packer's Crate dropped from its menu", menu('Packer', 'Crate', 'drop'));
+		e2e.expect('#39 J13 a Dropped Container counts neither itself nor its contents', await encumbrance('Packer'), {
+			value: 5,
+			threshold: 7,
+			shown: '5/7',
+		});
+		await e2e.step('#39 J14 Looper given two Containers that hold each other, one holding a Pebble (2)', () =>
+			page.evaluate(async () => {
+				await window.inventoryE2E.createItems('Looper', [
+					{ name: 'Ring1', type: 'container', system: { encumbrance: 1 } },
+					{ name: 'Ring2', type: 'container', system: { encumbrance: 1 }, in: 'Ring1' },
+					{ name: 'Pebble', type: 'gear', system: { encumbrance: 2 }, in: 'Ring2' },
+				]);
+				const looper = game.actors.getName('E2E Looper');
+				await looper.items.getName('E2E Ring1').update({ 'system.container': looper.items.getName('E2E Ring2').id });
+			}),
+		);
+		e2e.expect(
+			'#39 J14 Containers that hold each other count all their items, and the sheet lists them nowhere',
+			{
+				...(await encumbrance('Looper')),
+				carried: await section('Looper', 'carried'),
+			},
+			{ value: 4, threshold: 7, shown: '4/7', carried: [] },
+		);
+
+		// #103: sorting in a section, from Ant, Bee, Cat.
+		await e2e.step(
+			"#103 K1 Sorter's Cat dragged to the top of the Carried section",
+			drop(held('Cat', 'Sorter'), 'Sorter', slot('carried', 0)),
+		);
+		e2e.expect(
+			'#103 K1 an item dropped on the top slot of its section moves first, the section sorted again evenly',
+			{
+				sorts: await sorts('Sorter', 'carried'),
+				rows: await section('Sorter', 'carried'),
+			},
+			{ sorts: ['Cat=100000', 'Ant=200000', 'Bee=300000'], rows: ['Cat', 'Ant', 'Bee'] },
+		);
+		await e2e.step(
+			"#103 K2 Sorter's Ant dropped on the slots just above and just below itself",
+			drops(drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 1)), drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 2))),
+		);
+		e2e.expect('#103 K2 an item dropped on the slot just above or below itself stays where it is', await sorts('Sorter', 'carried'), [
+			'Cat=100000',
+			'Ant=200000',
+			'Bee=300000',
+		]);
+		await e2e.step(
+			"#103 K3 Sorter's Ant dragged to the end of the Carried section",
+			drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 3)),
+		);
+		e2e.expect(
+			'#103 K3 an item dropped on the last slot of its section moves last',
+			{
+				sorts: await sorts('Sorter', 'carried'),
+				rows: await section('Sorter', 'carried'),
+			},
+			{ sorts: ['Cat=100000', 'Bee=200000', 'Ant=300000'], rows: ['Cat', 'Bee', 'Ant'] },
+		);
+
+		// #103: deleting a Container.
+		await e2e.step("#103 L1 Deleter's Box1 deleted by script", () =>
+			page.evaluate(() => window.inventoryE2E.deleteItem('Deleter', 'Box1')),
+		);
+		await e2e.step(
+			"#103 L2 Deleter's Box2 deleted from its menu, and Yes answered",
+			drops(menu('Deleter', 'Box2', 'delete'), answer('yes')),
+		);
+		await e2e.step("#103 L3 Deleter's Box3 damaged to nothing from its row", () =>
+			page.evaluate(() => window.inventoryE2E.damageToNothing('Deleter', 'Box3')),
+		);
+		e2e.expect(
+			'#103 L1-L3 a Container deleted by script, from its menu or damaged to nothing takes its contents',
+			await items('Deleter'),
+			[],
+		);
+		// The other ways the checklist names, a Container's quantity down to zero and an item's sheet, don't exist.
+		const paths = async (actor: string, item: string) =>
+			page.evaluate((args) => window.inventoryE2E.stateAndDeletePaths(args.actor, args.item), { actor, item });
+		e2e.expect(
+			"#103 L4 a Container's row has no quantity control, and no item's sheet changes its Equipment State or deletes it",
+			{ sack: await paths('Packer', 'Sack'), coat: await paths('Wearer', 'Coat') },
+			{
+				sack: { quantity: false, stateField: false, deleteAction: false },
+				coat: { quantity: true, stateField: false, deleteAction: false },
+			},
+		);
+
+		// #203, #134: inventory rows, weapon lists and chat cards. Smith has Brawn 2.
+		await e2e.step(
+			"#134 M1 Smith's Inventory tab shown, then the Club's damage field emptied in its sheet",
+			drops(
+				() => page.evaluate(() => window.e2e.showTab('Smith', 'inventory')),
+				() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Club', 'system.baseDamage', '')),
+			),
+		);
+		e2e.expect(
+			'#134 M1 a weapon whose damage was emptied keeps a damage of 0, read as such on its row',
+			{
+				baseDamage: await page.evaluate(() => game.actors.getName('E2E Smith').items.getName('E2E Club').system.baseDamage),
+				row: (await row('Smith', 'Club')).details,
+			},
+			{ baseDamage: null, row: 'Melee | Damage Br+0 (2) | Critical 3 | Range [Engaged]' },
+		);
+		e2e.expect(
+			"#134 M1 a character's weapon rows read an emptied, a negative and a characteristic-less damage",
+			{
+				rock: (await row('Smith', 'Rock')).details,
+				shiv: (await row('Smith', 'Shiv')).details,
+			},
+			{
+				rock: 'Melee | Damage 0 | Critical 3 | Range [Engaged]',
+				shiv: 'Melee | Damage Br-1 (1) | Critical 3 | Range [Engaged]',
+			},
+		);
+		e2e.expect(
+			"#134 M1 a character's Combat tab reads each weapon's damage total",
+			await page.evaluate(() => window.inventoryE2E.weaponList('Smith')),
+			[
+				'Blade | Melee | 4 | 3 | Engaged',
+				'Club | Melee | 2 | 3 | Engaged',
+				'Rock | Melee | 0 | 3 | Engaged',
+				'Shiv | Melee | 1 | 3 | Engaged',
+			],
+		);
+		e2e.expect(
+			'#134 M1 an adversary lists a weapon whose damage was emptied with its characteristic',
+			await page.evaluate(() => window.inventoryE2E.weaponList('Brute')),
+			['Maul (MeleeDamage 3Critical 3Range [Engaged])'],
+		);
+		e2e.expect(
+			"#134 M1 a vehicle's Combat tab reads an emptied damage as 0 and its firing arcs",
+			await page.evaluate(() => window.inventoryE2E.weaponList('Hauler')),
+			[
+				'Gun | Gunnery | 0 | 3 | Short | All',
+				'Turret | Gunnery | 4 | 3 | Short | None',
+				'Cannon | Gunnery | -1 | 3 | Short | ForePort',
+			],
+		);
+		e2e.expect(
+			"#134 M1 a vehicle's inventory rows read an emptied damage as 0 and the firing arcs",
+			{
+				gun: (await row('Hauler', 'Gun')).details,
+				cannon: (await row('Hauler', 'Cannon')).details,
+			},
+			{
+				gun: 'Gunnery | Firing Arc All | Damage 0 | Critical 3 | Range [Short]',
+				cannon: 'Gunnery | Firing Arc ForePort | Damage -1 | Critical 3 | Range [Short]',
+			},
+		);
+		await e2e.step('#134 M2 the Club sent to chat from its menu', menu('Smith', 'Club', 'chat'));
+		e2e.expect(
+			'#134 M2 a weapon whose damage was emptied is sent to chat with a damage of 0',
+			await page.evaluate(() => window.inventoryE2E.lastMessage(['span.damage'])),
+			['0 + Br'],
+		);
+		await e2e.step('#134 M3 an attack with the Club, every die on its fourth face', async () => {
+			await page.evaluate(() => window.inventoryE2E.attack('Smith', 'Club'));
+			// The prompt may roll its pool to show the chance to succeed: the dice are fixed for the attack's roll only.
+			await gm.fixDice([4, 4, 4, 4].map((face) => ({ face, faces: 8 })));
+			await page.evaluate(() => window.inventoryE2E.rollPrompt());
+		});
+		e2e.expect(
+			'#134 M3 an attack with a weapon whose damage was emptied posts a base damage of 0',
+			await page.evaluate(() => window.inventoryE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
+			['Damage (Br + 0)', '6'],
+		);
+
+		await e2e.step(
+			"#203 M4 the Blade's damage, critical, range and encumbrance changed in its sheet, and a quality dropped on it",
+			drops(
+				() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.baseDamage', '4')),
+				() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.critical', '2')),
+				() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.range', 'short')),
+				() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.encumbrance', '3')),
+				() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Blade', 'Smith')),
+			),
+		);
+		e2e.expect(
+			"#203 M4 a weapon's row follows the changes made in its sheet, with the Inventory tab open",
+			await row('Smith', 'Blade'),
+			{
+				details: 'Melee | Damage Br+4 (6) | Critical 2 | Range [Short] | Quality 1',
+				quantity: '1',
+				encumbrance: '3',
+				damageState: 'Genesys.Equipment.DamageState.Undamaged',
+			},
+		);
+		await e2e.step(
+			"#203 M5 the Hide's soak and defense updated",
+			updateItem('Smith', 'Hide', { 'system.soak': 3, 'system.defense': 2 }),
+		);
+		e2e.expect("#203 M5 an armor's row follows its soak and defense", (await row('Smith', 'Hide')).details, 'Soak +3 | Defense +2');
+		await e2e.step(
+			"#203 M6 Hauler's Inventory tab shown, then the Turret's firing arc updated",
+			drops(
+				() => page.evaluate(() => window.e2e.showTab('Hauler', 'inventory')),
+				updateItem('Hauler', 'Turret', { 'system.firingArc.aft': true }),
+			),
+		);
+		e2e.expect(
+			"#203 M6 a vehicle weapon's row follows its firing arc",
+			(await row('Hauler', 'Turret')).details,
+			'Gunnery | Firing Arc Aft | Damage 4 | Critical 3 | Range [Short]',
+		);
+		await e2e.step("#203 M7 Smith's Brawn raised to 3", () =>
+			page.evaluate(() => window.inventoryE2E.updateActor('Smith', { 'system.characteristics.brawn': 3 })),
+		);
+		e2e.expect(
+			"#203 M7 a weapon's damage total follows the damage characteristic",
+			(await row('Smith', 'Blade')).details,
+			'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
+		);
+		await e2e.step("#203 M8 the Blade's quantity and damage state clicked once", () =>
+			page.evaluate(() => window.inventoryE2E.clickQuantityAndDamage('Smith', 'Blade')),
+		);
+		e2e.expect("#203 M8 a click raises an item's quantity and damage state on its row", await row('Smith', 'Blade'), {
+			details: 'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
+			quantity: '2',
+			encumbrance: '3',
+			damageState: 'Genesys.Equipment.DamageState.Minor',
+		});
 	});
-	await e2e.step("#39 J13 Packer's Crate dropped from its menu", menu('Packer', 'Crate', 'drop'));
-	e2e.expect('#39 J13 a Dropped Container counts neither itself nor its contents', await encumbrance('Packer'), {
-		value: 5,
-		threshold: 7,
-		shown: '5/7',
-	});
-	await e2e.step('#39 J14 Looper given two Containers that hold each other, one holding a Pebble (2)', () =>
-		page.evaluate(async () => {
-			await window.inventoryE2E.createItems('Looper', [
-				{ name: 'Ring1', type: 'container', system: { encumbrance: 1 } },
-				{ name: 'Ring2', type: 'container', system: { encumbrance: 1 }, in: 'Ring1' },
-				{ name: 'Pebble', type: 'gear', system: { encumbrance: 2 }, in: 'Ring2' },
-			]);
-			const looper = game.actors.getName('E2E Looper');
-			await looper.items.getName('E2E Ring1').update({ 'system.container': looper.items.getName('E2E Ring2').id });
-		}),
-	);
-	e2e.expect(
-		'#39 J14 Containers that hold each other count all their items, and the sheet lists them nowhere',
-		{
-			...(await encumbrance('Looper')),
-			carried: await section('Looper', 'carried'),
-		},
-		{ value: 4, threshold: 7, shown: '4/7', carried: [] },
-	);
 
-	// #103: sorting in a section, from Ant, Bee, Cat.
-	await e2e.step(
-		"#103 K1 Sorter's Cat dragged to the top of the Carried section",
-		drop(held('Cat', 'Sorter'), 'Sorter', slot('carried', 0)),
-	);
-	e2e.expect(
-		'#103 K1 an item dropped on the top slot of its section moves first, the section sorted again evenly',
-		{
-			sorts: await sorts('Sorter', 'carried'),
-			rows: await section('Sorter', 'carried'),
-		},
-		{ sorts: ['Cat=100000', 'Ant=200000', 'Bee=300000'], rows: ['Cat', 'Ant', 'Bee'] },
-	);
-	await e2e.step(
-		"#103 K2 Sorter's Ant dropped on the slots just above and just below itself",
-		drops(drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 1)), drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 2))),
-	);
-	e2e.expect('#103 K2 an item dropped on the slot just above or below itself stays where it is', await sorts('Sorter', 'carried'), [
-		'Cat=100000',
-		'Ant=200000',
-		'Bee=300000',
-	]);
-	await e2e.step(
-		"#103 K3 Sorter's Ant dragged to the end of the Carried section",
-		drop(held('Ant', 'Sorter'), 'Sorter', slot('carried', 3)),
-	);
-	e2e.expect(
-		'#103 K3 an item dropped on the last slot of its section moves last',
-		{
-			sorts: await sorts('Sorter', 'carried'),
-			rows: await section('Sorter', 'carried'),
-		},
-		{ sorts: ['Cat=100000', 'Bee=200000', 'Ant=300000'], rows: ['Cat', 'Bee', 'Ant'] },
-	);
-
-	// #103: deleting a Container.
-	await e2e.step("#103 L1 Deleter's Box1 deleted by script", () =>
-		page.evaluate(() => window.inventoryE2E.deleteItem('Deleter', 'Box1')),
-	);
-	await e2e.step(
-		"#103 L2 Deleter's Box2 deleted from its menu, and Yes answered",
-		drops(menu('Deleter', 'Box2', 'delete'), answer('yes')),
-	);
-	await e2e.step("#103 L3 Deleter's Box3 damaged to nothing from its row", () =>
-		page.evaluate(() => window.inventoryE2E.damageToNothing('Deleter', 'Box3')),
-	);
-	e2e.expect(
-		'#103 L1-L3 a Container deleted by script, from its menu or damaged to nothing takes its contents',
-		await items('Deleter'),
-		[],
-	);
-	// The other ways the checklist names, a Container's quantity down to zero and an item's sheet, don't exist.
-	const paths = async (actor: string, item: string) =>
-		page.evaluate((args) => window.inventoryE2E.stateAndDeletePaths(args.actor, args.item), { actor, item });
-	e2e.expect(
-		"#103 L4 a Container's row has no quantity control, and no item's sheet changes its Equipment State or deletes it",
-		{ sack: await paths('Packer', 'Sack'), coat: await paths('Wearer', 'Coat') },
-		{
-			sack: { quantity: false, stateField: false, deleteAction: false },
-			coat: { quantity: true, stateField: false, deleteAction: false },
-		},
-	);
-
-	// #203, #134: inventory rows, weapon lists and chat cards. Smith has Brawn 2.
-	await e2e.step(
-		"#134 M1 Smith's Inventory tab shown, then the Club's damage field emptied in its sheet",
-		drops(
-			() => page.evaluate(() => window.e2e.showTab('Smith', 'inventory')),
-			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Club', 'system.baseDamage', '')),
-		),
-	);
-	e2e.expect(
-		'#134 M1 a weapon whose damage was emptied keeps a damage of 0, read as such on its row',
-		{
-			baseDamage: await page.evaluate(() => game.actors.getName('E2E Smith').items.getName('E2E Club').system.baseDamage),
-			row: (await row('Smith', 'Club')).details,
-		},
-		{ baseDamage: null, row: 'Melee | Damage Br+0 (2) | Critical 3 | Range [Engaged]' },
-	);
-	e2e.expect(
-		"#134 M1 a character's weapon rows read an emptied, a negative and a characteristic-less damage",
-		{
-			rock: (await row('Smith', 'Rock')).details,
-			shiv: (await row('Smith', 'Shiv')).details,
-		},
-		{
-			rock: 'Melee | Damage 0 | Critical 3 | Range [Engaged]',
-			shiv: 'Melee | Damage Br-1 (1) | Critical 3 | Range [Engaged]',
-		},
-	);
-	e2e.expect(
-		"#134 M1 a character's Combat tab reads each weapon's damage total",
-		await page.evaluate(() => window.inventoryE2E.weaponList('Smith')),
-		[
-			'Blade | Melee | 4 | 3 | Engaged',
-			'Club | Melee | 2 | 3 | Engaged',
-			'Rock | Melee | 0 | 3 | Engaged',
-			'Shiv | Melee | 1 | 3 | Engaged',
-		],
-	);
-	e2e.expect(
-		'#134 M1 an adversary lists a weapon whose damage was emptied with its characteristic',
-		await page.evaluate(() => window.inventoryE2E.weaponList('Brute')),
-		['Maul (MeleeDamage 3Critical 3Range [Engaged])'],
-	);
-	e2e.expect(
-		"#134 M1 a vehicle's Combat tab reads an emptied damage as 0 and its firing arcs",
-		await page.evaluate(() => window.inventoryE2E.weaponList('Hauler')),
-		['Gun | Gunnery | 0 | 3 | Short | All', 'Turret | Gunnery | 4 | 3 | Short | None', 'Cannon | Gunnery | -1 | 3 | Short | ForePort'],
-	);
-	e2e.expect(
-		"#134 M1 a vehicle's inventory rows read an emptied damage as 0 and the firing arcs",
-		{
-			gun: (await row('Hauler', 'Gun')).details,
-			cannon: (await row('Hauler', 'Cannon')).details,
-		},
-		{
-			gun: 'Gunnery | Firing Arc All | Damage 0 | Critical 3 | Range [Short]',
-			cannon: 'Gunnery | Firing Arc ForePort | Damage -1 | Critical 3 | Range [Short]',
-		},
-	);
-	await e2e.step('#134 M2 the Club sent to chat from its menu', menu('Smith', 'Club', 'chat'));
-	e2e.expect(
-		'#134 M2 a weapon whose damage was emptied is sent to chat with a damage of 0',
-		await page.evaluate(() => window.inventoryE2E.lastMessage(['span.damage'])),
-		['0 + Br'],
-	);
-	await e2e.step('#134 M3 an attack with the Club, every die on its fourth face', async () => {
-		await page.evaluate(() => window.inventoryE2E.attack('Smith', 'Club'));
-		// The prompt may roll its pool to show the chance to succeed: the dice are fixed for the attack's roll only.
-		await gm.fixDice([4, 4, 4, 4].map((face) => ({ face, faces: 8 })));
-		await page.evaluate(() => window.inventoryE2E.rollPrompt());
-	});
-	e2e.expect(
-		'#134 M3 an attack with a weapon whose damage was emptied posts a base damage of 0',
-		await page.evaluate(() => window.inventoryE2E.lastMessage(['.summary-table .label', '.summary-table .count'])),
-		['Damage (Br + 0)', '6'],
-	);
-
-	await e2e.step(
-		"#203 M4 the Blade's damage, critical, range and encumbrance changed in its sheet, and a quality dropped on it",
-		drops(
-			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.baseDamage', '4')),
-			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.critical', '2')),
-			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.range', 'short')),
-			() => page.evaluate(() => window.inventoryE2E.editItemSheet('Smith', 'Blade', 'system.encumbrance', '3')),
-			() => page.evaluate(() => window.inventoryE2E.dropOnItemSheet({ sidebar: 'Quality' }, 'Blade', 'Smith')),
-		),
-	);
-	e2e.expect("#203 M4 a weapon's row follows the changes made in its sheet, with the Inventory tab open", await row('Smith', 'Blade'), {
-		details: 'Melee | Damage Br+4 (6) | Critical 2 | Range [Short] | Quality 1',
-		quantity: '1',
-		encumbrance: '3',
-		damageState: 'Genesys.Equipment.DamageState.Undamaged',
-	});
-	await e2e.step("#203 M5 the Hide's soak and defense updated", updateItem('Smith', 'Hide', { 'system.soak': 3, 'system.defense': 2 }));
-	e2e.expect("#203 M5 an armor's row follows its soak and defense", (await row('Smith', 'Hide')).details, 'Soak +3 | Defense +2');
-	await e2e.step(
-		"#203 M6 Hauler's Inventory tab shown, then the Turret's firing arc updated",
-		drops(
-			() => page.evaluate(() => window.e2e.showTab('Hauler', 'inventory')),
-			updateItem('Hauler', 'Turret', { 'system.firingArc.aft': true }),
-		),
-	);
-	e2e.expect(
-		"#203 M6 a vehicle weapon's row follows its firing arc",
-		(await row('Hauler', 'Turret')).details,
-		'Gunnery | Firing Arc Aft | Damage 4 | Critical 3 | Range [Short]',
-	);
-	await e2e.step("#203 M7 Smith's Brawn raised to 3", () =>
-		page.evaluate(() => window.inventoryE2E.updateActor('Smith', { 'system.characteristics.brawn': 3 })),
-	);
-	e2e.expect(
-		"#203 M7 a weapon's damage total follows the damage characteristic",
-		(await row('Smith', 'Blade')).details,
-		'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
-	);
-	await e2e.step("#203 M8 the Blade's quantity and damage state clicked once", () =>
-		page.evaluate(() => window.inventoryE2E.clickQuantityAndDamage('Smith', 'Blade')),
-	);
-	e2e.expect("#203 M8 a click raises an item's quantity and damage state on its row", await row('Smith', 'Blade'), {
-		details: 'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
-		quantity: '2',
-		encumbrance: '3',
-		damageState: 'Genesys.Equipment.DamageState.Minor',
-	});
-
-	await itemActions(e2e);
-
-	await rowMenuAndDrops(e2e);
-
-	await deletedDrops(e2e);
-
-	await unknownDamageState(e2e);
-
-	await usedState(e2e);
-
-	await containerFold(e2e);
+	await e2e.part('itemActions', () => itemActions(e2e));
+	await e2e.part('rowMenuAndDrops', () => rowMenuAndDrops(e2e));
+	await e2e.part('deletedDrops', () => deletedDrops(e2e));
+	await e2e.part('unknownDamageState', () => unknownDamageState(e2e));
+	await e2e.part('usedState', () => usedState(e2e));
+	await e2e.part('containerFold', () => containerFold(e2e));
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
 }
