@@ -11,6 +11,13 @@ export type Step = {
 	expected?: unknown;
 	/** Set on a failed assertion and on the `FATAL` step that ends a scenario stopped by an error. */
 	failed?: true;
+	/** The part of the scenario that logged the step; none outside parts. */
+	part?: string;
+	/**
+	 * The time from the previous step's log, or its part's start, to its own log: its action and settle, and the work
+	 * before them. A part's last step also counts the part's work after it.
+	 */
+	ms?: number;
 };
 
 /**
@@ -45,6 +52,28 @@ export function assertionStep(name: string, actual: unknown, expected: unknown):
 }
 
 /**
+ * The parts of a scenario one run selects, met as its `run` reaches them: every part, or only the names given.
+ */
+export function partSelection(only?: readonly string[]) {
+	const met: string[] = [];
+	return {
+		/** Whether the part met runs. */
+		runs(name: string) {
+			// `--part` selects a part by its name, and the summary adds up its time by name.
+			if (met.includes(name)) throw new Error(`Part "${name}" runs twice: give each part its own name.`);
+			met.push(name);
+			return !only || only.includes(name);
+		},
+		/** Why the run fails once the scenario is over: a name given that met no part. */
+		unmet(): string | undefined {
+			const unknown = (only ?? []).filter((name) => !met.includes(name));
+			if (!unknown.length) return undefined;
+			return `No part named ${unknown.join(', ')}: the scenario has ${met.length ? met.join(', ') : 'no parts'}.`;
+		},
+	};
+}
+
+/**
  * The step that ends a scenario stopped by an error.
  */
 export function fatalStep(error: unknown): Step {
@@ -52,9 +81,10 @@ export function fatalStep(error: unknown): Step {
 }
 
 /**
- * The summary of one run of the suite (a Foundry version and a build): its assertion count, then each failed step.
+ * The summary of one run of the suite (a Foundry version and a build): its assertion count, each scenario's time and,
+ * with `partTimes`, each part's, then each failed step.
  */
-export function runSummary(run: string, scenarios: { scenario: string; steps: Step[] }[]): string[] {
+export function runSummary(run: string, scenarios: { scenario: string; steps: Step[] }[], { partTimes = false } = {}): string[] {
 	const steps = scenarios.flatMap(({ steps }) => steps);
 	const assertions = steps.filter(isAssertion).length;
 	const failed = steps.filter((step) => step.failed && !isFatal(step)).length;
@@ -62,6 +92,14 @@ export function runSummary(run: string, scenarios: { scenario: string; steps: St
 
 	const counts = `${failed} failed of ${assertions} ${assertions === 1 ? 'assertion' : 'assertions'}`;
 	const lines = [`${run}: ${stopped ? `${stopped} ${stopped === 1 ? 'scenario' : 'scenarios'} stopped, ` : ''}${counts}`];
+	for (const { scenario, steps } of scenarios) {
+		lines.push(`  ${scenario} ${seconds(steps)}`);
+		if (!partTimes) continue;
+		const names = [...new Set(steps.flatMap((step) => (step.part === undefined ? [] : [step.part])))];
+		for (const name of names) lines.push(`    ${name} ${seconds(steps.filter((step) => step.part === name))}`);
+		const outside = steps.filter((step) => step.part === undefined);
+		if (names.length && outside.length) lines.push(`    outside parts ${seconds(outside)}`);
+	}
 	for (const { scenario, steps } of scenarios) {
 		for (const step of steps.filter((step) => step.failed)) {
 			lines.push(`  ${scenario} › ${step.name}`);
@@ -73,6 +111,10 @@ export function runSummary(run: string, scenarios: { scenario: string; steps: St
 		}
 	}
 	return lines;
+}
+
+function seconds(steps: Step[]) {
+	return `${(steps.reduce((total, step) => total + (step.ms ?? 0), 0) / 1000).toFixed(1)} s`;
 }
 
 /**

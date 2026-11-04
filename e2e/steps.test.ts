@@ -1,6 +1,41 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertionStep, diffSteps, failsRun, fatalStep, runSummary, stepLine } from './steps.ts';
+import { assertionStep, diffSteps, failsRun, fatalStep, partSelection, runSummary, stepLine } from './steps.ts';
+
+describe('partSelection', () => {
+	it('runs every part when no part is given', () => {
+		const parts = partSelection();
+
+		expect([parts.runs('trackerClass'), parts.runs('claims')]).toEqual([true, true]);
+		expect(parts.unmet()).toBeUndefined();
+	});
+
+	it('runs only the parts given', () => {
+		const parts = partSelection(['claims']);
+
+		expect([parts.runs('trackerClass'), parts.runs('claims'), parts.runs('noGM')]).toEqual([false, true, false]);
+		expect(parts.unmet()).toBeUndefined();
+	});
+
+	it('names the parts the scenario has when a part given met none', () => {
+		const parts = partSelection(['claims', 'claim']);
+		parts.runs('trackerClass');
+		parts.runs('claims');
+
+		expect(parts.unmet()).toBe('No part named claim: the scenario has trackerClass, claims.');
+	});
+
+	it('says so when the scenario has no parts', () => {
+		expect(partSelection(['claims']).unmet()).toBe('No part named claims: the scenario has no parts.');
+	});
+
+	it('refuses a part met twice, which `--part` could not tell from the first', () => {
+		const parts = partSelection();
+		parts.runs('claims');
+
+		expect(() => parts.runs('claims')).toThrow('Part "claims" runs twice: give each part its own name.');
+	});
+});
 
 describe('diffSteps', () => {
 	it('finds nothing between two runs that logged the same steps', () => {
@@ -23,6 +58,13 @@ describe('diffSteps', () => {
 		];
 
 		expect(diffSteps(main, branch)).toEqual([{ name: 'add hero', base: { turn: 1, events: [] }, head: { turn: 2, events: [] } }]);
+	});
+
+	it('ignores how long a step took', () => {
+		const main = [{ name: 'add hero', value: { turn: 2 }, part: 'extraSlots', ms: 1200 }];
+		const branch = [{ name: 'add hero', value: { turn: 2 }, part: 'extraSlots', ms: 900 }];
+
+		expect(diffSteps(main, branch)).toEqual([]);
 	});
 
 	it('reports the steps only one run logged, in the order the runs logged them', () => {
@@ -87,13 +129,46 @@ describe('runSummary', () => {
 				{ scenario: 'combat', steps: [{ name: 'A0 before', value: { expected: 1, actual: 1 } }, passed, failed] },
 				{ scenario: 'vehicle', steps: [passed] },
 			]),
-		).toEqual(['v13 head: 1 failed of 3 assertions', '  combat › A2 turn kept', '    expected: "Hero:-1"', '    actual:   "Boss:-1"']);
+		).toEqual([
+			'v13 head: 1 failed of 3 assertions',
+			'  combat 0.0 s',
+			'  vehicle 0.0 s',
+			'  combat › A2 turn kept',
+			'    expected: "Hero:-1"',
+			'    actual:   "Boss:-1"',
+		]);
+	});
+
+	const timed = [
+		{ name: 'setup', value: 1, ms: 2000 },
+		{ name: 'A1 before', value: 1, part: 'trackerClass', ms: 1500 },
+		{ name: 'A1 class', value: 1, part: 'trackerClass', ms: 250 },
+		{ name: 'B1 claim', value: 1, part: 'claims', ms: 30_000 },
+	];
+
+	it("gives each scenario's time", () => {
+		expect(
+			runSummary('v13 head', [
+				{ scenario: 'combat', steps: timed },
+				{ scenario: 'vehicle', steps: [{ name: 'setup', value: 1, ms: 4321 }] },
+			]),
+		).toEqual(['v13 head: 0 failed of 0 assertions', '  combat 33.8 s', '  vehicle 4.3 s']);
+	});
+
+	it("gives each part's time, and the time outside parts, when asked", () => {
+		expect(runSummary('v13 head', [{ scenario: 'combat', steps: timed }], { partTimes: true })).toEqual([
+			'v13 head: 0 failed of 0 assertions',
+			'  combat 33.8 s',
+			'    trackerClass 1.8 s',
+			'    claims 30.0 s',
+			'    outside parts 2.0 s',
+		]);
 	});
 
 	it('lists a scenario that stopped on an error', () => {
 		expect(
 			runSummary('v13 head', [{ scenario: 'combat', steps: [assertionStep('A1 turn kept', 1, 1), fatalStep(new Error('Timeout'))] }]),
-		).toEqual(['v13 head: 1 scenario stopped, 0 failed of 1 assertion', '  combat › FATAL', '    Error: Timeout']);
+		).toEqual(['v13 head: 1 scenario stopped, 0 failed of 1 assertion', '  combat 0.0 s', '  combat › FATAL', '    Error: Timeout']);
 	});
 });
 
