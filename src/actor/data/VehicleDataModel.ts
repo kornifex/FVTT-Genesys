@@ -1,4 +1,5 @@
 import { GenesysActor } from '@/actor/GenesysActor';
+import { unlinkedTokenActors } from '@/actor/tokenActors';
 import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered } from '@/actor/data/Encumbrance';
 import { isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { vehicleDefense } from '@/actor/data/Protection';
@@ -69,8 +70,6 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 		return isRelevantToVehicle(context, type);
 	}
 
-	static readonly _GAME_VEHICLES = new Set<GenesysActor<'vehicle'>>();
-
 	static override migrateData(source: { passengers?: { list?: (Passenger & { id?: string })[] } }) {
 		const passengers = source.passengers?.list;
 		if (passengers) {
@@ -86,14 +85,6 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 		}
 
 		return super.migrateData(source) as typeof source;
-	}
-
-	constructor(...args: foundry.abstract.DataModel.ConstructorArgs<foundry.data.fields.DataSchema, GenesysActor<'vehicle'>>) {
-		super(...args);
-
-		if (this.parent.id) {
-			VehicleDataModel._GAME_VEHICLES.add(this.parent);
-		}
 	}
 
 	/**
@@ -182,14 +173,6 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 		this.parent.updateSource({ prototypeToken });
 	}
 
-	/**
-	 * Forget a deleted vehicle, whose Crew no longer needs to follow its members.
-	 * @inheritDoc
-	 */
-	protected override _onDelete() {
-		VehicleDataModel._GAME_VEHICLES.delete(this.parent);
-	}
-
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -231,35 +214,39 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 }
 
 /**
+ * Whether an actor is a vehicle.
+ */
+function isVehicle(actor: GenesysActor): actor is GenesysActor<'vehicle'> {
+	return actor.type === 'vehicle';
+}
+
+/**
+ * The vehicles of the world: its vehicle actors and those of its scenes' unlinked tokens.
+ */
+function worldVehicles() {
+	return [...game.actors, ...unlinkedTokenActors()].filter(isVehicle);
+}
+
+/**
  * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills.
  */
 function renderVehiclesCrewedBy(actor: GenesysActor) {
 	// The hooks hand over stored actors: the guard only tells the types that they have a uuid.
 	const uuid = actor.uuid;
-	if (actor.type === 'vehicle' || !uuid) {
+	if (isVehicle(actor) || !uuid) {
 		return;
 	}
 
-	for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-		if (vehicle.sheet?.rendered && vehicle.system.hasCrew(uuid)) {
-			void vehicle.sheet.render(true);
+	// Foundry lists the open windows, the sheets of a token's or a compendium's vehicle included. A window joins the list
+	// before its first render ends: one still rendering is left alone.
+	for (const app of foundry.applications.instances.values()) {
+		if (app instanceof foundry.applications.sheets.ActorSheetV2 && app.rendered) {
+			const vehicle = app.actor;
+			if (isVehicle(vehicle) && vehicle.system.hasCrew(uuid)) {
+				void app.render(true);
+			}
 		}
 	}
-}
-
-/**
- * Whether a vehicle of `_GAME_VEHICLES` still exists. A vehicle deleted in the same operation as a crew member, after
- * them, has already left the world but not the set; nothing removes an unlinked token's vehicle from the set when its
- * token or scene is deleted.
- */
-function isInWorld(vehicle: GenesysActor<'vehicle'>) {
-	if (!vehicle.isToken) {
-		return !!vehicle.id && game.actors.has(vehicle.id);
-	}
-
-	const token = vehicle.token;
-	const scene = token?.parent;
-	return !!token?.id && !!scene?.id && game.scenes.has(scene.id) && scene.tokens.has(token.id);
 }
 
 /**
@@ -281,19 +268,16 @@ export function register() {
 	Hooks.on('deleteItem', renderVehiclesCrewedByParent);
 
 	Hooks.on('deleteActor', (actor) => {
-		if (actor.type === 'vehicle') {
-			VehicleDataModel._GAME_VEHICLES.delete(actor as GenesysActor<'vehicle'>);
-		} else {
-			// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
-			const genesysActorUuid = actor.uuid;
-			if (isActingGm() && genesysActorUuid) {
-				for (const vehicle of VehicleDataModel._GAME_VEHICLES) {
-					if (!isInWorld(vehicle)) {
-						continue;
-					}
-					void vehicle.system.updateCrew((crew) => removeActor(crew, genesysActorUuid));
-				}
-			}
+		// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
+		const uuid = actor.uuid;
+		if (isVehicle(actor) || !uuid || !isActingGm()) {
+			return;
+		}
+
+		// A vehicle deleted in the same operation as its crew has already left `game.actors` when the hook runs: Foundry
+		// removes every document of the operation before it calls their hooks.
+		for (const vehicle of worldVehicles()) {
+			void vehicle.system.updateCrew((crew) => removeActor(crew, uuid));
 		}
 	});
 }
