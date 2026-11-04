@@ -1314,22 +1314,27 @@ export async function run(e2e: ScenarioContext) {
 	await gm.reload();
 	for (const client of [gm, player]) await client.evaluate(installDicePromptHelpers);
 	const saved = await gm.evaluate((user) => window.dicePromptE2E.settings(user), e2e.playerUser);
-	await gm.evaluate(
-		(settings) => Promise.all(Object.entries(settings).map(([key, value]) => window.dicePromptE2E.setSetting({ key, value }))),
-		{
-			uncoupleSkills: false,
-			useSuperCharacteristics: false,
-			defaultDifficulty: 'DD',
-			skillsCompendium: 'genesys.crb-skills',
-			showDamageOnFailure: false,
-		},
-	);
-	try {
-		await gm.evaluate((user) => window.dicePromptE2E.setUp(user), e2e.playerUser);
-	} catch (error) {
-		e2e.log('set up errors', gm.errors);
-		throw error;
-	}
+	const settings = {
+		uncoupleSkills: false,
+		useSuperCharacteristics: false,
+		defaultDifficulty: 'DD',
+		skillsCompendium: 'genesys.crb-skills',
+		showDamageOnFailure: false,
+		dicePoolCollapseModificationsDetails: false,
+	};
+	const setUp = async () => {
+		await gm.evaluate(
+			(settings) => Promise.all(Object.entries(settings).map(([key, value]) => window.dicePromptE2E.setSetting({ key, value }))),
+			settings,
+		);
+		try {
+			await gm.evaluate((user) => window.dicePromptE2E.setUp(user), e2e.playerUser);
+		} catch (error) {
+			e2e.log('set up errors', gm.errors);
+			throw error;
+		}
+	};
+	await setUp();
 	await e2e.step('set up');
 
 	const opened = async (client: Client, action: () => Promise<unknown>) => {
@@ -1365,1701 +1370,1800 @@ export async function run(e2e: ScenarioContext) {
 	const attack = (weapon: string) => click(gm, ada, `.tab-combat .weapon .name a|E2E ${weapon}`);
 	const rows = (state: PromptState) => state.modifications;
 	const named = (state: PromptState, prefix: string) => state.modifications.filter(({ name }) => name.startsWith(prefix));
-
-	// A: the skills the prompt offers (§#49, §#100).
-	const cool = await opened(gm, skillRoll('Cool'));
-	e2e.expect('#49 A1 a character is offered its skills, then the Skills Compendium others as unranked', cool.skills, {
-		'': ['—', 'Brawl (Br)', 'Cool (Pr)', 'Melee (Br)', 'Ranged (light) (Ag)'],
-		Unranked: unranked(['Brawl', 'Cool', 'Melee', 'Ranged (Light)']),
-	});
-
-	// B: the characteristic menu (§#184, §#204, §#50).
-	e2e.expect(
-		'#184 B1 uncoupled skills off: a skill check is locked on its characteristic, without "—"',
-		{ characteristic: cool.characteristic, skill: cool.skill, pool: cool.pool },
-		{ characteristic: { value: 'presence', disabled: true, options: SIX_CHARACTERISTICS }, skill: 'Cool (Pr)', pool: 'A|DD' },
-	);
-	const willpowerCheck = await opened(gm, characteristicRoll(5));
-	e2e.expect(
-		'#184 B2 uncoupled skills off: a Characteristic Check opens the menu, with "—"',
-		{
-			characteristic: willpowerCheck.characteristic,
-			skill: willpowerCheck.skill,
-			pool: willpowerCheck.pool,
-			rows: rows(willpowerCheck),
-		},
-		{
-			characteristic: { value: 'willpower', disabled: false, options: ['-', ...SIX_CHARACTERISTICS] },
-			skill: '—',
-			pool: 'AAAA|DD',
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
-				{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
-			],
-		},
-	);
-	await toggle('E2E Focus');
-	await toggle('E2E Steady');
-	const presenceCheck = await select('characteristic', 'presence');
-	e2e.expect(
-		'#50 B3 switching the characteristic lists its Pool Modifications, and keeps the state of those still listed',
-		{ pool: presenceCheck.pool, rows: rows(presenceCheck) },
-		{
-			pool: 'a|DD',
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: true, mods: 'a+' },
-				{ name: 'From Self: E2E Poise', enabled: false, mods: 'S+' },
-			],
-		},
-	);
-	const backToWillpower = await select('characteristic', 'willpower');
-	e2e.expect(
-		'#50 B4 switching back lists the first characteristic Pool Modification again, following auto-apply',
-		{ pool: backToWillpower.pool, rows: rows(backToWillpower) },
-		{
-			pool: 'AAAAa|DD',
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: true, mods: 'a+' },
-				{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
-			],
-		},
-	);
-
-	await setSetting('uncoupleSkills', true);
-	const coolUncoupled = await opened(gm, skillRoll('Cool'));
-	e2e.expect(
-		'#184 B5 uncoupled skills on: a skill check offers the six characteristics, not "—", on its own',
-		{ characteristic: coolUncoupled.characteristic, pool: coolUncoupled.pool, rows: rows(coolUncoupled).map(({ name }) => name) },
-		{
-			characteristic: { value: 'presence', disabled: false, options: SIX_CHARACTERISTICS },
-			pool: 'A|DD',
-			rows: ['From Self: E2E Focus', 'From Self: E2E Poise', 'From Self: E2E Nerve'],
-		},
-	);
-	await toggle('E2E Nerve');
-	const coolWillpower = await select('characteristic', 'willpower');
-	e2e.expect(
-		"#184 B6 uncoupled skills on: picking Willpower for Cool changes the pool and the characteristic's Pool Modifications",
-		{
-			characteristic: coolWillpower.characteristic?.value,
-			skill: coolWillpower.skill,
-			pool: coolWillpower.pool,
-			rows: rows(coolWillpower),
-		},
-		{
-			characteristic: 'willpower',
-			skill: 'Cool (Pr)',
-			pool: 'PAAAB|DD',
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
-				{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
-				{ name: 'From Self: E2E Nerve', enabled: true, mods: 'B+' },
-			],
-		},
-	);
-	const noSkill = await select('skill', '—');
-	e2e.expect('#204 B7 uncoupled skills on: picking skill "—" offers "—" again, and picks it', noSkill.characteristic, {
-		value: '-',
-		disabled: false,
-		options: ['-', ...SIX_CHARACTERISTICS],
-	});
-	const barePool = await select('characteristic', '-');
-	e2e.expect(
-		'#204 B8 "—" with no skill gives a bare pool',
-		{ pool: barePool.pool, rows: rows(barePool) },
-		{ pool: '|DD', rows: [{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' }] },
-	);
-	const attackUncoupled = await opened(gm, attack('Spear'));
-	e2e.expect('#204 B9 uncoupled skills on: an attack offers the six characteristics, not "—"', attackUncoupled.characteristic, {
-		value: 'brawn',
-		disabled: false,
-		options: SIX_CHARACTERISTICS,
-	});
-	await setSetting('uncoupleSkills', false);
-	const gendr = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
-	e2e.expect(
-		'#204 B10 /gendr opens a bare pool without characteristic and skill menus',
-		{ actor: gendr.actor, pool: gendr.pool, characteristic: gendr.characteristic, skills: gendr.skills, rows: rows(gendr) },
-		{ actor: null, pool: '|DD', characteristic: null, skills: null, rows: [] },
-	);
-
-	// C: Pool Modifications of the actor and of the target (§#32, §#40, §#49, §#201).
-	await target('Rival');
-	const coolAtRival = await opened(gm, skillRoll('Cool'));
-	e2e.expect(
-		'#32 C1 the prompt lists "From Self" and "From Target" Pool Modifications for check, characteristic and skill keys',
-		rows(coolAtRival),
-		[
-			{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
-			{ name: 'From Self: E2E Poise', enabled: false, mods: 'S+' },
-			{ name: 'From Self: E2E Nerve', enabled: false, mods: 'B+' },
-			{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
-			{ name: 'From Target: E2E Glare', enabled: false, mods: 'D+' },
-			{ name: 'From Target: E2E Ward', enabled: false, mods: 'h+' },
-		],
-	);
-	const pistol = await opened(gm, attack('Pistol'));
-	e2e.expect(
-		'#49 C2 an attack rolls the owned "Ranged (light)" with the Pool Modification on "Ranged (Light)", and the ranged defense',
-		{ skill: pistol.skill, pool: pistol.pool, rows: rows(pistol) },
-		{
-			skill: 'Ranged (light) (Ag)',
-			pool: 'PP|DD',
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
-				{ name: 'From Self: E2E Sights', enabled: false, mods: 'B+' },
-				{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
-				{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' },
-			],
-		},
-	);
-	await toggle('E2E Sights');
-	await toggle('Ranged Defense');
-	const pistolRoll = await roll();
-	e2e.expect(
-		'#49 C3 the attack rolls the owned skill with the toggled Pool Modifications',
-		{ speaker: pistolRoll.speaker, description: pistolRoll.description, formula: pistolRoll.formula },
-		{
-			speaker: 'Ada',
-			description:
-				'Attacking with <strong>E2E Pistol</strong> using <strong>Ranged (light) (Ag<i class="fas fa-star hide-it"></i>)</strong>!',
-			formula: '2dp + 0da + 2di + 1db + 2ds',
-		},
-	);
-
-	// The target's defense against the attack's range, for an adversary and a character (§#32, §#40).
-	const defenseRows = async (weapon: string) =>
-		named(await opened(gm, attack(weapon)), 'From Target').filter(({ name }) => name.endsWith('Defense'));
-	const defenses: Record<string, unknown> = {};
-	const expectedDefenses: Record<string, unknown> = {};
-	for (const targetName of ['Rival', 'Mark']) {
-		await target(targetName);
-		for (const defense of [0, 1, 2]) {
-			await update({ actor: targetName }, { 'system.defense': { melee: defense, ranged: defense } });
-			for (const [weapon, range] of [
-				['Spear', 'Melee'],
-				['Pistol', 'Ranged'],
-			]) {
-				defenses[`${targetName} ${defense} ${range}`] = await defenseRows(weapon);
-				expectedDefenses[`${targetName} ${defense} ${range}`] =
-					defense === 0
-						? []
-						: [{ name: `From Target: ${range} Defense`, enabled: false, mods: Array(defense).fill('S+').join(' ') }];
-			}
-		}
-	}
-	e2e.expect(
-		"#32 C4 an attack adds one Setback per point of an adversary's or a character's defense against its range, none at 0",
-		defenses,
-		expectedDefenses,
-	);
-
-	// A targeted vehicle (§#201).
-	await target('Wagon');
-	const vehicleDefenses: Record<string, unknown> = {};
-	for (const defense of [2, 5]) {
-		await update({ actor: 'Wagon' }, { 'system.defense': defense });
-		for (const weapon of ['Spear', 'Pistol']) vehicleDefenses[`${defense} ${weapon}`] = await defenseRows(weapon);
-	}
-	const vehicleRow = (range: string, count: number) => [
-		{ name: `From Target: ${range} Defense`, enabled: false, mods: Array(count).fill('S+').join(' ') },
-	];
-	e2e.expect('#201 C5 an attack against a targeted vehicle adds one Setback per point of its defense, up to 4', vehicleDefenses, {
-		'2 Spear': vehicleRow('Melee', 2),
-		'2 Pistol': vehicleRow('Ranged', 2),
-		'5 Spear': vehicleRow('Melee', 4),
-		'5 Pistol': vehicleRow('Ranged', 4),
-	});
-	const coolAtWagon = await opened(gm, skillRoll('Cool'));
-	e2e.expect('#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications', named(coolAtWagon, 'From Target'), [
-		{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' },
-	]);
-
-	// The Pilot's Defensive Driving raises the defense of the vehicle they pilot (§#482): the Driver, first member of the
-	// Rig's Helm, holds 2 ranks of a talent adding 1 Piloted Vehicle Defense.
-	await target('Rig');
-	const rigDefense = () => gm.evaluate(() => window.dicePromptE2E.vehicleDefense('Rig'));
-	const rigAttacks = async () => ({
-		defense: await rigDefense(),
-		Spear: await defenseRows('Spear'),
-		Pistol: await defenseRows('Pistol'),
-	});
-	e2e.expect('#482 A0 a vehicle whose Roles hold no Pilot Role counts its own defense alone', await rigAttacks(), {
-		defense: { total: '1', vehicle: '1' },
-		Spear: vehicleRow('Melee', 1),
-		Pistol: vehicleRow('Ranged', 1),
-	});
-	e2e.expect(
-		'#482 A1 the Helm marked as the Pilot Role on the sheet',
-		await gm.evaluate(() => window.dicePromptE2E.clickPilotRole({ vehicle: 'Rig', role: 'Helm' })),
-		true,
-	);
-	e2e.expect(
-		"#482 A2 the Pilot's 2 ranks of Piloted Vehicle Defense raise the vehicle's defense on its sheet and against an attack",
-		await rigAttacks(),
-		{ defense: { total: '3', vehicle: '1' }, Spear: vehicleRow('Melee', 3), Pistol: vehicleRow('Ranged', 3) },
-	);
-	await e2e.step("#482 A3 the Pilot's talent effect turned off", () =>
-		gm.evaluate(() =>
-			window.dicePromptE2E.setItemEffectDisabled({ actor: 'Driver', item: 'Steady Hands', effect: 'Steady Hands', disabled: true }),
-		),
-	);
-	e2e.expect("#482 A3 the vehicle's open sheet follows its Pilot's effects", await rigDefense(), { total: '1', vehicle: '1' });
-	await e2e.step("#482 A4 the Pilot's talent effect turned on again", () =>
-		gm.evaluate(() =>
-			window.dicePromptE2E.setItemEffectDisabled({ actor: 'Driver', item: 'Steady Hands', effect: 'Steady Hands', disabled: false }),
-		),
-	);
-	e2e.expect("#482 A4 the vehicle's open sheet shows its Pilot's bonus again", await rigDefense(), { total: '3', vehicle: '1' });
-	await update({ actor: 'Rig' }, { 'system.defense': 3 });
-	e2e.expect("#482 A5 the vehicle's defense raised by its Pilot counts up to 4 (CRB p. 223)", await rigAttacks(), {
-		defense: { total: '4', vehicle: '3' },
-		Spear: vehicleRow('Melee', 4),
-		Pistol: vehicleRow('Ranged', 4),
-	});
-	await target(null);
-	await e2e.step('C end');
-
-	// D: Attack Skills (§#49, §#196).
-	const combatWeapons = (actor: string) => gm.evaluate((actor) => window.dicePromptE2E.combatWeapons(actor), actor);
-	const inventoryWeapons = () => gm.evaluate(() => window.dicePromptE2E.inventoryWeapons('Ada'));
-	const attackSkill = (doc: Doc) =>
-		gm.evaluate((doc) => {
-			const actor = game.actors.getName(`E2E ${'actor' in doc ? doc.actor : ''}`);
-			return actor.items.getName(`E2E ${'item' in doc ? doc.item : ''}`).system.attackSkill;
-		}, doc);
-	e2e.expect(
-		"#49 D1 the Combat tab shows each weapon's Attack Skill, a select for a weapon listing several",
-		await combatWeapons('Ada'),
-		[
-			{ name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee', 'Ranged'] },
-			{ name: 'E2E Pistol', link: true, skill: 'Ranged (light)', choices: null },
-			{ name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
-			{ name: 'E2E Blaster', link: true, skill: 'Piloting (Space)Skill Not Found', choices: null },
-			{ name: 'E2E Club', link: true, skill: 'Melee', choices: null },
-		],
-	);
-	e2e.expect(
-		"#49 D2 the Inventory tab shows each weapon's Attack Skill, and no attack for a weapon without skill",
-		await inventoryWeapons(),
-		[
-			{ name: 'E2E Spear', attack: true, skill: 'Melee' },
-			{ name: 'E2E Pistol', attack: true, skill: 'Ranged (light)' },
-			{ name: 'E2E Stick', attack: false, skill: '-' },
-			{ name: 'E2E Blaster', attack: true, skill: 'Piloting (Space)' },
-			{ name: 'E2E Club', attack: true, skill: 'Melee' },
-		],
-	);
-	await gm.evaluate(() =>
-		window.dicePromptE2E.change({
-			doc: { actor: 'Ada' },
-			path: '.tab-combat .weapon|E2E Spear >> select.attack-skill',
-			value: 'Ranged',
-		}),
-	);
-	e2e.expect(
-		'#196 D3 choosing Ranged for the spear stores it, and both tabs show it',
-		{
-			stored: await attackSkill({ actor: 'Ada', item: 'Spear' }),
-			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
-			inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Spear')?.skill,
-		},
-		{
-			stored: 'Ranged',
-			combat: { name: 'E2E Spear', link: true, skill: '[Ranged]', choices: ['Brawl', 'Melee', 'Ranged'] },
-			inventory: 'Ranged',
-		},
-	);
-	const spear = await opened(gm, attack('Spear'));
-	e2e.expect(
-		"#196 D4 the spear's attack opens on the chosen skill, the weapon's skills first in their group, owned or not",
-		{ skill: spear.skill, pool: spear.pool, skills: spear.skills },
-		{
-			skill: 'Ranged (Ag)',
-			pool: 'AA|DD',
-			skills: {
-				'': ['—', 'Cool (Pr)', 'Ranged (light) (Ag)'],
-				'Weapon Skills': ['Brawl (Br)', 'Melee (Br)', 'Ranged (Ag)'],
-				Unranked: unranked(['Brawl', 'Cool', 'Melee', 'Ranged', 'Ranged (Light)']),
-			},
-		},
-	);
-	const athletics = await select('skill', 'Athletics');
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	e2e.expect(
-		'#196 D5 picking another skill in the prompt applies to that roll only',
-		{ skill: athletics.skill, pool: athletics.pool, stored: await attackSkill({ actor: 'Ada', item: 'Spear' }) },
-		{ skill: 'Athletics (Br)', pool: 'AAA|DD', stored: 'Ranged' },
-	);
-	await update({ actor: 'Ada', item: 'Spear' }, { 'system.skills': ['Brawl', 'Melee'] });
-	e2e.expect(
-		'#196 D6 a choice the weapon no longer lists falls back to the listed skill owned at the highest rank',
-		{
-			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
-			inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Spear')?.skill,
-			prompt: (await opened(gm, attack('Spear'))).skill,
-		},
-		{
-			combat: { name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee'] },
-			inventory: 'Melee',
-			prompt: 'Melee (Br)',
-		},
-	);
-	e2e.expect(
-		'#49 D7 a weapon without skill offers no attack link on the Combat tab and no Attack button in the inventory',
-		{
-			combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Stick'),
-			inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Stick'),
-		},
-		{
-			combat: { name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
-			inventory: { name: 'E2E Stick', attack: false, skill: '-' },
-		},
-	);
-
-	// An adversary's weapons.
-	e2e.expect(
-		'#49 D8 the adversary sheet shows a select for a weapon listing several skills',
-		await gm.evaluate(() => window.dicePromptE2E.adversaryWeapons('Rival')),
-		[
-			{ text: 'E2E Knife ([Melee]Damage 3Critical 3Range [Engaged])', choices: ['Melee', 'Ranged'] },
-			{ text: 'E2E Twig (No skillDamage 3Critical 3Range [Engaged])', choices: null },
-		],
-	);
-	e2e.expect(
-		"#196 D9 clicking the knife's select doesn't roll",
-		await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> select.attack-skill')),
-		{ prompts: 0, notifications: [] },
-	);
-	await gm.evaluate(() =>
-		window.dicePromptE2E.change({
-			doc: { actor: 'Rival' },
-			path: '.adversary-items .weapon|E2E Knife >> select.attack-skill',
-			value: 'Ranged',
-		}),
-	);
-	const knife = await opened(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a'));
-	e2e.expect(
-		"#196 D10 the rival's knife attacks with the chosen Ranged",
-		{ stored: await attackSkill({ actor: 'Rival', item: 'Knife' }), actor: knife.actor, skill: knife.skill },
-		{ stored: 'Ranged', actor: 'Rival', skill: 'Ranged (Ag)' },
-	);
-	e2e.expect(
-		"#49 D11 a rival's weapon without skill doesn't roll, and its menu has no check",
-		{
-			click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> :scope > a')),
-			twig: await gm.evaluate(() =>
-				window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Twig' }),
-			),
-			knife: await gm.evaluate(() =>
-				window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Knife' }),
-			),
-		},
-		{ click: { prompts: 0, notifications: [] }, twig: ['Edit', 'Delete'], knife: ['Edit', 'Perform Check', 'Delete'] },
-	);
-
-	// A vehicle's weapons and skills.
-	const skiff = { actor: 'Skiff' };
-	e2e.expect(
-		"#196 D12 a vehicle weapon's Combat tab row has no Attack Skill select",
-		await gm.evaluate(() =>
-			window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-combat .weapon:not(.header) select' }),
-		),
-		[],
-	);
-	const cannon = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
-	e2e.expect(
-		"#196 D13 a vehicle weapon's attack is rolled by its crew member, with no weapon group",
-		{ actor: cannon.actor, skill: cannon.skill, groups: Object.keys(cannon.skills ?? {}) },
-		{ actor: 'Ada', skill: 'Gunnery (Ag)', groups: ['', 'Unranked'] },
-	);
-	e2e.expect(
-		"#49 D14 the vehicle's Skills tab by crew member shows the owned Ranged (light) at its rank",
-		await gm.evaluate(() => window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .member-skill' })),
-		['Gunnery (Ag)0', 'Ranged (light) (Ag)2'],
-	);
-	const byMember = await opened(gm, click(gm, skiff, '.tab-skills .member-skill a.skill-name|Ranged'));
-	await gm.evaluate(() =>
-		window.dicePromptE2E.change({ doc: { actor: 'Skiff' }, path: '.tab-skills .grouping-mode select', value: 'skill' }),
-	);
-	const bySkillRows = await gm.evaluate(() =>
-		window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .skills-container section' }),
-	);
-	const bySkill = await opened(
-		gm,
-		click(
-			gm,
-			skiff,
-			'.tab-skills .skills-container section|Ranged >> .skill-content-details >> a:not(.skill-content-details-charName)',
-		),
-	);
-	e2e.expect(
-		"#49 D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
-		{
-			bySkill: bySkillRows,
-			prompts: [byMember, bySkill].map((state) => ({
-				actor: state.actor,
-				skill: state.skill,
-				pool: state.pool,
-				rows: state.modifications.map(({ name }) => name),
-			})),
-		},
-		{
-			bySkill: ['GunneryCrew MemberRoleSkillE2E AdaGunner0', 'Ranged (Light)Crew MemberRoleSkillE2E AdaGunner2'],
-			prompts: [
-				{ actor: 'Ada', skill: 'Ranged (light) (Ag)', pool: 'PP|DD', rows: ['From Self: E2E Focus', 'From Self: E2E Sights'] },
-				{ actor: 'Ada', skill: 'Ranged (light) (Ag)', pool: 'PP|DD', rows: ['From Self: E2E Focus', 'From Self: E2E Sights'] },
-			],
-		},
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('D end');
-
-	// M: the silhouette difference between the attacker and the target (§#380). Every character and Adversary is at 1,
-	// every vehicle at 0, unless set here.
-	const silhouetteRows = (state: PromptState) => state.modifications.filter(({ name }) => name.includes('Silhouette'));
-	const setSilhouette = (actor: string, silhouette: number) => update({ actor }, { 'system.silhouette': silhouette });
-	const rivalKnife = click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a');
-	await setSilhouette('Rival', 3);
-	await target('Rival');
-	const atLarger = await opened(gm, attack('Pistol'));
-	const largerOn = await toggle('Silhouette');
-	const largerOff = await toggle('Silhouette');
-	e2e.expect(
-		'#380 M1 a silhouette 1 character attacking a silhouette 3 rival lists a target Pool Modification removing one Difficulty die, after the defense, which toggles',
-		{
-			rows: rows(atLarger),
-			pool: atLarger.pool,
-			on: { pool: largerOn.pool, rows: silhouetteRows(largerOn) },
-			off: { pool: largerOff.pool, rows: silhouetteRows(largerOff) },
-		},
-		{
-			rows: [
-				{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
-				{ name: 'From Self: E2E Sights', enabled: false, mods: 'B+' },
-				{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
-				{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' },
-				{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' },
-			],
-			pool: 'PP|DD',
-			on: { pool: 'PP|D', rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: true, mods: 'D-' }] },
-			off: { pool: 'PP|DD', rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }] },
-		},
-	);
-
-	await target('Mark');
-	const atSmaller = await opened(gm, rivalKnife);
-	const smallerOn = await toggle('Silhouette');
-	e2e.expect(
-		'#380 M2 a silhouette 3 rival attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
-		{ actor: atSmaller.actor, rows: silhouetteRows(atSmaller), pool: atSmaller.pool, on: smallerOn.pool },
-		{
-			actor: 'Rival',
-			rows: [{ name: 'From Target: Silhouette (1 vs 3)', enabled: false, mods: 'D+' }],
-			pool: 'AAA|DD',
-			on: 'AAA|DDD',
-		},
-	);
-
-	await target('Rival');
-	const unchanged: Record<string, unknown> = {};
-	for (const silhouette of [2, 1]) {
-		await setSilhouette('Rival', silhouette);
-		unchanged[`rival at ${silhouette}`] = silhouetteRows(await opened(gm, attack('Pistol')));
-	}
-	await setSilhouette('Rival', 3);
-	unchanged['skill check'] = silhouetteRows(await opened(gm, skillRoll('Cool')));
-	unchanged['Dice Roller'] = rows(await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr'))));
-	await target(null);
-	unchanged.untargeted = silhouetteRows(await opened(gm, attack('Pistol')));
-	e2e.expect(
-		"#380 M3 a silhouette difference of 1 or 0, a check that isn't an attack, the bare Dice Roller and an untargeted attack change nothing",
-		unchanged,
-		{ 'rival at 2': [], 'rival at 1': [], 'skill check': [], 'Dice Roller': [], untargeted: [] },
-	);
-
-	// §#390: a vehicle keeps the silhouette 0 its data starts at until someone edits it, and a character is at 1.
-	await target('Wagon');
-	e2e.expect(
-		'#380 M7 a silhouette 1 character attacking a vehicle whose silhouette nobody edited, at 0, gets no silhouette modification',
-		{
-			wagon: await gm.evaluate(() => {
-				const wagon = window.e2e.actor('Wagon');
-				return { silhouette: wagon.system.silhouette, stored: wagon._source.system.silhouette };
-			}),
-			rows: silhouetteRows(await opened(gm, attack('Pistol'))),
-		},
-		{ wagon: { silhouette: 0, stored: 0 }, rows: [] },
-	);
-
-	await setSilhouette('Wagon', 3);
-	e2e.expect(
-		'#380 M4 a silhouette 1 character attacking a silhouette 3 vehicle lists one Difficulty die removed',
-		silhouetteRows(await opened(gm, attack('Pistol'))),
-		[{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }],
-	);
-
-	await setSilhouette('Skiff', 3);
-	await target('Mark');
-	const cannonAtMark = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
-	const cannonOn = await toggle('Silhouette');
-	e2e.expect(
-		"#380 M5 a silhouette 1 crew member firing a silhouette 3 vehicle's weapon at a silhouette 1 character adds one Difficulty die, from the vehicle's silhouette",
-		{
-			actor: cannonAtMark.actor,
-			rows: silhouetteRows(cannonAtMark),
-			pool: cannonAtMark.pool,
-			on: cannonOn.pool,
-			ownWeapon: silhouetteRows(await opened(gm, attack('Pistol'))),
-		},
-		{
-			actor: 'Ada',
-			rows: [{ name: 'From Target: Silhouette (1 vs 3)', enabled: false, mods: 'D+' }],
-			pool: 'AA|DD',
-			on: 'AA|DDD',
-			ownWeapon: [],
-		},
-	);
-
-	await gm.evaluate(() =>
-		game.actors
-			.getName('E2E Mark')
-			.createEmbeddedDocuments('ActiveEffect', [
-				{ name: 'E2E Giant', changes: [{ key: 'system.silhouette', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '2' }] },
-			]),
-	);
-	const markSilhouette = () =>
-		gm.evaluate(() => {
-			const mark = game.actors.getName('E2E Mark');
-			return { silhouette: mark.system.silhouette, stored: mark._source.system.silhouette };
-		});
-	e2e.expect(
-		"#380 M6 an Active Effect adding 2 to a character's silhouette makes it 3 for the rule: a silhouette 1 attacker loses one Difficulty die",
-		{ mark: await markSilhouette(), rows: silhouetteRows(await opened(gm, attack('Pistol'))) },
-		{
-			mark: { silhouette: 3, stored: 1 },
-			rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }],
-		},
-	);
-
-	await gm.evaluate(async () => {
-		const mark = game.actors.getName('E2E Mark');
-		await mark.deleteEmbeddedDocuments('ActiveEffect', [mark.effects.getName('E2E Giant').id]);
-	});
-	await setSilhouette('Rival', 1);
-	await setSilhouette('Wagon', 0);
-	await setSilhouette('Skiff', 0);
-	await target(null);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('silhouette end');
-
-	// E: healing and initiative with a skill the actor lacks (§#49), and the messages of checks (§#50, §#157).
-	const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
-	e2e.expect(
-		'#49 E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
-		{ skill: heal.skill, pool: heal.pool, unranked: heal.skills?.Unranked?.includes('Resilience (Br)') },
-		{ skill: 'Resilience (Br)', pool: 'AAA|DD', unranked: true },
-	);
-	await gm.evaluate(async () => {
-		const hero = game.actors.getName('E2E Hero');
-		await hero.update({ 'system.characteristics.willpower': 2 });
-		await hero.deleteEmbeddedDocuments('Item', [hero.items.getName('Vigilance').id]);
-	});
-	const initiative = await opened(gm, () => gm.evaluate(() => void game.combat.rollSlotInitiative(window.e2e.slotId('Hero'))));
-	const initiativeMessage = await roll();
-	e2e.expect(
-		'#49 E2 a character without Vigilance rolls initiative from the tracker as an Unranked Skill Check of Vigilance',
-		{
-			skill: initiative.skill,
-			pool: initiative.pool,
-			unranked: initiative.skills?.Unranked?.includes('Vigilance (Will)'),
-			description: initiativeMessage.description,
-			formula: initiativeMessage.formula,
-			rolled: await gm.evaluate(() => game.combat.combatants.getName('Hero').initiative !== null),
-		},
-		{
-			skill: 'Vigilance (Will)',
-			pool: 'AA|',
-			unranked: true,
-			description: 'Rolling Initiative with <strong>Vigilance<i class="fas fa-star hide-it"></i></strong>...',
-			formula: '0dp + 2da',
-			rolled: true,
-		},
-	);
-	// Ability faces: 4 is two Successes, 8 two Advantages.
-	await gm.fixDice([
-		{ face: 4, faces: 8 },
-		{ face: 8, faces: 8 },
-	]);
-	await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
-	await e2e.settle();
-	const unprompted = await gm.evaluate(() => ({
-		message: window.dicePromptE2E.lastMessage(),
-		initiative: game.combat.combatants.getName('Hero').initiative,
-	}));
-	await gm.evaluate(() => window.e2e.reset());
-	e2e.expect(
-		"#49 E3 initiative rolled without the prompt rolls the missing Initiative Skill's characteristic, and reads its results",
-		{
-			message: {
-				speaker: unprompted.message.speaker,
-				description: unprompted.message.description,
-				formula: unprompted.message.formula,
-				results: unprompted.message.results,
-				summaries: unprompted.message.summaries,
-			},
-			initiative: unprompted.initiative,
-		},
-		{
-			message: {
-				speaker: 'Hero',
-				description: 'Rolling Initiative with <strong>Vigilance<i class="fas fa-star hide-it"></i></strong>...',
-				formula: '0dp + 2da',
-				results: 's s a a',
-				summaries: ['s Successes 2 a Advantage 2'],
-			},
-			initiative: 2.02,
-		},
-	);
-	const foeId = await gm.evaluate(async () => {
-		const foe = game.combat.combatants.getName('Foe');
-		await foe.update({ hidden: true });
-		await game.combat.rollInitiative([foe.id]);
-		return window.dicePromptE2E.lastMessage().id;
-	});
-	await e2e.settle();
-	e2e.expect(
-		"#50 E4 a hidden combatant's initiative is private",
-		{
-			gm: await gm.evaluate(
-				(id) => ({ whispered: game.messages.get(id).whisper.length > 0, blind: game.messages.get(id).blind }),
-				foeId,
-			),
-			player: await player.evaluate((id) => !!game.messages.get(id)?.isContentVisible, foeId),
-		},
-		{ gm: { whispered: true, blind: false }, player: false },
-	);
-
-	// §#414: a check's message and an initiative's take the mode the GM picks in the chat.
-	// v13: the chat's mode is the roll mode (`blindroll`); v14 replaced it with the message mode (`blind`).
-	const chatModeKey = await gm.evaluate(() => (game.release.generation < 14 ? 'rollMode' : 'messageMode'));
-	const chatModeBefore = await gm.evaluate((key) => game.settings.get('core', key), chatModeKey);
-	const setChatMode = (value: unknown) =>
-		gm.evaluate(({ key, value }) => game.settings.set('core', key, value), { key: chatModeKey, value });
-	const visibility = ({ whisper, blind }: MessageSummary) => ({ whisper, blind });
-	const rolledInChatMode = async (mode: string) => {
-		await setChatMode(chatModeKey === 'rollMode' ? `${mode}roll` : mode);
-		await opened(gm, skillRoll('Cool'));
-		const check = visibility(await roll());
-		// The Hero rolls the initiative they hold, so that the turns stay as they were.
-		await gm.fixDice([
-			{ face: 4, faces: 8 },
-			{ face: 8, faces: 8 },
-		]);
-		await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
-		await e2e.settle();
-		return { check, initiative: visibility(await gm.evaluate(() => window.dicePromptE2E.lastMessage())) };
-	};
-	const gmCount = await gm.evaluate(() => game.users.filter((user: { isGM: boolean }) => user.isGM).length);
-	e2e.expect(
-		"#414 A1 a check and an initiative rolled with the chat in blind mode, then in self mode, are whispered as the chat's mode says",
-		{ blind: await rolledInChatMode('blind'), self: await rolledInChatMode('self') },
-		{
-			blind: { check: { whisper: gmCount, blind: true }, initiative: { whisper: gmCount, blind: true } },
-			self: { check: { whisper: 1, blind: false }, initiative: { whisper: 1, blind: false } },
-		},
-	);
-	await setChatMode(chatModeBefore);
-
-	const description = (message: MessageSummary) => ({ description: message.description, formula: message.formula });
-	await opened(gm, skillRoll('Cool'));
-	const coolMessage = await roll();
-	await opened(gm, characteristicRoll(5));
-	const willpowerMessage = await roll();
-	await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > a|Melee'));
-	const minionMessage = await roll();
-	await setSetting('useSuperCharacteristics', true);
-	await update(ada, { 'system.superCharacteristics': ['brawn'] });
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await opened(gm, skillRoll('Melee'));
-	const superMessage = await roll();
-	e2e.expect(
-		'#50 E5 skill, characteristic, minion and super characteristic messages describe their check',
-		{
-			skill: description(coolMessage),
-			characteristic: description(willpowerMessage),
-			minion: description(minionMessage),
-			super: description(superMessage),
-		},
-		{
-			skill: { description: 'Rolling <strong>Cool (Pr<i class="fas fa-star hide-it"></i>)</strong>...', formula: '0dp + 1da + 2di' },
-			characteristic: { description: 'Rolling <strong>Willpower</strong>...', formula: '0dp + 4da + 2di' },
-			minion: {
-				description: 'Rolling <strong>Melee (Br<i class="fas fa-star hide-it"></i>)</strong>...',
-				formula: '0dp + 2da + 2di',
-			},
-			super: {
-				description: 'Rolling <strong>Melee (Br<i class="fas fa-star super-char"></i>)</strong>...',
-				formula: '3dpx + 0da + 2di',
-			},
-		},
-	);
-	await update(ada, { 'system.superCharacteristics': [] });
-	await setSetting('useSuperCharacteristics', false);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-
-	await opened(gm, skillRoll('Melee'));
-	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['C+']));
-	// Proficiency faces: 12 a Triumph, 4 two Successes, 6 an Advantage; Difficulty: 2 a Failure, 7 two Threats;
-	// Challenge: 12 a Despair.
-	await gm.fixDice([
-		{ face: 12, faces: 12 },
-		{ face: 4, faces: 12 },
-		{ face: 6, faces: 12 },
-		{ face: 2, faces: 8 },
-		{ face: 7, faces: 8 },
-		{ face: 12, faces: 12 },
-	]);
-	const skillResults = await roll();
-	await opened(gm, attack('Pistol'));
-	// Proficiency faces: 2 a Success, 10 two Advantages; Difficulty: 1 blank, 4 a Threat.
-	await gm.fixDice([
-		{ face: 2, faces: 12 },
-		{ face: 10, faces: 12 },
-		{ face: 1, faces: 8 },
-		{ face: 4, faces: 8 },
-	]);
-	const attackResults = await roll();
-	const succeededAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
-	e2e.expect(
-		'#157 E6 a skill roll and an attack read their net results, with Triumph and Despair apart',
-		{
-			skill: { formula: skillResults.formula, results: skillResults.results, summaries: skillResults.summaries },
-			attack: { formula: attackResults.formula, results: attackResults.results, summaries: attackResults.summaries },
-		},
-		{
-			skill: { formula: '3dp + 0da + 2di + 1dc', results: 'h t d', summaries: ['s Successes 1 h Threat 1 t Triumph 1 d Despair 1'] },
-			attack: { formula: '2dp + 0da + 2di', results: 's a', summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'] },
-		},
-	);
-	await opened(gm, skillRoll('Melee'));
-	// Proficiency faces: 2 a Success, 1 blank, 6 an Advantage; Difficulty: 3 two Failures, 8 a Failure and a Threat.
-	await gm.fixDice([
-		{ face: 2, faces: 12 },
-		{ face: 1, faces: 12 },
-		{ face: 6, faces: 12 },
-		{ face: 3, faces: 8 },
-		{ face: 8, faces: 8 },
-	]);
-	await roll();
-	const failedSkillCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
-	await update(
-		{ actor: 'Ada', item: 'Pistol' },
-		{
-			'system.qualities': [
-				{ name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 },
-				{ name: 'Pierce', description: '', isRated: false, rating: 2 },
-			],
-		},
-	);
-	await opened(gm, attack('Pistol'));
-	// Proficiency faces: 1 blank, 10 two Advantages; Difficulty: 2 a Failure, 4 a Threat.
-	await gm.fixDice([
-		{ face: 1, faces: 12 },
-		{ face: 10, faces: 12 },
-		{ face: 2, faces: 8 },
-		{ face: 4, faces: 8 },
-	]);
-	await roll();
-	const failedAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
-	await update({ actor: 'Ada', item: 'Pistol' }, { 'system.qualities': [] });
-	e2e.expect(
-		'the cards of a succeeded attack, a failed skill roll and a failed attack with qualities show each of their parts',
-		{ succeededAttack: succeededAttackCard, failedSkill: failedSkillCard, failedAttack: failedAttackCard },
-		{
-			succeededAttack: {
-				labels: ['Roll Results', 'Attack Results', 'Summary', 'Dice'],
-				results: 's a',
-				summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'],
-				qualities: [],
-				dice: 'P s P aa D D h',
-			},
-			failedSkill: {
-				labels: ['Roll Results', 'Summary', 'Dice'],
-				results: 'f f',
-				summaries: ['f Failures 2'],
-				qualities: [],
-				dice: 'P s P P a D ff D fh',
-			},
-			// The damage and critical are hidden on a failure, the world setting being off. The qualities still show, as on
-			// origin/main, though the setting's hint names them among what it hides.
-			failedAttack: {
-				labels: ['Roll Results', 'Summary', 'Attack Qualities', 'Dice'],
-				results: 'f a',
-				summaries: ['f Failures 1 a Advantage 1'],
-				qualities: [
-					{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
-					{ text: 'Pierce', tooltip: 'Genesys.Tooltips.NoDescription' },
-				],
-				dice: 'P P aa D f D h',
-			},
-		},
-	);
-	await e2e.step('E end');
-
-	// F: effect sheets keep a Pool Modification for a skill outside the Skills Compendium (§#40).
-	e2e.expect(
-		'#40 F1 opening and saving an actor effect and an item effect keeps their custom skill',
-		{
-			actor: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', effect: 'Knack' })),
-			item: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', item: 'Map', effect: 'Charm' })),
-		},
-		{
-			actor: { selected: ['E2E Craft'], changes: ['genesys.pool.skill.self.E2E Craft=B'] },
-			item: { selected: ['E2E Craft'], changes: ['genesys.pool.skill.self.E2E Craft=a'] },
-		},
-	);
-	await e2e.step('F end');
-
-	// G: `@check` links as the GM (§#51, §#95, §#157).
 	const journal = { journal: 'Links' };
-	e2e.expect(
-		'#51 G1 a journal page renders its check links with their difficulty',
-		await gm.evaluate((doc) => window.dicePromptE2E.links(doc), journal),
-		[
-			{ skill: 'Athletics', difficulty: 'DDD', text: 'Hard [DDD] Athletics check' },
-			{ skill: 'Cool', difficulty: 'CD', text: 'Average [CD] Cool check' },
-			{ skill: null, difficulty: null, text: 'Opposed Athletics versus Cool check' },
-			{ skill: 'Athletics', difficulty: 'CC', text: 'Easy [CC] Athletics check' },
-			{ skill: 'Athletics', difficulty: 'CCD', text: 'Average [CCD] Athletics check' },
-			{ skill: 'Athletics', difficulty: 'D', text: 'Simple [D] Athletics check' },
-			{ skill: 'Athletics', difficulty: 'CCCCCD', text: 'Impossible [CCCCCD] Athletics check' },
-			{ skill: 'Athletics', difficulty: 'CDD', text: 'Hard [CDD] Athletics check' },
-		],
-	);
+	const skiff = { actor: 'Skiff' };
+	const combatWeapons = (actor: string) => gm.evaluate((actor) => window.dicePromptE2E.combatWeapons(actor), actor);
 	const linkPrompt = async (client: Client, doc: Doc | { message: string }, skill: string, difficulty?: string) => {
 		const state = await opened(client, () =>
 			client.evaluate((args) => window.dicePromptE2E.clickLink(args), { doc, skill, difficulty }),
 		);
 		return { actor: state.actor, skill: state.skill, pool: state.pool };
 	};
-	await control(gm, ['Bo']);
-	e2e.expect(
-		"#51 G2 a journal entry's link opens the prompt for the controlled token's actor, with the link's difficulty",
-		{
-			hard: await linkPrompt(gm, journal, 'Athletics', 'DDD'),
-			upgraded: await linkPrompt(gm, journal, 'Cool', 'CD'),
-			upgradedPastDifficulty: await linkPrompt(gm, journal, 'Athletics', 'CC'),
-		},
-		{
-			hard: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-			upgraded: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
-			upgradedPastDifficulty: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|CC' },
-		},
-	);
-	e2e.expect(
-		'#51 G3 an opposed check link stays inert',
-		await noPrompt(gm, () => gm.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal)),
-		{ prompts: 0, notifications: [] },
-	);
-	const gmMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
-	e2e.expect(
-		"#51 G4 a chat message's and an item sheet's links open the prompt for the controlled token's actor",
-		{
-			message: await linkPrompt(gm, { message: gmMessage }, 'Athletics'),
-			item: await linkPrompt(gm, { item: 'Note' }, 'Athletics'),
-			ownedItem: await linkPrompt(gm, { actor: 'Ada', item: 'Map' }, 'Cool'),
-		},
-		{
-			message: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-			item: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-			ownedItem: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
-		},
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	e2e.expect(
-		"#51 G5 an actor sheet's link rolls for that actor, with a token controlled, right after the sheet opens",
-		{
-			character: await linkPrompt(gm, ada, 'Athletics'),
-			adversary: await linkPrompt(gm, { actor: 'Rival' }, 'Athletics'),
-		},
-		{
-			character: { actor: 'Ada', skill: 'Athletics (Br)', pool: 'AAA|DDD' },
-			adversary: { actor: 'Rival', skill: 'Athletics (Br)', pool: 'AA|DDD' },
-		},
-	);
-	await control(gm, []);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('G end');
+	const seekerCheck = (client: Client) =>
+		opened(client, click(client, { actor: 'Seeker' }, '.tab-skills .characteristics-row .characteristic-field:nth-child(3) label a'));
 
-	// H: `@check` links as a player (§#51).
-	const warning = 'warning: Select a single token or assign yourself a character to roll this check.';
-	const playerLink = (doc: Doc | { message: string }, skill: string, difficulty?: string) => linkPrompt(player, doc, skill, difficulty);
-	const playerNoPrompt = (doc: Doc) =>
-		noPrompt(player, () =>
-			player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: 'Athletics', difficulty: 'DDD' }), doc),
+	// Each part starts from the setup, whatever the parts before it changed, so that it runs the same alone as after them:
+	// no target, no token controlled, no window open, the settings and documents of the setup.
+	let partRan = false;
+	const part = (name: string, fn: () => Promise<void>) =>
+		e2e.part(name, async () => {
+			if (partRan) {
+				await target(null);
+				for (const client of [gm, player]) {
+					await control(client, []);
+					await client.evaluate(async () => {
+						await window.dicePromptE2E.closePrompts();
+						await window.dicePromptE2E.closeSheets();
+					});
+				}
+				await setUp();
+			}
+			partRan = true;
+			await fn();
+		});
+
+	// A: the skills the prompt offers (§#49, §#100). B: the characteristic menu (§#184, §#204, §#50), from A's prompt.
+	await part('skillsAndCharacteristics', async () => {
+		const cool = await opened(gm, skillRoll('Cool'));
+		e2e.expect('#49 A1 a character is offered its skills, then the Skills Compendium others as unranked', cool.skills, {
+			'': ['—', 'Brawl (Br)', 'Cool (Pr)', 'Melee (Br)', 'Ranged (light) (Ag)'],
+			Unranked: unranked(['Brawl', 'Cool', 'Melee', 'Ranged (Light)']),
+		});
+
+		// B: the characteristic menu (§#184, §#204, §#50).
+		e2e.expect(
+			'#184 B1 uncoupled skills off: a skill check is locked on its characteristic, without "—"',
+			{ characteristic: cool.characteristic, skill: cool.skill, pool: cool.pool },
+			{ characteristic: { value: 'presence', disabled: true, options: SIX_CHARACTERISTICS }, skill: 'Cool (Pr)', pool: 'A|DD' },
 		);
-	await control(player, []);
-	const noToken = await playerNoPrompt(journal);
-	await control(player, ['Bo']);
-	const oneToken = { hard: await playerLink(journal, 'Athletics', 'DDD'), upgraded: await playerLink(journal, 'Cool', 'CD') };
-	await control(player, ['Bo', 'Cy']);
-	const twoTokens = await playerNoPrompt(journal);
-	e2e.expect(
-		'#51 H1 as a player without a character, a link rolls for the single controlled token, and asks for one otherwise',
-		{ noToken, oneToken, twoTokens },
-		{
-			noToken: { prompts: 0, notifications: [warning] },
-			oneToken: {
-				hard: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-				upgraded: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
+		const willpowerCheck = await opened(gm, characteristicRoll(5));
+		e2e.expect(
+			'#184 B2 uncoupled skills off: a Characteristic Check opens the menu, with "—"',
+			{
+				characteristic: willpowerCheck.characteristic,
+				skill: willpowerCheck.skill,
+				pool: willpowerCheck.pool,
+				rows: rows(willpowerCheck),
 			},
-			twoTokens: { prompts: 0, notifications: [warning] },
-		},
-	);
-	await gm.evaluate((user) => game.users.getName(user).update({ character: game.actors.getName('E2E Cy').id }), e2e.playerUser);
-	await e2e.settle();
-	await control(player, ['Bo', 'Cy']);
-	const characterTwoTokens = await playerLink(journal, 'Athletics', 'DDD');
-	await control(player, []);
-	const characterNoToken = await playerLink(journal, 'Athletics', 'DDD');
-	await control(player, ['Bo']);
-	const playerMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
-	e2e.expect(
-		'#51 H2 as a player with a character, a link rolls for the single controlled token, otherwise the character',
-		{
-			twoTokens: characterTwoTokens,
-			noToken: characterNoToken,
-			message: await playerLink({ message: playerMessage }, 'Athletics'),
-			opposed: await noPrompt(player, () => player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal)),
-		},
-		{
-			twoTokens: { actor: 'Cy', skill: 'Athletics (Br)', pool: '|DDD' },
-			noToken: { actor: 'Cy', skill: 'Athletics (Br)', pool: '|DDD' },
-			message: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-			opposed: { prompts: 0, notifications: [] },
-		},
-	);
-	await control(player, ['Cy']);
-	e2e.expect(
-		"#51 H3 as a player, an actor sheet's link rolls for that actor",
-		{ character: await playerLink({ actor: 'Bo' }, 'Athletics'), adversary: await playerLink({ actor: 'Rival' }, 'Athletics') },
-		{
-			character: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
-			adversary: { actor: 'Rival', skill: 'Athletics (Br)', pool: 'AA|DDD' },
-		},
-	);
-	await control(player, []);
-	await player.evaluate(() => window.dicePromptE2E.closePrompts());
-	await player.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('H end');
-
-	// I: `@pool` links in a journal page (§#115).
-	e2e.expect(
-		'#115 I1 a pool link with a glyph in the wrong case stays as written, the others show their icons',
-		await gm.evaluate((doc) => window.dicePromptE2E.pools(doc), journal),
-		[
-			{ text: 'P1 @pool[p]', icons: '' },
-			{ text: 'P2 @pool[T]', icons: '' },
-			{ text: 'P3 @pool[Pp]', icons: '' },
-			{ text: 'P4 PAA', icons: 'P+ A+ A^' },
-			{ text: 'P5 PAA', icons: 'P+ A+ A^' },
-			{ text: 'P6 a', icons: 'a+' },
-		],
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-
-	// J: the Default Difficulty and Skills Compendium settings (§#32, §#100).
-	const defaultDifficulty = async (value: string) => {
-		// A refused value rejects the setting's write, which is what the step reads.
-		const refused = await setSetting('defaultDifficulty', value).then(
-			() => false,
-			() => true,
-		);
-		const state = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
-		return { refused, applied: await gm.evaluate(() => CONFIG.genesys.settings.defaultDifficulty), pool: state.pool };
-	};
-	// §#415: a value that is not glyphs is refused, rather than stored and read as the default.
-	e2e.expect(
-		'#32 J1 #415 the Default Difficulty setting refuses a value that is not glyphs, and keeps the one it held',
-		{ glyphs: await defaultDifficulty('DDD'), text: await defaultDifficulty('xyz') },
-		{ glyphs: { refused: false, applied: 'DDD', pool: '|DDD' }, text: { refused: true, applied: 'DDD', pool: '|DDD' } },
-	);
-	await setSetting('defaultDifficulty', 'DD');
-	const skillsCompendium = async (value: string) => {
-		await gm.evaluate(() => window.dicePromptE2E.clearNotifications());
-		await setSetting('skillsCompendium', value);
-		await e2e.settle();
-		return gm.evaluate(() => ({
-			compendium: CONFIG.genesys.settings.skillsCompendium,
-			skills: CONFIG.genesys.skills.length,
-			notifications: window.dicePromptE2E.notifications(),
-		}));
-	};
-	e2e.expect(
-		'#100 J2 an empty Skills Compendium setting warns and loads the default one, a missing one is an error',
-		{
-			empty: await skillsCompendium(''),
-			missing: await skillsCompendium('world.e2e-missing'),
-			default: await skillsCompendium('genesys.crb-skills'),
-		},
-		{
-			empty: {
-				compendium: 'genesys.crb-skills',
-				skills: 37,
-				notifications: ['warning: Skills compendium setting is empty! Attempting to use default skills compendium.'],
-			},
-			missing: {
-				compendium: 'world.e2e-missing',
-				skills: 0,
-				notifications: [
-					"error: Unable to load Skills Compendium 'world.e2e-missing'. Reconfigure the skills compendium in Genesys Settings.",
+			{
+				characteristic: { value: 'willpower', disabled: false, options: ['-', ...SIX_CHARACTERISTICS] },
+				skill: '—',
+				pool: 'AAAA|DD',
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
+					{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
 				],
 			},
-			default: { compendium: 'genesys.crb-skills', skills: 37, notifications: [] },
-		},
-	);
-	await gm.evaluate(() => window.dicePromptE2E.createSkillsPack());
-	await setSetting('skillsCompendium', 'world.e2e-skills');
-	await e2e.settle();
-	await gm.evaluate(() => window.dicePromptE2E.renameSkill('E2E Lore Renamed'));
-	const renamed = await opened(gm, skillRoll('Cool'));
-	e2e.expect(
-		'#100 J3 a skill renamed in a world Skills Compendium shows its new name in the prompt without a reload',
-		{
-			skills: await gm.evaluate(() => CONFIG.genesys.skills.map((skill: { name: string }) => skill.name)),
-			unranked: renamed.skills?.Unranked,
-		},
-		{ skills: ['E2E Lore Renamed'], unranked: ['E2E Lore Renamed (Int)'] },
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	await setSetting('skillsCompendium', 'genesys.crb-skills');
-	await gm.evaluate(() => game.packs.get('world.e2e-skills')?.deleteCompendium());
-	await e2e.step('J end');
+		);
+		await toggle('E2E Focus');
+		await toggle('E2E Steady');
+		const presenceCheck = await select('characteristic', 'presence');
+		e2e.expect(
+			'#50 B3 switching the characteristic lists its Pool Modifications, and keeps the state of those still listed',
+			{ pool: presenceCheck.pool, rows: rows(presenceCheck) },
+			{
+				pool: 'a|DD',
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: true, mods: 'a+' },
+					{ name: 'From Self: E2E Poise', enabled: false, mods: 'S+' },
+				],
+			},
+		);
+		const backToWillpower = await select('characteristic', 'willpower');
+		e2e.expect(
+			'#50 B4 switching back lists the first characteristic Pool Modification again, following auto-apply',
+			{ pool: backToWillpower.pool, rows: rows(backToWillpower) },
+			{
+				pool: 'AAAAa|DD',
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: true, mods: 'a+' },
+					{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
+				],
+			},
+		);
+
+		await setSetting('uncoupleSkills', true);
+		const coolUncoupled = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			'#184 B5 uncoupled skills on: a skill check offers the six characteristics, not "—", on its own',
+			{ characteristic: coolUncoupled.characteristic, pool: coolUncoupled.pool, rows: rows(coolUncoupled).map(({ name }) => name) },
+			{
+				characteristic: { value: 'presence', disabled: false, options: SIX_CHARACTERISTICS },
+				pool: 'A|DD',
+				rows: ['From Self: E2E Focus', 'From Self: E2E Poise', 'From Self: E2E Nerve'],
+			},
+		);
+		await toggle('E2E Nerve');
+		const coolWillpower = await select('characteristic', 'willpower');
+		e2e.expect(
+			"#184 B6 uncoupled skills on: picking Willpower for Cool changes the pool and the characteristic's Pool Modifications",
+			{
+				characteristic: coolWillpower.characteristic?.value,
+				skill: coolWillpower.skill,
+				pool: coolWillpower.pool,
+				rows: rows(coolWillpower),
+			},
+			{
+				characteristic: 'willpower',
+				skill: 'Cool (Pr)',
+				pool: 'PAAAB|DD',
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
+					{ name: 'From Self: E2E Steady', enabled: false, mods: 'B+' },
+					{ name: 'From Self: E2E Nerve', enabled: true, mods: 'B+' },
+				],
+			},
+		);
+		const noSkill = await select('skill', '—');
+		e2e.expect('#204 B7 uncoupled skills on: picking skill "—" offers "—" again, and picks it', noSkill.characteristic, {
+			value: '-',
+			disabled: false,
+			options: ['-', ...SIX_CHARACTERISTICS],
+		});
+		const barePool = await select('characteristic', '-');
+		e2e.expect(
+			'#204 B8 "—" with no skill gives a bare pool',
+			{ pool: barePool.pool, rows: rows(barePool) },
+			{ pool: '|DD', rows: [{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' }] },
+		);
+		const attackUncoupled = await opened(gm, attack('Spear'));
+		e2e.expect('#204 B9 uncoupled skills on: an attack offers the six characteristics, not "—"', attackUncoupled.characteristic, {
+			value: 'brawn',
+			disabled: false,
+			options: SIX_CHARACTERISTICS,
+		});
+		await setSetting('uncoupleSkills', false);
+		const gendr = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
+		e2e.expect(
+			'#204 B10 /gendr opens a bare pool without characteristic and skill menus',
+			{ actor: gendr.actor, pool: gendr.pool, characteristic: gendr.characteristic, skills: gendr.skills, rows: rows(gendr) },
+			{ actor: null, pool: '|DD', characteristic: null, skills: null, rows: [] },
+		);
+	});
+
+	// C: Pool Modifications of the actor and of the target (§#32, §#40, §#49, §#201).
+	await part('targetModifications', async () => {
+		await target('Rival');
+		const coolAtRival = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			'#32 C1 the prompt lists "From Self" and "From Target" Pool Modifications for check, characteristic and skill keys',
+			rows(coolAtRival),
+			[
+				{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
+				{ name: 'From Self: E2E Poise', enabled: false, mods: 'S+' },
+				{ name: 'From Self: E2E Nerve', enabled: false, mods: 'B+' },
+				{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
+				{ name: 'From Target: E2E Glare', enabled: false, mods: 'D+' },
+				{ name: 'From Target: E2E Ward', enabled: false, mods: 'h+' },
+			],
+		);
+		const pistol = await opened(gm, attack('Pistol'));
+		e2e.expect(
+			'#49 C2 an attack rolls the owned "Ranged (light)" with the Pool Modification on "Ranged (Light)", and the ranged defense',
+			{ skill: pistol.skill, pool: pistol.pool, rows: rows(pistol) },
+			{
+				skill: 'Ranged (light) (Ag)',
+				pool: 'PP|DD',
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
+					{ name: 'From Self: E2E Sights', enabled: false, mods: 'B+' },
+					{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
+					{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' },
+				],
+			},
+		);
+		await toggle('E2E Sights');
+		await toggle('Ranged Defense');
+		const pistolRoll = await roll();
+		e2e.expect(
+			'#49 C3 the attack rolls the owned skill with the toggled Pool Modifications',
+			{ speaker: pistolRoll.speaker, description: pistolRoll.description, formula: pistolRoll.formula },
+			{
+				speaker: 'Ada',
+				description:
+					'Attacking with <strong>E2E Pistol</strong> using <strong>Ranged (light) (Ag<i class="fas fa-star hide-it"></i>)</strong>!',
+				formula: '2dp + 0da + 2di + 1db + 2ds',
+			},
+		);
+
+		// The target's defense against the attack's range, for an adversary and a character (§#32, §#40).
+		const defenseRows = async (weapon: string) =>
+			named(await opened(gm, attack(weapon)), 'From Target').filter(({ name }) => name.endsWith('Defense'));
+		const defenses: Record<string, unknown> = {};
+		const expectedDefenses: Record<string, unknown> = {};
+		for (const targetName of ['Rival', 'Mark']) {
+			await target(targetName);
+			for (const defense of [0, 1, 2]) {
+				await update({ actor: targetName }, { 'system.defense': { melee: defense, ranged: defense } });
+				for (const [weapon, range] of [
+					['Spear', 'Melee'],
+					['Pistol', 'Ranged'],
+				]) {
+					defenses[`${targetName} ${defense} ${range}`] = await defenseRows(weapon);
+					expectedDefenses[`${targetName} ${defense} ${range}`] =
+						defense === 0
+							? []
+							: [{ name: `From Target: ${range} Defense`, enabled: false, mods: Array(defense).fill('S+').join(' ') }];
+				}
+			}
+		}
+		e2e.expect(
+			"#32 C4 an attack adds one Setback per point of an adversary's or a character's defense against its range, none at 0",
+			defenses,
+			expectedDefenses,
+		);
+
+		// A targeted vehicle (§#201).
+		await target('Wagon');
+		const vehicleDefenses: Record<string, unknown> = {};
+		for (const defense of [2, 5]) {
+			await update({ actor: 'Wagon' }, { 'system.defense': defense });
+			for (const weapon of ['Spear', 'Pistol']) vehicleDefenses[`${defense} ${weapon}`] = await defenseRows(weapon);
+		}
+		const vehicleRow = (range: string, count: number) => [
+			{ name: `From Target: ${range} Defense`, enabled: false, mods: Array(count).fill('S+').join(' ') },
+		];
+		e2e.expect('#201 C5 an attack against a targeted vehicle adds one Setback per point of its defense, up to 4', vehicleDefenses, {
+			'2 Spear': vehicleRow('Melee', 2),
+			'2 Pistol': vehicleRow('Ranged', 2),
+			'5 Spear': vehicleRow('Melee', 4),
+			'5 Pistol': vehicleRow('Ranged', 4),
+		});
+		const coolAtWagon = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			'#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications',
+			named(coolAtWagon, 'From Target'),
+			[{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' }],
+		);
+
+		// The Pilot's Defensive Driving raises the defense of the vehicle they pilot (§#482): the Driver, first member of the
+		// Rig's Helm, holds 2 ranks of a talent adding 1 Piloted Vehicle Defense.
+		await target('Rig');
+		const rigDefense = () => gm.evaluate(() => window.dicePromptE2E.vehicleDefense('Rig'));
+		const rigAttacks = async () => ({
+			defense: await rigDefense(),
+			Spear: await defenseRows('Spear'),
+			Pistol: await defenseRows('Pistol'),
+		});
+		e2e.expect('#482 A0 a vehicle whose Roles hold no Pilot Role counts its own defense alone', await rigAttacks(), {
+			defense: { total: '1', vehicle: '1' },
+			Spear: vehicleRow('Melee', 1),
+			Pistol: vehicleRow('Ranged', 1),
+		});
+		e2e.expect(
+			'#482 A1 the Helm marked as the Pilot Role on the sheet',
+			await gm.evaluate(() => window.dicePromptE2E.clickPilotRole({ vehicle: 'Rig', role: 'Helm' })),
+			true,
+		);
+		e2e.expect(
+			"#482 A2 the Pilot's 2 ranks of Piloted Vehicle Defense raise the vehicle's defense on its sheet and against an attack",
+			await rigAttacks(),
+			{ defense: { total: '3', vehicle: '1' }, Spear: vehicleRow('Melee', 3), Pistol: vehicleRow('Ranged', 3) },
+		);
+		await e2e.step("#482 A3 the Pilot's talent effect turned off", () =>
+			gm.evaluate(() =>
+				window.dicePromptE2E.setItemEffectDisabled({
+					actor: 'Driver',
+					item: 'Steady Hands',
+					effect: 'Steady Hands',
+					disabled: true,
+				}),
+			),
+		);
+		e2e.expect("#482 A3 the vehicle's open sheet follows its Pilot's effects", await rigDefense(), { total: '1', vehicle: '1' });
+		await e2e.step("#482 A4 the Pilot's talent effect turned on again", () =>
+			gm.evaluate(() =>
+				window.dicePromptE2E.setItemEffectDisabled({
+					actor: 'Driver',
+					item: 'Steady Hands',
+					effect: 'Steady Hands',
+					disabled: false,
+				}),
+			),
+		);
+		e2e.expect("#482 A4 the vehicle's open sheet shows its Pilot's bonus again", await rigDefense(), { total: '3', vehicle: '1' });
+		await update({ actor: 'Rig' }, { 'system.defense': 3 });
+		e2e.expect("#482 A5 the vehicle's defense raised by its Pilot counts up to 4 (CRB p. 223)", await rigAttacks(), {
+			defense: { total: '4', vehicle: '3' },
+			Spear: vehicleRow('Melee', 4),
+			Pistol: vehicleRow('Ranged', 4),
+		});
+		await target(null);
+		await e2e.step('C end');
+	});
+
+	// D: Attack Skills (§#49, §#196).
+	await part('attackSkills', async () => {
+		const inventoryWeapons = () => gm.evaluate(() => window.dicePromptE2E.inventoryWeapons('Ada'));
+		const attackSkill = (doc: Doc) =>
+			gm.evaluate((doc) => {
+				const actor = game.actors.getName(`E2E ${'actor' in doc ? doc.actor : ''}`);
+				return actor.items.getName(`E2E ${'item' in doc ? doc.item : ''}`).system.attackSkill;
+			}, doc);
+		e2e.expect(
+			"#49 D1 the Combat tab shows each weapon's Attack Skill, a select for a weapon listing several",
+			await combatWeapons('Ada'),
+			[
+				{ name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee', 'Ranged'] },
+				{ name: 'E2E Pistol', link: true, skill: 'Ranged (light)', choices: null },
+				{ name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
+				{ name: 'E2E Blaster', link: true, skill: 'Piloting (Space)Skill Not Found', choices: null },
+				{ name: 'E2E Club', link: true, skill: 'Melee', choices: null },
+			],
+		);
+		e2e.expect(
+			"#49 D2 the Inventory tab shows each weapon's Attack Skill, and no attack for a weapon without skill",
+			await inventoryWeapons(),
+			[
+				{ name: 'E2E Spear', attack: true, skill: 'Melee' },
+				{ name: 'E2E Pistol', attack: true, skill: 'Ranged (light)' },
+				{ name: 'E2E Stick', attack: false, skill: '-' },
+				{ name: 'E2E Blaster', attack: true, skill: 'Piloting (Space)' },
+				{ name: 'E2E Club', attack: true, skill: 'Melee' },
+			],
+		);
+		await gm.evaluate(() =>
+			window.dicePromptE2E.change({
+				doc: { actor: 'Ada' },
+				path: '.tab-combat .weapon|E2E Spear >> select.attack-skill',
+				value: 'Ranged',
+			}),
+		);
+		e2e.expect(
+			'#196 D3 choosing Ranged for the spear stores it, and both tabs show it',
+			{
+				stored: await attackSkill({ actor: 'Ada', item: 'Spear' }),
+				combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
+				inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Spear')?.skill,
+			},
+			{
+				stored: 'Ranged',
+				combat: { name: 'E2E Spear', link: true, skill: '[Ranged]', choices: ['Brawl', 'Melee', 'Ranged'] },
+				inventory: 'Ranged',
+			},
+		);
+		const spear = await opened(gm, attack('Spear'));
+		e2e.expect(
+			"#196 D4 the spear's attack opens on the chosen skill, the weapon's skills first in their group, owned or not",
+			{ skill: spear.skill, pool: spear.pool, skills: spear.skills },
+			{
+				skill: 'Ranged (Ag)',
+				pool: 'AA|DD',
+				skills: {
+					'': ['—', 'Cool (Pr)', 'Ranged (light) (Ag)'],
+					'Weapon Skills': ['Brawl (Br)', 'Melee (Br)', 'Ranged (Ag)'],
+					Unranked: unranked(['Brawl', 'Cool', 'Melee', 'Ranged', 'Ranged (Light)']),
+				},
+			},
+		);
+		const athletics = await select('skill', 'Athletics');
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		e2e.expect(
+			'#196 D5 picking another skill in the prompt applies to that roll only',
+			{ skill: athletics.skill, pool: athletics.pool, stored: await attackSkill({ actor: 'Ada', item: 'Spear' }) },
+			{ skill: 'Athletics (Br)', pool: 'AAA|DD', stored: 'Ranged' },
+		);
+		await update({ actor: 'Ada', item: 'Spear' }, { 'system.skills': ['Brawl', 'Melee'] });
+		e2e.expect(
+			'#196 D6 a choice the weapon no longer lists falls back to the listed skill owned at the highest rank',
+			{
+				combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Spear'),
+				inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Spear')?.skill,
+				prompt: (await opened(gm, attack('Spear'))).skill,
+			},
+			{
+				combat: { name: 'E2E Spear', link: true, skill: '[Melee]', choices: ['Brawl', 'Melee'] },
+				inventory: 'Melee',
+				prompt: 'Melee (Br)',
+			},
+		);
+		e2e.expect(
+			'#49 D7 a weapon without skill offers no attack link on the Combat tab and no Attack button in the inventory',
+			{
+				combat: (await combatWeapons('Ada')).find(({ name }) => name === 'E2E Stick'),
+				inventory: (await inventoryWeapons()).find(({ name }) => name === 'E2E Stick'),
+			},
+			{
+				combat: { name: 'E2E Stick', link: false, skill: 'Skill Not Found', choices: null },
+				inventory: { name: 'E2E Stick', attack: false, skill: '-' },
+			},
+		);
+
+		// An adversary's weapons.
+		e2e.expect(
+			'#49 D8 the adversary sheet shows a select for a weapon listing several skills',
+			await gm.evaluate(() => window.dicePromptE2E.adversaryWeapons('Rival')),
+			[
+				{ text: 'E2E Knife ([Melee]Damage 3Critical 3Range [Engaged])', choices: ['Melee', 'Ranged'] },
+				{ text: 'E2E Twig (No skillDamage 3Critical 3Range [Engaged])', choices: null },
+			],
+		);
+		e2e.expect(
+			"#196 D9 clicking the knife's select doesn't roll",
+			await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> select.attack-skill')),
+			{ prompts: 0, notifications: [] },
+		);
+		await gm.evaluate(() =>
+			window.dicePromptE2E.change({
+				doc: { actor: 'Rival' },
+				path: '.adversary-items .weapon|E2E Knife >> select.attack-skill',
+				value: 'Ranged',
+			}),
+		);
+		const knife = await opened(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a'));
+		e2e.expect(
+			"#196 D10 the rival's knife attacks with the chosen Ranged",
+			{ stored: await attackSkill({ actor: 'Rival', item: 'Knife' }), actor: knife.actor, skill: knife.skill },
+			{ stored: 'Ranged', actor: 'Rival', skill: 'Ranged (Ag)' },
+		);
+		e2e.expect(
+			"#49 D11 a rival's weapon without skill doesn't roll, and its menu has no check",
+			{
+				click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> :scope > a')),
+				twig: await gm.evaluate(() =>
+					window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Twig' }),
+				),
+				knife: await gm.evaluate(() =>
+					window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Knife' }),
+				),
+			},
+			{ click: { prompts: 0, notifications: [] }, twig: ['Edit', 'Delete'], knife: ['Edit', 'Perform Check', 'Delete'] },
+		);
+
+		// A vehicle's weapons and skills.
+		e2e.expect(
+			"#196 D12 a vehicle weapon's Combat tab row has no Attack Skill select",
+			await gm.evaluate(() =>
+				window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-combat .weapon:not(.header) select' }),
+			),
+			[],
+		);
+		const cannon = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
+		e2e.expect(
+			"#196 D13 a vehicle weapon's attack is rolled by its crew member, with no weapon group",
+			{ actor: cannon.actor, skill: cannon.skill, groups: Object.keys(cannon.skills ?? {}) },
+			{ actor: 'Ada', skill: 'Gunnery (Ag)', groups: ['', 'Unranked'] },
+		);
+		e2e.expect(
+			"#49 D14 the vehicle's Skills tab by crew member shows the owned Ranged (light) at its rank",
+			await gm.evaluate(() => window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .member-skill' })),
+			['Gunnery (Ag)0', 'Ranged (light) (Ag)2'],
+		);
+		const byMember = await opened(gm, click(gm, skiff, '.tab-skills .member-skill a.skill-name|Ranged'));
+		await gm.evaluate(() =>
+			window.dicePromptE2E.change({ doc: { actor: 'Skiff' }, path: '.tab-skills .grouping-mode select', value: 'skill' }),
+		);
+		const bySkillRows = await gm.evaluate(() =>
+			window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .skills-container section' }),
+		);
+		const bySkill = await opened(
+			gm,
+			click(
+				gm,
+				skiff,
+				'.tab-skills .skills-container section|Ranged >> .skill-content-details >> a:not(.skill-content-details-charName)',
+			),
+		);
+		e2e.expect(
+			"#49 D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
+			{
+				bySkill: bySkillRows,
+				prompts: [byMember, bySkill].map((state) => ({
+					actor: state.actor,
+					skill: state.skill,
+					pool: state.pool,
+					rows: state.modifications.map(({ name }) => name),
+				})),
+			},
+			{
+				bySkill: ['GunneryCrew MemberRoleSkillE2E AdaGunner0', 'Ranged (Light)Crew MemberRoleSkillE2E AdaGunner2'],
+				prompts: [
+					{ actor: 'Ada', skill: 'Ranged (light) (Ag)', pool: 'PP|DD', rows: ['From Self: E2E Focus', 'From Self: E2E Sights'] },
+					{ actor: 'Ada', skill: 'Ranged (light) (Ag)', pool: 'PP|DD', rows: ['From Self: E2E Focus', 'From Self: E2E Sights'] },
+				],
+			},
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('D end');
+	});
+
+	// M: the silhouette difference between the attacker and the target (§#380). Every character and Adversary is at 1,
+	// every vehicle at 0, unless set here.
+	await part('silhouettes', async () => {
+		const silhouetteRows = (state: PromptState) => state.modifications.filter(({ name }) => name.includes('Silhouette'));
+		const setSilhouette = (actor: string, silhouette: number) => update({ actor }, { 'system.silhouette': silhouette });
+		const rivalKnife = click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a');
+		// The rival's knife attacks with Ranged, which §#196 chooses in its own part, so that M2 rolls the rival's Agility.
+		await update({ actor: 'Rival', item: 'Knife' }, { 'system.attackSkill': 'Ranged' });
+		await setSilhouette('Rival', 3);
+		await target('Rival');
+		const atLarger = await opened(gm, attack('Pistol'));
+		const largerOn = await toggle('Silhouette');
+		const largerOff = await toggle('Silhouette');
+		e2e.expect(
+			'#380 M1 a silhouette 1 character attacking a silhouette 3 rival lists a target Pool Modification removing one Difficulty die, after the defense, which toggles',
+			{
+				rows: rows(atLarger),
+				pool: atLarger.pool,
+				on: { pool: largerOn.pool, rows: silhouetteRows(largerOn) },
+				off: { pool: largerOff.pool, rows: silhouetteRows(largerOff) },
+			},
+			{
+				rows: [
+					{ name: 'From Self: E2E Focus', enabled: false, mods: 'a+' },
+					{ name: 'From Self: E2E Sights', enabled: false, mods: 'B+' },
+					{ name: 'From Target: E2E Hex', enabled: false, mods: 'S+' },
+					{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' },
+					{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' },
+				],
+				pool: 'PP|DD',
+				on: { pool: 'PP|D', rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: true, mods: 'D-' }] },
+				off: { pool: 'PP|DD', rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }] },
+			},
+		);
+
+		await target('Mark');
+		const atSmaller = await opened(gm, rivalKnife);
+		const smallerOn = await toggle('Silhouette');
+		e2e.expect(
+			'#380 M2 a silhouette 3 rival attacking a silhouette 1 character lists a target Pool Modification adding one Difficulty die',
+			{ actor: atSmaller.actor, rows: silhouetteRows(atSmaller), pool: atSmaller.pool, on: smallerOn.pool },
+			{
+				actor: 'Rival',
+				rows: [{ name: 'From Target: Silhouette (1 vs 3)', enabled: false, mods: 'D+' }],
+				pool: 'AAA|DD',
+				on: 'AAA|DDD',
+			},
+		);
+
+		await target('Rival');
+		const unchanged: Record<string, unknown> = {};
+		for (const silhouette of [2, 1]) {
+			await setSilhouette('Rival', silhouette);
+			unchanged[`rival at ${silhouette}`] = silhouetteRows(await opened(gm, attack('Pistol')));
+		}
+		await setSilhouette('Rival', 3);
+		unchanged['skill check'] = silhouetteRows(await opened(gm, skillRoll('Cool')));
+		unchanged['Dice Roller'] = rows(await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr'))));
+		await target(null);
+		unchanged.untargeted = silhouetteRows(await opened(gm, attack('Pistol')));
+		e2e.expect(
+			"#380 M3 a silhouette difference of 1 or 0, a check that isn't an attack, the bare Dice Roller and an untargeted attack change nothing",
+			unchanged,
+			{ 'rival at 2': [], 'rival at 1': [], 'skill check': [], 'Dice Roller': [], untargeted: [] },
+		);
+
+		// §#390: a vehicle keeps the silhouette 0 its data starts at until someone edits it, and a character is at 1.
+		await target('Wagon');
+		e2e.expect(
+			'#380 M7 a silhouette 1 character attacking a vehicle whose silhouette nobody edited, at 0, gets no silhouette modification',
+			{
+				wagon: await gm.evaluate(() => {
+					const wagon = window.e2e.actor('Wagon');
+					return { silhouette: wagon.system.silhouette, stored: wagon._source.system.silhouette };
+				}),
+				rows: silhouetteRows(await opened(gm, attack('Pistol'))),
+			},
+			{ wagon: { silhouette: 0, stored: 0 }, rows: [] },
+		);
+
+		await setSilhouette('Wagon', 3);
+		e2e.expect(
+			'#380 M4 a silhouette 1 character attacking a silhouette 3 vehicle lists one Difficulty die removed',
+			silhouetteRows(await opened(gm, attack('Pistol'))),
+			[{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }],
+		);
+
+		await setSilhouette('Skiff', 3);
+		await target('Mark');
+		const cannonAtMark = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
+		const cannonOn = await toggle('Silhouette');
+		e2e.expect(
+			"#380 M5 a silhouette 1 crew member firing a silhouette 3 vehicle's weapon at a silhouette 1 character adds one Difficulty die, from the vehicle's silhouette",
+			{
+				actor: cannonAtMark.actor,
+				rows: silhouetteRows(cannonAtMark),
+				pool: cannonAtMark.pool,
+				on: cannonOn.pool,
+				ownWeapon: silhouetteRows(await opened(gm, attack('Pistol'))),
+			},
+			{
+				actor: 'Ada',
+				rows: [{ name: 'From Target: Silhouette (1 vs 3)', enabled: false, mods: 'D+' }],
+				pool: 'AA|DD',
+				on: 'AA|DDD',
+				ownWeapon: [],
+			},
+		);
+
+		await gm.evaluate(() =>
+			game.actors
+				.getName('E2E Mark')
+				.createEmbeddedDocuments('ActiveEffect', [
+					{ name: 'E2E Giant', changes: [{ key: 'system.silhouette', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '2' }] },
+				]),
+		);
+		const markSilhouette = () =>
+			gm.evaluate(() => {
+				const mark = game.actors.getName('E2E Mark');
+				return { silhouette: mark.system.silhouette, stored: mark._source.system.silhouette };
+			});
+		e2e.expect(
+			"#380 M6 an Active Effect adding 2 to a character's silhouette makes it 3 for the rule: a silhouette 1 attacker loses one Difficulty die",
+			{ mark: await markSilhouette(), rows: silhouetteRows(await opened(gm, attack('Pistol'))) },
+			{
+				mark: { silhouette: 3, stored: 1 },
+				rows: [{ name: 'From Target: Silhouette (3 vs 1)', enabled: false, mods: 'D-' }],
+			},
+		);
+
+		await gm.evaluate(async () => {
+			const mark = game.actors.getName('E2E Mark');
+			await mark.deleteEmbeddedDocuments('ActiveEffect', [mark.effects.getName('E2E Giant').id]);
+		});
+		await setSilhouette('Rival', 1);
+		await setSilhouette('Wagon', 0);
+		await setSilhouette('Skiff', 0);
+		await target(null);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('silhouette end');
+	});
+
+	// E: healing and initiative with a skill the actor lacks (§#49), and the messages of checks (§#50, §#157).
+	await part('checkMessages', async () => {
+		const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
+		e2e.expect(
+			'#49 E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
+			{ skill: heal.skill, pool: heal.pool, unranked: heal.skills?.Unranked?.includes('Resilience (Br)') },
+			{ skill: 'Resilience (Br)', pool: 'AAA|DD', unranked: true },
+		);
+		await gm.evaluate(async () => {
+			const hero = game.actors.getName('E2E Hero');
+			await hero.update({ 'system.characteristics.willpower': 2 });
+			await hero.deleteEmbeddedDocuments('Item', [hero.items.getName('Vigilance').id]);
+		});
+		const initiative = await opened(gm, () => gm.evaluate(() => void game.combat.rollSlotInitiative(window.e2e.slotId('Hero'))));
+		const initiativeMessage = await roll();
+		e2e.expect(
+			'#49 E2 a character without Vigilance rolls initiative from the tracker as an Unranked Skill Check of Vigilance',
+			{
+				skill: initiative.skill,
+				pool: initiative.pool,
+				unranked: initiative.skills?.Unranked?.includes('Vigilance (Will)'),
+				description: initiativeMessage.description,
+				formula: initiativeMessage.formula,
+				rolled: await gm.evaluate(() => game.combat.combatants.getName('Hero').initiative !== null),
+			},
+			{
+				skill: 'Vigilance (Will)',
+				pool: 'AA|',
+				unranked: true,
+				description: 'Rolling Initiative with <strong>Vigilance<i class="fas fa-star hide-it"></i></strong>...',
+				formula: '0dp + 2da',
+				rolled: true,
+			},
+		);
+		// Ability faces: 4 is two Successes, 8 two Advantages.
+		await gm.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 8, faces: 8 },
+		]);
+		await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
+		await e2e.settle();
+		const unprompted = await gm.evaluate(() => ({
+			message: window.dicePromptE2E.lastMessage(),
+			initiative: game.combat.combatants.getName('Hero').initiative,
+		}));
+		await gm.evaluate(() => window.e2e.reset());
+		e2e.expect(
+			"#49 E3 initiative rolled without the prompt rolls the missing Initiative Skill's characteristic, and reads its results",
+			{
+				message: {
+					speaker: unprompted.message.speaker,
+					description: unprompted.message.description,
+					formula: unprompted.message.formula,
+					results: unprompted.message.results,
+					summaries: unprompted.message.summaries,
+				},
+				initiative: unprompted.initiative,
+			},
+			{
+				message: {
+					speaker: 'Hero',
+					description: 'Rolling Initiative with <strong>Vigilance<i class="fas fa-star hide-it"></i></strong>...',
+					formula: '0dp + 2da',
+					results: 's s a a',
+					summaries: ['s Successes 2 a Advantage 2'],
+				},
+				initiative: 2.02,
+			},
+		);
+		const foeId = await gm.evaluate(async () => {
+			const foe = game.combat.combatants.getName('Foe');
+			await foe.update({ hidden: true });
+			await game.combat.rollInitiative([foe.id]);
+			return window.dicePromptE2E.lastMessage().id;
+		});
+		await e2e.settle();
+		e2e.expect(
+			"#50 E4 a hidden combatant's initiative is private",
+			{
+				gm: await gm.evaluate(
+					(id) => ({ whispered: game.messages.get(id).whisper.length > 0, blind: game.messages.get(id).blind }),
+					foeId,
+				),
+				player: await player.evaluate((id) => !!game.messages.get(id)?.isContentVisible, foeId),
+			},
+			{ gm: { whispered: true, blind: false }, player: false },
+		);
+
+		// §#414: a check's message and an initiative's take the mode the GM picks in the chat.
+		// v13: the chat's mode is the roll mode (`blindroll`); v14 replaced it with the message mode (`blind`).
+		const chatModeKey = await gm.evaluate(() => (game.release.generation < 14 ? 'rollMode' : 'messageMode'));
+		const chatModeBefore = await gm.evaluate((key) => game.settings.get('core', key), chatModeKey);
+		const setChatMode = (value: unknown) =>
+			gm.evaluate(({ key, value }) => game.settings.set('core', key, value), { key: chatModeKey, value });
+		const visibility = ({ whisper, blind }: MessageSummary) => ({ whisper, blind });
+		const rolledInChatMode = async (mode: string) => {
+			await setChatMode(chatModeKey === 'rollMode' ? `${mode}roll` : mode);
+			await opened(gm, skillRoll('Cool'));
+			const check = visibility(await roll());
+			// The Hero rolls the initiative they hold, so that the turns stay as they were.
+			await gm.fixDice([
+				{ face: 4, faces: 8 },
+				{ face: 8, faces: 8 },
+			]);
+			await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
+			await e2e.settle();
+			return { check, initiative: visibility(await gm.evaluate(() => window.dicePromptE2E.lastMessage())) };
+		};
+		const gmCount = await gm.evaluate(() => game.users.filter((user: { isGM: boolean }) => user.isGM).length);
+		e2e.expect(
+			"#414 A1 a check and an initiative rolled with the chat in blind mode, then in self mode, are whispered as the chat's mode says",
+			{ blind: await rolledInChatMode('blind'), self: await rolledInChatMode('self') },
+			{
+				blind: { check: { whisper: gmCount, blind: true }, initiative: { whisper: gmCount, blind: true } },
+				self: { check: { whisper: 1, blind: false }, initiative: { whisper: 1, blind: false } },
+			},
+		);
+		await setChatMode(chatModeBefore);
+
+		const description = (message: MessageSummary) => ({ description: message.description, formula: message.formula });
+		await opened(gm, skillRoll('Cool'));
+		const coolMessage = await roll();
+		await opened(gm, characteristicRoll(5));
+		const willpowerMessage = await roll();
+		await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > a|Melee'));
+		const minionMessage = await roll();
+		await setSetting('useSuperCharacteristics', true);
+		await update(ada, { 'system.superCharacteristics': ['brawn'] });
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await opened(gm, skillRoll('Melee'));
+		const superMessage = await roll();
+		e2e.expect(
+			'#50 E5 skill, characteristic, minion and super characteristic messages describe their check',
+			{
+				skill: description(coolMessage),
+				characteristic: description(willpowerMessage),
+				minion: description(minionMessage),
+				super: description(superMessage),
+			},
+			{
+				skill: {
+					description: 'Rolling <strong>Cool (Pr<i class="fas fa-star hide-it"></i>)</strong>...',
+					formula: '0dp + 1da + 2di',
+				},
+				characteristic: { description: 'Rolling <strong>Willpower</strong>...', formula: '0dp + 4da + 2di' },
+				minion: {
+					description: 'Rolling <strong>Melee (Br<i class="fas fa-star hide-it"></i>)</strong>...',
+					formula: '0dp + 2da + 2di',
+				},
+				super: {
+					description: 'Rolling <strong>Melee (Br<i class="fas fa-star super-char"></i>)</strong>...',
+					formula: '3dpx + 0da + 2di',
+				},
+			},
+		);
+		await update(ada, { 'system.superCharacteristics': [] });
+		await setSetting('useSuperCharacteristics', false);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+
+		await opened(gm, skillRoll('Melee'));
+		await gm.evaluate(() => window.dicePromptE2E.promptAdd(['C+']));
+		// Proficiency faces: 12 a Triumph, 4 two Successes, 6 an Advantage; Difficulty: 2 a Failure, 7 two Threats;
+		// Challenge: 12 a Despair.
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 4, faces: 12 },
+			{ face: 6, faces: 12 },
+			{ face: 2, faces: 8 },
+			{ face: 7, faces: 8 },
+			{ face: 12, faces: 12 },
+		]);
+		const skillResults = await roll();
+		await opened(gm, attack('Pistol'));
+		// Proficiency faces: 2 a Success, 10 two Advantages; Difficulty: 1 blank, 4 a Threat.
+		await gm.fixDice([
+			{ face: 2, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 4, faces: 8 },
+		]);
+		const attackResults = await roll();
+		const succeededAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+		e2e.expect(
+			'#157 E6 a skill roll and an attack read their net results, with Triumph and Despair apart',
+			{
+				skill: { formula: skillResults.formula, results: skillResults.results, summaries: skillResults.summaries },
+				attack: { formula: attackResults.formula, results: attackResults.results, summaries: attackResults.summaries },
+			},
+			{
+				skill: {
+					formula: '3dp + 0da + 2di + 1dc',
+					results: 'h t d',
+					summaries: ['s Successes 1 h Threat 1 t Triumph 1 d Despair 1'],
+				},
+				attack: {
+					formula: '2dp + 0da + 2di',
+					results: 's a',
+					summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'],
+				},
+			},
+		);
+		await opened(gm, skillRoll('Melee'));
+		// Proficiency faces: 2 a Success, 1 blank, 6 an Advantage; Difficulty: 3 two Failures, 8 a Failure and a Threat.
+		await gm.fixDice([
+			{ face: 2, faces: 12 },
+			{ face: 1, faces: 12 },
+			{ face: 6, faces: 12 },
+			{ face: 3, faces: 8 },
+			{ face: 8, faces: 8 },
+		]);
+		await roll();
+		const failedSkillCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+		await update(
+			{ actor: 'Ada', item: 'Pistol' },
+			{
+				'system.qualities': [
+					{ name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 },
+					{ name: 'Pierce', description: '', isRated: false, rating: 2 },
+				],
+			},
+		);
+		await opened(gm, attack('Pistol'));
+		// Proficiency faces: 1 blank, 10 two Advantages; Difficulty: 2 a Failure, 4 a Threat.
+		await gm.fixDice([
+			{ face: 1, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 2, faces: 8 },
+			{ face: 4, faces: 8 },
+		]);
+		await roll();
+		const failedAttackCard = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+		await update({ actor: 'Ada', item: 'Pistol' }, { 'system.qualities': [] });
+		e2e.expect(
+			'the cards of a succeeded attack, a failed skill roll and a failed attack with qualities show each of their parts',
+			{ succeededAttack: succeededAttackCard, failedSkill: failedSkillCard, failedAttack: failedAttackCard },
+			{
+				succeededAttack: {
+					labels: ['Roll Results', 'Attack Results', 'Summary', 'Dice'],
+					results: 's a',
+					summaries: ['Damage (3) 4 Critical 3', 's Successes 1 a Advantage 1'],
+					qualities: [],
+					dice: 'P s P aa D D h',
+				},
+				failedSkill: {
+					labels: ['Roll Results', 'Summary', 'Dice'],
+					results: 'f f',
+					summaries: ['f Failures 2'],
+					qualities: [],
+					dice: 'P s P P a D ff D fh',
+				},
+				// The damage and critical are hidden on a failure, the world setting being off. The qualities still show, as on
+				// origin/main, though the setting's hint names them among what it hides.
+				failedAttack: {
+					labels: ['Roll Results', 'Summary', 'Attack Qualities', 'Dice'],
+					results: 'f a',
+					summaries: ['f Failures 1 a Advantage 1'],
+					qualities: [
+						{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
+						{ text: 'Pierce', tooltip: 'Genesys.Tooltips.NoDescription' },
+					],
+					dice: 'P P aa D f D h',
+				},
+			},
+		);
+		await e2e.step('E end');
+	});
+
+	// F: effect sheets keep a Pool Modification for a skill outside the Skills Compendium (§#40).
+	await part('customSkillEffects', async () => {
+		e2e.expect(
+			'#40 F1 opening and saving an actor effect and an item effect keeps their custom skill',
+			{
+				actor: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', effect: 'Knack' })),
+				item: await gm.evaluate(() => window.dicePromptE2E.saveEffectSheet({ actor: 'Ada', item: 'Map', effect: 'Charm' })),
+			},
+			{
+				actor: { selected: ['E2E Craft'], changes: ['genesys.pool.skill.self.E2E Craft=B'] },
+				item: { selected: ['E2E Craft'], changes: ['genesys.pool.skill.self.E2E Craft=a'] },
+			},
+		);
+		await e2e.step('F end');
+	});
+
+	// G: `@check` links as the GM (§#51, §#95, §#157).
+	await part('gmCheckLinks', async () => {
+		e2e.expect(
+			'#51 G1 a journal page renders its check links with their difficulty',
+			await gm.evaluate((doc) => window.dicePromptE2E.links(doc), journal),
+			[
+				{ skill: 'Athletics', difficulty: 'DDD', text: 'Hard [DDD] Athletics check' },
+				{ skill: 'Cool', difficulty: 'CD', text: 'Average [CD] Cool check' },
+				{ skill: null, difficulty: null, text: 'Opposed Athletics versus Cool check' },
+				{ skill: 'Athletics', difficulty: 'CC', text: 'Easy [CC] Athletics check' },
+				{ skill: 'Athletics', difficulty: 'CCD', text: 'Average [CCD] Athletics check' },
+				{ skill: 'Athletics', difficulty: 'D', text: 'Simple [D] Athletics check' },
+				{ skill: 'Athletics', difficulty: 'CCCCCD', text: 'Impossible [CCCCCD] Athletics check' },
+				{ skill: 'Athletics', difficulty: 'CDD', text: 'Hard [CDD] Athletics check' },
+			],
+		);
+		await control(gm, ['Bo']);
+		e2e.expect(
+			"#51 G2 a journal entry's link opens the prompt for the controlled token's actor, with the link's difficulty",
+			{
+				hard: await linkPrompt(gm, journal, 'Athletics', 'DDD'),
+				upgraded: await linkPrompt(gm, journal, 'Cool', 'CD'),
+				upgradedPastDifficulty: await linkPrompt(gm, journal, 'Athletics', 'CC'),
+			},
+			{
+				hard: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+				upgraded: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
+				upgradedPastDifficulty: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|CC' },
+			},
+		);
+		e2e.expect(
+			'#51 G3 an opposed check link stays inert',
+			await noPrompt(gm, () => gm.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal)),
+			{ prompts: 0, notifications: [] },
+		);
+		const gmMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
+		e2e.expect(
+			"#51 G4 a chat message's and an item sheet's links open the prompt for the controlled token's actor",
+			{
+				message: await linkPrompt(gm, { message: gmMessage }, 'Athletics'),
+				item: await linkPrompt(gm, { item: 'Note' }, 'Athletics'),
+				ownedItem: await linkPrompt(gm, { actor: 'Ada', item: 'Map' }, 'Cool'),
+			},
+			{
+				message: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+				item: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+				ownedItem: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
+			},
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		e2e.expect(
+			"#51 G5 an actor sheet's link rolls for that actor, with a token controlled, right after the sheet opens",
+			{
+				character: await linkPrompt(gm, ada, 'Athletics'),
+				adversary: await linkPrompt(gm, { actor: 'Rival' }, 'Athletics'),
+			},
+			{
+				character: { actor: 'Ada', skill: 'Athletics (Br)', pool: 'AAA|DDD' },
+				adversary: { actor: 'Rival', skill: 'Athletics (Br)', pool: 'AA|DDD' },
+			},
+		);
+		await control(gm, []);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('G end');
+	});
+
+	// H: `@check` links as a player (§#51).
+	await part('playerCheckLinks', async () => {
+		const warning = 'warning: Select a single token or assign yourself a character to roll this check.';
+		const playerLink = (doc: Doc | { message: string }, skill: string, difficulty?: string) =>
+			linkPrompt(player, doc, skill, difficulty);
+		const playerNoPrompt = (doc: Doc) =>
+			noPrompt(player, () =>
+				player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: 'Athletics', difficulty: 'DDD' }), doc),
+			);
+		await control(player, []);
+		const noToken = await playerNoPrompt(journal);
+		await control(player, ['Bo']);
+		const oneToken = { hard: await playerLink(journal, 'Athletics', 'DDD'), upgraded: await playerLink(journal, 'Cool', 'CD') };
+		await control(player, ['Bo', 'Cy']);
+		const twoTokens = await playerNoPrompt(journal);
+		e2e.expect(
+			'#51 H1 as a player without a character, a link rolls for the single controlled token, and asks for one otherwise',
+			{ noToken, oneToken, twoTokens },
+			{
+				noToken: { prompts: 0, notifications: [warning] },
+				oneToken: {
+					hard: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+					upgraded: { actor: 'Bo', skill: 'Cool (Pr)', pool: '|CD' },
+				},
+				twoTokens: { prompts: 0, notifications: [warning] },
+			},
+		);
+		await gm.evaluate((user) => game.users.getName(user).update({ character: game.actors.getName('E2E Cy').id }), e2e.playerUser);
+		await e2e.settle();
+		await control(player, ['Bo', 'Cy']);
+		const characterTwoTokens = await playerLink(journal, 'Athletics', 'DDD');
+		await control(player, []);
+		const characterNoToken = await playerLink(journal, 'Athletics', 'DDD');
+		await control(player, ['Bo']);
+		const playerMessage = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,3]</p>'));
+		e2e.expect(
+			'#51 H2 as a player with a character, a link rolls for the single controlled token, otherwise the character',
+			{
+				twoTokens: characterTwoTokens,
+				noToken: characterNoToken,
+				message: await playerLink({ message: playerMessage }, 'Athletics'),
+				opposed: await noPrompt(player, () =>
+					player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal),
+				),
+			},
+			{
+				twoTokens: { actor: 'Cy', skill: 'Athletics (Br)', pool: '|DDD' },
+				noToken: { actor: 'Cy', skill: 'Athletics (Br)', pool: '|DDD' },
+				message: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+				opposed: { prompts: 0, notifications: [] },
+			},
+		);
+		await control(player, ['Cy']);
+		e2e.expect(
+			"#51 H3 as a player, an actor sheet's link rolls for that actor",
+			{ character: await playerLink({ actor: 'Bo' }, 'Athletics'), adversary: await playerLink({ actor: 'Rival' }, 'Athletics') },
+			{
+				character: { actor: 'Bo', skill: 'Athletics (Br)', pool: '|DDD' },
+				adversary: { actor: 'Rival', skill: 'Athletics (Br)', pool: 'AA|DDD' },
+			},
+		);
+		await control(player, []);
+		await player.evaluate(() => window.dicePromptE2E.closePrompts());
+		await player.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('H end');
+	});
+
+	// I: `@pool` links in a journal page (§#115).
+	await part('poolLinks', async () => {
+		e2e.expect(
+			'#115 I1 a pool link with a glyph in the wrong case stays as written, the others show their icons',
+			await gm.evaluate((doc) => window.dicePromptE2E.pools(doc), journal),
+			[
+				{ text: 'P1 @pool[p]', icons: '' },
+				{ text: 'P2 @pool[T]', icons: '' },
+				{ text: 'P3 @pool[Pp]', icons: '' },
+				{ text: 'P4 PAA', icons: 'P+ A+ A^' },
+				{ text: 'P5 PAA', icons: 'P+ A+ A^' },
+				{ text: 'P6 a', icons: 'a+' },
+			],
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+	});
+
+	// J: the Default Difficulty and Skills Compendium settings (§#32, §#100).
+	await part('settings', async () => {
+		const defaultDifficulty = async (value: string) => {
+			// A refused value rejects the setting's write, which is what the step reads.
+			const refused = await setSetting('defaultDifficulty', value).then(
+				() => false,
+				() => true,
+			);
+			const state = await opened(gm, () => gm.evaluate(() => ui.chat.processMessage('/gendr')));
+			return { refused, applied: await gm.evaluate(() => CONFIG.genesys.settings.defaultDifficulty), pool: state.pool };
+		};
+		// §#415: a value that is not glyphs is refused, rather than stored and read as the default.
+		e2e.expect(
+			'#32 J1 #415 the Default Difficulty setting refuses a value that is not glyphs, and keeps the one it held',
+			{ glyphs: await defaultDifficulty('DDD'), text: await defaultDifficulty('xyz') },
+			{ glyphs: { refused: false, applied: 'DDD', pool: '|DDD' }, text: { refused: true, applied: 'DDD', pool: '|DDD' } },
+		);
+		await setSetting('defaultDifficulty', 'DD');
+		const skillsCompendium = async (value: string) => {
+			await gm.evaluate(() => window.dicePromptE2E.clearNotifications());
+			await setSetting('skillsCompendium', value);
+			await e2e.settle();
+			return gm.evaluate(() => ({
+				compendium: CONFIG.genesys.settings.skillsCompendium,
+				skills: CONFIG.genesys.skills.length,
+				notifications: window.dicePromptE2E.notifications(),
+			}));
+		};
+		e2e.expect(
+			'#100 J2 an empty Skills Compendium setting warns and loads the default one, a missing one is an error',
+			{
+				empty: await skillsCompendium(''),
+				missing: await skillsCompendium('world.e2e-missing'),
+				default: await skillsCompendium('genesys.crb-skills'),
+			},
+			{
+				empty: {
+					compendium: 'genesys.crb-skills',
+					skills: 37,
+					notifications: ['warning: Skills compendium setting is empty! Attempting to use default skills compendium.'],
+				},
+				missing: {
+					compendium: 'world.e2e-missing',
+					skills: 0,
+					notifications: [
+						"error: Unable to load Skills Compendium 'world.e2e-missing'. Reconfigure the skills compendium in Genesys Settings.",
+					],
+				},
+				default: { compendium: 'genesys.crb-skills', skills: 37, notifications: [] },
+			},
+		);
+		await gm.evaluate(() => window.dicePromptE2E.createSkillsPack());
+		await setSetting('skillsCompendium', 'world.e2e-skills');
+		await e2e.settle();
+		await gm.evaluate(() => window.dicePromptE2E.renameSkill('E2E Lore Renamed'));
+		const renamed = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			'#100 J3 a skill renamed in a world Skills Compendium shows its new name in the prompt without a reload',
+			{
+				skills: await gm.evaluate(() => CONFIG.genesys.skills.map((skill: { name: string }) => skill.name)),
+				unranked: renamed.skills?.Unranked,
+			},
+			{ skills: ['E2E Lore Renamed'], unranked: ['E2E Lore Renamed (Int)'] },
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		await setSetting('skillsCompendium', 'genesys.crb-skills');
+		await gm.evaluate(() => game.packs.get('world.e2e-skills')?.deleteCompendium());
+		await e2e.step('J end');
+	});
 
 	// K: the chance to succeed, as the player (§#90, §#157).
-	await player.evaluate(() => game.settings.set('genesys', 'dicePoolChanceToSucceedByPermutation', true));
-	await player.reload();
-	await player.evaluate(installDicePromptHelpers);
-	const playerGendr = () => opened(player, () => player.evaluate(() => ui.chat.processMessage('/gendr')));
-	const chance = (expected: string) =>
-		player.evaluate((expected) => window.dicePromptE2E.promptChance({ expected, timeout: 10_000 }), expected);
-	const add = (keys: string[]) => player.evaluate((keys) => window.dicePromptE2E.promptAdd(keys), keys);
-	await playerGendr();
-	const chances: Record<string, string | null> = { DD: await chance('0.00%') };
-	const steps: [string, string[], string][] = [
-		['+A', ['A+'], '23.44%'],
-		['+P', ['P+'], '50.20%'],
-		['+B', ['B+'], '58.82%'],
-		['upgrade A', ['A^'], '64.42%'],
-		['+C', ['C+'], '45.09%'],
-		['upgrade D', ['D^'], '38.79%'],
-		['+S', ['S+'], '31.91%'],
-		['+s', ['s+'], '54.64%'],
-		['+f', ['f+'], '31.91%'],
-	];
-	for (const [name, keys, expected] of steps) {
-		await add(keys);
-		chances[name] = await chance(expected);
-	}
-	await player.evaluate(() => window.dicePromptE2E.promptRemove('C'));
-	chances['-C'] = await chance('48.64%');
-	e2e.expect(
-		'#90 K1 the worker started after the setting is turned on gives the chance of each pool',
-		chances,
-		Object.fromEntries([['DD', '0.00%'], ...steps.map(([name, , expected]) => [name, expected]), ['-C', '48.64%']]),
-	);
-	await add(['P+', 'P+', 'A+', 'A+', 'A+', 'B+', 'D+', 'D+', 'C+', 'S+']);
-	const large = await player.evaluate(async () => {
-		const start = Date.now();
-		let last = start;
-		let longestPause = 0;
-		const ticker = setInterval(() => {
-			longestPause = Math.max(longestPause, Date.now() - last);
-			last = Date.now();
-		}, 20);
-		const chance = await window.dicePromptE2E.promptChance({ expected: '74.52%', timeout: 30_000 });
-		clearInterval(ticker);
-		return { chance, answered: Date.now() - start < 30_000, frozen: longestPause > 1000 };
+	await part('chanceToSucceed', async () => {
+		// The player's character is Cy, so that the reloaded player controls only Cy's token: with no character, Foundry 13
+		// controls every token the player owns, and the Dice Roller refuses to open for several.
+		await gm.evaluate((user) => game.users.getName(user).update({ character: game.actors.getName('E2E Cy').id }), e2e.playerUser);
+		await player.evaluate(() => game.settings.set('genesys', 'dicePoolChanceToSucceedByPermutation', true));
+		await player.reload();
+		await player.evaluate(installDicePromptHelpers);
+		const playerGendr = () => opened(player, () => player.evaluate(() => ui.chat.processMessage('/gendr')));
+		const chance = (expected: string) =>
+			player.evaluate((expected) => window.dicePromptE2E.promptChance({ expected, timeout: 10_000 }), expected);
+		const add = (keys: string[]) => player.evaluate((keys) => window.dicePromptE2E.promptAdd(keys), keys);
+		await playerGendr();
+		const chances: Record<string, string | null> = { DD: await chance('0.00%') };
+		const steps: [string, string[], string][] = [
+			['+A', ['A+'], '23.44%'],
+			['+P', ['P+'], '50.20%'],
+			['+B', ['B+'], '58.82%'],
+			['upgrade A', ['A^'], '64.42%'],
+			['+C', ['C+'], '45.09%'],
+			['upgrade D', ['D^'], '38.79%'],
+			['+S', ['S+'], '31.91%'],
+			['+s', ['s+'], '54.64%'],
+			['+f', ['f+'], '31.91%'],
+		];
+		for (const [name, keys, expected] of steps) {
+			await add(keys);
+			chances[name] = await chance(expected);
+		}
+		await player.evaluate(() => window.dicePromptE2E.promptRemove('C'));
+		chances['-C'] = await chance('48.64%');
+		e2e.expect(
+			'#90 K1 the worker started after the setting is turned on gives the chance of each pool',
+			chances,
+			Object.fromEntries([['DD', '0.00%'], ...steps.map(([name, , expected]) => [name, expected]), ['-C', '48.64%']]),
+		);
+		await add(['P+', 'P+', 'A+', 'A+', 'A+', 'B+', 'D+', 'D+', 'C+', 'S+']);
+		const large = await player.evaluate(async () => {
+			const start = Date.now();
+			let last = start;
+			let longestPause = 0;
+			const ticker = setInterval(() => {
+				longestPause = Math.max(longestPause, Date.now() - last);
+				last = Date.now();
+			}, 20);
+			const chance = await window.dicePromptE2E.promptChance({ expected: '74.52%', timeout: 30_000 });
+			clearInterval(ticker);
+			return { chance, answered: Date.now() - start < 30_000, frozen: longestPause > 1000 };
+		});
+		e2e.expect('#90 K2 a pool of 16 dice gets its chance without freezing the prompt', large, {
+			chance: '74.52%',
+			answered: true,
+			frozen: false,
+		});
+		await playerGendr();
+		await player.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+		await player.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+		const noDice = await chance('0.00%');
+		await add(['s+']);
+		e2e.expect(
+			'#157 K3 a pool without dice has a chance of 0 %, then 100 % with a Success',
+			{ noDice, success: await chance('100.00%') },
+			{
+				noDice: '0.00%',
+				success: '100.00%',
+			},
+		);
+		const errorsBefore = player.errors.length;
+		const workerFailed = () => player.errors.slice(errorsBefore).some((error) => error.includes('Genesys | The chance worker failed.'));
+		await player.evaluate(() => window.dicePromptE2E.breakChanceWorker(true));
+		await playerGendr();
+		// The worker's error is no activity of the page that settling sees: wait for it to be logged, or long enough to tell it
+		// isn't.
+		for (const start = Date.now(); !workerFailed() && Date.now() - start < 3000; ) await e2e.settle();
+		e2e.expect(
+			'#90 K4 a worker error is logged and the prompt keeps its spinner',
+			{
+				chance: (await player.evaluate(() => window.dicePromptE2E.promptChance({ expected: 'spinner', timeout: 0 }))) ?? null,
+				logged: workerFailed(),
+			},
+			{ chance: 'spinner', logged: true },
+		);
+		await player.evaluate(() => window.dicePromptE2E.breakChanceWorker(false));
+		await player.evaluate(() => window.dicePromptE2E.closePrompts());
+		await player.evaluate(() => game.settings.set('genesys', 'dicePoolChanceToSucceedByPermutation', false));
+		await e2e.step('K end');
 	});
-	e2e.expect('#90 K2 a pool of 16 dice gets its chance without freezing the prompt', large, {
-		chance: '74.52%',
-		answered: true,
-		frozen: false,
-	});
-	await playerGendr();
-	await player.evaluate(() => window.dicePromptE2E.promptRemove('D'));
-	await player.evaluate(() => window.dicePromptE2E.promptRemove('D'));
-	const noDice = await chance('0.00%');
-	await add(['s+']);
-	e2e.expect(
-		'#157 K3 a pool without dice has a chance of 0 %, then 100 % with a Success',
-		{ noDice, success: await chance('100.00%') },
-		{
-			noDice: '0.00%',
-			success: '100.00%',
-		},
-	);
-	const errorsBefore = player.errors.length;
-	const workerFailed = () => player.errors.slice(errorsBefore).some((error) => error.includes('Genesys | The chance worker failed.'));
-	await player.evaluate(() => window.dicePromptE2E.breakChanceWorker(true));
-	await playerGendr();
-	// The worker's error is no activity of the page that settling sees: wait for it to be logged, or long enough to tell it
-	// isn't.
-	for (const start = Date.now(); !workerFailed() && Date.now() - start < 3000; ) await e2e.settle();
-	e2e.expect(
-		'#90 K4 a worker error is logged and the prompt keeps its spinner',
-		{
-			chance: (await player.evaluate(() => window.dicePromptE2E.promptChance({ expected: 'spinner', timeout: 0 }))) ?? null,
-			logged: workerFailed(),
-		},
-		{ chance: 'spinner', logged: true },
-	);
-	await player.evaluate(() => window.dicePromptE2E.breakChanceWorker(false));
-	await player.evaluate(() => window.dicePromptE2E.closePrompts());
-	await player.evaluate(() => game.settings.set('genesys', 'dicePoolChanceToSucceedByPermutation', false));
-	await e2e.step('K end');
 
 	// L: the Story Point Tracker with a GM and a player (§#157).
-	const storyPoints = async () => ({
-		gm: await gm.evaluate(() => window.dicePromptE2E.storyPoints()),
-		player: await player.evaluate(() => window.dicePromptE2E.storyPoints()),
+	await part('storyPointTracker', async () => {
+		const storyPoints = async () => ({
+			gm: await gm.evaluate(() => window.dicePromptE2E.storyPoints()),
+			player: await player.evaluate(() => window.dicePromptE2E.storyPoints()),
+		});
+		const tracker = (gmPool: number, playerPool: number, spendable: { gm: boolean[]; player: boolean[] }) => ({
+			gm: { setting: { gm: gmPool, player: playerPool }, shown: [`${gmPool}`, `${playerPool}`], spendable: spendable.gm },
+			player: { setting: { gm: gmPool, player: playerPool }, shown: [`${gmPool}`, `${playerPool}`], spendable: spendable.player },
+		});
+		await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('reset'));
+		const reset = await storyPoints();
+		await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('gm'));
+		const gmSpentGm = await storyPoints();
+		await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
+		const gmSpentPlayer = await storyPoints();
+		await player.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
+		const playerSpentLast = await storyPoints();
+		await player.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
+		e2e.expect(
+			'#157 L1 the Story Point pools move between the GM and the players, from both clients',
+			{ reset, gmSpentGm, gmSpentPlayer, playerSpentLast, playerSpentNone: await storyPoints() },
+			{
+				reset: tracker(1, 1, { gm: [true, true], player: [false, true] }),
+				gmSpentGm: tracker(0, 2, { gm: [false, true], player: [false, true] }),
+				gmSpentPlayer: tracker(1, 1, { gm: [true, true], player: [false, true] }),
+				playerSpentLast: tracker(2, 0, { gm: [true, false], player: [false, false] }),
+				playerSpentNone: tracker(2, 0, { gm: [true, false], player: [false, false] }),
+			},
+		);
+		await e2e.step('L end');
 	});
-	const tracker = (gmPool: number, playerPool: number, spendable: { gm: boolean[]; player: boolean[] }) => ({
-		gm: { setting: { gm: gmPool, player: playerPool }, shown: [`${gmPool}`, `${playerPool}`], spendable: spendable.gm },
-		player: { setting: { gm: gmPool, player: playerPool }, shown: [`${gmPool}`, `${playerPool}`], spendable: spendable.player },
-	});
-	await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('reset'));
-	const reset = await storyPoints();
-	await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('gm'));
-	const gmSpentGm = await storyPoints();
-	await gm.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
-	const gmSpentPlayer = await storyPoints();
-	await player.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
-	const playerSpentLast = await storyPoints();
-	await player.evaluate(() => window.dicePromptE2E.clickStoryPoints('player'));
-	e2e.expect(
-		'#157 L1 the Story Point pools move between the GM and the players, from both clients',
-		{ reset, gmSpentGm, gmSpentPlayer, playerSpentLast, playerSpentNone: await storyPoints() },
-		{
-			reset: tracker(1, 1, { gm: [true, true], player: [false, true] }),
-			gmSpentGm: tracker(0, 2, { gm: [false, true], player: [false, true] }),
-			gmSpentPlayer: tracker(1, 1, { gm: [true, true], player: [false, true] }),
-			playerSpentLast: tracker(2, 0, { gm: [true, false], player: [false, false] }),
-			playerSpentNone: tracker(2, 0, { gm: [true, false], player: [false, false] }),
-		},
-	);
-	await e2e.step('L end');
 
 	// N: an attack from the row of a weapon's extra Weapon Profile rolls that profile (§#366).
-	await e2e.step('#366 GM gives Ada a dagger with a Thrown profile, and targets the rival', async () => {
-		await gm.evaluate(
-			(item) => game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [item]),
-			dagger({ main: ['Melee'], thrown: ['Ranged'] }),
-		);
-		await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 2 } });
-		await target('Rival');
-	});
-	type ProfileAttack = {
-		prompt: { skill: string | null; pool: string; defense: PromptState['modifications'] };
-		card: { description: string | null; summaries: string[]; qualities: CardSummary['qualities'] };
-	};
-	// Attacks from a Combat tab row, then rolls the dice fixed: the prompt it opened and the card it posted.
-	const attackFromRow = async (row: string, dice: { face: number; faces: number }[]): Promise<ProfileAttack> => {
-		const state = await opened(gm, attack(row));
-		await gm.fixDice(dice);
-		const rolled = await roll();
-		const { summaries, qualities } = await gm.evaluate(() => window.dicePromptE2E.lastCard());
-		return {
-			prompt: {
-				skill: state.skill,
-				pool: state.pool,
-				defense: named(state, 'From Target').filter(({ name }) => name.endsWith('Defense')),
-			},
-			card: { description: rolled.description, summaries, qualities },
+	await part('weaponProfiles', async () => {
+		await e2e.step('#366 GM gives Ada a dagger with a Thrown profile, and targets the rival', async () => {
+			await gm.evaluate(
+				(item) => game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [item]),
+				dagger({ main: ['Melee'], thrown: ['Ranged'] }),
+			);
+			await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 2 } });
+			await target('Rival');
+		});
+		type ProfileAttack = {
+			prompt: { skill: string | null; pool: string; defense: PromptState['modifications'] };
+			card: { description: string | null; summaries: string[]; qualities: CardSummary['qualities'] };
 		};
-	};
-	let thrownAttack: ProfileAttack | null = null;
-	await e2e.step('#366 N1 GM attacks from the Dagger (Thrown) row, and rolls three Successes', async () => {
-		// A build without Weapon Profiles shows no Thrown row: its attack is left out, so that the scenario goes on.
-		if ((await combatWeapons('Ada')).some(({ name }) => name === 'E2E Dagger (Thrown)')) {
-			// Ability faces: 4 two Successes, 2 a Success; Difficulty: 1 blank.
-			thrownAttack = await attackFromRow('Dagger (Thrown)', [
-				{ face: 4, faces: 8 },
-				{ face: 2, faces: 8 },
+		// Attacks from a Combat tab row, then rolls the dice fixed: the prompt it opened and the card it posted.
+		const attackFromRow = async (row: string, dice: { face: number; faces: number }[]): Promise<ProfileAttack> => {
+			const state = await opened(gm, attack(row));
+			await gm.fixDice(dice);
+			const rolled = await roll();
+			const { summaries, qualities } = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+			return {
+				prompt: {
+					skill: state.skill,
+					pool: state.pool,
+					defense: named(state, 'From Target').filter(({ name }) => name.endsWith('Defense')),
+				},
+				card: { description: rolled.description, summaries, qualities },
+			};
+		};
+		let thrownAttack: ProfileAttack | null = null;
+		await e2e.step('#366 N1 GM attacks from the Dagger (Thrown) row, and rolls three Successes', async () => {
+			// A build without Weapon Profiles shows no Thrown row: its attack is left out, so that the scenario goes on.
+			if ((await combatWeapons('Ada')).some(({ name }) => name === 'E2E Dagger (Thrown)')) {
+				// Ability faces: 4 two Successes, 2 a Success; Difficulty: 1 blank.
+				thrownAttack = await attackFromRow('Dagger (Thrown)', [
+					{ face: 4, faces: 8 },
+					{ face: 2, faces: 8 },
+					{ face: 1, faces: 8 },
+					{ face: 1, faces: 8 },
+				]);
+			}
+		});
+		e2e.expect(
+			"#366 N1 an attack from the Dagger (Thrown) row rolls the profile's skill against the target's ranged defense, and its card names the profile, with its damage, Critical rating and qualities",
+			thrownAttack,
+			{
+				prompt: {
+					skill: 'Ranged (Ag)',
+					pool: 'AA|DD',
+					defense: [{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' }],
+				},
+				card: {
+					description:
+						'Attacking with <strong>E2E Dagger (Thrown)</strong> using <strong>Ranged (Ag<i class="fas fa-star hide-it"></i>)</strong>!',
+					summaries: ['Damage (Br + 2) 8 Critical 4', 's Successes 3'],
+					qualities: [
+						{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
+						{ text: 'Limited Ammo 1', tooltip: 'Genesys.Tooltips.NoDescription' },
+					],
+				},
+			},
+		);
+		let mainAttack: ProfileAttack | null = null;
+		await e2e.step('#366 N2 GM attacks from the Dagger row, and rolls a Success', async () => {
+			// Proficiency faces: 2 a Success, 1 blank; Difficulty: 1 blank.
+			mainAttack = await attackFromRow('Dagger', [
+				{ face: 2, faces: 12 },
+				{ face: 1, faces: 12 },
+				{ face: 1, faces: 12 },
 				{ face: 1, faces: 8 },
 				{ face: 1, faces: 8 },
 			]);
-		}
+		});
+		e2e.expect(
+			"#366 N2 an attack from the Dagger row rolls the main profile against the target's melee defense, with the weapon's own damage, Critical rating and qualities",
+			mainAttack,
+			{
+				prompt: {
+					skill: 'Melee (Br)',
+					pool: 'PPP|DD',
+					defense: [{ name: 'From Target: Melee Defense', enabled: false, mods: 'S+' }],
+				},
+				card: {
+					description:
+						'Attacking with <strong>E2E Dagger</strong> using <strong>Melee (Br<i class="fas fa-star hide-it"></i>)</strong>!',
+					summaries: ['Damage (Br + 1) 5 Critical 3', 's Successes 1'],
+					qualities: [],
+				},
+			},
+		);
+		await target(null);
+		await gm.evaluate(() => game.actors.getName('E2E Ada').items.getName('E2E Dagger').delete());
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('N end');
 	});
-	e2e.expect(
-		"#366 N1 an attack from the Dagger (Thrown) row rolls the profile's skill against the target's ranged defense, and its card names the profile, with its damage, Critical rating and qualities",
-		thrownAttack,
-		{
-			prompt: {
-				skill: 'Ranged (Ag)',
-				pool: 'AA|DD',
-				defense: [{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+ S+' }],
-			},
-			card: {
-				description:
-					'Attacking with <strong>E2E Dagger (Thrown)</strong> using <strong>Ranged (Ag<i class="fas fa-star hide-it"></i>)</strong>!',
-				summaries: ['Damage (Br + 2) 8 Critical 4', 's Successes 3'],
-				qualities: [
-					{ text: 'Accurate 1', tooltip: '<p>Aims true.</p>' },
-					{ text: 'Limited Ammo 1', tooltip: 'Genesys.Tooltips.NoDescription' },
-				],
-			},
-		},
-	);
-	let mainAttack: ProfileAttack | null = null;
-	await e2e.step('#366 N2 GM attacks from the Dagger row, and rolls a Success', async () => {
-		// Proficiency faces: 2 a Success, 1 blank; Difficulty: 1 blank.
-		mainAttack = await attackFromRow('Dagger', [
-			{ face: 2, faces: 12 },
-			{ face: 1, faces: 12 },
-			{ face: 1, faces: 12 },
-			{ face: 1, faces: 8 },
-			{ face: 1, faces: 8 },
-		]);
-	});
-	e2e.expect(
-		"#366 N2 an attack from the Dagger row rolls the main profile against the target's melee defense, with the weapon's own damage, Critical rating and qualities",
-		mainAttack,
-		{
-			prompt: { skill: 'Melee (Br)', pool: 'PPP|DD', defense: [{ name: 'From Target: Melee Defense', enabled: false, mods: 'S+' }] },
-			card: {
-				description:
-					'Attacking with <strong>E2E Dagger</strong> using <strong>Melee (Br<i class="fas fa-star hide-it"></i>)</strong>!',
-				summaries: ['Damage (Br + 1) 5 Critical 3', 's Successes 1'],
-				qualities: [],
-			},
-		},
-	);
-	await target(null);
-	await gm.evaluate(() => game.actors.getName('E2E Ada').items.getName('E2E Dagger').delete());
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('N end');
 
 	// #367: the chat's dice button and `/gendr` open the Dice Roller, for the single controlled token's actor.
-	e2e.expect(
-		'#367 A1 the chat controls hold one dice button, under the message modes by the notifications while the sidebar is collapsed, and beside them in the chat form once expanded',
-		await gm.evaluate(() => window.dicePromptE2E.diceRollerButtons()),
-		{
-			collapsed: { count: 1, place: 'notifications, under', label: 'Roll dice' },
-			expanded: { count: 1, place: 'chat, beside', label: 'Roll dice' },
-			collapsedAgain: { count: 1, place: 'notifications, under', label: 'Roll dice' },
-		},
-	);
-	const diceRollerOpens = {
-		button: () => gm.evaluate(() => window.dicePromptE2E.clickDiceRoller()),
-		gendr: () => gm.evaluate(() => ui.chat.processMessage('/gendr')),
-	};
-	const diceRoller: Record<string, Record<string, unknown>> = {};
-	for (const [from, open] of Object.entries(diceRollerOpens)) {
-		const prompt = async () => {
-			const { actor, skill, pool } = await opened(gm, open);
-			return { actor, skill, pool };
+	await part('diceRoller', async () => {
+		e2e.expect(
+			'#367 A1 the chat controls hold one dice button, under the message modes by the notifications while the sidebar is collapsed, and beside them in the chat form once expanded',
+			await gm.evaluate(() => window.dicePromptE2E.diceRollerButtons()),
+			{
+				collapsed: { count: 1, place: 'notifications, under', label: 'Roll dice' },
+				expanded: { count: 1, place: 'chat, beside', label: 'Roll dice' },
+				collapsedAgain: { count: 1, place: 'notifications, under', label: 'Roll dice' },
+			},
+		);
+		const diceRollerOpens = {
+			button: () => gm.evaluate(() => window.dicePromptE2E.clickDiceRoller()),
+			gendr: () => gm.evaluate(() => ui.chat.processMessage('/gendr')),
 		};
+		const diceRoller: Record<string, Record<string, unknown>> = {};
+		for (const [from, open] of Object.entries(diceRollerOpens)) {
+			const prompt = async () => {
+				const { actor, skill, pool } = await opened(gm, open);
+				return { actor, skill, pool };
+			};
+			await control(gm, []);
+			const none = await prompt();
+			await control(gm, ['Bo']);
+			const one = await prompt();
+			await control(gm, ['Bo', 'Cy']);
+			const several = await noPrompt(gm, open);
+			await control(gm, ['Wagon']);
+			const vehicle = await noPrompt(gm, open);
+			diceRoller[from] = { none, one, several, vehicle };
+		}
 		await control(gm, []);
-		const none = await prompt();
-		await control(gm, ['Bo']);
-		const one = await prompt();
-		await control(gm, ['Bo', 'Cy']);
-		const several = await noPrompt(gm, open);
-		await control(gm, ['Wagon']);
-		const vehicle = await noPrompt(gm, open);
-		diceRoller[from] = { none, one, several, vehicle };
-	}
-	await control(gm, []);
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	const diceRollerCases = {
-		none: { actor: null, skill: null, pool: '|DD' },
-		one: { actor: 'Bo', skill: '—', pool: '|DD' },
-		several: { prompts: 0, notifications: ['error: You need to select no tokens, or a single token, to perform this action.'] },
-		vehicle: { prompts: 0, notifications: ['error: The selected token is of an invalid type to perform this action.'] },
-	};
-	e2e.expect(
-		"#367 A2 the dice button and /gendr open a bare pool without a controlled token, the pool of a single controlled token's actor, and refuse several tokens or a vehicle",
-		diceRoller,
-		{ button: diceRollerCases, gendr: diceRollerCases },
-	);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		const diceRollerCases = {
+			none: { actor: null, skill: null, pool: '|DD' },
+			one: { actor: 'Bo', skill: '—', pool: '|DD' },
+			several: { prompts: 0, notifications: ['error: You need to select no tokens, or a single token, to perform this action.'] },
+			vehicle: { prompts: 0, notifications: ['error: The selected token is of an invalid type to perform this action.'] },
+		};
+		e2e.expect(
+			"#367 A2 the dice button and /gendr open a bare pool without a controlled token, the pool of a single controlled token's actor, and refuse several tokens or a vehicle",
+			diceRoller,
+			{ button: diceRollerCases, gendr: diceRollerCases },
+		);
+	});
 
 	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 0.2s ease-out of every fold since
 	// #516 (1s before), and their folded container is hidden from Tab.
-	await setSetting('dicePoolCollapseModificationsDetails', true);
-	// The Difficulty, DD, shows its dice among the Pool Modifications.
-	await opened(gm, skillRoll('Cool'));
-	let unfolded: PoolModificationsBox | null = null;
-	await e2e.step('#396 A1 GM unfolds the Pool Modifications of a Cool check', async () => {
-		unfolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	});
-	e2e.expect("#396 A1 the unfolded Pool Modifications show their container whole, after the fold's transition", unfolded, {
-		unfolded: true,
-		transition: FOLD_TRANSITION,
-		height: 'whole',
-		visibility: 'visible',
-		modifications: true,
-	});
-	let refolded: PoolModificationsBox | null = null;
-	await e2e.step('#396 A2 GM folds the Pool Modifications', async () => {
-		refolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	});
-	// Folded, the expander keeps the 1px of its container's dotted top border, as on main before the mixin.
-	e2e.expect(
-		"#396 A2 the folded Pool Modifications keep only their top border and hide their container from Tab, after the fold's transition",
-		refolded,
-		{
-			unfolded: false,
+	await part('modificationFolds', async () => {
+		await setSetting('dicePoolCollapseModificationsDetails', true);
+		// The Difficulty, DD, shows its dice among the Pool Modifications.
+		await opened(gm, skillRoll('Cool'));
+		let unfolded: PoolModificationsBox | null = null;
+		await e2e.step('#396 A1 GM unfolds the Pool Modifications of a Cool check', async () => {
+			unfolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+		});
+		e2e.expect("#396 A1 the unfolded Pool Modifications show their container whole, after the fold's transition", unfolded, {
+			unfolded: true,
 			transition: FOLD_TRANSITION,
-			height: 1,
-			visibility: 'hidden',
+			height: 'whole',
+			visibility: 'visible',
 			modifications: true,
-		},
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		});
+		let refolded: PoolModificationsBox | null = null;
+		await e2e.step('#396 A2 GM folds the Pool Modifications', async () => {
+			refolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+		});
+		// Folded, the expander keeps the 1px of its container's dotted top border, as on main before the mixin.
+		e2e.expect(
+			"#396 A2 the folded Pool Modifications keep only their top border and hide their container from Tab, after the fold's transition",
+			refolded,
+			{
+				unfolded: false,
+				transition: FOLD_TRANSITION,
+				height: 1,
+				visibility: 'hidden',
+				modifications: true,
+			},
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	});
 
 	// O: Pool Modifications of effects named alike are turned on one at a time (§#445).
-	const poolAndRows = (state: PromptState) => ({ pool: state.pool, rows: rows(state) });
-	// The pool and the rows of an Intellect check, once the first Ring is turned on.
-	const ringsCheck = async (name: string) => {
-		await opened(gm, characteristicRoll(3, { actor: name }));
-		return poolAndRows(await toggle('E2E Ring'));
-	};
-	const ring = (enabled: boolean, mods: string) => ({ name: 'From Self: E2E Ring', enabled, mods });
-	e2e.expect(
-		'#445 O1 one item with two effects named alike: turning on the first applies its upgrade only',
-		await ringsCheck('Ring Bearer'),
-		{
+	await part('sameNameEffects', async () => {
+		const poolAndRows = (state: PromptState) => ({ pool: state.pool, rows: rows(state) });
+		// The pool and the rows of an Intellect check, once the first Ring is turned on.
+		const ringsCheck = async (name: string) => {
+			await opened(gm, characteristicRoll(3, { actor: name }));
+			return poolAndRows(await toggle('E2E Ring'));
+		};
+		const ring = (enabled: boolean, mods: string) => ({ name: 'From Self: E2E Ring', enabled, mods });
+		e2e.expect(
+			'#445 O1 one item with two effects named alike: turning on the first applies its upgrade only',
+			await ringsCheck('Ring Bearer'),
+			{
+				pool: 'P|DD',
+				rows: [ring(true, 'A^'), ring(false, 'D^')],
+			},
+		);
+		e2e.expect('#445 O2 two copies of an item: turning on the first applies its upgrade only', await ringsCheck('Twin Rings'), {
 			pool: 'P|DD',
-			rows: [ring(true, 'A^'), ring(false, 'D^')],
-		},
-	);
-	e2e.expect('#445 O2 two copies of an item: turning on the first applies its upgrade only', await ringsCheck('Twin Rings'), {
-		pool: 'P|DD',
-		rows: [ring(true, 'A^'), ring(false, 'A^')],
+			rows: [ring(true, 'A^'), ring(false, 'A^')],
+		});
+		e2e.expect(
+			'#445 O3 two copies of an item upgrading once and twice: turning on the first applies its upgrade only',
+			await ringsCheck('Uneven Rings'),
+			{ pool: 'P|DD', rows: [ring(true, 'A^'), ring(false, 'A^ A^')] },
+		);
+		const brawnCheck = await select('characteristic', 'brawn');
+		e2e.expect('#445 O4 switching the characteristic keeps each of them in its own state', poolAndRows(brawnCheck), {
+			pool: 'P|DD',
+			rows: [ring(true, 'A^'), ring(false, 'A^ A^')],
+		});
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('O end');
 	});
-	e2e.expect(
-		'#445 O3 two copies of an item upgrading once and twice: turning on the first applies its upgrade only',
-		await ringsCheck('Uneven Rings'),
-		{ pool: 'P|DD', rows: [ring(true, 'A^'), ring(false, 'A^ A^')] },
-	);
-	const brawnCheck = await select('characteristic', 'brawn');
-	e2e.expect('#445 O4 switching the characteristic keeps each of them in its own state', poolAndRows(brawnCheck), {
-		pool: 'P|DD',
-		rows: [ring(true, 'A^'), ring(false, 'A^ A^')],
-	});
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('O end');
 
 	// P: the roller sets the Difficulty, before any Pool Modification; a die removed by hand still comes after them
 	// (§#450).
-	await setSetting('defaultDifficulty', 'DDD');
-	const difficultyState = () => gm.evaluate(() => window.dicePromptE2E.promptDifficulty());
-	const setDifficulty = (dice: number[]) => gm.evaluate((dice) => window.dicePromptE2E.setPromptDifficulty(dice), dice);
-	const shadowedCheck = () => opened(gm, characteristicRoll(1, { actor: 'Shadowed' }));
-	const difficultyOf = (level: string, dice: string, manualChanges = '') => ({ label: `Difficulty: ${level}`, dice, manualChanges });
-	const shown = ({ label, dice, manualChanges }: PromptDifficulty) => ({ label, dice, manualChanges });
-	const opening = await shadowedCheck();
-	const openingDifficulty = await difficultyState();
-	e2e.expect(
-		"#469 P1 the prompt opens with the Default Difficulty's dice lit among five, the level named in the row's label, without an Upgrades row",
-		{ pool: opening.pool, rows: openingDifficulty.rows, hint: openingDifficulty.hint, difficulty: shown(openingDifficulty) },
-		{
-			pool: 'AA|DDD',
-			rows: ['Difficulty: Hard', 'Manual Changes'],
-			hint: 'Use the dice box on the right to add, upgrade and downgrade. Click a die in the pool to remove one of its kind, after every other change.',
-			difficulty: difficultyOf('Hard', 'DDD··'),
-		},
-	);
-	e2e.expect(
-		"#496 P9 the Manual Changes row comes after the effects' rows, empty, the Difficulty row first",
-		await gm.evaluate(() => window.dicePromptE2E.promptRows()),
-		['Difficulty: Hard', 'From Self: E2E Shroud', 'Manual Changes'],
-	);
-	const easy = await setDifficulty([1]);
-	const easyUpgraded = await toggle('E2E Shroud');
-	e2e.expect(
-		'#450 P2 an Easy check whose difficulty an effect upgrades twice rolls a Challenge die and a Difficulty die',
-		{ easy: easy.pool, upgraded: easyUpgraded.pool, difficulty: shown(await difficultyState()) },
-		{ easy: 'AA|D', upgraded: 'AA|CD', difficulty: difficultyOf('Easy', 'D····') },
-	);
-	await shadowedCheck();
-	await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
-	const removed = await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
-	const removedUpgraded = await toggle('E2E Shroud');
-	e2e.expect(
-		'#450 P3 two Difficulty dice removed by hand from a Hard check come after the upgrades, as the CRB orders (p. 21)',
-		{ removed: removed.pool, upgraded: removedUpgraded.pool, difficulty: shown(await difficultyState()) },
-		{ removed: 'AA|D', upgraded: 'AA|CC', difficulty: difficultyOf('Hard', 'DDD··', 'D- D-') },
-	);
-	await shadowedCheck();
-	const clicks = {
-		formidable: await setDifficulty([5]),
-		average: await setDifficulty([2]),
-		lowered: await setDifficulty([2]),
-		simple: await setDifficulty([1]),
-		daunting: await setDifficulty([4]),
-	};
-	e2e.expect(
-		'#469 P4 a click on a die lights it and those before it, a click on the highest lit die lowers the level by one, down to Simple',
-		Object.fromEntries(Object.entries(clicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }])),
-		{
-			formidable: { pool: 'AA|DDDDD', difficulty: difficultyOf('Formidable', 'DDDDD') },
-			average: { pool: 'AA|DD', difficulty: difficultyOf('Average', 'DD···') },
-			lowered: { pool: 'AA|D', difficulty: difficultyOf('Easy', 'D····') },
-			simple: { pool: 'AA|', difficulty: difficultyOf('Simple', '·····') },
-			daunting: { pool: 'AA|DDDD', difficulty: difficultyOf('Daunting', 'DDDD·') },
-		},
-	);
-	await shadowedCheck();
-	await setDifficulty([1]);
-	await toggle('E2E Shroud');
-	const rolled = await roll();
-	e2e.expect('#450 P5 the check rolls the pool of the Difficulty set', rolled.formula, '0dp + 2da + 1di + 1dc');
-	await setSetting('defaultDifficulty', 'DDB');
-	const withBoost = await shadowedCheck();
-	const withBoostDifficulty = shown(await difficultyState());
-	const boostRemoved = await gm.evaluate(() => window.dicePromptE2E.removePromptManualChange(0));
-	e2e.expect(
-		'#450 P6 a Default Difficulty holding a Boost die opens with its Difficulty dice as the level and the Boost die as a manual change',
-		{
-			pool: withBoost.pool,
-			difficulty: withBoostDifficulty,
-			removed: { pool: boostRemoved.pool, difficulty: shown(boostRemoved.difficulty) },
-		},
-		{
-			pool: 'AAB|DD',
-			difficulty: difficultyOf('Average', 'DD···', 'B+'),
-			removed: { pool: 'AA|DD', difficulty: difficultyOf('Average', 'DD···') },
-		},
-	);
-	await setSetting('defaultDifficulty', 'DDD');
-	await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
-	const injury = shown(await difficultyState());
-	await control(gm, ['Bo']);
-	await linkPrompt(gm, journal, 'Athletics', 'CDD');
-	const upgradedLink = shown(await difficultyState());
-	const upgradedLinkClicks = { easy: await setDifficulty([1]), daunting: await setDifficulty([4]) };
-	const impossible = await linkPrompt(gm, journal, 'Athletics', 'CCCCCD');
-	const impossibleDifficulty = shown(await difficultyState());
-	await control(gm, []);
-	e2e.expect(
-		"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is a Formidable one",
-		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
-		{
-			injury: difficultyOf('Average', 'DD···'),
-			upgradedLink: difficultyOf('Hard', 'CDD··'),
-			impossible: { pool: '|CCCCC', difficulty: difficultyOf('Formidable', 'CCCCC') },
-		},
-	);
-	e2e.expect(
-		"#469 P8 a check link's upgrade stays a Challenge die, first among the five, as a click changes the level",
-		Object.fromEntries(
-			Object.entries(upgradedLinkClicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }]),
-		),
-		{
-			easy: { pool: '|C', difficulty: difficultyOf('Easy', 'C····') },
-			daunting: { pool: '|CDDD', difficulty: difficultyOf('Daunting', 'CDDD·') },
-		},
-	);
-	await setSetting('defaultDifficulty', 'DD');
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('P end');
+	await part('difficulty', async () => {
+		await setSetting('defaultDifficulty', 'DDD');
+		const difficultyState = () => gm.evaluate(() => window.dicePromptE2E.promptDifficulty());
+		const setDifficulty = (dice: number[]) => gm.evaluate((dice) => window.dicePromptE2E.setPromptDifficulty(dice), dice);
+		const shadowedCheck = () => opened(gm, characteristicRoll(1, { actor: 'Shadowed' }));
+		const difficultyOf = (level: string, dice: string, manualChanges = '') => ({ label: `Difficulty: ${level}`, dice, manualChanges });
+		const shown = ({ label, dice, manualChanges }: PromptDifficulty) => ({ label, dice, manualChanges });
+		const opening = await shadowedCheck();
+		const openingDifficulty = await difficultyState();
+		e2e.expect(
+			"#469 P1 the prompt opens with the Default Difficulty's dice lit among five, the level named in the row's label, without an Upgrades row",
+			{ pool: opening.pool, rows: openingDifficulty.rows, hint: openingDifficulty.hint, difficulty: shown(openingDifficulty) },
+			{
+				pool: 'AA|DDD',
+				rows: ['Difficulty: Hard', 'Manual Changes'],
+				hint: 'Use the dice box on the right to add, upgrade and downgrade. Click a die in the pool to remove one of its kind, after every other change.',
+				difficulty: difficultyOf('Hard', 'DDD··'),
+			},
+		);
+		e2e.expect(
+			"#496 P9 the Manual Changes row comes after the effects' rows, empty, the Difficulty row first",
+			await gm.evaluate(() => window.dicePromptE2E.promptRows()),
+			['Difficulty: Hard', 'From Self: E2E Shroud', 'Manual Changes'],
+		);
+		const easy = await setDifficulty([1]);
+		const easyUpgraded = await toggle('E2E Shroud');
+		e2e.expect(
+			'#450 P2 an Easy check whose difficulty an effect upgrades twice rolls a Challenge die and a Difficulty die',
+			{ easy: easy.pool, upgraded: easyUpgraded.pool, difficulty: shown(await difficultyState()) },
+			{ easy: 'AA|D', upgraded: 'AA|CD', difficulty: difficultyOf('Easy', 'D····') },
+		);
+		await shadowedCheck();
+		await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+		const removed = await gm.evaluate(() => window.dicePromptE2E.promptRemove('D'));
+		const removedUpgraded = await toggle('E2E Shroud');
+		e2e.expect(
+			'#450 P3 two Difficulty dice removed by hand from a Hard check come after the upgrades, as the CRB orders (p. 21)',
+			{ removed: removed.pool, upgraded: removedUpgraded.pool, difficulty: shown(await difficultyState()) },
+			{ removed: 'AA|D', upgraded: 'AA|CC', difficulty: difficultyOf('Hard', 'DDD··', 'D- D-') },
+		);
+		await shadowedCheck();
+		const clicks = {
+			formidable: await setDifficulty([5]),
+			average: await setDifficulty([2]),
+			lowered: await setDifficulty([2]),
+			simple: await setDifficulty([1]),
+			daunting: await setDifficulty([4]),
+		};
+		e2e.expect(
+			'#469 P4 a click on a die lights it and those before it, a click on the highest lit die lowers the level by one, down to Simple',
+			Object.fromEntries(
+				Object.entries(clicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }]),
+			),
+			{
+				formidable: { pool: 'AA|DDDDD', difficulty: difficultyOf('Formidable', 'DDDDD') },
+				average: { pool: 'AA|DD', difficulty: difficultyOf('Average', 'DD···') },
+				lowered: { pool: 'AA|D', difficulty: difficultyOf('Easy', 'D····') },
+				simple: { pool: 'AA|', difficulty: difficultyOf('Simple', '·····') },
+				daunting: { pool: 'AA|DDDD', difficulty: difficultyOf('Daunting', 'DDDD·') },
+			},
+		);
+		await shadowedCheck();
+		await setDifficulty([1]);
+		await toggle('E2E Shroud');
+		const rolled = await roll();
+		e2e.expect('#450 P5 the check rolls the pool of the Difficulty set', rolled.formula, '0dp + 2da + 1di + 1dc');
+		await setSetting('defaultDifficulty', 'DDB');
+		const withBoost = await shadowedCheck();
+		const withBoostDifficulty = shown(await difficultyState());
+		const boostRemoved = await gm.evaluate(() => window.dicePromptE2E.removePromptManualChange(0));
+		e2e.expect(
+			'#450 P6 a Default Difficulty holding a Boost die opens with its Difficulty dice as the level and the Boost die as a manual change',
+			{
+				pool: withBoost.pool,
+				difficulty: withBoostDifficulty,
+				removed: { pool: boostRemoved.pool, difficulty: shown(boostRemoved.difficulty) },
+			},
+			{
+				pool: 'AAB|DD',
+				difficulty: difficultyOf('Average', 'DD···', 'B+'),
+				removed: { pool: 'AA|DD', difficulty: difficultyOf('Average', 'DD···') },
+			},
+		);
+		await setSetting('defaultDifficulty', 'DDD');
+		await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
+		const injury = shown(await difficultyState());
+		await control(gm, ['Bo']);
+		await linkPrompt(gm, journal, 'Athletics', 'CDD');
+		const upgradedLink = shown(await difficultyState());
+		const upgradedLinkClicks = { easy: await setDifficulty([1]), daunting: await setDifficulty([4]) };
+		const impossible = await linkPrompt(gm, journal, 'Athletics', 'CCCCCD');
+		const impossibleDifficulty = shown(await difficultyState());
+		await control(gm, []);
+		e2e.expect(
+			"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is a Formidable one",
+			{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
+			{
+				injury: difficultyOf('Average', 'DD···'),
+				upgradedLink: difficultyOf('Hard', 'CDD··'),
+				impossible: { pool: '|CCCCC', difficulty: difficultyOf('Formidable', 'CCCCC') },
+			},
+		);
+		e2e.expect(
+			"#469 P8 a check link's upgrade stays a Challenge die, first among the five, as a click changes the level",
+			Object.fromEntries(
+				Object.entries(upgradedLinkClicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }]),
+			),
+			{
+				easy: { pool: '|C', difficulty: difficultyOf('Easy', 'C····') },
+				daunting: { pool: '|CDDD', difficulty: difficultyOf('Daunting', 'CDDD·') },
+			},
+		);
+		await setSetting('defaultDifficulty', 'DD');
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('P end');
+	});
 
 	// Q: the hint of the Show Attack Damage On Failure setting in the game settings window, in each language of the system
 	// (§#434). The language is a client setting the page reads as it loads: the GM's client reloads in French and Spanish,
 	// then in English again.
-	const settingText = () => gm.evaluate(() => window.dicePromptE2E.settingText('genesys.showDamageOnFailure'));
-	const showIn = async (language: string) => {
-		await gm.evaluate((language) => game.settings.set('core', 'language', language), language);
-		await gm.reload();
-		await gm.evaluate(installDicePromptHelpers);
-	};
-	const settingTexts: Record<string, unknown> = { en: await settingText() };
-	try {
-		for (const language of ['fr', 'es']) {
-			await showIn(language);
-			settingTexts[language] = await settingText();
+	await part('damageHint', async () => {
+		const settingText = () => gm.evaluate(() => window.dicePromptE2E.settingText('genesys.showDamageOnFailure'));
+		const showIn = async (language: string) => {
+			await gm.evaluate((language) => game.settings.set('core', 'language', language), language);
+			await gm.reload();
+			await gm.evaluate(installDicePromptHelpers);
+		};
+		const settingTexts: Record<string, unknown> = { en: await settingText() };
+		try {
+			for (const language of ['fr', 'es']) {
+				await showIn(language);
+				settingTexts[language] = await settingText();
+			}
+		} finally {
+			await showIn('en');
 		}
-	} finally {
-		await showIn('en');
-	}
-	e2e.expect(
-		'#434 Q1 the hint of Show Attack Damage On Failure names the damage and the Critical, and says the qualities always show, in en, fr and es',
-		settingTexts,
-		{
-			en: {
-				language: 'en',
-				name: 'Show Attack Damage On Failure',
-				hint: 'Whether to show Damage and Critical on attack roll chat cards even when the roll was a failure. Qualities always show, since some trigger on a failure.',
+		e2e.expect(
+			'#434 Q1 the hint of Show Attack Damage On Failure names the damage and the Critical, and says the qualities always show, in en, fr and es',
+			settingTexts,
+			{
+				en: {
+					language: 'en',
+					name: 'Show Attack Damage On Failure',
+					hint: 'Whether to show Damage and Critical on attack roll chat cards even when the roll was a failure. Qualities always show, since some trigger on a failure.',
+				},
+				fr: {
+					language: 'fr',
+					name: "Montrer les dommages de l'attaque en cas d'échec",
+					hint: "Afficher ou non les dégâts et le critique sur les cartes de discussion des jets d'attaque, même en cas d'échec. Les attributs s'affichent toujours, car certains se déclenchent sur un échec.",
+				},
+				es: {
+					language: 'es',
+					name: 'Muestra el daño del ataque cuando falle',
+					hint: 'Mostrar o no el daño y el crítico en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso. Las cualidades se muestran siempre, ya que algunas se activan con un fracaso.',
+				},
 			},
-			fr: {
-				language: 'fr',
-				name: "Montrer les dommages de l'attaque en cas d'échec",
-				hint: "Afficher ou non les dégâts et le critique sur les cartes de discussion des jets d'attaque, même en cas d'échec. Les attributs s'affichent toujours, car certains se déclenchent sur un échec.",
-			},
-			es: {
-				language: 'es',
-				name: 'Muestra el daño del ataque cuando falle',
-				hint: 'Mostrar o no el daño y el crítico en las tarjetas de chat de las tiradas de ataque, incluso cuando la tirada haya sido un fracaso. Las cualidades se muestran siempre, ya que algunas se activan con un fracaso.',
-			},
-		},
-	);
-	await e2e.step('Q end');
+		);
+		await e2e.step('Q end');
+	});
 
 	// R: the glyphs of the Genesys dice (§#488). Foundry gives the class `die` to a core die's result in a roll's tooltip
 	// too, which keeps its own font; the glyphs the enrichers set in a line of text sit in it.
-	let fonts: Record<string, boolean> = {};
-	await e2e.step('#488 A1 GM rolls 6d6 to the chat and opens a journal page with @dice, @check and @pool links', async () => {
-		fonts = await gm.evaluate((doc) => window.dicePromptE2E.glyphFonts(doc), journal);
+	await part('diceGlyphs', async () => {
+		let fonts: Record<string, boolean> = {};
+		await e2e.step('#488 A1 GM rolls 6d6 to the chat and opens a journal page with @dice, @check and @pool links', async () => {
+			fonts = await gm.evaluate((doc) => window.dicePromptE2E.glyphFonts(doc), journal);
+		});
+		e2e.expect("#488 A1 a core d6's result keeps Foundry's font, the Genesys dice of the links draw in Genesys Symbols", fonts, {
+			coreDie: false,
+			diceLink: true,
+			checkLink: true,
+			poolLink: true,
+		});
+		const inline = await gm.evaluate((doc) => window.dicePromptE2E.inlineGlyphs(doc), journal);
+		e2e.log("#488 C1 each glyph's centre above the middle of the text's capitals", inline);
+		e2e.expect(
+			"#488 C1 the glyphs of the @dice, @sym, @check and @pool links are centred on the text's capitals (±1px)",
+			Object.fromEntries(Object.entries(inline).map(([name, { px }]) => [name, Math.abs(px) <= 1])),
+			{ '@dice A': true, '@sym sa': true, '@check D': true, '@pool P': true },
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('R end');
 	});
-	e2e.expect("#488 A1 a core d6's result keeps Foundry's font, the Genesys dice of the links draw in Genesys Symbols", fonts, {
-		coreDie: false,
-		diceLink: true,
-		checkLink: true,
-		poolLink: true,
-	});
-	const inline = await gm.evaluate((doc) => window.dicePromptE2E.inlineGlyphs(doc), journal);
-	e2e.log("#488 C1 each glyph's centre above the middle of the text's capitals", inline);
-	e2e.expect(
-		"#488 C1 the glyphs of the @dice, @sym, @check and @pool links are centred on the text's capitals (±1px)",
-		Object.fromEntries(Object.entries(inline).map(([name, { px }]) => [name, Math.abs(px) <= 1])),
-		{ '@dice A': true, '@sym sa': true, '@check D': true, '@pool P': true },
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('R end');
 
 	// S: a Pool Modification's row opens the item its effect comes from, or the effect, for a user who may see it (§#495).
 	// The Seeker's Intellect check, with the Veiled targeted.
-	const seekerCheck = (client: Client) =>
-		opened(client, click(client, { actor: 'Seeker' }, '.tab-skills .characteristics-row .characteristic-field:nth-child(3) label a'));
-	const sourceLinks = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptSourceLinks());
-	const sourceLink = (text: string, opens: string, type: 'item' | 'effect') => ({
-		text,
-		tooltip: `Open E2E ${opens}`,
-		icon: type === 'item' ? 'fa-solid fa-suitcase' : 'fa-solid fa-person-rays',
-		cursor: 'pointer',
+	await part('modificationLinks', async () => {
+		const sourceLinks = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptSourceLinks());
+		const sourceLink = (text: string, opens: string, type: 'item' | 'effect') => ({
+			text,
+			tooltip: `Open E2E ${opens}`,
+			icon: type === 'item' ? 'fa-solid fa-suitcase' : 'fa-solid fa-person-rays',
+			cursor: 'pointer',
+		});
+		const seekerRows = (shade: ReturnType<typeof sourceLink> | null) => [
+			{ name: 'From Self: E2E Grit', link: sourceLink('E2E Grit', 'Grit', 'effect') },
+			{ name: 'From Self: E2E Fate (E2E Quick Draw)', link: sourceLink('E2E Fate (E2E Quick Draw)', 'Quick Draw', 'item') },
+			{ name: 'From Self: E2E Lens', link: sourceLink('E2E Lens', 'Lens', 'item') },
+			{ name: 'From Target: E2E Haze (E2E Shade)', link: shade },
+		];
+		await player.evaluate((name) => window.e2e.target(name), 'Veiled');
+		await seekerCheck(player);
+		e2e.expect(
+			"#495 S1 as a player, the rows link the actor's talent, equipment and effect, name the talent after its effect, and leave the target's talent unlinked",
+			await sourceLinks(player),
+			seekerRows(null),
+		);
+		await player.evaluate(() => window.dicePromptE2E.closePrompts());
+		await player.evaluate(() => window.e2e.target(null));
+		await target('Veiled');
+		await seekerCheck(gm);
+		e2e.expect(
+			"#495 S2 as the GM, the target's talent is linked too",
+			await sourceLinks(gm),
+			seekerRows(sourceLink('E2E Haze (E2E Shade)', 'Shade', 'item')),
+		);
+		const openedSources: Record<string, unknown> = {};
+		for (const name of ['E2E Fate', 'E2E Grit', 'E2E Haze']) {
+			openedSources[name] = await gm.evaluate((name) => window.dicePromptE2E.openPromptSource(name), name);
+			await gm.evaluate(() => window.e2e.closeSetUp());
+		}
+		const openedSource = (type: string, name: string) => ({ opened: { type, name }, prompts: 1, enabled: false });
+		e2e.expect(
+			"#495 S3 a click on a link opens the talent's sheet, the effect's sheet or the target's talent's sheet, and leaves the prompt open and the row off",
+			openedSources,
+			{
+				'E2E Fate': openedSource('Item', 'Quick Draw'),
+				'E2E Grit': openedSource('ActiveEffect', 'Grit'),
+				'E2E Haze': openedSource('Item', 'Shade'),
+			},
+		);
+		await target('Rival');
+		await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 1 } });
+		await opened(gm, attack('Pistol'));
+		e2e.expect(
+			"#495 S4 the target's defense has no link, even for the GM",
+			(await sourceLinks(gm)).filter(({ name }) => name.endsWith('Defense')),
+			[{ name: 'From Target: Ranged Defense', link: null }],
+		);
+		await target(null);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await player.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('S end');
 	});
-	const seekerRows = (shade: ReturnType<typeof sourceLink> | null) => [
-		{ name: 'From Self: E2E Grit', link: sourceLink('E2E Grit', 'Grit', 'effect') },
-		{ name: 'From Self: E2E Fate (E2E Quick Draw)', link: sourceLink('E2E Fate (E2E Quick Draw)', 'Quick Draw', 'item') },
-		{ name: 'From Self: E2E Lens', link: sourceLink('E2E Lens', 'Lens', 'item') },
-		{ name: 'From Target: E2E Haze (E2E Shade)', link: shade },
-	];
-	await player.evaluate((name) => window.e2e.target(name), 'Veiled');
-	await seekerCheck(player);
-	e2e.expect(
-		"#495 S1 as a player, the rows link the actor's talent, equipment and effect, name the talent after its effect, and leave the target's talent unlinked",
-		await sourceLinks(player),
-		seekerRows(null),
-	);
-	await player.evaluate(() => window.dicePromptE2E.closePrompts());
-	await player.evaluate(() => window.e2e.target(null));
-	await target('Veiled');
-	await seekerCheck(gm);
-	e2e.expect(
-		"#495 S2 as the GM, the target's talent is linked too",
-		await sourceLinks(gm),
-		seekerRows(sourceLink('E2E Haze (E2E Shade)', 'Shade', 'item')),
-	);
-	const openedSources: Record<string, unknown> = {};
-	for (const name of ['E2E Fate', 'E2E Grit', 'E2E Haze']) {
-		openedSources[name] = await gm.evaluate((name) => window.dicePromptE2E.openPromptSource(name), name);
-		await gm.evaluate(() => window.e2e.closeSetUp());
-	}
-	const openedSource = (type: string, name: string) => ({ opened: { type, name }, prompts: 1, enabled: false });
-	e2e.expect(
-		"#495 S3 a click on a link opens the talent's sheet, the effect's sheet or the target's talent's sheet, and leaves the prompt open and the row off",
-		openedSources,
-		{
-			'E2E Fate': openedSource('Item', 'Quick Draw'),
-			'E2E Grit': openedSource('ActiveEffect', 'Grit'),
-			'E2E Haze': openedSource('Item', 'Shade'),
-		},
-	);
-	await target('Rival');
-	await update({ actor: 'Rival' }, { 'system.defense': { melee: 1, ranged: 1 } });
-	await opened(gm, attack('Pistol'));
-	e2e.expect(
-		"#495 S4 the target's defense has no link, even for the GM",
-		(await sourceLinks(gm)).filter(({ name }) => name.endsWith('Defense')),
-		[{ name: 'From Target: Ranged Defense', link: null }],
-	);
-	await target(null);
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	await gm.evaluate(() => window.dicePromptE2E.closeSheets());
-	await player.evaluate(() => window.dicePromptE2E.closeSheets());
-	await e2e.step('S end');
 
 	// T: the Pool Modifications' columns (§#513). The Seeker's Intellect check, its talent's effect named long enough to
 	// wrap, with manual changes.
-	await gm.evaluate(() =>
-		window.e2e
-			.actor('Seeker')
-			.items.getName('E2E Quick Draw')
-			.effects.contents[0].update({ name: 'E2E Fate, a Pool Modification Named Long Enough to Wrap' }),
-	);
-	await seekerCheck(gm);
-	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A+', 'S+']));
-	if (!(await gm.evaluate(() => window.dicePromptE2E.poolModificationsBox())).unfolded) {
+	await part('modificationColumns', async () => {
+		await gm.evaluate(() =>
+			window.e2e
+				.actor('Seeker')
+				.items.getName('E2E Quick Draw')
+				.effects.contents[0].update({ name: 'E2E Fate, a Pool Modification Named Long Enough to Wrap' }),
+		);
+		await seekerCheck(gm);
+		await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A+', 'S+']));
+		if (!(await gm.evaluate(() => window.dicePromptE2E.poolModificationsBox())).unfolded) {
+			await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+		}
+		const layout = () => gm.evaluate(() => window.dicePromptE2E.poolModificationsLayout());
+		const unfoldedLayout = await layout();
 		await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	}
-	const layout = () => gm.evaluate(() => window.dicePromptE2E.poolModificationsLayout());
-	const unfoldedLayout = await layout();
-	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	const foldedLayout = await layout();
-	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	e2e.log('#513 the Pool Modifications as laid out, unfolded then folded', { unfolded: unfoldedLayout, folded: foldedLayout });
-	// A tenth of a px apart, as the layout rounds them, or half a px for a box centred on another.
-	const near = (a: number, b: number, slack = 0.1) => Math.abs(a - b) <= slack;
-	const { titleText, caret, rows: layoutRows } = unfoldedLayout;
-	e2e.expect(
-		"#513 A1 the title's text starts on the table's left edge, the caret alone in the margin before it",
-		{ textOnEdge: near(titleText, 0), caretInMargin: caret.right <= titleText },
-		{ textOnEdge: true, caretInMargin: true },
-	);
-	e2e.expect(
-		"#513 A2 folding the section moves neither the caret's axis nor the title's text",
-		{ axis: near(foldedLayout.caret.axis, caret.axis), text: near(foldedLayout.titleText, titleText) },
-		{ axis: true, text: true },
-	);
-	e2e.expect(
-		"#513 A3 every row's label starts on one edge, after the checkboxes' column, and a wrapped label goes on under its own text",
-		{
-			edges: new Set(layoutRows.map(({ label }) => label)).size,
-			afterCheckboxes: layoutRows.every(({ label }) => label > 0),
-			wrapped: layoutRows.filter(({ lineStarts }) => lineStarts.length > 1).length,
-			underItsText: layoutRows.every(({ lineStarts }) => lineStarts.every((start) => near(start, 0))),
-		},
-		{ edges: 1, afterCheckboxes: true, wrapped: 1, underItsText: true },
-	);
-	e2e.expect(
-		"#513 A4 the checkboxes and the modifications sit on their label's first line, with no top offset",
-		{
-			checkboxes: layoutRows.every(({ checkbox }) => checkbox === null || near(checkbox, 0, 0.5)),
-			// By the ink their fonts draw, within a px, not by their boxes: Genesys Symbols draws a glyph high in its box (§#535).
-			modifications: layoutRows.every(({ ink }) => ink === null || near(ink, 0, 1)),
-			offsets: layoutRows.flatMap(({ offsets }) => offsets),
-		},
-		{ checkboxes: true, modifications: true, offsets: [] },
-	);
-	// §#535: the Difficulty row, first, against the one-line rows of the effects, between it and Manual Changes.
-	const [difficultyRow, ...otherRows] = layoutRows;
-	const oneLineEffects = otherRows.slice(0, -1).filter(({ lineStarts }) => lineStarts.length === 1);
-	e2e.expect(
-		"#535 A1 the Difficulty dice are centred on their label's capitals, and the Difficulty row is as tall as a one-line effect's",
-		{
-			centred: difficultyRow.ink !== null && near(difficultyRow.ink, 0, 1),
-			effects: oneLineEffects.length > 0,
-			asTall: oneLineEffects.every(({ height }) => near(height, difficultyRow.height)),
-		},
-		{ centred: true, effects: true, asTall: true },
-	);
-	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
-	await e2e.step('T end');
+		const foldedLayout = await layout();
+		await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
+		e2e.log('#513 the Pool Modifications as laid out, unfolded then folded', { unfolded: unfoldedLayout, folded: foldedLayout });
+		// A tenth of a px apart, as the layout rounds them, or half a px for a box centred on another.
+		const near = (a: number, b: number, slack = 0.1) => Math.abs(a - b) <= slack;
+		const { titleText, caret, rows: layoutRows } = unfoldedLayout;
+		e2e.expect(
+			"#513 A1 the title's text starts on the table's left edge, the caret alone in the margin before it",
+			{ textOnEdge: near(titleText, 0), caretInMargin: caret.right <= titleText },
+			{ textOnEdge: true, caretInMargin: true },
+		);
+		e2e.expect(
+			"#513 A2 folding the section moves neither the caret's axis nor the title's text",
+			{ axis: near(foldedLayout.caret.axis, caret.axis), text: near(foldedLayout.titleText, titleText) },
+			{ axis: true, text: true },
+		);
+		e2e.expect(
+			"#513 A3 every row's label starts on one edge, after the checkboxes' column, and a wrapped label goes on under its own text",
+			{
+				edges: new Set(layoutRows.map(({ label }) => label)).size,
+				afterCheckboxes: layoutRows.every(({ label }) => label > 0),
+				wrapped: layoutRows.filter(({ lineStarts }) => lineStarts.length > 1).length,
+				underItsText: layoutRows.every(({ lineStarts }) => lineStarts.every((start) => near(start, 0))),
+			},
+			{ edges: 1, afterCheckboxes: true, wrapped: 1, underItsText: true },
+		);
+		e2e.expect(
+			"#513 A4 the checkboxes and the modifications sit on their label's first line, with no top offset",
+			{
+				checkboxes: layoutRows.every(({ checkbox }) => checkbox === null || near(checkbox, 0, 0.5)),
+				// By the ink their fonts draw, within a px, not by their boxes: Genesys Symbols draws a glyph high in its box (§#535).
+				modifications: layoutRows.every(({ ink }) => ink === null || near(ink, 0, 1)),
+				offsets: layoutRows.flatMap(({ offsets }) => offsets),
+			},
+			{ checkboxes: true, modifications: true, offsets: [] },
+		);
+		// §#535: the Difficulty row, first, against the one-line rows of the effects, between it and Manual Changes.
+		const [difficultyRow, ...otherRows] = layoutRows;
+		const oneLineEffects = otherRows.slice(0, -1).filter(({ lineStarts }) => lineStarts.length === 1);
+		e2e.expect(
+			"#535 A1 the Difficulty dice are centred on their label's capitals, and the Difficulty row is as tall as a one-line effect's",
+			{
+				centred: difficultyRow.ink !== null && near(difficultyRow.ink, 0, 1),
+				effects: oneLineEffects.length > 0,
+				asTall: oneLineEffects.every(({ height }) => near(height, difficultyRow.height)),
+			},
+			{ centred: true, effects: true, asTall: true },
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		await e2e.step('T end');
+	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
