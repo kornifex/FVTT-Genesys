@@ -2260,6 +2260,34 @@ export async function run(e2e: ScenarioContext) {
 		[{ appV2: true, title: 'Drop Confirmation' }],
 	);
 	await gm.evaluate(() => window.sheetsE2E.closePrompts('app-clone-actor-prompt'));
+	// §#414: on v14, a drop on an item sheet goes through ItemSheetV2's own `_onDrop`, whose `dropItemSheetData` hook a
+	// module can refuse it with; v13's ItemSheetV2 has no such hook.
+	let refusedDrop = {};
+	await e2e.step('#414 GM drops a quality on a weapon sheet, which a dropItemSheetData hook refuses', async () => {
+		refusedDrop = await gm.evaluate(async () => {
+			const sheets = window.sheetsE2E;
+			await sheets.open('weapon');
+			const calls: { item: string; type: string }[] = [];
+			const hook = Hooks.on('dropItemSheetData', (item: { name: string }, _sheet: unknown, data: { type: string }) => {
+				calls.push({ item: item.name, type: data.type });
+				return false;
+			});
+			await sheets.drop('weapon', { type: 'Item', name: 'quality' });
+			Hooks.off('dropItemSheetData', hook);
+			const weapon = game.items.getName('E2E weapon');
+			const qualities = weapon.system.qualities.map((quality: { name: string }) => quality.name);
+			// On v13 the drop goes through: the weapon is left as it was for the drops below.
+			if (qualities.length) await weapon.update({ 'system.qualities': [] });
+			return { calls, qualities, v13: game.release.generation < 14 };
+		});
+	});
+	e2e.expect(
+		'#414 A3 on v14, a dropItemSheetData hook that returns false keeps the item off the item sheet; v13 has no such hook',
+		refusedDrop,
+		(await gm.evaluate(() => game.release.generation < 14))
+			? { calls: [], qualities: ['E2E quality'], v13: true }
+			: { calls: [{ item: 'E2E weapon', type: 'Item' }], qualities: [], v13: false },
+	);
 	await e2e.step('#95 GM drops items on a weapon, an armor, an archetype and a career sheet', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;

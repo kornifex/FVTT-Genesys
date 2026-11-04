@@ -1237,6 +1237,17 @@ export const needsCanvas = true;
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const player = await e2e.player();
+	// §#414: the compatibility warnings Foundry logs through `console.warn` as the page reaches the roll modes v14
+	// deprecated, read from the console from before the GM reloads.
+	const rollModeWarnings: string[] = [];
+	for (const client of [gm, player]) {
+		client.page.on('console', (message) => {
+			const text = message.text();
+			if (message.type() === 'warning' && /Deprecated since Version/.test(text) && /roll ?mode/i.test(text)) {
+				rollModeWarnings.push(`${client.user}: ${text.split('\n')[0]}`);
+			}
+		});
+	}
 	await e2e.setUpCombat({
 		combatants: [
 			{ name: 'Hero', type: 'character' },
@@ -1929,6 +1940,37 @@ export async function run(e2e: ScenarioContext) {
 		},
 		{ gm: { whispered: true, blind: false }, player: false },
 	);
+
+	// §#414: a check's message and an initiative's take the mode the GM picks in the chat, which v13 stores as its roll
+	// mode (`blindroll`), v14 as its message mode (`blind`).
+	const chatModeKey = await gm.evaluate(() => (game.release.generation < 14 ? 'rollMode' : 'messageMode'));
+	const chatModeBefore = await gm.evaluate((key) => game.settings.get('core', key), chatModeKey);
+	const setChatMode = (value: unknown) =>
+		gm.evaluate(({ key, value }) => game.settings.set('core', key, value), { key: chatModeKey, value });
+	const visibility = ({ whisper, blind }: MessageSummary) => ({ whisper, blind });
+	const rolledInChatMode = async (mode: string) => {
+		await setChatMode(chatModeKey === 'rollMode' ? `${mode}roll` : mode);
+		await opened(gm, skillRoll('Cool'));
+		const check = visibility(await roll());
+		// The Hero rolls the initiative they hold, so that the turns stay as they were.
+		await gm.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 8, faces: 8 },
+		]);
+		await gm.evaluate(() => game.combat.rollInitiative([game.combat.combatants.getName('Hero').id]));
+		await e2e.settle();
+		return { check, initiative: visibility(await gm.evaluate(() => window.dicePromptE2E.lastMessage())) };
+	};
+	const gmCount = await gm.evaluate(() => game.users.filter((user: { isGM: boolean }) => user.isGM).length);
+	e2e.expect(
+		"#414 A1 a check and an initiative rolled with the chat in blind mode, then in self mode, are whispered as the chat's mode says",
+		{ blind: await rolledInChatMode('blind'), self: await rolledInChatMode('self') },
+		{
+			blind: { check: { whisper: gmCount, blind: true }, initiative: { whisper: gmCount, blind: true } },
+			self: { check: { whisper: 1, blind: false }, initiative: { whisper: 1, blind: false } },
+		},
+	);
+	await setChatMode(chatModeBefore);
 
 	const description = (message: MessageSummary) => ({ description: message.description, formula: message.formula });
 	await opened(gm, skillRoll('Cool'));
@@ -2920,5 +2962,6 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await e2e.step('T end');
 
+	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });
 }
