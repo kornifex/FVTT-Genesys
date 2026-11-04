@@ -140,6 +140,15 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
+	 * The combatant whose turn the combat trackers show for an Initiative Slot: once the combat started, the one that
+	 * Claimed it, else its origin. An unclaimed slot of a started combat shows its origin's turn as nobody's.
+	 */
+	slotCombatant(slot: InitiativeSlot) {
+		const claimant = this.started && slot.claimantId ? this.combatants.get(slot.claimantId) : undefined;
+		return claimant ?? this.combatants.get(slot.originId);
+	}
+
+	/**
 	 * What the combat trackers show of an Initiative Slot, on top of the turn of the combatant it shows.
 	 */
 	slotTrackerContext(slot: InitiativeSlot) {

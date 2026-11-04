@@ -2,7 +2,10 @@
  * @file Combat Tracker, which lists Initiative Slots instead of combatants.
  */
 
+import type { DeepPartial } from 'fvtt-types/utils';
+
 import { isFoundryV13 } from '@/foundryGeneration';
+import { warn } from '@/log';
 
 type RenderContext = foundry.applications.sidebar.tabs.CombatTracker.RenderContext;
 type RenderOptions = foundry.applications.api.HandlebarsApplicationMixin.RenderOptions;
@@ -49,11 +52,9 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 
 	static override PARTS = {
 		...foundry.applications.sidebar.tabs.CombatTracker.PARTS,
-		header: {
-			template: 'systems/genesys/templates/sidebar/combat/header.hbs',
-		},
 		tracker: {
 			template: 'systems/genesys/templates/sidebar/combat/tracker.hbs',
+			templates: ['systems/genesys/templates/sidebar/combat/initiative-slot.hbs'],
 			scrollable: [''],
 		},
 	};
@@ -85,29 +86,54 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 		context.control = this.viewed?.userControlsTurn ?? false;
 	}
 
-	override async _prepareTrackerContext(context: RenderContext, _options: RenderOptions) {
-		const combat = this.viewed;
-		if (!combat) {
+	override async _onRender(context: DeepPartial<RenderContext>, options: DeepPartial<RenderOptions>) {
+		await super._onRender(context, options);
+
+		if (options.parts?.includes('header') && game.user.isGM) {
+			this.#addExtraSlotButton();
+		}
+	}
+
+	/**
+	 * Adds the GM's button for an Extra Slot to core's header, after its bulk rolls, and a spacer to the controls on the
+	 * other side, which keeps the round centred.
+	 */
+	#addExtraSlotButton() {
+		const controls = this.element.querySelector('.combat-tracker-header .encounter-controls');
+		const rollNPC = controls?.querySelector('[data-action="rollNPC"]');
+		const menu = controls?.querySelector('.encounter-context-menu');
+		if (!rollNPC || !menu) {
+			warn("Core's combat tracker header has no NPC roll button or combat menu: the Extra Slot button is left out.");
 			return;
 		}
 
-		const turns: (foundry.applications.sidebar.tabs.CombatTracker.TurnContext & {
-			controlLabels: ReturnType<typeof controlLabels>;
-		})[] = [];
-		context.turns = turns;
+		const button = document.createElement('button');
+		button.type = 'button';
+		// Core's header calls the combat's method named by the action of a `combat-control` button.
+		button.className = 'inline-control combat-control icon fa-solid fa-user-plus';
+		button.dataset.action = 'addInitiativeSlot' satisfies keyof Combat.Implementation;
+		const label = 'Genesys.Tooltips.AddExtraInitiativeSlot';
+		button.dataset.tooltip = label;
+		button.ariaLabel = game.i18n.localize(label);
+		button.disabled = !this.viewed?.turns.length;
+		rollNPC.after(button);
 
-		for (const [index, slot] of combat.slots.entries()) {
-			// A slot's origin is one of the combat's combatants.
-			const combatant = combat.combatants.get(slot.originId)!;
-			if (!combatant.visible) {
-				continue;
-			}
+		const spacer = document.createElement('div');
+		spacer.className = 'spacer';
+		menu.before(spacer);
+	}
 
-			// Once the combat started, a slot shows the combatant that claimed it, or nobody.
-			const claimant = slot.claimantId ? combat.combatants.get(slot.claimantId) : undefined;
-			const turn = await this._prepareTurnContext(combat, combat.started && claimant ? claimant : combatant, index);
-			turns.push({ ...turn, ...combat.slotTrackerContext(slot), controlLabels: controlLabels(turn) });
+	override async _prepareTurnContext(combat: Combat.Stored, combatant: Combatant.Stored, index: number) {
+		// Core prepares one turn per entry of the combat's turns, which `setupTurns` sets to its Initiative Slots, each given
+		// by its origin. A turn without a slot, which that leaves none of, is shown as core prepares it rather than failing
+		// the render.
+		const slot = combat.slots[index];
+		if (!slot) {
+			return super._prepareTurnContext(combat, combatant, index);
 		}
+
+		const turn = await super._prepareTurnContext(combat, combat.slotCombatant(slot) ?? combatant, index);
+		return { ...turn, ...combat.slotTrackerContext(slot), controlLabels: controlLabels(turn) };
 	}
 
 	override _createContextMenu(
