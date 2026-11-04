@@ -6,7 +6,7 @@ import { vehicleDefense } from '@/actor/data/Protection';
 import { Defense } from '@/data/Actors';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import { Crew, hasActor, Passenger, removeActor, Role } from '@/actor/data/CrewRoster';
+import { Crew, hasActor, Passenger, pilotOf, removeActor, Role } from '@/actor/data/CrewRoster';
 import { isActingGm } from '@/socket';
 import { CombatPool, combatPoolField, ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
@@ -107,10 +107,26 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 	}
 
 	/**
-	 * Total value for Defense, against melee and ranged attacks alike, capped as a character's is.
+	 * Total value for Defense, against melee and ranged attacks alike: the vehicle's own, raised by its Pilot's Piloted
+	 * Vehicle Defense, capped as a character's is.
 	 */
 	get totalDefense(): Defense {
-		return vehicleDefense(this.defense);
+		return vehicleDefense(this.defense, this.#pilotedVehicleDefense());
+	}
+
+	/**
+	 * The Piloted Vehicle Defense of the vehicle's Pilot, or 0 without a Pilot whose actor exists in the world or on a
+	 * scene.
+	 */
+	#pilotedVehicleDefense() {
+		const uuid = pilotOf(this.crew);
+		const pilot = uuid ? fromUuidSync(uuid) : null;
+		// A compendium's actor resolves to its index entry until its pack loads it, so a compendium Pilot counts for
+		// nothing: the defense would otherwise depend on what each client has loaded.
+		if (!(pilot instanceof GenesysActor) || pilot.pack) {
+			return 0;
+		}
+		return (pilot.system as { pilotedVehicleDefense?: number }).pilotedVehicleDefense ?? 0;
 	}
 
 	/**
@@ -207,6 +223,7 @@ export abstract class VehicleDataModel extends foundry.abstract.TypeDataModel<fo
 					name: new fields.StringField(),
 					skills: new fields.ArrayField(new fields.StringField()),
 					members: new fields.ArrayField(new fields.StringField()),
+					pilot: new fields.BooleanField({ initial: false }),
 				}),
 			),
 		};
@@ -228,7 +245,8 @@ function worldVehicles() {
 }
 
 /**
- * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills.
+ * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills, and, for
+ * their Pilot, the defense its Piloted Vehicle Defense raises.
  */
 function renderVehiclesCrewedBy(actor: GenesysActor) {
 	// The hooks hand over stored actors: the guard only tells the types that they have a uuid.
@@ -250,8 +268,8 @@ function renderVehiclesCrewedBy(actor: GenesysActor) {
 }
 
 /**
- * Render the sheets of the vehicles an actor crews when one of the actor's items changes, and remove a deleted actor
- * from the Crew of every vehicle in the world.
+ * Render the sheets of the vehicles an actor crews when the actor, one of its items or one of their effects changes, and
+ * remove a deleted actor from the Crew of every vehicle in the world.
  */
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor));
@@ -266,6 +284,18 @@ export function register() {
 	Hooks.on('createItem', renderVehiclesCrewedByParent);
 	Hooks.on('updateItem', renderVehiclesCrewedByParent);
 	Hooks.on('deleteItem', renderVehiclesCrewedByParent);
+
+	// The Pilot's effects, theirs or their items', raise the vehicle's defense without updating the Pilot.
+	const renderVehiclesCrewedByEffectActor = (effect: ActiveEffect.Implementation) => {
+		const parent = effect.parent;
+		const actor = parent instanceof GenesysActor ? parent : parent?.parent;
+		if (actor instanceof GenesysActor) {
+			renderVehiclesCrewedBy(actor);
+		}
+	};
+	Hooks.on('createActiveEffect', renderVehiclesCrewedByEffectActor);
+	Hooks.on('updateActiveEffect', renderVehiclesCrewedByEffectActor);
+	Hooks.on('deleteActiveEffect', renderVehiclesCrewedByEffectActor);
 
 	Hooks.on('deleteActor', (actor) => {
 		// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.

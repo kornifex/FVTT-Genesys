@@ -32,7 +32,13 @@ const { effects, addEffect } = useDocumentEffects();
 				<Characteristic label="Genesys.Labels.Handling" :value="system.handling.signedString()" name="system.handling" can-edit />
 
 				<div class="stats-column">
-					<CombatStat label="Genesys.Labels.Defense" name="system.defense" :value="system.defense" />
+					<!-- The total counts the Pilot's Piloted Vehicle Defense, which the vehicle's own defense doesn't. -->
+					<CombatStat
+						label="Genesys.Labels.Defense"
+						primary-label="Genesys.Labels.DefenseTotal"
+						:value="system.totalDefense.ranged"
+						:secondary="{ label: 'Genesys.Labels.DefenseVehicle', value: system.defense, name: 'system.defense' }"
+					/>
 					<CombatStat label="Genesys.Labels.Armor" name="system.armor" :value="system.armor" />
 
 					<CombatStat

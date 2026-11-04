@@ -16,6 +16,7 @@ const props = withDefaults(
 		name: string;
 		skills: string[];
 		members: string[];
+		pilot: boolean;
 		dragging?: boolean;
 	}>(),
 	{
@@ -26,6 +27,7 @@ const props = withDefaults(
 const emit = defineEmits<{
 	(e: 'delete'): void;
 	(e: 'updateName', newName: string): void;
+	(e: 'updatePilot', pilot: boolean): void;
 	(e: 'removeSkill', skillName: string): void;
 	(e: 'removeMember', memberUuid: string): void;
 	(e: 'entityDrop', event: DragEvent, memberUnder?: string): void;
@@ -93,6 +95,12 @@ function drop(event: DragEvent, memberUnder?: string) {
 			</div>
 			<div class="underline" />
 
+			<div class="role-pilot" data-tooltip="Genesys.Labels.PilotRoleHint">
+				<label><Localized label="Genesys.Labels.PilotRole" /></label>
+				<input type="checkbox" :checked="pilot" @change="emit('updatePilot', ($event.target as HTMLInputElement).checked)" />
+			</div>
+			<div class="underline" />
+
 			<div class="role-members">
 				<TransitionGroup name="mems">
 					<div v-for="member in actorsInRole" :key="member.uuid" class="role-member" @drop="drop($event, member.uuid)">
@@ -122,7 +130,7 @@ function drop(event: DragEvent, memberUnder?: string) {
 	.role-data {
 		display: grid;
 		grid-template-columns: auto 1fr auto;
-		grid-template-rows: repeat(2, auto 1px) 1fr;
+		grid-template-rows: repeat(3, auto 1px) 1fr;
 		border: 1px solid black;
 		background: white;
 		align-items: center;
@@ -130,7 +138,8 @@ function drop(event: DragEvent, memberUnder?: string) {
 		height: 100%;
 
 		.role-name,
-		.role-skills {
+		.role-skills,
+		.role-pilot {
 			display: contents;
 
 			label {
@@ -148,6 +157,10 @@ function drop(event: DragEvent, memberUnder?: string) {
 				padding-left: 0.25em;
 				font-family: 'Roboto', sans-serif;
 			}
+		}
+
+		.role-pilot input {
+			justify-self: start;
 		}
 
 		.role-skills {

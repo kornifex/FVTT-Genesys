@@ -57,6 +57,7 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 			{ key: 'system.strain.max', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.StrainThreshold' },
 			{ key: 'system.defense.melee', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.MeleeDefense' },
 			{ key: 'system.defense.ranged', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.RangedDefense' },
+			{ key: 'system.pilotedVehicleDefense', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.PilotedVehicleDefense' },
 			{ key: 'system.hullTrauma.max', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.HullTraumaThreshold' },
 			{ key: 'system.systemStrain.max', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.SystemStrainThreshold' },
 			{ key: 'system.passengers.value', appliesTo: VEHICLE_GLYPH, label: 'Genesys.Labels.Passengers' },

@@ -13,13 +13,15 @@ export type Passenger = {
 };
 
 /**
- * A post in a vehicle's Crew, with the skills its members roll for the vehicle.
+ * A post in a vehicle's Crew, with the skills its members roll for the vehicle. At most one Role of a vehicle is its
+ * Pilot Role.
  */
 export type Role = {
 	id: string;
 	name: string;
 	skills: string[];
 	members: string[];
+	pilot: boolean;
 };
 
 /**
@@ -129,7 +131,31 @@ function placeMember(crew: Crew, uuid: string, place: CrewPlace & { kind: 'role'
  * The Crew with a new, empty Role last.
  */
 export function addRole(crew: Crew, id: string): Crew {
-	return { passengers: crew.passengers, roles: [...crew.roles, { id, name: '', skills: [], members: [] }] };
+	return { passengers: crew.passengers, roles: [...crew.roles, { id, name: '', skills: [], members: [], pilot: false }] };
+}
+
+/**
+ * The Crew with a Role marked as its Pilot Role, which unmarks the one marked before, or unmarked. Undefined when nothing
+ * changes, or the Role isn't the vehicle's.
+ */
+export function markPilotRole(crew: Crew, roleId: string, pilot: boolean): Crew | undefined {
+	const role = crew.roles.find((role) => role.id === roleId);
+	if (!role || role.pilot === pilot) {
+		return undefined;
+	}
+
+	return {
+		passengers: crew.passengers,
+		roles: crew.roles.map((other) => (other === role ? { ...role, pilot } : pilot && other.pilot ? { ...other, pilot: false } : other)),
+	};
+}
+
+/**
+ * The UUID of the vehicle's Pilot: the first member of its Pilot Role. Undefined when no Role is marked, or the Pilot
+ * Role has no member.
+ */
+export function pilotOf(crew: Crew): string | undefined {
+	return crew.roles.find((role) => role.pilot)?.members[0];
 }
 
 /**

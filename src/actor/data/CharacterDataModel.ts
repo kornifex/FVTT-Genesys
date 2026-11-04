@@ -23,6 +23,7 @@ import {
 	defenseField,
 	Motivations,
 	motivationsField,
+	pilotedVehicleDefenseField,
 	silhouetteField,
 	valueWithThresholdField,
 } from '@/data/schemaFields';
@@ -65,6 +66,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 	abstract notes: string;
 	abstract superCharacteristics: Set<Characteristic>;
 	abstract silhouette: number;
+	abstract pilotedVehicleDefense: number;
 
 	static readonly tokenAttributes: Record<string, TokenAttributeDetails> = {
 		wounds: {
@@ -220,6 +222,7 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 			currency: new fields.NumberField({ initial: 500 }),
 			superCharacteristics: new fields.SetField(new fields.StringField()),
 			silhouette: silhouetteField(),
+			pilotedVehicleDefense: pilotedVehicleDefenseField(),
 		};
 	}
 }

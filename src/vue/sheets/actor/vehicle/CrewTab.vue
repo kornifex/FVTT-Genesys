@@ -11,7 +11,7 @@ import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
 import { draggedGenesysType } from '@/data/DragTransferData';
-import { addRole, CrewPlace, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
+import { addRole, CrewPlace, markPilotRole, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
@@ -105,8 +105,10 @@ function resetDrags() {
 						:name="role.name"
 						:skills="role.skills"
 						:members="role.members"
+						:pilot="role.pilot"
 						:dragging="roleDrag.isHovered.value"
 						@delete="system.updateCrew((crew) => removeRole(crew, role.id))"
+						@update-pilot="(pilot) => system.updateCrew((crew) => markPilotRole(crew, role.id, pilot))"
 						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
 						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
 						@remove-member="(memberId) => system.updateCrew((crew) => removeActor(crew, memberId))"
