@@ -30,6 +30,18 @@ type Target = { section: EquipmentState; slot: number } | { item: string; edge?:
 type MenuAction = 'equip' | 'carry' | 'drop' | 'delete' | 'chat';
 
 /**
+ * A window a drag starts from, as the user's drag does: an entry of the Actors or Items directory, or of a compendium's
+ * window, by its full name.
+ */
+type DragWindow = { directory: 'Actor' | 'Item'; name: string } | { pack: string; name: string };
+
+/**
+ * A drag started from a window and moved over an Inventory tab: the Genesys type it carries, read from its formats as a
+ * drop target reads it during the drag, and the sections whose sort slots open for it.
+ */
+type WindowDrag = { genesysType: string | null; sections: EquipmentState[] };
+
+/**
  * A row's menu as it opened: the corner of it that lies on the point it opened from, if any; whether it lies inside what
  * the sheet and the viewport show; the points of it where another element shows instead (its entries' middles and its
  * inner corners); and its look, the computed styles of it and of its first entry, but the transform that moves it.
@@ -51,6 +63,8 @@ type InventoryHelpers = {
 	tearDown(): Promise<void>;
 	/** Runs a drag from its source and drops it on a target of an actor's sheet. */
 	drop(source: Source, actor: string, at: Target): Promise<void>;
+	/** Starts a drag from a window, opening it unless it is, moves it over an actor's Inventory tab, then ends it. */
+	windowDrag(from: DragWindow, actor: string): Promise<WindowDrag>;
 	/** Drops a drag on the sheet of an item of the sidebar (no actor) or of an actor. */
 	dropOnItemSheet(source: Source, item: string, actor?: string): Promise<void>;
 	/**
@@ -697,6 +711,33 @@ function installInventoryHelpers() {
 			await window.e2e.deleteSetUp('Token', 'Actor', 'Item', 'Folder');
 		},
 
+		async windowDrag(from, ref) {
+			const id =
+				'directory' in from
+					? (from.directory === 'Actor' ? game.actors : game.items).getName(from.name)?.id
+					: game.packs.get(from.pack).index.find((indexed: { name: string }) => indexed.name === from.name)?._id;
+			if (!id) throw new Error(`No ${from.name} to drag`);
+			const app = 'directory' in from ? (from.directory === 'Actor' ? ui.actors : ui.items) : game.packs.get(from.pack).apps[0];
+			const selector = `.directory-item[data-entry-id="${id}"]`;
+			const entry = (await render(app, (root) => root.querySelector(selector))).querySelector(selector)!;
+			const dataTransfer = window.e2e.dragStart(entry);
+			// The format is `genesys/<type>/<uuid>`, its uppercase letters encoded as `|<code point>|`.
+			const format = dataTransfer.types.find((type) => type.startsWith('genesys/'));
+			const genesysType =
+				format?.split('/')[1].replace(/\|(\d+)\|/g, (_match, code: string) => String.fromCodePoint(Number(code))) ?? null;
+
+			const root = await sheet(ref);
+			await window.e2e.showTab(ref, 'inventory');
+			const tab = root.querySelector('.tab-inventory')!;
+			tab.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }));
+			await settle();
+			const sections = SECTIONS.filter((state) => sectionParts(root, state)[0]?.classList.contains('active')) as EquipmentState[];
+			tab.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer }));
+			entry.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+			await settle();
+			return { genesysType, sections };
+		},
+
 		async drop(source, ref, at) {
 			const dragged = await dragFrom(source);
 			const root = await sheet(ref);
@@ -1242,6 +1283,8 @@ const MENU_TAIL = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installInventoryHelpers);
+	// §#416: the system's compendium window is open before the setup creates the scenario's compendiums.
+	await gm.evaluate(() => window.e2e.render(game.packs.get('genesys.crb-skills').apps[0]));
 	await gm.evaluate((playerUser) => window.inventoryE2E.setUp(playerUser), e2e.playerUser);
 
 	const page = gm;
@@ -1317,6 +1360,31 @@ export async function run(e2e: ScenarioContext) {
 			granted: ['E2E Talent'],
 		},
 	);
+
+	// #416: a drag started from a directory or a compendium window carries the dragged document's type, for which the
+	// sections of an Inventory tab open: from the system's compendium, opened before the setup created the scenario's, and
+	// from those created during the session.
+	const fromWindows: Record<string, DragWindow> = {
+		'Items directory': { directory: 'Item', name: 'E2E Sword' },
+		'Actors directory': { directory: 'Actor', name: 'E2E Hero' },
+		'Core Skills': { pack: 'genesys.crb-skills', name: 'Athletics' },
+		'E2E Inventory Items': { pack: 'world.e2e-inventory-items', name: 'E2E Packed Mail' },
+		'E2E Inventory Actors': { pack: 'world.e2e-inventory-actors', name: 'E2E Packed Hero' },
+	};
+	const windowDrags: Record<string, WindowDrag> = {};
+	await e2e.step('#416 A1 drags from the directories and the compendium windows moved over the Inventory tab', async () => {
+		for (const [label, from] of Object.entries(fromWindows)) {
+			windowDrags[label] = await page.evaluate((args) => window.inventoryE2E.windowDrag(args.from, 'Receiver'), { from });
+		}
+	});
+	const allSections: EquipmentState[] = ['equipped', 'carried', 'dropped'];
+	e2e.expect('#416 A1 each drag carries its document type, and the sections taking it open', windowDrags, {
+		'Items directory': { genesysType: 'weapon', sections: allSections },
+		'Actors directory': { genesysType: 'character', sections: [] },
+		'Core Skills': { genesysType: 'skill', sections: [] },
+		'E2E Inventory Items': { genesysType: 'armor', sections: allSections },
+		'E2E Inventory Actors': { genesysType: 'character', sections: [] },
+	});
 
 	// #103: drops from the sidebar and a compendium on each actor type.
 	await e2e.step(

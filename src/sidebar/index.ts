@@ -3,30 +3,25 @@ import { GenesysCompendium } from '@/sidebar/GenesysCompendium';
 import { GenesysItemDirectory } from '@/sidebar/GenesysItemDirectory';
 
 // The compendium types whose windows the sheets' drop areas highlight a drag from.
-const PATCHED_COMPENDIUM_TYPES = ['Actor', 'Item'];
+const GENESYS_COMPENDIUM_TYPES = ['Actor', 'Item'];
 
 /**
  * Show the actor and item compendiums with {@link GenesysCompendium}, so that the sheets' drop areas highlight when
  * something is dragged from one.
  */
-function patchCompendiums() {
-	// Foundry hardcodes the class of a compendium's window, so each pack's window is replaced by ours, once. The compendium
-	// directory renders right after a compendium is created, which patches the new ones too.
-	const patched = new Set<string>();
-	Hooks.on('renderCompendiumDirectory', () => {
-		for (const pack of game.packs.values()) {
-			if (patched.has(pack.metadata.id)) {
-				continue;
-			}
-
-			patched.add(pack.metadata.id);
-			if (PATCHED_COMPENDIUM_TYPES.includes(pack.metadata.type)) {
-				pack.apps.shift();
-				// The types take the options as a deep partial, which turns the pack into a shape no pack matches.
-				pack.apps.push(new GenesysCompendium({ collection: pack } as ConstructorParameters<typeof GenesysCompendium>[0]));
-			}
+function setCompendiumWindowClass() {
+	// Foundry creates a pack's window from the pack's `applicationClass` once the pack is in `game.packs`: at the UI's
+	// initialization for the world's packs, and right after it is added for a pack created during the session, with no
+	// hook in between. So each pack gets the class as it is added; a module changing it afterwards, at `setup`, wins.
+	const packs = game.packs;
+	const set = packs.set.bind(packs);
+	packs.set = (key, pack) => {
+		if (GENESYS_COMPENDIUM_TYPES.includes(pack.metadata.type)) {
+			pack.applicationClass = GenesysCompendium;
 		}
-	});
+
+		return set(key, pack);
+	};
 }
 
 /**
@@ -37,5 +32,5 @@ export function register() {
 	CONFIG.ui.actors = GenesysActorDirectory as typeof foundry.applications.sidebar.tabs.ActorDirectory;
 	CONFIG.ui.items = GenesysItemDirectory as typeof foundry.applications.sidebar.tabs.ItemDirectory;
 
-	patchCompendiums();
+	setCompendiumWindowClass();
 }
