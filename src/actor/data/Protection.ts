@@ -54,9 +54,10 @@ export function adversaryDefense(defense: Defense): Defense {
 }
 
 /**
- * A vehicle's defense: its single rating counts against melee and ranged attacks alike, up to 4 as a character's
- * (CRB p. 223).
+ * A vehicle's defense: its single rating, raised by the Piloted Vehicle Defense of its Pilot (Defensive Driving, CRB
+ * p. 80), counts against melee and ranged attacks alike, up to 4 as a character's (CRB p. 223).
  */
-export function vehicleDefense(defense: number): Defense {
-	return totalDefense({ melee: defense, ranged: defense }, []);
+export function vehicleDefense(defense: number, pilotedVehicleDefense: number): Defense {
+	const rating = defense + pilotedVehicleDefense;
+	return totalDefense({ melee: rating, ranged: rating }, []);
 }

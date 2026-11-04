@@ -493,6 +493,9 @@ Genesys:
     MeleeDefense: Défense de mêlée
     DefenseRanged: Distance
     RangedDefense: Défense à distance
+    DefenseTotal: Totale
+    DefenseVehicle: Véhicule
+    PilotedVehicleDefense: Défense du véhicule piloté
     TotalXP: XP total
     AvailableXP: XP disponible
     Characteristic: Caractéristique
@@ -593,6 +596,8 @@ Genesys:
     Roles: Rôles
     OverCapacity: Hors capacité !
     RoleSkills: Compétences liées au rôle
+    PilotRole: Rôle de pilote
+    PilotRoleHint: Son premier membre est le pilote, dont la défense du véhicule piloté augmente la défense du véhicule.
     FiringArc: Arc de tir
     Select: Sélection
     PerformCheck: Perform Check

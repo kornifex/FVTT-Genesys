@@ -144,6 +144,10 @@ _Avoid_: Occupants
 A post in a vehicle's crew (pilot, gunner…) with the skills its members roll for the vehicle.
 _Avoid_: Station, position
 
+**Pilot Role**:
+The Role marked as the one that pilots the vehicle, whatever its name; a vehicle has at most one. Its first member is the **Pilot**, whose Piloted Vehicle Defense, raised by a talent such as Defensive Driving, adds to the vehicle's defense, still up to 4. Without a Pilot Role, or with an empty one, the vehicle has no Pilot.
+_Avoid_: Driver, helm
+
 ### Adversaries
 
 **Adversary**:

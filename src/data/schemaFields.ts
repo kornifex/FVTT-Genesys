@@ -59,6 +59,14 @@ export function silhouetteField() {
 }
 
 /**
+ * What a character or an adversary adds to the defense of a vehicle they pilot, which effects raise: a talent such as
+ * Defensive Driving adds one per rank (CRB p. 80). An actor stored before the field reads 0.
+ */
+export function pilotedVehicleDefenseField() {
+	return new foundry.data.fields.NumberField({ required: true, nullable: false, integer: true, initial: 0 });
+}
+
+/**
  * The melee and ranged defenses of a character or an adversary.
  */
 export function defenseField() {

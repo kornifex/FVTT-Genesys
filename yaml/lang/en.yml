@@ -488,6 +488,9 @@ Genesys:
     MeleeDefense: Melee Defense
     DefenseRanged: Ranged
     RangedDefense: Ranged Defense
+    DefenseTotal: Total
+    DefenseVehicle: Vehicle
+    PilotedVehicleDefense: Piloted Vehicle Defense
     TotalXP: Total XP
     AvailableXP: Available XP
     Characteristic: Characteristic
@@ -588,6 +591,8 @@ Genesys:
     Roles: Roles
     OverCapacity: Over Capacity!
     RoleSkills: Role Skills
+    PilotRole: Pilot Role
+    PilotRoleHint: Its first member is the Pilot, whose Piloted Vehicle Defense raises the vehicle's defense.
     FiringArc: Firing Arc
     Select: Select
     PerformCheck: Perform Check

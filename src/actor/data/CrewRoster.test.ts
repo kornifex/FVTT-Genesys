@@ -9,6 +9,8 @@ import {
 	crewSkillsByMember,
 	crewSkillsBySkill,
 	hasActor,
+	markPilotRole,
+	pilotOf,
 	placeActor,
 	removeActor,
 	removeRole,
@@ -24,7 +26,7 @@ function passengers(...uuids: string[]) {
 }
 
 function role(id: string, ...members: string[]): Role {
-	return { id, name: id, skills: [], members };
+	return { id, name: id, skills: [], members, pilot: false };
 }
 
 describe('placeActor', () => {
@@ -196,7 +198,7 @@ describe('Roles', () => {
 
 		expect(addRole(crew, 'gunner')).toEqual({
 			passengers: passengers('A'),
-			roles: [role('pilot', 'P'), { id: 'gunner', name: '', skills: [], members: [] }],
+			roles: [role('pilot', 'P'), { ...role('gunner'), name: '' }],
 		});
 	});
 
@@ -209,7 +211,7 @@ describe('Roles', () => {
 	it('renames a Role', () => {
 		const crew: Crew = { passengers: [], roles: [role('pilot', 'P')] };
 
-		expect(renameRole(crew, 'pilot', 'Co-pilot')?.roles).toEqual([{ id: 'pilot', name: 'Co-pilot', skills: [], members: ['P'] }]);
+		expect(renameRole(crew, 'pilot', 'Co-pilot')?.roles).toEqual([{ ...role('pilot', 'P'), name: 'Co-pilot' }]);
 	});
 
 	it.each([
@@ -252,6 +254,47 @@ describe('Roles', () => {
 	});
 });
 
+describe('Pilot Role', () => {
+	it('marks a Role as the Pilot Role, which unmarks the one marked before: a vehicle has at most one', () => {
+		const crew: Crew = { passengers: [], roles: [{ ...role('helm', 'H'), pilot: true }, role('cockpit', 'C')] };
+
+		expect(markPilotRole(crew, 'cockpit', true)?.roles).toEqual([role('helm', 'H'), { ...role('cockpit', 'C'), pilot: true }]);
+	});
+
+	it('unmarks the Pilot Role, leaving the vehicle without one', () => {
+		const crew: Crew = { passengers: [], roles: [{ ...role('helm', 'H'), pilot: true }, role('gunner', 'G')] };
+
+		expect(markPilotRole(crew, 'helm', false)?.roles).toEqual([role('helm', 'H'), role('gunner', 'G')]);
+	});
+
+	it.each([
+		{ name: 'marking the Pilot Role', roleId: 'helm', pilot: true },
+		{ name: 'unmarking a Role that is not the Pilot Role', roleId: 'gunner', pilot: false },
+		{ name: "marking a Role that isn't the vehicle's", roleId: 'navigator', pilot: true },
+	])('does nothing when $name', ({ roleId, pilot }) => {
+		const crew: Crew = { passengers: [], roles: [{ ...role('helm', 'H'), pilot: true }, role('gunner', 'G')] };
+
+		expect(markPilotRole(crew, roleId, pilot)).toBeUndefined();
+	});
+
+	it('adds a Role that is not the Pilot Role', () => {
+		expect(addRole({ passengers: [], roles: [] }, 'helm').roles[0].pilot).toBe(false);
+	});
+
+	it("makes the Pilot Role's first member the Pilot, whose Defensive Driving raises the vehicle's defense (CRB p. 80)", () => {
+		const crew: Crew = { passengers: passengers('A'), roles: [role('gunner', 'G'), { ...role('helm', 'H1', 'H2'), pilot: true }] };
+
+		expect(pilotOf(crew)).toBe('H1');
+	});
+
+	it.each([
+		{ name: 'no Role is the Pilot Role', roles: [role('helm', 'H')] },
+		{ name: 'the Pilot Role has no member', roles: [{ ...role('helm'), pilot: true }, role('gunner', 'G')] },
+	])('finds no Pilot when $name', ({ roles }) => {
+		expect(pilotOf({ passengers: passengers('A'), roles })).toBeUndefined();
+	});
+});
+
 describe('Crew operations', () => {
 	it.each([
 		{
@@ -265,6 +308,7 @@ describe('Crew operations', () => {
 		{ name: 'renaming a Role', change: (crew: Crew) => renameRole(crew, 'pilot', 'Pilot') },
 		{ name: 'adding a Role skill', change: (crew: Crew) => addRoleSkill(crew, 'pilot', 'Perception') },
 		{ name: 'removing a Role skill', change: (crew: Crew) => removeRoleSkill(crew, 'pilot', 'Piloting') },
+		{ name: 'marking the Pilot Role', change: (crew: Crew) => markPilotRole(crew, 'pilot', true) },
 	])("leave the Crew they're given untouched when $name", ({ change }) => {
 		const crew: Crew = {
 			passengers: [
@@ -272,7 +316,7 @@ describe('Crew operations', () => {
 				{ uuid: 'A', sort: 100000 },
 				{ uuid: 'C', sort: 300000 },
 			],
-			roles: [{ id: 'pilot', name: 'pilot', skills: ['Piloting'], members: ['P'] }],
+			roles: [{ id: 'pilot', name: 'pilot', skills: ['Piloting'], members: ['P'], pilot: false }],
 		};
 		const before = structuredClone(crew);
 
@@ -283,7 +327,7 @@ describe('Crew operations', () => {
 
 describe('crewForSkills', () => {
 	function skilledRole(id: string, skills: string[], ...members: string[]): Role {
-		return { id, name: id, skills, members };
+		return { id, name: id, skills, members, pilot: false };
 	}
 
 	it('finds the members of the Roles that list a skill, whatever its case: the pilots and the copilot for Piloting (CRB p. 220, 229)', () => {
@@ -326,9 +370,9 @@ describe('crewForSkills', () => {
 
 describe('crewSkillsBySkill', () => {
 	it('lists every Role skill once whatever its case, by name, with the members who roll it in Crew order', () => {
-		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Gunnery'], members: ['P'] };
-		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['gunnery', 'athletics'], members: ['G1', 'G2'] };
-		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation'], members: [] };
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Gunnery'], members: ['P'], pilot: false };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['gunnery', 'athletics'], members: ['G1', 'G2'], pilot: false };
+		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation'], members: [], pilot: false };
 		const crew: Crew = { passengers: [], roles: [pilot, gunner, navigator] };
 		const compendium = ['Astrogation', 'athletics', 'Gunnery', 'Piloting'].map((name) => ({ name, img: `${name}.svg` }));
 		// G1 rolls none of the Gunner's skills.
@@ -347,8 +391,8 @@ describe('crewSkillsBySkill', () => {
 	});
 
 	it('names a skill as the Skills Compendium names it, whatever the case its Roles list it in', () => {
-		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['PILOTING', 'gunnery'], members: [] };
-		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: [] };
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['PILOTING', 'gunnery'], members: [], pilot: false };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: [], pilot: false };
 		const compendium = [
 			{ name: 'Gunnery', img: 'gunnery.svg' },
 			{ name: 'Piloting', img: 'piloting.svg' },
@@ -361,7 +405,7 @@ describe('crewSkillsBySkill', () => {
 	});
 
 	it('lists a Role skill missing from the Skills Compendium once a member rolls it, with the image of their skill', () => {
-		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation', 'Sensors'], members: ['N'] };
+		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation', 'Sensors'], members: ['N'], pilot: false };
 		const astrogation = { member: 'N', role: navigator, skillName: 'Astrogation', skill: { name: 'astrogation', img: 'stars.svg' } };
 
 		expect(crewSkillsBySkill({ passengers: [], roles: [navigator] }, [astrogation], [], 'en')).toEqual([
@@ -372,9 +416,9 @@ describe('crewSkillsBySkill', () => {
 
 describe('crewSkillsByMember', () => {
 	it('lists the members of the Roles with skills in Crew order, with the skills they roll by name', () => {
-		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'gunnery'], members: ['P'] };
-		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: ['G1', 'G2'] };
-		const cook: Role = { id: 'cook', name: 'Cook', skills: [], members: ['K'] };
+		const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'gunnery'], members: ['P'], pilot: false };
+		const gunner: Role = { id: 'gunner', name: 'Gunner', skills: ['Gunnery'], members: ['G1', 'G2'], pilot: false };
+		const cook: Role = { id: 'cook', name: 'Cook', skills: [], members: ['K'], pilot: false };
 		const crew: Crew = { passengers: passengers('A'), roles: [pilot, cook, gunner] };
 		// G1 rolls none of the Gunner's skills.
 		const rolled = [
@@ -392,7 +436,7 @@ describe('crewSkillsByMember', () => {
 });
 
 describe('crewMemberSkills', () => {
-	const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Cool'], members: ['A', 'B'] };
+	const pilot: Role = { id: 'pilot', name: 'Pilot', skills: ['Piloting', 'Cool'], members: ['A', 'B'], pilot: false };
 	const compendium: CheckSkill[] = [{ name: 'Piloting', system: { characteristic: Characteristic.Agility, rank: 0 } }];
 	const rules = { compendiumSkills: compendium, useSuperCharacteristics: false, uncoupleSkillsFromCharacteristics: false };
 

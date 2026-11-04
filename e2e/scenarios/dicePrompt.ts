@@ -141,6 +141,12 @@ type DicePromptHelpers = {
 	setUp(user: string): Promise<void>;
 	setSetting(args: { key: string; value: unknown }): Promise<void>;
 	update(args: { doc: Doc; data: object }): Promise<void>;
+	/** The Defense of a vehicle's sheet, rendered unless it is: the total it shows, and the vehicle's own in its field. */
+	vehicleDefense(vehicle: string): Promise<{ total: string; vehicle: string }>;
+	/** Clicks the Pilot Role checkbox of a vehicle's Role on its sheet, then gives whether the Role is the Pilot Role. */
+	clickPilotRole(args: { vehicle: string; role: string }): Promise<boolean>;
+	/** Turns an effect of an actor's item off or on. */
+	setItemEffectDisabled(args: { actor: string; item: string; effect: string; disabled: boolean }): Promise<void>;
 	/** The open Dice Prompts. */
 	openPrompts(): number;
 	waitForPrompt(): Promise<PromptState>;
@@ -527,10 +533,34 @@ function installDicePromptHelpers() {
 					type: 'rival',
 					items: [{ name: 'E2E Shade', type: 'talent', effects: [effect('Haze', 'check.target.', 'S')] }],
 				},
+				// A talent the system matches by its effect, not its name, that raises a vehicle's defense as Defensive Driving
+				// does (§#482).
+				{
+					name: 'E2E Driver',
+					type: 'character',
+					items: [
+						{
+							name: 'E2E Steady Hands',
+							type: 'talent',
+							system: { activation: { type: 'passive', detail: '' }, tier: 1, ranked: 'yes', rank: 2 },
+							effects: [
+								{
+									name: 'E2E Steady Hands',
+									transfer: true,
+									changes: [{ key: 'system.pilotedVehicleDefense', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' }],
+								},
+							],
+						},
+					],
+				},
+				{ name: 'E2E Rig', type: 'vehicle', system: { defense: 1 } },
 			]);
+			await actor('Rig').update({
+				'system.roles': [{ id: 'helm', name: 'Helm', skills: [], members: [actor('Driver').uuid], pilot: false }],
+			});
 			await window.e2e.setOwnership(actor('Rival'), 'default', 'OBSERVER');
 			for (const name of ['Bo', 'Cy', 'Seeker']) await window.e2e.setOwnership(actor(name), user, 'OWNER');
-			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy', 'Veiled'];
+			const targets = ['Rival', 'Mark', 'Wagon', 'Bo', 'Cy', 'Veiled', 'Rig'];
 			await canvas.scene.createEmbeddedDocuments(
 				'Token',
 				await Promise.all(
@@ -587,6 +617,32 @@ function installDicePromptHelpers() {
 
 		async update({ doc, data }) {
 			await documentOf(doc).update(data);
+			await settle();
+		},
+
+		async vehicleDefense(vehicle) {
+			const root = await render(actor(vehicle).sheet, (root) => root.querySelector('input[name="system.defense"]'));
+			const stat = root.querySelector('input[name="system.defense"]')!.closest('.combat-stat')!;
+			return {
+				total: text(stat.querySelector('div.value')),
+				vehicle: stat.querySelector<HTMLInputElement>('input[name="system.defense"]')!.value,
+			};
+		},
+
+		async clickPilotRole({ vehicle, role }) {
+			const sheet = actor(vehicle).sheet;
+			const root = await render(sheet, (root) => root.querySelector('.role-section'));
+			const section = [...root.querySelectorAll('.role-section')].find(
+				(candidate) => candidate.querySelector<HTMLInputElement>('.role-name input')?.value === role,
+			);
+			if (!section) throw new Error(`No Role ${role} on ${vehicle}`);
+			section.querySelector<HTMLInputElement>('.role-pilot input')!.click();
+			await settle();
+			return (actor(vehicle).system as { roles: { name: string; pilot: boolean }[] }).roles.find(({ name }) => name === role)!.pilot;
+		},
+
+		async setItemEffectDisabled({ actor: name, item, effect, disabled }) {
+			await actor(name).items.getName(`E2E ${item}`).effects.getName(`E2E ${effect}`).update({ disabled });
 			await settle();
 		},
 
@@ -1518,6 +1574,49 @@ export async function run(e2e: ScenarioContext) {
 	e2e.expect('#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications', named(coolAtWagon, 'From Target'), [
 		{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' },
 	]);
+
+	// The Pilot's Defensive Driving raises the defense of the vehicle they pilot (§#482): the Driver, first member of the
+	// Rig's Helm, holds 2 ranks of a talent adding 1 Piloted Vehicle Defense.
+	await target('Rig');
+	const rigDefense = () => gm.evaluate(() => window.dicePromptE2E.vehicleDefense('Rig'));
+	const rigAttacks = async () => ({
+		defense: await rigDefense(),
+		Spear: await defenseRows('Spear'),
+		Pistol: await defenseRows('Pistol'),
+	});
+	e2e.expect('#482 A0 a vehicle whose Roles hold no Pilot Role counts its own defense alone', await rigAttacks(), {
+		defense: { total: '1', vehicle: '1' },
+		Spear: vehicleRow('Melee', 1),
+		Pistol: vehicleRow('Ranged', 1),
+	});
+	e2e.expect(
+		'#482 A1 the Helm marked as the Pilot Role on the sheet',
+		await gm.evaluate(() => window.dicePromptE2E.clickPilotRole({ vehicle: 'Rig', role: 'Helm' })),
+		true,
+	);
+	e2e.expect(
+		"#482 A2 the Pilot's 2 ranks of Piloted Vehicle Defense raise the vehicle's defense on its sheet and against an attack",
+		await rigAttacks(),
+		{ defense: { total: '3', vehicle: '1' }, Spear: vehicleRow('Melee', 3), Pistol: vehicleRow('Ranged', 3) },
+	);
+	await e2e.step("#482 A3 the Pilot's talent effect turned off", () =>
+		gm.evaluate(() =>
+			window.dicePromptE2E.setItemEffectDisabled({ actor: 'Driver', item: 'Steady Hands', effect: 'Steady Hands', disabled: true }),
+		),
+	);
+	e2e.expect("#482 A3 the vehicle's open sheet follows its Pilot's effects", await rigDefense(), { total: '1', vehicle: '1' });
+	await e2e.step("#482 A4 the Pilot's talent effect turned on again", () =>
+		gm.evaluate(() =>
+			window.dicePromptE2E.setItemEffectDisabled({ actor: 'Driver', item: 'Steady Hands', effect: 'Steady Hands', disabled: false }),
+		),
+	);
+	e2e.expect("#482 A4 the vehicle's open sheet shows its Pilot's bonus again", await rigDefense(), { total: '3', vehicle: '1' });
+	await update({ actor: 'Rig' }, { 'system.defense': 3 });
+	e2e.expect("#482 A5 the vehicle's defense raised by its Pilot counts up to 4 (CRB p. 223)", await rigAttacks(), {
+		defense: { total: '4', vehicle: '3' },
+		Spear: vehicleRow('Melee', 4),
+		Pistol: vehicleRow('Ranged', 4),
+	});
 	await target(null);
 	await e2e.step('C end');
 

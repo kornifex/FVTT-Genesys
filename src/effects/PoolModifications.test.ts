@@ -147,6 +147,11 @@ describe('scaledChangeValue', () => {
 		expect(scaledChangeValue(talent(3, 'yes'), { key: 'system.soak', value: '2' })).toBe('6');
 	});
 
+	it("counts Defensive Driving's Piloted Vehicle Defense once per rank (CRB p. 80)", () => {
+		expect(scaledChangeValue(talent(2), { key: 'system.pilotedVehicleDefense', value: '1' })).toBe('2');
+		expect(scaledChangeValue(talent(2), { key: 'system.pilotedVehicleDefense', value: 1 })).toBe(2);
+	});
+
 	it('multiplies a change whose value Foundry v14 stores as a number, keeping it a number', () => {
 		expect(scaledChangeValue(talent(3), { key: 'system.soak', value: 2 })).toBe(6);
 	});
@@ -287,7 +292,7 @@ describe('poolModificationsForCheck', () => {
 	it("collects a targeted vehicle's changes, and adds one Setback per point of its defense at any range (CRB p. 223, 104)", () => {
 		const self = actor('character', []);
 		const vehicle = actor('vehicle', [effect([{ key: 'genesys.pool.check.target.', value: 'D' }], { name: 'Smoke' })], {
-			totalDefense: vehicleDefense(2),
+			totalDefense: vehicleDefense(2, 0),
 		});
 
 		expect(poolModificationsForCheck(self, vehicle, {})).toEqual([
@@ -308,11 +313,11 @@ describe('poolModificationsForCheck', () => {
 	it("counts a targeted vehicle's defense up to 4, and leaves it out at 0 (CRB p. 223, 104)", () => {
 		const self = actor('character', []);
 
-		expect(poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0) }), { attackRange: 'long' })).toEqual(
-			[],
-		);
 		expect(
-			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5) }), { attackRange: 'short' }),
+			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0, 0) }), { attackRange: 'long' }),
+		).toEqual([]);
+		expect(
+			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5, 0) }), { attackRange: 'short' }),
 		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
 	});
 

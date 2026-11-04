@@ -66,8 +66,13 @@ describe('adversaryDefense', () => {
 
 describe('vehicleDefense', () => {
 	it("is the vehicle's defense against melee and ranged attacks alike, up to 4 (CRB p. 223, 104-105)", () => {
-		expect(vehicleDefense(0)).toEqual({ melee: 0, ranged: 0 });
-		expect(vehicleDefense(2)).toEqual({ melee: 2, ranged: 2 });
-		expect(vehicleDefense(5)).toEqual({ melee: 4, ranged: 4 });
+		expect(vehicleDefense(0, 0)).toEqual({ melee: 0, ranged: 0 });
+		expect(vehicleDefense(2, 0)).toEqual({ melee: 2, ranged: 2 });
+		expect(vehicleDefense(5, 0)).toEqual({ melee: 4, ranged: 4 });
+	});
+
+	it("adds its Pilot's Defensive Driving, one per rank, still up to 4 (CRB p. 80, 223)", () => {
+		expect(vehicleDefense(1, 2)).toEqual({ melee: 3, ranged: 3 });
+		expect(vehicleDefense(3, 2)).toEqual({ melee: 4, ranged: 4 });
 	});
 });
