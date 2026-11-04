@@ -17,6 +17,15 @@ describe('partSelection', () => {
 		expect(parts.unmet()).toBeUndefined();
 	});
 
+	it('knows every part of the scenario, and those that ran', () => {
+		const parts = partSelection(['claims']);
+		parts.runs('trackerClass');
+		parts.runs('claims');
+		parts.runs('noGM');
+
+		expect(parts.met()).toEqual({ parts: ['trackerClass', 'claims', 'noGM'], ran: ['claims'] });
+	});
+
 	it('names the parts the scenario has when a part given met none', () => {
 		const parts = partSelection(['claims', 'claim']);
 		parts.runs('trackerClass');
@@ -58,6 +67,23 @@ describe('diffSteps', () => {
 		];
 
 		expect(diffSteps(main, branch)).toEqual([{ name: 'add hero', base: { turn: 1, events: [] }, head: { turn: 2, events: [] } }]);
+	});
+
+	it('compares only the parts both runs ran, and the steps outside parts', () => {
+		const main = [
+			{ name: 'setup', value: 1 },
+			{ name: 'A1 class', value: 1, part: 'trackerClass' },
+			{ name: 'B1 claim', value: 1, part: 'claims' },
+		];
+		const branch = [
+			{ name: 'setup', value: 2 },
+			{ name: 'B1 claim', value: 2, part: 'claims' },
+		];
+
+		expect(diffSteps(main, branch)).toEqual([
+			{ name: 'setup', base: 1, head: 2 },
+			{ name: 'B1 claim', base: 1, head: 2 },
+		]);
 	});
 
 	it('ignores how long a step took', () => {
