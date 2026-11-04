@@ -2706,6 +2706,7 @@ export async function run(e2e: ScenarioContext) {
 				'system.strain.max=🧑 Strain Threshold',
 				'system.defense.melee=🧑 Melee Defense',
 				'system.defense.ranged=🧑 Ranged Defense',
+				'system.pilotedVehicleDefense=🧑 Piloted Vehicle Defense',
 				'system.hullTrauma.max=🚗 Hull Trauma Threshold',
 				'system.systemStrain.max=🚗 System Strain Threshold',
 				'system.passengers.value=🚗 Passengers',
