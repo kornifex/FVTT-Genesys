@@ -2,6 +2,7 @@
 import type { Browser, Page } from 'playwright-core';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
 import { assertionStep, fatalStep, type Step } from './steps.ts';
 
@@ -28,6 +29,11 @@ export type Client = {
 	close(): Promise<void>;
 	/** Makes the next dice rolled in this page land on the given faces, until the end of the step. */
 	fixDice(dice: FixedDie[]): Promise<void>;
+	/**
+	 * Checks the element a selector finds with axe-core, against WCAG 2.2 AA or only the rules given, and returns its
+	 * violations by rule.
+	 */
+	axe(selector: string, rules?: string[]): Promise<AccessibilityFindings>;
 };
 
 /**
@@ -307,6 +313,7 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 			client.connected = true;
 		},
 		fixDice: (dice) => client.page.evaluate((dice) => window.e2e.fixDice(dice), dice),
+		axe: (selector, rules) => checkAccessibility(client.page, selector, rules),
 	};
 	return client;
 }

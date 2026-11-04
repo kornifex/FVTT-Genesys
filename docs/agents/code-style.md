@@ -56,6 +56,7 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 ## Testing a change
 
 - Module logic: unit tests.
+- Vue components: component tests through their props, events and DOM, mounted with `@vue/test-utils` in happy-dom: the test file starts with `// @vitest-environment happy-dom`, before its `@file` line (`src/vue/components/ContextMenu.test.ts`).
 - Behaviour that depends on Foundry (turns, sockets, rendering, sheets): add or extend its domain's scenario in `e2e/scenarios/` with `expect` steps, rather than a one-off scenario out of the repo. Run it with the [e2e harness](../../e2e/README.md) on each Foundry version `main` supports (ADR 0003), compared against `origin/main`, and put a before/after table in the PR's Evidence.
 - Every behaviour change goes into the release's test checklist issue (labelled `ready-for-human`; #411 for 0.6.0): intended changes, divergences, and what to test. An item a test proves arrives ticked, with a link to it: `src/dice/Check.test.ts › "…"` or `e2e/scenarios/combat.ts › step "…"`. Only an item no test can prove (a look, a feel, an engine-specific bug) arrives unticked.
 - The checklist's body is long: edit it with `pnpm checklist`, which never prints it. `pnpm checklist <issue> add <section.md>` inserts a section before the trailing `## #37 …` carry-over section; `pnpm checklist <issue> tick "<text>" --note "<test link>"` ticks the one unticked item containing the text, and fails when none or several do; `pnpm checklist <issue> show "<heading>"` prints one section (`"#470"` for `## #470 …`).
