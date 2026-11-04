@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
-import { assertionStep, fatalStep, partSelection, type Step } from './steps.ts';
+import { assertionStep, fatalStep, partSelection, type Step, type StepLog } from './steps.ts';
 
 /**
  * A browser joined to the world as one user.
@@ -119,7 +119,8 @@ const QUIET_MS = 300;
 const SETTLE_TIMEOUT_MS = 15_000;
 
 /**
- * Runs a scenario against a launched world and returns its step log; an error ends the log with a `FATAL` step.
+ * Runs a scenario against a launched world and returns its step log, with the parts it met and ran; an error ends the
+ * log with a `FATAL` step.
  */
 export async function runScenario(
 	scenario: ScenarioModule['run'],
@@ -143,7 +144,7 @@ export async function runScenario(
 		parts?: readonly string[];
 		onStep: (step: Step) => void;
 	},
-): Promise<Step[]> {
+): Promise<StepLog> {
 	const steps: Step[] = [];
 	const selection = partSelection(parts);
 	let currentPart: string | undefined;
@@ -274,7 +275,7 @@ export async function runScenario(
 	} finally {
 		await Promise.all(connected().map((client) => client.close()));
 	}
-	return steps;
+	return { ...selection.met(), steps };
 }
 
 /**

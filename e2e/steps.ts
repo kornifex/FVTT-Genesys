@@ -30,11 +30,16 @@ type StepDiff = {
 };
 
 /**
- * Compares two runs of a scenario step by step, by name.
+ * Compares two runs of a scenario step by step, by name: the steps outside parts, and those of the parts both ran, since
+ * a run with `--part` or a cached baseline may hold parts the other lacks.
  */
 export function diffSteps(base: Step[], head: Step[]): StepDiff[] {
-	const baseValues = new Map(base.map((step) => [step.name, step.value]));
-	const headValues = new Map(head.map((step) => [step.name, step.value]));
+	const partsOf = (steps: Step[]) => new Set(steps.map((step) => step.part));
+	const baseParts = partsOf(base);
+	const headParts = partsOf(head);
+	const shared = (step: Step) => step.part === undefined || (baseParts.has(step.part) && headParts.has(step.part));
+	const baseValues = new Map(base.filter(shared).map((step) => [step.name, step.value]));
+	const headValues = new Map(head.filter(shared).map((step) => [step.name, step.value]));
 	const names = new Set([...baseValues.keys(), ...headValues.keys()]);
 
 	return [...names]
@@ -70,8 +75,22 @@ export function partSelection(only?: readonly string[]) {
 			if (!unknown.length) return undefined;
 			return `No part named ${unknown.join(', ')}: the scenario has ${met.length ? met.join(', ') : 'no parts'}.`;
 		},
+		/** Every part met so far, and those of them that ran. */
+		met(): PartsMet {
+			return { parts: [...met], ran: met.filter((name) => !only || only.includes(name)) };
+		},
 	};
 }
+
+/**
+ * The parts a run of a scenario met, all of them once it is over, and those of them that ran.
+ */
+export type PartsMet = { parts: string[]; ran: string[] };
+
+/**
+ * A run's step log, with the parts it met and ran.
+ */
+export type StepLog = PartsMet & { steps: Step[] };
 
 /**
  * The step that ends a scenario stopped by an error.
@@ -88,10 +107,10 @@ export function runSummary(run: string, scenarios: { scenario: string; steps: St
 	const steps = scenarios.flatMap(({ steps }) => steps);
 	const assertions = steps.filter(isAssertion).length;
 	const failed = steps.filter((step) => step.failed && !isFatal(step)).length;
-	const stopped = scenarios.filter(({ steps }) => steps.some(isFatal)).length;
+	const stops = scenarios.filter(({ steps }) => stopped(steps)).length;
 
 	const counts = `${failed} failed of ${assertions} ${assertions === 1 ? 'assertion' : 'assertions'}`;
-	const lines = [`${run}: ${stopped ? `${stopped} ${stopped === 1 ? 'scenario' : 'scenarios'} stopped, ` : ''}${counts}`];
+	const lines = [`${run}: ${stops ? `${stops} ${stops === 1 ? 'scenario' : 'scenarios'} stopped, ` : ''}${counts}`];
 	for (const { scenario, steps } of scenarios) {
 		lines.push(`  ${scenario} ${seconds(steps)}`);
 		if (!partTimes) continue;
@@ -158,6 +177,13 @@ export function failsRun(steps: Step[], { compared }: { compared: boolean }) {
 }
 
 const FATAL = 'FATAL';
+
+/**
+ * Whether an error stopped the scenario before its end.
+ */
+export function stopped(steps: Step[]) {
+	return steps.some(isFatal);
+}
 
 function isFatal(step: Step) {
 	return step.name === FATAL;
