@@ -38,15 +38,32 @@ export function applyMessageMode<T extends ChatMessage.CreateData>(chatData: T, 
 }
 
 /**
+ * The message mode of each roll mode but `roll`, which stands for the chat's mode.
+ */
+const MESSAGE_MODES_OF_ROLL_MODES: Record<string, MessageMode> = {
+	publicroll: 'public',
+	gmroll: 'gm',
+	blindroll: 'blind',
+	selfroll: 'self',
+};
+
+/**
  * The mode a caller of `Combat#rollInitiative` asks for: v13 in its message options, v14 as an option of its own.
  */
-export function requestedInitiativeMode(options: { messageMode?: string; messageOptions?: object }): MessageMode | undefined {
-	// v13: v14 deprecated the `rollMode` of the message options, which it maps to its message mode.
+export function requestedInitiativeMode({
+	messageMode,
+	messageOptions = {},
+}: {
+	messageMode?: MessageMode;
+	messageOptions?: object;
+}): MessageMode | undefined {
+	const rollMode = 'rollMode' in messageOptions ? (messageOptions.rollMode as MessageMode) : undefined;
+	// v13: v14 deprecated the `rollMode` of the message options, and maps it to its message mode until v16, as here for
+	// a module that still gives one.
 	if (isFoundryV13()) {
-		const { messageOptions = {} } = options;
-		return 'rollMode' in messageOptions ? (messageOptions.rollMode as MessageMode) : undefined;
+		return rollMode;
 	}
-	return options.messageMode;
+	return messageMode ?? (rollMode ? MESSAGE_MODES_OF_ROLL_MODES[rollMode] : undefined);
 }
 
 /**

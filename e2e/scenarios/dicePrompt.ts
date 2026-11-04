@@ -1941,8 +1941,8 @@ export async function run(e2e: ScenarioContext) {
 		{ gm: { whispered: true, blind: false }, player: false },
 	);
 
-	// §#414: a check's message and an initiative's take the mode the GM picks in the chat, which v13 stores as its roll
-	// mode (`blindroll`), v14 as its message mode (`blind`).
+	// §#414: a check's message and an initiative's take the mode the GM picks in the chat.
+	// v13: the chat's mode is the roll mode (`blindroll`); v14 replaced it with the message mode (`blind`).
 	const chatModeKey = await gm.evaluate(() => (game.release.generation < 14 ? 'rollMode' : 'messageMode'));
 	const chatModeBefore = await gm.evaluate((key) => game.settings.get('core', key), chatModeKey);
 	const setChatMode = (value: unknown) =>

@@ -367,7 +367,7 @@ export class GenesysCombat extends Combat {
 	/**
 	 * Roll the initiative of Initiative Slots of the current round, for the combatant whose initiative gives each one.
 	 */
-	async rollSlotsInitiative(slotIds: string[], { prompt = false, updateTurn = true, ...options }: RollSlotsOptions = {}) {
+	async rollSlotsInitiative(slotIds: string[], { prompt = false, updateTurn = true, ...modeOptions }: RollSlotsOptions = {}) {
 		let slots = slotsToRoll(this.slots, slotIds).filter((slot) => this.combatants.get(slot.originId)?.isOwner);
 
 		// Only a GM may write an extra slot's initiative: a player's roll waits for one.
@@ -377,7 +377,7 @@ export class GenesysCombat extends Combat {
 		}
 
 		const currentSlotId = this.currentSlotId;
-		const requestedMode = requestedInitiativeMode(options);
+		const requestedMode = requestedInitiativeMode(modeOptions);
 		const modes = initiativeModes();
 
 		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];

@@ -26,6 +26,18 @@ export async function itemFromDrop<SubType extends Item.SubType = Item.SubType>(
 }
 
 /**
+ * Whether a drop's link names a document that still exists, as far as Foundry tells without waiting.
+ */
+function linksExistingDocument(uuid: string) {
+	try {
+		return fromUuidSync(uuid) !== null;
+	} catch {
+		// Foundry only finds a document embedded in a compendium's by waiting for it: it is left to resolve it.
+		return true;
+	}
+}
+
+/**
  * Basic functionality shared by all item sheets, which render a Vue component.
  */
 export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> extends VueDocumentSheet(
@@ -94,16 +106,30 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 	}
 
 	/**
-	 * Receive a document dropped on the sheet: an item, and nothing else, an Active Effect included, as on v13.
+	 * Handle a drop on v14 by ItemSheetV2's own `_onDrop`, which lets the `dropItemSheetData` hook refuse it, unless the
+	 * drop links a document deleted since the link was made: Foundry would throw as it resolves it (#271).
+	 */
+	protected override async _onDrop(event: DragEvent) {
+		// A drop's data reads only while its event dispatches, so the link is checked before anything is awaited.
+		const { uuid } = dragData(event.dataTransfer);
+		if (uuid && !linksExistingDocument(uuid)) {
+			return;
+		}
+		return super._onDrop(event);
+	}
+
+	/**
+	 * Receive a document dropped on the sheet. Only an item is received: an Active Effect is not, as on v13.
 	 */
 	protected override async _onDropDocument<ConcreteDocument extends foundry.applications.sheets.ItemSheetV2.DroppableDocument>(
 		event: DragEvent,
 		document: ConcreteDocument,
 	): Promise<ConcreteDocument | null> {
-		if (document instanceof Item) {
-			await this.receiveItem(document as GenesysItem, event);
+		if (!(document instanceof Item)) {
+			return null;
 		}
-		return null;
+		await this.receiveItem(document as GenesysItem, event);
+		return document;
 	}
 
 	/**
