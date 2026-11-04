@@ -7,7 +7,7 @@ import { Defense } from '@/data/Actors';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
 import { Crew, hasActor, Passenger, pilotOf, removeActor, Role } from '@/actor/data/CrewRoster';
-import { isActingGm } from '@/socket';
+import { isActingGm } from '@/queries';
 import { CombatPool, combatPoolField, ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
 // A vehicle's cargo all counts, whatever its Equipment State.

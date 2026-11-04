@@ -9,14 +9,16 @@ import * as log from '@/log';
 import { expireEffectsOfCombat } from '@/effects/GenesysEffect.v13';
 import type { CombatClock } from '@/effects/EffectExpiry.v13';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
-import { emit as socketEmit, handle as handleSocket, isActingGm, SocketOperation } from '@/socket';
+import { askActingGm, handleQuery, isActingGm, QueryName, refuse } from '@/queries';
 import { isFoundryV13 } from '@/foundryGeneration';
 import {
+	claimQueryRefusal,
 	claimRefusal,
 	decodeInitiative,
 	encodeInitiative,
 	ExtraSlotInitiative,
 	extraSlotResets,
+	extraSlotWriteRefusal,
 	InitiativeSlot,
 	initiativeWrites,
 	isExtraSlot,
@@ -61,7 +63,7 @@ export type RollSlotsOptions = Omit<Combat.InitiativeOptions, 'formula'> & {
  */
 export class GenesysCombat extends Combat {
 	/**
-	 * The id the socket operations name the combat by: the world stores the combats they run on.
+	 * The id the queries name the combat by: the world stores the combats they run on.
 	 */
 	get #storedId() {
 		return this.id!;
@@ -254,12 +256,11 @@ export class GenesysCombat extends Combat {
 	 */
 	async claimSlot(round: number, slotId: string, combatantId: string) {
 		if (!game.user.isGM) {
-			socketEmit(SocketOperation.ClaimInitiativeSlot, {
-				combatId: this.#storedId,
-				combatantId,
-				round,
-				slotId,
-			});
+			await askActingGm(
+				QueryName.ClaimInitiativeSlot,
+				{ combatId: this.#storedId, combatantId, round, slotId },
+				{ name: this.combatants.get(combatantId)?.name ?? '' },
+			);
 			return;
 		}
 
@@ -269,7 +270,35 @@ export class GenesysCombat extends Combat {
 			return;
 		}
 
+		await this.#writeClaim(round, slotId, combatantId);
+	}
+
+	async #writeClaim(round: number, slotId: string, combatantId: string) {
 		await this.update({ [`flags.genesys.${FLAG_CLAIMS}.${round}.${slotId}`]: combatantId });
+	}
+
+	/**
+	 * Writes a player's Claim, as the Acting GM, or refuses it: the player must own the claimant, and the Claim be possible
+	 * still.
+	 */
+	async claimSlotFor(querier: User, round: number, slotId: string, combatantId: string) {
+		const combatant = this.combatants.get(combatantId);
+		if (!combatant) {
+			throw new Error(`A Claim was asked for an unknown combatant ${combatantId}`);
+		}
+
+		const refusal = claimQueryRefusal(
+			this.slotsForRound(round),
+			this.claimsForRound(round),
+			slotId,
+			{ id: combatant.id, side: combatant.initiativeSide },
+			combatant.testUserPermission(querier, 'OWNER'),
+		);
+		if (refusal) {
+			refuse(refusal);
+		}
+
+		await this.#writeClaim(round, slotId, combatantId);
 	}
 
 	/**
@@ -303,11 +332,25 @@ export class GenesysCombat extends Combat {
 	}
 
 	/**
-	 * Write the initiative of extra slots, then refresh the turns on every client. Only a GM may write them.
+	 * Write the initiative of extra slots. Only a GM may write them.
 	 */
 	async writeExtraSlotsInitiative(writes: ExtraSlotInitiative[], keepTurnOn?: string) {
 		await this.updateExtraSlots(withExtraSlotInitiatives(this.storedExtraSlots, writes), keepTurnOn);
-		this.refreshTurns();
+	}
+
+	/**
+	 * Writes a player's Extra Slot initiatives, as the Acting GM, or refuses them: the player must own the combatant of
+	 * each Extra Slot.
+	 */
+	async writeExtraSlotsInitiativeFor(querier: User, writes: ExtraSlotInitiative[], updateTurn: boolean) {
+		const refusal = extraSlotWriteRefusal(this.storedExtraSlots, writes, (combatantId) =>
+			Boolean(this.combatants.get(combatantId)?.testUserPermission(querier, 'OWNER')),
+		);
+		if (refusal) {
+			refuse(refusal);
+		}
+
+		await this.writeExtraSlotsInitiative(writes, updateTurn ? this.currentSlotId : undefined);
 	}
 
 	/**
@@ -330,22 +373,6 @@ export class GenesysCombat extends Combat {
 		}
 
 		return turnOfSlotAfter(this.turnOrderState, this.round, slotId, changes);
-	}
-
-	/**
-	 * Order the turns again and render the tracker on every client, for changes that Foundry doesn't order them for.
-	 */
-	refreshTurns() {
-		this.refreshLocalTurns();
-		socketEmit(SocketOperation.UpdateCombatTracker, { combatId: this.#storedId });
-	}
-
-	/**
-	 * Order the turns again and render the tracker, on this client only.
-	 */
-	refreshLocalTurns() {
-		this.setupTurns();
-		this.debounceTrackerRender();
 	}
 
 	/**
@@ -448,12 +475,8 @@ export class GenesysCombat extends Combat {
 			if (game.user.isGM) {
 				await this.writeExtraSlotsInitiative(writes.extraSlots, keepTurnOn);
 			} else {
-				// The GM writes them and keeps the turn, once the combatants' initiative is written.
-				socketEmit(SocketOperation.UpdateInitiativeForExtraSlot, {
-					combatId: this.#storedId,
-					updates: writes.extraSlots,
-					updateTurn,
-				});
+				// The Acting GM writes them and keeps the turn, once the combatants' initiative is written.
+				await askActingGm(QueryName.WriteExtraSlotInitiative, { combatId: this.#storedId, updates: writes.extraSlots, updateTurn });
 			}
 		}
 
@@ -471,7 +494,6 @@ export class GenesysCombat extends Combat {
 		}
 
 		await this.addExtraSlot(combatant.id, this.round);
-		this.refreshTurns();
 	}
 
 	override async resetAll(options?: Combat.ResetAllOptions) {
@@ -569,40 +591,25 @@ export class GenesysCombat extends Combat {
 			combatant.turnNumber = numbers.get(combatant.id) ?? null;
 		}
 	}
-
-	/**
-	 * If this is the currently viewed encounter, re-render the CombatTracker application.
-	 * We debounce this call to allow for updates to complete.
-	 */
-	debounceTrackerRender = foundry.utils.debounce(() => {
-		if (ui.combat.viewed === this) {
-			void ui.combat.render();
-		}
-	}, 50);
 }
 
 /**
- * Handle the combat's socket operations: the Acting GM writes the players' Claims and Extra Slot initiatives.
+ * Answer the players' queries: the Acting GM writes their Claims and Extra Slot initiatives.
  */
 export function register() {
-	const combatOf = (operation: SocketOperation, combatId: string) => {
+	const combatOf = (combatId: string) => {
 		const combat = game.combats.get(combatId);
 		if (!combat) {
-			log.error(`Socket received ${operation} payload with invalid combat ID ${combatId}`);
+			throw new Error(`A query was received for an unknown combat ${combatId}`);
 		}
 		return combat;
 	};
 
-	handleSocket(SocketOperation.ClaimInitiativeSlot, async ({ combatId, round, slotId, combatantId }) => {
-		await combatOf(SocketOperation.ClaimInitiativeSlot, combatId)?.claimSlot(round, slotId, combatantId);
+	handleQuery(QueryName.ClaimInitiativeSlot, async ({ combatId, round, slotId, combatantId }, querier) => {
+		await combatOf(combatId).claimSlotFor(querier, round, slotId, combatantId);
 	});
 
-	handleSocket(SocketOperation.UpdateCombatTracker, ({ combatId }) => {
-		combatOf(SocketOperation.UpdateCombatTracker, combatId)?.refreshLocalTurns();
-	});
-
-	handleSocket(SocketOperation.UpdateInitiativeForExtraSlot, async ({ combatId, updates, updateTurn }) => {
-		const combat = combatOf(SocketOperation.UpdateInitiativeForExtraSlot, combatId);
-		await combat?.writeExtraSlotsInitiative(updates, updateTurn ? combat.currentSlotId : undefined);
+	handleQuery(QueryName.WriteExtraSlotInitiative, async ({ combatId, updates, updateTurn }, querier) => {
+		await combatOf(combatId).writeExtraSlotsInitiativeFor(querier, updates, updateTurn);
 	});
 }

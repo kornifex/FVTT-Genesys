@@ -315,6 +315,47 @@ export function claimRefusal(
 }
 
 /**
+ * Why the Acting GM refuses a player's Claim, or undefined if it writes it. The player must own the claimant, and the
+ * Claim be possible still: another may have reached the Acting GM first.
+ */
+export function claimQueryRefusal(
+	slots: InitiativeSlot[],
+	claims: RoundClaims,
+	targetSlotId: string,
+	claimant: { id: string; side: InitiativeSide },
+	querierOwnsClaimant: boolean,
+) {
+	if (!querierOwnsClaimant) {
+		return 'Genesys.Notifications.NotOwnerOfCombatant';
+	}
+
+	return claimRefusal(slots, claims, targetSlotId, claimant);
+}
+
+/**
+ * Why the Acting GM refuses a player's write of Extra Slot initiatives, or undefined if it writes them. The player must
+ * own the combatant of each Extra Slot.
+ */
+export function extraSlotWriteRefusal(
+	storedExtraSlots: StoredExtraSlot[],
+	writes: ExtraSlotInitiative[],
+	querierOwns: (combatantId: string) => boolean,
+) {
+	for (const { index } of writes) {
+		const extraSlot = storedExtraSlots[index] as StoredExtraSlot | undefined;
+		if (!extraSlot) {
+			return 'Genesys.Notifications.GenericError';
+		}
+
+		if (!querierOwns(extraSlot.activationSource)) {
+			return 'Genesys.Notifications.NotOwnerOfCombatant';
+		}
+	}
+
+	return undefined;
+}
+
+/**
  * What a user sees of an Initiative Slot and may do with it.
  */
 export function slotView(slot: InitiativeSlot, combatStarted: boolean, viewer: SlotViewer) {

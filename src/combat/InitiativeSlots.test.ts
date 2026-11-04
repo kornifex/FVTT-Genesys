@@ -5,11 +5,13 @@
 import { describe, expect, it } from 'vitest';
 import {
 	buildSlots,
+	claimQueryRefusal,
 	claimRefusal,
 	decodeInitiative,
 	encodeInitiative,
 	ExtraSlot,
 	extraSlotResets,
+	extraSlotWriteRefusal,
 	extraSlotsForRound,
 	InitiativeSide,
 	InitiativeSlot,
@@ -188,6 +190,52 @@ describe('claimRefusal', () => {
 		expect(claimRefusal(withNemesis, { 'boss:0': 'boss', 'boss:-1': 'boss' }, 'goons:-1', nemesis)).toBe(
 			'Genesys.Notifications.CombatantHasNoActivationLeft',
 		);
+	});
+});
+
+describe('claimQueryRefusal', () => {
+	const slots = buildSlots([combatant('hero', 3), combatant('rogue', 2)], []);
+
+	it('lets a player who owns the claimant ask the Acting GM for the Claim', () => {
+		expect(claimQueryRefusal(slots, {}, 'rogue:-1', { id: 'hero', side: 'pc' }, true)).toBeUndefined();
+	});
+
+	it("refuses a player who doesn't own the claimant", () => {
+		expect(claimQueryRefusal(slots, {}, 'rogue:-1', { id: 'hero', side: 'pc' }, false)).toBe(
+			'Genesys.Notifications.NotOwnerOfCombatant',
+		);
+	});
+
+	it('refuses a Claim that another reaching the Acting GM first made impossible', () => {
+		expect(claimQueryRefusal(slots, { 'rogue:-1': 'rogue' }, 'rogue:-1', { id: 'hero', side: 'pc' }, true)).toBe(
+			'Genesys.Notifications.SlotAlreadyClaimed',
+		);
+	});
+});
+
+describe('extraSlotWriteRefusal', () => {
+	const stored = [storedSlot('boss', 1), storedSlot('hero', 1)];
+	const ownsHero = (combatantId: string) => combatantId === 'hero';
+
+	it("lets a player write the initiative of their combatants' Extra Slots", () => {
+		expect(extraSlotWriteRefusal(stored, [{ index: 1, initiative: 2 }], ownsHero)).toBeUndefined();
+	});
+
+	it("refuses a write to an Extra Slot of a combatant the player doesn't own", () => {
+		expect(
+			extraSlotWriteRefusal(
+				stored,
+				[
+					{ index: 1, initiative: 2 },
+					{ index: 0, initiative: 3 },
+				],
+				ownsHero,
+			),
+		).toBe('Genesys.Notifications.NotOwnerOfCombatant');
+	});
+
+	it('refuses a write to an Extra Slot the combat no longer stores', () => {
+		expect(extraSlotWriteRefusal(stored, [{ index: 2, initiative: 2 }], ownsHero)).toBe('Genesys.Notifications.GenericError');
 	});
 });
 

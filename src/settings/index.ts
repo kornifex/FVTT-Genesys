@@ -1,3 +1,4 @@
+import { StoryPointTracker } from '@/app/StoryPointTracker';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { register as registerStoryPoints } from '@/settings/storyPoints';
 import { type AnySetting, configValue, storedOrDefault, SETTINGS, settingEntries, type SettingKey } from '@/settings/table';
@@ -75,7 +76,7 @@ function registerWikiLinks() {
  */
 export function register() {
 	registerTable();
-	registerStoryPoints(NAMESPACE);
+	registerStoryPoints(NAMESPACE, () => StoryPointTracker.forceRender());
 	registerWikiLinks();
 
 	registerAlpha(NAMESPACE);
