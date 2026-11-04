@@ -1,4 +1,5 @@
 import type { GenesysActor } from '@/actor/GenesysActor';
+import { unlinkedTokenActors } from '@/actor/tokenActors';
 import { NAMESPACE } from '@/settings';
 import { isNewWorld, KEY_MIGRATION_VERSION } from '@/settings/alpha';
 import {
@@ -44,10 +45,7 @@ function walkedActor(actor: GenesysActor): WalkedActor {
  */
 const foundryActorWorld: ActorWorld = {
 	worldActors: () => game.actors.map(walkedActor),
-	tokenActors: () =>
-		game.scenes.contents.flatMap((scene) =>
-			scene.tokens.contents.flatMap((token) => (!token.actorLink && token.actor ? [walkedActor(token.actor)] : [])),
-		),
+	tokenActors: () => unlinkedTokenActors().map(walkedActor),
 	actorPacks: () =>
 		game.packs
 			.filter((pack) => isWorldActorPack(pack.metadata))

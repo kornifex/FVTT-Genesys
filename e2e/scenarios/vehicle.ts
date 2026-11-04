@@ -73,6 +73,8 @@ type VehicleHelpers = {
 	/** The vehicles updated with a change to their Crew since the last call. */
 	takeCrewUpdates(): string[];
 	skillsTab(vehicle: string): Promise<SkillsTab>;
+	/** The Skills tab of the n-th vehicle token of a scene from the left, from 1, opening its sheet if needed. */
+	tokenSkillsTab(args: { scene: string; n: number }): Promise<SkillsTab>;
 	groupBy(args: { vehicle: string; mode: 'member' | 'skill' }): Promise<void>;
 	prompts(): Prompts;
 	closePrompts(): Promise<void>;
@@ -159,11 +161,44 @@ function installVehicleHelpers() {
 			: '';
 	type SceneToken = {
 		x: number;
-		actor: { system: { passengers: { list: { uuid: string; sort: number }[] } }; update(data: object): Promise<unknown> };
+		actor: {
+			system: { passengers: { list: { uuid: string; sort: number }[] } };
+			sheet: unknown;
+			update(data: object): Promise<unknown>;
+		};
 		delete(): Promise<unknown>;
 	};
 	const tokensOf = (scene: string): SceneToken[] =>
 		[...game.scenes.getName(`E2E ${scene}`).tokens].sort((left: SceneToken, right: SceneToken) => left.x - right.x);
+	const nthToken = ({ scene, n }: { scene: string; n: number }) => tokensOf(scene)[n - 1];
+	const readSkillsTab = (root: Element): SkillsTab => {
+		const membersContainer = root.querySelector('.tab-skills .members-container');
+		if (membersContainer) {
+			return {
+				mode: 'member',
+				members: [...membersContainer.querySelectorAll(':scope > section')].map((section) => ({
+					name: unprefixed(text(section.querySelector('.member-name'))),
+					role: text(section.querySelector('.member-roles')),
+					skills: [...section.querySelectorAll('.member-skill')].map(
+						(row) =>
+							`${text(row.querySelector('.skill-name'))} ${text(row.querySelector('.skill-rank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
+					),
+				})),
+			};
+		}
+		const skillsContainer = root.querySelector('.tab-skills .skills-container')!;
+		return {
+			mode: 'skill',
+			header: [...skillsContainer.querySelectorAll('.skill-content-header > div')].map(text).slice(0, 3),
+			skills: [...skillsContainer.querySelectorAll(':scope > section')].map((section) => ({
+				name: text(section.querySelector('.skill-details-name')),
+				members: [...section.querySelectorAll('.skill-content-details')].map(
+					(row) =>
+						`${unprefixed(text(row.querySelector('.skill-content-details-charName')))} ${text(row.querySelector(':scope > div'))} ${text(row.querySelector('.skill-content-details-skillRank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
+				),
+			})),
+		};
+	};
 
 	const takeNotifications = window.e2e.recordNotifications();
 	const crewUpdates: string[] = [];
@@ -330,33 +365,11 @@ function installVehicleHelpers() {
 		},
 
 		async skillsTab(vehicle) {
-			const root = await sheet(vehicle);
-			const membersContainer = root.querySelector('.tab-skills .members-container');
-			if (membersContainer) {
-				return {
-					mode: 'member',
-					members: [...membersContainer.querySelectorAll(':scope > section')].map((section) => ({
-						name: unprefixed(text(section.querySelector('.member-name'))),
-						role: text(section.querySelector('.member-roles')),
-						skills: [...section.querySelectorAll('.member-skill')].map(
-							(row) =>
-								`${text(row.querySelector('.skill-name'))} ${text(row.querySelector('.skill-rank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
-						),
-					})),
-				};
-			}
-			const skillsContainer = root.querySelector('.tab-skills .skills-container')!;
-			return {
-				mode: 'skill',
-				header: [...skillsContainer.querySelectorAll('.skill-content-header > div')].map(text).slice(0, 3),
-				skills: [...skillsContainer.querySelectorAll(':scope > section')].map((section) => ({
-					name: text(section.querySelector('.skill-details-name')),
-					members: [...section.querySelectorAll('.skill-content-details')].map(
-						(row) =>
-							`${unprefixed(text(row.querySelector('.skill-content-details-charName')))} ${text(row.querySelector(':scope > div'))} ${text(row.querySelector('.skill-content-details-skillRank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
-					),
-				})),
-			};
+			return readSkillsTab(await sheet(vehicle));
+		},
+
+		async tokenSkillsTab(token) {
+			return readSkillsTab(await render(nthToken(token).actor.sheet));
 		},
 
 		async groupBy({ vehicle, mode }) {
@@ -503,7 +516,7 @@ function installVehicleHelpers() {
 		},
 
 		async deleteToken({ scene, n }) {
-			await tokensOf(scene)[n - 1].delete();
+			await nthToken({ scene, n }).delete();
 		},
 
 		async clickChevron({ actor: name, row }) {
@@ -563,6 +576,7 @@ export async function run(e2e: ScenarioContext) {
 	await deletingCrew(e2e);
 	await deletingCrewOfGoneTokens(e2e);
 	await skillsTabFollowsCrew(e2e);
+	await tokenSkillsTabFollowsCrew(e2e);
 	await crewRolls(e2e);
 	await vehicleE2E('closePrompts');
 	await expandedDescriptions(e2e);
@@ -1252,6 +1266,36 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 			{ name: 'E2E Astrogation', skills: ['Ivy Crew 2 PP'] },
 			{ name: 'Piloting', skills: ['Hal Crew 2 PPA', 'Ivy Crew 2 PPA'] },
 		],
+	);
+}
+
+/**
+ * §#413: the open sheet of an unlinked vehicle token, whose actor lives in the token only, follows its crew's skills.
+ */
+async function tokenSkillsTabFollowsCrew(e2e: ScenarioContext) {
+	const vehicleE2E = helpersOf(e2e.gm);
+	await vehicleE2E('createActors', [
+		{ name: 'Tug Pilot', type: 'rival', linked: true, system: characteristics(), items: [skill('Piloting', 'agility', 1)] },
+		{ name: 'Tug', type: 'vehicle', roles: [{ name: 'Crew', skills: ['Piloting'], members: ['Tug Pilot'] }] },
+	]);
+	await vehicleE2E('placeTokens', { scene: 'Dock C', vehicle: 'Tug', passengers: [[]] });
+	const tab = (rank: string) => ({
+		mode: 'member',
+		members: [{ name: 'Tug Pilot', role: 'Role: Crew', skills: [`Piloting (Ag) ${rank}`] }],
+	});
+
+	e2e.expect(
+		'#413 A0 the sheet of a token of Tug shows its pilot',
+		await vehicleE2E('tokenSkillsTab', { scene: 'Dock C', n: 1 }),
+		tab('1 PA'),
+	);
+	await e2e.step("#413 A1 the pilot's Piloting rank changed while the token's sheet is open", () =>
+		vehicleE2E('updateItem', { actor: 'Tug Pilot', item: 'Piloting', data: { 'system.rank': 2 } }),
+	);
+	e2e.expect(
+		"#413 A1 the open sheet of an unlinked vehicle token follows its crew member's rank",
+		await vehicleE2E('tokenSkillsTab', { scene: 'Dock C', n: 1 }),
+		tab('2 PP'),
 	);
 }
 
