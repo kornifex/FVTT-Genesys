@@ -2594,6 +2594,28 @@ export async function run(e2e: ScenarioContext) {
 		await gm.join();
 		await gm.evaluate(installSheetsHelpers);
 	});
+
+	// §#412: a spend that reaches the Acting GM once the pool is empty is refused, and the player is told why. The player's
+	// client sends the query as is, as one that hasn't seen the pool emptied yet.
+	await gm.evaluate(() => window.sheetsE2E.setStoryPoints({ gm: 3, player: 0 }));
+	let emptyPoolAnswer = '';
+	await e2e.step('#412 player asks the Acting GM to spend a Story Point from the empty player pool', async () => {
+		emptyPoolAnswer = await player.evaluate(() =>
+			game.users.activeGM.query('genesys.spendStoryPoint', { userId: game.user.id }, { timeout: 10_000 }).then(
+				() => 'written',
+				(error: Error) => error.message,
+			),
+		);
+	});
+	e2e.expect(
+		"#412 B1 the Acting GM refuses a player's spend from an empty pool, leaving the pools unchanged, with no message",
+		{
+			answer: emptyPoolAnswer,
+			pools: await player.evaluate(() => window.sheetsE2E.storyPoints()),
+			...(await player.evaluate(() => window.sheetsE2E.storyPointLog())),
+		},
+		{ answer: 'Genesys.Notifications.NotEnoughStoryPoints', pools: { gm: 3, player: 0 }, writes: [gm.user], messages: [] },
+	);
 	recordCompatibilityWarnings(gm);
 	await storyPointSpends(e2e, player);
 

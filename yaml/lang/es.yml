@@ -250,6 +250,9 @@ Genesys:
     NoGMForExtraSlot: Un DJ debe estar conectado para tirar la iniciativa de un puesto adicional.
     NoGMForStoryPoint: Un DJ debe estar conectado para gastar un punto de Historia.
     CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
+    NoGMForClaim: Un DJ debe estar conectado para reclamar un puesto de iniciativa.
+    NotOwnerOfCombatant: No eres propietario de este combatiente.
+    ActingGMTimedOut: El DJ no respondió a tiempo. Comprueba si la acción se realizó antes de volver a intentarlo.
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.
     TooManySuperCharacteristics: Un actor no puede tener más de dos supercaracterísticas. Desmarca una primero.

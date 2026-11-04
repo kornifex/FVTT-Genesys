@@ -59,12 +59,9 @@ type CombatHelpers = {
 	claimWriters: string[];
 	/** The turns, by combatant, as this client ordered them as each write of the Extra Slots reached it, since the last {@link reset}. */
 	turnsAtUpdate: string[][];
-	/** The socket refreshes of the turn order this client dropped since the last {@link reset}. */
-	droppedRefreshes: number;
+	/** Puts back the query handlers a step replaced. */
+	restoreQueries?: () => void;
 	reset(): void;
-	/** Drops the socket refreshes of the turn order this client receives, until {@link keepTrackerRefreshes}. */
-	dropTrackerRefreshes(): void;
-	keepTrackerRefreshes(): void;
 	rows(): TrackerRow[];
 	stored(): StoredCombat;
 	/** Controls a combatant's token, alone. */
@@ -178,17 +175,6 @@ function installCombatHelpers() {
 	const click = async (entry: ContextMenuEntry, target: HTMLElement) => {
 		await (entry.onClick ? entry.onClick(new PointerEvent('click'), target) : entry.callback?.(target));
 	};
-	// The system's socket, and its `updateCombatTracker` operation: what every client receives after a write of the Extra
-	// Slots, to order the turns again.
-	const SOCKET = 'system.genesys';
-	let systemListeners: ((...args: unknown[]) => void)[] | undefined;
-	const dropRefreshes = (payload: { operation?: string }, ...rest: unknown[]) => {
-		if (payload?.operation === 'updateCombatTracker') {
-			helpers.droppedRefreshes++;
-			return;
-		}
-		for (const listener of systemListeners ?? []) listener(payload, ...rest);
-	};
 	const answered = new Set<unknown>();
 	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
 
@@ -198,7 +184,6 @@ function installCombatHelpers() {
 		writes: [],
 		claimWriters: [],
 		turnsAtUpdate: [],
-		droppedRefreshes: 0,
 
 		reset() {
 			helpers.messages.length = 0;
@@ -206,21 +191,6 @@ function installCombatHelpers() {
 			helpers.writes.length = 0;
 			helpers.claimWriters.length = 0;
 			helpers.turnsAtUpdate.length = 0;
-			helpers.droppedRefreshes = 0;
-		},
-
-		dropTrackerRefreshes() {
-			if (systemListeners) return;
-			systemListeners = game.socket.listeners(SOCKET);
-			game.socket.off(SOCKET);
-			game.socket.on(SOCKET, dropRefreshes);
-		},
-
-		keepTrackerRefreshes() {
-			if (!systemListeners) return;
-			game.socket.off(SOCKET, dropRefreshes);
-			for (const listener of systemListeners) game.socket.on(SOCKET, listener);
-			systemListeners = undefined;
 		},
 
 		rows() {
@@ -531,6 +501,7 @@ export async function run(e2e: ScenarioContext) {
 	await slotRolls();
 	await cancelledPrompt();
 	await claimWithAssistantGM();
+	await actingGmQueries();
 	await noGM();
 	await trackerGuards();
 	await extraSlotOnAnotherCombat();
@@ -1524,6 +1495,122 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#250 Assistant GM leaves', () => assistant.leave());
 	}
 
+	/**
+	 * §#412: the Acting GM answers a player's Claim and Extra Slot initiative as Foundry queries, checks that the player
+	 * may ask, and the player learns why one wasn't written.
+	 */
+	async function actingGmQueries() {
+		await setUp({ Hero: 3, Boss: 2 }, { extraSlots: [{ name: 'Boss' }] });
+		// The player's client asks for the Claim without its own checks, as a client that hasn't seen another Claim yet.
+		const claim = (slotOf: Name, claimant: Name) =>
+			player.evaluate(
+				(args) =>
+					game.combat.claimSlot(
+						game.combat.round,
+						window.e2e.slotId(args.slotOf),
+						game.combat.combatants.getName(args.claimant).id,
+					),
+				{ slotOf, claimant },
+			);
+		// A query the player sends as is, to see what the Acting GM answers: 'written', or the reason it gave.
+		const query = (name: string, data: object) =>
+			player.evaluate(
+				(args) =>
+					game.users.activeGM.query(args.name, args.data, { timeout: 10_000 }).then(
+						() => 'written',
+						(error: Error) => error.message,
+					),
+				{ name, data },
+			);
+		const ids = await player.evaluate(() => ({
+			player: game.user.id,
+			gm: game.users.activeGM.id,
+			combat: game.combat.id,
+			round: game.combat.round,
+			boss: game.combat.combatants.getName('Boss').id,
+			bossSlot: window.e2e.slotId('Boss'),
+		}));
+		const claimsAfter = async (states: StepStates) => ({
+			claims: (await stored()).claims,
+			notifications: notifications(states, e2e.playerUser),
+		});
+
+		await e2e.step("#412 GM claims Hero's slot for Hero", () => gm.evaluate(() => window.combatE2E.claim('Hero:-1', 'Hero')));
+		const claimed = await e2e.step("#412 player asks the Acting GM to claim Hero's claimed slot", () => claim('Hero', 'Hero'));
+		e2e.expect(
+			"#412 A1 the Acting GM refuses a player's Claim on a claimed slot, and the player is told why",
+			await claimsAfter(claimed),
+			{
+				claims: { 'Hero:-1': 'Hero' },
+				notifications: [await warning('Genesys.Notifications.SlotAlreadyClaimed', 'Hero')],
+			},
+		);
+
+		const notOwned = await e2e.step("#412 player asks the Acting GM to claim Boss's slot for Boss", () => claim('Boss', 'Boss'));
+		e2e.expect(
+			"#412 A2 the Acting GM refuses a player's Claim for a combatant they don't own, and the player is told why",
+			await claimsAfter(notOwned),
+			{ claims: { 'Hero:-1': 'Hero' }, notifications: [await warning('Genesys.Notifications.NotOwnerOfCombatant')] },
+		);
+
+		let extraSlotAnswer = '';
+		await e2e.step("#412 player asks the Acting GM to write the initiative of Boss's Extra Slot", async () => {
+			extraSlotAnswer = await query('genesys.writeExtraSlotInitiative', {
+				userId: ids.player,
+				combatId: ids.combat,
+				updates: [{ index: 0, initiative: 3 }],
+				updateTurn: false,
+			});
+		});
+		e2e.expect(
+			"#412 A3 the Acting GM refuses a player's Extra Slot initiative for a combatant they don't own",
+			{ answer: extraSlotAnswer, extraSlots: (await stored()).extraSlots },
+			{ answer: 'Genesys.Notifications.NotOwnerOfCombatant', extraSlots: ['Boss@1=null'] },
+		);
+
+		let namingGmAnswer = '';
+		await e2e.step("#412 player asks the Acting GM to claim Boss's slot for Boss, the data naming the GM", async () => {
+			namingGmAnswer = await query('genesys.claimInitiativeSlot', {
+				userId: ids.gm,
+				combatId: ids.combat,
+				combatantId: ids.boss,
+				round: ids.round,
+				slotId: ids.bossSlot,
+			});
+		});
+		e2e.expect(
+			'#412 A4 on v14, the Acting GM checks the user Foundry names as the sender, not the one the data names; v13 names none, so it trusts the data',
+			{ answer: namingGmAnswer, claims: (await stored()).claims },
+			e2e.version >= 14
+				? { answer: 'Genesys.Notifications.NotOwnerOfCombatant', claims: { 'Hero:-1': 'Hero' } }
+				: { answer: 'written', claims: { 'Hero:-1': 'Hero', 'Boss:-1': 'Boss' } },
+		);
+
+		// The GM's client holds the Claim's query, as a GM whose client hangs: its answer never comes.
+		await gm.evaluate(() => {
+			const queries = CONFIG.queries as Record<string, unknown>;
+			const answer = queries['genesys.claimInitiativeSlot'];
+			queries['genesys.claimInitiativeSlot'] = () => new Promise(() => {});
+			window.combatE2E.restoreQueries = () => (queries['genesys.claimInitiativeSlot'] = answer);
+		});
+		const unanswered = await e2e.step("#412 player claims Hero's slot, the Acting GM never answering", () => claim('Hero', 'Hero'));
+		e2e.expect(
+			"#412 A5 when the Acting GM doesn't answer a Claim within 10 s, the player is told",
+			notifications(unanswered, e2e.playerUser),
+			[await warning('Genesys.Notifications.ActingGMTimedOut')],
+		);
+		await gm.evaluate(() => window.combatE2E.restoreQueries?.());
+
+		const noGMWarning = await warning('Genesys.Notifications.NoGMForClaim');
+		await e2e.step('#412 GM leaves', () => gm.leave());
+		const alone = await e2e.step("#412 player claims Hero's slot, with no GM online", () => claim('Hero', 'Hero'));
+		e2e.expect("#412 A6 with no GM online, a player's Claim warns", notifications(alone, e2e.playerUser), [noGMWarning]);
+		await e2e.step('#412 GM joins again', async () => {
+			await gm.join();
+			await gm.evaluate(installCombatHelpers);
+		});
+	}
+
 	/** §#53: with no GM online, a player can't roll an Extra Slot, whose initiative only a GM writes. */
 	async function noGM() {
 		await setUp({ Hero: null, Boss: null }, { extraSlots: [{ name: 'Hero' }] });
@@ -1662,57 +1749,53 @@ export async function run(e2e: ScenarioContext) {
 
 	/**
 	 * §#35 (#286): when the Extra Slots change, every client orders the turns as the update reaches it, and renders its
-	 * tracker, without waiting for the `updateCombatTracker` socket refresh the writer sends after it. The player's client
-	 * drops that refresh here.
+	 * tracker: the writer sends no refresh after it (#412). The GM writes the player's roll.
 	 */
 	async function extraSlotsOrderedAtOnce() {
 		// Boss's slot holds the turn; Hero's own slot sorts after it, an unrolled Extra Slot last, a rolled one first.
 		await setUp({ Hero: -50, Boss: -10 }, { turnOn: 'Boss:-1' });
-		await player.evaluate(() => window.combatE2E.dropTrackerRefreshes());
-		const seen = () =>
-			player.evaluate(() => {
+		const seen = async () => ({
+			...(await player.evaluate(() => {
 				const helpers = window.combatE2E;
 				const view = {
 					atUpdate: [...helpers.turnsAtUpdate],
 					turns: game.combat.turns.map((turn: { name: string }) => turn.name),
 					rows: helpers.rows().map((row) => row.slot),
-					droppedRefreshes: helpers.droppedRefreshes,
 				};
 				helpers.reset();
 				return view;
-			});
+			})),
+			gmRows: await gm.evaluate(() => window.combatE2E.rows().map((row) => row.slot)),
+		});
 
-		await e2e.step("#35 B1 GM adds an Extra Slot for Hero, the player's client dropping the socket refresh", () =>
-			gm.evaluate(() => window.e2e.addExtraSlotFor('Hero')),
-		);
+		await e2e.step('#35 B1 GM adds an Extra Slot for Hero', () => gm.evaluate(() => window.e2e.addExtraSlotFor('Hero')));
 		e2e.expect(
-			"#35 B1 the player's client orders the turns as the added Extra Slot reaches it, and its tracker lists them, without the socket refresh",
+			"#35 B1 the player's client orders the turns as the added Extra Slot reaches it, and both trackers list them",
 			await seen(),
 			{
 				atUpdate: [['Boss', 'Hero', 'Hero']],
 				turns: ['Boss', 'Hero', 'Hero'],
 				rows: ['Boss:-1', 'Hero:-1', 'Hero:0'],
-				droppedRefreshes: 1,
+				gmRows: ['Boss:-1', 'Hero:-1', 'Hero:0'],
 			},
 		);
 
-		await e2e.step("#35 B2 player rolls Hero's Extra Slot from the tracker, their client dropping the socket refresh", () =>
+		await e2e.step("#35 B2 player rolls Hero's Extra Slot from the tracker", () =>
 			player.evaluate(async () => {
 				window.combatE2E.clickRow('Hero:0', '.combatant-control.roll');
 				await window.combatE2E.answerPrompts(['roll']);
 			}),
 		);
 		e2e.expect(
-			"#35 B2 the player's client orders the turns as the rolled Extra Slot reaches it, and its tracker lists them, without the socket refresh",
+			"#35 B2 the player's client orders the turns as the rolled Extra Slot reaches it, and both trackers list them",
 			await seen(),
 			{
 				atUpdate: [['Hero', 'Boss', 'Hero']],
 				turns: ['Hero', 'Boss', 'Hero'],
 				rows: ['Hero:0', 'Boss:-1', 'Hero:-1'],
-				droppedRefreshes: 1,
+				gmRows: ['Hero:0', 'Boss:-1', 'Hero:-1'],
 			},
 		);
-		await player.evaluate(() => window.combatE2E.keepTrackerRefreshes());
 	}
 
 	/**

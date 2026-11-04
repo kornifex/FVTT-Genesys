@@ -18,7 +18,7 @@ import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay
 import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';
 import { linkTalentPurchases } from '@/migrations/5-link-talent-purchases';
 import * as log from '@/log';
-import { isActingGm } from '@/socket';
+import { isActingGm } from '@/queries';
 
 async function applyChanges(actor: GenesysActor, { update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
 	if (update) {

@@ -5,9 +5,7 @@
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { sessionStoryPoints, SPEND_MESSAGES, type StoryPointPool, storyPointsAfterSpending } from '@/data/StoryPoints';
-import * as log from '@/log';
-import { emit as socketEmit, handle as handleSocket, SocketOperation } from '@/socket';
-import type { PlayerSpendStoryPointData } from '@/socket/Relay';
+import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
 
@@ -74,7 +72,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	}
 
 	/**
-	 * Render the tracker again on this client.
+	 * Render the tracker again on this client. The pools' setting does at each write.
 	 */
 	static forceRender() {
 		void StoryPointTracker.#instance?.render(true);
@@ -95,10 +93,6 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			player: player ?? session.player,
 			gm: gm ?? session.gm,
 		});
-
-		StoryPointTracker.forceRender();
-
-		socketEmit(SocketOperation.UpdateStoryPointTracker);
 	}
 
 	/**
@@ -118,9 +112,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			await StoryPointTracker.#spend(pool, game.user);
 		} else if (pool === 'player') {
 			// Only a GM may write the pools: with none connected, nothing is spent.
-			if (!socketEmit(SocketOperation.PlayerSpendStoryPoint, { userId: game.user.id })) {
-				ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NoGMForStoryPoint'));
-			}
+			await askActingGm(QueryName.SpendStoryPoint, {});
 		} else {
 			ui.notifications.error(game.i18n.localize('Genesys.Notifications.GenericError'));
 		}
@@ -143,13 +135,12 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 
 		await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, spentStoryPoints);
-		StoryPointTracker.forceRender();
-		socketEmit(SocketOperation.UpdateStoryPointTracker);
 		return true;
 	}
 
 	/**
-	 * Writes a user's spend from a pool, then posts its chat message as that user. Only a GM may write the pools.
+	 * Writes a user's spend from a pool, then posts its chat message as that user, and tells whether there was a point to
+	 * spend. Only a GM may write the pools.
 	 */
 	static async #spend(pool: StoryPointPool, user: User) {
 		// Spends that reach the GM together, from a double click or two players, are written one after the other: each
@@ -158,7 +149,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		// The failed write rejects to its own caller; the next ones still run.
 		StoryPointTracker.#writes = written.catch(() => false);
 		if (!(await written)) {
-			return;
+			return false;
 		}
 
 		const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
@@ -174,24 +165,22 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			style: CONST.CHAT_MESSAGE_STYLES.OOC,
 		};
 		await ChatMessage.create(message);
+		return true;
 	}
 
 	/**
-	 * Handles a player's spend, as the Acting GM.
+	 * Writes a player's spend, as the Acting GM: the spend of the user who asked, from the player pool.
 	 */
-	static async spendForPlayer({ userId }: PlayerSpendStoryPointData) {
-		const player = game.users.get(userId);
-		if (!player) {
-			log.error(`A Story Point spend was received from an unknown user ${userId}`);
-			return;
+	static async spendForPlayer(player: User) {
+		// Another spend may have emptied the pool since the player's client checked it.
+		if (!(await StoryPointTracker.#spend('player', player))) {
+			refuse('Genesys.Notifications.NotEnoughStoryPoints');
 		}
-
-		await StoryPointTracker.#spend('player', player);
 	}
 }
 
 /**
- * Initialize the Story Point Tracker and handle its socket operations.
+ * Initialize the Story Point Tracker and answer the players' spends.
  */
 export function register() {
 	if (StoryPointTracker.instance) {
@@ -201,6 +190,5 @@ export function register() {
 	new StoryPointTracker();
 	StoryPointTracker.forceRender();
 
-	handleSocket(SocketOperation.PlayerSpendStoryPoint, (data) => StoryPointTracker.spendForPlayer(data));
-	handleSocket(SocketOperation.UpdateStoryPointTracker, () => StoryPointTracker.forceRender());
+	handleQuery(QueryName.SpendStoryPoint, (_data, querier) => StoryPointTracker.spendForPlayer(querier));
 }

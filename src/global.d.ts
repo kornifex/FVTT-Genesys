@@ -19,6 +19,7 @@ import type { GENESYS_CONFIG } from '@/config';
 import type { GenesysEffect } from '@/effects/GenesysEffect';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ItemDataModels } from '@/item/ItemTypes';
+import type { QueryHandlers } from '@/queries';
 import type { NAMESPACE } from '@/settings';
 import type { storyPointsField } from '@/settings/storyPoints';
 import type { SETTINGS } from '@/settings/table';
@@ -115,6 +116,13 @@ declare global {
 			'Roboto Serif': Font.FamilyDefinition;
 			'Genesys Symbols': Font.FamilyDefinition;
 			'Magical Girl Symbols': Font.FamilyDefinition;
+		}
+
+		// The queries the Acting GM answers, which `src/queries` registers.
+		interface Queries {
+			'genesys.spendStoryPoint': QueryHandlers['genesys.spendStoryPoint'];
+			'genesys.claimInitiativeSlot': QueryHandlers['genesys.claimInitiativeSlot'];
+			'genesys.writeExtraSlotInitiative': QueryHandlers['genesys.writeExtraSlotInitiative'];
 		}
 	}
 

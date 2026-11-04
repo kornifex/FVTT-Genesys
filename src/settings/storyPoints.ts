@@ -33,9 +33,10 @@ export function storyPointsField(localize: Localize) {
 }
 
 /**
- * Register the world setting that stores the Story Points.
+ * Register the world setting that stores the Story Points. Foundry runs `onChange` on every client once a write reaches
+ * it, the writer's included.
  */
-export function register(namespace: typeof NAMESPACE) {
+export function register(namespace: typeof NAMESPACE, onChange: () => void) {
 	game.settings.register(namespace, KEY_STORY_POINTS, {
 		name: 'StoryPoints',
 		scope: 'world',
@@ -45,5 +46,6 @@ export function register(namespace: typeof NAMESPACE) {
 			player: 0,
 		},
 		type: storyPointsField((key) => game.i18n.localize(key)),
+		onChange,
 	});
 }
