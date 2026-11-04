@@ -140,6 +140,13 @@ type SheetsHelpers = {
 	editBothStoryPointPools(): Promise<string[]>;
 	setStoryPoints(points: { gm: number; player: number }): Promise<void>;
 	/**
+	 * Stores each system setting as 0.5.0 did, as the JSON of its value, without the cleaning and validation of
+	 * `game.settings.set`: a world setting in its Setting document, a client setting in the browser's storage.
+	 */
+	storeAs050(values: Record<string, unknown>): Promise<void>;
+	/** Sets each system setting to its value, and tells whether Foundry refused it and the value the setting then holds. */
+	trySettings(values: [string, unknown][]): Promise<{ key: string; refused: boolean; holds: unknown }[]>;
+	/**
 	 * Since the last call: the users who wrote the Story Point pools, one entry per write, and the Story Point chat
 	 * messages, as `<author>: <text>`.
 	 */
@@ -829,6 +836,37 @@ function installSheetsHelpers() {
 			await game.settings.set('genesys', 'storyPoints', points);
 			foundry.applications.instances.get('story-point-tracker')?.render(true);
 			await settle();
+		},
+
+		async storeAs050(values) {
+			for (const [key, value] of Object.entries(values)) {
+				const id = `genesys.${key}`;
+				const json = JSON.stringify(value);
+				if (game.settings.settings.get(id).scope === 'client') {
+					localStorage.setItem(id, json);
+					continue;
+				}
+				const setting = game.settings.get('genesys', key, { document: true });
+				if (setting._id) await setting.update({ value: json });
+				else await foundry.documents.Setting.create({ key: id, value: json });
+			}
+			await settle();
+		},
+
+		async trySettings(values) {
+			const tried = [];
+			for (const [key, value] of values) {
+				let refused = false;
+				try {
+					await game.settings.set('genesys', key, value);
+				} catch {
+					// The refusal is what the step reads.
+					refused = true;
+				}
+				tried.push({ key, refused, holds: game.settings.get('genesys', key) });
+			}
+			await settle();
+			return tried;
 		},
 
 		storyPointLog() {
@@ -2323,6 +2361,67 @@ export async function run(e2e: ScenarioContext) {
 			afterBlur: { gm: 3, player: 1 },
 		},
 	);
+
+	// §#415: Foundry cleans each setting through its DataField as it reads it, and validates it before storing it.
+	// Each setting of the table and the Story Point pools, at a value other than its default but the Skills Compendium's,
+	// whose change would load another compendium.
+	const as050 = {
+		skillsCompendium: 'genesys.crb-skills',
+		defaultDifficulty: 'DDD',
+		skillForInjuries: 'Cool',
+		skillForRepairingVehicleHits: 'Computers',
+		currency: 'Credits',
+		careerSkillRanks: 6,
+		uncoupleSkills: true,
+		showDamageOnFailure: true,
+		useSuperCharacteristics: true,
+		ignoreTalentPyramid: true,
+		talentTierVersions: true,
+		style: 'terrinoth',
+		storyPoints: { gm: 2, player: 5 },
+		useMagicalGirlSymbols: true,
+		dicePoolCollapseModificationsDetails: true,
+		dicePoolAutoApplyModifications: true,
+		dicePoolChanceToSucceedByPermutation: true,
+		dicePoolApproximation: 250,
+	};
+	const settingKeys = Object.keys(as050);
+	const settingsBefore = await gm.evaluate((keys) => window.e2e.settings(keys), settingKeys);
+	await e2e.step('#415 GM finds settings stored by 0.5.0, in the world and in their browser', () =>
+		gm.evaluate((values) => window.sheetsE2E.storeAs050(values), as050),
+	);
+	e2e.expect(
+		'#415 A1 a world and a client saved by 0.5.0 read their settings unchanged',
+		await gm.evaluate((keys) => window.e2e.settings(keys), settingKeys),
+		as050,
+	);
+	await e2e.step('#415 GM finds a count below 0 stored by 0.5.0', () =>
+		gm.evaluate(() => window.sheetsE2E.storeAs050({ careerSkillRanks: -3 })),
+	);
+	e2e.expect(
+		'#415 A2 a count below 0 that 0.5.0 stored reads as the default',
+		await gm.evaluate(() => CONFIG.genesys.settings.freeCareerSkillRanks),
+		4,
+	);
+	await gm.evaluate(() => window.e2e.setSettings({ careerSkillRanks: 6 }));
+	e2e.expect(
+		'#415 A3 a count below 0, an unknown Style or a malformed Story Point pool is refused, and the setting keeps its value',
+		await gm.evaluate((values) => window.sheetsE2E.trySettings(values), [
+			['careerSkillRanks', -1],
+			['dicePoolApproximation', -5],
+			['style', 'unknown'],
+			['storyPoints', { gm: 'x', player: 1 }],
+			['storyPoints', { gm: -1, player: 1 }],
+		] satisfies [string, unknown][]),
+		[
+			{ key: 'careerSkillRanks', refused: true, holds: 6 },
+			{ key: 'dicePoolApproximation', refused: true, holds: 250 },
+			{ key: 'style', refused: true, holds: 'terrinoth' },
+			{ key: 'storyPoints', refused: true, holds: { gm: 2, player: 5 } },
+			{ key: 'storyPoints', refused: true, holds: { gm: 2, player: 5 } },
+		],
+	);
+	await gm.evaluate((values) => window.e2e.setSettings(values), settingsBefore);
 
 	// §#249: an open sheet of each actor and item type shows at once an edit another client made with `update`, to the
 	// document or to one of its items. The character shows its current wounds, the other sheets their source.
