@@ -4,6 +4,7 @@ import type { Stored } from '@/data/Stored';
 import { DragTransferData, dragData } from '@/data/DragTransferData';
 import { VueDocumentSheet } from '@/vue/VueDocumentSheet';
 import { DocumentSheetContext } from '@/vue/SheetContext';
+import { isFoundryV13 } from '@/foundryGeneration';
 
 import '@/item/GenesysItemSheet.scss';
 
@@ -21,6 +22,18 @@ export async function itemFromDrop<SubType extends Item.SubType = Item.SubType>(
 		// Foundry throws when the uuid names no document, as once it is deleted, or one that isn't an item: the drop
 		// carries no item.
 		return undefined;
+	}
+}
+
+/**
+ * Whether a drop's link names a document that still exists, as far as Foundry tells without waiting.
+ */
+function linksExistingDocument(uuid: string) {
+	try {
+		return fromUuidSync(uuid) !== null;
+	} catch {
+		// Foundry only finds a document embedded in a compendium's by waiting for it: it is left to resolve it.
+		return true;
 	}
 }
 
@@ -66,18 +79,21 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 	) {
 		await super._onRender(context, options);
 
-		// v13: ItemSheetV2 binds no drag and drop. v14's binds its DragDrop to `_onDrop` on each render, which this replaces.
-		this.element.ondragover = (event) => event.preventDefault();
-		this.element.ondrop = (event) => {
-			event.preventDefault();
-			void this._onDrop(event);
-		};
+		// v13: ItemSheetV2 binds no drag and drop. v14's binds its DragDrop on each render, whose `_onDrop` lets the
+		// `dropItemSheetData` hook refuse a drop, then hands the dropped document to `_onDropDocument`.
+		if (isFoundryV13()) {
+			this.element.ondragover = (event) => event.preventDefault();
+			this.element.ondrop = (event) => {
+				event.preventDefault();
+				void this.#onDropV13(event);
+			};
+		}
 	}
 
 	/**
-	 * Handle data dropped on the sheet: an item the user can edit receives the item a drop carries, and nothing else.
+	 * v13: receive the item a drop carries, on a sheet the user can edit.
 	 */
-	protected override async _onDrop(event: DragEvent) {
+	async #onDropV13(event: DragEvent) {
 		const data = dragData(event.dataTransfer);
 		if (!this.isEditable || data.type !== 'Item') {
 			return;
@@ -87,6 +103,33 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 		if (item) {
 			await this.receiveItem(item, event);
 		}
+	}
+
+	/**
+	 * Handle a drop on v14 by ItemSheetV2's own `_onDrop`, which lets the `dropItemSheetData` hook refuse it, unless the
+	 * drop links a document deleted since the link was made: Foundry would throw as it resolves it (#271).
+	 */
+	protected override async _onDrop(event: DragEvent) {
+		// A drop's data reads only while its event dispatches, so the link is checked before anything is awaited.
+		const { uuid } = dragData(event.dataTransfer);
+		if (uuid && !linksExistingDocument(uuid)) {
+			return;
+		}
+		return super._onDrop(event);
+	}
+
+	/**
+	 * Receive a document dropped on the sheet. Only an item is received: an Active Effect is not, as on v13.
+	 */
+	protected override async _onDropDocument<ConcreteDocument extends foundry.applications.sheets.ItemSheetV2.DroppableDocument>(
+		event: DragEvent,
+		document: ConcreteDocument,
+	): Promise<ConcreteDocument | null> {
+		if (!(document instanceof Item)) {
+			return null;
+		}
+		await this.receiveItem(document as GenesysItem, event);
+		return document;
 	}
 
 	/**

@@ -2,6 +2,7 @@ import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { InitiativeSkill, initiativeSkillsOf } from '@/combat/InitiativeSkills';
 import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
+import { applyMessageMode, initiativeMessageMode, initiativeModes, requestedInitiativeMode } from '@/dice/messageMode';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 // v13: the Acting GM marks the Expired Effects, which Foundry v13 never expires.
@@ -366,7 +367,7 @@ export class GenesysCombat extends Combat {
 	/**
 	 * Roll the initiative of Initiative Slots of the current round, for the combatant whose initiative gives each one.
 	 */
-	async rollSlotsInitiative(slotIds: string[], { prompt = false, updateTurn = true, messageOptions = {} }: RollSlotsOptions = {}) {
+	async rollSlotsInitiative(slotIds: string[], { prompt = false, updateTurn = true, ...modeOptions }: RollSlotsOptions = {}) {
 		let slots = slotsToRoll(this.slots, slotIds).filter((slot) => this.combatants.get(slot.originId)?.isOwner);
 
 		// Only a GM may write an extra slot's initiative: a player's roll waits for one.
@@ -376,7 +377,8 @@ export class GenesysCombat extends Combat {
 		}
 
 		const currentSlotId = this.currentSlotId;
-		const chatRollMode = game.settings.get('core', 'rollMode');
+		const requestedMode = requestedInitiativeMode(modeOptions);
+		const modes = initiativeModes();
 
 		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];
 		const messages: object[] = [];
@@ -421,12 +423,7 @@ export class GenesysCombat extends Combat {
 				speaker: { actor: combatant.actorId },
 				sound: messages.length > 0 ? null : CONFIG.sounds.dice,
 			};
-			const rollMode = (
-				'rollMode' in messageOptions ? messageOptions.rollMode : combatant.hidden ? CONST.DICE_ROLL_MODES.PRIVATE : chatRollMode
-			) as ChatMessage.PassableRollMode;
-			ChatMessage.applyRollMode(chatData, rollMode);
-
-			messages.push(chatData);
+			messages.push(applyMessageMode(chatData, initiativeMessageMode({ requested: requestedMode, hidden: combatant.hidden }, modes)));
 		}
 
 		if (!messages.length) {

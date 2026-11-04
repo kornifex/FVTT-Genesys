@@ -8,11 +8,7 @@ const noEnum = { selector: 'TSEnumDeclaration', message: 'Use an as-const object
 
 // The globals Foundry deprecated, each with the namespaced class v13 and v14 both have: v14 removed `Die`, and v15 removes
 // the others. fvtt-types still declares the others, marked deprecated, so the compiler takes them (ADR 0006); this rule
-// rejects them and names the replacement.
-//
-// v13: v14 also deprecates the roll modes, whose replacements v13 lacks, so they stay until v13 leaves support:
-// `game.settings.get('core', 'rollMode')` (GenesysCombat.ts, CheckRoll.ts), `ChatMessage.applyRollMode` (→ `applyMode`),
-// `CONST.DICE_ROLL_MODES`, and the `rollMode` option of `ChatMessage.create`.
+// rejects them and names the replacement. The roll modes v14 deprecated go through `src/dice/messageMode.ts`.
 const deprecatedGlobals = Object.entries({
 	Die: 'foundry.dice.terms.Die',
 	getTemplate: 'foundry.applications.handlebars.getTemplate',
