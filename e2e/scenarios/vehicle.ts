@@ -571,16 +571,18 @@ export async function run(e2e: ScenarioContext) {
 	const vehicleE2E = helpersOf(gm);
 	await vehicleE2E('setUp');
 
-	await crewDrops(e2e);
-	await passengerTileDrops(e2e);
-	await deletingCrew(e2e);
-	await deletingCrewOfGoneTokens(e2e);
-	await skillsTabFollowsCrew(e2e);
-	await tokenSkillsTabFollowsCrew(e2e);
-	await crewRolls(e2e);
-	await vehicleE2E('closePrompts');
-	await expandedDescriptions(e2e);
-	await combatRowDescriptions(e2e);
+	await e2e.part('crewDrops', () => crewDrops(e2e));
+	await e2e.part('passengerTileDrops', () => passengerTileDrops(e2e));
+	await e2e.part('deletingCrew', () => deletingCrew(e2e));
+	await e2e.part('deletingCrewOfGoneTokens', () => deletingCrewOfGoneTokens(e2e));
+	await e2e.part('skillsTabFollowsCrew', () => skillsTabFollowsCrew(e2e));
+	await e2e.part('tokenSkillsTabFollowsCrew', () => tokenSkillsTabFollowsCrew(e2e));
+	await e2e.part('crewRolls', async () => {
+		await crewRolls(e2e);
+		await vehicleE2E('closePrompts');
+	});
+	await e2e.part('expandedDescriptions', () => expandedDescriptions(e2e));
+	await e2e.part('combatRowDescriptions', () => combatRowDescriptions(e2e));
 }
 
 /**

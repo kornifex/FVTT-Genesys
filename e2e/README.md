@@ -37,16 +37,18 @@ The harness only reads the data dirs: each run copies the licence and the world 
 ```sh
 pnpm e2e:all                                                  # the suite: every e2e/scenarios/*.ts, on v13 and v14
 pnpm e2e e2e/scenarios/combat.ts                              # builds the working tree, runs one scenario on v13 and v14
+pnpm e2e e2e/scenarios/combat.ts --part claims,noGM           # only those parts of the scenario, after its setup
 pnpm e2e e2e/scenarios/combat.ts --compare origin/main        # also on origin/main's build, then the differing steps
 pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14 only
 pnpm e2e e2e/scenarios/combat.ts --verbose                    # prints every step's value, as the saved step logs hold them
 ```
 
 -   `pnpm e2e` takes scenario files and folders, a folder standing for its `.ts` files. Foundry is launched once per version and build: the scenarios run one after the other on the same world, each with newly joined clients and from its own setup. A scenario exporting `isolated = true` gets its own fresh world and launch, after the others.
+-   `--part a,b` runs only the [parts](#parts) given, of a single scenario file: its setup and the steps outside parts run, the other parts are skipped. The run fails at the end of the scenario when a name given met no part, its message listing the parts the scenario has.
 -   `--compare <ref>` builds the ref once per commit, from `git archive`, in `E2E_WORK_DIR/builds/`. Compare against `origin/main`: a local `main` may lag behind.
 -   Each step prints as `[v13 head] <step>`, `[v13 head <scenario>] …` when several scenarios run. A passed assertion ends with `✓`; a value of up to 120 characters (an `e2e.log`) prints in full; a longer one (a combat state) prints only the client errors it holds, which fail no assertion. A failed step starts with `FAILED` and prints its value and the value expected. `--verbose` prints every value. The step logs are saved in full as JSON in `E2E_WORK_DIR/results/<scenario>/`, each launch's `server.log` in `E2E_WORK_DIR/runs/`.
 -   A launch stops at once when Foundry refuses the world, as when the system's `compatibility` excludes that version. A client's join stops when the system didn't load, as when its module throws on a global that version removed: its message quotes the page's first error.
--   The run ends with a summary per version and build: its assertion count, then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step).
+-   The run ends with a summary per version and build: its assertion count, each scenario's time (with `--part` or `--verbose`, each part's, and the time outside parts), then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step). The times add up the steps' `ms`, which the step logs hold with each step's `part`.
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
 -   The versions run at once, each on its own port and data dir; the builds of one version run one after the other. Each line of the output names its version, and the summary comes once all are done.
 -   The build compiles the packs to LevelDB, which every version reads. A ref older than that (#248) shipped a NeDB pack, which Foundry v13 and later can't read, so it can't be compared.
@@ -95,6 +97,7 @@ export async function run(e2e: ScenarioContext) {
 -   `expect(name, actual, expected)`: logs an assertion as a step holding both values. Deep equality, strict on types and missing keys: compare a plain object built in the page with `evaluate`. A failed assertion doesn't stop the scenario.
 -   `settle()`: waits for every connected client to settle, for a Node-side wait between two actions outside a step.
 -   `log(name, value)`: logs anything else.
+-   `part(name, fn)`: runs `fn`, a [part](#parts) of the scenario, unless `--part` leaves it out.
 -   Step names are unique within a scenario: a comparison matches the steps of two runs by name, and a checklist item links its step by name.
 -   `version`: the Foundry generation, for the rare step that differs.
 
@@ -111,6 +114,24 @@ Pitfalls:
 -   Playwright sends the source of an evaluated function to the page: it can't use the scenario's variables. Pass them as the argument.
 -   The Foundry globals are untyped in the harness ([`foundry.d.ts`](foundry.d.ts)), since one scenario runs on both versions.
 -   On v13 the sidebar is collapsed in the headless window, so clicks on the combat tracker time out: call the method, or dispatch the event from `evaluate`.
+
+### Parts
+
+A scenario longer than a minute or so splits into parts, so that a change to one section replays only it: `run` does the setup every part shares, then calls each part through `e2e.part`, and keeps its `finally`.
+
+```ts
+export async function run(e2e: ScenarioContext) {
+	await e2e.gm.evaluate(installVehicleHelpers);
+	await e2e.part('crewDrops', () => crewDrops(e2e));
+	await e2e.part('crewRolls', () => crewRolls(e2e));
+}
+```
+
+-   A part is named after its function, and its name is unique in its scenario: a part met twice stops the scenario. Parts don't nest.
+-   A part depends on no other: it sets up what it needs on top of the scenario's setup, and passes when it runs alone (`--part <name>`). Sections that need the state another left are one part with it.
+-   A part starts with the clients' recorded turn events and notifications cleared, so that its first step logs the same alone and after other parts.
+-   A part is met on every version, so that `--part` finds it on both: a section for one version only checks `e2e.version` inside its part.
+-   The steps a part logs carry its name in the step log (`part`), and each step its duration (`ms`: from the previous step's log, or its part's start, to its own log; a part's last step also counts the part's work after it, so that its steps add up to its time). A scenario's time leaves out its work after its last step (its `finally`). Step names stay unique across the whole scenario, so that the checklists' links hold.
 
 ## How steps wait
 

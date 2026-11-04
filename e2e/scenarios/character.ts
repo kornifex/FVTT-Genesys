@@ -1023,27 +1023,29 @@ export async function run(e2e: ScenarioContext) {
 			);
 		});
 
-		await archetypes(e2e, page, notified, notifications);
-		await advancement(e2e, page, notified, notifications);
-		await careers(e2e, page, notified, notifications);
-		await careerSkillsOnCreation(e2e, page);
-		await superCharacteristics(e2e, page, notifications);
-		await skillsTab(e2e, page);
-		await talentPyramidSummary(e2e, page);
-		await talentRanks(e2e, page);
-		// v13 has no token changes.
-		if (e2e.version >= 14) await talentTokenChanges(e2e, page);
-		await talentsTab(e2e, page);
-		await injuries(e2e, page);
-		await weaponProfiles(e2e, page);
-		await talentTiers(e2e, page, notified, notifications);
-		await expandedDescriptions(e2e, page);
-		await combatRowDescriptions(e2e, page);
-		await talentRowDescriptions(e2e, page);
-		await skillIcons(e2e, page);
-		await folds(e2e, page);
+		await e2e.part('archetypes', () => archetypes(e2e, page, notified, notifications));
+		await e2e.part('advancement', () => advancement(e2e, page, notified, notifications));
+		await e2e.part('careers', () => careers(e2e, page, notified, notifications));
+		await e2e.part('careerSkillsOnCreation', () => careerSkillsOnCreation(e2e, page));
+		await e2e.part('superCharacteristics', () => superCharacteristics(e2e, page, notifications));
+		await e2e.part('skillsTab', () => skillsTab(e2e, page));
+		await e2e.part('talentPyramidSummary', () => talentPyramidSummary(e2e, page));
+		await e2e.part('talentRanks', () => talentRanks(e2e, page));
+		// v13 has no token changes. The part is met on every version, so that `--part` finds it on both.
+		await e2e.part('talentTokenChanges', async () => {
+			if (e2e.version >= 14) await talentTokenChanges(e2e, page);
+		});
+		await e2e.part('talentsTab', () => talentsTab(e2e, page));
+		await e2e.part('injuries', () => injuries(e2e, page));
+		await e2e.part('weaponProfiles', () => weaponProfiles(e2e, page));
+		await e2e.part('talentTiers', () => talentTiers(e2e, page, notified, notifications));
+		await e2e.part('expandedDescriptions', () => expandedDescriptions(e2e, page));
+		await e2e.part('combatRowDescriptions', () => combatRowDescriptions(e2e, page));
+		await e2e.part('talentRowDescriptions', () => talentRowDescriptions(e2e, page));
+		await e2e.part('skillIcons', () => skillIcons(e2e, page));
+		await e2e.part('folds', () => folds(e2e, page));
 		// Last: on a build that doesn't ask, No deletes at once, and the Yes after it finds nothing to delete.
-		await confirmedRemovals(e2e, page);
+		await e2e.part('confirmedRemovals', () => confirmedRemovals(e2e, page));
 	} finally {
 		// The page lost the helpers if a step stopped the scenario after a reload. A failure here is no expected one: it is
 		// logged, so that the error which stopped the scenario stays the one reported.
@@ -2381,18 +2383,25 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 	await page((name) => window.characterE2E.close(name), 'Sorted');
 
 	await e2e.step('#114 J2 Rank Up twice then Rank Down three times on a rival skill', async () => {
-		await page((name) => window.characterE2E.open(name), 'Rival');
+		await page(
+			(name) =>
+				window.characterE2E.create(name, 'rival', [
+					{ name: 'Ranged', type: 'skill', system: { category: 'combat', characteristic: 'agility', rank: 0 } },
+				]),
+			'Ranked Rival',
+		);
+		await page((name) => window.characterE2E.open(name), 'Ranked Rival');
 		for (const label of ['FreeRankUp', 'FreeRankUp', 'FreeRankDown', 'FreeRankDown', 'FreeRankDown']) {
-			await page((label) => window.characterE2E.menu('Rival', { adversarySkill: 'Ranged' }, `Genesys.Labels.${label}`), label);
+			await page((label) => window.characterE2E.menu('Ranked Rival', { adversarySkill: 'Ranged' }, `Genesys.Labels.${label}`), label);
 			await e2e.settle();
 		}
 	});
 	e2e.expect(
 		"#114 J2 a rival skill's Rank Down stops at 0",
-		await page(() => game.actors.getName('E2E Rival').items.getName('Ranged').system.rank, undefined),
+		await page(() => game.actors.getName('E2E Ranked Rival').items.getName('Ranged').system.rank, undefined),
 		0,
 	);
-	await page((name) => window.characterE2E.close(name), 'Rival');
+	await page((name) => window.characterE2E.close(name), 'Ranked Rival');
 }
 
 /** §#110: the Talent Pyramid summary under Ignore Talent Pyramid. */
@@ -3351,11 +3360,11 @@ async function talentTiers(
 
 /**
  * §#516: a fold opens and closes in 0.2s, its content shown from its opening's start and until its closing's end, then
- * hidden, so that Tab skips it; under `prefers-reduced-motion`, at once. Read on the talent of #325's Reader, whose long
- * description ends with a link.
+ * hidden, so that Tab skips it; under `prefers-reduced-motion`, at once. Read on a talent whose long description ends
+ * with a link, as #325's.
  */
 async function folds(e2e: ScenarioContext, page: Evaluate) {
-	const D = 'Reader';
+	const D = 'Folder';
 	const TALENT = { talent: 'Verbose' };
 	const halfway = () => page((args) => window.characterE2E.foldHalfway(args.name, args.row), { name: D, row: TALENT });
 	const closed = () =>
@@ -3371,6 +3380,17 @@ async function folds(e2e: ScenarioContext, page: Evaluate) {
 
 	let folded: { opening: FoldHalfway; closing: FoldHalfway } | null = null;
 	await e2e.step("#516 B1 the talent's long description clicked open, then closed, each fold read halfway", async () => {
+		await page(
+			(args) =>
+				window.characterE2E.create(args.name, 'character', [
+					{
+						name: 'E2E Verbose',
+						type: 'talent',
+						system: { activation: { type: 'passive', detail: '' }, tier: 1, description: args.description },
+					},
+				]),
+			{ name: D, description: LONG_DESCRIPTION },
+		);
 		await page((name) => window.characterE2E.open(name), D);
 		await page((name) => window.e2e.showTab(name, 'talents'), D);
 		folded = await twoFolds();

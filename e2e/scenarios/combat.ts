@@ -487,26 +487,26 @@ export async function run(e2e: ScenarioContext) {
 	const rolled = (initiatives: Record<string, number | null>) =>
 		Object.fromEntries(Object.entries(initiatives).map(([name, initiative]) => [name, initiative !== null]));
 
-	await trackerClass();
-	await extraSlotKeepsTurn();
-	await expiredEffects();
-	await firstSlotTurnNumbers();
-	await rollKeepsTurn();
-	await claims();
-	await claimedRows();
-	await originOwnerRows();
-	await initiativeSymbols();
-	await slotSides();
-	await poolModifications();
-	await slotRolls();
-	await cancelledPrompt();
-	await claimWithAssistantGM();
-	await actingGmQueries();
-	await noGM();
-	await trackerGuards();
-	await extraSlotOnAnotherCombat();
-	await extraSlotsOrderedAtOnce();
-	await slotRollsKeepTurn();
+	await e2e.part('trackerClass', trackerClass);
+	await e2e.part('extraSlotKeepsTurn', extraSlotKeepsTurn);
+	await e2e.part('expiredEffects', expiredEffects);
+	await e2e.part('firstSlotTurnNumbers', firstSlotTurnNumbers);
+	await e2e.part('rollKeepsTurn', rollKeepsTurn);
+	await e2e.part('claims', claims);
+	await e2e.part('claimedRows', claimedRows);
+	await e2e.part('originOwnerRows', originOwnerRows);
+	await e2e.part('initiativeSymbols', initiativeSymbols);
+	await e2e.part('slotSides', slotSides);
+	await e2e.part('poolModifications', poolModifications);
+	await e2e.part('slotRolls', slotRolls);
+	await e2e.part('cancelledPrompt', cancelledPrompt);
+	await e2e.part('claimWithAssistantGM', claimWithAssistantGM);
+	await e2e.part('actingGmQueries', actingGmQueries);
+	await e2e.part('noGM', noGM);
+	await e2e.part('trackerGuards', trackerGuards);
+	await e2e.part('extraSlotOnAnotherCombat', extraSlotOnAnotherCombat);
+	await e2e.part('extraSlotsOrderedAtOnce', extraSlotsOrderedAtOnce);
+	await e2e.part('slotRollsKeepTurn', slotRollsKeepTurn);
 
 	/** §#85: the tracker's class name, which Foundry names its render hook after. */
 	async function trackerClass() {

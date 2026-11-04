@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
-import { assertionStep, fatalStep, type Step } from './steps.ts';
+import { assertionStep, fatalStep, partSelection, type Step } from './steps.ts';
 
 /**
  * A browser joined to the world as one user.
@@ -73,6 +73,12 @@ export type ScenarioContext = {
 	 * step makes the run exit with 1, unless it ran on the build compared against.
 	 */
 	expect(name: string, actual: unknown, expected: unknown): void;
+	/**
+	 * Runs a part of the scenario, named after its function: always without `--part`, otherwise only when its name is
+	 * given. Its steps carry its name. A part depends on no other: it sets up what it needs on top of the scenario's
+	 * setup, which runs before the parts.
+	 */
+	part(name: string, fn: () => Promise<void>): Promise<void>;
 };
 
 /**
@@ -124,6 +130,7 @@ export async function runScenario(
 		gmUser,
 		playerUser,
 		needsCanvas,
+		parts,
 		onStep,
 	}: {
 		browser: Browser;
@@ -132,15 +139,25 @@ export async function runScenario(
 		gmUser: string;
 		playerUser: string;
 		needsCanvas: boolean;
+		/** The parts to run; every part when undefined. */
+		parts?: readonly string[];
 		onStep: (step: Step) => void;
 	},
 ): Promise<Step[]> {
 	const steps: Step[] = [];
+	const selection = partSelection(parts);
+	let currentPart: string | undefined;
+	// The part an error stopped the scenario in, which its FATAL step carries.
+	let stoppedIn: string | undefined;
+	let since = Date.now();
 	const push = (step: Step) => {
 		// A comparison matches the steps of two runs by name.
 		if (steps.some(({ name }) => name === step.name)) {
 			throw new Error(`Step "${step.name}" is logged twice: give each step its own name.`);
 		}
+		if (currentPart !== undefined) step.part = currentPart;
+		step.ms = Date.now() - since;
+		since = Date.now();
 		steps.push(step);
 		onStep(step);
 	};
@@ -223,9 +240,37 @@ export async function runScenario(
 			},
 			log,
 			expect: (name, actual, expected) => push(assertionStep(name, actual, expected)),
+			async part(name, fn) {
+				if (currentPart !== undefined) throw new Error(`Part "${name}" starts inside part "${currentPart}".`);
+				if (!selection.runs(name)) return;
+				// The turn events and notifications recorded before the part, by the parts that ran before it or by a fresh
+				// world's migrations, would show in its first step: it logs the same alone and after them.
+				await resetAll();
+				currentPart = name;
+				stoppedIn = undefined;
+				since = Date.now();
+				const first = steps.length;
+				try {
+					await fn();
+				} catch (error) {
+					stoppedIn = name;
+					throw error;
+				} finally {
+					currentPart = undefined;
+					// The part's work after its last step, a cleanup, counts in that step, so that its steps add up to its time.
+					const last = steps.length > first ? steps.at(-1) : undefined;
+					if (last) last.ms = (last.ms ?? 0) + Date.now() - since;
+					since = Date.now();
+				}
+			},
 		});
+		// Known only once the scenario has met all its parts.
+		const unmet = selection.unmet();
+		if (unmet) push(fatalStep(unmet));
 	} catch (error) {
-		push(fatalStep(error));
+		const step = fatalStep(error);
+		if (stoppedIn !== undefined) step.part = stoppedIn;
+		push(step);
 	} finally {
 		await Promise.all(connected().map((client) => client.close()));
 	}

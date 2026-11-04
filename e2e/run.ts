@@ -1,6 +1,6 @@
 /**
- * @file `pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>] [--verbose]`: runs
- * scenarios on each Foundry version.
+ * @file `pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref>]
+ * [--verbose]`: runs scenarios on each Foundry version.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,10 +18,11 @@ const root = path.resolve(import.meta.dirname, '..');
 const envFile = path.join(import.meta.dirname, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
-const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--versions 13,14] [--dist dist] [--compare <git ref>] [--verbose]';
+const usage = 'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref>] [--verbose]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
+		part: { type: 'string' },
 		versions: { type: 'string', default: '13,14' },
 		dist: { type: 'string' },
 		compare: { type: 'string' },
@@ -36,6 +37,10 @@ if (!positionals.length) {
 const scenarios = await Promise.all(scenarioFiles(positionals).map(loadScenario));
 const duplicate = scenarios.find((scenario, index) => scenarios.findIndex(({ name }) => name === scenario.name) !== index);
 if (duplicate) throw new Error(`Two scenarios are named ${duplicate.name}: their results would share a folder.`);
+// A part's name is unique only within its scenario.
+if (options.part !== undefined && scenarios.length !== 1) throw new Error('--part takes a single scenario file.');
+const parts = options.part?.split(',').filter(Boolean);
+if (parts?.length === 0) throw new Error('--part takes the names of parts, separated by commas.');
 
 const config = readConfig(process.env, options.versions.split(',').map(Number));
 // Without --dist, the working tree is built, so that a stale dist is never tested.
@@ -85,7 +90,7 @@ for (const install of config.installs) {
 	for (const build of builds) {
 		const run = runName(install.version, build.label);
 		const runScenarios = scenarios.map(({ name }) => ({ scenario: name, steps: logs.get(logKey(run, name)) ?? [] }));
-		console.log(runSummary(run, runScenarios).join('\n'));
+		console.log(runSummary(run, runScenarios, { partTimes: parts !== undefined || options.verbose }).join('\n'));
 	}
 }
 console.log(`\nStep logs and server logs: ${path.join(config.workDir, 'results')}, ${path.join(config.workDir, 'runs')}`);
@@ -137,6 +142,7 @@ async function runLaunch(install: FoundryInstall, build: { label: string; dist: 
 				gmUser: config.gmUser,
 				playerUser: config.playerUser,
 				needsCanvas: scenario.needsCanvas,
+				parts,
 				onStep: (step) => console.log(stepLine(label, step, options)),
 			});
 			logs.set(logKey(run, scenario.name), steps);
