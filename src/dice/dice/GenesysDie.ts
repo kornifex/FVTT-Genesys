@@ -3,7 +3,7 @@
  */
 
 import type { InexactPartial } from 'fvtt-types/utils';
-import { glyphAttributesHTML, glyphLabel, worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
+import { glyphLabelAttributesHTML } from '@/dice/GenesysPoolModifications';
 
 export type DieCategory = 'positive' | 'negative';
 
@@ -70,7 +70,7 @@ export abstract class GenesysDie extends foundry.dice.terms.Die {
 	 */
 	override getResultLabel(result: foundry.dice.terms.DiceTerm.Result): string {
 		const face = this.resultFace(result);
-		const attributes = glyphAttributesHTML(glyphLabel(face, worldGlyphLocalizer()));
+		const attributes = glyphLabelAttributesHTML(face);
 
 		return attributes ? `<span ${attributes}>${face}</span>` : face;
 	}

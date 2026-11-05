@@ -299,21 +299,22 @@ export type GlyphLocalizer = {
 };
 
 /**
- * The start of the localization keys of each die's and symbol's name, followed by `one` or `other`.
+ * The localization keys of each die's and symbol's name, in the forms the plural rules pick from: `one` and `other`,
+ * which is all the languages of the language files need.
  */
-const NAME_KEYS: Record<DieName | SymbolName, string> = {
-	Proficiency: 'Genesys.Symbols.Proficiency.',
-	Ability: 'Genesys.Symbols.Ability.',
-	Boost: 'Genesys.Symbols.Boost.',
-	Challenge: 'Genesys.Symbols.Challenge.',
-	Difficulty: 'Genesys.Symbols.Difficulty.',
-	Setback: 'Genesys.Symbols.Setback.',
-	Triumph: 'Genesys.Symbols.Triumph.',
-	Success: 'Genesys.Symbols.Success.',
-	Advantage: 'Genesys.Symbols.Advantage.',
-	Despair: 'Genesys.Symbols.Despair.',
-	Failure: 'Genesys.Symbols.Failure.',
-	Threat: 'Genesys.Symbols.Threat.',
+const NAME_KEYS: Record<DieName | SymbolName, Record<'one' | 'other', string>> = {
+	Proficiency: { one: 'Genesys.Symbols.Proficiency.one', other: 'Genesys.Symbols.Proficiency.other' },
+	Ability: { one: 'Genesys.Symbols.Ability.one', other: 'Genesys.Symbols.Ability.other' },
+	Boost: { one: 'Genesys.Symbols.Boost.one', other: 'Genesys.Symbols.Boost.other' },
+	Challenge: { one: 'Genesys.Symbols.Challenge.one', other: 'Genesys.Symbols.Challenge.other' },
+	Difficulty: { one: 'Genesys.Symbols.Difficulty.one', other: 'Genesys.Symbols.Difficulty.other' },
+	Setback: { one: 'Genesys.Symbols.Setback.one', other: 'Genesys.Symbols.Setback.other' },
+	Triumph: { one: 'Genesys.Symbols.Triumph.one', other: 'Genesys.Symbols.Triumph.other' },
+	Success: { one: 'Genesys.Symbols.Success.one', other: 'Genesys.Symbols.Success.other' },
+	Advantage: { one: 'Genesys.Symbols.Advantage.one', other: 'Genesys.Symbols.Advantage.other' },
+	Despair: { one: 'Genesys.Symbols.Despair.one', other: 'Genesys.Symbols.Despair.other' },
+	Failure: { one: 'Genesys.Symbols.Failure.one', other: 'Genesys.Symbols.Failure.other' },
+	Threat: { one: 'Genesys.Symbols.Threat.one', other: 'Genesys.Symbols.Threat.other' },
 };
 
 /**
@@ -343,9 +344,8 @@ function countLabel(count: GlyphCount, i18n: GlyphLocalizer) {
 		return i18n.localize('Genesys.Glyphs.BlankFace');
 	}
 
-	// The language files give the forms `one` and `other`, which is all the languages they hold need.
-	const form = i18n.pluralRules.select(count.count) === 'one' ? 'one' : 'other';
-	return i18n.format(`${NAME_KEYS[count.name]}${form}`, { count: String(count.count) });
+	const keys = NAME_KEYS[count.name];
+	return i18n.format(i18n.pluralRules.select(count.count) === 'one' ? keys.one : keys.other, { count: String(count.count) });
 }
 
 /**
@@ -374,6 +374,18 @@ export function dieResultLabel(die: DieName, face: string, i18n: GlyphLocalizer)
 	return i18n.format('Genesys.Glyphs.DieResult', { die: i18n.localize(DIE_KEYS[die]), face: glyphLabel(face, i18n) });
 }
 
+// v13: Localization has no plural rules of its own; one is kept per language, as v14 keeps its own.
+const pluralRulesByLanguage = new Map<string, Intl.PluralRules>();
+
+function languagePluralRules(lang: string) {
+	let rules = pluralRulesByLanguage.get(lang);
+	if (!rules) {
+		rules = new Intl.PluralRules(lang);
+		pluralRulesByLanguage.set(lang, rules);
+	}
+	return rules;
+}
+
 /**
  * The localization functions of the user's language.
  */
@@ -381,11 +393,19 @@ export function worldGlyphLocalizer(): GlyphLocalizer {
 	return {
 		localize: (key) => game.i18n.localize(key),
 		format: (key, data) => game.i18n.format(key, data),
-		// v13: Localization has no plural rules of its own.
-		pluralRules: (game.i18n as { pluralRules?: Intl.PluralRules }).pluralRules ?? new Intl.PluralRules(game.i18n.lang),
-		// Foundry's narrow list separates every item with a comma in English and French, without a closing "and".
+		pluralRules: (game.i18n as { pluralRules?: Intl.PluralRules }).pluralRules ?? languagePluralRules(game.i18n.lang),
+		// Foundry's narrow list separates the items with commas, without the closing "and" of English and French (Spanish
+		// keeps its "y").
 		listFormatter: game.i18n.getListFormatter({ style: 'narrow' }),
 	};
+}
+
+/**
+ * The attributes, as HTML, of an element holding glyphs of dice, symbols and blank faces, labelled in the user's
+ * language.
+ */
+export function glyphLabelAttributesHTML(glyphs: string): string {
+	return glyphAttributesHTML(glyphLabel(glyphs, worldGlyphLocalizer()));
 }
 
 /**

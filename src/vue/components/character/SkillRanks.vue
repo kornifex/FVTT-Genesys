@@ -9,7 +9,9 @@ const props = defineProps<{
 }>();
 
 const abilityDice = computed(() => Math.abs(props.skillValue - props.characteristicValue));
-const proficiencyDice = computed(() => Math.min(props.skillValue, props.characteristicValue));
+// Neither value has a minimum: an Active Effect can lower a characteristic below 0, and a rank can be stored as -1. A
+// negative count shows no Proficiency die, as the row always did.
+const proficiencyDice = computed(() => Math.max(Math.min(props.skillValue, props.characteristicValue), 0));
 // The dice in words, in the order the row shows them: it lays them out from the right, so the Proficiency dice show
 // first, on the left.
 const glyphs = computed(() => DIE_GLYPHS.Proficiency.repeat(proficiencyDice.value) + DIE_GLYPHS.Ability.repeat(abilityDice.value));

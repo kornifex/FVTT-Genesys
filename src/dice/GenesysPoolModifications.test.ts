@@ -105,7 +105,7 @@ describe('poolModificationCounts', () => {
  * The localization of a language file, as Foundry formats it: each `{name}` of a template replaced by its argument, the
  * plural rules and the narrow list formatter of the language.
  */
-function localizer(lang: 'en' | 'fr'): GlyphLocalizer {
+function localizer(lang: 'en' | 'fr' | 'es'): GlyphLocalizer {
 	const tree = load(readFileSync(`yaml/lang/${lang}.yml`, 'utf8'));
 	const localize = (key: string) =>
 		key.split('.').reduce((node: unknown, part) => (node as Record<string, unknown>)[part], tree) as string;
@@ -145,6 +145,13 @@ describe('glyphLabel', () => {
 		);
 		expect(glyphLabel(ALL_SYMBOLS, fr)).toBe('1 triomphe, 1 succès, 1 avantage, 1 désastre, 1 échec, 1 menace');
 		expect(glyphLabel(ALL_SYMBOLS + ALL_SYMBOLS, fr)).toBe('2 triomphes, 2 succès, 2 avantages, 2 désastres, 2 échecs, 2 menaces');
+	});
+
+	it('names dice, symbols and operations in Spanish, its list closing with "y"', () => {
+		const es = localizer('es');
+
+		expect(glyphLabel('ssaP', es)).toBe('2 éxitos, 1 ventaja y 1 dado de pericia');
+		expect(poolModificationLabel(['^'], es)).toBe('Incrementar 1 dado de capacidad');
 	});
 
 	it('names a blank face', () => {

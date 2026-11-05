@@ -1,5 +1,5 @@
 import { dieOfDenomination } from '@/dice/DieTypes';
-import { dieResultLabel, glyphAttributesHTML, glyphLabel, worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
+import { dieResultLabel, glyphAttributesHTML, glyphLabelAttributesHTML, worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 
 /**
  * Register the Handlebars helpers the system's templates use.
@@ -36,11 +36,15 @@ export function register() {
 	});
 
 	// The attributes that label an element holding glyphs in words: `{{glyphAttributes 'ssa'}}`, or a die's result by its
-	// denomination, `{{glyphAttributes face die='a'}}`.
-	Handlebars.registerHelper('glyphAttributes', (glyphs: string | string[], options: { hash: { die?: string } }) => {
-		const i18n = worldGlyphLocalizer();
-		const text = Array.isArray(glyphs) ? glyphs.join('') : glyphs ?? '';
-		const die = options.hash.die && dieOfDenomination(options.hash.die);
-		return new Handlebars.SafeString(glyphAttributesHTML(die ? dieResultLabel(die, text, i18n) : glyphLabel(text, i18n)));
+	// denomination, `{{glyphAttributes face die='a'}}`. Without glyphs, as a value the context lacks, none: Handlebars then
+	// passes its options alone.
+	Handlebars.registerHelper('glyphAttributes', (...args: unknown[]) => {
+		const options = args.pop() as { hash: { die?: string } };
+		const [glyphs] = args;
+		const text = Array.isArray(glyphs) ? glyphs.join('') : typeof glyphs === 'string' ? glyphs : '';
+		const die = options.hash.die ? dieOfDenomination(options.hash.die) : undefined;
+		return new Handlebars.SafeString(
+			die ? glyphAttributesHTML(dieResultLabel(die, text, worldGlyphLocalizer())) : glyphLabelAttributesHTML(text),
+		);
 	});
 }

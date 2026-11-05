@@ -5,8 +5,8 @@ import { diceGlyphs, poolModificationIcons } from '@/dice/EnricherGlyphs';
 import {
 	DIE_GLYPHS,
 	glyphAttributes,
-	glyphAttributesHTML,
 	glyphLabel,
+	glyphLabelAttributesHTML,
 	PoolModGlyphPattern,
 	poolModificationLabel,
 	worldGlyphLocalizer,
@@ -115,9 +115,7 @@ const checkEnricher: Enricher = {
 		const anchor = checkAnchor(
 			game.i18n.format('Genesys.Enrichers.Difficulty', {
 				difficulty: game.i18n.localize(label),
-				symbols: difficultyIcons
-					? `<span ${glyphAttributesHTML(glyphLabel(difficultyGlyphs, worldGlyphLocalizer()))}>${difficultyIcons}</span>`
-					: '—',
+				symbols: difficultyIcons ? `<span ${glyphLabelAttributesHTML(difficultyGlyphs)}>${difficultyIcons}</span>` : '—',
 				skill,
 			}),
 		);
