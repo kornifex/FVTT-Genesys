@@ -21,6 +21,20 @@ type TrackerRow = {
 };
 
 /**
+ * The header of a client's Combat Tracker.
+ */
+type TrackerHeader = {
+	/** The encounter's name above the round, which v14 shows. */
+	encounterName: string | null;
+	/** The labels of the GM's combat tabs, which v14 takes from the encounter's name. */
+	tabLabels: (string | null)[];
+	/** The GM's button that adds an Extra Slot. */
+	extraSlotButton: { label: string | null; tooltip: string | undefined; disabled: boolean } | null;
+	/** How many buttons or spacers stand on each side of the round, which they keep centred when even. */
+	controls: { left: number; right: number };
+};
+
+/**
  * A chat message a client saw created.
  */
 type RecordedMessage = {
@@ -63,6 +77,9 @@ type CombatHelpers = {
 	restoreQueries?: () => void;
 	reset(): void;
 	rows(): TrackerRow[];
+	header(): TrackerHeader;
+	/** Clicks a button of the tracker's header, by its action. */
+	clickHeader(action: string): void;
 	stored(): StoredCombat;
 	/** Controls a combatant's token, alone. */
 	control(combatant: string): void;
@@ -145,6 +162,11 @@ function installCombatHelpers() {
 		if (!li) throw new Error(`No tracker row for ${slot}`);
 		return li;
 	};
+	const trackerHeader = () => {
+		const header = document.querySelector<HTMLElement>('#combat .combat-tracker-header');
+		if (!header) throw new Error('No tracker header');
+		return header;
+	};
 	// v13: core's reroll entry has another key, and an entry names its fields `name`, `condition` and `callback`, which v14
 	// renamed `label`, `visible` and `onClick` and reads first. The page can't import the system's types, so the shape is
 	// declared again here.
@@ -203,6 +225,30 @@ function installCombatHelpers() {
 				skill: li.querySelector('.initiative-skill')?.textContent?.trim() ?? null,
 				canRoll: !!li.querySelector('.combatant-control.roll'),
 			}));
+		},
+
+		header() {
+			const header = trackerHeader();
+			const button = header.querySelector<HTMLButtonElement>('[data-action="addInitiativeSlot"]');
+			const controls = (side: string) => header.querySelectorAll(`.encounter-controls .control-buttons.${side} > *`).length;
+			return {
+				encounterName: header.querySelector('.encounter-name')?.textContent?.trim() ?? null,
+				tabLabels: [...header.querySelectorAll('.encounters [data-action="cycleCombat"]')].map((tab) =>
+					tab.getAttribute('aria-label'),
+				),
+				extraSlotButton: button && {
+					label: button.getAttribute('aria-label'),
+					tooltip: button.dataset.tooltip,
+					disabled: button.disabled,
+				},
+				controls: { left: controls('left'), right: controls('right') },
+			};
+		},
+
+		clickHeader(action) {
+			const button = trackerHeader().querySelector<HTMLElement>(`[data-action="${action}"]`);
+			if (!button) throw new Error(`No ${action} button in the tracker's header`);
+			button.click();
 		},
 
 		stored() {
@@ -488,6 +534,7 @@ export async function run(e2e: ScenarioContext) {
 		Object.fromEntries(Object.entries(initiatives).map(([name, initiative]) => [name, initiative !== null]));
 
 	await e2e.part('trackerClass', trackerClass);
+	await e2e.part('header', header);
 	await e2e.part('extraSlotKeepsTurn', extraSlotKeepsTurn);
 	await e2e.part('expiredEffects', expiredEffects);
 	await e2e.part('firstSlotTurnNumbers', firstSlotTurnNumbers);
@@ -525,6 +572,54 @@ export async function run(e2e: ScenarioContext) {
 			className: 'GenesysCombatTracker',
 			hooks: ['renderCombatTracker', 'renderGenesysCombatTracker'],
 		});
+	}
+
+	/** §#417: the tracker keeps core's header, in which the GM's button adds an Extra Slot for the controlled token. */
+	async function header() {
+		await setUp({ Hero: 1, Boss: 2 }, { turnOn: 'Boss:-1' });
+		// v13: an encounter has no name, and the update leaves it out.
+		await e2e.step('#417 GM names the encounter', () => gm.evaluate(() => game.combat.update({ name: 'E2E Ambush' })));
+		const name = e2e.version >= 14 ? 'E2E Ambush' : null;
+		const extraSlotButton = {
+			label: await gm.evaluate(() => game.i18n.localize('Genesys.Tooltips.AddExtraInitiativeSlot')),
+			tooltip: 'Genesys.Tooltips.AddExtraInitiativeSlot',
+			disabled: false,
+		};
+		const gmHeader = { encounterName: name, tabLabels: [name], extraSlotButton, controls: { left: 3, right: 3 } };
+
+		e2e.expect(
+			"#417 A1 the GM's header shows the encounter's name on v14, and the button for an Extra Slot",
+			await gm.evaluate(() => window.combatE2E.header()),
+			gmHeader,
+		);
+		e2e.expect(
+			"#417 A2 the player's header shows the encounter's name on v14, and no button for an Extra Slot",
+			await player.evaluate(() => window.combatE2E.header()),
+			{ encounterName: name, tabLabels: [], extraSlotButton: null, controls: { left: 2, right: 2 } },
+		);
+
+		const added = await e2e.step("#417 A3 GM controls Hero's token and clicks the header's button for an Extra Slot", () =>
+			gm.evaluate(async () => {
+				window.combatE2E.control('Hero');
+				window.combatE2E.clickHeader('addInitiativeSlot');
+				await window.e2e.waitFor('the Extra Slot', () => game.combat.storedExtraSlots.length > 0);
+			}),
+		);
+		e2e.expect(
+			'#417 A3 the button adds an Extra Slot for Hero, which every tracker lists, and the redrawn header keeps one button',
+			{
+				notifications: notifications(added, gm.user),
+				extraSlots: (await stored()).extraSlots,
+				rows: Object.fromEntries(Object.entries(await rows()).map(([user, list]) => [user, list.map((row) => row.slot)])),
+				header: await gm.evaluate(() => window.combatE2E.header()),
+			},
+			{
+				notifications: [],
+				extraSlots: ['Hero@1=null'],
+				rows: bothClients(['Boss:-1', 'Hero:-1', 'Hero:0']),
+				header: gmHeader,
+			},
+		);
 	}
 
 	/** §#57, from `extraSlotKeepsTurn.ts` (#54): adding an Extra Slot keeps the turn on its slot, with no turn events. */
