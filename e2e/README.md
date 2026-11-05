@@ -24,13 +24,14 @@ E2E_CHROMIUM=/path/to/chrome-headless-shell  # default: Playwright's download (p
 E2E_ANGLE=vulkan                             # draws on the GPU (vulkan or gl-egl); default: SwiftShader, on the CPU (Canvas)
 E2E_GM_USER=Gamemaster                       # a GM user without password
 E2E_PLAYER_USER=Player                       # created by the GM when the world lacks it
-E2E_PORT=30100                               # the first version's port; each further version takes the next one
+E2E_PORT=30100                               # the port of the pool's first launch; launch i takes E2E_PORT + i
+E2E_LAUNCHES=8                               # the Foundry launches that run at once (--launches wins)
 E2E_WORK_DIR=/tmp/genesys-e2e                # default: genesys-e2e in the system's temp dir
 ```
 
 Node versions: Foundry v13 needs Node 22, v14 Node 24. Any version given as `E2E_V<n>_*` can run; without a v14 install, pass `--versions 13`.
 
-The harness only reads the data dirs: each run copies the licence and the world into `E2E_WORK_DIR/runs/`. The world needs a scene, or the first combat setup creates one.
+The harness only reads the data dirs: each launch copies the licence and the world into `E2E_WORK_DIR/runs/launch-<i>/`. The world needs a scene, or the first combat setup creates one. Several Foundry servers run on one licence at once, which its terms allow while only the licence owner reaches them.
 
 ## Running
 
@@ -41,18 +42,31 @@ pnpm e2e e2e/scenarios/combat.ts --part claims,noGM           # only those parts
 pnpm e2e e2e/scenarios/combat.ts --compare origin/main        # also on origin/main's build, then the differing steps
 pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14 only
 pnpm e2e e2e/scenarios/combat.ts --verbose                    # prints every step's value, as the saved step logs hold them
+pnpm e2e:all --launches 1                                     # the slices one after the other, on one launch
 ```
 
--   `pnpm e2e` takes scenario files and folders, a folder standing for its `.ts` files. Foundry is launched once per version and build: the scenarios run one after the other on the same world, each with newly joined clients and from its own setup. A scenario exporting `isolated = true` gets its own fresh world and launch, after the others.
+-   `pnpm e2e` takes scenario files and folders, a folder standing for its `.ts` files, and runs them on a [pool of launches](#the-pool-of-launches): every version and build at once, a long scenario split into slices of its parts. Each scenario runs with newly joined clients and from its own setup, on a world other scenarios may have run on before. A scenario exporting `isolated = true` gets a fresh world of its own.
 -   `--part a,b` runs only the [parts](#parts) given, of a single scenario file: its setup and the steps outside parts run, the other parts are skipped. The run fails at the end of the scenario when a name given met no part, its message listing the parts the scenario has.
 -   `--compare <ref>` builds the ref once per commit, from `git archive`, in `E2E_WORK_DIR/builds/`. Compare against `origin/main`: a local `main` may lag behind.
 -   The ref's step logs are cached per part in `E2E_WORK_DIR/baselines/<commit>/v<version>/<scenario>/<hash>.json`, the hash covering the scenario file and every `e2e/*.ts` but the unit tests: a comparison runs the ref only for the parts its cache lacks, and launches nothing for it, nor builds it, when the cache holds them all, so a whole run fills the cache for every `--part` run after it. The run says which parts came from the cache, and its summary marks a build whose steps did. Editing the scenario or the harness starts a new cache; a run an error stopped is never cached; `--fresh` ignores the cache and overwrites it with this run's parts alone. The differing steps are those outside parts and those of the parts both builds ran.
 -   Each step prints as `[v13 head] <step>`, `[v13 head <scenario>] …` when several scenarios run. A passed assertion ends with `✓`; a value of up to 120 characters (an `e2e.log`) prints in full; a longer one (a combat state) prints only the client errors it holds, which fail no assertion. A failed step starts with `FAILED` and prints its value and the value expected. `--verbose` prints every value. The step logs are saved in full as JSON in `E2E_WORK_DIR/results/<scenario>/`, each launch's `server.log` in `E2E_WORK_DIR/runs/`.
 -   A launch stops at once when Foundry refuses the world, as when the system's `compatibility` excludes that version. A client's join stops when the system didn't load, as when its module throws on a global that version removed: its message quotes the page's first error.
--   The run ends with a summary per version and build: its assertion count, each scenario's time (with `--part` or `--verbose`, each part's, and the time outside parts), then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step). The times add up the steps' `ms`, which the step logs hold with each step's `part`.
+-   The run ends with a summary per version and build: its assertion count, each scenario's time (with `--part` or `--verbose`, each part's, and the time outside parts), then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step). The times add up the steps' `ms`, which the step logs hold with each step's `part`, so a scenario's time is the work it took on all its slices. The run's wall time comes last.
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
--   The versions run at once, each on its own port and data dir; the builds of one version run one after the other. Each line of the output names its version, and the summary comes once all are done.
 -   The build compiles the packs to LevelDB, which every version reads. A ref older than that (#248) shipped a NeDB pack, which Foundry v13 and later can't read, so it can't be compared.
+
+### The pool of launches
+
+A run hands its work to a pool of `--launches` Foundry launches (`E2E_LAUNCHES`, 8 by default), shared by every version and build, those of a `--compare` included. Each launch takes about 1.4 GB of memory at its peak (its Foundry server and its pages) and little CPU: memory bounds the pool. One headless Chromium serves them all.
+
+-   Launch `i` listens on `E2E_PORT + i`, with its data dir in `E2E_WORK_DIR/runs/launch-<i>/`. The run refuses to start, naming the port, when one of them already listens, as a server a stopped run left does: stop it, or set `E2E_PORT` to a free range.
+-   The pool takes slices: a scenario's setup and a range of the parts the run selects, in their order, as `--part` runs them. A scenario longer than its share of the work (the run's estimated work divided by the launches, never below its longest part) splits into ranges balanced on the parts' durations; the last range runs to the scenario's last part, so that a part added since the previous run runs too. The other scenarios make one slice each, and an isolated scenario is always one slice, on a fresh world. Slices are handed out longest first.
+-   The durations come from the `ms` of the step log the same scenario, version and build left in `E2E_WORK_DIR/results/` last time: a selected part that log lacks counts as the scenario's mean part, a scenario without one as the other scenarios' mean. They only size and order the slices, never decide an outcome.
+-   A launch keeps its Foundry server and world while its next slice runs on the same version and build, as scenarios share a world. It starts a fresh copy of the world for another version or build, for an isolated scenario, and after a slice an error stopped.
+-   A scenario's step log is put back together in the order of its parts, whatever order its slices finished in: each part's steps from the slice that ran it, and the steps outside parts once, from the slice of its first part, each after the part it followed (a step outside parts records it as `afterPart`). A check outside parts that failed in another slice, as one that no compatibility warning was logged, takes the place of the first slice's. The comparison, the cache and the checklists' step links read the log as before.
+-   A launch that fails to start, or an error that stops a slice, fails only that slice's parts with a `FATAL` step; the scenario's other slices are kept, and the pool goes on.
+-   Each line of the output names its version and build, and its scenario when several run; the lines of the launches interleave, and the summary comes once all are done.
+-   `--launches 1` runs every scenario whole, one after the other: the sequential reference.
 
 ## The suite
 

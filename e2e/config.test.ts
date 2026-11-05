@@ -29,7 +29,6 @@ describe('readConfig', () => {
 				foundry: '/foundry-13/main.js',
 				data: '/foundrydata-13',
 				world: 'genesys-248',
-				port: 30100,
 			},
 			{
 				version: 14,
@@ -37,7 +36,6 @@ describe('readConfig', () => {
 				foundry: '/foundry-14/main.js',
 				data: '/foundrydata-14',
 				world: 'genesys-14',
-				port: 30101,
 			},
 		]);
 	});
@@ -59,6 +57,8 @@ describe('readConfig', () => {
 			workDir: path.join(os.tmpdir(), 'genesys-e2e'),
 			gmUser: 'Gamemaster',
 			playerUser: 'Player',
+			port: 30100,
+			launches: 8,
 		});
 	});
 
@@ -71,6 +71,8 @@ describe('readConfig', () => {
 				E2E_WORK_DIR: '/scratch/e2e',
 				E2E_GM_USER: 'MJ',
 				E2E_PLAYER_USER: 'Joueur',
+				E2E_PORT: '30012',
+				E2E_LAUNCHES: '3',
 			},
 			[13],
 		);
@@ -81,14 +83,19 @@ describe('readConfig', () => {
 			workDir: '/scratch/e2e',
 			gmUser: 'MJ',
 			playerUser: 'Joueur',
+			port: 30012,
+			launches: 3,
 		});
 	});
 
-	it('gives each version its own port, from E2E_PORT on, so that they run at once', () => {
-		const ports = (env: Record<string, string>) => readConfig(env, [13, 14]).installs.map((install) => install.port);
+	it('takes the launches given on the command line over E2E_LAUNCHES', () => {
+		expect(readConfig({ ...v13, E2E_LAUNCHES: '3' }, [13], { launches: '1' }).launches).toBe(1);
+	});
 
-		expect(ports({ ...v13, ...v14 })).toEqual([30100, 30101]);
-		expect(ports({ ...v13, ...v14, E2E_PORT: '30012' })).toEqual([30012, 30013]);
+	it.each(['0', '-2', '1.5', 'eight'])('refuses %s launches', (launches) => {
+		expect(() => readConfig({ ...v13, E2E_LAUNCHES: launches }, [13])).toThrow(
+			`The launches (--launches or E2E_LAUNCHES) are a whole number from 1, not ${launches}.`,
+		);
 	});
 
 	it('ignores the versions not requested', () => {
