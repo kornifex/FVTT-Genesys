@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertionStep, diffSteps, failsRun, fatalStep, partSelection, runSummary, stepLine } from './steps.ts';
+import { assertionStep, diffSteps, failsRun, fatalStep, lateErrorsStep, partSelection, runSummary, stepLine } from './steps.ts';
 
 describe('partSelection', () => {
 	it('runs every part when no part is given', () => {
@@ -142,6 +142,21 @@ describe('assertionStep', () => {
 
 	it('fails on a number given as a string', () => {
 		expect(assertionStep('wounds', '3', 3).failed).toBe(true);
+	});
+});
+
+describe('lateErrorsStep', () => {
+	it("logs the errors a part gave after its last step in an entry named after the part, under each user's key", () => {
+		const errors = { 'Gamemaster errors': ['You need to select no tokens, or a single token.'] };
+
+		expect(lateErrorsStep('diceRoller', errors)).toEqual({
+			name: 'diceRoller: errors after its last step',
+			value: { 'Gamemaster errors': ['You need to select no tokens, or a single token.'] },
+		});
+	});
+
+	it('logs no entry for a part that gave no error after its last step', () => {
+		expect(lateErrorsStep('diceRoller', {})).toBeUndefined();
 	});
 });
 

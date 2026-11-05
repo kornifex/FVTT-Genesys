@@ -130,9 +130,9 @@ export async function run(e2e: ScenarioContext) {
 
 -   A part is named after its function, and its name is unique in its scenario: a part met twice stops the scenario. Parts don't nest.
 -   A part depends on no other: it sets up what it needs on top of the scenario's setup, and passes when it runs alone (`--part <name>`). Sections that need the state another left are one part with it.
--   A part starts with the clients' recorded turn events and notifications cleared, so that its first step logs the same alone and after other parts.
+-   A part starts with the clients' recorded turn events and notifications cleared, and ends by logging the client errors its work gave after its last step (an `expect` checking a refusal), when there are any, in an entry of its own: `<part>: errors after its last step`, under the `<user> errors` keys of a step's value. So its first step logs the same alone and after other parts.
 -   A part is met on every version, so that `--part` finds it on both: a section for one version only checks `e2e.version` inside its part.
--   The steps a part logs carry its name in the step log (`part`), and each step its duration (`ms`: from the previous step's log, or its part's start, to its own log; a part's last step also counts the part's work after it, so that its steps add up to its time). A scenario's time leaves out its work after its last step (its `finally`). Step names stay unique across the whole scenario, so that the checklists' links hold.
+-   The steps a part logs carry its name in the step log (`part`), and each step its duration (`ms`: from the previous step's log, or its part's start, to its own log; a part's last step also counts the part's work after it, or its late errors' entry does when there is one, so that its steps add up to its time). A scenario's time leaves out its work after its last step (its `finally`). Step names stay unique across the whole scenario, so that the checklists' links hold.
 
 ## How steps wait
 
