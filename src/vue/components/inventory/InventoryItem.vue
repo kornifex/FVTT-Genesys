@@ -29,6 +29,7 @@ import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
 
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -258,11 +259,11 @@ function openMenu(event: MouseEvent) {
 		<img :src="item.img ?? undefined" :alt="item.name" />
 
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
-			<a @click="openSheet(item)">{{ item.name }}</a>
+			<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 		</span>
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
-				<a @click="openSheet(item)">{{ item.name }}</a>
+				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 				<button
 					class="attack"
 					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
@@ -306,42 +307,49 @@ function openMenu(event: MouseEvent) {
 				</template>
 
 				<template v-else-if="item.type === 'container'">
-					<a v-if="displayContainerContents" @click="displayContainerContents = false"
-						><i class="fas fa-box-open"></i> <Localized label="Genesys.Labels.CloseContainer"
-					/></a>
-					<a v-else @click="displayContainerContents = true">
-						<i class="fas fa-box"></i>
+					<ActionButton v-if="displayContainerContents" icon="fas fa-box-open" expanded @click="displayContainerContents = false"
+						><Localized label="Genesys.Labels.CloseContainer"
+					/></ActionButton>
+					<ActionButton
+						v-else
+						icon="fas fa-box"
+						label="Genesys.Labels.OpenContainer"
+						:expanded="false"
+						@click="displayContainerContents = true"
+					>
 						{{ containedItems.length }}
 						<Localized label="Genesys.Labels.Items" v-if="containedItems.length !== 1" />
 						<Localized label="Genesys.Labels.Item" v-else />
-					</a>
+					</ActionButton>
 				</template>
 			</div>
 		</div>
 
-		<a
+		<!-- The steppers check no editable sheet: #580 makes them counters, which do. -->
+		<ActionButton
 			v-if="item.type !== 'container'"
 			class="quantity"
+			label="Genesys.Labels.Quantity"
 			@click="step('quantity', 1)"
 			@contextmenu.prevent.stop="step('quantity', -1)"
-			data-tooltip="Genesys.Labels.Quantity"
 		>
 			{{ item.system.quantity }}
 			<i class="fas fa-suitcase"></i>
-		</a>
+		</ActionButton>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
 			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
 		</div>
 
-		<a
+		<ActionButton
 			class="damage"
+			:label="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 			@click="step('damage', 1)"
 			@contextmenu.prevent.stop="step('damage', -1)"
-			:data-tooltip="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 		>
-			<i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i>
-		</a>
+			<!-- In the icon slot, for the row's rule on its icons to reach it. -->
+			<template #icon><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i></template>
+		</ActionButton>
 
 		<ContextMenu ref="menu" class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
@@ -362,6 +370,7 @@ function openMenu(event: MouseEvent) {
 				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem(item)" />
 			</template>
 
+			<!-- eslint-disable-next-line vuejs-accessibility/anchor-has-content -- #576 makes the menu's trigger a named button. -->
 			<a>
 				<i class="fas fa-ellipsis-vertical"></i>
 			</a>

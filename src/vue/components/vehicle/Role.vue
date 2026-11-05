@@ -2,6 +2,7 @@
 import { shallowRef, watch } from 'vue';
 
 import type { Stored } from '@/data/Stored';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -77,7 +78,7 @@ function drop(event: DragEvent, memberUnder?: string) {
 			<div class="role-name">
 				<label><Localized label="Genesys.Labels.Name" /></label>
 				<input type="text" :value="name" @change="emit('updateName', ($event.target as HTMLInputElement).value)" />
-				<a @click="emit('delete')"><i class="fas fa-trash"></i></a>
+				<ActionButton icon="fas fa-trash" label="Genesys.Labels.DeleteRole" edits @click="emit('delete')" />
 			</div>
 			<div class="underline" />
 

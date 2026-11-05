@@ -9,6 +9,7 @@ import { DEFENSE_LABELS } from '@/data/Actors';
 import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { useSheetContext } from '@/vue/SheetContext';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
@@ -349,19 +350,28 @@ async function onRoll() {
 
 		<div class="preview">
 			<div v-for="category in DIE_CATEGORIES" :key="category" :class="category">
-				<div
+				<!-- The glyph draws the die: the button is named by its label. -->
+				<ActionButton
 					v-for="(entry, index) in poolEntries(currentDicePool, category)"
 					:key="index"
-					@click="addManualChange(removalGlyph(entry.glyph))"
+					:label="entry.kind === 'die' ? 'Genesys.DicePrompt.RemoveDie' : 'Genesys.DicePrompt.RemoveSymbol'"
 					:class="entry.kind === 'die' ? `die die-${entry.name}` : 'symbol'"
+					@click="addManualChange(removalGlyph(entry.glyph))"
 				>
-					{{ entry.glyph }}
-				</div>
+					<template #icon>{{ entry.glyph }}</template>
+				</ActionButton>
 			</div>
 
 			<div class="dice-box">
 				<template v-for="(row, index) in DICE_BOX" :key="index">
-					<PoolModificationIcon v-for="glyph in row" :key="glyph" :glyph @click="addManualChange(glyph)" />
+					<ActionButton
+						v-for="glyph in row"
+						:key="glyph"
+						label="Genesys.DicePrompt.PoolModifications.Add"
+						@click="addManualChange(glyph)"
+					>
+						<template #icon><PoolModificationIcon :glyph /></template>
+					</ActionButton>
 					<span v-if="row.length < 3" />
 				</template>
 			</div>
@@ -397,10 +407,14 @@ async function onRoll() {
 			<label><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
 		</div>
 
-		<div class="pool-modifications-title" @click="showPoolModifications = !showPoolModifications">
+		<ActionButton
+			class="pool-modifications-title"
+			:expanded="showPoolModifications"
+			@click="showPoolModifications = !showPoolModifications"
+		>
 			<i :class="`fas fa-caret-${showPoolModifications ? 'down' : 'right'}`"></i>
 			<span><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></span>
-		</div>
+		</ActionButton>
 
 		<div :class="{ 'pool-modifications-expander': true, 'pool-modifications-expanded': showPoolModifications }">
 			<div class="pool-modifications-container">
@@ -428,7 +442,7 @@ async function onRoll() {
 					<span>
 						<!-- The label names no input: a click on the name opens its source, the checkbox alone turns it on. -->
 						<!-- prettier-ignore -->
-						<label>{{ effect.origin }}<a v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></a><template v-else>{{ effect.name }}</template></label>
+						<label>{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></label>
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
@@ -438,12 +452,14 @@ async function onRoll() {
 				<div class="pool-modifications-manual">
 					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
 					<div>
-						<PoolModificationIcon
+						<ActionButton
 							v-for="(modification, index) in manualChanges"
 							:key="index"
-							:glyph="modification"
+							label="Genesys.DicePrompt.PoolModifications.Remove"
 							@click="removeManualChange(index)"
-						/>
+						>
+							<template #icon><PoolModificationIcon :glyph="modification" /></template>
+						</ActionButton>
 					</div>
 				</div>
 			</div>
@@ -575,6 +591,9 @@ $difficulty-die-scale: 1.4;
 		font-family: 'Bebas Neue', sans-serif;
 		font-size: $title-font-size;
 		margin-bottom: -0.5em;
+		// A button takes its content's width, where the row it replaced filled the prompt's.
+		width: 100%;
+		text-align: start;
 
 		// `caret-right` and `caret-down` are not as wide: centred, they turn on one axis.
 		i {
@@ -626,7 +645,7 @@ $difficulty-die-scale: 1.4;
 			}
 		}
 
-		a {
+		.pool-modification {
 			display: inline-flex;
 			flex-direction: row;
 			flex-wrap: nowrap;
@@ -684,17 +703,22 @@ $difficulty-die-scale: 1.4;
 			}
 		}
 
+		// A manual change is a button holding its glyph: the button is lowered, as the glyph is elsewhere, and its box
+		// stays no taller than the glyph.
+		.pool-modifications-manual .action-button {
+			vertical-align: onto-capitals(1);
+			line-height: 1;
+
+			.pool-modification {
+				vertical-align: baseline;
+			}
+		}
+
 		:deep(i) {
 			color: black;
 			position: relative;
 			font-size: 0.5em;
 			top: -0.25em;
-		}
-
-		.pool-modifications-manual {
-			a {
-				cursor: pointer;
-			}
 		}
 
 		// Five dice in a row, as many lit as the level has Difficulty dice (§#469).
@@ -759,7 +783,7 @@ $difficulty-die-scale: 1.4;
 
 			// The name of what a Pool Modification comes from, as plain text that opens it; not the glyph of a Pool
 			// Modification, which the rules above style.
-			a.source-link {
+			.source-link {
 				display: inline;
 				margin: 0;
 				font-family: inherit;
@@ -858,7 +882,7 @@ $difficulty-die-scale: 1.4;
 			display: grid;
 			grid-template-columns: repeat(3, auto);
 
-			a {
+			.pool-modification {
 				display: inline-flex;
 				flex-direction: row;
 				flex-wrap: nowrap;

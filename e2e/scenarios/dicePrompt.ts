@@ -312,7 +312,7 @@ function installDicePromptHelpers() {
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
 				name: text(row.querySelector('label')),
 				enabled: row.querySelector('input')!.checked,
-				mods: [...row.querySelectorAll(':scope > div > a')].map((mod) => poolModification(mod)).join(' '),
+				mods: [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' '),
 			})),
 			chance: chance ? (chance.querySelector('.fa-spinner') ? 'spinner' : text(chance.querySelector('span'))) : null,
 		};
@@ -691,7 +691,7 @@ function installDicePromptHelpers() {
 
 		promptSourceLinks() {
 			return [...htmlOf(thePrompt())!.querySelectorAll('.pool-modifications-effects')].map((row) => {
-				const link = row.querySelector<HTMLElement>('label a');
+				const link = row.querySelector<HTMLElement>('label button');
 				return {
 					name: text(row.querySelector('label')),
 					link: link && {
@@ -708,7 +708,7 @@ function installDicePromptHelpers() {
 			const row = [...htmlOf(thePrompt())!.querySelectorAll('.pool-modifications-effects')].find((candidate) =>
 				text(candidate.querySelector('label')).includes(name),
 			);
-			const link = row?.querySelector<HTMLElement>('label a');
+			const link = row?.querySelector<HTMLElement>('label button');
 			if (!row) throw new Error(`No Pool Modification ${name}`);
 			if (!link) return null;
 			type Sheet = { id: string; rendered: boolean; document?: { documentName: string; name: string } };
@@ -745,7 +745,7 @@ function installDicePromptHelpers() {
 				transition: `${style.transitionProperty} ${style.transitionDuration} ${style.transitionTimingFunction}`,
 				height: height > 0 && whole ? 'whole' : Math.round(height),
 				visibility: getComputedStyle(container).visibility,
-				modifications: !!container.querySelector('a[data-pool-entity]'),
+				modifications: !!container.querySelector('[data-pool-entity]'),
 			};
 		},
 
@@ -763,7 +763,7 @@ function installDicePromptHelpers() {
 
 		async promptAdd(keys) {
 			const root = htmlOf(thePrompt())!;
-			const buttons = [...root.querySelectorAll('.dice-box a')];
+			const buttons = [...root.querySelectorAll('.dice-box button')];
 			for (const key of keys) {
 				const button = buttons.find((candidate) => poolModification(candidate) === key);
 				if (!button) throw new Error(`No dice box button ${key}`);
@@ -796,7 +796,7 @@ function installDicePromptHelpers() {
 			const root = htmlOf(thePrompt())!;
 			const row = root.querySelector('.pool-modifications-difficulty')!;
 			const mods = (row: Element | null) =>
-				[...(row?.querySelectorAll(':scope > div > a') ?? [])].map((mod) => poolModification(mod)).join(' ');
+				[...(row?.querySelectorAll(':scope > div > button') ?? [])].map((mod) => poolModification(mod)).join(' ');
 			return {
 				rows: [...root.querySelectorAll('.pool-modifications-container > div:not(.pool-modifications-effects) > span')].map(
 					(label) => text(label),
@@ -821,7 +821,7 @@ function installDicePromptHelpers() {
 
 		async removePromptManualChange(index) {
 			const root = htmlOf(thePrompt())!;
-			root.querySelectorAll<HTMLElement>('.pool-modifications-manual > div > a')[index].click();
+			root.querySelectorAll<HTMLElement>('.pool-modifications-manual > div > button')[index].click();
 			await settle();
 			return { pool: poolPreview(root), difficulty: window.dicePromptE2E.promptDifficulty() };
 		},
@@ -895,7 +895,7 @@ function installDicePromptHelpers() {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
 				return {
 					name: text(row.querySelector('.name')),
-					link: !!row.querySelector('.name a'),
+					link: !!row.querySelector('.name button:not(.description-toggle)'),
 					skill: withSelect(row.querySelector('.skill')),
 					choices: select ? [...select.options].map(text) : null,
 				};
@@ -908,7 +908,8 @@ function installDicePromptHelpers() {
 			return [...root.querySelectorAll('.adversary-items .weapon')].map((row) => {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
 				return {
-					text: withSelect(row.querySelector(':scope > a')),
+					// The attack button and the details after it, the Attack Skill's select among them.
+					text: withSelect(row),
 					choices: select ? [...select.options].map(text) : null,
 				};
 			});
@@ -920,7 +921,7 @@ function installDicePromptHelpers() {
 			return [...root.querySelectorAll('.inventory-item')]
 				.filter((row) => row.querySelector('[data-item-type=weapon]'))
 				.map((row) => ({
-					name: text(row.querySelector('.name a')),
+					name: text(row.querySelector('.name button')),
 					attack: !!row.querySelector('button.attack'),
 					skill: text(row.querySelector('[data-item-type=weapon] > div')),
 				}));
@@ -1113,14 +1114,14 @@ function installDicePromptHelpers() {
 			return {
 				setting: game.settings.get('genesys', 'storyPoints'),
 				shown: trackers.map((tracker) => text(tracker.querySelector('.points'))),
-				spendable: trackers.map((tracker) => tracker.querySelector('.points')?.tagName === 'A'),
+				spendable: trackers.map((tracker) => tracker.querySelector('.points')?.tagName === 'BUTTON'),
 			};
 		},
 
 		async clickStoryPoints(which) {
 			const trackers = [...document.querySelectorAll('#story-point-tracker .pool')];
 			const target =
-				which === 'reset' ? trackers[0].querySelector('header a') : trackers[which === 'gm' ? 0 : 1].querySelector('.points');
+				which === 'reset' ? trackers[0].querySelector('header button') : trackers[which === 'gm' ? 0 : 1].querySelector('.points');
 			const before = JSON.stringify(game.settings.get('genesys', 'storyPoints'));
 			(target as HTMLElement).click();
 			// A player's point is spent by the GM's client, then every tracker renders again: wait for the pools to change,
@@ -1364,10 +1365,10 @@ export async function run(e2e: ScenarioContext) {
 	const target = (name: string | null) => gm.evaluate((name) => window.e2e.target(name), name);
 	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
 	const ada = { actor: 'Ada' };
-	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill a.name|${skill} (`);
+	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.name|${skill} (`);
 	const characteristicRoll = (index: number, doc: Doc = ada) =>
-		click(gm, doc, `.tab-skills .characteristics-row .characteristic-field:nth-child(${index}) label a`);
-	const attack = (weapon: string) => click(gm, ada, `.tab-combat .weapon .name a|E2E ${weapon}`);
+		click(gm, doc, `.tab-skills .characteristics-row .characteristic-field:nth-child(${index}) label button`);
+	const attack = (weapon: string) => click(gm, ada, `.tab-combat .weapon .name button|E2E ${weapon}`);
 	const rows = (state: PromptState) => state.modifications;
 	const named = (state: PromptState, prefix: string) => state.modifications.filter(({ name }) => name.startsWith(prefix));
 	const journal = { journal: 'Links' };
@@ -1380,7 +1381,10 @@ export async function run(e2e: ScenarioContext) {
 		return { actor: state.actor, skill: state.skill, pool: state.pool };
 	};
 	const seekerCheck = (client: Client) =>
-		opened(client, click(client, { actor: 'Seeker' }, '.tab-skills .characteristics-row .characteristic-field:nth-child(3) label a'));
+		opened(
+			client,
+			click(client, { actor: 'Seeker' }, '.tab-skills .characteristics-row .characteristic-field:nth-child(3) label button'),
+		);
 
 	// Each part starts from the setup, whatever the parts before it changed, so that it runs the same alone as after them:
 	// no target, no token controlled, no window open, the settings and documents of the setup.
@@ -1790,7 +1794,7 @@ export async function run(e2e: ScenarioContext) {
 				value: 'Ranged',
 			}),
 		);
-		const knife = await opened(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a'));
+		const knife = await opened(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > .weapon-attack'));
 		e2e.expect(
 			"#196 D10 the rival's knife attacks with the chosen Ranged",
 			{ stored: await attackSkill({ actor: 'Rival', item: 'Knife' }), actor: knife.actor, skill: knife.skill },
@@ -1799,7 +1803,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#49 D11 a rival's weapon without skill doesn't roll, and its menu has no check",
 			{
-				click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> :scope > a')),
+				click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> :scope > .weapon-attack')),
 				twig: await gm.evaluate(() =>
 					window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Twig' }),
 				),
@@ -1818,7 +1822,7 @@ export async function run(e2e: ScenarioContext) {
 			),
 			[],
 		);
-		const cannon = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
+		const cannon = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name button|E2E Cannon'));
 		e2e.expect(
 			"#196 D13 a vehicle weapon's attack is rolled by its crew member, with no weapon group",
 			{ actor: cannon.actor, skill: cannon.skill, groups: Object.keys(cannon.skills ?? {}) },
@@ -1829,7 +1833,7 @@ export async function run(e2e: ScenarioContext) {
 			await gm.evaluate(() => window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-skills .member-skill' })),
 			['Gunnery (Ag)0', 'Ranged (light) (Ag)2'],
 		);
-		const byMember = await opened(gm, click(gm, skiff, '.tab-skills .member-skill a.skill-name|Ranged'));
+		const byMember = await opened(gm, click(gm, skiff, '.tab-skills .member-skill button.skill-name|Ranged'));
 		await gm.evaluate(() =>
 			window.dicePromptE2E.change({ doc: { actor: 'Skiff' }, path: '.tab-skills .grouping-mode select', value: 'skill' }),
 		);
@@ -1838,11 +1842,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const bySkill = await opened(
 			gm,
-			click(
-				gm,
-				skiff,
-				'.tab-skills .skills-container section|Ranged >> .skill-content-details >> a:not(.skill-content-details-charName)',
-			),
+			click(gm, skiff, '.tab-skills .skills-container section|Ranged >> .skill-content-details >> .skill-content-details-roll'),
 		);
 		e2e.expect(
 			"#49 D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
@@ -1872,7 +1872,7 @@ export async function run(e2e: ScenarioContext) {
 	await part('silhouettes', async () => {
 		const silhouetteRows = (state: PromptState) => state.modifications.filter(({ name }) => name.includes('Silhouette'));
 		const setSilhouette = (actor: string, silhouette: number) => update({ actor }, { 'system.silhouette': silhouette });
-		const rivalKnife = click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > a');
+		const rivalKnife = click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Knife >> :scope > .weapon-attack');
 		// The rival's knife attacks with Ranged, which §#196 chooses in its own part, so that M2 rolls the rival's Agility.
 		await update({ actor: 'Rival', item: 'Knife' }, { 'system.attackSkill': 'Ranged' });
 		await setSilhouette('Rival', 3);
@@ -1956,7 +1956,7 @@ export async function run(e2e: ScenarioContext) {
 
 		await setSilhouette('Skiff', 3);
 		await target('Mark');
-		const cannonAtMark = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name a|E2E Cannon'));
+		const cannonAtMark = await opened(gm, click(gm, skiff, '.tab-combat .weapon .name button|E2E Cannon'));
 		const cannonOn = await toggle('Silhouette');
 		e2e.expect(
 			"#380 M5 a silhouette 1 crew member firing a silhouette 3 vehicle's weapon at a silhouette 1 character adds one Difficulty die, from the vehicle's silhouette",
@@ -2011,7 +2011,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// E: healing and initiative with a skill the actor lacks (§#49), and the messages of checks (§#50, §#157).
 	await part('checkMessages', async () => {
-		const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
+		const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity button'));
 		e2e.expect(
 			'#49 E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
 			{ skill: heal.skill, pool: heal.pool, unranked: heal.skills?.Unranked?.includes('Resilience (Br)') },
@@ -2133,7 +2133,7 @@ export async function run(e2e: ScenarioContext) {
 		const coolMessage = await roll();
 		await opened(gm, characteristicRoll(5));
 		const willpowerMessage = await roll();
-		await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > a|Melee'));
+		await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > .skill-roll|Melee'));
 		const minionMessage = await roll();
 		await setSetting('useSuperCharacteristics', true);
 		await update(ada, { 'system.superCharacteristics': ['brawn'] });
@@ -2933,7 +2933,7 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 		await setSetting('defaultDifficulty', 'DDD');
-		await opened(gm, click(gm, ada, '.tab-combat .injury .severity a'));
+		await opened(gm, click(gm, ada, '.tab-combat .injury .severity button'));
 		const injury = shown(await difficultyState());
 		await control(gm, ['Bo']);
 		await linkPrompt(gm, journal, 'Athletics', 'CDD');

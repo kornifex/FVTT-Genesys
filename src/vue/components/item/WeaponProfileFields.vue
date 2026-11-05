@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { CHARACTERISTICS } from '@/data/Characteristics';
@@ -108,7 +109,12 @@ function updateQualityRating(index: number, event: Event) {
 		<div class="profile-skills">
 			<div v-for="(skill, index) in profile.skills" :key="index" class="data">
 				<div>{{ skill }}</div>
-				<a @click="emit('change', { skills: withoutIndex(profile.skills, index) })"><i class="fas fa-trash"></i></a>
+				<ActionButton
+					icon="fas fa-trash"
+					label="Genesys.Labels.RemoveSkill"
+					edits
+					@click="emit('change', { skills: withoutIndex(profile.skills, index) })"
+				/>
 			</div>
 		</div>
 	</DataRow>
@@ -122,7 +128,12 @@ function updateQualityRating(index: number, event: Event) {
 						><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)"
 					/></span>
 				</div>
-				<a @click="emit('change', { qualities: withoutIndex(profile.qualities, index) })"><i class="fas fa-trash"></i></a>
+				<ActionButton
+					icon="fas fa-trash"
+					label="Genesys.Labels.RemoveQuality"
+					edits
+					@click="emit('change', { qualities: withoutIndex(profile.qualities, index) })"
+				/>
 			</div>
 		</div>
 	</DataRow>
@@ -147,7 +158,7 @@ function updateQualityRating(index: number, event: Event) {
 	@extend .data;
 	grid-template-columns: /* Name */ 2fr /* Rating */ 1fr /* Delete Button */ auto;
 
-	a {
+	.action-button {
 		margin-left: 1rem;
 	}
 }

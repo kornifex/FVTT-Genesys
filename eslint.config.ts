@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier/flat';
 import vue from 'eslint-plugin-vue';
+import vuejsAccessibility from 'eslint-plugin-vuejs-accessibility';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
@@ -58,6 +59,18 @@ export default defineConfig(
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 			'vue/no-unused-vars': ['error', { ignorePattern: '^_' }],
 			'vue/multi-word-component-names': 'off',
+		},
+	},
+	{
+		// Every action is a control the keyboard reaches, with a name (#534): a click handler sits on a button
+		// (`ActionButton.vue`), never on an element that can't take focus, and links and images have a text.
+		files: ['src/**/*.vue'],
+		plugins: { 'vuejs-accessibility': vuejsAccessibility },
+		rules: {
+			'vuejs-accessibility/click-events-have-key-events': 'error',
+			// A link's text is often a localized one, which `Localized` renders.
+			'vuejs-accessibility/anchor-has-content': ['error', { accessibleChildren: ['Localized'] }],
+			'vuejs-accessibility/alt-text': 'error',
 		},
 	},
 	{

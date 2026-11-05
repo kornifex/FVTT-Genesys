@@ -4,6 +4,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import EquipmentRows from '@/vue/components/item/EquipmentRows.vue';
 import DataRow from '@/vue/components/DataRow.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { withoutIndex } from '@/arrays';
@@ -45,7 +46,7 @@ function updateQualityRating(index: number, event: Event) {
 									><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)"
 								/></span>
 							</div>
-							<a @click="deleteQuality(index)"><i class="fas fa-trash"></i></a>
+							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveQuality" edits @click="deleteQuality(index)" />
 						</div>
 					</div>
 				</DataRow>
@@ -68,7 +69,7 @@ function updateQualityRating(index: number, event: Event) {
 		border-bottom: none;
 	}
 
-	a {
+	.action-button {
 		margin-left: 1rem;
 	}
 }

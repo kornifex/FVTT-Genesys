@@ -4,6 +4,7 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Role from '@/vue/components/vehicle/Role.vue';
 import SortSlot from '@/vue/components/inventory/SortSlot.vue';
@@ -94,7 +95,7 @@ function resetDrags() {
 	<section class="tab-crew" @drop.capture="resetDrags" @dragenter="dragEnter" @dragleave="dragLeave">
 		<div class="section-header">
 			<span><Localized label="Genesys.Labels.Roles" /></span>
-			<a @click="addNewRole"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
+			<ActionButton icon="fas fa-plus" edits @click="addNewRole"><Localized label="Genesys.Labels.Add" /></ActionButton>
 		</div>
 
 		<section class="roles">
@@ -225,7 +226,8 @@ function resetDrags() {
 			grid-column: 1 / span 1;
 		}
 
-		> :last-child {
+		// The Roles' header holds its title alone on a sheet the user can't edit, which shows no Add button.
+		> :last-child:not(:first-child) {
 			grid-column: 3 / span 1;
 		}
 	}

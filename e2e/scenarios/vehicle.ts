@@ -680,7 +680,7 @@ async function combatRowDescriptions(e2e: ScenarioContext) {
 	);
 
 	await e2e.step('#393 C4 the name of the vehicle weapon clicked', () =>
-		vehicleE2E('click', { actor: 'Lugger', target: [...harpoon, '.name a|1'] }),
+		vehicleE2E('click', { actor: 'Lugger', target: [...harpoon, '.name button|1'] }),
 	);
 	const { dice } = await vehicleE2E('prompts');
 	e2e.expect(
@@ -751,7 +751,7 @@ async function crewDrops(e2e: ScenarioContext) {
 	);
 
 	// Roles.
-	const addRole = (vehicle: string) => vehicleE2E('click', { actor: vehicle, target: ['.tab-crew .section-header|1', 'a|1'] });
+	const addRole = (vehicle: string) => vehicleE2E('click', { actor: vehicle, target: ['.tab-crew .section-header|1', 'button|1'] });
 	await step(
 		'#109 C1 two Roles added',
 		async () => {
@@ -841,7 +841,7 @@ async function crewDrops(e2e: ScenarioContext) {
 
 	await step(
 		'#109 E1 Gunner deleted',
-		() => vehicleE2E('click', { actor: 'V1', target: ['.tab-crew .roles .role-section|2', '.role-name a|1'] }),
+		() => vehicleE2E('click', { actor: 'V1', target: ['.tab-crew .roles .role-section|2', '.role-name button|1'] }),
 		{
 			V1: { passengers: ['A'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] })] },
 			V2: { passengers: ['D', 'P', 'B'], roles: [] },
@@ -1260,7 +1260,7 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 	);
 	await step(
 		'#127 K6 the character buys a rank of Piloting with XP',
-		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.rank-display a|1'] }),
+		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.rank-display button|1'] }),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PP'] },
 			{ name: 'Ivy', skills: ['E2E Astrogation (Int) 2 PP', 'Piloting (Ag) 1 PAA'] },
@@ -1272,7 +1272,7 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 	);
 	await step(
 		'#127 K7 the character raises Agility',
-		() => vehicleE2E('click', { actor: 'Hal', target: ['.characteristics-row .characteristic-field|2', 'label a|1'] }),
+		() => vehicleE2E('click', { actor: 'Hal', target: ['.characteristics-row .characteristic-field|2', 'label button|1'] }),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PPA'] },
 			{ name: 'Ivy', skills: ['E2E Astrogation (Int) 2 PP', 'Piloting (Ag) 1 PAA'] },
@@ -1383,14 +1383,14 @@ async function crewRolls(e2e: ScenarioContext) {
 	const memberSkill = (member: string, skill: string): Target => [
 		`.tab-skills .members-container > section|=${member}`,
 		`.member-skill|~${skill}`,
-		'a.skill-name|1',
+		'button.skill-name|1',
 	];
 	const skillMember = (skill: string, member: string): Target => [
 		`.tab-skills .skills-container > section|~${skill}`,
 		`.skill-content-details|~E2E ${member}`,
-		':scope > a|2',
+		':scope > .skill-content-details-roll|1',
 	];
-	const weapon = (name: string): Target => [`.tab-combat .weapon|~E2E ${name}`, '.name a|1'];
+	const weapon = (name: string): Target => [`.tab-combat .weapon|~E2E ${name}`, '.name button|1'];
 
 	await e2e.step('#133 the vehicle Skills tab grouped by member');
 	e2e.expect(
@@ -1460,7 +1460,7 @@ async function crewRolls(e2e: ScenarioContext) {
 	await vehicleE2E('closePrompts');
 
 	await e2e.step('#133 a Critical Hit repaired', () =>
-		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.severity a|1'] }),
+		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.severity button|1'] }),
 	);
 	e2e.expect('#133 A8 a repair one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
 		...noPrompts,

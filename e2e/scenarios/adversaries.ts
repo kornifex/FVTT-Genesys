@@ -146,7 +146,7 @@ function installAdversariesHelpers() {
 	const menuContainer = async ({ actor: name, kind, name: itemName }: MenuTarget) => {
 		const root = await sheet(name);
 		const selector = kind === 'skill' ? '.skill.menu-container' : '.talent > .menu-container';
-		const label = kind === 'skill' ? ':scope > a > span' : ':scope > label > a';
+		const label = kind === 'skill' ? ':scope > .skill-roll > span' : ':scope > label > button';
 		return waitFor(`the ${kind} ${itemName} of ${name}`, () =>
 			[...root.querySelectorAll<HTMLElement>(selector)].find((container) =>
 				text(container.querySelector(label)).startsWith(`E2E ${itemName}`),
@@ -163,13 +163,10 @@ function installAdversariesHelpers() {
 		);
 	};
 
-	// The links of an adversary's weapon rows, and the name each row reads before its weapon details in brackets.
-	const weaponLinks = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.adversary-items .weapon.menu-container > a')];
-	const weaponRowName = (link: Element) => {
-		const name = link.cloneNode(true) as HTMLElement;
-		name.querySelector('.weapon-details')?.remove();
-		return text(name).replace(/ \(\)$/, '');
-	};
+	// An adversary's weapon rows, and the name each row's attack button reads, before its weapon details in brackets.
+	const weaponRowsOf = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.adversary-items .weapon.menu-container')];
+	const weaponRowName = (row: Element) => text(row.querySelector(':scope > .weapon-attack'));
+	const attackButton = (row: Element) => row.querySelector<HTMLElement>(':scope > .weapon-attack')!;
 
 	const closePrompts = async () => {
 		for (const app of apps('app-dice-prompt')) await app.close();
@@ -183,7 +180,7 @@ function installAdversariesHelpers() {
 			pool: poolPreview(root),
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
 				name: text(row.querySelector('label')),
-				mods: [...row.querySelectorAll(':scope > div > a')].map((mod) => poolModification(mod)).join(' '),
+				mods: [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' '),
 			})),
 		};
 		await closePrompts();
@@ -375,7 +372,7 @@ function installAdversariesHelpers() {
 		async rollSkill({ actor: name, skill }) {
 			await closePrompts();
 			const container = await menuContainer({ actor: name, kind: 'skill', name: skill });
-			container.querySelector<HTMLElement>(':scope > a')!.click();
+			container.querySelector<HTMLElement>(':scope > .skill-roll')!.click();
 			return readPrompt();
 		},
 
@@ -383,12 +380,12 @@ function installAdversariesHelpers() {
 			await closePrompts();
 			target(targetName);
 			const root = await sheet(name);
-			const link = await waitFor(`the weapon ${weapon}`, () =>
-				[...root.querySelectorAll<HTMLElement>('.weapon.menu-container > a')].find((element) =>
+			const button = await waitFor(`the weapon ${weapon}`, () =>
+				[...root.querySelectorAll<HTMLElement>('.weapon.menu-container > .weapon-attack')].find((element) =>
 					text(element).includes(`E2E ${weapon}`),
 				),
 			);
-			link.click();
+			button.click();
 			const state = await readPrompt();
 			target(null);
 			return state;
@@ -460,10 +457,10 @@ function installAdversariesHelpers() {
 
 		async weaponRows(name) {
 			const root = await sheet(name);
-			return weaponLinks(root).map((link) => ({
-				name: weaponRowName(link),
-				details: [...link.querySelectorAll('.weapon-details > span:not(.weapon-qualities)')].map(text),
-				qualities: [...link.querySelectorAll('.weapon-qualities > *')].map(text),
+			return weaponRowsOf(root).map((row) => ({
+				name: weaponRowName(row),
+				details: [...row.querySelectorAll('.weapon-details > span:not(.weapon-qualities)')].map(text),
+				qualities: [...row.querySelectorAll('.weapon-qualities > *')].map(text),
 			}));
 		},
 
@@ -471,10 +468,10 @@ function installAdversariesHelpers() {
 			await closePrompts();
 			const root = await sheet(name);
 			// A build without Weapon Profiles shows no row for an extra profile.
-			const link = weaponLinks(root).find((candidate) => weaponRowName(candidate) === row);
-			if (!link) return null;
+			const weaponRow = weaponRowsOf(root).find((candidate) => weaponRowName(candidate) === row);
+			if (!weaponRow) return null;
 			target(targetName);
-			link.click();
+			attackButton(weaponRow).click();
 			const select = await waitFor('the Dice Prompt skill select', () => {
 				const open = apps('app-dice-prompt');
 				return open.length === 1 && htmlOf(open[0])?.querySelector<HTMLSelectElement>('select[name=skill]');

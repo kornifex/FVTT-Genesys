@@ -6,6 +6,7 @@ import { canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import { itemsOfType } from '@/item/ItemTypes';
 import { openSheet, removeArchetype, removeCareer } from '@/operations/ItemActions';
@@ -43,7 +44,9 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 							/>
 						</template>
 
-						<a @click="openSheet(archetype)">{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
+						<ActionButton @click="openSheet(archetype)"
+							>{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i
+						></ActionButton>
 					</ContextMenu>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoArchetype" /></span>
@@ -67,7 +70,9 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 							/>
 						</template>
 
-						<a @click="openSheet(career)">{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i></a>
+						<ActionButton @click="openSheet(career)"
+							>{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i
+						></ActionButton>
 					</ContextMenu>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoCareer" /></span>

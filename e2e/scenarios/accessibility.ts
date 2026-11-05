@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, not asserted, since the slices of #534 fix them, each asserting the rules it fixes. */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -28,7 +28,29 @@ type AccessibilityHelpers = {
 	closeAll(): Promise<void>;
 	/** Shows the pages in a Style, by its key, as the world setting does, without writing the setting. */
 	setStyle(style: string): Promise<void>;
+	/**
+	 * Readies a keyboard step on an action of a sheet (#574), by the sheet's name: renders the sheet on the action's tab,
+	 * and focuses the control before the action's button in Tab order, so that one Tab reaches it.
+	 */
+	readyKeyboardAction(sheet: string): Promise<void>;
+	/** Whether the action's button has focus, and whether the action has run since it was readied. */
+	keyboardAction(): { focused: boolean; ran: boolean };
+	/** Whether the sheet of the last action readied is still open. */
+	keyboardSheetOpen(): boolean;
 };
+
+/**
+ * The action each sheet type's keyboard step runs (#574), by the name of the document whose sheet it opens: the step's
+ * code, and what its name says the action does.
+ */
+const KEYBOARD_ACTIONS: { sheet: string; code: string; target: string; result: string }[] = [
+	{ sheet: 'Hero', code: 'K1', target: 'the chevron of a talent', result: "opens the talent's description" },
+	{ sheet: 'Minion', code: 'K2', target: "a talent's Send to chat", result: 'posts the talent' },
+	{ sheet: 'Rival', code: 'K3', target: "a talent's Send to chat", result: 'posts the talent' },
+	{ sheet: 'Nemesis', code: 'K4', target: "a talent's Send to chat", result: 'posts the talent' },
+	{ sheet: 'Ship', code: 'K5', target: "the Crew tab's Add", result: 'adds a Role' },
+	{ sheet: 'weapon', code: 'K6', target: "the Effects tab's Add", result: 'adds an effect' },
+];
 
 declare global {
 	interface Window {
@@ -69,7 +91,7 @@ function installAccessibilityHelpers() {
 			ready: (root) => !!root.querySelector('.roll-button') && !root.querySelector('.chance-to-succeed .fa-spinner'),
 			async open() {
 				await window.e2e.showTab('Hero', 'skills');
-				find(await sheet('Hero'), '.tab[data-tab="skills"] a.name').click();
+				find(await sheet('Hero'), '.tab[data-tab="skills"] button.name').click();
 			},
 		},
 		awardXP: {
@@ -77,7 +99,7 @@ function installAccessibilityHelpers() {
 			ready: (root) => !!root.querySelector('.award-xp-prompt > button'),
 			async open() {
 				await window.e2e.showTab('Hero', 'journal');
-				find(await sheet('Hero'), '.xp-journal .entries-header a').click();
+				find(await sheet('Hero'), '.xp-journal .entries-header button').click();
 			},
 		},
 		careerSkill: {
@@ -101,10 +123,52 @@ function installAccessibilityHelpers() {
 			async open() {
 				// Two crew members can fire the Cannon.
 				await window.e2e.showTab('Ship', 'combat');
-				find(await sheet('Ship'), '.tab-combat .weapon .name a').click();
+				find(await sheet('Ship'), '.tab-combat .weapon .name button:not(.description-toggle)').click();
 			},
 		},
 	};
+
+	/**
+	 * The keyboard step's action of each sheet: its tab, its button, and what the action changes, read before and after.
+	 */
+	const talentSendToChat = (root: Element) =>
+		[...root.querySelectorAll('.adversary-items .talent')]
+			.find((row) => row.textContent?.includes('E2E Grit'))
+			?.querySelector<HTMLElement>('.send-to-chat-link') ?? null;
+	type KeyboardAction = { tab: string; button: (root: Element) => HTMLElement | null; state: (button: HTMLElement) => unknown };
+	const KEYBOARD: Record<string, KeyboardAction> = {
+		Hero: {
+			tab: 'talents',
+			button: (root) =>
+				[...root.querySelectorAll('.tab-talents .talent')]
+					.find((row) => row.textContent?.includes('E2E Grit'))
+					?.querySelector<HTMLElement>('.description-toggle') ?? null,
+			state: (button) => button.getAttribute('aria-expanded'),
+		},
+		Minion: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
+		Rival: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
+		Nemesis: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
+		Ship: {
+			tab: 'crew',
+			button: (root) => root.querySelector<HTMLElement>('.tab-crew .section-header button'),
+			state: () => actor('Ship').system.roles.length,
+		},
+		weapon: {
+			tab: 'effects',
+			button: (root) => root.querySelector<HTMLElement>('.effects-view .effects-header .buttons button'),
+			state: () => documentNamed('weapon').effects.size,
+		},
+	};
+	// The action readied last, its sheet's window, and what it changes as it was before.
+	let keyboard: { button: HTMLElement; selector: string; before: unknown; state: KeyboardAction['state'] } | undefined;
+	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds.
+	const tabbable = (root: Element) =>
+		[...root.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
+			(element) =>
+				!(element as HTMLButtonElement).disabled &&
+				element.getClientRects().length > 0 &&
+				getComputedStyle(element).visibility === 'visible',
+		);
 
 	const helpers: AccessibilityHelpers = {
 		async setUp() {
@@ -210,6 +274,36 @@ function installAccessibilityHelpers() {
 			// The colours change through the sheets' transitions, which a check reading them mid-way would get wrong.
 			await settle();
 		},
+
+		async readyKeyboardAction(sheet) {
+			const { tab, button, state } = KEYBOARD[sheet];
+			const { selector, tabs } = await helpers.openSheet(sheet);
+			const panel = tabs[0] === tab ? `${selector} .tab[data-tab="${tab}"]` : await helpers.showTab(selector, tab);
+			const target = button(find(document, panel));
+			if (!target) throw new Error(`No action button for the keyboard step on ${sheet}`);
+			const content = find(document, `${selector} .window-content`);
+			const controls = tabbable(content);
+			const index = controls.indexOf(target);
+			if (index < 0) throw new Error(`Tab doesn't reach the action button on ${sheet}`);
+			// The control before the button, or the window's content before its first control.
+			const before = controls[index - 1];
+			if (before) {
+				before.focus();
+			} else {
+				content.tabIndex = -1;
+				content.focus();
+			}
+			keyboard = { button: target, selector, before: state(target), state };
+		},
+
+		keyboardAction() {
+			if (!keyboard) throw new Error('No keyboard action readied');
+			return { focused: document.activeElement === keyboard.button, ran: keyboard.state(keyboard.button) !== keyboard.before };
+		},
+
+		keyboardSheetOpen() {
+			return !!keyboard && !!document.querySelector(keyboard.selector);
+		},
 	};
 
 	window.accessibilityE2E = helpers;
@@ -221,12 +315,21 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.step('setup', () => gm.evaluate(() => window.accessibilityE2E.setUp()));
 	const worldStyle = await gm.evaluate(() => document.documentElement.dataset.genesysStyle ?? 'genesys');
 
+	// The checks of the running part that found a button without a name (#574), which every action has since.
+	let unnamedButtons: string[] = [];
 	// Checks an element in each Style, and logs what each check finds.
 	const check = async (label: string, selector: string) => {
 		for (const style of STYLES) {
 			await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
-			e2e.log(`axe ${label}, ${style.checks} in ${style.name}`, await gm.axe(selector, style.rules));
+			const checked = `axe ${label}, ${style.checks} in ${style.name}`;
+			const findings = await gm.axe(selector, style.rules);
+			e2e.log(checked, findings);
+			if (Object.keys(findings).some((rule) => rule.startsWith('button-name '))) unnamedButtons.push(checked);
 		}
+	};
+	const expectNamedButtons = (name: string) => {
+		e2e.expect(name, unnamedButtons, []);
+		unnamedButtons = [];
 	};
 
 	// Each window is checked in a step of its own, which logs the errors its rendering threw after its findings.
@@ -247,6 +350,7 @@ export async function run(e2e: ScenarioContext) {
 					await gm.evaluate(() => window.accessibilityE2E.closeAll());
 				});
 			}
+			expectNamedButtons('#574 A1 no tab of any sheet type has a button without a name');
 		});
 
 		await e2e.part('prompts', async () => {
@@ -257,10 +361,40 @@ export async function run(e2e: ScenarioContext) {
 					await gm.evaluate(() => window.accessibilityE2E.closeAll());
 				});
 			}
+			expectNamedButtons('#574 A2 no prompt has a button without a name');
 		});
 
 		await e2e.part('storyPointTracker', async () => {
 			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
+			expectNamedButtons('#574 A3 the Story Point tracker has no button without a name');
+		});
+
+		// §#574: an action of each sheet type is reached with Tab and run with Enter.
+		await e2e.part('keyboard', async () => {
+			for (const { sheet, code, target, result } of KEYBOARD_ACTIONS) {
+				let reached = false;
+				await e2e.step(`#574 ${code} ${sheet} sheet: Tab pressed to reach ${target}, then Enter`, async () => {
+					await gm.evaluate((sheet) => window.accessibilityE2E.readyKeyboardAction(sheet), sheet);
+					await gm.page.keyboard.press('Tab');
+					reached = (await gm.evaluate(() => window.accessibilityE2E.keyboardAction())).focused;
+					await gm.page.keyboard.press('Enter');
+				});
+				e2e.expect(
+					`#574 ${code} on the ${sheet} sheet, Tab reaches ${target}, and Enter ${result}`,
+					{ reached, ran: (await gm.evaluate(() => window.accessibilityE2E.keyboardAction())).ran },
+					{ reached: true, ran: true },
+				);
+				// Foundry's keybindings, Escape's included, skip a page whose focus is on a button of a form.
+				if (code === 'K1') {
+					await e2e.step('#574 E1 Escape pressed while the chevron has focus', () => gm.page.keyboard.press('Escape'));
+					e2e.expect(
+						'#574 E1 Escape leaves a sheet open while one of its buttons has focus',
+						await gm.evaluate(() => window.accessibilityE2E.keyboardSheetOpen()),
+						true,
+					);
+				}
+				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+			}
 		});
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);

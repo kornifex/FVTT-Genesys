@@ -9,6 +9,7 @@ import { worldCheckRules } from '@/dice/Check';
 import { openSheet } from '@/operations/ItemActions';
 import { usePendingContent } from '@/vue/PendingContent';
 
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 
@@ -85,7 +86,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
 					<img class="member-image" :src="details.actor.img ?? undefined" :alt="details.actor.name" draggable="false" />
-					<a class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</a>
+					<ActionButton class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</ActionButton>
 					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role.name }}</div>
 
 					<div class="member-skills" v-if="details.skills.length > 0">
@@ -96,13 +97,13 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 						<div class="member-skills-container">
 							<div v-for="rolledSkill in details.skills" :key="rolledSkill.skillName" class="member-skill">
 								<img :src="rolledSkill.skill.img ?? undefined" :alt="rolledSkill.skill.name" />
-								<a class="skill-name" @click="rollForCrew([rolledSkill])">
+								<ActionButton class="skill-name" @click="rollForCrew([rolledSkill])">
 									<span
 										>{{ rolledSkill.skill.name }} (<Localized
 											:label="CHARACTERISTIC_ABBREVIATIONS[rolledSkill.skill.system.characteristic]"
 										/>)</span
 									>
-								</a>
+								</ActionButton>
 
 								<span class="skill-rank">{{ rolledSkill.rank }}</span>
 								<SkillRanks :skill-value="rolledSkill.rank" :characteristic-value="rolledSkill.characteristicValue" />
@@ -133,12 +134,20 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 								:alt="memberSkill.actor.name"
 								draggable="false"
 							/>
-							<a class="skill-content-details-charName" @click="openSheet(memberSkill.actor)">{{ memberSkill.actor.name }}</a>
+							<ActionButton class="skill-content-details-charName" @click="openSheet(memberSkill.actor)">{{
+								memberSkill.actor.name
+							}}</ActionButton>
 							<div>{{ memberSkill.role.name }}</div>
 							<div class="skill-content-details-skillRank">{{ memberSkill.rank }}</div>
-							<a @click="rollForCrew([memberSkill])">
-								<SkillRanks :skill-value="memberSkill.rank" :characteristic-value="memberSkill.characteristicValue" />
-							</a>
+							<ActionButton
+								class="skill-content-details-roll"
+								label="Genesys.Labels.PerformCheck"
+								@click="rollForCrew([memberSkill])"
+							>
+								<template #icon>
+									<SkillRanks :skill-value="memberSkill.rank" :characteristic-value="memberSkill.characteristicValue" />
+								</template>
+							</ActionButton>
 						</div>
 					</div>
 				</div>

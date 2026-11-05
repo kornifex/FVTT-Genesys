@@ -5,6 +5,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import BaseWeaponSheet from '@/vue/sheets/item/BaseWeaponSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import WeaponProfileFields from '@/vue/components/item/WeaponProfileFields.vue';
 import {
 	addExtraProfileUpdate,
@@ -46,9 +47,13 @@ async function deleteProfile(profile: WeaponProfile) {
 			>
 				<div class="profile-header">
 					<Localized label="Genesys.WeaponProfile.Title" />
-					<a v-if="editable" class="delete-profile" data-tooltip="Genesys.WeaponProfile.Delete" @click="deleteProfile(profile)"
-						><i class="fas fa-trash"></i
-					></a>
+					<ActionButton
+						class="delete-profile"
+						icon="fas fa-trash"
+						label="Genesys.WeaponProfile.Delete"
+						edits
+						@click="deleteProfile(profile)"
+					/>
 				</div>
 
 				<DataRow label="Genesys.Labels.Name">

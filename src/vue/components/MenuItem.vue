@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 
 defineProps<{
@@ -15,15 +16,16 @@ defineProps<{
 </script>
 
 <template>
-	<a class="menu-item">
-		<div class="menu-icon">
+	<!-- A button holds phrasing content only: the parts are spans, laid out by the entry's flex row. -->
+	<ActionButton class="menu-item">
+		<span class="menu-icon">
 			<i :class="icon"></i>
-		</div>
+		</span>
 
-		<div class="menu-label">
+		<span class="menu-label">
 			<Localized :label="label" />
-		</div>
-	</a>
+		</span>
+	</ActionButton>
 </template>
 
 <style lang="scss" scoped>

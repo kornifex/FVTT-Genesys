@@ -75,7 +75,7 @@ export type DescriptionBox = {
 
 /**
  * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515): where it
- * points, `right` closed and `down` open, and its tooltip, localized.
+ * points, `right` closed and `down` open, and its tooltip: its name, which its bare `data-tooltip` shows.
  */
 export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
 
@@ -619,7 +619,7 @@ export function installHelpers() {
 		},
 
 		async toggleEffect(row) {
-			const power = row.element.querySelector<HTMLElement>('.fa-power-off')!.closest('a')!;
+			const power = row.element.querySelector<HTMLElement>('.fa-power-off')!.closest('button')!;
 			// The power button dims a disabled effect; an effect that changes section leaves its row for another one.
 			const opacity = power.style.opacity;
 			power.click();
@@ -628,11 +628,11 @@ export function installHelpers() {
 		},
 
 		editEffect(row) {
-			row.element.querySelector<HTMLElement>('.fa-edit')!.closest('a')!.click();
+			row.element.querySelector<HTMLElement>('.fa-edit')!.closest('button')!.click();
 		},
 
 		async addEffect(sheet, section) {
-			const add = helpers.effectsView(sheet)?.querySelectorAll<HTMLElement>('.effects-header .buttons a')[section - 1];
+			const add = helpers.effectsView(sheet)?.querySelectorAll<HTMLElement>('.effects-header .buttons button')[section - 1];
 			if (!add) throw new Error(`No Add button in section ${section} of the Effects tab`);
 			add.click();
 			await helpers.settle();
@@ -658,8 +658,8 @@ export function installHelpers() {
 			const icon = toggle.querySelector('i');
 			return {
 				points: icon?.classList.contains('fa-chevron-down') ? 'down' : icon?.classList.contains('fa-chevron-right') ? 'right' : '?',
-				// Foundry localizes a tooltip's key as it shows it.
-				tooltip: game.i18n.localize(toggle.dataset.tooltip ?? ''),
+				// The button's name, which its bare `data-tooltip` shows.
+				tooltip: toggle.getAttribute('aria-label') ?? '',
 			};
 		},
 

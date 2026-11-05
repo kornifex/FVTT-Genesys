@@ -248,7 +248,7 @@ function installCharacterHelpers() {
 		'skill' in target
 			? skillRow(name, target.skill)
 			: [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
-					(skill) => text(skill.querySelector('a span')).replace(/ \d+$/, '') === target.adversarySkill,
+					(skill) => text(skill.querySelector('.skill-roll span')).replace(/ \d+$/, '') === target.adversarySkill,
 				);
 	const injuryRow = (name: string, injury: string) =>
 		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
@@ -256,7 +256,7 @@ function installCharacterHelpers() {
 		);
 	const talentRow = (name: string, talent: string) =>
 		[...sheet(name).querySelectorAll('.tab-talents .talent')].find(
-			(row) => text(row.querySelector('.name a')).replace(/ \d+$/, '') === talent,
+			(row) => text(row.querySelector('.name button')).replace(/ \d+$/, '') === talent,
 		);
 	const armorRow = (name: string, armor: string) =>
 		[...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')].find(
@@ -472,19 +472,19 @@ function installCharacterHelpers() {
 		},
 
 		raise(name, characteristic) {
-			const arrow = characteristicField(name, characteristic)?.querySelector('label a:has(.fa-arrow-circle-up)');
+			const arrow = characteristicField(name, characteristic)?.querySelector('label button:has(.fa-arrow-circle-up)');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
 
 		buySkill(name, skill) {
-			const arrow = skillRow(name, skill)?.querySelector('.rank-display a');
+			const arrow = skillRow(name, skill)?.querySelector('.rank-display button');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
 
 		upgradeTalent(name, talent) {
-			const arrow = talentRow(name, talent)?.querySelector('.name a:has(.fa-arrow-circle-up)');
+			const arrow = talentRow(name, talent)?.querySelector('.name button:has(.fa-arrow-circle-up)');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
@@ -493,12 +493,12 @@ function installCharacterHelpers() {
 			const entries = actor(name).system.experienceJournal.entries.map(entryText);
 			const index = entries.findLastIndex((summary: string) => summary.startsWith(entry));
 			if (index < 0) return false;
-			click(sheet(name).querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('a'), `trash of ${entry}`);
+			click(sheet(name).querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('button'), `trash of ${entry}`);
 			return true;
 		},
 
 		async award(name, amount, reason) {
-			click(sheet(name).querySelector('.xp-journal .entries-header a'), 'XP Award button');
+			click(sheet(name).querySelector('.xp-journal .entries-header button'), 'XP Award button');
 			const app = await findApp('app-award-xp-prompt', '.award-xp-prompt > button');
 			const fill = (selector: string, value: string) => {
 				const field = app.element.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
@@ -559,11 +559,11 @@ function installCharacterHelpers() {
 		},
 
 		clickSeverity(name, injury) {
-			click(injuryRow(name, injury)?.querySelector('.severity a'), `severity of ${injury}`);
+			click(injuryRow(name, injury)?.querySelector('.severity button'), `severity of ${injury}`);
 		},
 
 		trashInjury(name, injury) {
-			click(injuryRow(name, injury)?.querySelector('.actions .fa-trash')?.closest('a'), `trash icon of ${injury}`);
+			click(injuryRow(name, injury)?.querySelector('.actions .fa-trash')?.closest('button'), `trash icon of ${injury}`);
 		},
 
 		async crewPrompt(member) {
@@ -645,7 +645,7 @@ function installCharacterHelpers() {
 				base: actor(name).system._source.characteristics[characteristic],
 				shown: actor(name).system.characteristics[characteristic],
 				sheet: text(field?.querySelector('.value')),
-				canRaise: !!field?.querySelector('label a:has(.fa-arrow-circle-up)'),
+				canRaise: !!field?.querySelector('label button:has(.fa-arrow-circle-up)'),
 			};
 		},
 
@@ -667,7 +667,7 @@ function installCharacterHelpers() {
 									rank: skill.system.rank,
 									career: skill.system.career,
 									star: !!row?.querySelector('.name .fa-star'),
-									canBuy: !!row?.querySelector('.rank-display a'),
+									canBuy: !!row?.querySelector('.rank-display button'),
 								}
 							: null,
 					];
@@ -684,10 +684,10 @@ function installCharacterHelpers() {
 			return {
 				rank: item.system.rank,
 				tier: item.system.effectiveTier,
-				row: text(row?.querySelector('.name a')),
+				row: text(row?.querySelector('.name button')),
 				rowTier: text(row?.querySelector('.tier')).replace(/^.*?(\d+)$/, '$1'),
 				description: text(row?.querySelector('.desc')),
-				canUpgrade: !!row?.querySelector('.name a:has(.fa-arrow-circle-up)'),
+				canUpgrade: !!row?.querySelector('.name button:has(.fa-arrow-circle-up)'),
 			};
 		},
 
@@ -712,7 +712,7 @@ function installCharacterHelpers() {
 		abilityRows(name, ability) {
 			const abilities = sheet(name).querySelectorAll('.tab-talents .talents-container')[0];
 			return [...(abilities?.querySelectorAll('.talent') ?? [])]
-				.filter((row) => text(row.querySelector('.name a')) === ability)
+				.filter((row) => text(row.querySelector('.name button')) === ability)
 				.map((row) => ({
 					handMade: row.querySelector('img')?.getAttribute('src') === HAND_IMG,
 					canDelete: !!row.querySelector('.fa-trash'),
@@ -725,7 +725,7 @@ function installCharacterHelpers() {
 				[...container.children].map((child) => {
 					if (child.matches('.category-header')) return `[${text(child)}]`;
 					if (child.matches('.sub-category-header')) return `[[${text(child)}]]`;
-					return unprefixed(text(child.querySelector('.name a')));
+					return unprefixed(text(child.querySelector('.name button')));
 				}),
 			);
 			return { abilities: abilities ?? [], talents: talents ?? [] };
@@ -733,13 +733,13 @@ function installCharacterHelpers() {
 
 		trashTalentRow(name, item) {
 			const row = [...sheet(name).querySelectorAll('.tab-talents .talent')].find(
-				(candidate) => unprefixed(text(candidate.querySelector('.name a'))) === item,
+				(candidate) => unprefixed(text(candidate.querySelector('.name button'))) === item,
 			);
-			click(row?.querySelector('.fa-trash')?.closest('a'), `trash icon of ${item}`);
+			click(row?.querySelector('.fa-trash')?.closest('button'), `trash icon of ${item}`);
 		},
 
 		toggleTalent(name, talent) {
-			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name a'), `name of the talent ${talent}`);
+			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name button'), `name of the talent ${talent}`);
 		},
 
 		clickChevron(name, row) {
@@ -759,7 +759,7 @@ function installCharacterHelpers() {
 		},
 
 		clickName(name, row) {
-			click(rowOf(name, row).querySelector('.name a'), `name of ${JSON.stringify(row)}`);
+			click(rowOf(name, row).querySelector('.name button'), `name of ${JSON.stringify(row)}`);
 		},
 
 		async closeOpened(name, item) {
@@ -814,21 +814,21 @@ function installCharacterHelpers() {
 		},
 
 		adversarySkills(name) {
-			return [...sheet(name).querySelectorAll('.adversary-items .skill a span')].map(text);
+			return [...sheet(name).querySelectorAll('.adversary-items .skill .skill-roll span')].map(text);
 		},
 
 		skillIcon(name, target) {
 			const icon = skillContainer(name, target)?.querySelector<HTMLElement>('.skill-icon');
 			if (!icon) return null;
-			// Foundry localizes a tooltip's key as it shows it.
-			return { tooltip: game.i18n.localize(icon.dataset.tooltip ?? ''), cursor: getComputedStyle(icon).cursor };
+			// The icon's name, which its bare `data-tooltip` shows.
+			return { tooltip: icon.getAttribute('aria-label') ?? '', cursor: getComputedStyle(icon).cursor };
 		},
 
 		async clickSkill(name, target, part) {
 			const container = skillContainer(name, target);
 			if (!container) throw new Error(`No skill ${JSON.stringify(target)} on the sheet of E2E ${name}`);
 			const element = container.querySelector<HTMLElement>(
-				part === 'icon' ? '.skill-icon' : 'skill' in target ? '.name' : ':scope > a',
+				part === 'icon' ? '.skill-icon' : 'skill' in target ? '.name' : ':scope > .skill-roll',
 			);
 			element?.click();
 			await settle();
@@ -957,7 +957,7 @@ function installCharacterHelpers() {
 			return {
 				inventory: [...root.querySelectorAll('.inventory-item')]
 					.filter((row) => row.querySelector('[data-item-type=weapon]'))
-					.map((row) => unprefixed(text(row.querySelector('.name a')))),
+					.map((row) => unprefixed(text(row.querySelector('.name button')))),
 				encumbrance: actor(name).system.currentEncumbrance.value,
 				combat: combatRows().map((row) => {
 					const select = row.querySelector<HTMLSelectElement>('select.attack-skill');

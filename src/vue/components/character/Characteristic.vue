@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import ContextMenu from '@/vue/components/ContextMenu.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
@@ -79,10 +80,13 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 			</template>
 
 			<label>
-				<a v-if="canUpgrade || canRollCharacteristicCheck" @click="canUpgrade ? emit('upgrade') : emit('rollCharacteristicCheck')">
+				<ActionButton
+					v-if="canUpgrade || canRollCharacteristicCheck"
+					@click="canUpgrade ? emit('upgrade') : emit('rollCharacteristicCheck')"
+				>
 					<Localized :label="label" />
 					<i v-if="canUpgrade" class="fas fa-arrow-circle-up"></i>
-				</a>
+				</ActionButton>
 
 				<span v-else>
 					<Localized :label="label" />
@@ -218,13 +222,18 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		margin-top: 2px;
 		margin-bottom: 2px;
 
-		a,
+		.action-button,
 		span {
 			display: flex;
 			flex-wrap: nowrap;
 			align-items: center;
 			justify-content: center;
 			gap: 0.25em;
+		}
+
+		// A button takes its content's width, where the link it replaced filled the label.
+		.action-button {
+			width: 100%;
 		}
 	}
 }

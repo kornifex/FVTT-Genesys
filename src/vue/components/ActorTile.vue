@@ -6,6 +6,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { startDocumentDrag } from '@/data/DragTransferData';
 import { openSheet } from '@/operations/ItemActions';
 
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -86,7 +87,7 @@ async function openActorSheet() {
 
 		<div class="details">
 			<span class="name">
-				<a @click="openActorSheet">{{ actor.name }}</a>
+				<ActionButton @click="openActorSheet">{{ actor.name }}</ActionButton>
 			</span>
 
 			<div v-if="career"><Localized label="Genesys.Labels.Career" />: {{ career }}</div>
@@ -99,6 +100,7 @@ async function openActorSheet() {
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
 
+			<!-- eslint-disable-next-line vuejs-accessibility/anchor-has-content -- #576 makes the menu's trigger a named button. -->
 			<a><i class="fas fa-ellipsis-vertical"></i></a>
 		</ContextMenu>
 	</div>

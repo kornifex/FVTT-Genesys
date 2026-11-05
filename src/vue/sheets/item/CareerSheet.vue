@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
@@ -52,7 +53,7 @@ async function removeSkill(index: number) {
 						<img :src="skill.img" :alt="skill.name" />
 						<span class="name">{{ skill.name }}</span>
 						<div v-if="editable">
-							<a @click="removeSkill(index)"><i class="fas fa-trash"></i></a>
+							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveSkill" @click="removeSkill(index)" />
 						</div>
 					</div>
 				</DataRow>

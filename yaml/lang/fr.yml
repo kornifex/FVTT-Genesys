@@ -157,6 +157,7 @@ Genesys:
     SuppressedByEquipmentState: Inactif tant que l'état de {item} est « {state} ».
     Duration: Durée
     Expired: Expiré
+    Toggle: Activer ou désactiver l'effet
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier
@@ -176,8 +177,12 @@ Genesys:
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     UnrankedSkills: Sans rang
     WeaponSkills: Compétences de l'arme
+    RemoveDie: Retirer un dé
+    RemoveSymbol: Retirer un symbole
     PoolModifications:
       Title: Modification de la réserve de dés
+      Add: Ajouter cette modification
+      Remove: Retirer cette modification
       Difficulty: 'Difficulté : {level}'
       ManualChanges: Modifications manuelles
       SelfEffects: 'Soi : '
@@ -220,6 +225,8 @@ Genesys:
     Skill: Augmente <strong>{name}</strong> au rang {rank}.
     NewTalent: 'Talent acheté : <strong>{name}</strong> (Catégorie {tier}).'
     TalentRank: Augmente <strong>{name}</strong> au rang {rank} (Catégorie {tier}).
+    AddEntry: Ajouter une entrée au journal d'expérience
+    UndoEntry: Annuler l'entrée
 
   # Notification Prompts
   Notifications:
@@ -354,6 +361,7 @@ Genesys:
     PlayerShort: Destin
     GMShort: Fatalité
     Reset: Réinitialise les points Narratifs
+    Spend: Dépenser un point Narratif
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !
 
@@ -603,9 +611,17 @@ Genesys:
     PilotRoleHint: Son premier membre est le pilote, dont la défense du véhicule piloté augmente la défense du véhicule.
     FiringArc: Arc de tir
     Select: Sélection
-    PerformCheck: Perform Check
+    PerformCheck: Faire le test
     GroupBy: Regrouper
     Attack: Attaque
     Item: Objet
     Items: Objets
     CloseContainer: Fermer le conteneur
+    OpenContainer: Ouvrir le conteneur
+    SendToChat: Envoyer dans le chat
+    RaiseTalent: Augmenter le talent
+    BuySkillRank: Acheter un rang
+    DeleteRole: Supprimer le rôle
+    RemoveSkill: Retirer la compétence
+    RemoveQuality: Retirer l'attribut
+    RemoveGrantedItem: Retirer l'objet accordé

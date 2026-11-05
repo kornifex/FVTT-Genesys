@@ -78,6 +78,25 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 			this.setPosition({ top, height });
 		}
 
+		/**
+		 * Disable the sheet's fields when the user can't edit its document, but its action buttons. Foundry disables every
+		 * element of the form, buttons included, on v13 and v14 alike. An action that would edit the document isn't
+		 * rendered on such a sheet (`ActionButton`'s `edits`): the buttons left open a sheet, roll, send to chat or fold,
+		 * which a user who only observes the document may do. A button its own element disabled, as a `<prose-mirror>`'s
+		 * toggle on such a sheet, stays disabled.
+		 */
+		protected override _toggleDisabled(disabled: boolean) {
+			const actions = disabled
+				? [...this.element.querySelectorAll<HTMLButtonElement>('.window-content button[type=button]')].filter(
+						(button) => !button.disabled,
+					)
+				: [];
+			super._toggleDisabled(disabled);
+			for (const button of actions) {
+				button.disabled = false;
+			}
+		}
+
 		protected override async _preClose(options: RenderOptions) {
 			await super._preClose(options);
 

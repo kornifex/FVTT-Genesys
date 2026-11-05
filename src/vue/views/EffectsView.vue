@@ -5,6 +5,7 @@ import { EffectCategory } from '@/effects/NewEffect';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { useSheetDocument } from '@/vue/useSheetDocument';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 
 defineProps<{
@@ -87,7 +88,9 @@ async function deleteEffect(effect: GenesysEffect) {
 				<div class="source"><Localized label="Genesys.ActiveEffects.Source" /></div>
 				<div class="duration"><Localized label="Genesys.ActiveEffects.Duration" /></div>
 				<div class="buttons">
-					<a @click="emit('addEffect', category)"><i class="fas fa-plus"></i> <Localized label="Genesys.Labels.Add" /></a>
+					<ActionButton icon="fas fa-plus" edits @click="emit('addEffect', category)"
+						><Localized label="Genesys.Labels.Add"
+					/></ActionButton>
 				</div>
 			</div>
 
@@ -101,11 +104,20 @@ async function deleteEffect(effect: GenesysEffect) {
 						<template v-else>{{ effect.duration.label }}</template>
 					</div>
 					<div v-if="editable" class="buttons">
-						<a @click="toggleDisabled(effect)" :style="effect.disabled ? 'opacity: 25%' : undefined"
-							><i class="fas fa-power-off"></i
-						></a>
-						<a @click="openEffect(effect)"><i class="fas fa-edit"></i></a>
-						<a v-if="livesOnSheetDocument(effect)" @click="deleteEffect(effect)"><i class="fas fa-trash"></i></a>
+						<ActionButton
+							icon="fas fa-power-off"
+							label="Genesys.ActiveEffects.Toggle"
+							:pressed="!effect.disabled"
+							:style="effect.disabled ? 'opacity: 25%' : undefined"
+							@click="toggleDisabled(effect)"
+						/>
+						<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openEffect(effect)" />
+						<ActionButton
+							v-if="livesOnSheetDocument(effect)"
+							icon="fas fa-trash"
+							label="Genesys.Labels.Delete"
+							@click="deleteEffect(effect)"
+						/>
 					</div>
 				</div>
 			</section>

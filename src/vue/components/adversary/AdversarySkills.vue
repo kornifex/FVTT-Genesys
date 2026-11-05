@@ -7,6 +7,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { DicePrompt } from '@/app/DicePrompt';
 import { freeRank } from '@/data/Skills';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
@@ -53,20 +54,14 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 			</template>
 
-			<img
-				class="skill-icon"
-				:src="skill.img ?? undefined"
-				:alt="skill.name"
-				data-tooltip="Genesys.Tooltips.OpenSkill"
-				@click="openSheet(skill)"
-			/>
-			<a @click="rollSkill(skill)">
+			<ActionButton class="skill-icon" :image="skill.img ?? undefined" label="Genesys.Tooltips.OpenSkill" @click="openSheet(skill)" />
+			<ActionButton class="skill-roll" @click="rollSkill(skill)">
 				<span>{{ skill.name }}{{ props.groupRank === undefined ? ` ${skill.system.rank}` : null }}</span>
 				<SkillRanks
 					:skill-value="props.groupRank ?? skill.system.rank"
 					:characteristic-value="characteristics[skill.system.characteristic]"
 				/>
-			</a>
+			</ActionButton>
 		</ContextMenu>
 	</div>
 </template>
@@ -80,7 +75,5 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 	height: 1.5em;
 	margin-right: 0.25em;
 	vertical-align: middle;
-	border: none;
-	cursor: pointer;
 }
 </style>

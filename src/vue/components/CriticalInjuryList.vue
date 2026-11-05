@@ -4,6 +4,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
@@ -41,15 +42,15 @@ const { isOpen, toggle } = useOpenRows();
 
 		<div v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']">
 			<div class="severity">
-				<a @click="emit('roll', injury)">{{ severityDifficulty(injury.system.severity) }}</a>
+				<ActionButton @click="emit('roll', injury)">{{ severityDifficulty(injury.system.severity) }}</ActionButton>
 			</div>
 			<div class="name">
-				<a @click="openSheet(injury)">{{ injury.name }}</a>
+				<ActionButton @click="openSheet(injury)">{{ injury.name }}</ActionButton>
 				<DescriptionToggle :description="injury.system.description" :open="isOpen(injury.id)" @toggle="toggle(injury.id)" />
 			</div>
 			<div v-if="editable" class="actions">
-				<a @click="openSheet(injury)"><i class="fas fa-edit"></i></a>
-				<a @click="deleteItem(injury)"><i class="fas fa-trash"></i></a>
+				<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(injury)" />
+				<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 			</div>
 			<div v-else />
 			<div :class="['description', { active: isOpen(injury.id) }]"><Enriched :value="injury.system.description" /></div>

@@ -2,8 +2,13 @@
 /** @file Tests for the chevron that shows or hides a row's description. */
 
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+
+beforeEach(() => {
+	// Foundry localizes a key into its text: here, the key marked as localized.
+	vi.stubGlobal('game', { i18n: { localize: (key: string) => `localized ${key}` } });
+});
 
 describe('DescriptionToggle', () => {
 	it('shows no toggle for a description that shows nothing', () => {
@@ -12,17 +17,21 @@ describe('DescriptionToggle', () => {
 		expect(toggle.find('.description-toggle').exists()).toBe(false);
 	});
 
-	it('points right with a Show tooltip while the description is closed', () => {
+	it('points right, named Show and closed, while the description is closed', () => {
 		const toggle = mount(DescriptionToggle, { props: { description: '<p>Sharp.</p>', open: false } });
+		const button = toggle.get('button.description-toggle');
 
-		expect(toggle.get('.description-toggle').attributes('data-tooltip')).toBe('Genesys.Tooltips.ShowDescription');
+		expect(button.attributes('aria-label')).toBe('localized Genesys.Tooltips.ShowDescription');
+		expect(button.attributes('aria-expanded')).toBe('false');
 		expect(toggle.get('i').classes()).toContain('fa-chevron-right');
 	});
 
-	it('points down with a Hide tooltip while the description is open', () => {
+	it('points down, named Hide and open, while the description is open', () => {
 		const toggle = mount(DescriptionToggle, { props: { description: '<p>Sharp.</p>', open: true } });
+		const button = toggle.get('button.description-toggle');
 
-		expect(toggle.get('.description-toggle').attributes('data-tooltip')).toBe('Genesys.Tooltips.HideDescription');
+		expect(button.attributes('aria-label')).toBe('localized Genesys.Tooltips.HideDescription');
+		expect(button.attributes('aria-expanded')).toBe('true');
 		expect(toggle.get('i').classes()).toContain('fa-chevron-down');
 	});
 

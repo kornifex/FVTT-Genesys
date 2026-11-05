@@ -2,7 +2,7 @@
  * @file The context a sheet hands its Vue app on each render, and how the app receives it.
  */
 
-import { type App, inject, type InjectionKey, type ShallowRef, shallowRef, triggerRef } from 'vue';
+import { type App, computed, inject, type InjectionKey, type Ref, type ShallowRef, shallowRef, triggerRef } from 'vue';
 
 /**
  * The key the sheet's context is provided under, read through `useSheetContext`.
@@ -49,4 +49,17 @@ export function useSheetContext<Context>(): Readonly<ShallowRef<Context>> {
 	}
 
 	return context as Readonly<ShallowRef<Context>>;
+}
+
+/**
+ * Whether the user can edit what the component renders in. Only a document sheet's context says so: a prompt, the Story
+ * Point tracker and a component rendered alone have no `editable`, and count as editable.
+ */
+export function useEditable(): Readonly<Ref<boolean>> {
+	const context = inject(RootContext, undefined);
+
+	return computed(() => {
+		const value = context?.value;
+		return !(typeof value === 'object' && value !== null && 'editable' in value && value.editable === false);
+	});
 }

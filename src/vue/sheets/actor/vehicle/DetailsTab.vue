@@ -5,6 +5,9 @@ import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 
 const { system } = useSheetDocument<GenesysActor<'vehicle'>>();
+
+// The illustration is named for what it is: it shows whatever image the user picked.
+const illustrationName = game.i18n.localize('Genesys.Labels.Illustration');
 </script>
 
 <template>
@@ -17,7 +20,7 @@ const { system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 			<section class="illustration">
 				<div class="header"><Localized label="Genesys.Labels.Illustration" /></div>
-				<img :src="system.illustration" data-edit="system.illustration" />
+				<img :src="system.illustration" data-edit="system.illustration" :alt="illustrationName" />
 			</section>
 		</div>
 
