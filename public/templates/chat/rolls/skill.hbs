@@ -7,7 +7,7 @@
 		{{/if}}
 
 		<label>{{localize 'Genesys.Rolls.Results'}}</label>
-		<div class="net-results">
+		<div class="net-results" {{glyphAttributes card.symbols}}>
 			{{#each card.symbols}}
 				<span>{{this}}</span>
 			{{/each}}
@@ -19,7 +19,8 @@
 		<label>{{localize 'Genesys.Rolls.Summary.Label'}}</label>
 		<div class="summary-table">
 			{{#each card.summary}}
-				<span class="symbol">{{symbol}}</span>
+				{{!-- The label that follows names the symbol in words. --}}
+				<span class="symbol" aria-hidden="true">{{symbol}}</span>
 				<span class="label">{{localize label}}</span>
 				<span class="count">{{count}}</span>
 
@@ -37,7 +38,7 @@
 		<div class="dice">
 			{{#each results.faces as |faces die|}}
 				{{#each faces}}
-					<div class="result">
+					<div class="result" {{glyphAttributes this die=die}}>
 						<div class="type" data-type="{{capitalize die}}">
 							<span>
 								{{!-- Convert difficulty to the correct symbol --}}
@@ -57,7 +58,7 @@
 
 			{{#each results.extraSymbols as |count symbol|}}
 				{{#repeat count}}
-					<div class="symbol">{{symbol}}</div>
+					<div class="symbol" {{glyphAttributes symbol}}>{{symbol}}</div>
 				{{/repeat}}
 			{{/each}}
 		</div>

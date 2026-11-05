@@ -2,6 +2,8 @@
  * @file Initiative Slots: their turn order, their Claims, and what a user may do with them.
  */
 
+import { SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
+
 /**
  * The side an Initiative Slot belongs to.
  */
@@ -155,6 +157,15 @@ export function decodeInitiative(initiative: number | null) {
 	const successes = Math.floor(value);
 
 	return { successes, advantages: Math.round((value - successes) * ADVANTAGE_SCALE) };
+}
+
+/**
+ * The glyphs the combat trackers show for an initiative: its Successes, then its Advantage. A negative initiative, which
+ * a check never stores but a macro or a hand-typed value can, shows no Successes.
+ */
+export function initiativeGlyphs(initiative: number | null) {
+	const { successes, advantages } = decodeInitiative(initiative);
+	return SYMBOL_GLYPHS.Success.repeat(Math.max(successes, 0)) + SYMBOL_GLYPHS.Advantage.repeat(Math.max(advantages, 0));
 }
 
 /**

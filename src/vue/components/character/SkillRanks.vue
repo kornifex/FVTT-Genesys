@@ -1,16 +1,26 @@
 <script lang="ts" setup>
-defineProps<{
+import { computed } from 'vue';
+import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
+import Glyphs from '@/vue/components/Glyphs.vue';
+
+const props = defineProps<{
 	skillValue: number;
 	characteristicValue: number;
 }>();
+
+const abilityDice = computed(() => Math.abs(props.skillValue - props.characteristicValue));
+const proficiencyDice = computed(() => Math.min(props.skillValue, props.characteristicValue));
+// The dice in words, in the order the row shows them: it lays them out from the right, so the Proficiency dice show
+// first, on the left.
+const glyphs = computed(() => DIE_GLYPHS.Proficiency.repeat(proficiencyDice.value) + DIE_GLYPHS.Ability.repeat(abilityDice.value));
 </script>
 
 <template>
-	<div class="skill-ranks">
+	<Glyphs tag="div" class="skill-ranks" :glyphs>
 		<div v-for="i in Math.max(0, 5 - Math.max(skillValue, characteristicValue))" :key="i" class="rank" />
-		<div v-for="i in Math.abs(skillValue - characteristicValue)" :key="i" class="rank ability" />
-		<div v-for="i in Math.min(skillValue, characteristicValue)" :key="i" class="rank proficiency" />
-	</div>
+		<div v-for="i in abilityDice" :key="i" class="rank ability" />
+		<div v-for="i in proficiencyDice" :key="i" class="rank proficiency" />
+	</Glyphs>
 </template>
 
 <style lang="scss" scoped>

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { parseRollResults } from '@/dice/CheckRoll';
 
 /**
- * A dice term as `parseRollResults` reads it: a denomination and the labels of the rolled faces.
+ * A dice term as `parseRollResults` reads it: a denomination and the glyphs of the rolled faces.
  */
 type FakeTerm = { denomination: string; labels: string[] };
 
@@ -15,7 +15,7 @@ function fakeRoll(terms: FakeTerm[], symbols?: Record<string, number>) {
 	const dice = terms.map(({ denomination, labels }) => ({
 		denomination,
 		results: labels.map((label) => ({ label })),
-		getResultLabel: (result: { label: string }) => result.label,
+		resultFace: (result: { label: string }) => result.label,
 	}));
 
 	return { dice, data: { symbols } } as unknown as Parameters<typeof parseRollResults>[0];

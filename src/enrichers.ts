@@ -2,9 +2,26 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { DicePrompt } from '@/app/DicePrompt';
 import { checkLinkActor, checkLinkDifficulty } from '@/dice/CheckLinks';
 import { diceGlyphs, poolModificationIcons } from '@/dice/EnricherGlyphs';
-import { DIE_GLYPHS, PoolModGlyphPattern } from '@/dice/GenesysPoolModifications';
+import {
+	DIE_GLYPHS,
+	glyphAttributes,
+	glyphAttributesHTML,
+	glyphLabel,
+	PoolModGlyphPattern,
+	poolModificationLabel,
+	worldGlyphLocalizer,
+} from '@/dice/GenesysPoolModifications';
 
 type Enricher = (typeof CONFIG.TextEditor.enrichers)[number];
+
+/**
+ * Label an element holding glyphs in words, for a screen reader and as its tooltip.
+ */
+function labelGlyphs(element: HTMLElement, label: string) {
+	for (const [name, value] of Object.entries(glyphAttributes(label))) {
+		element.setAttribute(name, value);
+	}
+}
 
 /**
  * Shows Genesys dice, from die letters (A, P, B, D or I, C, S) or from colour letters (G, Y, B, P, R, K), in any case.
@@ -19,6 +36,7 @@ const diceEnricher: Enricher = {
 
 		const container = document.createElement('span');
 		container.className = 'font-genesys-symbols inline-glyphs';
+		labelGlyphs(container, glyphLabel(glyphs.join(''), worldGlyphLocalizer()));
 		for (const glyph of glyphs) {
 			const die = document.createElement('i');
 			die.className = `die die-${glyph}`;
@@ -38,7 +56,10 @@ const symbolsEnricher: Enricher = {
 	enricher: async (match) => {
 		const container = document.createElement('span');
 		container.className = `font-genesys-symbols inline-glyphs nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
-		container.innerText = match.groups?.['symbols']?.toLowerCase() ?? '';
+		const symbols = match.groups?.['symbols']?.toLowerCase() ?? '';
+		container.innerText = symbols;
+		// The label leaves out the digits, which stand for no die or symbol.
+		labelGlyphs(container, glyphLabel(symbols, worldGlyphLocalizer()));
 
 		return container;
 	},
@@ -89,16 +110,19 @@ const checkEnricher: Enricher = {
 
 		const dieIcon = (glyph: string) => `<span class="die die-${glyph} inline-glyphs">${glyph}</span>`;
 		const difficultyIcons = dieIcon(DIE_GLYPHS.Challenge).repeat(challengeDice) + dieIcon(DIE_GLYPHS.Difficulty).repeat(difficultyDice);
+		const difficultyGlyphs = DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
 
 		const anchor = checkAnchor(
 			game.i18n.format('Genesys.Enrichers.Difficulty', {
 				difficulty: game.i18n.localize(label),
-				symbols: difficultyIcons || '—',
+				symbols: difficultyIcons
+					? `<span ${glyphAttributesHTML(glyphLabel(difficultyGlyphs, worldGlyphLocalizer()))}>${difficultyIcons}</span>`
+					: '—',
 				skill,
 			}),
 		);
 		anchor.dataset.skillCheck = skill;
-		anchor.dataset.difficulty = DIE_GLYPHS.Challenge.repeat(challengeDice) + DIE_GLYPHS.Difficulty.repeat(difficultyDice);
+		anchor.dataset.difficulty = difficultyGlyphs;
 
 		return anchor;
 	},
@@ -111,13 +135,15 @@ const poolModificationsEnricher: Enricher = {
 	pattern: new RegExp(`@pool(-mod(ifications?)?)?\\[(?<mods>${PoolModGlyphPattern.source}+)]`, 'gim'),
 	enricher: async (match) => {
 		// Returning null leaves the text of a glyph in the wrong case as it is.
-		const icons = poolModificationIcons(match.groups?.['mods'] ?? '');
+		const mods = match.groups?.['mods'] ?? '';
+		const icons = poolModificationIcons(mods);
 		if (!icons) {
 			return null;
 		}
 
 		const container = document.createElement('span');
 		container.className = 'font-genesys-symbols inline-glyphs pool-modifications';
+		labelGlyphs(container, poolModificationLabel(mods.match(PoolModGlyphPattern) ?? [], worldGlyphLocalizer()));
 		for (const { className, glyph, operator } of icons) {
 			const base = document.createElement('i');
 			base.className = className;

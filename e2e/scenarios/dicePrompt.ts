@@ -1,4 +1,5 @@
 /** @file #211: the Dice Prompt and checks: the pool a check rolls, its Pool Modifications, its links, its chance to succeed and its messages. */
+import type { GlyphName } from '../accessibility.ts';
 import { FOLD_TRANSITION } from '../descriptions.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
@@ -221,7 +222,18 @@ type DicePromptHelpers = {
 	settingText(key: string): Promise<{ language: string; name: string; hint: string }>;
 	/** The Pool Modifications' title and rows as laid out (§#513). */
 	poolModificationsLayout(): PoolModificationsLayout;
+	/** Rolls a formula of Genesys dice to the chat, its dice tooltip expanded, and returns the message's id. */
+	rollToChat(formula: string): Promise<string>;
+	/**
+	 * Shows a message in the chat log, the sidebar expanded on its chat tab, marked `data-e2e="glyph-message"` for a
+	 * Node-side selector; returns the sidebar's state before, for {@link restoreSidebar}.
+	 */
+	showMessage(id: string): Promise<SidebarState>;
+	restoreSidebar(state: SidebarState): void;
 };
+
+/** Whether the sidebar is expanded, and its active tab. */
+type SidebarState = { expanded: boolean; tab: string };
 
 type Settings = Record<string, unknown> & { character: string | null };
 
@@ -603,6 +615,8 @@ function installDicePromptHelpers() {
 								...links.map((link) => `<p>@check[${link}]</p>`),
 								...pools.map((pool, index) => `<p class="e2e-pool">P${index + 1} ${pool}</p>`),
 								'<p class="e2e-inline">Hit @dice[AD] Hard, then @sym[sa] Exit</p>',
+								// §#582: the links' glyphs in words; the digits of a `@sym` stand for no die or symbol.
+								'<p class="e2e-glyphs">@dice[PPB] @sym[ss1] @sym[23] @pool[A-s^]</p>',
 							].join(''),
 						},
 					},
@@ -841,6 +855,37 @@ function installDicePromptHelpers() {
 		},
 
 		lastMessage: () => messageSummary(game.messages.contents.at(-1)),
+
+		async rollToChat(formula) {
+			const message = await (await new foundry.dice.Roll(formula).evaluate()).toMessage();
+			await settle();
+			return message.id;
+		},
+
+		async showMessage(id) {
+			const state = { expanded: ui.sidebar.expanded, tab: ui.sidebar.tabGroups.primary };
+			// v13: the sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
+			ui.sidebar.expand();
+			ui.sidebar.changeTab('chat', 'primary');
+			const message = await waitFor('the message in the chat log', () =>
+				[...document.querySelectorAll<HTMLElement>(`[data-message-id="${id}"]`)].find(
+					(element) => !element.closest('#chat-notifications') && element.getBoundingClientRect().width > 0,
+				),
+			);
+			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e="glyph-message"]')) delete marked.dataset.e2e;
+			message.dataset.e2e = 'glyph-message';
+			// A roll's dice show in its tooltip, which a click expands.
+			message.querySelector('[data-action="expandRoll"]')?.classList.add('expanded');
+			message.scrollIntoView({ block: 'center' });
+			await settle();
+			return state;
+		},
+
+		restoreSidebar({ expanded, tab }) {
+			ui.sidebar.changeTab(tab, 'primary');
+			if (expanded) ui.sidebar.expand();
+			else ui.sidebar.collapse();
+		},
 
 		lastCard() {
 			const message = game.messages.contents.at(-1);
@@ -3167,6 +3212,146 @@ export async function run(e2e: ScenarioContext) {
 		);
 		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 		await e2e.step('T end');
+	});
+
+	// §#582: the dice and symbols read in words, as an image's name to a screen reader and as its tooltip: the Dice
+	// Prompt's pool and Pool Modifications, a check's chat card, a die's result in a roll's tooltip, and the links of a
+	// journal. Each element reads as its glyphs' text and its name, null when it is no image.
+	await part('glyphLabels', async () => {
+		const read = (names: GlyphName[]) => names.map(({ text, name }) => [text, name]);
+		const tooltipsRead = (names: GlyphName[]) => names.every(({ name, tooltip }) => tooltip === name);
+
+		// Ada's Cool check, A|DD, with a Proficiency die and a Success added by hand.
+		await opened(gm, skillRoll('Cool'));
+		await gm.evaluate(() => window.dicePromptE2E.promptAdd(['P+', 's+']));
+		const pool = await gm.glyphNames('.app-dice-prompt .preview .positive > *, .app-dice-prompt .preview .negative > *');
+		e2e.expect(
+			"#582 A1 the Dice Prompt's pool reads each die and symbol in words, in its tooltip too",
+			[read(pool), tooltipsRead(pool)],
+			[
+				[
+					['P', '1 Proficiency die'],
+					['A', '1 Ability die'],
+					['s', '1 Success'],
+					['D', '1 Difficulty die'],
+					['D', '1 Difficulty die'],
+				],
+				true,
+			],
+		);
+		const diceBox = await gm.glyphNames('.app-dice-prompt .dice-box a > *');
+		const manualChanges = await gm.glyphNames('.app-dice-prompt .pool-modifications-manual a > *');
+		e2e.expect(
+			"#582 A2 the Dice Prompt's dice box and manual changes read each Pool Modification as an operation, in its tooltip too",
+			{ diceBox: read(diceBox), manualChanges: read(manualChanges), tooltips: tooltipsRead([...diceBox, ...manualChanges]) },
+			{
+				diceBox: [
+					['A', 'Add 1 Ability die'],
+					['P', 'Add 1 Proficiency die'],
+					['B', 'Add 1 Boost die'],
+					['A', 'Upgrade 1 Ability die'],
+					['P', 'Downgrade 1 Proficiency die'],
+					['D', 'Add 1 Difficulty die'],
+					['C', 'Add 1 Challenge die'],
+					['S', 'Add 1 Setback die'],
+					['D', 'Upgrade 1 Difficulty die'],
+					['C', 'Downgrade 1 Challenge die'],
+					['a', 'Add 1 Advantage'],
+					['s', 'Add 1 Success'],
+					['t', 'Add 1 Triumph'],
+					['h', 'Add 1 Threat'],
+					['f', 'Add 1 Failure'],
+					['d', 'Add 1 Despair'],
+				],
+				manualChanges: [
+					['P', 'Add 1 Proficiency die'],
+					['s', 'Add 1 Success'],
+				],
+				tooltips: true,
+			},
+		);
+
+		// 1dp+1da+2di and a Success: the Proficiency die lands on a Triumph, the Ability die on a blank face, the Difficulty
+		// dice on a Failure and a Threat, then a Threat.
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 8, faces: 8 },
+			{ face: 4, faces: 8 },
+		]);
+		const { id } = await roll();
+		const sidebar = await gm.evaluate((id) => window.dicePromptE2E.showMessage(id), id);
+		const card = (selector: string) => gm.glyphNames(`[data-e2e="glyph-message"] ${selector}`);
+		const results = await card('.net-results');
+		const dice = await card('.dice > *');
+		const summary = await card('.summary-table .symbol');
+		e2e.expect(
+			"#582 A3 a check's chat card reads its results, each die's result and its extra symbols in words, in their tooltips too, and leaves the summary's symbols to the label beside them",
+			{ results: read(results), dice: read(dice), summary: read(summary), tooltips: tooltipsRead([...results, ...dice]) },
+			{
+				results: [['h h t', '2 Threat, 1 Triumph']],
+				dice: [
+					['P t', 'Proficiency Die: 1 Triumph'],
+					['A', 'Ability Die: Blank face'],
+					['D fh', 'Difficulty Die: 1 Failure, 1 Threat'],
+					['D h', 'Difficulty Die: 1 Threat'],
+					['s', '1 Success'],
+				],
+				summary: [
+					['s', null],
+					['h', null],
+					['t', null],
+				],
+				tooltips: true,
+			},
+		);
+
+		// A roll of Genesys dice sent from the chat: a Triumph, then a blank face.
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 1, faces: 6 },
+		]);
+		const rolled = await gm.evaluate(() => window.dicePromptE2E.rollToChat('1dp+1ds'));
+		await gm.evaluate((id) => window.dicePromptE2E.showMessage(id), rolled);
+		const faces = await gm.glyphNames('[data-e2e="glyph-message"] .dice-tooltip li.roll > *');
+		e2e.expect(
+			"#582 A4 a roll's tooltip reads the face of each Genesys die in words, in its tooltip too",
+			[read(faces), tooltipsRead(faces)],
+			[
+				[
+					['t', '1 Triumph'],
+					['', 'Blank face'],
+				],
+				true,
+			],
+		);
+		await gm.evaluate((state) => window.dicePromptE2E.restoreSidebar(state), sidebar);
+
+		// Ada's sheet, open from the check, holds a check link in its notes, on a tab it doesn't show.
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await gm.evaluate((doc) => window.dicePromptE2E.pools(doc), journal);
+		// The journal's first check link, `@check[Athletics,3]`: chat messages of other parts hold check links too.
+		await gm.evaluate(() => {
+			const link = window.e2e.htmlOf(game.journal.getName('E2E Links').sheet)!.querySelector('a[data-skill-check] > span')!;
+			(link as HTMLElement).dataset.e2e = 'glyph-check';
+		});
+		const links = await gm.glyphNames('[data-e2e="glyph-check"], p.e2e-glyphs .font-genesys-symbols');
+		e2e.expect(
+			'#582 A5 the @dice, @sym, @check and @pool links read in words, in their tooltips too, the digits of a @sym left out',
+			[read(links), tooltipsRead(links)],
+			[
+				[
+					['DDD', '3 Difficulty dice'],
+					['PPB', '2 Proficiency dice, 1 Boost die'],
+					['ss1', '2 Successes'],
+					['23', null],
+					['AsA', 'Add 1 Ability die, Remove 1 Success, Upgrade 1 Ability die'],
+				],
+				true,
+			],
+		);
+		await gm.evaluate(() => window.dicePromptE2E.closeSheets());
+		await e2e.step('U end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

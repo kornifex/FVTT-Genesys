@@ -136,6 +136,53 @@ Genesys:
     Difficulty: Dado de Dificultad
     Challenge: Dado de Desafío
 
+  # The dice and symbols in words, as a screen reader and a tooltip read them
+  Symbols:
+    Proficiency:
+      one: '{count} dado de pericia'
+      other: '{count} dados de pericia'
+    Ability:
+      one: '{count} dado de capacidad'
+      other: '{count} dados de capacidad'
+    Boost:
+      one: '{count} dado de beneficio'
+      other: '{count} dados de beneficio'
+    Challenge:
+      one: '{count} dado de desafío'
+      other: '{count} dados de desafío'
+    Difficulty:
+      one: '{count} dado de dificultad'
+      other: '{count} dados de dificultad'
+    Setback:
+      one: '{count} dado de complicación'
+      other: '{count} dados de complicación'
+    Triumph:
+      one: '{count} triunfo'
+      other: '{count} triunfos'
+    Success:
+      one: '{count} éxito'
+      other: '{count} éxitos'
+    Advantage:
+      one: '{count} ventaja'
+      other: '{count} ventajas'
+    Despair:
+      one: '{count} desesperación'
+      other: '{count} desesperaciones'
+    Failure:
+      one: '{count} fallo'
+      other: '{count} fallos'
+    Threat:
+      one: '{count} amenaza'
+      other: '{count} amenazas'
+  Glyphs:
+    BlankFace: cara en blanco
+    DieResult: '{die}: {face}'
+    Operations:
+      Add: Añadir {glyphs}
+      Remove: Eliminar {glyphs}
+      Upgrade: Incrementar {glyphs}
+      Downgrade: Rebajar {glyphs}
+
   # Difficulty Ranks
   Difficulty:
     Simple: Simple

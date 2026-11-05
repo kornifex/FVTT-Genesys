@@ -31,3 +31,10 @@ export const DieTypes = {
 	Difficulty: { DENOMINATION: 'i', GLYPH: DIE_GLYPHS.Difficulty, FORMULA: 'di', CATEGORY: 'negative', COLOR: 'P' },
 	Setback: { DENOMINATION: 's', GLYPH: DIE_GLYPHS.Setback, FORMULA: 'ds', CATEGORY: 'negative', COLOR: 'K' },
 } satisfies Record<string, DieType>;
+
+/**
+ * The die type Foundry rolls under a denomination, such as `i` for a Difficulty die.
+ */
+export function dieOfDenomination(denomination: string) {
+	return (Object.keys(DieTypes) as (keyof typeof DieTypes)[]).find((name) => DieTypes[name].DENOMINATION === denomination);
+}
