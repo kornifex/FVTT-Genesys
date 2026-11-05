@@ -23,9 +23,10 @@ export async function removeDeletedFromCrews(deleted: Stored<GenesysActor>[]) {
 	}
 
 	// Each vehicle's new Crew is computed from its current one: removing the actors one by one, in writes that don't wait
-	// for each other, would have each write put back the actors the others removed.
-	// A vehicle deleted in the same operation has already left `game.actors`: Foundry removes every document of the
-	// operation before it post-processes it.
+	// for each other, would have each write of a Crew field (its passengers, its Roles) put back the actors the others
+	// removed from it. A vehicle deleted in the same operation has already left `game.actors`: Foundry removes every
+	// document of the operation before it post-processes it. VehicleDataModel's `isVehicle` would bring in an import
+	// cycle through GenesysActor, which calls this.
 	const vehicles = [...game.actors, ...unlinkedTokenActors()].filter(
 		(actor): actor is GenesysActor<'vehicle'> => actor.type === 'vehicle',
 	);
