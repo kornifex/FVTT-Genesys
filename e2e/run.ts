@@ -1,7 +1,4 @@
-/**
- * @file `pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref>
- * [--fresh]] [--launches 8] [--verbose]`: runs scenarios on each Foundry version, on a pool of Foundry launches.
- */
+/** @file `pnpm e2e`: runs scenarios on each Foundry version and build, on a pool of Foundry launches (see `usage`). */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -86,8 +83,8 @@ const baseRuns =
 	base && config.installs.some((install) => scenarios.some((scenario) => planOf(runName(install.version, base.label), scenario).run));
 if (base && baseRuns) dists.set(base.label, buildRef(base.label, base.commit));
 
-// What the pool runs: every scenario on every version and build that has parts to run, split into slices on the
-// durations of the step log it left last time.
+// The pool shares its launches between every version and build, so that the longest scenario, rather than the sum of
+// a version's, sets the run's time.
 const scenarioRuns = new Map<string, PlannedRun>();
 for (const install of config.installs) {
 	for (const build of builds) {
@@ -125,7 +122,7 @@ try {
 }
 const wallTime = Date.now() - started;
 
-// Each scenario's step log, put back together from its slices, the slice of its first part first.
+// The comparison, the cache and the summary read a scenario's log whole, whatever order its slices finished in.
 const results = new Map<string, StepLog>();
 for (const [key, logs] of sliceLogs) {
 	logs.sort((left, right) => (left.slice.range?.from ?? 0) - (right.slice.range?.from ?? 0));
@@ -208,8 +205,8 @@ async function runLaunch(index: number) {
 		world = undefined;
 	};
 	try {
-		for (let slice = queue.shift(); slice; slice = queue.shift()) {
-			const { install, build, run, scenario, parts: only } = plannedRun(slice.run);
+		for (let slice = nextSlice(world?.run); slice; slice = nextSlice(world?.run)) {
+			const { install, build, run, scenario, parts } = plannedRun(slice.runId);
 			const label = scenarioLabel(run, scenario);
 			if (world?.run !== run || scenario.isolated) await close();
 			let log: StepLog;
@@ -227,7 +224,7 @@ async function runLaunch(index: number) {
 					gmUser: config.gmUser,
 					playerUser: config.playerUser,
 					needsCanvas: scenario.needsCanvas,
-					parts: only,
+					parts,
 					range: slice.range,
 					onStep: (step) => console.log(stepLine(label, step, options)),
 				});
@@ -237,12 +234,25 @@ async function runLaunch(index: number) {
 				console.log(stepLine(label, step, options));
 				log = { parts: [], ran: [], steps: [step] };
 			}
-			sliceLogs.set(slice.run, [...(sliceLogs.get(slice.run) ?? []), { slice, log }]);
+			sliceLogs.set(slice.runId, [...(sliceLogs.get(slice.runId) ?? []), { slice, log }]);
 			if (scenario.isolated || stopped(log.steps)) await close();
 		}
 	} finally {
 		await close();
 	}
+}
+
+/**
+ * Takes the next slice of the queue for a launch whose world serves a version and build: the longest left on that
+ * world, else the longest left. The runs of one scenario on two versions last about as long and sit side by side in the
+ * queue: taking them strictly in turn would start a world, a copy and a few seconds of launch, for almost every slice.
+ */
+function nextSlice(worldRun: string | undefined) {
+	const onWorld = queue.findIndex((slice) => {
+		const { run, scenario } = plannedRun(slice.runId);
+		return run === worldRun && !scenario.isolated;
+	});
+	return queue.splice(onWorld === -1 ? 0 : onWorld, 1)[0];
 }
 
 /**

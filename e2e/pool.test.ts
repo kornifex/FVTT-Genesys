@@ -48,6 +48,18 @@ describe('assembleLog', () => {
 		expect(assembleLog([first, second]).steps.at(-1)).toEqual(warned);
 	});
 
+	it('takes the steps outside parts from the next slice when the first one failed to launch, keeping its error', () => {
+		const fatal: Step = { name: 'FATAL', value: 'Foundry v14 did not launch', failed: true };
+		const first = { parts: [], ran: [], steps: [fatal] };
+		const second = { parts, ran: ['tabs', 'editors'], steps: [outside('env'), step('tabs A1', 'tabs'), step('editors A1', 'editors')] };
+
+		expect(assembleLog([first, second])).toEqual({
+			parts,
+			ran: ['tabs', 'editors'],
+			steps: [outside('env'), step('tabs A1', 'tabs'), step('editors A1', 'editors'), fatal],
+		});
+	});
+
 	it('keeps the error that stopped another slice outside its parts, as a launch that failed to start, after the parts', () => {
 		const fatal: Step = { name: 'FATAL', value: 'Foundry v14 did not launch', failed: true };
 		const first = { parts, ran: ['welcome'], steps: [outside('env'), step('welcome A1', 'welcome')] };
@@ -81,9 +93,9 @@ describe('planSlices', () => {
 
 		// 70 s of work for 2 launches, 35 s each: combat (40 s) splits, vehicle (30 s) doesn't.
 		expect(slices).toEqual([
-			{ run: 'v14 head|vehicle', ms: 30_000 },
-			{ run: 'v14 head|combat', range: { from: 0, to: 1 }, ms: 25_000 },
-			{ run: 'v14 head|combat', range: { from: 1 }, ms: 20_000 },
+			{ runId: 'v14 head|vehicle', ms: 30_000 },
+			{ runId: 'v14 head|combat', range: { from: 0, to: 1 }, ms: 25_000 },
+			{ runId: 'v14 head|combat', range: { from: 1 }, ms: 20_000 },
 		]);
 	});
 
@@ -94,15 +106,15 @@ describe('planSlices', () => {
 		);
 
 		expect(slices).toEqual([
-			{ run: 'sheets', range: { from: 0, to: 1 }, ms: 20_000 },
-			{ run: 'sheets', range: { from: 1 }, ms: 20_000 },
+			{ runId: 'sheets', range: { from: 0, to: 1 }, ms: 20_000 },
+			{ runId: 'sheets', range: { from: 1 }, ms: 20_000 },
 		]);
 	});
 
 	it('keeps an isolated scenario whole, on a world of its own', () => {
 		const slices = planSlices([{ id: 'migrations', isolated: true, previous: previous(0, { a: 10, b: 10 }) }], 2);
 
-		expect(slices).toEqual([{ run: 'migrations', ms: 20_000 }]);
+		expect(slices).toEqual([{ runId: 'migrations', ms: 20_000 }]);
 	});
 
 	it("keeps a scenario with no previous log whole, counting as the other scenarios' mean", () => {
@@ -116,9 +128,9 @@ describe('planSlices', () => {
 		);
 
 		expect(slices).toEqual([
-			{ run: 'combat', ms: 30_000 },
-			{ run: 'newScenario', ms: 20_000 },
-			{ run: 'vehicle', ms: 10_000 },
+			{ runId: 'combat', ms: 30_000 },
+			{ runId: 'newScenario', ms: 20_000 },
+			{ runId: 'vehicle', ms: 10_000 },
 		]);
 	});
 
@@ -132,8 +144,8 @@ describe('planSlices', () => {
 		);
 
 		expect(slices).toEqual([
-			{ run: 'combat', ms: 40_000 },
-			{ run: 'vehicle', ms: 30_000 },
+			{ runId: 'combat', ms: 40_000 },
+			{ runId: 'vehicle', ms: 30_000 },
 		]);
 	});
 
@@ -149,11 +161,11 @@ describe('planSlices', () => {
 		);
 
 		expect(slices).toEqual([
-			{ run: 'sheets', range: { from: 2, to: 4 }, ms: 27_000 },
-			{ run: 'sheets', range: { from: 4, to: 6 }, ms: 27_000 },
-			{ run: 'sheets', range: { from: 0, to: 2 }, ms: 22_000 },
-			{ run: 'sheets', range: { from: 6 }, ms: 20_000 },
-			{ run: 'routePrefix', ms: 10_000 },
+			{ runId: 'sheets', range: { from: 2, to: 4 }, ms: 27_000 },
+			{ runId: 'sheets', range: { from: 4, to: 6 }, ms: 27_000 },
+			{ runId: 'sheets', range: { from: 0, to: 2 }, ms: 22_000 },
+			{ runId: 'sheets', range: { from: 6 }, ms: 20_000 },
+			{ runId: 'routePrefix', ms: 10_000 },
 		]);
 	});
 });
