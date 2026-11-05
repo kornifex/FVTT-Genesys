@@ -12,7 +12,7 @@ import {
 	markPilotRole,
 	pilotOf,
 	placeActor,
-	removeActor,
+	removeActors,
 	removeRole,
 	removeRoleSkill,
 	renameRole,
@@ -160,23 +160,41 @@ describe('placeActor', () => {
 	});
 });
 
-describe('removeActor', () => {
+describe('removeActors', () => {
 	it('removes a passenger', () => {
 		const crew: Crew = { passengers: passengers('A', 'B'), roles: [role('pilot', 'P')] };
 
-		expect(removeActor(crew, 'A')).toEqual({ passengers: [{ uuid: 'B', sort: 200000 }], roles: [role('pilot', 'P')] });
+		expect(removeActors(crew, ['A'])).toEqual({ passengers: [{ uuid: 'B', sort: 200000 }], roles: [role('pilot', 'P')] });
 	});
 
 	it('removes a Role member', () => {
 		const crew: Crew = { passengers: passengers('A'), roles: [role('pilot', 'P'), role('gunner', 'G')] };
 
-		expect(removeActor(crew, 'G')).toEqual({ passengers: passengers('A'), roles: [role('pilot', 'P'), role('gunner')] });
+		expect(removeActors(crew, ['G'])).toEqual({ passengers: passengers('A'), roles: [role('pilot', 'P'), role('gunner')] });
 	});
 
 	it("does nothing when the actor isn't in the Crew", () => {
 		const crew: Crew = { passengers: passengers('A'), roles: [role('pilot', 'P')] };
 
-		expect(removeActor(crew, 'D')).toBeUndefined();
+		expect(removeActors(crew, ['D'])).toBeUndefined();
+	});
+
+	it('removes several actors at once, passengers and Role members, leaving the others', () => {
+		const crew: Crew = { passengers: passengers('A', 'B', 'C'), roles: [role('pilot', 'P'), role('gunner', 'G', 'H')] };
+
+		expect(removeActors(crew, ['A', 'G', 'D'])).toEqual({
+			passengers: [
+				{ uuid: 'B', sort: 200000 },
+				{ uuid: 'C', sort: 300000 },
+			],
+			roles: [role('pilot', 'P'), role('gunner', 'H')],
+		});
+	});
+
+	it('does nothing when none of the actors is in the Crew', () => {
+		const crew: Crew = { passengers: passengers('A'), roles: [role('pilot', 'P')] };
+
+		expect(removeActors(crew, ['D', 'E'])).toBeUndefined();
 	});
 });
 
@@ -302,7 +320,7 @@ describe('Crew operations', () => {
 			change: (crew: Crew) => placeActor(crew, 'C', { kind: 'passengers', position: 'after', passenger: 'A' }),
 		},
 		{ name: 'placing a member', change: (crew: Crew) => placeActor(crew, 'A', { kind: 'role', roleId: 'pilot', before: 'P' }) },
-		{ name: 'removing an actor', change: (crew: Crew) => removeActor(crew, 'P') },
+		{ name: 'removing an actor', change: (crew: Crew) => removeActors(crew, ['P']) },
 		{ name: 'adding a Role', change: (crew: Crew) => addRole(crew, 'gunner') },
 		{ name: 'removing a Role', change: (crew: Crew) => removeRole(crew, 'pilot') },
 		{ name: 'renaming a Role', change: (crew: Crew) => renameRole(crew, 'pilot', 'Pilot') },

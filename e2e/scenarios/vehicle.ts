@@ -1092,6 +1092,43 @@ async function deletingCrew(e2e: ScenarioContext) {
 		},
 		{ errors: [], left: [], harbour: { passengers: [], roles: [] } },
 	);
+
+	// §#550: each vehicle loses every crew member one operation deletes, in one Crew write; a vehicle crewing none of
+	// them gets none. Foundry writes only the fields an update changes: two of the actors deleted share each of Dock
+	// Ship's, its passengers and its Role, where one write per actor would put the other back.
+	await vehicleE2E('createActors', [
+		...['Dock Pilot', 'Dock Mate', 'Dock Gunner', 'Dock Loader', 'Dock Hand'].map((name) => ({ name, type: 'character' as const })),
+		{
+			name: 'Dock Ship',
+			type: 'vehicle',
+			passengers: ['Dock Pilot', 'Dock Mate', 'Dock Hand'],
+			roles: [{ name: 'Gunner', skills: [], members: ['Dock Gunner', 'Dock Loader'] }],
+		},
+		{ name: 'Dock Tender', type: 'vehicle', passengers: ['Dock Gunner'] },
+		{ name: 'Dock Barge', type: 'vehicle', passengers: ['Dock Hand'] },
+	]);
+	await vehicleE2E('takeCrewUpdates');
+	errors = gm.errors.length;
+	await e2e.step('#550 two passengers and two Role members of a vehicle deleted in one operation', () =>
+		vehicleE2E('deleteActors', ['Dock Pilot', 'Dock Mate', 'Dock Gunner', 'Dock Loader']),
+	);
+	e2e.expect(
+		'#550 A1 deleting crew members in one operation removes them all from each vehicle, in one Crew write per vehicle crewed',
+		{
+			errors: gm.errors.slice(errors),
+			ship: await vehicleE2E('crew', 'Dock Ship'),
+			tender: await vehicleE2E('crew', 'Dock Tender'),
+			barge: await vehicleE2E('crew', 'Dock Barge'),
+			writes: (await vehicleE2E('takeCrewUpdates')).sort(),
+		},
+		{
+			errors: [],
+			ship: { passengers: ['Dock Hand'], roles: [{ name: 'Gunner', skills: [], members: [] }] },
+			tender: { passengers: [], roles: [] },
+			barge: { passengers: ['Dock Hand'], roles: [] },
+			writes: ['Dock Ship', 'Dock Tender'],
+		},
+	);
 }
 
 /**

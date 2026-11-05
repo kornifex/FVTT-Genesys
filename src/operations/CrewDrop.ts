@@ -1,6 +1,6 @@
 /** @file Receives the actors and skills dropped on a vehicle's Crew, placed as the CrewRoster module decides. */
 
-import { addRoleSkill, CrewPlace, placeActor, removeActor } from '@/actor/data/CrewRoster';
+import { addRoleSkill, CrewPlace, placeActor, removeActors } from '@/actor/data/CrewRoster';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
@@ -83,7 +83,7 @@ export async function receiveCrewDrop(vehicle: GenesysActor<'vehicle'>, data: Cr
 	if (!(await vehicle.system.updateCrew((crew) => placeActor(crew, uuid, place)))) {
 		return false;
 	}
-	await source?.system.updateCrew((sourceCrew) => removeActor(sourceCrew, uuid));
+	await source?.system.updateCrew((sourceCrew) => removeActors(sourceCrew, [uuid]));
 	return true;
 }
 

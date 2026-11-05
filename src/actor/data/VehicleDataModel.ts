@@ -1,13 +1,11 @@
 import { GenesysActor } from '@/actor/GenesysActor';
-import { unlinkedTokenActors } from '@/actor/tokenActors';
 import { encumberingItems, EncumbranceRules, equipmentEncumbrance, isEncumbered } from '@/actor/data/Encumbrance';
 import { isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Defense } from '@/data/Actors';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import { Crew, hasActor, Passenger, pilotOf, removeActor, Role } from '@/actor/data/CrewRoster';
-import { isActingGm } from '@/queries';
+import { Crew, hasActor, Passenger, pilotOf, Role } from '@/actor/data/CrewRoster';
 import { CombatPool, combatPoolField, ValueWithThreshold, valueWithThresholdField } from '@/data/schemaFields';
 
 // A vehicle's cargo all counts, whatever its Equipment State.
@@ -238,13 +236,6 @@ function isVehicle(actor: GenesysActor): actor is GenesysActor<'vehicle'> {
 }
 
 /**
- * The vehicles of the world: its vehicle actors and those of its scenes' unlinked tokens.
- */
-function worldVehicles() {
-	return [...game.actors, ...unlinkedTokenActors()].filter(isVehicle);
-}
-
-/**
  * Re-render the open sheets of the vehicles whose crew the actor is in, since they show its name and skills, and, for
  * their Pilot, the defense its Piloted Vehicle Defense raises.
  */
@@ -268,8 +259,7 @@ function renderVehiclesCrewedBy(actor: GenesysActor) {
 }
 
 /**
- * Render the sheets of the vehicles an actor crews when the actor, one of its items or one of their effects changes, and
- * remove a deleted actor from the Crew of every vehicle in the world.
+ * Render the sheets of the vehicles an actor crews when the actor, one of its items or one of their effects changes.
  */
 export function register() {
 	Hooks.on('updateActor', (actor) => renderVehiclesCrewedBy(actor));
@@ -296,18 +286,4 @@ export function register() {
 	Hooks.on('createActiveEffect', renderVehiclesCrewedByEffectActor);
 	Hooks.on('updateActiveEffect', renderVehiclesCrewedByEffectActor);
 	Hooks.on('deleteActiveEffect', renderVehiclesCrewedByEffectActor);
-
-	Hooks.on('deleteActor', (actor) => {
-		// Every client sees the deletion: one GM writes the vehicles, which a player may not, and writes them once.
-		const uuid = actor.uuid;
-		if (isVehicle(actor) || !uuid || !isActingGm()) {
-			return;
-		}
-
-		// A vehicle deleted in the same operation as its crew has already left `game.actors` when the hook runs: Foundry
-		// removes every document of the operation before it calls their hooks.
-		for (const vehicle of worldVehicles()) {
-			void vehicle.system.updateCrew((crew) => removeActor(crew, uuid));
-		}
-	});
 }

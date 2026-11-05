@@ -49,10 +49,11 @@ export function hasActor(crew: Crew, uuid: string) {
 }
 
 /**
- * The Crew without an actor. Undefined when the actor isn't in it.
+ * The Crew without some actors, in one change. Undefined when none of them is in it.
  */
-export function removeActor(crew: Crew, uuid: string): Crew | undefined {
-	return hasActor(crew, uuid) ? withoutActor(crew, uuid) : undefined;
+export function removeActors(crew: Crew, uuids: readonly string[]): Crew | undefined {
+	const leaving = uuids.filter((uuid) => hasActor(crew, uuid));
+	return leaving.length ? leaving.reduce(withoutActor, crew) : undefined;
 }
 
 /**
