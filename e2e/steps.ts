@@ -93,6 +93,15 @@ export type PartsMet = { parts: string[]; ran: string[] };
 export type StepLog = PartsMet & { steps: Step[] };
 
 /**
+ * The entry that logs the client errors a part gave after its last step, under the `<user> errors` keys of a step's
+ * value, so that the next part's first step logs only its own. None when it gave none.
+ */
+export function lateErrorsStep(part: string, errors: Record<string, string[]>): Step | undefined {
+	if (!Object.keys(errors).length) return undefined;
+	return { name: `${part}: errors after its last step`, value: errors };
+}
+
+/**
  * The step that ends a scenario stopped by an error.
  */
 export function fatalStep(error: unknown): Step {

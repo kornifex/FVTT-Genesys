@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
-import { assertionStep, fatalStep, partSelection, type Step, type StepLog } from './steps.ts';
+import { assertionStep, fatalStep, lateErrorsStep, partSelection, type Step, type StepLog } from './steps.ts';
 
 /**
  * A browser joined to the world as one user.
@@ -75,8 +75,8 @@ export type ScenarioContext = {
 	expect(name: string, actual: unknown, expected: unknown): void;
 	/**
 	 * Runs a part of the scenario, named after its function: always without `--part`, otherwise only when its name is
-	 * given. Its steps carry its name. A part depends on no other: it sets up what it needs on top of the scenario's
-	 * setup, which runs before the parts.
+	 * given. Its steps carry its name, and the errors its work gave after its last step are logged within it. A part
+	 * depends on no other: it sets up what it needs on top of the scenario's setup, which runs before the parts.
 	 */
 	part(name: string, fn: () => Promise<void>): Promise<void>;
 };
@@ -179,6 +179,12 @@ export async function runScenario(
 		let secondPlayer: Client | undefined;
 		const resetAll = () => Promise.all(connected().map((client) => client.evaluate(() => window.e2e.reset())));
 		const loggedErrors = new Map<Client, number>();
+		// Each error is logged once, by the first entry after it: a step, or its part's late errors.
+		const takeErrors = (client: Client): Record<string, string[]> => {
+			const errors = client.errors.slice(loggedErrors.get(client) ?? 0);
+			loggedErrors.set(client, client.errors.length);
+			return errors.length ? { [`${client.user} errors`]: errors } : {};
+		};
 
 		await scenario({
 			version,
@@ -231,9 +237,7 @@ export async function runScenario(
 				const value: Record<string, unknown> = {};
 				for (const client of connected()) {
 					states[client.user] = value[client.user] = await client.combatState();
-					const errors = client.errors.slice(loggedErrors.get(client) ?? 0);
-					loggedErrors.set(client, client.errors.length);
-					if (errors.length) value[`${client.user} errors`] = errors;
+					Object.assign(value, takeErrors(client));
 				}
 				log(name, value);
 				await resetAll();
@@ -257,10 +261,17 @@ export async function runScenario(
 					stoppedIn = name;
 					throw error;
 				} finally {
+					// The errors the part's work gave after its last step, as `expect`s checking a refusal, would show in the next
+					// part's first step: they are logged within the part, in an entry that takes that work's time.
+					const lateStep = lateErrorsStep(name, Object.assign({}, ...connected().map(takeErrors)));
+					if (lateStep) {
+						push(lateStep);
+					} else {
+						// The part's work after its last step, a cleanup, counts in that step, so that its steps add up to its time.
+						const last = steps.length > first ? steps.at(-1) : undefined;
+						if (last) last.ms = (last.ms ?? 0) + Date.now() - since;
+					}
 					currentPart = undefined;
-					// The part's work after its last step, a cleanup, counts in that step, so that its steps add up to its time.
-					const last = steps.length > first ? steps.at(-1) : undefined;
-					if (last) last.ms = (last.ms ?? 0) + Date.now() - since;
 					since = Date.now();
 				}
 			},
