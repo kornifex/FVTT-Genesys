@@ -11,7 +11,7 @@ import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
 import { draggedGenesysType } from '@/data/DragTransferData';
-import { addRole, CrewPlace, markPilotRole, removeActor, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
+import { addRole, CrewPlace, markPilotRole, removeActors, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
 import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
@@ -111,7 +111,7 @@ function resetDrags() {
 						@update-pilot="(pilot) => system.updateCrew((crew) => markPilotRole(crew, role.id, pilot))"
 						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
 						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
-						@remove-member="(memberId) => system.updateCrew((crew) => removeActor(crew, memberId))"
+						@remove-member="(memberId) => system.updateCrew((crew) => removeActors(crew, [memberId]))"
 						@entity-drop="(event, memberUnder) => dropToRole(event, role.id, memberUnder)"
 					/>
 				</template>
@@ -150,7 +150,7 @@ function resetDrags() {
 						@dragenter="dragEnterPassenger($event, passenger.uuid)"
 						@dragleave="passengerTileDrag.leave"
 						@drop="dropToPassengers($event, beforePassenger(passenger.uuid))"
-						@remove-member="system.updateCrew((crew) => removeActor(crew, passenger.uuid))"
+						@remove-member="system.updateCrew((crew) => removeActors(crew, [passenger.uuid]))"
 					/>
 				</template>
 			</TransitionGroup>

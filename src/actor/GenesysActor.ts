@@ -6,6 +6,7 @@ import type { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
+import { removeDeletedFromCrews } from '@/operations/CrewDeletion';
 
 /**
  * An actor of the system, typed by its subtype: its `system` is the DataModel registered for that type.
@@ -32,6 +33,20 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 		}
 
 		return super._preCreate(data, options, user);
+	}
+
+	/**
+	 * Remove the actors an operation deleted from the Crews of the world's vehicles. Foundry calls this once per
+	 * operation with every actor it deleted, where the `deleteActor` hook runs once per actor.
+	 * @inheritDoc
+	 */
+	protected static override async _onDeleteOperation(
+		documents: Stored<GenesysActor>[],
+		operation: Actor.Database.OnDeleteOperation,
+		user: User.Stored,
+	) {
+		await super._onDeleteOperation(documents as never, operation, user);
+		await removeDeletedFromCrews(documents);
 	}
 
 	#applyToSource({ update, itemEffects = {}, deletedEffects = [] }: ActorChanges) {
