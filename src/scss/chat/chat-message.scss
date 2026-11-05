@@ -19,6 +19,11 @@
 		padding: 0.25em;
 	}
 
+	// The headings of the notice a new version posts.
+	.alpha-notice-heading {
+		@include headings.font;
+	}
+
 	.story-point {
 		width: 100%;
 		text-align: center;

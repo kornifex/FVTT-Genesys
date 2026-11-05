@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Characteristic } from '@/data/Characteristics';
-import { attackDamage, damageFormula, firingArcLabels, firingArcs, weaponDamage } from '@/item/Weapons';
+import { attackDamage, damageFormula, damageLabel, firingArcLabels, firingArcs, weaponDamage } from '@/item/Weapons';
 
 const characteristics = { brawn: 3, agility: 2, intellect: 1, cunning: 2, willpower: 4, presence: 1 };
 
@@ -61,6 +61,29 @@ describe('attackDamage', () => {
 	it("gives the damage a chat card shows on a miss, when the world's setting shows it: the weapon's damage alone", () => {
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 0)).toBe(6);
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, -2)).toBe(6);
+	});
+});
+
+describe('damageLabel', () => {
+	const i18n = { localize: (key: string) => ({ 'Genesys.CharacteristicAbbr.Brawn': 'Br' })[key] ?? key };
+
+	it("reads a characteristic's damage as the characteristic and the base damage, then the total", () => {
+		expect(damageLabel({ baseDamage: 1, damageCharacteristic: Characteristic.Brawn }, characteristics, i18n)).toBe('Br+1 (4)');
+	});
+
+	it('writes a base damage of 0 and a negative one with their sign', () => {
+		expect(damageLabel({ baseDamage: 0, damageCharacteristic: Characteristic.Brawn }, characteristics, i18n)).toBe('Br+0 (3)');
+		expect(damageLabel({ baseDamage: -1, damageCharacteristic: Characteristic.Brawn }, characteristics, i18n)).toBe('Br-1 (2)');
+	});
+
+	it('reads the total alone for a weapon without a damage characteristic, and for a vehicle weapon', () => {
+		expect(damageLabel({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, i18n)).toBe('6');
+		expect(damageLabel({ baseDamage: 6 }, characteristics, i18n)).toBe('6');
+	});
+
+	it('reads the total alone for a characteristic weapon held by an actor without characteristics, like a vehicle', () => {
+		// A Brawn dagger in a vehicle's cargo adds no Brawn.
+		expect(damageLabel({ baseDamage: 1, damageCharacteristic: Characteristic.Brawn }, undefined, i18n)).toBe('1');
 	});
 });
 

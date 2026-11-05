@@ -152,6 +152,11 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 			border-top-left-radius: 1em;
 			border-top-right-radius: 1em;
 		}
+
+		// The Talents section starts apart from the Special Abilities above it.
+		& > h3:not(:first-child) {
+			margin-top: 0.5em;
+		}
 	}
 
 	// The talents of a section, its groups' headings among them, in a frame.

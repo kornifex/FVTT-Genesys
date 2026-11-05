@@ -90,7 +90,6 @@
 		display: flex;
 		flex-direction: column;
 
-		.header,
 		.row {
 			display: grid;
 			grid-template-columns: minmax(min-content, 30%) 1fr;
@@ -98,13 +97,6 @@
 			padding: 0.25em;
 			row-gap: 0.1em;
 			column-gap: 0.25em;
-		}
-
-		.header {
-			@include headings.font;
-		}
-
-		.row {
 			border-bottom: 1px dashed black;
 
 			input,
@@ -134,8 +126,7 @@
 	}
 
 	section.effect-grid {
-		.row,
-		.header {
+		.row {
 			grid-template-columns: /* Key */ 2fr /* Change Mode */ 1fr /* Value */ 1fr /* Actions */ auto;
 		}
 

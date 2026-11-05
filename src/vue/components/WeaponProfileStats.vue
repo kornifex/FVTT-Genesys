@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import type { CharacteristicsContainer } from '@/data/Characteristics';
-import { damageFormula, RANGE_LABELS, type RangeBand, weaponDamage } from '@/item/Weapons';
-import { signed } from '@/vue/format';
+import { damageLabel, RANGE_LABELS, type RangeBand } from '@/item/Weapons';
 import Localized from '@/vue/components/Localized.vue';
 
 /**
@@ -17,7 +16,7 @@ const props = withDefaults(
 		/**
 		 * The profile shown. Left out by the grid's header row, which shows the labels instead.
 		 */
-		profile?: Parameters<typeof weaponDamage>[0] & { critical: number; range: RangeBand };
+		profile?: Parameters<typeof damageLabel>[0] & { critical: number; range: RangeBand };
 		/**
 		 * The characteristics of the actor holding the weapon: an actor without any, like a vehicle, adds none.
 		 */
@@ -30,15 +29,7 @@ const props = withDefaults(
 	{ labels: false },
 );
 
-const damage = computed(() => {
-	if (!props.profile) {
-		return '';
-	}
-
-	const { baseDamage, characteristic } = damageFormula(props.profile);
-	const total = weaponDamage(props.profile, props.characteristics);
-	return characteristic ? `${game.i18n.localize(characteristic)}${signed(baseDamage)} (${total})` : `${total}`;
-});
+const damage = computed(() => (props.profile ? damageLabel(props.profile, props.characteristics, game.i18n) : ''));
 </script>
 
 <template>
