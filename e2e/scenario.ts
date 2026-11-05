@@ -179,11 +179,11 @@ export async function runScenario(
 		let secondPlayer: Client | undefined;
 		const resetAll = () => Promise.all(connected().map((client) => client.evaluate(() => window.e2e.reset())));
 		const loggedErrors = new Map<Client, number>();
-		// The errors a client gave since the last entry that logged them, which no later entry logs again.
-		const takeErrors = (client: Client) => {
+		// Each error is logged once, by the first entry after it: a step, or its part's late errors.
+		const takeErrors = (client: Client): Record<string, string[]> => {
 			const errors = client.errors.slice(loggedErrors.get(client) ?? 0);
 			loggedErrors.set(client, client.errors.length);
-			return errors;
+			return errors.length ? { [`${client.user} errors`]: errors } : {};
 		};
 
 		await scenario({
@@ -237,8 +237,7 @@ export async function runScenario(
 				const value: Record<string, unknown> = {};
 				for (const client of connected()) {
 					states[client.user] = value[client.user] = await client.combatState();
-					const errors = takeErrors(client);
-					if (errors.length) value[`${client.user} errors`] = errors;
+					Object.assign(value, takeErrors(client));
 				}
 				log(name, value);
 				await resetAll();
@@ -264,12 +263,7 @@ export async function runScenario(
 				} finally {
 					// The errors the part's work gave after its last step, as `expect`s checking a refusal, would show in the next
 					// part's first step: they are logged within the part, in an entry that takes that work's time.
-					const late: Record<string, string[]> = {};
-					for (const client of connected()) {
-						const errors = takeErrors(client);
-						if (errors.length) late[`${client.user} errors`] = errors;
-					}
-					const lateStep = lateErrorsStep(name, late);
+					const lateStep = lateErrorsStep(name, Object.assign({}, ...connected().map(takeErrors)));
 					if (lateStep) {
 						push(lateStep);
 					} else {
