@@ -15,8 +15,6 @@ export type FoundryInstall = {
 	data: string;
 	/** The id of the world to copy and launch. */
 	world: string;
-	/** The port its Foundry listens on: the versions run at once, each on the port after the previous one's. */
-	port: number;
 };
 
 type HarnessConfig = {
@@ -30,14 +28,19 @@ type HarnessConfig = {
 	gmUser: string;
 	/** Created by the GM when the world lacks it. */
 	playerUser: string;
+	/** The port of the pool's first launch: launch `i` listens on `port + i`. */
+	port: number;
+	/** How many Foundry launches run at once. */
+	launches: number;
 };
 
 type Env = Record<string, string | undefined>;
 
 /**
- * Reads the installs of the requested Foundry versions from `E2E_V<version>_*` variables.
+ * Reads the installs of the requested Foundry versions from `E2E_V<version>_*` variables, and the pool's size from
+ * `--launches`, else `E2E_LAUNCHES`.
  */
-export function readConfig(env: Env, versions: number[]): HarnessConfig {
+export function readConfig(env: Env, versions: number[], { launches }: { launches?: string } = {}): HarnessConfig {
 	const missing: string[] = [];
 	const required = (name: string) => {
 		const value = env[name];
@@ -45,16 +48,19 @@ export function readConfig(env: Env, versions: number[]): HarnessConfig {
 		return value ?? '';
 	};
 
-	const port = Number(env.E2E_PORT || 30100);
-	const installs = versions.map((version, index) => ({
+	const installs = versions.map((version) => ({
 		version,
 		node: required(`E2E_V${version}_NODE`),
 		foundry: required(`E2E_V${version}_FOUNDRY`),
 		data: required(`E2E_V${version}_DATA`),
 		world: required(`E2E_V${version}_WORLD`),
-		port: port + index,
 	}));
 	if (missing.length) throw new Error(`Missing ${missing.join(', ')}: set them in e2e/.env (see e2e/README.md).`);
+
+	const givenLaunches = launches ?? env.E2E_LAUNCHES ?? '8';
+	if (!/^[1-9]\d*$/.test(givenLaunches)) {
+		throw new Error(`The launches (--launches or E2E_LAUNCHES) are a whole number from 1, not ${givenLaunches}.`);
+	}
 
 	return {
 		installs,
@@ -63,5 +69,7 @@ export function readConfig(env: Env, versions: number[]): HarnessConfig {
 		workDir: env.E2E_WORK_DIR || path.join(os.tmpdir(), 'genesys-e2e'),
 		gmUser: env.E2E_GM_USER || 'Gamemaster',
 		playerUser: env.E2E_PLAYER_USER || 'Player',
+		port: Number(env.E2E_PORT || 30100),
+		launches: Number(givenLaunches),
 	};
 }

@@ -14,6 +14,11 @@ export type Step = {
 	/** The part of the scenario that logged the step; none outside parts. */
 	part?: string;
 	/**
+	 * For a step outside parts, the last part the scenario met before it, whether that part ran or not: where the step
+	 * goes back when a scenario's log is put back together from slices that ran different parts.
+	 */
+	afterPart?: string;
+	/**
 	 * The time from the previous step's log, or its part's start, to its own log: its action and settle, and the work
 	 * before them. A part's last step also counts the part's work after it.
 	 */
@@ -57,17 +62,30 @@ export function assertionStep(name: string, actual: unknown, expected: unknown):
 }
 
 /**
- * The parts of a scenario one run selects, met as its `run` reaches them: every part, or only the names given.
+ * A range of the parts a run selects, by their rank among them from 0: from `from`, up to `to` left out, or to the last
+ * part when `to` is undefined.
  */
-export function partSelection(only?: readonly string[]) {
+export type PartRange = { from: number; to?: number };
+
+/**
+ * The parts of a scenario one run selects, met as its `run` reaches them: every part, or only the names given; and of
+ * those, only the range given.
+ */
+export function partSelection(only?: readonly string[], range?: PartRange) {
 	const met: string[] = [];
+	const ran: string[] = [];
+	let selected = 0;
 	return {
 		/** Whether the part met runs. */
 		runs(name: string) {
 			// `--part` selects a part by its name, and the summary adds up its time by name.
 			if (met.includes(name)) throw new Error(`Part "${name}" runs twice: give each part its own name.`);
 			met.push(name);
-			return !only || only.includes(name);
+			if (only && !only.includes(name)) return false;
+			const rank = selected++;
+			if (range && (rank < range.from || (range.to !== undefined && rank >= range.to))) return false;
+			ran.push(name);
+			return true;
 		},
 		/** Why the run fails once the scenario is over: a name given that met no part. */
 		unmet(): string | undefined {
@@ -77,7 +95,7 @@ export function partSelection(only?: readonly string[]) {
 		},
 		/** Every part met so far, and those of them that ran. */
 		met(): PartsMet {
-			return { parts: [...met], ran: met.filter((name) => !only || only.includes(name)) };
+			return { parts: [...met], ran: [...ran] };
 		},
 	};
 }
@@ -194,7 +212,10 @@ export function stopped(steps: Step[]) {
 	return steps.some(isFatal);
 }
 
-function isFatal(step: Step) {
+/**
+ * Whether a step is the one an error that stopped a scenario logs.
+ */
+export function isFatal(step: Step) {
 	return step.name === FATAL;
 }
 

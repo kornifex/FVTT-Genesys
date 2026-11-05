@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
-import { assertionStep, fatalStep, lateErrorsStep, partSelection, type Step, type StepLog } from './steps.ts';
+import { assertionStep, fatalStep, lateErrorsStep, type PartRange, partSelection, type Step, type StepLog } from './steps.ts';
 
 /**
  * A browser joined to the world as one user.
@@ -132,6 +132,7 @@ export async function runScenario(
 		playerUser,
 		needsCanvas,
 		parts,
+		range,
 		onStep,
 	}: {
 		browser: Browser;
@@ -142,11 +143,13 @@ export async function runScenario(
 		needsCanvas: boolean;
 		/** The parts to run; every part when undefined. */
 		parts?: readonly string[];
+		/** Of the parts to run, the range a slice of the scenario runs; all of them when undefined. */
+		range?: PartRange;
 		onStep: (step: Step) => void;
 	},
 ): Promise<StepLog> {
 	const steps: Step[] = [];
-	const selection = partSelection(parts);
+	const selection = partSelection(parts, range);
 	let currentPart: string | undefined;
 	// The part an error stopped the scenario in, which its FATAL step carries.
 	let stoppedIn: string | undefined;
@@ -157,6 +160,9 @@ export async function runScenario(
 			throw new Error(`Step "${step.name}" is logged twice: give each step its own name.`);
 		}
 		if (currentPart !== undefined) step.part = currentPart;
+		// A step outside parts follows the parts met before it, run or skipped: a slice of the scenario puts it back there.
+		const metBefore = selection.met().parts.at(-1);
+		if (step.part === undefined && metBefore !== undefined) step.afterPart = metBefore;
 		step.ms = Date.now() - since;
 		since = Date.now();
 		steps.push(step);

@@ -38,6 +38,19 @@ describe('partSelection', () => {
 		expect(partSelection(['claims']).unmet()).toBe('No part named claims: the scenario has no parts.');
 	});
 
+	it('runs the parts of a range, counted from 0 among those the names given select, its end left out', () => {
+		const parts = partSelection(['b', 'c', 'd', 'e'], { from: 1, to: 3 });
+
+		expect(['a', 'b', 'c', 'd', 'e'].map((name) => parts.runs(name))).toEqual([false, false, true, true, false]);
+		expect(parts.met()).toEqual({ parts: ['a', 'b', 'c', 'd', 'e'], ran: ['c', 'd'] });
+	});
+
+	it('runs every part from the start of a range without an end, those the scenario gained included', () => {
+		const parts = partSelection(undefined, { from: 2 });
+
+		expect(['a', 'b', 'c', 'd', 'new'].map((name) => parts.runs(name))).toEqual([false, false, true, true, true]);
+	});
+
 	it('refuses a part met twice, which `--part` could not tell from the first', () => {
 		const parts = partSelection();
 		parts.runs('claims');

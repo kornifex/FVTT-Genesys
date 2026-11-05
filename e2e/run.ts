@@ -1,9 +1,7 @@
-/**
- * @file `pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref>
- * [--fresh]] [--verbose]`: runs scenarios on each Foundry version.
- */
+/** @file `pnpm e2e`: runs scenarios on each Foundry version and build, on a pool of Foundry launches (see `usage`). */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -11,16 +9,17 @@ import { chromium } from 'playwright-core';
 
 import { type Baseline, baselineFile, baselineSteps, cacheable, mergeBaseline, planBase } from './baseline.ts';
 import { type FoundryInstall, readConfig } from './config.ts';
+import { assembleLog, planSlices, type Slice } from './pool.ts';
 import { runScenario, type ScenarioModule } from './scenario.ts';
-import { launchFoundry, prepareDataDir } from './server.ts';
-import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine, type StepLog } from './steps.ts';
+import { type FoundryServer, launchFoundry, prepareDataDir } from './server.ts';
+import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine, type StepLog, stopped } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const envFile = path.join(import.meta.dirname, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
 const usage =
-	'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref> [--fresh]] [--verbose]';
+	'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref> [--fresh]] [--launches 8] [--verbose]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
@@ -29,6 +28,7 @@ const { values: options, positionals } = parseArgs({
 		dist: { type: 'string' },
 		compare: { type: 'string' },
 		fresh: { type: 'boolean', default: false },
+		launches: { type: 'string' },
 		verbose: { type: 'boolean', default: false },
 	},
 });
@@ -46,7 +46,15 @@ const parts = options.part?.split(',').filter(Boolean);
 if (parts?.length === 0) throw new Error('--part takes the names of parts, separated by commas.');
 if (options.fresh && options.compare === undefined) throw new Error('--fresh goes with --compare, whose cache it ignores.');
 
-const config = readConfig(process.env, options.versions.split(',').map(Number));
+const config = readConfig(process.env, options.versions.split(',').map(Number), { launches: options.launches });
+// A server a stopped run left on a port of the pool would take this run's clients, silently.
+for (let port = config.port; port < config.port + config.launches; port++) {
+	if (await listening(port)) {
+		throw new Error(
+			`Port ${port} is already listening, as a Foundry server a stopped run left does: stop it, or set E2E_PORT to a free range.`,
+		);
+	}
+}
 // Without --dist, the working tree is built, so that a stale dist is never tested.
 const headDist = options.dist ? path.resolve(options.dist) : buildWorkingTree();
 if (!fs.existsSync(path.join(headDist, 'system.json'))) throw new Error(`${headDist} holds no build.`);
@@ -54,11 +62,6 @@ if (!fs.existsSync(path.join(headDist, 'system.json'))) throw new Error(`${headD
 // The build compared against runs first on each version, so that the two runs read alike in the log.
 const base = options.compare ? { label: options.compare, commit: commitOf(options.compare) } : undefined;
 const builds = [...(base ? [base] : []), { label: 'head' }];
-// The scenarios share one world and one launch, one after the other; an isolated scenario gets its own.
-const launches = [
-	scenarios.filter((scenario) => !scenario.isolated),
-	...scenarios.filter((scenario) => scenario.isolated).map((scenario) => [scenario]),
-].filter((group) => group.length);
 
 // What each scenario runs on each version and build: on the build compared against, only the parts its cached
 // baseline lacks. Planned before any launch, so that the base build is made only when one of them needs it, and before
@@ -80,16 +83,50 @@ const baseRuns =
 	base && config.installs.some((install) => scenarios.some((scenario) => planOf(runName(install.version, base.label), scenario).run));
 if (base && baseRuns) dists.set(base.label, buildRef(base.label, base.commit));
 
-// The versions run at once, each on its own port.
+// The pool shares its launches between every version and build, so that the longest scenario, rather than the sum of
+// a version's, sets the run's time.
+const scenarioRuns = new Map<string, PlannedRun>();
+for (const install of config.installs) {
+	for (const build of builds) {
+		const run = runName(install.version, build.label);
+		for (const scenario of scenarios) {
+			const plan = planOf(run, scenario);
+			const cached = cacheLine(plan);
+			if (cached) console.log(`[${scenarioLabel(run, scenario)}] ${cached}`);
+			// A scenario whose parts all come from the cache needs no world, and a launch takes a few seconds.
+			if (plan.run)
+				scenarioRuns.set(logKey(run, scenario.name), { install, build: build.label, run, scenario, parts: plan.run.parts });
+		}
+	}
+}
+const queue = planSlices(
+	[...scenarioRuns].map(([id, { run, scenario, parts }]) => ({
+		id,
+		isolated: scenario.isolated,
+		only: parts,
+		previous: readPreviousLog(scenario.name, run),
+	})),
+	config.launches,
+);
+const sliceLogs = new Map<string, { slice: Slice; log: StepLog }[]>();
+
 const browser = await chromium.launch({
 	executablePath: config.chromium,
 	args: config.angle ? [`--use-angle=${config.angle}`] : [],
 });
-const results = new Map<string, StepLog>();
+const started = Date.now();
 try {
-	await Promise.all(config.installs.map(runVersion));
+	await Promise.all(Array.from({ length: Math.min(config.launches, queue.length) }, (_, index) => runLaunch(index)));
 } finally {
 	await browser.close();
+}
+const wallTime = Date.now() - started;
+
+// The comparison, the cache and the summary read a scenario's log whole, whatever order its slices finished in.
+const results = new Map<string, StepLog>();
+for (const [key, logs] of sliceLogs) {
+	logs.sort((left, right) => (left.slice.range?.from ?? 0) - (right.slice.range?.from ?? 0));
+	results.set(key, assembleLog(logs.map(({ log }) => log)));
 }
 
 // The step log each run is judged and compared by, and saved as: on the build compared against, the cached baseline
@@ -142,7 +179,8 @@ for (const install of config.installs) {
 		console.log(runSummary(`${run}${note}`, runScenarios, { partTimes: parts !== undefined || options.verbose }).join('\n'));
 	}
 }
-console.log(`\nStep logs and server logs: ${path.join(config.workDir, 'results')}, ${path.join(config.workDir, 'runs')}`);
+console.log(`\nWall time: ${(wallTime / 1000).toFixed(1)} s on ${config.launches} ${config.launches === 1 ? 'launch' : 'launches'}`);
+console.log(`Step logs and server logs: ${path.join(config.workDir, 'results')}, ${path.join(config.workDir, 'runs')}`);
 const failed = config.installs.some((install) =>
 	builds.some((build) =>
 		scenarios.some(({ name }) =>
@@ -153,61 +191,105 @@ const failed = config.installs.some((install) =>
 if (failed) process.exitCode = 1;
 
 /**
- * Runs every launch of one Foundry version, build after build.
+ * One launch of the pool, on its own port and data dir: takes the slices one after the other, longest first. It keeps
+ * its Foundry server and world while the next slice runs on the same version and build, as the scenarios of one launch
+ * share a world, and starts a fresh copy of the world for another version or build, for an isolated scenario, and after
+ * a slice an error stopped.
  */
-async function runVersion(install: FoundryInstall) {
-	for (const build of builds) {
-		const run = runName(install.version, build.label);
-		for (const scenario of scenarios) {
-			const cached = cacheLine(planOf(run, scenario));
-			if (cached) console.log(`[${scenarioLabel(run, scenario)}] ${cached}`);
-		}
-		for (const group of launches) {
-			// A scenario whose parts all come from the cache needs no world, and a launch takes a few seconds.
-			const running = group.filter((scenario) => planOf(run, scenario).run);
-			if (!running.length) continue;
+async function runLaunch(index: number) {
+	const port = config.port + index;
+	const dataDir = path.join(config.workDir, 'runs', `launch-${index}`);
+	let world: { run: string; server: FoundryServer } | undefined;
+	const close = async () => {
+		await world?.server.stop();
+		world = undefined;
+	};
+	try {
+		for (let slice = nextSlice(world?.run); slice; slice = nextSlice(world?.run)) {
+			const { install, build, run, scenario, parts } = plannedRun(slice.runId);
+			const label = scenarioLabel(run, scenario);
+			if (world?.run !== run || scenario.isolated) await close();
+			let log: StepLog;
 			try {
-				await runLaunch(install, build.label, running);
-			} catch (error) {
-				// A world that fails to launch fails its scenarios, and the suite goes on to its summary.
-				for (const scenario of running.filter(({ name }) => !results.has(logKey(run, name)))) {
-					const step = fatalStep(error);
-					console.log(stepLine(scenarioLabel(run, scenario), step, options));
-					results.set(logKey(run, scenario.name), { parts: [], ran: [], steps: [step] });
+				if (!world) {
+					const dist = dists.get(build);
+					if (!dist) throw new Error(`${build} was not built, though ${scenario.name} runs on it.`);
+					prepareDataDir(install, dist, dataDir);
+					world = { run, server: await launchFoundry(install, dataDir, port, scenario.routePrefix) };
 				}
+				log = await runScenario(scenario.run, {
+					browser,
+					url: world.server.url,
+					version: install.version,
+					gmUser: config.gmUser,
+					playerUser: config.playerUser,
+					needsCanvas: scenario.needsCanvas,
+					parts,
+					range: slice.range,
+					onStep: (step) => console.log(stepLine(label, step, options)),
+				});
+			} catch (error) {
+				// A world that fails to launch fails the slice's parts, and the pool goes on.
+				const step = fatalStep(error);
+				console.log(stepLine(label, step, options));
+				log = { parts: [], ran: [], steps: [step] };
 			}
+			sliceLogs.set(slice.runId, [...(sliceLogs.get(slice.runId) ?? []), { slice, log }]);
+			if (scenario.isolated || stopped(log.steps)) await close();
 		}
+	} finally {
+		await close();
 	}
 }
 
 /**
- * Launches Foundry on a fresh copy of the world, and runs the scenarios on it one after the other.
+ * Takes the next slice of the queue for a launch whose world serves a version and build: the longest left on that
+ * world, else the longest left. The runs of one scenario on two versions last about as long and sit side by side in the
+ * queue: taking them strictly in turn would start a world, a copy and a few seconds of launch, for almost every slice.
  */
-async function runLaunch(install: FoundryInstall, buildLabel: string, group: LoadedScenario[]) {
-	const run = runName(install.version, buildLabel);
-	const dataDir = path.join(config.workDir, 'runs', safeFileName(group[0].isolated ? `${run} ${group[0].name}` : run));
-	const dist = dists.get(buildLabel);
-	if (!dist) throw new Error(`${buildLabel} was not built, though ${group[0].name} runs on it.`);
-	prepareDataDir(install, dist, dataDir);
-	const server = await launchFoundry(install, dataDir, group[0].routePrefix);
+function nextSlice(worldRun: string | undefined) {
+	const onWorld = queue.findIndex((slice) => {
+		const { run, scenario } = plannedRun(slice.runId);
+		return run === worldRun && !scenario.isolated;
+	});
+	return queue.splice(onWorld === -1 ? 0 : onWorld, 1)[0];
+}
+
+/**
+ * A scenario the pool runs on one version and build, with the parts it selects.
+ */
+type PlannedRun = { install: FoundryInstall; build: string; run: string; scenario: LoadedScenario; parts: readonly string[] | undefined };
+
+function plannedRun(id: string) {
+	const planned = scenarioRuns.get(id);
+	if (!planned) throw new Error(`No planned run ${id}.`);
+	return planned;
+}
+
+/**
+ * The step log a scenario's run on a version and build left in the results folder last time, whose durations size and
+ * order this run's slices; none when it can't be read.
+ */
+function readPreviousLog(scenario: string, run: string): Step[] | undefined {
+	const file = path.join(config.workDir, 'results', scenario, `${safeFileName(run)}.json`);
+	if (!fs.existsSync(file)) return undefined;
 	try {
-		for (const scenario of group) {
-			const label = scenarioLabel(run, scenario);
-			const result = await runScenario(scenario.run, {
-				browser,
-				url: server.url,
-				version: install.version,
-				gmUser: config.gmUser,
-				playerUser: config.playerUser,
-				needsCanvas: scenario.needsCanvas,
-				parts: planOf(run, scenario).run?.parts,
-				onStep: (step) => console.log(stepLine(label, step, options)),
-			});
-			results.set(logKey(run, scenario.name), result);
-		}
-	} finally {
-		await server.stop();
+		return JSON.parse(fs.readFileSync(file, 'utf8')) as Step[];
+	} catch {
+		// Only the slices' sizes and order depend on it: the run goes on without it.
+		return undefined;
 	}
+}
+
+/**
+ * Whether a server listens on the port: one the pool can't take.
+ */
+function listening(port: number) {
+	return new Promise<boolean>((resolve) => {
+		const probe = net.createServer();
+		probe.once('error', () => resolve(true));
+		probe.listen(port, () => probe.close(() => resolve(false)));
+	});
 }
 
 /**
