@@ -1918,7 +1918,7 @@ export async function run(e2e: ScenarioContext) {
 				updateItem('Wearer', 'Backpack', { 'system.state': 'equipped' }),
 				// The Backpack's row moves to the Equipped section as a new row. Vue ignores an event dispatched in the
 				// millisecond its listener was attached (runtime-dom's `_vts` check), so a drop right after the update can
-				// miss the new row: the drop waits for the row and its transition.
+				// miss the new row. A `waitFor` the row would return in that same millisecond: settling lets time pass.
 				() => e2e.settle(),
 				drop(held('Vest', 'Wearer'), 'Wearer', { item: 'Backpack' }),
 			),
