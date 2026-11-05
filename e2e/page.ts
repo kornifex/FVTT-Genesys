@@ -369,14 +369,13 @@ export function installHelpers() {
 				}),
 			);
 			if (extraSlots.length) {
-				await combat.setFlag(
-					'genesys',
-					'extraSlots',
+				await combat.updateExtraSlots(
 					extraSlots.map(({ name, initiative }) => ({
 						activationSource: combatantNamed(name).id,
 						initiative: initiative ?? null,
 						startingRound: 1,
 					})),
+					undefined,
 				);
 			}
 

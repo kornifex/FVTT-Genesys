@@ -20,14 +20,14 @@ export class GenesysCombatant extends Combatant {
 	}
 
 	get #chosenInitiativeSkillName() {
-		return this.getFlag('genesys', 'initiativeSkill');
+		return this.system.initiativeSkill ?? undefined;
 	}
 
 	/**
 	 * Choose the Initiative Skill this combatant rolls.
 	 */
 	async setInitiativeSkill(skill: InitiativeSkill) {
-		await this.setFlag('genesys', 'initiativeSkill', skill.skillName);
+		await this.update({ system: { initiativeSkill: skill.skillName } });
 	}
 
 	/**

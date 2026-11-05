@@ -221,9 +221,9 @@ function installCombatHelpers() {
 				),
 				claims,
 				skills: Object.fromEntries(
-					combat.combatants.map((c: { name: string; getFlag(scope: string, key: string): string | undefined }) => [
+					combat.combatants.map((c: { name: string; initiativeSkill?: { skillName: string } }) => [
 						c.name,
-						c.getFlag('genesys', 'initiativeSkill') ?? null,
+						c.initiativeSkill?.skillName ?? null,
 					]),
 				),
 			};
@@ -391,13 +391,15 @@ function installCombatHelpers() {
 		if ('initiative' in changed) helpers.writes.push(`initiative of ${updated.name}`);
 	});
 	Hooks.on('updateCombat', (combat: { turns: { name: string }[] }, changed: object, _options: unknown, userId: string) => {
-		if (foundry.utils.hasProperty(changed, 'flags.genesys.extraSlots')) {
+		// Before #418, a build writes them in flags: drop the flag once `origin/main` holds #418 and no comparison runs on it.
+		const changedSystemOrFlag = (field: string, flag: string) =>
+			foundry.utils.hasProperty(changed, `system.${field}`) || foundry.utils.hasProperty(changed, `flags.genesys.${flag}`);
+		if (changedSystemOrFlag('extraSlots', 'extraSlots')) {
 			helpers.writes.push('Extra Slots');
 			// Foundry calls the hook once the combat has taken the update: its turns are then the order this client made.
 			helpers.turnsAtUpdate.push(combat.turns.map((turn) => turn.name));
 		}
-		if (foundry.utils.hasProperty(changed, 'flags.genesys.slotClaims'))
-			helpers.claimWriters.push(game.users.get(userId)?.name ?? userId);
+		if (changedSystemOrFlag('claims', 'slotClaims')) helpers.claimWriters.push(game.users.get(userId)?.name ?? userId);
 	});
 	const combatPrototype = CONFIG.Combat.documentClass.prototype;
 	const playCombatSound = combatPrototype._playCombatSound;
@@ -880,26 +882,6 @@ export async function run(e2e: ScenarioContext) {
 		);
 		await e2e.step('#35 GM starts the combat', () => gm.evaluate(() => game.combat.startCombat()));
 
-		// Claims stored by position in the turn order, before #35, are no longer read.
-		await e2e.step('#35 GM stores Claims in the former flag', () =>
-			gm.evaluate(() =>
-				game.combat.setFlag('genesys', 'claimants', {
-					1: { 0: window.e2e.slotId('Hero').split(':')[0], 2: window.e2e.slotId('Ally').split(':')[0] },
-				}),
-			),
-		);
-		e2e.expect(
-			'#35 A3 Claims of the former flag claim no slot and use no activation',
-			{
-				claims: (await stored()).claims,
-				rows: (await rows())[gm.user]?.filter((row) => row.claimed).map((row) => row.slot),
-				refusal: await gm.evaluate(() =>
-					game.combat.claimRefusal(1, window.e2e.slotId('Hero'), game.combat.combatants.getName('Hero')),
-				),
-			},
-			{ claims: {}, rows: [], refusal: undefined },
-		);
-
 		const claim = await e2e.step("#35 player claims Hero's slot from the tracker, with Hero's token controlled", () =>
 			player.evaluate(() => {
 				window.combatE2E.control('Hero');
@@ -1249,7 +1231,7 @@ export async function run(e2e: ScenarioContext) {
 				changes: [{ key: `genesys.pool.skill.self.${skill}`, mode: CONST.ACTIVE_EFFECT_MODES.CUSTOM, value: 'B' }],
 			});
 			const hero = game.combat.combatants.getName('Hero');
-			await hero.setFlag('genesys', 'initiativeSkill', 'Cool');
+			await hero.setInitiativeSkill(game.combat.initiativeSkills.find((skill: { skillName: string }) => skill.skillName === 'Cool'));
 			await hero.actor.createEmbeddedDocuments('ActiveEffect', [effect('Cool')]);
 			await game.combat.combatants.getName('Boss').actor.createEmbeddedDocuments('ActiveEffect', [effect('Vigilance')]);
 		});
@@ -1703,7 +1685,7 @@ export async function run(e2e: ScenarioContext) {
 				const other = game.combats.find((combat: unknown) => combat !== game.combat);
 				return {
 					viewed: window.combatE2E.stored().extraSlots,
-					other: other ? (other.getFlag('genesys', 'extraSlots') ?? []).length : null,
+					other: other ? other.storedExtraSlots.length : null,
 				};
 			});
 		// The other combat holds Hero's token too, as a macro would expect to give it a slot there.

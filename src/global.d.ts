@@ -10,11 +10,11 @@ import type { MinionDataModel } from '@/actor/data/MinionDataModel';
 import type { NemesisDataModel } from '@/actor/data/NemesisDataModel';
 import type { RivalDataModel } from '@/actor/data/RivalDataModel';
 import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
+import type { CombatantDataModel } from '@/combat/CombatantDataModel';
+import type { CombatDataModel } from '@/combat/CombatDataModel';
 import type { GenesysCombat } from '@/combat/GenesysCombat';
-import type { ClaimData } from '@/combat/TurnOrder';
 import type { GenesysCombatant } from '@/combat/GenesysCombatant';
 import type { GenesysCombatTracker } from '@/combat/GenesysCombatTracker';
-import type { StoredExtraSlot } from '@/combat/InitiativeSlots';
 import type { GENESYS_CONFIG } from '@/config';
 import type { GenesysEffect } from '@/effects/GenesysEffect';
 import type { GenesysItem } from '@/item/GenesysItem';
@@ -71,13 +71,14 @@ declare module 'fvtt-types/configuration' {
 			vehicle: typeof VehicleDataModel;
 		};
 		Item: { [T in keyof ItemDataModels]: abstract new (...args: never[]) => ItemDataModels[T] };
+		// On the `base` type, as `src/combat/index.ts` registers them.
+		Combat: { base: typeof CombatDataModel };
+		Combatant: { base: typeof CombatantDataModel };
 	}
 
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
 		ActiveEffect: { genesys: { expired?: boolean } };
-		Combat: { genesys: { slotClaims?: ClaimData; extraSlots?: StoredExtraSlot[] } };
-		Combatant: { genesys: { initiativeSkill?: string } };
 	}
 
 	interface SettingConfig extends TableSettings {

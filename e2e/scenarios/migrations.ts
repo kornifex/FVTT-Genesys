@@ -1,4 +1,4 @@
-/** @file #56, #102, #280 and #441: the migrations a world runs on load, over its actors, its unlinked tokens and its actor compendiums, once. */
+/** @file #56, #102, #280, #441 and #418: the migrations a world runs on load, over its actors, its unlinked tokens, its actor compendiums and its combats, once. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -28,6 +28,23 @@ type WorldState = {
 	applied: Record<'Mira' | 'Raider token' | 'Raider base', Record<string, number>>;
 	/** The talent purchases of a character's Experience Journal, as `<name recorded> → <the talent its id names>`. */
 	purchases: Record<'Elder', string[]>;
+	combat: CombatState;
+};
+
+/**
+ * What the system reads of the combat this scenario seeds, by combatant name, and the `genesys` flags it still holds.
+ */
+type CombatState = {
+	/** The Initiative Slots of round 1 in turn order, as `<combatant>:<extra slot index>`, with ` → <claimant>` once claimed. */
+	slots: string[];
+	/** The round, and the slot whose turn it is. */
+	turn: { round: number; slot: string | null };
+	/** Each stored Extra Slot, as `<combatant>@<starting round>=<initiative>`. */
+	extraSlots: string[];
+	/** The Initiative Skill chosen for each combatant. */
+	skills: Record<string, string | null>;
+	/** The keys of the `genesys` flags of the combat and of each combatant. */
+	flags: Record<string, string[]>;
 };
 
 type EffectsTab = { temporary: string[]; passive: string[]; suppressed: string[] };
@@ -200,6 +217,35 @@ function installMigrationHelpers() {
 			.filter((entry) => entry.type === 'NewTalent')
 			.map(({ data }) => `${data.name} → ${data.id ? actor.items.get(data.id)?.name ?? 'missing' : 'unlinked'}`);
 
+	// Read through the system's API, which a build before #418 reads from flags.
+	const combatState = (): CombatState => {
+		const combat = game.combats.contents[0];
+		const name = (id: string) => combat.combatants.get(id)?.name ?? `missing ${id}`;
+		const flagKeys = (doc: { flags: { genesys?: object } }) => Object.keys(doc.flags.genesys ?? {}).sort();
+		type Slot = { id: string; originId: string; extraSlotIndex: number; claimantId?: string };
+		const slots: Slot[] = combat.slotsForRound(1);
+		const slotName = (slot: Slot) => `${name(slot.originId)}:${slot.extraSlotIndex}`;
+		const current = slots.find((slot) => slot.id === combat.currentSlotId);
+		return {
+			slots: slots.map((slot) => `${slotName(slot)}${slot.claimantId ? ` → ${name(slot.claimantId)}` : ''}`),
+			turn: { round: combat.round, slot: current ? slotName(current) : null },
+			extraSlots: combat.storedExtraSlots.map(
+				(slot: { activationSource: string; startingRound: number; initiative: number | null }) =>
+					`${name(slot.activationSource)}@${slot.startingRound}=${slot.initiative}`,
+			),
+			skills: Object.fromEntries(
+				combat.combatants.map((combatant: { name: string; initiativeSkill?: { skillName: string } }) => [
+					combatant.name,
+					combatant.initiativeSkill?.skillName ?? null,
+				]),
+			),
+			flags: Object.fromEntries([
+				['combat', flagKeys(combat)],
+				...combat.combatants.map((combatant: { name: string; flags: object }) => [combatant.name, flagKeys(combatant)]),
+			]),
+		};
+	};
+
 	window.migrationsE2E = {
 		async setUp() {
 			await window.e2e.deleteSetUp('Actor', 'Scene');
@@ -212,6 +258,25 @@ function installMigrationHelpers() {
 			}
 
 			await Actor.createDocuments(['Hero', 'Ally'].map((name) => ({ name: `E2E ${name}`, type: 'character' })));
+
+			// #418: a combat as 0.5.0 stored it, its Initiative Slots' state in flags, with the legacy `claimants` flag. Hero's
+			// Extra Slot sorts between Ally's slot and its own, which Ally claimed.
+			await Combat.deleteDocuments(game.combats.map((combat: { id: string }) => combat.id));
+			const [combat] = await Combat.createDocuments([{ active: true }]);
+			const [hero, ally] = await combat.createEmbeddedDocuments('Combatant', [
+				{ actorId: actorNamed('Hero').id, name: 'Hero', initiative: 1.01 },
+				{ actorId: actorNamed('Ally').id, name: 'Ally', initiative: 3 },
+			]);
+			await combat.update({
+				'flags.genesys': {
+					slotClaims: { 1: { [`${hero.id}:-1`]: ally.id } },
+					extraSlots: [{ activationSource: hero.id, initiative: 2, startingRound: 1 }],
+					claimants: { 1: { 0: hero.id } },
+				},
+			});
+			await hero.update({ 'flags.genesys.initiativeSkill': 'Cool' });
+			// The turn of round 1 on Hero's Extra Slot, second in 0.5.0's order.
+			await combat.update({ round: 1, turn: 1 });
 
 			// #56: a vehicle whose crew holds ids, in the world, on an unlinked token, in a locked world compendium.
 			await Actor.create({ name: 'E2E V1', type: 'vehicle', system: crewWithIds() });
@@ -441,6 +506,7 @@ function installMigrationHelpers() {
 					'Raider base': { soak: actorNamed('Raider').system.soak },
 				},
 				purchases: { Elder: purchasesOf(actorNamed('Elder')) },
+				combat: combatState(),
 			};
 		},
 
@@ -495,6 +561,7 @@ function installMigrationHelpers() {
 		async cleanUp() {
 			// The scene first: deleting a crew member must not reach the unlinked vehicle token of a deleted scene (#219).
 			await window.e2e.deleteSetUp('Scene', 'Actor');
+			await Combat.deleteDocuments(game.combats.map((combat: { id: string }) => combat.id));
 			for (const label of ['E2E Migrations', 'E2E Old Actors']) {
 				await packNamed(label).configure({ locked: false });
 				await packNamed(label).deleteCompendium();
@@ -504,6 +571,13 @@ function installMigrationHelpers() {
 }
 
 // What the migrations make of the seeded world.
+const MIGRATED_COMBAT: CombatState = {
+	slots: ['Ally:-1', 'Hero:0', 'Hero:-1 → Ally'],
+	turn: { round: 1, slot: 'Hero:0' },
+	extraSlots: ['Hero@1=2'],
+	skills: { Hero: 'Cool', Ally: null },
+	flags: { combat: [], Hero: [], Ally: [] },
+};
 const MIGRATED_CREW = { passengers: [], roles: ['Pilot: uuid:E2E Hero', 'Gunner: uuid:E2E Ally'] };
 const SHIELD = 'icons/svg/shield.svg';
 const MIGRATED_MIRA = {
@@ -602,7 +676,12 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 5);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 6);
+	e2e.expect(
+		"#418 A1 a combat saved by 0.5.0 keeps its turn order, current turn, Claim, Extra Slot and chosen Initiative Skill, its flags deleted, the legacy Claims' too",
+		migrated.combat,
+		MIGRATED_COMBAT,
+	);
 	e2e.expect('#56 A2 a world vehicle crew holds uuids, each actor once', migrated.crew.V1, MIGRATED_CREW);
 	e2e.expect(
 		'#56 A3 an unlinked token vehicle crew is migrated, its base actor left alone',

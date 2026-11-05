@@ -10,7 +10,7 @@ import { expireEffectsOfCombat } from '@/effects/GenesysEffect.v13';
 import type { CombatClock } from '@/effects/EffectExpiry.v13';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { askActingGm, handleQuery, isActingGm, QueryName, refuse } from '@/queries';
-import { isFoundryV13 } from '@/foundryGeneration';
+import { isFoundryV13, keyDeletion } from '@/foundryGeneration';
 import {
 	claimQueryRefusal,
 	claimRefusal,
@@ -32,10 +32,6 @@ import {
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 import { slotsForRound, TurnOrderChanges, turnNumbers, turnOfSlotAfter, TurnOrderState } from '@/combat/TurnOrder';
-
-// Claims are keyed by slot id. They replace the `claimants` flag, which keyed them by position in the turn order.
-const FLAG_CLAIMS = 'slotClaims';
-const FLAG_EXTRA_SLOTS = 'extraSlots';
 
 /**
  * Foundry's options for rolling initiative, with the system's own.
@@ -80,7 +76,7 @@ export class GenesysCombat extends Combat {
 	 * The Claims on the Initiative Slots of a round, by slot id.
 	 */
 	claimsForRound(round: number): RoundClaims {
-		return this.getFlag('genesys', FLAG_CLAIMS)?.[round] ?? {};
+		return this.system.claims[round] ?? {};
 	}
 
 	/**
@@ -95,7 +91,7 @@ export class GenesysCombat extends Combat {
 				hasPlayerOwner: combatant.actorHasPlayerOwner,
 			})),
 			storedExtraSlots: this.storedExtraSlots,
-			claims: this.getFlag('genesys', FLAG_CLAIMS) ?? {},
+			claims: this.system.claims,
 		};
 	}
 
@@ -274,7 +270,7 @@ export class GenesysCombat extends Combat {
 	}
 
 	async #writeClaim(round: number, slotId: string, combatantId: string) {
-		await this.update({ [`flags.genesys.${FLAG_CLAIMS}.${round}.${slotId}`]: combatantId });
+		await this.update({ [`system.claims.${round}.${slotId}`]: combatantId });
 	}
 
 	/**
@@ -309,15 +305,14 @@ export class GenesysCombat extends Combat {
 			return;
 		}
 
-		// Foundry unsets a key within a flag too, which the types don't take.
-		await this.unsetFlag('genesys', `${FLAG_CLAIMS}.${round}.${slotId}` as typeof FLAG_CLAIMS);
+		await this.update(keyDeletion(`system.claims.${round}`, slotId));
 	}
 
 	/**
 	 * Every extra slot the combat stores, whatever round it starts from.
 	 */
 	get storedExtraSlots() {
-		return this.getFlag('genesys', FLAG_EXTRA_SLOTS) ?? [];
+		return this.system.extraSlots;
 	}
 
 	/**
@@ -357,7 +352,7 @@ export class GenesysCombat extends Combat {
 	 * Write the stored extra slots, keeping the turn on an Initiative Slot of the current round when one is given.
 	 */
 	async updateExtraSlots(extraSlots: StoredExtraSlot[], keepTurnOn: string | undefined) {
-		const changes = { flags: { genesys: { [FLAG_EXTRA_SLOTS]: extraSlots } } };
+		const changes = { system: { extraSlots } };
 		const turn = this.turnOfSlotAfter(keepTurnOn, { storedExtraSlots: extraSlots });
 
 		await this.update(turn === undefined ? changes : { ...changes, turn });
@@ -531,7 +526,7 @@ export class GenesysCombat extends Combat {
 	protected override _onUpdate(changed: Combat.UpdateData, options: Combat.Database.OnUpdateOptions, userId: string) {
 		// Foundry only orders the turns again when combatants change, but extra slots add turns too, and a round only has
 		// the extra slots added up to it. Order them before Foundry works out the current turn from them.
-		if (foundry.utils.hasProperty(changed, `flags.genesys.${FLAG_EXTRA_SLOTS}`)) {
+		if (foundry.utils.hasProperty(changed, 'system.extraSlots')) {
 			this.setupTurns();
 		} else if ('round' in changed) {
 			// Leave the current turn to Foundry, which compares it with the new one for its turn events.

@@ -17,6 +17,8 @@ import { actorOnlyOnceInCrew } from '@/migrations/2-actors-once-in-vehicle';
 import { effectsStayOnItemsWithNotifications } from '@/migrations/3-effects-stay-on-items';
 import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equipment-state';
 import { linkTalentPurchases } from '@/migrations/5-link-talent-purchases';
+import { CombatSource, combatSystemData } from '@/migrations/6-combat-system-data';
+import { keyDeletion } from '@/foundryGeneration';
 import * as log from '@/log';
 import { isActingGm } from '@/queries';
 
@@ -68,12 +70,51 @@ async function migrateEveryActor(plan: ActorPlanner) {
 	return failures.length === 0;
 }
 
+/**
+ * Move the Initiative Slots' state of every combat of the world, and of its combatants, from flags into system data. It
+ * fails if any combat couldn't be migrated.
+ */
+async function migrateCombats() {
+	const failures: string[] = [];
+
+	for (const combat of game.combats) {
+		const changes = combatSystemData(combat.toObject() as CombatSource);
+		if (!changes) {
+			continue;
+		}
+
+		try {
+			await combat.update({ system: changes.system, ...keyDeletion('flags.genesys', ...changes.deletedFlags) });
+			if (changes.combatants.length > 0) {
+				await combat.updateEmbeddedDocuments(
+					'Combatant',
+					changes.combatants.map(({ _id, initiativeSkill }) => ({
+						_id,
+						system: { initiativeSkill },
+						...keyDeletion('flags.genesys', 'initiativeSkill'),
+					})),
+				);
+			}
+		} catch (error) {
+			log.error(`Unable to migrate the combat ${combat.id}:`, error);
+			failures.push(combat.id);
+		}
+	}
+
+	if (failures.length > 0) {
+		log.error('Unable to migrate these combats:', failures);
+	}
+
+	return failures.length === 0;
+}
+
 const migrations: readonly (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(useUuidForVehicles((id) => game.actors.get(id)?.uuid)),
 	() => migrateEveryActor(actorOnlyOnceInCrew),
 	() => migrateEveryActor(effectsStayOnItemsWithNotifications),
 	() => migrateEveryActor(effectsFollowEquipmentState),
 	() => migrateEveryActor(linkTalentPurchases),
+	migrateCombats,
 ];
 
 /**
