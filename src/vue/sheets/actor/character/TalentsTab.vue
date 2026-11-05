@@ -6,6 +6,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import Talent from '@/vue/components/character/Talent.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { advance, advancementCharacter, buyTalentRank, isAllowed } from '@/actor/data/character/Advancement';
 import { tierLimit } from '@/actor/data/character/TalentPyramid';
 import { talentGroups, TIERS } from '@/item/data/Talents';
@@ -14,7 +15,8 @@ import { itemsOfType } from '@/item/ItemTypes';
 
 const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
-const abilities = computed(() => talentGroups(itemsOfType(actor.value, 'ability'), game.i18n.lang));
+const abilityItems = computed(() => itemsOfType(actor.value, 'ability'));
+const abilities = computed(() => talentGroups(abilityItems.value, game.i18n.lang));
 // The ids of the items the Archetype granted, which only go away with it.
 const grantedItemIds = computed(() => {
 	const character = actor.value;
@@ -24,7 +26,8 @@ const grantedItemIds = computed(() => {
 	);
 });
 
-const talents = computed(() => talentGroups(itemsOfType(actor.value, 'talent'), game.i18n.lang));
+const talentItems = computed(() => itemsOfType(actor.value, 'talent'));
+const talents = computed(() => talentGroups(talentItems.value, game.i18n.lang));
 // Under the Ignore Talent Pyramid house rule a talent's tier only sets its cost, so the pyramid's limits mean nothing.
 const SHOW_PYRAMID_SUMMARY = !CONFIG.genesys.settings.ignoreTalentPyramid;
 const talentTotals = computed(() => actor.value.system.talentPyramidTotals);
@@ -54,11 +57,11 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 		</div>
 
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.SpecialAbilities" /></div>
-			<div class="talents-container">
-				<div v-if="abilities.active.length + abilities.activeByDetail.length > 0" class="category-header">
+			<h3><Localized label="Genesys.Labels.SpecialAbilities" /></h3>
+			<div v-if="abilityItems.length > 0" class="talents-container">
+				<h4 v-if="abilities.active.length + abilities.activeByDetail.length > 0">
 					<Localized label="Genesys.Labels.Active" />
-				</div>
+				</h4>
 				<Talent
 					v-for="ability in abilities.active"
 					:key="ability.id"
@@ -67,7 +70,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 				/>
 
 				<template v-for="group in abilities.activeByDetail" :key="group.detail">
-					<div class="sub-category-header">{{ group.detail }}</div>
+					<h5>{{ group.detail }}</h5>
 					<Talent
 						v-for="ability in group.talents"
 						:key="ability.id"
@@ -76,7 +79,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					/>
 				</template>
 
-				<div v-if="abilities.passive.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
+				<h4 v-if="abilities.passive.length > 0"><Localized label="Genesys.Labels.Passive" /></h4>
 				<Talent
 					v-for="ability in abilities.passive"
 					:key="ability.id"
@@ -84,12 +87,13 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					:can-delete="!grantedItemIds.has(ability.id)"
 				/>
 			</div>
+			<ListEmpty v-else />
 
-			<div class="header"><Localized label="Genesys.Labels.Talents" /></div>
-			<div class="talents-container">
-				<div v-if="talents.active.length + talents.activeByDetail.length > 0" class="category-header">
+			<h3><Localized label="Genesys.Labels.Talents" /></h3>
+			<div v-if="talentItems.length > 0" class="talents-container">
+				<h4 v-if="talents.active.length + talents.activeByDetail.length > 0">
 					<Localized label="Genesys.Labels.Active" />
-				</div>
+				</h4>
 				<Talent
 					v-for="talent in talents.active"
 					:key="talent.id"
@@ -99,7 +103,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 				/>
 
 				<template v-for="group in talents.activeByDetail" :key="group.detail">
-					<div class="sub-category-header">{{ group.detail }}</div>
+					<h5>{{ group.detail }}</h5>
 					<Talent
 						v-for="talent in group.talents"
 						:key="talent.id"
@@ -109,7 +113,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					/>
 				</template>
 
-				<div v-if="talents.passive.length > 0" class="category-header"><Localized label="Genesys.Labels.Passive" /></div>
+				<h4 v-if="talents.passive.length > 0"><Localized label="Genesys.Labels.Passive" /></h4>
 				<Talent
 					v-for="talent in talents.passive"
 					:key="talent.id"
@@ -118,11 +122,13 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					@upgrade="upgradeTalent(talent)"
 				/>
 			</div>
+			<ListEmpty v-else />
 		</div>
 	</section>
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .tab-talents {
@@ -146,47 +152,12 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 			border-top-left-radius: 1em;
 			border-top-right-radius: 1em;
 		}
-
-		.header {
-			font-family: 'Bebas Neue', sans-serif;
-			font-size: 1.25em;
-			margin-top: 0.5em;
-			margin-bottom: -0.4em;
-
-			&:first-of-type {
-				margin-top: 0;
-			}
-		}
 	}
 
+	// The talents of a section, its groups' headings among them, in a frame.
 	.talents-container {
 		border: 1px solid colors.$blue;
-		border-top: none;
-
-		.category-header,
-		.sub-category-header {
-			font-family: 'Bebas Neue', sans-serif;
-			color: white;
-			padding-left: 0.25em;
-			padding-top: 1px;
-		}
-
-		.category-header {
-			background: colors.$blue;
-			font-size: 1.1em;
-		}
-
-		.sub-category-header {
-			border-top: 1px solid colors.$blue;
-			background: colors.alpha(colors.$blue, 0.5);
-			font-size: 1em;
-		}
-
-		&:empty {
-			border: 1px dashed black;
-			opacity: 0.25;
-			height: 1em;
-		}
+		padding: 0 0.25em;
 	}
 
 	.pyramid {
@@ -198,7 +169,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 		border-top-left-radius: 1em;
 		border-top-right-radius: 1em;
 		background: colors.alpha(colors.$light-blue, 0.2);
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		padding-right: 1em;
 		padding-top: 0.25em;
 	}

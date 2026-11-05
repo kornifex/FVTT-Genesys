@@ -118,6 +118,7 @@ const { effects, addEffect } = useDocumentEffects();
 </style>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
@@ -153,7 +154,7 @@ const { effects, addEffect } = useDocumentEffects();
 		@include reset.input;
 		input[type='text'] {
 			width: 100%;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			font-size: 2rem;
 			color: colors.$blue;
 			height: 2rem;

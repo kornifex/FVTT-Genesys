@@ -45,8 +45,8 @@ async function deleteProfile(profile: WeaponProfile) {
 				class="data-grid weapon-profile"
 				:data-weapon-profile="profile.index"
 			>
-				<div class="profile-header">
-					<Localized label="Genesys.WeaponProfile.Title" />
+				<div class="heading-row">
+					<h3><Localized label="Genesys.WeaponProfile.Title" /></h3>
 					<ActionButton
 						class="delete-profile"
 						icon="fas fa-trash"
@@ -82,13 +82,12 @@ async function deleteProfile(profile: WeaponProfile) {
 	margin-top: 0.5rem;
 	border-top: 2px solid colors.$dark-blue;
 
-	.profile-header {
+	// The profile's heading, then its delete button at the other end.
+	.heading-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		padding: 0.25em;
-		font-family: 'Modesto Condensed', sans-serif;
-		font-size: 1.2em;
 	}
 }
 

@@ -96,8 +96,13 @@
 	box-shadow: none;
 }
 
-// The components render no heading of their own: these are the rich text's, such as a description's. ApplicationV2 gives
-// headings a larger size, a darker colour and wide margins. These restore AppV1's headings.
-.application .vue-app :is(h1, h2, h3, h4) {
+// The components' headings are their sections', each of the same look. ApplicationV2 gives headings a larger size, a
+// darker colour and wide margins, which these replace.
+.application .vue-app :is(h3, h4, h5):not(:is(.enriched, prose-mirror) *) {
+	@include headings.section;
+}
+
+// The rich text's headings, such as a description's, keep AppV1's look, which the descriptions were written for.
+.application .vue-app :is(.enriched, prose-mirror) :is(h1, h2, h3, h4) {
 	@include headings.appv1;
 }

@@ -126,9 +126,7 @@ function resetDrags() {
 
 			<template v-else>
 				<template v-for="section in itemSections" :key="section.state">
-					<div class="section-header">
-						<span><Localized :label="section.label" /></span>
-					</div>
+					<h3><Localized :label="section.label" /></h3>
 
 					<SortSlot :active="isSectionDragged(section.state)" @drop="dropInventoryToSortSlot($event, section.state, -1)" />
 
@@ -157,6 +155,7 @@ function resetDrags() {
 
 <style lang="scss" scoped>
 @use 'sass:color';
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -211,7 +210,7 @@ function resetDrags() {
 		align-items: center;
 		gap: 0.5em;
 
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.1em;
 
 		@include reset.input;
@@ -230,7 +229,7 @@ function resetDrags() {
 		display: flex;
 		flex-wrap: nowrap;
 		gap: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		align-items: center;
 
 		span {
@@ -240,12 +239,6 @@ function resetDrags() {
 		&.encumbered {
 			color: colors.$alert;
 		}
-	}
-
-	.section-header {
-		display: flex;
-		font-size: 1.25em;
-		font-family: 'Bebas Neue', sans-serif;
 	}
 }
 </style>

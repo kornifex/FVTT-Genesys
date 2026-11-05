@@ -7,6 +7,7 @@ import { EquipmentState } from '@/item/data/EquipmentState';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 
 defineProps<{
 	effects: Stored<GenesysEffect>[];
@@ -83,10 +84,13 @@ async function deleteEffect(effect: GenesysEffect) {
 <template>
 	<section class="effects-view">
 		<template v-for="{ category, label, filter } in sections" :key="category">
-			<div class="effects-header">
-				<div class="name"><Localized :label="label" /></div>
-				<div class="source"><Localized label="Genesys.ActiveEffects.Source" /></div>
-				<div class="duration"><Localized label="Genesys.ActiveEffects.Duration" /></div>
+			<!-- An empty category keeps its heading and its Add button, not the labels of columns it has no row in. -->
+			<div class="columns">
+				<h3 class="name"><Localized :label="label" /></h3>
+				<template v-if="effects.some(filter)">
+					<div class="source"><Localized label="Genesys.ActiveEffects.Source" /></div>
+					<div class="duration"><Localized label="Genesys.ActiveEffects.Duration" /></div>
+				</template>
 				<div class="buttons">
 					<ActionButton icon="fas fa-plus" edits @click="emit('addEffect', category)"
 						><Localized label="Genesys.Labels.Add"
@@ -95,6 +99,7 @@ async function deleteEffect(effect: GenesysEffect) {
 			</div>
 
 			<section class="effects-category">
+				<ListEmpty v-if="!effects.some(filter)" />
 				<div v-for="effect in effects.filter(filter)" :key="effect.uuid" class="effect" :data-tooltip="suppressionReason(effect)">
 					<img :src="effect.img ?? undefined" :alt="effect.name" />
 					<div class="name">{{ effect.name }}</div>
@@ -126,6 +131,7 @@ async function deleteEffect(effect: GenesysEffect) {
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .effects-view {
@@ -139,7 +145,7 @@ async function deleteEffect(effect: GenesysEffect) {
 	}
 
 	.effect,
-	.effects-header {
+	.columns {
 		align-items: center;
 		display: grid;
 		grid-template-columns: /* Icon */ 1.5rem /* Name */ 1fr /* Source */ 120px /* Duration */ 120px /* Actions */ 60px;
@@ -168,9 +174,8 @@ async function deleteEffect(effect: GenesysEffect) {
 		}
 	}
 
-	.effects-header {
-		font-family: 'Bebas Neue', sans-serif;
-		text-transform: uppercase;
+	.columns {
+		@include headings.font;
 		margin-top: 1em;
 
 		&:first-of-type {
@@ -180,6 +185,14 @@ async function deleteEffect(effect: GenesysEffect) {
 		.name {
 			grid-column: 1 / span 2;
 		}
+
+		.buttons {
+			grid-column: 5 / span 1;
+		}
+	}
+
+	.list-empty {
+		padding-left: 0.5em;
 	}
 }
 </style>

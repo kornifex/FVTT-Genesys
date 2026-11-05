@@ -46,19 +46,19 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 <template>
 	<section class="tab-journal">
 		<section class="motivations">
-			<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
+			<h3><Localized label="Genesys.Labels.Motivations" /></h3>
 
 			<Motivations :motivations="system.motivations" />
 		</section>
 
 		<section class="description">
 			<div class="block">
-				<div class="header"><Localized label="Genesys.Labels.CharacterIllustration" /></div>
+				<h3><Localized label="Genesys.Labels.CharacterIllustration" /></h3>
 				<img :src="system.illustration" data-edit="system.illustration" :alt="illustrationName" />
 			</div>
 
 			<div class="block">
-				<div class="header"><Localized label="Genesys.Labels.CharacterDescription" /></div>
+				<h3><Localized label="Genesys.Labels.CharacterDescription" /></h3>
 
 				<div class="desc-box">
 					<label><Localized label="Genesys.Labels.Pronouns" /></label>
@@ -100,15 +100,15 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		</section>
 
 		<section class="player-notes">
-			<div class="header"><Localized label="Genesys.Labels.Notes" /></div>
+			<h3><Localized label="Genesys.Labels.Notes" /></h3>
 
 			<Editor name="system.notes" />
 		</section>
 
 		<section class="xp-journal">
-			<div class="header"><Localized label="Genesys.Labels.XPJournal" /></div>
+			<h3><Localized label="Genesys.Labels.XPJournal" /></h3>
 
-			<div class="entries-header">
+			<div class="columns">
 				<div><Localized label="Genesys.RewardsPrompt.Reason" /></div>
 				<div />
 				<div><Localized label="Genesys.RewardsPrompt.Amount" /></div>
@@ -142,6 +142,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -164,16 +165,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			grid-template-columns: auto 1fr auto;
 			width: 100%;
 		}
-
-		& > .header {
-			text-align: right;
-			font-size: 1.1em;
-		}
-	}
-
-	.header {
-		font-family: 'Bebas Neue', sans-serif;
-		width: 100%;
 	}
 
 	.block {
@@ -191,11 +182,6 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		&[src=''] {
 			background: green;
 		}
-	}
-
-	.description .header {
-		text-align: right;
-		font-size: 1.1em;
 	}
 
 	.motivations {
@@ -297,15 +283,15 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		background: white;
 	}
 
-	.entries-header,
+	.columns,
 	.entry {
 		display: grid;
 		grid-template-columns: /* Name */ auto /* Spacer */ 1fr /* Amount */ auto /* Delete */ 1.5rem;
 		justify-items: center;
 	}
 
-	.entries-header {
-		font-family: 'Bebas Neue', sans-serif;
+	.columns {
+		@include headings.font;
 		font-size: 0.8em;
 
 		& > div:first-of-type {

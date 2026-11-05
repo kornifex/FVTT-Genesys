@@ -14,12 +14,14 @@ import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { useOpenRows } from '@/vue/useOpenRows';
 
 import { rollForCrew } from '@/operations/CrewRoll';
 import { attackWithVehicleWeapon } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { damageFormula, firingArcLabels, RANGE_LABELS } from '@/item/Weapons';
+import { firingArcLabels } from '@/item/Weapons';
 
 const { document: actor } = useSheetDocument<GenesysActor<'vehicle'>>();
 
@@ -37,14 +39,12 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 <template>
 	<section class="tab-combat">
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.Attacks" /></div>
-			<div class="weapons">
-				<div class="weapon header">
+			<h3><Localized label="Genesys.Labels.Attacks" /></h3>
+			<div v-if="weapons.length > 0" class="weapons">
+				<div class="weapon columns">
 					<div class="name"><Localized label="Genesys.Labels.Name" /></div>
 					<div class="skill"><Localized label="Genesys.Labels.Skill" /></div>
-					<div class="damage"><Localized label="Genesys.Labels.Damage" /></div>
-					<div class="crit"><Localized label="Genesys.Labels.Crit" /></div>
-					<div class="range"><Localized label="Genesys.Labels.Range" /></div>
+					<WeaponProfileStats layout="grid" labels />
 					<div class="firing-arc"><Localized label="Genesys.Labels.FiringArc" /></div>
 				</div>
 
@@ -65,11 +65,7 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					</div>
 					<div class="skill" v-else><Localized label="Genesys.Labels.SkillNotFound" /></div>
 
-					<div class="damage">{{ damageFormula(weapon.system).baseDamage }}</div>
-
-					<div class="crit">{{ weapon.system.critical }}</div>
-
-					<div class="range"><Localized :label="RANGE_LABELS[weapon.system.range]" /></div>
+					<WeaponProfileStats layout="grid" :profile="weapon.system" />
 
 					<div class="firing-arc">
 						<span v-for="label in firingArcLabels(weapon.system.firingArc)" :key="label"><Localized :label="label" /></span>
@@ -82,10 +78,11 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					</div>
 				</div>
 			</div>
+			<ListEmpty v-else />
 		</div>
 
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.CriticalHits" /></div>
+			<h3><Localized label="Genesys.Labels.CriticalHits" /></h3>
 			<CriticalInjuryList kind="hit" :injuries="criticalHits" @roll="repairHit" />
 		</div>
 	</section>

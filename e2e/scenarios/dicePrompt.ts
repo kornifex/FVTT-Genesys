@@ -889,9 +889,9 @@ function installDicePromptHelpers() {
 		},
 
 		async combatWeapons(name) {
-			await find({ actor: name }, '.tab-combat .weapons .weapon:not(.header)');
+			await find({ actor: name }, '.tab-combat .weapons .weapon:not(.columns)');
 			const root = await sheet({ actor: name });
-			return [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].map((row) => {
+			return [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.columns)')].map((row) => {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
 				return {
 					name: text(row.querySelector('.name')),
@@ -1782,8 +1782,8 @@ export async function run(e2e: ScenarioContext) {
 			'#49 D8 the adversary sheet shows a select for a weapon listing several skills',
 			await gm.evaluate(() => window.dicePromptE2E.adversaryWeapons('Rival')),
 			[
-				{ text: 'E2E Knife ([Melee]Damage 3Critical 3Range [Engaged])', choices: ['Melee', 'Ranged'] },
-				{ text: 'E2E Twig (No skillDamage 3Critical 3Range [Engaged])', choices: null },
+				{ text: 'E2E Knife ([Melee]Damage 3Critical 3Range Engaged)', choices: ['Melee', 'Ranged'] },
+				{ text: 'E2E Twig (No skillDamage 3Critical 3Range Engaged)', choices: null },
 			],
 		);
 		e2e.expect(
@@ -1822,7 +1822,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#196 D12 a vehicle weapon's Combat tab row has no Attack Skill select",
 			await gm.evaluate(() =>
-				window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-combat .weapon:not(.header) select' }),
+				window.dicePromptE2E.texts({ doc: { actor: 'Skiff' }, selector: '.tab-combat .weapon:not(.columns) select' }),
 			),
 			[],
 		);

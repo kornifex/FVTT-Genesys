@@ -9,6 +9,7 @@ import { freeRank } from '@/data/Skills';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -38,9 +39,9 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 </script>
 
 <template>
-	<span class="header"><Localized :label="props.label" />:</span>
+	<h3><Localized :label="props.label" /></h3>
 	<div class="container">
-		<Localized v-if="skills.length === 0" label="Genesys.Adversary.None" />
+		<ListEmpty v-if="skills.length === 0" />
 		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
 			<template v-slot:menu-items>
 				<template v-if="props.groupRank === undefined">

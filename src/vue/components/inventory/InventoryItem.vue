@@ -26,7 +26,6 @@ import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
-import { RANGE_LABELS } from '@/item/Weapons';
 import { signed } from '@/vue/format';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -34,7 +33,8 @@ import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import { damageFormula, firingArcLabels, weaponDamage } from '@/item/Weapons';
+import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
+import { firingArcLabels } from '@/item/Weapons';
 import { weaponProfiles } from '@/item/WeaponProfiles';
 
 const props = withDefaults(
@@ -136,15 +136,6 @@ const dimForDrag = computed(() => props.dragging && props.item.type !== 'contain
 
 const displayContainerContents = ref(false);
 const containedItems = computed(() => containerContents(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id));
-
-function damage() {
-	const weapon = weaponProfile();
-	return {
-		...damageFormula(weapon),
-		// A vehicle has no characteristics to add to the damage.
-		total: weaponDamage(weapon, (actor.value.system as Partial<CharacterDataModel>).characteristics),
-	};
-}
 
 // The Attack Skill of a character's weapon's main profile, which offers an attack when it has one.
 function skillForWeapon() {
@@ -283,16 +274,12 @@ function openMenu(event: MouseEvent) {
 						<Localized label="Genesys.Labels.FiringArc" /> <span v-for="label in firingArcs()" :key="label"><Localized :label="label" /></span>
 					</div>
 
-					<!-- prettier-ignore -->
-					<div>
-						<Localized label="Genesys.Labels.Damage" /> <span v-if="!damage().characteristic">{{ damage().baseDamage }}</span>
-						<span v-else><Localized :label="damage().characteristic!" />{{ signed(damage().baseDamage) }} ({{ damage().total }})</span>
-					</div>
-
-					<div><Localized label="Genesys.Labels.Critical" /> {{ weaponProfile().critical }}</div>
-
-					<!-- prettier-ignore -->
-					<div><Localized label="Genesys.Labels.Range" /> [<Localized :label="RANGE_LABELS[weaponProfile().range]" />]</div>
+					<!-- A vehicle has no characteristics to add to the damage. -->
+					<WeaponProfileStats
+						layout="inline"
+						:profile="weaponProfile()"
+						:characteristics="(actor.system as Partial<CharacterDataModel>).characteristics"
+					/>
 
 					<QualityList :qualities="weaponProfile().qualities" class="item-qualities" />
 				</template>
@@ -404,6 +391,7 @@ function openMenu(event: MouseEvent) {
 @use 'sass:color';
 @use '@scss/vars/colors.scss';
 @use '@scss/mixins/expandable.scss';
+@use '@scss/mixins/headings.scss';
 
 .inventory-item {
 	display: grid;
@@ -553,7 +541,9 @@ function openMenu(event: MouseEvent) {
 				margin-left: 0.5em;
 			}
 
-			& > div {
+			// The details, separated by semicolons. A Weapon Profile's stats are among them, the roots of a component with
+			// several, which take no scope attribute from the row: :deep() reaches them.
+			& > :deep(:is(div, span)) {
 				&:after {
 					display: inline;
 					content: ';';
@@ -594,14 +584,15 @@ function openMenu(event: MouseEvent) {
 		row-gap: 0.25em;
 	}
 
-	.weight,
-	.quantity,
-	.damage {
+	// The row's own cells: the damage of a weapon's stats, in its details, is not its damage state.
+	> .weight,
+	> .quantity,
+	> .damage {
 		grid-row: 1 / span 1;
 		display: flex;
 		align-items: center;
 		column-gap: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.25em;
 		text-align: center;
 		color: colors.$dark-blue;
@@ -623,7 +614,7 @@ function openMenu(event: MouseEvent) {
 		grid-column: quantity / span 1;
 	}
 
-	.damage {
+	> .damage {
 		grid-column: damage / span 1;
 		font-size: 1.5em;
 	}

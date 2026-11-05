@@ -19,7 +19,8 @@ import QualityList from '@/vue/components/QualityList.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, skillToRoll } from '@/data/Skills';
 import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
-import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
+import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
 
 const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
@@ -71,14 +72,12 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 <template>
 	<section class="tab-combat">
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.Attacks" /></div>
-			<div class="weapons">
-				<div class="weapon header">
+			<h3><Localized label="Genesys.Labels.Attacks" /></h3>
+			<div v-if="weaponRows.length > 0" class="weapons">
+				<div class="weapon columns">
 					<div class="name"><Localized label="Genesys.Labels.Name" /></div>
 					<div class="skill"><Localized label="Genesys.Labels.Skill" /></div>
-					<div class="damage"><Localized label="Genesys.Labels.Damage" /></div>
-					<div class="crit"><Localized label="Genesys.Labels.Crit" /></div>
-					<div class="range"><Localized label="Genesys.Labels.Range" /></div>
+					<WeaponProfileStats layout="grid" labels />
 				</div>
 
 				<div v-for="{ key, weapon, profile, name } in weaponRows" :key="key" class="weapon">
@@ -110,19 +109,18 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 						</template>
 						<span v-else><Localized label="Genesys.Labels.SkillNotFound" /></span>
 					</div>
-					<div class="damage">{{ weaponDamage(profile, actor.system.characteristics) }}</div>
-					<div class="crit">{{ profile.critical }}</div>
-					<div class="range"><Localized :label="RANGE_LABELS[profile.range]" /></div>
+					<WeaponProfileStats layout="grid" :profile="profile" :characteristics="actor.system.characteristics" />
 					<QualityList :qualities="profile.qualities" tags class="qualities" />
 					<div :class="['description', { active: openWeapons.isOpen(key) }]"><Enriched :value="weapon.system.description" /></div>
 				</div>
 			</div>
+			<ListEmpty v-else />
 		</div>
 
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.Armor" /></div>
-			<div class="armors">
-				<div class="armor header">
+			<h3><Localized label="Genesys.Labels.Armor" /></h3>
+			<div v-if="armors.length > 0" class="armors">
+				<div class="armor columns">
 					<div class="name"><Localized label="Genesys.Labels.Name" /></div>
 					<div class="soak"><Localized label="Genesys.Labels.Soak" /></div>
 					<div class="defense"><Localized label="Genesys.Labels.Defense" /></div>
@@ -146,10 +144,11 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					</div>
 				</div>
 			</div>
+			<ListEmpty v-else />
 		</div>
 
 		<div class="block">
-			<div class="header"><Localized label="Genesys.Labels.CriticalInjuries" /></div>
+			<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
 			<CriticalInjuryList kind="injury" :injuries="injuries" @roll="healInjury" />
 		</div>
 	</section>

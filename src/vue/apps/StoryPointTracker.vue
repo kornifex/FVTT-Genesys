@@ -133,6 +133,7 @@ async function toggleEdit(pool: StoryPointPool) {
 
 <style lang="scss" scoped>
 @use '@scss/mixins/backgrounds.scss';
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .story-point-tracker {
@@ -167,7 +168,7 @@ async function toggleEdit(pool: StoryPointPool) {
 		gap: 0.25em;
 		align-items: center;
 
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.1em;
 		line-height: 1;
 		color: colors.$blue;

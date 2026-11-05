@@ -112,6 +112,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -136,7 +137,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		width: $row-size * 2;
 		height: $row-size * 2;
 		background: white;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 2em;
 		text-align: center;
 		// Help vertically center the Bebas Neue font.
@@ -223,7 +224,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		grid-row: 3 / span 1;
 		grid-column: 1 / span 1;
 		color: white;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;
 		z-index: 1;

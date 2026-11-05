@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type. */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type; and the headings each tab of each sheet type starts its sections with (#584). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -16,6 +16,8 @@ type AccessibilityHelpers = {
 	setUp(): Promise<void>;
 	/** The names of the documents whose sheet the check opens, actors first. */
 	sheets(): string[];
+	/** The item types, each the name of its world item. */
+	itemTypes(): string[];
 	/** Renders a document's sheet and returns its window's selector and the tabs of its nav, the shown one first. */
 	openSheet(name: string): Promise<{ selector: string; tabs: string[] }>;
 	/** Shows a tab of a rendered sheet, by its nav, and returns its panel's selector. */
@@ -43,6 +45,11 @@ type AccessibilityHelpers = {
 	spendState(): { player: number; focused: boolean; paused: boolean };
 	/** Gives back the Story Points and the pause the tracker's step found. */
 	restoreSpend(): Promise<void>;
+	/**
+	 * Opens a document's sheet, shows each of its tabs, and returns each tab's outline: its section headings, as `h3
+	 * Attacks`, and the empty state of each empty list, in their order. The headings of a description are left out.
+	 */
+	outlines(name: string): Promise<Record<string, string[]>>;
 };
 
 /** The selector a step marks the button it clicks with the mouse with. */
@@ -72,7 +79,7 @@ declare global {
  * module.
  */
 function installAccessibilityHelpers() {
-	const { actor, apps, drop, htmlOf, render, settle, waitFor } = window.e2e;
+	const { actor, apps, drop, htmlOf, render, settle, text, waitFor } = window.e2e;
 
 	const ITEM_TYPES = Object.keys(CONFIG.Item.dataModels);
 	const ACTORS = ['Hero', 'Minion', 'Rival', 'Nemesis', 'Ship'];
@@ -108,7 +115,7 @@ function installAccessibilityHelpers() {
 			ready: (root) => !!root.querySelector('.award-xp-prompt > button'),
 			async open() {
 				await window.e2e.showTab('Hero', 'journal');
-				find(await sheet('Hero'), '.xp-journal .entries-header button').click();
+				find(await sheet('Hero'), '.xp-journal .columns button').click();
 			},
 		},
 		careerSkill: {
@@ -159,12 +166,12 @@ function installAccessibilityHelpers() {
 		Nemesis: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
 		Ship: {
 			tab: 'crew',
-			button: (root) => root.querySelector<HTMLElement>('.tab-crew .section-header button'),
+			button: (root) => root.querySelector<HTMLElement>('.tab-crew .heading-row button'),
 			state: () => actor('Ship').system.roles.length,
 		},
 		weapon: {
 			tab: 'effects',
-			button: (root) => root.querySelector<HTMLElement>('.effects-view .effects-header .buttons button'),
+			button: (root) => root.querySelector<HTMLElement>('.effects-view > .columns .buttons button'),
 			state: () => documentNamed('weapon').effects.size,
 		},
 	};
@@ -216,7 +223,24 @@ function installAccessibilityHelpers() {
 				{ name: 'E2E Nemesis', type: 'nemesis', items: owned },
 				{ name: 'E2E Gunner', type: 'character', items: [gunnery] },
 				{ name: 'E2E Loader', type: 'character', items: [gunnery] },
+				// For the headings only: talents and an ability in each group of the Talents tab, and actors without items,
+				// whose lists show their empty state.
+				{
+					name: 'E2E Talented',
+					type: 'character',
+					items: [
+						{ name: 'E2E Lunge', type: 'talent', system: { tier: 1, activation: { type: 'active', detail: '' } } },
+						{ name: 'E2E Parry', type: 'talent', system: { tier: 1, activation: { type: 'active', detail: 'Out of turn' } } },
+						{ name: 'E2E Grit', type: 'talent', system: { tier: 1, activation: { type: 'passive', detail: '' } } },
+						{ name: 'E2E Sprint', type: 'ability', system: { activation: { type: 'active', detail: 'Maneuver' } } },
+					],
+				},
+				{ name: 'E2E Blank Hero', type: 'character' },
+				{ name: 'E2E Blank Rival', type: 'rival' },
+				{ name: 'E2E Blank Ship', type: 'vehicle' },
 			]);
+			// For the headings only: a weapon with an extra Weapon Profile, which its sheet heads.
+			await Item.create({ name: 'E2E Profiled Weapon', type: 'weapon', system: { extraProfiles: [{ name: 'Thrown' }] } });
 			await Actor.create({
 				name: 'E2E Ship',
 				type: 'vehicle',
@@ -238,6 +262,8 @@ function installAccessibilityHelpers() {
 		},
 
 		sheets: () => [...ACTORS, ...ITEM_TYPES],
+
+		itemTypes: () => ITEM_TYPES,
 
 		async openSheet(name) {
 			const app = documentNamed(name).sheet;
@@ -347,9 +373,137 @@ function installAccessibilityHelpers() {
 			spendFound = undefined;
 			await settle();
 		},
+
+		async outlines(name) {
+			const { selector, tabs } = await helpers.openSheet(name);
+			const outlines: Record<string, string[]> = {};
+			for (const tab of tabs) {
+				const panel = find(document, await helpers.showTab(selector, tab));
+				outlines[tab] = [...panel.querySelectorAll('h1, h2, h3, h4, h5, h6, .list-empty')]
+					.filter((element) => !element.closest('.enriched, prose-mirror'))
+					.map((element) =>
+						element.matches('.list-empty') ? text(element) : `${element.tagName.toLowerCase()} ${text(element)}`,
+					);
+			}
+			await helpers.closeAll();
+			return outlines;
+		},
 	};
 
 	window.accessibilityE2E = helpers;
+}
+
+/**
+ * §#584: each tab of each sheet type starts each of its sections with a heading, an h3, its groups with an h4 and their
+ * own groups with an h5; and an empty list says so under its heading. The sheets' lists hold a row each, the blank
+ * actors' none.
+ */
+async function headings(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	// The outlines of the tabs of each sheet named, read in one step.
+	const outlines = async (step: string, names: string[]) => {
+		const read: Record<string, Record<string, string[]>> = {};
+		await e2e.step(step, async () => {
+			for (const name of names) read[name] = await gm.evaluate((name) => window.accessibilityE2E.outlines(name), name);
+		});
+		return read;
+	};
+	const motivations = ['h3 Motivations', 'h4 Strength', 'h4 Flaw', 'h4 Desire', 'h4 Fear'];
+	const effects = ['h3 Temporary Effects', 'None.', 'h3 Passive Effects', 'None.', 'h3 Inactive Effects', 'None.'];
+	const skillCategories = ['h3 General Skills', 'h3 Magic Skills', 'h3 Combat Skills', 'h3 Social Skills', 'h3 Knowledge Skills'];
+	const journal = [...motivations, 'h3 Character Illustration', 'h3 Character Description', 'h3 Notes', 'h3 XP Journal'];
+
+	const characters = await outlines('#584 H1 the sheets of a character and of one with talents in each group shown, tab by tab', [
+		'Hero',
+		'Talented',
+	]);
+	e2e.expect("#584 H1 each tab of a character's sheet starts each section with an h3, and each group in it with an h4", characters.Hero, {
+		skills: skillCategories,
+		combat: ['h3 Attacks', 'h3 Armor', 'h3 Critical Injuries'],
+		talents: ['h3 Special Abilities', 'h4 Passive', 'h3 Talents', 'h4 Passive'],
+		inventory: ['h3 Equipped', 'h3 Carried', 'h3 Dropped'],
+		effects,
+		journal,
+	});
+	e2e.expect(
+		'#584 H1 the Talents tab heads each activation with an h4, and each activation detail of the active ones with an h5',
+		characters.Talented?.talents,
+		['h3 Special Abilities', 'h4 Active', 'h5 maneuver', 'h3 Talents', 'h4 Active', 'h5 out of turn', 'h4 Passive'],
+	);
+
+	const adversary = {
+		stats: ['h3 Skills', 'None.', 'h3 Talents', 'h3 Abilities', 'h3 Equipment'],
+		miscellaneous: ['h3 Critical Injuries', ...motivations],
+		effects,
+	};
+	e2e.expect(
+		"#584 H2 each tab of an adversary's sheet starts each section with an h3, and each group in it with an h4",
+		await outlines('#584 H2 the sheets of a Minion Group, a Rival and a Nemesis shown, tab by tab', ['Minion', 'Rival', 'Nemesis']),
+		{
+			Minion: { ...adversary, stats: ['h3 Skills (group only)', ...adversary.stats.slice(1)] },
+			Rival: adversary,
+			Nemesis: adversary,
+		},
+	);
+
+	e2e.expect(
+		"#584 H3 each tab of a vehicle's sheet starts each section with an h3, and each group in it with an h4",
+		(await outlines("#584 H3 a vehicle's sheet shown, tab by tab", ['Ship'])).Ship,
+		{
+			skills: ['h3 E2E Gunner', 'h4 Role Skills', 'h3 E2E Loader', 'h4 Role Skills'],
+			combat: ['h3 Attacks', 'h3 Critical Hits'],
+			inventory: ['h3 Equipped', 'h3 Carried'],
+			crew: ['h3 Roles', 'h3 Passengers'],
+			effects,
+			details: ['h3 Description', 'h3 Illustration', 'h3 Information'],
+		},
+	);
+
+	const itemTypes = await gm.evaluate(() => window.accessibilityE2E.itemTypes());
+	const items = await outlines("#584 H4 each item type's sheet, and a weapon's with an extra Weapon Profile, shown, tab by tab", [
+		...itemTypes,
+		'Profiled Weapon',
+	]);
+	// Only an Archetype's and a Career's descriptions, and an extra Weapon Profile, have sections; every Effects tab does.
+	const expectedItems = Object.fromEntries(
+		[...itemTypes, 'Profiled Weapon'].map((name) => {
+			const outline: Record<string, string[]> = { description: [], data: [], effects };
+			if (name === 'archetype') outline.description = ['h3 Archetype Abilities'];
+			if (name === 'career') outline.description = ['h3 Career Skills'];
+			if (name === 'Profiled Weapon') outline.data = ['h3 Weapon Profile'];
+			// A quality changes no data, and has no Effects tab.
+			if (name === 'quality') delete outline.effects;
+			return [name, outline];
+		}),
+	);
+	e2e.expect("#584 H4 each tab of an item's sheet starts each of its sections with an h3", items, expectedItems);
+
+	const blanks = await outlines('#584 E1 the sheets of a character, a Rival and a vehicle without items shown, tab by tab', [
+		'Blank Hero',
+		'Blank Rival',
+		'Blank Ship',
+	]);
+	e2e.expect(
+		'#584 E1 an empty list says so under its heading: Attacks, Armor, Critical Injuries, Special Abilities and Talents on a character',
+		{ combat: blanks['Blank Hero']?.combat, talents: blanks['Blank Hero']?.talents },
+		{
+			combat: ['h3 Attacks', 'None.', 'h3 Armor', 'None.', 'h3 Critical Injuries', 'None.'],
+			talents: ['h3 Special Abilities', 'None.', 'h3 Talents', 'None.'],
+		},
+	);
+	e2e.expect(
+		'#584 E1 an empty list says so under its heading: Skills, Talents, Abilities, Equipment and Critical Injuries on an adversary',
+		{ stats: blanks['Blank Rival']?.stats, miscellaneous: blanks['Blank Rival']?.miscellaneous },
+		{
+			stats: ['h3 Skills', 'None.', 'h3 Talents', 'None.', 'h3 Abilities', 'None.', 'h3 Equipment', 'None.'],
+			miscellaneous: ['h3 Critical Injuries', 'None.', ...motivations],
+		},
+	);
+	e2e.expect(
+		'#584 E1 an empty list says so under its heading: Attacks and Critical Hits on a vehicle, and each category of Effects',
+		{ combat: blanks['Blank Ship']?.combat, effects: blanks['Blank Ship']?.effects },
+		{ combat: ['h3 Attacks', 'None.', 'h3 Critical Hits', 'None.'], effects },
+	);
 }
 
 export async function run(e2e: ScenarioContext) {
@@ -478,6 +632,8 @@ export async function run(e2e: ScenarioContext) {
 				await gm.evaluate(() => window.accessibilityE2E.restoreSpend());
 			}
 		});
+
+		await e2e.part('headings', () => headings(e2e));
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
 	}

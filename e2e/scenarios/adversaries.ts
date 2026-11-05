@@ -932,10 +932,10 @@ export async function run(e2e: ScenarioContext) {
 			"#366 K1 the rival's equipment list shows a row per profile of the dagger, each with its own Attack Skill, damage, Critical rating, range and qualities",
 			(await gm.evaluate(() => window.adversariesE2E.weaponRows('Attacker'))).filter(({ name }) => name.startsWith('E2E Dagger')),
 			[
-				{ name: 'E2E Dagger', details: ['E2E Melee', 'Damage 3', 'Critical 3', 'Range [Engaged]'], qualities: [] },
+				{ name: 'E2E Dagger', details: ['E2E Melee', 'Damage Br+1 (3)', 'Critical 3', 'Range Engaged'], qualities: [] },
 				{
 					name: 'E2E Dagger (Thrown)',
-					details: ['E2E Ranged', 'Damage 4', 'Critical 4', 'Range [Short]'],
+					details: ['E2E Ranged', 'Damage Br+2 (4)', 'Critical 4', 'Range Short'],
 					qualities: ['Accurate 1', 'Limited Ammo 1'],
 				},
 			],

@@ -11,7 +11,7 @@
 
 	.message-sender {
 		color: colors.$dark-blue;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.5em;
 	}
 
@@ -22,7 +22,7 @@
 	.story-point {
 		width: 100%;
 		text-align: center;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.5em;
 		color: colors.$blue;
 
@@ -42,7 +42,7 @@
 			grid-template-columns: 1.25em 1fr;
 			gap: 0.25em;
 
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			font-size: 1.5em;
 			color: colors.$blue;
 
@@ -64,7 +64,7 @@
 		}
 
 		label {
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			color: colors.$blue;
 		}
 

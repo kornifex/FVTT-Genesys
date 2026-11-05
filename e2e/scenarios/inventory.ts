@@ -217,13 +217,13 @@ function installInventoryHelpers() {
 	};
 	const sheet = (ref: string) => render(actor(ref).sheet);
 
-	// The children of the Inventory tab from a section's header to the next one: its rows and its sort slots.
+	// The children of the Inventory tab from a section's heading to the next one: its rows and its sort slots.
 	const sectionParts = (root: HTMLElement, state: string) => {
 		const tab = root.querySelector('.tab[data-tab="inventory"] .tab-inventory');
-		const header = tab?.querySelectorAll(':scope > .section-header')[SECTIONS.indexOf(state)];
-		if (!header) throw new Error(`No ${state} section`);
+		const heading = tab?.querySelectorAll(':scope > h3')[SECTIONS.indexOf(state)];
+		if (!heading) throw new Error(`No ${state} section`);
 		const parts: Element[] = [];
-		for (let next = header.nextElementSibling; next && !next.matches('.section-header, .encumbrance-currency-row'); ) {
+		for (let next = heading.nextElementSibling; next && !next.matches('h3, .encumbrance-currency-row'); ) {
 			parts.push(next);
 			next = next.nextElementSibling;
 		}
@@ -1183,7 +1183,7 @@ function installInventoryHelpers() {
 			return {
 				soak: system.totalSoak,
 				defense: [system.totalDefense.melee, system.totalDefense.ranged],
-				combatTab: [...root.querySelectorAll('.tab[data-tab="combat"] .armors .armor:not(.header) .name')].map((name) =>
+				combatTab: [...root.querySelectorAll('.tab[data-tab="combat"] .armors .armor:not(.columns) .name')].map((name) =>
 					unprefixed(text(name)),
 				),
 			};
@@ -1212,7 +1212,7 @@ function installInventoryHelpers() {
 				// Each row's attack button, then the weapon's details.
 				return [...root.querySelectorAll('.adversary-items .weapon.menu-container')].map((row) => unprefixed(text(row)));
 			}
-			const rows = root.querySelectorAll('.tab[data-tab="combat"] .weapons .weapon:not(.header)');
+			const rows = root.querySelectorAll('.tab[data-tab="combat"] .weapons .weapon:not(.columns)');
 			return [...rows].map((row) =>
 				[...row.children]
 					.map((part) => unprefixed(text(part)))
@@ -2180,7 +2180,7 @@ export async function run(e2e: ScenarioContext) {
 				baseDamage: await page.evaluate(() => game.actors.getName('E2E Smith').items.getName('E2E Club').system.baseDamage),
 				row: (await row('Smith', 'Club')).details,
 			},
-			{ baseDamage: null, row: 'Melee | Damage Br+0 (2) | Critical 3 | Range [Engaged]' },
+			{ baseDamage: null, row: 'Melee | Damage Br+0 (2) | Critical 3 | Range Engaged' },
 		);
 		e2e.expect(
 			"#134 M1 a character's weapon rows read an emptied, a negative and a characteristic-less damage",
@@ -2189,24 +2189,24 @@ export async function run(e2e: ScenarioContext) {
 				shiv: (await row('Smith', 'Shiv')).details,
 			},
 			{
-				rock: 'Melee | Damage 0 | Critical 3 | Range [Engaged]',
-				shiv: 'Melee | Damage Br-1 (1) | Critical 3 | Range [Engaged]',
+				rock: 'Melee | Damage 0 | Critical 3 | Range Engaged',
+				shiv: 'Melee | Damage Br-1 (1) | Critical 3 | Range Engaged',
 			},
 		);
 		e2e.expect(
 			"#134 M1 a character's Combat tab reads each weapon's damage total",
 			await page.evaluate(() => window.inventoryE2E.weaponList('Smith')),
 			[
-				'Blade | Melee | 4 | 3 | Engaged',
-				'Club | Melee | 2 | 3 | Engaged',
+				'Blade | Melee | Br+2 (4) | 3 | Engaged',
+				'Club | Melee | Br+0 (2) | 3 | Engaged',
 				'Rock | Melee | 0 | 3 | Engaged',
-				'Shiv | Melee | 1 | 3 | Engaged',
+				'Shiv | Melee | Br-1 (1) | 3 | Engaged',
 			],
 		);
 		e2e.expect(
 			'#134 M1 an adversary lists a weapon whose damage was emptied with its characteristic',
 			await page.evaluate(() => window.inventoryE2E.weaponList('Brute')),
-			['Maul (MeleeDamage 3Critical 3Range [Engaged])'],
+			['Maul (MeleeDamage Br+0 (3)Critical 3Range Engaged)'],
 		);
 		e2e.expect(
 			"#134 M1 a vehicle's Combat tab reads an emptied damage as 0 and its firing arcs",
@@ -2224,8 +2224,8 @@ export async function run(e2e: ScenarioContext) {
 				cannon: (await row('Hauler', 'Cannon')).details,
 			},
 			{
-				gun: 'Gunnery | Firing Arc All | Damage 0 | Critical 3 | Range [Short]',
-				cannon: 'Gunnery | Firing Arc ForePort | Damage -1 | Critical 3 | Range [Short]',
+				gun: 'Gunnery | Firing Arc All | Damage 0 | Critical 3 | Range Short',
+				cannon: 'Gunnery | Firing Arc ForePort | Damage -1 | Critical 3 | Range Short',
 			},
 		);
 		await e2e.step('#134 M2 the Club sent to chat from its menu', menu('Smith', 'Club', 'chat'));
@@ -2260,7 +2260,7 @@ export async function run(e2e: ScenarioContext) {
 			"#203 M4 a weapon's row follows the changes made in its sheet, with the Inventory tab open",
 			await row('Smith', 'Blade'),
 			{
-				details: 'Melee | Damage Br+4 (6) | Critical 2 | Range [Short] | Quality 1',
+				details: 'Melee | Damage Br+4 (6) | Critical 2 | Range Short | Quality 1',
 				quantity: '1',
 				encumbrance: '3',
 				damageState: 'Undamaged',
@@ -2281,7 +2281,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#203 M6 a vehicle weapon's row follows its firing arc",
 			(await row('Hauler', 'Turret')).details,
-			'Gunnery | Firing Arc Aft | Damage 4 | Critical 3 | Range [Short]',
+			'Gunnery | Firing Arc Aft | Damage 4 | Critical 3 | Range Short',
 		);
 		await e2e.step("#203 M7 Smith's Brawn raised to 3", () =>
 			page.evaluate(() => window.inventoryE2E.updateActor('Smith', { 'system.characteristics.brawn': 3 })),
@@ -2289,13 +2289,13 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#203 M7 a weapon's damage total follows the damage characteristic",
 			(await row('Smith', 'Blade')).details,
-			'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
+			'Melee | Damage Br+4 (7) | Critical 2 | Range Short | Quality 1',
 		);
 		await e2e.step("#203 M8 the Blade's quantity and damage state clicked once", () =>
 			page.evaluate(() => window.inventoryE2E.clickQuantityAndDamage('Smith', 'Blade')),
 		);
 		e2e.expect("#203 M8 a click raises an item's quantity and damage state on its row", await row('Smith', 'Blade'), {
-			details: 'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
+			details: 'Melee | Damage Br+4 (7) | Critical 2 | Range Short | Quality 1',
 			quantity: '2',
 			encumbrance: '3',
 			damageState: 'Minor Damage',
