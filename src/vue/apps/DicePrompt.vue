@@ -440,9 +440,10 @@ async function onRoll() {
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
 					<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
 					<span>
-						<!-- The label names no input: a click on the name opens its source, the checkbox alone turns it on. -->
+						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
+						the checkbox alone turns the modification on. -->
 						<!-- prettier-ignore -->
-						<label>{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></label>
+						<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></span>
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
@@ -709,8 +710,10 @@ $difficulty-die-scale: 1.4;
 			vertical-align: onto-capitals(1);
 			line-height: 1;
 
+			// The glyph shows the button's pointer, where the effects' rows show their own default arrow.
 			.pool-modification {
 				vertical-align: baseline;
+				cursor: inherit;
 			}
 		}
 

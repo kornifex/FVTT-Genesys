@@ -407,7 +407,12 @@ function installSheetsHelpers() {
 					img: 'icons/svg/aura.svg',
 					prototypeToken: { texture: { src: 'icons/svg/aura.svg' } },
 				},
-				{ name: 'E2E Observed', type: 'character' },
+				// XP of its own in Character Creation, so that its characteristics could be raised by a user who may edit it (#574 R1).
+				{
+					name: 'E2E Observed',
+					type: 'character',
+					system: { experienceJournal: { entries: [{ amount: 100, type: 'Starting' }] } },
+				},
 				{ name: 'E2E Limited', type: 'character' },
 				{ name: 'E2E Bearer', type: 'character' },
 				{ name: 'E2E Minion', type: 'minion' },
@@ -2246,6 +2251,17 @@ export async function run(e2e: ScenarioContext) {
 			}),
 			{ Observed: { some: true, enabled: true, editActions: 0 }, Limited: { some: true, enabled: true, editActions: 0 } },
 		);
+		// The observed character has the XP to raise its Brawn, which a user who may edit it does from the same label: a read
+		// action an observer runs on the sheet.
+		await e2e.step('#574 R2 player clicks the Brawn label of the sheet they observe', () =>
+			player.evaluate(() => window.sheetsE2E.click('Observed', '.characteristics-row .characteristic-label button')),
+		);
+		e2e.expect(
+			"#574 R2 on a sheet the player can't edit, a characteristic's label opens the Dice Prompt for its check, rather than raising it",
+			await player.evaluate(() => ({ dicePrompts: window.sheetsE2E.prompts('app-dice-prompt').length })),
+			{ dicePrompts: 1 },
+		);
+		await player.evaluate(() => window.sheetsE2E.closePrompts('app-dice-prompt'));
 		e2e.expect(
 			"#260 A5 the editor of a sheet the player can't edit has its toggle button disabled",
 			await player.evaluate(() => window.sheetsE2E.editor('Observed', 'system.notes')),
@@ -2561,7 +2577,7 @@ export async function run(e2e: ScenarioContext) {
 				sources: Object.fromEntries(names.map((name) => [name, sheets.fieldValue(name, 'system.source')])),
 				heroTalent: sheets.rowText('Hero', '.tab-talents .talent', 'E2E Ranked', '.name button'),
 				heroSword: sheets.rowText('Hero', '.tab-inventory .inventory-item', 'E2E Sword', '.quantity'),
-				nemesisTalent: sheets.rowText('Nemesis', '.adversary-items .talent', 'E2E Ranked', 'label button'),
+				nemesisTalent: sheets.rowText('Nemesis', '.adversary-items .talent', 'E2E Ranked', '.item-label button'),
 				vehicleCannon: sheets.rowText('Vehicle', '.tab-inventory .inventory-item', 'E2E Cannon', '.quantity'),
 			};
 		};
@@ -3362,7 +3378,7 @@ export async function run(e2e: ScenarioContext) {
 			gm.evaluate(async () => {
 				const sheets = window.sheetsE2E;
 				await sheets.open('Nemesis');
-				await sheets.click('Nemesis', '.adversary-items .weapon > .weapon-attack', 'E2E Sword');
+				await sheets.click('Nemesis', '.adversary-items .weapon .weapon-attack', 'E2E Sword');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
 				await sheets.open('Nemesis/Sword');
 				await sheets.clickTab('Nemesis/Sword', 'data');

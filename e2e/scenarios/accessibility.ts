@@ -37,7 +37,16 @@ type AccessibilityHelpers = {
 	keyboardAction(): { focused: boolean; ran: boolean };
 	/** Whether the sheet of the last action readied is still open. */
 	keyboardSheetOpen(): boolean;
+	/** Readies a mouse click on the Story Point tracker's player pool, with 2 points in it and the game unpaused. */
+	readySpend(): Promise<void>;
+	/** The points left in the player pool, whether the spend button has focus, and whether the game is paused. */
+	spendState(): { player: number; focused: boolean; paused: boolean };
+	/** Gives back the Story Points and the pause the tracker's step found. */
+	restoreSpend(): Promise<void>;
 };
+
+/** The selector a step marks the button it clicks with the mouse with. */
+const POINTER_TARGET = '[data-e2e-pointer]';
 
 /**
  * The action each sheet type's keyboard step runs (#574), by the name of the document whose sheet it opens: the step's
@@ -161,6 +170,8 @@ function installAccessibilityHelpers() {
 	};
 	// The action readied last, its sheet's window, and what it changes as it was before.
 	let keyboard: { button: HTMLElement; selector: string; before: unknown; state: KeyboardAction['state'] } | undefined;
+	// The Story Points and the pause the tracker's step found, to give back.
+	let spendFound: { points: { player: number; gm: number }; paused: boolean } | undefined;
 	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds.
 	const tabbable = (root: Element) =>
 		[...root.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
@@ -294,6 +305,9 @@ function installAccessibilityHelpers() {
 				content.focus();
 			}
 			keyboard = { button: target, selector, before: state(target), state };
+			// Marked for a step that clicks it with the mouse instead.
+			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
+			target.dataset.e2ePointer = '';
 		},
 
 		keyboardAction() {
@@ -303,6 +317,35 @@ function installAccessibilityHelpers() {
 
 		keyboardSheetOpen() {
 			return !!keyboard && !!document.querySelector(keyboard.selector);
+		},
+
+		async readySpend() {
+			spendFound = { points: game.settings.get('genesys', 'storyPoints'), paused: game.paused };
+			await game.settings.set('genesys', 'storyPoints', { ...spendFound.points, player: 2 });
+			if (game.paused) game.togglePause(false, { broadcast: true });
+			const button = await waitFor('the player pool spend button', () =>
+				document.querySelector<HTMLElement>('#story-point-tracker .player button.points'),
+			);
+			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
+			button.dataset.e2ePointer = '';
+			await settle();
+		},
+
+		spendState() {
+			const button = document.querySelector('#story-point-tracker .player button.points');
+			return {
+				player: game.settings.get('genesys', 'storyPoints').player,
+				focused: !!button && document.activeElement === button,
+				paused: game.paused,
+			};
+		},
+
+		async restoreSpend() {
+			if (!spendFound) return;
+			await game.settings.set('genesys', 'storyPoints', spendFound.points);
+			if (game.paused !== spendFound.paused) game.togglePause(spendFound.paused, { broadcast: true });
+			spendFound = undefined;
+			await settle();
 		},
 	};
 
@@ -394,6 +437,45 @@ export async function run(e2e: ScenarioContext) {
 					);
 				}
 				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+			}
+		});
+
+		// §#574: a click with the mouse leaves the focus to Foundry's keybindings, which skip a page whose focus is on a
+		// button of a form.
+		await e2e.part('pointerFocus', async () => {
+			let afterClick: unknown = null;
+			await e2e.step('#574 P1 the chevron of a talent on the Hero sheet clicked with the mouse', async () => {
+				await gm.evaluate(() => window.accessibilityE2E.readyKeyboardAction('Hero'));
+				await gm.page.click(POINTER_TARGET);
+				afterClick = await gm.evaluate(() => window.accessibilityE2E.keyboardAction());
+			});
+			e2e.expect('#574 P1 a click with the mouse runs the action and leaves the button without focus', afterClick, {
+				focused: false,
+				ran: true,
+			});
+			await e2e.step('#574 P2 Escape pressed after the click', () => gm.page.keyboard.press('Escape'));
+			e2e.expect(
+				'#574 P2 Escape closes the sheet after a click on one of its buttons',
+				await gm.evaluate(() => window.accessibilityE2E.keyboardSheetOpen()),
+				false,
+			);
+			await gm.evaluate(() => window.accessibilityE2E.closeAll());
+
+			try {
+				await e2e.step("#574 P3 the players' Story Points clicked with the mouse on the tracker, then Space pressed", async () => {
+					await gm.evaluate(() => window.accessibilityE2E.readySpend());
+					await gm.page.click(POINTER_TARGET);
+					await gm.evaluate(() => window.e2e.settle());
+					afterClick = await gm.evaluate(() => window.accessibilityE2E.spendState());
+					await gm.page.keyboard.press('Space');
+				});
+				e2e.expect(
+					"#574 P3 a click spends one of the players' Story Points and leaves the button without focus: Space then pauses the game, and spends no other",
+					{ afterClick, afterSpace: await gm.evaluate(() => window.accessibilityE2E.spendState()) },
+					{ afterClick: { player: 1, focused: false, paused: false }, afterSpace: { player: 1, focused: false, paused: true } },
+				);
+			} finally {
+				await gm.evaluate(() => window.accessibilityE2E.restoreSpend());
 			}
 		});
 	} finally {

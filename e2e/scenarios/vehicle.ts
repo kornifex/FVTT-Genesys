@@ -1272,7 +1272,11 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 	);
 	await step(
 		'#127 K7 the character raises Agility',
-		() => vehicleE2E('click', { actor: 'Hal', target: ['.characteristics-row .characteristic-field|2', 'label button|1'] }),
+		() =>
+			vehicleE2E('click', {
+				actor: 'Hal',
+				target: ['.characteristics-row .characteristic-field|2', '.characteristic-label button|1'],
+			}),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PPA'] },
 			{ name: 'Ivy', skills: ['E2E Astrogation (Int) 2 PP', 'Piloting (Ag) 1 PAA'] },

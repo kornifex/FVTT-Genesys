@@ -1,10 +1,12 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
+import { useEditable } from '@/vue/SheetContext';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
 		/**
 		 * Localization key for the characteristic label.
@@ -61,6 +63,11 @@ const emit = defineEmits<{
 	(e: 'toggleSuper'): void;
 }>();
 
+// Raising a characteristic edits the sheet's document: on a sheet the user can't edit, its label rolls instead, when it
+// can. `canUpgrade` only weighs the character's XP.
+const editable = useEditable();
+const upgradable = computed(() => props.canUpgrade && editable.value);
+
 const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristics;
 </script>
 
@@ -79,19 +86,20 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 				/>
 			</template>
 
-			<label>
+			<!-- Not a label, which would pass a click on its margin to the button. -->
+			<span class="characteristic-label">
 				<ActionButton
-					v-if="canUpgrade || canRollCharacteristicCheck"
-					@click="canUpgrade ? emit('upgrade') : emit('rollCharacteristicCheck')"
+					v-if="upgradable || canRollCharacteristicCheck"
+					@click="upgradable ? emit('upgrade') : emit('rollCharacteristicCheck')"
 				>
 					<Localized :label="label" />
-					<i v-if="canUpgrade" class="fas fa-arrow-circle-up"></i>
+					<i v-if="upgradable" class="fas fa-arrow-circle-up"></i>
 				</ActionButton>
 
 				<span v-else>
 					<Localized :label="label" />
 				</span>
-			</label>
+			</span>
 		</ContextMenu>
 
 		<div class="value">
@@ -210,7 +218,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		white-space: nowrap;
 	}
 
-	label {
+	.characteristic-label {
 		width: 100%;
 		grid-row: 3 / span 1;
 		grid-column: 1 / span 1;

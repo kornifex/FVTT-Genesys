@@ -472,7 +472,7 @@ function installCharacterHelpers() {
 		},
 
 		raise(name, characteristic) {
-			const arrow = characteristicField(name, characteristic)?.querySelector('label button:has(.fa-arrow-circle-up)');
+			const arrow = characteristicField(name, characteristic)?.querySelector('.characteristic-label button:has(.fa-arrow-circle-up)');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
@@ -645,7 +645,7 @@ function installCharacterHelpers() {
 				base: actor(name).system._source.characteristics[characteristic],
 				shown: actor(name).system.characteristics[characteristic],
 				sheet: text(field?.querySelector('.value')),
-				canRaise: !!field?.querySelector('label button:has(.fa-arrow-circle-up)'),
+				canRaise: !!field?.querySelector('.characteristic-label button:has(.fa-arrow-circle-up)'),
 			};
 		},
 
@@ -3251,6 +3251,15 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 		"#512 B3 a skill's context menu keeps its Edit entry on a sheet the player can't edit",
 		await hasEdit(playerPage),
 		eachSheet(true),
+	);
+	// §#574: the skill's name, a button Foundry disables with the rest of a read-only sheet's form, which the sheet enables.
+	await e2e.step("#574 R3 the skill's name clicked on each sheet in the player's page", async () => {
+		opened = await clickSkill(playerPage, 'name');
+	});
+	e2e.expect(
+		"#574 R3 a skill's name still opens the Dice Prompt on a sheet the player can't edit",
+		opened,
+		eachSheet({ clicked: true, sheet: false, dicePrompt: true }),
 	);
 
 	// The player leaves as it came: the steps after these run without it.

@@ -146,7 +146,7 @@ function installAdversariesHelpers() {
 	const menuContainer = async ({ actor: name, kind, name: itemName }: MenuTarget) => {
 		const root = await sheet(name);
 		const selector = kind === 'skill' ? '.skill.menu-container' : '.talent > .menu-container';
-		const label = kind === 'skill' ? ':scope > .skill-roll > span' : ':scope > label > button';
+		const label = kind === 'skill' ? ':scope > .skill-roll > span' : ':scope > .item-label > button';
 		return waitFor(`the ${kind} ${itemName} of ${name}`, () =>
 			[...root.querySelectorAll<HTMLElement>(selector)].find((container) =>
 				text(container.querySelector(label)).startsWith(`E2E ${itemName}`),
@@ -165,8 +165,8 @@ function installAdversariesHelpers() {
 
 	// An adversary's weapon rows, and the name each row's attack button reads, before its weapon details in brackets.
 	const weaponRowsOf = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.adversary-items .weapon.menu-container')];
-	const weaponRowName = (row: Element) => text(row.querySelector(':scope > .weapon-attack'));
-	const attackButton = (row: Element) => row.querySelector<HTMLElement>(':scope > .weapon-attack')!;
+	const weaponRowName = (row: Element) => text(row.querySelector('.weapon-attack'));
+	const attackButton = (row: Element) => row.querySelector<HTMLElement>('.weapon-attack')!;
 
 	const closePrompts = async () => {
 		for (const app of apps('app-dice-prompt')) await app.close();
@@ -179,7 +179,7 @@ function installAdversariesHelpers() {
 		const state = {
 			pool: poolPreview(root),
 			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
-				name: text(row.querySelector('label')),
+				name: text(row.querySelector('.effect-name')),
 				mods: [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' '),
 			})),
 		};
@@ -381,7 +381,7 @@ function installAdversariesHelpers() {
 			target(targetName);
 			const root = await sheet(name);
 			const button = await waitFor(`the weapon ${weapon}`, () =>
-				[...root.querySelectorAll<HTMLElement>('.weapon.menu-container > .weapon-attack')].find((element) =>
+				[...root.querySelectorAll<HTMLElement>('.weapon.menu-container .weapon-attack')].find((element) =>
 					text(element).includes(`E2E ${weapon}`),
 				),
 			);
@@ -417,7 +417,7 @@ function installAdversariesHelpers() {
 			return Object.fromEntries(
 				[...root.querySelectorAll('.characteristic-field')].map((field) => {
 					const value = field.querySelector(':scope > .value > input, :scope > .value > div')!;
-					return [text(field.querySelector('label')), `${value.localName} ${getComputedStyle(value).textAlign}`];
+					return [text(field.querySelector('.characteristic-label')), `${value.localName} ${getComputedStyle(value).textAlign}`];
 				}),
 			);
 		},

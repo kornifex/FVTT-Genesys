@@ -265,6 +265,7 @@ function openMenu(event: MouseEvent) {
 			<span class="name">
 				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 				<button
+					type="button"
 					class="attack"
 					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
 					@click="attackWith(actor, item as GenesysItem<'weapon'>)"

@@ -619,7 +619,7 @@ Genesys:
     CloseContainer: Fermer le conteneur
     OpenContainer: Ouvrir le conteneur
     SendToChat: Envoyer dans le chat
-    RaiseTalent: Augmenter le talent
+    BuyTalentRank: Acheter un rang du talent
     BuySkillRank: Acheter un rang
     DeleteRole: Supprimer le rôle
     RemoveSkill: Retirer la compétence

@@ -94,6 +94,32 @@ describe('ActionButton', () => {
 		expect(onClick).toHaveBeenCalledOnce();
 	});
 
+	it('releases the focus after a click with a pointer, and keeps it after an activation from the keyboard', () => {
+		const onClick = vi.fn();
+		const button = mount(ActionButton, {
+			props: { icon: 'fas fa-trash', label: 'Genesys.Labels.Delete' },
+			attrs: { onClick },
+			attachTo: document.body,
+		});
+		const element = button.element as HTMLButtonElement;
+		const clickedBy = (event: MouseEvent) => {
+			element.focus();
+			element.dispatchEvent(event);
+			return document.activeElement === element ? 'kept' : 'released';
+		};
+
+		// Enter or Space on a focused button clicks it with no pointer, and a count of 0.
+		expect(clickedBy(new PointerEvent('click', { bubbles: true, pointerType: '' }))).toBe('kept');
+		expect(clickedBy(new PointerEvent('click', { bubbles: true, pointerType: 'mouse', detail: 1 }))).toBe('released');
+		// A browser whose click isn't a PointerEvent counts the clicks.
+		expect(clickedBy(new MouseEvent('click', { bubbles: true, detail: 0 }))).toBe('kept');
+		expect(clickedBy(new MouseEvent('click', { bubbles: true, detail: 1 }))).toBe('released');
+		// The action runs either way.
+		expect(onClick).toHaveBeenCalledTimes(4);
+
+		button.unmount();
+	});
+
 	it("is left out of a sheet the user can't edit when it edits, and kept when it reads", () => {
 		const context = { editable: false };
 

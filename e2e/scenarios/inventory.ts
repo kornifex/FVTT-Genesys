@@ -286,7 +286,9 @@ function installInventoryHelpers() {
 			const root = await sheet(source.by);
 			const element = ['character', 'vehicle'].includes(actor(source.by).type)
 				? await heldRow(source.by, source.held)
-				: [...root.querySelectorAll('button[draggable="true"]')].find((link) => text(link).startsWith(full(source.held)));
+				: [...root.querySelectorAll('.adversary-items [draggable="true"]')].find((link) =>
+						text(link).startsWith(full(source.held)),
+					);
 			if (!element) throw new Error(`No ${source.held} to drag`);
 			const dataTransfer = window.e2e.dragStart(element);
 			element.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));

@@ -52,7 +52,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 			<ActionButton
 				v-if="ranked && canUpgrade"
 				icon="fas fa-arrow-circle-up"
-				label="Genesys.Labels.RaiseTalent"
+				label="Genesys.Labels.BuyTalentRank"
 				edits
 				@click="emit('upgrade')"
 			/>

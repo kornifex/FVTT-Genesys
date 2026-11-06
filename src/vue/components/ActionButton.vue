@@ -50,6 +50,19 @@ const showsText = computed(() => !!slots.default);
 // A bare `data-tooltip` shows the button's `aria-label`, as Foundry's TooltipManager reads it.
 const name = computed(() => (showsText.value || !props.label ? undefined : game.i18n.localize(props.label)));
 const tooltip = computed(() => (showsText.value ? props.label : ''));
+
+/**
+ * Release the focus a click with a pointer gives the button. Foundry skips every keybinding while a button of a form has
+ * focus (`KeyboardManager#hasFocus`, on v13 and v14): Escape, the GM's Space pause, the token controls… and Space would
+ * press the button again. An activation from the keyboard keeps the focus where the user put it. A click's
+ * `pointerType` names the pointer, and is empty for a keyboard's; a browser without it counts the clicks in `detail`.
+ */
+function releasePointerFocus(event: MouseEvent) {
+	const fromPointer = 'pointerType' in event ? (event as PointerEvent).pointerType !== '' : event.detail > 0;
+	if (fromPointer && event.currentTarget instanceof HTMLElement) {
+		event.currentTarget.blur();
+	}
+}
 </script>
 
 <template>
@@ -61,6 +74,7 @@ const tooltip = computed(() => (showsText.value ? props.label : ''));
 		:data-tooltip="tooltip"
 		:aria-expanded="expanded"
 		:aria-pressed="pressed"
+		@click="releasePointerFocus"
 	>
 		<i v-if="icon" :class="icon" aria-hidden="true"></i>
 		<img v-if="image" :src="image" alt="" />
