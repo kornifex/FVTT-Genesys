@@ -4476,7 +4476,10 @@ function installSheetHeightHelpers() {
 			const opened = helpers.height(name);
 			await sheets.clickTab(name, tab);
 			const afterTab = helpers.height(name);
-			const row = elementOf(name).querySelector<HTMLElement>(`.tab[data-tab="${tab}"] .talent`);
+			// The first row whose fold has something to show: an ability without a description or source shows no chevron
+			// since #579, nor anything once open.
+			const rows = [...elementOf(name).querySelectorAll<HTMLElement>(`.tab[data-tab="${tab}"] .talent`)];
+			const row = rows.find((candidate) => candidate.querySelector('.description-toggle')) ?? rows[0];
 			if (!row) throw new Error(`No talent on the ${tab} tab of E2E ${name}`);
 			// The talent's chevron opens its description (#515); a talent shows one for its tier since #579, and its name
 			// opened it before, on the build a comparison runs.
