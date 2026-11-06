@@ -60,6 +60,42 @@
 	font-size: revert;
 }
 
+// Foundry styles every button as a block with a size, a background, a border and a hover. An action button
+// (`ActionButton.vue`) shows its icon or its text alone, as the links it replaced did, glowing under the pointer as they
+// did. Foundry's button styles sit in a cascade layer, so these weigh as little as `.vue-app`: a component's rule for its
+// buttons outweighs them. The focus ring shows from the keyboard only, as Foundry's ring on `:focus` would show on a click.
+.vue-app :where(.action-button) {
+	display: inline;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	background: none;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	letter-spacing: inherit;
+	text-align: inherit;
+	text-transform: inherit;
+	cursor: var(--cursor-pointer, pointer);
+	transition: none;
+}
+
+.vue-app :where(.action-button:hover) {
+	background: none;
+	color: inherit;
+	text-shadow: 0 0 8px var(--color-shadow-primary);
+}
+
+.vue-app :where(.action-button:focus:not(:focus-visible)) {
+	outline: none;
+	box-shadow: none;
+}
+
 // The components render no heading of their own: these are the rich text's, such as a description's. ApplicationV2 gives
 // headings a larger size, a darker colour and wide margins. These restore AppV1's headings.
 .application .vue-app :is(h1, h2, h3, h4) {

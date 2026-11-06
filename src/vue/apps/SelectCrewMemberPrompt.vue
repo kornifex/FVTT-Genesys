@@ -24,6 +24,7 @@ function submitSelection(event: Event) {
 
 <template>
 	<div class="genesys select-crew-member-prompt">
+		<!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events -- #581 makes the choice a radio group. -->
 		<div
 			v-for="(memberSkill, index) in context.memberSkills"
 			:key="memberSkill.member + memberSkill.skillName"

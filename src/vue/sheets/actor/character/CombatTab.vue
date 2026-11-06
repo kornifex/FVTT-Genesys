@@ -6,6 +6,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { wornArmor } from '@/actor/data/Inventory';
 import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
@@ -83,7 +84,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 				<div v-for="{ key, weapon, profile, name } in weaponRows" :key="key" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 					<div class="name">
-						<a v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</a>
+						<ActionButton v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</ActionButton>
 						<span v-else>{{ name }}</span>
 						<DescriptionToggle
 							:description="weapon.system.description"
@@ -130,7 +131,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 				<div v-for="armor in armors" :key="armor.id" class="armor">
 					<img :src="armor.img ?? undefined" :alt="armor.name" />
 					<div class="name">
-						<a @click="openSheet(armor)">{{ armor.name }}</a>
+						<ActionButton @click="openSheet(armor)">{{ armor.name }}</ActionButton>
 						<DescriptionToggle
 							:description="armor.system.description"
 							:open="openArmors.isOpen(armor.id)"

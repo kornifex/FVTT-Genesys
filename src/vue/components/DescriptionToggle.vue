@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { isEmptyDescription } from '@/data/Descriptions';
+import ActionButton from '@/vue/components/ActionButton.vue';
 
 defineProps<{
 	/**
@@ -16,13 +17,14 @@ const emit = defineEmits<{
 
 <template>
 	<!-- Reading a description edits nothing: the toggle shows on a sheet the user can't edit too. -->
-	<a
+	<ActionButton
 		v-if="!isEmptyDescription(description)"
 		class="description-toggle"
-		:data-tooltip="open ? 'Genesys.Tooltips.HideDescription' : 'Genesys.Tooltips.ShowDescription'"
+		:icon="`fas ${open ? 'fa-chevron-down' : 'fa-chevron-right'}`"
+		:label="open ? 'Genesys.Tooltips.HideDescription' : 'Genesys.Tooltips.ShowDescription'"
+		:expanded="open"
 		@click="emit('toggle')"
-		><i :class="['fas', open ? 'fa-chevron-down' : 'fa-chevron-right']"></i
-	></a>
+	/>
 </template>
 
 <style lang="scss" scoped>

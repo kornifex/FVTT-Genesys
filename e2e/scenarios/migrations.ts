@@ -423,7 +423,7 @@ function installMigrationHelpers() {
 			const index = (actor.system.experienceJournal.entries as Purchase[]).findIndex(
 				(entry) => entry.type === 'NewTalent' && entry.data.name === talentName,
 			);
-			const trash = root.querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('a');
+			const trash = root.querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('button');
 			if (!trash) throw new Error(`No trash for the purchase of ${talentName}`);
 			trash.click();
 			return (await window.e2e.answerConfirm('yes')) !== null;

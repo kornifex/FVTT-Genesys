@@ -231,7 +231,7 @@ function installInventoryHelpers() {
 	};
 	const findRow = (root: HTMLElement, name: string) => {
 		const row = [...root.querySelectorAll('.tab-inventory .inventory-item')].find(
-			(candidate) => text(candidate.querySelector('.name a')) === full(name),
+			(candidate) => text(candidate.querySelector('.name button')) === full(name),
 		);
 		if (!row) throw new Error(`No row ${name}`);
 		return row as HTMLElement;
@@ -240,11 +240,11 @@ function installInventoryHelpers() {
 	// Opening or closing a Container's row only changes the row's own state: no document changes, so its toggle is waited
 	// for, then the fold of its contents, which stay rendered while closed since #516.
 	const foldRow = async (row: HTMLElement, open: boolean) => {
-		const toggle = () => row.querySelector<HTMLElement>('[data-item-type="container"] a');
+		const toggle = () => row.querySelector<HTMLElement>('[data-item-type="container"] button');
 		const [from, to] = open ? ['.fa-box', '.fa-box-open'] : ['.fa-box-open', '.fa-box'];
 		if (toggle()?.querySelector(from)) {
 			toggle()!.click();
-			await waitFor(`the toggle of ${text(row.querySelector('.name a'))}`, () => toggle()?.querySelector(to));
+			await waitFor(`the toggle of ${text(row.querySelector('.name button'))}`, () => toggle()?.querySelector(to));
 			await settle();
 		}
 	};
@@ -286,7 +286,9 @@ function installInventoryHelpers() {
 			const root = await sheet(source.by);
 			const element = ['character', 'vehicle'].includes(actor(source.by).type)
 				? await heldRow(source.by, source.held)
-				: [...root.querySelectorAll('a[draggable="true"]')].find((link) => text(link).startsWith(full(source.held)));
+				: [...root.querySelectorAll('.adversary-items [draggable="true"]')].find((link) =>
+						text(link).startsWith(full(source.held)),
+					);
 			if (!element) throw new Error(`No ${source.held} to drag`);
 			const dataTransfer = window.e2e.dragStart(element);
 			element.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
@@ -297,7 +299,7 @@ function installInventoryHelpers() {
 	// The point of a half of a row, as a drag pointing at it gives. The row's tab must be shown, for the row to have a size.
 	const edgePoint = (row: HTMLElement, edge: RowEdge): Point => {
 		const rect = row.getBoundingClientRect();
-		if (!rect.height) throw new Error(`The row of ${text(row.querySelector('.name a'))} isn't shown`);
+		if (!rect.height) throw new Error(`The row of ${text(row.querySelector('.name button'))} isn't shown`);
 		return { x: rect.left + rect.width / 2, y: rect.top + rect.height * (edge === 'before' ? 0.25 : 0.75) };
 	};
 	const menuEntriesOf = (menu: Element) =>
@@ -768,7 +770,7 @@ function installInventoryHelpers() {
 			const root = await render(game.items.getName(full(name)).sheet, (root) => root.querySelectorAll('.data-rated')[index]);
 			const row = root.querySelectorAll('.data-rated')[index];
 			if (rating === null) {
-				row.querySelector<HTMLElement>('a')!.click();
+				row.querySelector<HTMLElement>('button')!.click();
 			} else {
 				const input = row.querySelector<HTMLInputElement>('input')!;
 				input.value = rating;
@@ -1115,13 +1117,13 @@ function installInventoryHelpers() {
 		async section(ref, state) {
 			return sectionParts(await sheet(ref), state)
 				.filter((part) => part.matches('.inventory-item'))
-				.map((row) => unprefixed(text(row.querySelector('.name a'))));
+				.map((row) => unprefixed(text(row.querySelector('.name button'))));
 		},
 
 		async contents(ref, name) {
 			const row = await rowOf(ref, name);
 			await openContainer(row);
-			return [...row.querySelectorAll('.contents .inventory-item .name a')].map((link) => unprefixed(text(link)));
+			return [...row.querySelectorAll('.contents .inventory-item .name button')].map((link) => unprefixed(text(link)));
 		},
 
 		async foldContainer(ref, name, open) {
@@ -1136,7 +1138,7 @@ function installInventoryHelpers() {
 			const box = contents.getBoundingClientRect();
 			const last = rows.at(-1);
 			return {
-				rows: rows.map((row) => unprefixed(text(row.querySelector('.name a')))),
+				rows: rows.map((row) => unprefixed(text(row.querySelector('.name button')))),
 				height: box.height > 100 ? '>100' : Math.round(box.height),
 				// A scrollbar shows on an element that scrolls its overflow, and has some.
 				scrollbar: [contents, ...contents.children].some(
@@ -1199,14 +1201,16 @@ function installInventoryHelpers() {
 				details: [...(row.querySelector('[data-item-type]')?.children ?? [])].map((part) => unprefixed(text(part))).join(' | '),
 				quantity: text(row.querySelector(':scope > .quantity')),
 				encumbrance: text(row.querySelector(':scope > .weight')),
-				damageState: row.querySelector(':scope > .damage')?.getAttribute('data-tooltip') ?? null,
+				// The damage button's name, which its bare `data-tooltip` shows.
+				damageState: row.querySelector(':scope > .damage')?.getAttribute('aria-label') ?? null,
 			};
 		},
 
 		async weaponList(ref) {
 			const root = await sheet(ref);
 			if (actor(ref).type === 'rival') {
-				return [...root.querySelectorAll('.weapon a[draggable="true"]')].map((link) => unprefixed(text(link)));
+				// Each row's attack button, then the weapon's details.
+				return [...root.querySelectorAll('.adversary-items .weapon.menu-container')].map((row) => unprefixed(text(row)));
 			}
 			const rows = root.querySelectorAll('.tab[data-tab="combat"] .weapons .weapon:not(.header)');
 			return [...rows].map((row) =>
@@ -2259,7 +2263,7 @@ export async function run(e2e: ScenarioContext) {
 				details: 'Melee | Damage Br+4 (6) | Critical 2 | Range [Short] | Quality 1',
 				quantity: '1',
 				encumbrance: '3',
-				damageState: 'Genesys.Equipment.DamageState.Undamaged',
+				damageState: 'Undamaged',
 			},
 		);
 		await e2e.step(
@@ -2294,7 +2298,7 @@ export async function run(e2e: ScenarioContext) {
 			details: 'Melee | Damage Br+4 (7) | Critical 2 | Range [Short] | Quality 1',
 			quantity: '2',
 			encumbrance: '3',
-			damageState: 'Genesys.Equipment.DamageState.Minor',
+			damageState: 'Minor Damage',
 		});
 	});
 
@@ -2796,7 +2800,7 @@ async function unknownDamageState(e2e: ScenarioContext) {
 	e2e.expect(
 		"#348 B2 an item whose damage state is none of the four known shows its row's damage with no tooltip, and no error",
 		{ tooltips, errors: gm.errors.slice(errors) },
-		{ tooltips: ['Genesys.Equipment.DamageState.Undamaged', null], errors: [] },
+		{ tooltips: ['Undamaged', null], errors: [] },
 	);
 }
 

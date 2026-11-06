@@ -4,6 +4,7 @@ import { vLocalize } from '@/vue/directives';
 import { useSheetContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
 import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 
 // The GM pool on the left of the players' pool, each under its short label, the full one in its tooltip.
@@ -79,9 +80,12 @@ async function toggleEdit(pool: StoryPointPool) {
 	<div v-for="pool in POOLS" :key="pool.id" class="pool" :class="pool.id" v-localize:data-tooltip="pool.tooltip">
 		<header>
 			<Localized :label="pool.label" />
-			<a v-if="pool.id === 'gm' && isGM" @click="resetStoryPoints" v-localize:title="'Genesys.StoryPoints.Reset'"
-				><i class="fas fa-arrows-rotate"></i
-			></a>
+			<ActionButton
+				v-if="pool.id === 'gm' && isGM"
+				icon="fas fa-arrows-rotate"
+				label="Genesys.StoryPoints.Reset"
+				@click="resetStoryPoints"
+			/>
 		</header>
 		<input
 			v-if="editing === pool.id"
@@ -92,9 +96,14 @@ async function toggleEdit(pool: StoryPointPool) {
 			@keydown.escape="finishEditing(pool.id, $event, false)"
 			@blur="finishEditing(pool.id, $event, true)"
 		/>
-		<a v-else-if="canSpend(pool.id)" class="points" @click="spendStoryPoint(pool.id)" @contextmenu="toggleEdit(pool.id)">{{
-			context[pool.id]
-		}}</a>
+		<ActionButton
+			v-else-if="canSpend(pool.id)"
+			class="points"
+			label="Genesys.StoryPoints.Spend"
+			@click="spendStoryPoint(pool.id)"
+			@contextmenu="toggleEdit(pool.id)"
+			>{{ context[pool.id] }}</ActionButton
+		>
 		<div v-else class="points" @contextmenu="toggleEdit(pool.id)">{{ context[pool.id] }}</div>
 	</div>
 </template>
@@ -163,7 +172,7 @@ async function toggleEdit(pool: StoryPointPool) {
 		line-height: 1;
 		color: colors.$blue;
 
-		a {
+		.action-button {
 			font-size: 0.75em;
 		}
 	}

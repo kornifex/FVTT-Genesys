@@ -41,7 +41,7 @@ function installRoutePrefixHelpers() {
 			await settle();
 			const before = key ? chance(root) : 'spinner';
 			if (key) {
-				const button = [...root.querySelectorAll<HTMLElement>('.dice-box a')].find(
+				const button = [...root.querySelectorAll<HTMLElement>('.dice-box button')].find(
 					(candidate) => poolModification(candidate) === key,
 				);
 				if (!button) throw new Error(`No dice box button ${key}`);

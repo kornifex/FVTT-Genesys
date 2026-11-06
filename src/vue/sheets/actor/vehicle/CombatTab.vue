@@ -8,6 +8,7 @@ import { itemsOfType } from '@/item/ItemTypes';
 import { severityDifficulty } from '@/item/data/Injuries';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
@@ -51,7 +52,7 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 
 					<div class="name">
-						<a @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</a>
+						<ActionButton @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</ActionButton>
 						<DescriptionToggle
 							:description="weapon.system.description"
 							:open="openWeapons.isOpen(weapon.id)"

@@ -105,8 +105,19 @@ type SheetsHelpers = {
 	isRendered(name: string): boolean;
 	/** Renders a sheet with hooks on the render events of AppV1 and AppV2, and returns the ones that fired. */
 	renderHooks(name: string): Promise<{ fired: string[]; htmlIsElement: boolean }>;
-	/** The fields of a sheet a user could change. */
-	editableFields(name: string): { inputs: number; textareas: number; enabled: number; editableTextareas: number };
+	/**
+	 * The fields of a sheet a user could change, and its action buttons (#574): how many are enabled, and how many show
+	 * the icon of an action that edits (delete, add, raise, turn on or off).
+	 */
+	editableFields(name: string): {
+		inputs: number;
+		textareas: number;
+		enabled: number;
+		editableTextareas: number;
+		actions: number;
+		enabledActions: number;
+		editActions: number;
+	};
 	itemNames(actor: string): string[];
 	/** Drops a world document on a sheet, on the element a selector finds in it. */
 	drop(name: string, document: { type: 'Actor' | 'Item'; name: string }, selector?: string): Promise<void>;
@@ -396,7 +407,12 @@ function installSheetsHelpers() {
 					img: 'icons/svg/aura.svg',
 					prototypeToken: { texture: { src: 'icons/svg/aura.svg' } },
 				},
-				{ name: 'E2E Observed', type: 'character' },
+				// XP of its own in Character Creation, so that its characteristics could be raised by a user who may edit it (#574 R1).
+				{
+					name: 'E2E Observed',
+					type: 'character',
+					system: { experienceJournal: { entries: [{ amount: 100, type: 'Starting' }] } },
+				},
 				{ name: 'E2E Limited', type: 'character' },
 				{ name: 'E2E Bearer', type: 'character' },
 				{ name: 'E2E Minion', type: 'minion' },
@@ -665,13 +681,19 @@ function installSheetsHelpers() {
 
 		editableFields(name) {
 			const content = sheetElement(name).querySelector('.window-content')!;
-			const fields = [...content.querySelectorAll<HTMLInputElement>('input, select, button')];
+			const fields = [...content.querySelectorAll<HTMLInputElement>('input, select, button:not(.action-button)')];
 			const textareas = [...content.querySelectorAll<HTMLTextAreaElement>('textarea')];
+			const actions = [...content.querySelectorAll<HTMLButtonElement>('button.action-button')];
 			return {
 				inputs: fields.length,
 				textareas: textareas.length,
 				enabled: fields.filter((field) => !field.disabled).length,
 				editableTextareas: textareas.filter((textarea) => !textarea.disabled && !textarea.readOnly).length,
+				actions: actions.length,
+				enabledActions: actions.filter((action) => !action.disabled).length,
+				editActions: actions.filter((action) =>
+					action.querySelector(':scope > i:is(.fa-trash, .fa-plus, .fa-arrow-circle-up, .fa-power-off)'),
+				).length,
 			};
 		},
 
@@ -1094,13 +1116,13 @@ function installSheetsHelpers() {
 					text(row).includes(`E2E ${item}`),
 				);
 				if (!row) throw new Error(`No row for ${item}`);
-				row.querySelector<HTMLElement>('a.send-to-chat-link')!.click();
+				row.querySelector<HTMLElement>('button.send-to-chat-link')!.click();
 			} else if (['talent', 'ability'].includes(owned.type)) {
 				const row = [...element.querySelectorAll<HTMLElement>('.talent')].find((row) =>
 					text(row.querySelector('.name')).includes(`E2E ${item}`),
 				);
 				if (!row) throw new Error(`No talent row for ${item}`);
-				[...row.querySelectorAll('a')].find((link) => link.querySelector('i.fa-comment'))!.click();
+				[...row.querySelectorAll('button')].find((button) => button.querySelector('i.fa-comment'))!.click();
 			} else {
 				await helpers.menu(name, '.inventory-item', `E2E ${item}`, 'fa-comment');
 			}
@@ -1511,7 +1533,7 @@ function installSheetsHelpers() {
 		async attackWithVehicleWeapon(vehicle, weapon) {
 			await helpers.open(vehicle);
 			await helpers.clickTab(vehicle, 'combat');
-			find(sheetElement(vehicle), '.tab-combat .weapon .name a', `E2E ${weapon}`).click();
+			find(sheetElement(vehicle), '.tab-combat .weapon .name button:not(.description-toggle)', `E2E ${weapon}`).click();
 			// The prompt shows a spinner while it counts its chance to succeed, which may roll dice: the attack's dice are
 			// fixed after it.
 			await waitFor('the dice prompt', () => {
@@ -1921,7 +1943,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#95 GM opens the dice prompt with /gendr and the award XP prompt from the journal', async () => {
 			await gm.evaluate(() => ui.chat.processMessage('/gendr'));
 			await gm.evaluate(() => window.sheetsE2E.clickTab('Hero', 'journal'));
-			await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header a'));
+			await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header button'));
 		});
 		e2e.expect(
 			'#95 A4 every prompt and the story point tracker is an ApplicationV2 window',
@@ -1951,7 +1973,7 @@ export async function run(e2e: ScenarioContext) {
 			true,
 		);
 		e2e.log('award XP prompts open after Enter', await gm.evaluate(() => window.sheetsE2E.prompts('app-award-xp-prompt').length));
-		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header a'));
+		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header button'));
 		e2e.expect('#95 A6 a prompt resolves when it starts closing', await gm.evaluate(() => window.sheetsE2E.promptResolution()), {
 			resolved: true,
 			value: null,
@@ -2210,6 +2232,7 @@ export async function run(e2e: ScenarioContext) {
 				Limited: window.sheetsE2E.editableFields('Limited'),
 			})),
 			await player.evaluate(() => {
+				// The action buttons are counted apart: #574 R1 checks them.
 				const counts = (name: string) => {
 					const fields = window.sheetsE2E.editableFields(name);
 					return { ...fields, enabled: 0, editableTextareas: 0 };
@@ -2217,6 +2240,28 @@ export async function run(e2e: ScenarioContext) {
 				return { Observed: counts('Observed'), Limited: counts('Limited') };
 			}),
 		);
+		e2e.expect(
+			"#574 R1 a sheet the player can't edit keeps its action buttons enabled, and shows none that would edit it",
+			await player.evaluate(() => {
+				const actions = (name: string) => {
+					const { actions, enabledActions, editActions } = window.sheetsE2E.editableFields(name);
+					return { some: actions > 0, enabled: enabledActions === actions, editActions };
+				};
+				return { Observed: actions('Observed'), Limited: actions('Limited') };
+			}),
+			{ Observed: { some: true, enabled: true, editActions: 0 }, Limited: { some: true, enabled: true, editActions: 0 } },
+		);
+		// The observed character has the XP to raise its Brawn, which a user who may edit it does from the same label: a read
+		// action an observer runs on the sheet.
+		await e2e.step('#574 R2 player clicks the Brawn label of the sheet they observe', () =>
+			player.evaluate(() => window.sheetsE2E.click('Observed', '.characteristics-row .characteristic-label button')),
+		);
+		e2e.expect(
+			"#574 R2 on a sheet the player can't edit, a characteristic's label opens the Dice Prompt for its check, rather than raising it",
+			await player.evaluate(() => ({ dicePrompts: window.sheetsE2E.prompts('app-dice-prompt').length })),
+			{ dicePrompts: 1 },
+		);
+		await player.evaluate(() => window.sheetsE2E.closePrompts('app-dice-prompt'));
 		e2e.expect(
 			"#260 A5 the editor of a sheet the player can't edit has its toggle button disabled",
 			await player.evaluate(() => window.sheetsE2E.editor('Observed', 'system.notes')),
@@ -2269,7 +2314,7 @@ export async function run(e2e: ScenarioContext) {
 			gm.evaluate(async () => {
 				const sheets = window.sheetsE2E;
 				await sheets.clickTab('Bearer', 'journal');
-				await sheets.click('Bearer', '.xp-journal .entries-header a');
+				await sheets.click('Bearer', '.xp-journal .entries-header button');
 				sheets.setPromptInput('app-award-xp-prompt', '.amount input', '50', 'input');
 				sheets.setPromptInput('app-award-xp-prompt', '.reason textarea', 'E2E', 'input');
 				await sheets.clickPrompt('app-award-xp-prompt', '.award-xp-prompt button');
@@ -2367,7 +2412,7 @@ export async function run(e2e: ScenarioContext) {
 				const sheets = window.sheetsE2E;
 				await sheets.open('Bearer');
 				await sheets.clickTab('Bearer', 'skills');
-				await sheets.click('Bearer', '.tab-skills a.name', 'Athletics');
+				await sheets.click('Bearer', '.tab-skills button.name', 'Athletics');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
 				await ui.chat.processMessage('/gendr');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
@@ -2389,10 +2434,10 @@ export async function run(e2e: ScenarioContext) {
 	await part('storyPointEdits', async () => {
 		await e2e.step('#95 GM sets the story points, spends one of the GM pool, then resets them', async () => {
 			await gm.evaluate(() => window.sheetsE2E.setStoryPoints({ gm: 3, player: 2 }));
-			await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('a.points'));
+			await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('button.points'));
 		});
 		const spent = await gm.evaluate(() => window.sheetsE2E.storyPoints());
-		await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('a:has(.fa-arrows-rotate)'));
+		await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('button:has(.fa-arrows-rotate)'));
 		e2e.expect(
 			'#95 A20 GM: spending a story point moves it from the GM pool to the players, and resetting gives one to each player',
 			{ spent, reset: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
@@ -2530,9 +2575,9 @@ export async function run(e2e: ScenarioContext) {
 			return {
 				wounds: sheets.fieldValue('Hero', 'system.wounds.value'),
 				sources: Object.fromEntries(names.map((name) => [name, sheets.fieldValue(name, 'system.source')])),
-				heroTalent: sheets.rowText('Hero', '.tab-talents .talent', 'E2E Ranked', '.name a'),
+				heroTalent: sheets.rowText('Hero', '.tab-talents .talent', 'E2E Ranked', '.name button'),
 				heroSword: sheets.rowText('Hero', '.tab-inventory .inventory-item', 'E2E Sword', '.quantity'),
-				nemesisTalent: sheets.rowText('Nemesis', '.adversary-items .talent', 'E2E Ranked', 'label a'),
+				nemesisTalent: sheets.rowText('Nemesis', '.adversary-items .talent', 'E2E Ranked', '.item-label button'),
 				vehicleCannon: sheets.rowText('Vehicle', '.tab-inventory .inventory-item', 'E2E Cannon', '.quantity'),
 			};
 		};
@@ -2621,7 +2666,7 @@ export async function run(e2e: ScenarioContext) {
 		await player.evaluate(() => window.sheetsE2E.storyPointLog());
 		const playerPoolMessage = await gm.evaluate(() => game.i18n.localize('Genesys.StoryPoints.ChatMessagePlayerPool'));
 		await e2e.step('#250 player spends a Story Point, with a GM and an Assistant GM online', () =>
-			player.evaluate(() => window.sheetsE2E.clickStoryPoints('a.points')),
+			player.evaluate(() => window.sheetsE2E.clickStoryPoints('button.points')),
 		);
 		e2e.expect(
 			"#250 A1 with a GM and an Assistant GM online, a player's spend moves one point to the GM pool, written once by the GM, with one message from the player",
@@ -2640,7 +2685,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#250 player spends a Story Point, with no GM online', async () => {
 			refusal = await player.evaluate(async () => {
 				const notifications = window.e2e.recordNotifications();
-				await window.sheetsE2E.clickStoryPoints('a.points');
+				await window.sheetsE2E.clickStoryPoints('button.points');
 				return notifications();
 			});
 		});
@@ -3121,7 +3166,7 @@ export async function run(e2e: ScenarioContext) {
 					const sheets = window.sheetsE2E;
 					await sheets.drop('Vehicle', { type: 'Actor', name: 'Hero' }, '.tab-crew .section-header');
 					await sheets.drop('Vehicle', { type: 'Actor', name: 'Bearer' }, '.tab-crew .section-header');
-					await sheets.click('Vehicle', '.tab-crew .section-header a');
+					await sheets.click('Vehicle', '.tab-crew .section-header button');
 				}),
 			),
 			memberAdded: await crew('#82 GM moves a passenger to the role', () =>
@@ -3333,7 +3378,7 @@ export async function run(e2e: ScenarioContext) {
 			gm.evaluate(async () => {
 				const sheets = window.sheetsE2E;
 				await sheets.open('Nemesis');
-				await sheets.click('Nemesis', '.adversary-items .weapon > a', 'E2E Sword');
+				await sheets.click('Nemesis', '.adversary-items .weapon .weapon-attack', 'E2E Sword');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
 				await sheets.open('Nemesis/Sword');
 				await sheets.clickTab('Nemesis/Sword', 'data');
@@ -3604,7 +3649,7 @@ export async function run(e2e: ScenarioContext) {
 				rating.value = '3';
 				rating.dispatchEvent(new Event('blur'));
 				await window.e2e.settle();
-				await window.sheetsE2E.click('weapon', '.weapon-profile .profile-skills a');
+				await window.sheetsE2E.click('weapon', '.weapon-profile .profile-skills button');
 			}),
 		);
 		const ratedAndUnskilled = await weaponProfiles();
@@ -3868,7 +3913,7 @@ export async function run(e2e: ScenarioContext) {
 					const root: HTMLElement = app.element;
 					const detached = root.ownerDocument !== document;
 					const before = poolPreview(root);
-					root.querySelector<HTMLElement>('.dice-box [data-pool-entity]')!.click();
+					root.querySelector<HTMLElement>('.dice-box button')!.click();
 					await settle();
 					const after = poolPreview(root);
 					const messages = game.messages.size;
@@ -3954,7 +3999,7 @@ async function storyPointSpends(e2e: ScenarioContext, player: Client) {
 	await player.evaluate(() => window.sheetsE2E.storyPointLog());
 	const languages = { gm: await message(gm), player: await message(player) };
 	await e2e.step('#335 A1 player spends a Story Point, in French', () =>
-		player.evaluate(() => window.sheetsE2E.clickStoryPoints('a.points')),
+		player.evaluate(() => window.sheetsE2E.clickStoryPoints('button.points')),
 	);
 	e2e.expect(
 		"#335 A1 the message of a player's spend reads in the GM's language, not the player's",
@@ -3978,7 +4023,7 @@ async function storyPointSpends(e2e: ScenarioContext, player: Client) {
 			[player, second].map((client) =>
 				client.evaluate(async (at) => {
 					await window.e2e.sleep(at - Date.now());
-					await window.sheetsE2E.clickStoryPoints('a.points');
+					await window.sheetsE2E.clickStoryPoints('button.points');
 				}, at),
 			),
 		),
@@ -4327,7 +4372,7 @@ function installSheetHeightHelpers() {
 			const row = elementOf(name).querySelector<HTMLElement>(`.tab[data-tab="${tab}"] .talent`);
 			if (!row) throw new Error(`No talent on the ${tab} tab of E2E ${name}`);
 			// The talent's name opens its description, or its chevron once it has one (#515).
-			if (!window.e2e.clickChevron(row)) row.querySelector<HTMLElement>('.name a')!.click();
+			if (!window.e2e.clickChevron(row)) row.querySelector<HTMLElement>('.name button')!.click();
 			// The description opens through a transition, which settling waits for.
 			await waitFor(`the description of the talent on the ${tab} tab of E2E ${name}`, () => row.querySelector('.active'));
 			await settle();

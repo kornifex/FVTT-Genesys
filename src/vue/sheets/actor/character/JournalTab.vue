@@ -5,6 +5,7 @@ import { undoJournalEntry } from '@/operations/JournalUndo';
 import { CHARACTERISTIC_LABELS } from '@/data/Characteristics';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 import { AwardXPPrompt } from '@/app/AwardXPPrompt';
@@ -12,6 +13,9 @@ import XPContainer from '@/vue/components/character/XPContainer.vue';
 import Motivations from '@/vue/components/Motivations.vue';
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
+
+// The illustration is named for what it is: it shows whatever image the user picked.
+const illustrationName = game.i18n.localize('Genesys.Labels.CharacterIllustration');
 
 async function addXPJournalEntry() {
 	const award = await AwardXPPrompt.promptForXPAward();
@@ -50,7 +54,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		<section class="description">
 			<div class="block">
 				<div class="header"><Localized label="Genesys.Labels.CharacterIllustration" /></div>
-				<img :src="system.illustration" data-edit="system.illustration" />
+				<img :src="system.illustration" data-edit="system.illustration" :alt="illustrationName" />
 			</div>
 
 			<div class="block">
@@ -109,7 +113,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 				<div />
 				<div><Localized label="Genesys.RewardsPrompt.Amount" /></div>
 				<div>
-					<a @click="addXPJournalEntry"><i class="fas fa-plus"></i></a>
+					<ActionButton icon="fas fa-plus" label="Genesys.XPJournal.AddEntry" edits @click="addXPJournalEntry" />
 				</div>
 			</div>
 
@@ -119,7 +123,13 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 						<Localized :label="ENTRY_LABELS[entry.type]" :format-args="journalEntryFormatArgs(entry)" enriched />
 					</div>
 					<div class="value">{{ entry.amount }}</div>
-					<a v-if="entry.type !== JournalEntryType.Starting" @click="removeJournalEntry(index)"><i class="fas fa-trash"></i></a>
+					<ActionButton
+						v-if="entry.type !== JournalEntryType.Starting"
+						icon="fas fa-trash"
+						label="Genesys.XPJournal.UndoEntry"
+						edits
+						@click="removeJournalEntry(index)"
+					/>
 				</div>
 			</div>
 		</section>
@@ -306,7 +316,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 	.entry {
 		padding: 0.25em;
 
-		a {
+		.action-button {
 			grid-column: 4 / span 1;
 		}
 

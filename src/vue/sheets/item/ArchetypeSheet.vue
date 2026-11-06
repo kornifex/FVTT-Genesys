@@ -6,6 +6,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
@@ -105,7 +106,7 @@ async function deleteGrantedItem(index: number) {
 						<img :src="item.img" :alt="item.name" />
 						<span class="name">{{ item.name }}</span>
 						<div v-if="editable">
-							<a @click="deleteGrantedItem(index)"><i class="fas fa-trash"></i></a>
+							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveGrantedItem" @click="deleteGrantedItem(index)" />
 						</div>
 					</div>
 				</DataRow>

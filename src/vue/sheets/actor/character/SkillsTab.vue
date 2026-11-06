@@ -7,6 +7,7 @@ import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
@@ -145,24 +146,27 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 						</template>
 
-						<img
+						<ActionButton
 							class="skill-icon"
-							:src="skill.img ?? undefined"
-							:alt="skill.name"
-							data-tooltip="Genesys.Tooltips.OpenSkill"
+							:image="skill.img ?? undefined"
+							label="Genesys.Tooltips.OpenSkill"
 							@click="openSheet(skill)"
 						/>
-						<a class="name" @click="rollSkill(skill)">
+						<ActionButton class="name" @click="rollSkill(skill)">
 							<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic]" />)</span>
 							<i v-if="skill.system.career" class="fas fa-star"></i>
-						</a>
+						</ActionButton>
 
 						<span class="rank-display">
 							{{ skill.system.rank }}
 
-							<a v-if="canPurchaseSkillRank(skill)" @click="purchaseSkillRank(skill)">
-								<i class="fas fa-arrow-circle-up" />
-							</a>
+							<ActionButton
+								v-if="canPurchaseSkillRank(skill)"
+								icon="fas fa-arrow-circle-up"
+								label="Genesys.Labels.BuySkillRank"
+								edits
+								@click="purchaseSkillRank(skill)"
+							/>
 						</span>
 
 						<SkillRanks
@@ -301,10 +305,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 		// The icon opens the skill's sheet, to read its description; the name rolls it.
 		.skill-icon {
-			border: none;
+			width: 100%;
 			padding: 0;
 			margin-left: 0.1em;
-			cursor: pointer;
 		}
 
 		.name {

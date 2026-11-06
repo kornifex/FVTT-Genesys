@@ -97,6 +97,7 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 </script>
 
 <template>
+	<!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events -- #576 opens the menu from a trigger button. -->
 	<div
 		class="menu-container"
 		@contextmenu="!usePrimaryClick && showContextMenu($event)"

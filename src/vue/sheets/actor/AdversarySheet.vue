@@ -4,6 +4,7 @@ import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
@@ -173,12 +174,19 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(talent)" />
 									</template>
 
-									<label>
-										<a @click="openSheet(talent)"
-											>{{ talent.name }} {{ talent.system.ranked === 'yes' ? talent.system.rank : null }}</a
+									<!-- Not a label, which would pass a click anywhere on it to its first button. -->
+									<span class="item-label">
+										<ActionButton @click="openSheet(talent)"
+											>{{ talent.name }}
+											{{ talent.system.ranked === 'yes' ? talent.system.rank : null }}</ActionButton
 										>
-										<a class="send-to-chat-link" @click="sendToChat(talent, actor)"><i class="fas fa-comment"></i></a>
-									</label>
+										<ActionButton
+											class="send-to-chat-link"
+											icon="fas fa-comment"
+											label="Genesys.Labels.SendToChat"
+											@click="sendToChat(talent, actor)"
+										/>
+									</span>
 								</ContextMenu>
 								<Enriched class="description" v-if="talent.system.description" :value="talent.system.description" />
 							</div>
@@ -195,10 +203,15 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
 									</template>
 
-									<label>
-										<a @click="openSheet(ability)">{{ ability.name }}</a>
-										<a class="send-to-chat-link" @click="sendToChat(ability, actor)"><i class="fas fa-comment"></i></a>
-									</label>
+									<span class="item-label">
+										<ActionButton @click="openSheet(ability)">{{ ability.name }}</ActionButton>
+										<ActionButton
+											class="send-to-chat-link"
+											icon="fas fa-comment"
+											label="Genesys.Labels.SendToChat"
+											@click="sendToChat(ability, actor)"
+										/>
+									</span>
 								</ContextMenu>
 								<Enriched class="description" v-if="ability.system.description" :value="ability.system.description" />
 							</div>
@@ -227,31 +240,39 @@ async function toggleSuper(characteristic: CharacteristicType) {
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="attackWith(actor, item, profile)" draggable="true" @dragstart="startDocumentDrag($event, item)">
-									<i class="fas fa-dice-d20"></i>
-									{{ name }}
-									(<span class="weapon-details">
-										<span v-if="skill">
-											<AttackSkillSelect
-												:key="skill"
-												:weapon="item"
-												:profile-index="profile.index"
-												:choices="attackSkillChoices(profile.skills)"
-												:attack-skill="skill"
-											/>
-										</span>
-										<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
-										<span><Localized label="Genesys.Labels.Damage" /> {{ damageForProfile(profile) }}</span>
-										<span><Localized label="Genesys.Labels.Critical" /> {{ profile.critical }}</span>
-										<span
-											><Localized label="Genesys.Labels.Range" /> [<Localized
-												:label="RANGE_LABELS[profile.range]"
-											/>]</span
-										>
-										<QualityList :qualities="profile.qualities" class="weapon-qualities" /> </span
-									>)
-								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
+								<!-- The button holds the name alone: its details hold the Attack Skill's select, which a button can't.
+								The drag starts on the button's wrapper, since Firefox starts none from a button. -->
+								<span draggable="true" @dragstart="startDocumentDrag($event, item)"
+									><ActionButton class="weapon-attack" icon="fas fa-dice-d20" @click="attackWith(actor, item, profile)">{{
+										name
+									}}</ActionButton></span
+								>
+								(<span class="weapon-details">
+									<span v-if="skill">
+										<AttackSkillSelect
+											:key="skill"
+											:weapon="item"
+											:profile-index="profile.index"
+											:choices="attackSkillChoices(profile.skills)"
+											:attack-skill="skill"
+										/>
+									</span>
+									<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
+									<span><Localized label="Genesys.Labels.Damage" /> {{ damageForProfile(profile) }}</span>
+									<span><Localized label="Genesys.Labels.Critical" /> {{ profile.critical }}</span>
+									<span
+										><Localized label="Genesys.Labels.Range" /> [<Localized
+											:label="RANGE_LABELS[profile.range]"
+										/>]</span
+									>
+									<QualityList :qualities="profile.qualities" class="weapon-qualities" /> </span
+								>)
+								<ActionButton
+									class="send-to-chat-link"
+									icon="fas fa-comment"
+									label="Genesys.Labels.SendToChat"
+									@click="sendToChat(item, actor)"
+								/>
 							</ContextMenu>
 							<ContextMenu
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
@@ -265,16 +286,24 @@ async function toggleSuper(characteristic: CharacteristicType) {
 									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<a @click="openSheet(item)" draggable="true" @dragstart="startDocumentDrag($event, item)">
-									{{ item.name }}
+								<!-- The drag starts on the button's wrapper, since Firefox starts none from a button. -->
+								<span draggable="true" @dragstart="startDocumentDrag($event, item)">
+									<ActionButton class="item-name" @click="openSheet(item)">
+										{{ item.name }}
 
-									<span v-if="item.type === 'armor'" class="soak">
-										(+{{ (item.system as ArmorDataModel).soak }} <Localized label="Genesys.Labels.Soak" />)
-									</span>
+										<span v-if="item.type === 'armor'" class="soak">
+											(+{{ (item.system as ArmorDataModel).soak }} <Localized label="Genesys.Labels.Soak" />)
+										</span>
 
-									<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
-								</a>
-								<a class="send-to-chat-link" @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
+										<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
+									</ActionButton>
+								</span>
+								<ActionButton
+									class="send-to-chat-link"
+									icon="fas fa-comment"
+									label="Genesys.Labels.SendToChat"
+									@click="sendToChat(item, actor)"
+								/>
 							</ContextMenu>
 						</div>
 					</div>
@@ -293,8 +322,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 									</template>
 
-									<label
-										><a @click="openSheet(injury)">{{ injury.name }}</a></label
+									<span class="item-label"
+										><ActionButton @click="openSheet(injury)">{{ injury.name }}</ActionButton></span
 									>
 								</ContextMenu>
 								<Enriched class="description" v-if="injury.system.description" :value="injury.system.description" />
@@ -513,7 +542,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	:deep(.skill) {
 		display: inline-block;
 
-		& > a {
+		& > .skill-roll {
 			display: inline-flex;
 			flex-direction: row;
 			flex-wrap: nowrap;
@@ -521,14 +550,14 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			gap: 0.5em;
 		}
 
-		& > a::after {
+		& > .skill-roll::after {
 			display: block;
 			content: ',';
 			margin-right: 0.25em;
 			margin-left: -0.4em;
 		}
 
-		&:last-of-type > a::after {
+		&:last-of-type > .skill-roll::after {
 			display: none;
 		}
 	}
@@ -573,7 +602,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		display: grid;
 		grid-template-rows: repeat(2, auto);
 
-		label {
+		.item-label {
 			font-weight: bold;
 		}
 

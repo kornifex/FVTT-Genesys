@@ -2,6 +2,7 @@
 import { computed, ref, toRef } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
@@ -39,26 +40,32 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 	<div class="talent">
 		<img :src="item.img ?? undefined" :alt="item.name" />
 		<span class="name">
-			<a @click="expanded = !expanded">
+			<ActionButton :expanded="expanded" @click="expanded = !expanded">
 				{{ item.name }}
 				<template v-if="ranked">
 					{{ talent?.rank }}
 				</template>
-			</a>
+			</ActionButton>
 			<!-- The name keeps its click: it opens the tier and source of a talent without a description too. -->
 			<DescriptionToggle :description="item.system.description" :open="expanded" @toggle="expanded = !expanded" />
 
-			<a v-if="ranked && canUpgrade" @click="emit('upgrade')"><i class="fas fa-arrow-circle-up"></i></a>
+			<ActionButton
+				v-if="ranked && canUpgrade"
+				icon="fas fa-arrow-circle-up"
+				label="Genesys.Labels.BuyTalentRank"
+				edits
+				@click="emit('upgrade')"
+			/>
 		</span>
 		<div></div>
 		<span v-if="canDelete">
-			<a @click="deleteItem(item)"><i class="fas fa-trash"></i></a>
+			<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" edits @click="deleteItem(item)" />
 		</span>
 		<span v-if="editable">
-			<a @click="openSheet(item)"><i class="fas fa-edit"></i></a>
+			<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 		</span>
 		<span v-if="editable">
-			<a @click="sendToChat(item, actor)"><i class="fas fa-comment"></i></a>
+			<ActionButton icon="fas fa-comment" label="Genesys.Labels.SendToChat" @click="sendToChat(item, actor)" />
 		</span>
 		<div :class="`desc-container ${expanded ? 'active' : ''}`">
 			<!-- The expandable description opens its only child. -->

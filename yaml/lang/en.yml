@@ -157,6 +157,7 @@ Genesys:
     SuppressedByEquipmentState: Inactive while {item} is {state}.
     Duration: Duration
     Expired: Expired
+    Toggle: Turn the effect on or off
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
@@ -176,8 +177,12 @@ Genesys:
     UseSuperCharacteristic: Roll as a super-characteristic
     UnrankedSkills: Unranked
     WeaponSkills: Weapon Skills
+    RemoveDie: Remove a die
+    RemoveSymbol: Remove a symbol
     PoolModifications:
       Title: Pool Modifications
+      Add: Add this Pool Modification
+      Remove: Remove this Pool Modification
       Difficulty: 'Difficulty: {level}'
       ManualChanges: Manual Changes
       SelfEffects: 'From Self: '
@@ -220,6 +225,8 @@ Genesys:
     Skill: Increased <strong>{name}</strong> to {rank}.
     NewTalent: 'Purchased Talent: <strong>{name}</strong> (Tier {tier}).'
     TalentRank: Increased <strong>{name}</strong> to Rank {rank} (Effective Tier {tier}).
+    AddEntry: Add an Experience Journal entry
+    UndoEntry: Undo the entry
 
   # Notification Prompts
   Notifications:
@@ -349,6 +356,7 @@ Genesys:
     PlayerShort: Players
     GMShort: GM
     Reset: Reset Story Points
+    Spend: Spend a Story Point
     ChatMessageGmPool: Spending a GM Story Point!
     ChatMessagePlayerPool: Spending a Player Story Point!
 
@@ -604,3 +612,11 @@ Genesys:
     Item: Item
     Items: Items
     CloseContainer: Close Container
+    OpenContainer: Open the container
+    SendToChat: Send to chat
+    BuyTalentRank: Buy a rank of the talent
+    BuySkillRank: Buy a rank
+    DeleteRole: Delete the role
+    RemoveSkill: Remove the skill
+    RemoveQuality: Remove the Quality
+    RemoveGrantedItem: Remove the granted item
