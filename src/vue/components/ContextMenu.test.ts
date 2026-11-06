@@ -1,102 +1,372 @@
 // @vitest-environment happy-dom
-/** @file Tests for the menu a row opens on a right-click, or on a click on its actions button. */
+/** @file Tests for a row's actions menu: opening it with the mouse or the keyboard, moving between its entries, running one, and closing it. */
 
 import { enableAutoUnmount, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { h, nextTick } from 'vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import MenuItem from '@/vue/components/MenuItem.vue';
 
-const slots = { default: '<span class="row">E2E Sword</span>', 'menu-items': '<a class="entry">Delete</a>' };
+type Props = InstanceType<typeof ContextMenu>['$props'];
 
-function mountMenu(props: InstanceType<typeof ContextMenu>['$props'] = {}) {
-	// Attached to the document, which closes the menu on a click anywhere.
-	return mount(ContextMenu, { props, slots, attachTo: document.body });
-}
-
-/** Clicks somewhere else in the document, and tells whether the menu kept the click from doing anything. */
-function clickElsewhere(type: 'click' | 'contextmenu' = 'click') {
-	const event = new MouseEvent(type, { bubbles: true, cancelable: true });
-	document.body.dispatchEvent(event);
-	return event.defaultPrevented;
-}
+beforeEach(() => {
+	// Foundry localizes a key into its text: here, the key marked as localized.
+	vi.stubGlobal('game', { i18n: { localize: (key: string) => `localized ${key}` } });
+});
 
 // A menu left open keeps its listeners on the document, which would take the next test's first click.
 enableAutoUnmount(afterEach);
 
+/**
+ * Mounts a menu around a row holding a button, with three entries, a separator between the first and the others: each
+ * entry's action records its label in `ran`.
+ */
+function mountMenu(props: Props = {}, attachTo: Element = document.body) {
+	const ran: string[] = [];
+	const entry = (label: string) => h(MenuItem, { icon: 'fas fa-edit', label, onClick: () => ran.push(label) });
+	const menu = mount(ContextMenu, {
+		props,
+		slots: {
+			default: () => h('button', { type: 'button', class: 'row' }, 'E2E Sword'),
+			'menu-items': () => [entry('Equip'), h('hr'), entry('Edit'), entry('Delete')],
+		},
+		// Attached to the document, which closes the menu on a click anywhere, and holds the focus.
+		attachTo,
+	});
+	return { menu, ran };
+}
+
+const isOpen = (menu: ReturnType<typeof mountMenu>['menu']) => menu.find('[role="menu"]').exists();
+const trigger = (menu: ReturnType<typeof mountMenu>['menu']) => menu.get<HTMLButtonElement>('button.menu-trigger').element;
+const entries = (menu: ReturnType<typeof mountMenu>['menu']) =>
+	menu.findAll<HTMLButtonElement>('[role="menuitem"]').map((entry) => entry.element);
+/** The label of the entry that has the focus, or what else has it. */
+const focused = (menu: ReturnType<typeof mountMenu>['menu']) => {
+	const active = document.activeElement;
+	if (active?.matches('button.menu-trigger') && (menu.element as HTMLElement).contains(active)) return 'trigger';
+	return active?.closest('[role="menuitem"]')?.textContent?.trim() ?? active?.tagName;
+};
+
+/** A click with the mouse, which names its pointer. */
+const pointerClick = () => new PointerEvent('click', { bubbles: true, cancelable: true, pointerType: 'mouse', detail: 1 });
+/** The click a browser gives a focused button on Enter or Space, which names no pointer. */
+const keyboardClick = () => new PointerEvent('click', { bubbles: true, cancelable: true, pointerType: '' });
+/**
+ * The `contextmenu` of Shift+F10 or the context menu key, which gives no pointer position: Chromium's names a mouse and
+ * no button, where a right-click's names the right button; the Pointer Events spec's names no pointer.
+ */
+const keyboardContextMenus = () => [
+	new PointerEvent('contextmenu', { bubbles: true, cancelable: true, pointerType: 'mouse', button: -1, clientX: 10, clientY: 20 }),
+	new PointerEvent('contextmenu', { bubbles: true, cancelable: true, pointerType: '' }),
+];
+const keyboardContextMenu = () => keyboardContextMenus()[0];
+
+/** Presses a key on an element, and tells whether the menu kept it from its default action. */
+function press(element: Element, key: string) {
+	const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+	element.dispatchEvent(event);
+	return event.defaultPrevented;
+}
+
+/** Clicks somewhere else in the document, and tells whether the menu kept the click from doing anything. */
+function clickElsewhere(type: 'click' | 'contextmenu' = 'click', target: Element = document.body) {
+	const event = new MouseEvent(type, { bubbles: true, cancelable: true });
+	target.dispatchEvent(event);
+	return event.defaultPrevented;
+}
+
 describe('ContextMenu', () => {
-	it('shows its content, without its menu', () => {
-		const menu = mountMenu();
+	describe('with the mouse', () => {
+		it('shows its content, without its menu, and no ⋮ unless it has one', () => {
+			const { menu } = mountMenu();
 
-		expect(menu.find('.row').exists()).toBe(true);
-		expect(menu.find('.entry').exists()).toBe(false);
-	});
+			expect(menu.find('.row').exists()).toBe(true);
+			expect(isOpen(menu)).toBe(false);
+			expect(menu.find('.menu-trigger').exists()).toBe(false);
+		});
 
-	it('opens on a right-click, which shows no browser menu', async () => {
-		const menu = mountMenu();
-		const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+		it('opens on a right-click, which shows no browser menu, on its first entry', async () => {
+			const { menu } = mountMenu();
+			const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
 
-		menu.get('.row').element.dispatchEvent(event);
-		await menu.vm.$nextTick();
+			menu.get('.row').element.dispatchEvent(event);
+			await nextTick();
 
-		expect(menu.find('.entry').exists()).toBe(true);
-		expect(event.defaultPrevented).toBe(true);
-	});
+			expect(isOpen(menu)).toBe(true);
+			expect(event.defaultPrevented).toBe(true);
+			expect(focused(menu)).toBe('localized Equip');
+		});
 
-	it('opens on a click instead of a right-click when it uses the primary click', async () => {
-		const menu = mountMenu({ usePrimaryClick: true });
+		it('opens on a click on its ⋮, on its first entry', async () => {
+			const { menu } = mountMenu({ trigger: true });
 
-		await menu.get('.row').trigger('contextmenu');
-		expect(menu.find('.entry').exists()).toBe(false);
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
 
-		await menu.get('.row').trigger('click');
-		expect(menu.find('.entry').exists()).toBe(true);
-	});
+			expect(isOpen(menu)).toBe(true);
+			expect(focused(menu)).toBe('localized Equip');
+		});
 
-	it('never opens while disabled', async () => {
-		const menu = mountMenu({ disableMenu: true });
+		it('closes on a click on its ⋮ while it is open', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
 
-		await menu.get('.row').trigger('contextmenu');
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
 
-		expect(menu.find('.entry').exists()).toBe(false);
-	});
+			expect(isOpen(menu)).toBe(false);
+		});
 
-	it('closes on the next click or right-click anywhere, which does nothing else', async () => {
-		for (const type of ['click', 'contextmenu'] as const) {
-			const menu = mountMenu();
+		it('runs an entry clicked, then stays closed, leaving the focus on no button', async () => {
+			const { menu, ran } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
+
+			entries(menu)[2]?.dispatchEvent(pointerClick());
+			await nextTick();
+
+			expect(ran).toEqual(['Delete']);
+			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('BODY');
+		});
+
+		it('never opens while disabled, and shows no ⋮ then', async () => {
+			const { menu } = mountMenu({ disableMenu: true, trigger: true });
+
 			await menu.get('.row').trigger('contextmenu');
 
-			const prevented = clickElsewhere(type);
-			await menu.vm.$nextTick();
+			expect(isOpen(menu)).toBe(false);
+			expect(menu.find('.menu-trigger').exists()).toBe(false);
+		});
 
-			expect(menu.find('.entry').exists()).toBe(false);
-			expect(prevented).toBe(true);
+		it('closes on the next click or right-click anywhere, which does nothing else', async () => {
+			for (const type of ['click', 'contextmenu'] as const) {
+				const { menu } = mountMenu();
+				await menu.get('.row').trigger('contextmenu');
+
+				const prevented = clickElsewhere(type);
+				await nextTick();
+
+				expect(isOpen(menu)).toBe(false);
+				expect(prevented).toBe(true);
+				menu.unmount();
+			}
+		});
+
+		it('lets the clicks after the one that closed it through', async () => {
+			const { menu } = mountMenu();
+			await menu.get('.row').trigger('contextmenu');
+			clickElsewhere();
+
+			expect(clickElsewhere()).toBe(false);
+		});
+
+		it('lets the clicks through once its sheet closes with the menu open', async () => {
+			const { menu } = mountMenu();
+			await menu.get('.row').trigger('contextmenu');
+
 			menu.unmount();
-		}
+
+			expect(clickElsewhere()).toBe(false);
+		});
+
+		it('opens under the pointer from another element through its handle, as a row does on a right-click', async () => {
+			const { menu } = mountMenu({ trigger: true });
+
+			(menu.vm as unknown as ContextMenuHandle).open(new MouseEvent('contextmenu', { clientX: 10, clientY: 20 }));
+			await nextTick();
+			await nextTick();
+
+			expect(isOpen(menu)).toBe(true);
+			expect(menu.get('[role="menu"]').attributes('style')).toContain('translate');
+		});
+
+		it("listens to its own document's clicks, which a window detached from the main one has", async () => {
+			const detached = document.implementation.createHTMLDocument();
+			const host = detached.body.appendChild(detached.createElement('div'));
+			const { menu } = mountMenu({}, host);
+			await menu.get('.row').trigger('contextmenu');
+
+			clickElsewhere('click', document.body);
+			await nextTick();
+			expect(isOpen(menu)).toBe(true);
+
+			expect(clickElsewhere('click', detached.body)).toBe(true);
+			await nextTick();
+			expect(isOpen(menu)).toBe(false);
+		});
 	});
 
-	it('lets the clicks after the one that closed it through', async () => {
-		const menu = mountMenu();
-		await menu.get('.row').trigger('contextmenu');
-		clickElsewhere();
+	describe('from the keyboard', () => {
+		it('has a ⋮ named Actions, which says it opens a menu, and whether it is open', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			const button = menu.get('button.menu-trigger');
 
-		expect(clickElsewhere()).toBe(false);
-	});
+			expect(button.attributes('aria-label')).toBe('localized Genesys.Labels.Actions');
+			expect(button.attributes('aria-haspopup')).toBe('menu');
+			expect(button.attributes('aria-expanded')).toBe('false');
 
-	it('lets the clicks through once its sheet closes with the menu open', async () => {
-		const menu = mountMenu();
-		await menu.get('.row').trigger('contextmenu');
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
 
-		menu.unmount();
+			expect(button.attributes('aria-expanded')).toBe('true');
+		});
 
-		expect(clickElsewhere()).toBe(false);
-	});
+		it('is a menu of entries, which Tab leaves out', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
 
-	it('opens from another element through its handle, as a row does on a right-click', async () => {
-		const menu = mountMenu();
+			expect(entries(menu)).toHaveLength(3);
+			expect(entries(menu).map((entry) => [entry.tagName, entry.getAttribute('tabindex')])).toEqual([
+				['BUTTON', '-1'],
+				['BUTTON', '-1'],
+				['BUTTON', '-1'],
+			]);
+		});
 
-		(menu.vm as unknown as ContextMenuHandle).open(new MouseEvent('contextmenu', { clientX: 10, clientY: 20 }));
-		await menu.vm.$nextTick();
+		it('opens on its first entry on Enter or Space, and on ArrowDown', async () => {
+			for (const open of [
+				(button: HTMLElement) => button.dispatchEvent(keyboardClick()),
+				(button: HTMLElement) => press(button, 'ArrowDown'),
+			]) {
+				const { menu } = mountMenu({ trigger: true });
+				trigger(menu).focus();
 
-		expect(menu.find('.entry').exists()).toBe(true);
+				open(trigger(menu));
+				await nextTick();
+
+				expect(focused(menu)).toBe('localized Equip');
+				menu.unmount();
+			}
+		});
+
+		it('opens on its last entry on ArrowUp', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).focus();
+
+			expect(press(trigger(menu), 'ArrowUp')).toBe(true);
+			await nextTick();
+
+			expect(focused(menu)).toBe('localized Delete');
+		});
+
+		it('moves between its entries with the arrow keys, around from one end to the other, and with Home and End', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+			const steps: string[] = [];
+
+			for (const key of ['ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowUp', 'End', 'Home']) {
+				press(document.activeElement!, key);
+				steps.push(`${key} ${focused(menu)}`);
+			}
+
+			expect(steps).toEqual([
+				'ArrowDown localized Edit',
+				'ArrowDown localized Delete',
+				'ArrowDown localized Equip',
+				'ArrowUp localized Delete',
+				'End localized Delete',
+				'Home localized Equip',
+			]);
+		});
+
+		it('runs an entry on Enter or Space, closes, and gives the focus back to its ⋮', async () => {
+			const { menu, ran } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+			press(document.activeElement!, 'ArrowDown');
+
+			document.activeElement!.dispatchEvent(keyboardClick());
+			await nextTick();
+
+			expect(ran).toEqual(['Edit']);
+			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('trigger');
+		});
+
+		it('closes on Escape, which never reaches the window, and gives the focus back to its ⋮', async () => {
+			const { menu, ran } = mountMenu({ trigger: true });
+			// Foundry's keybindings listen on the window: `core.dismiss` closes every window on Escape.
+			const onWindowKeydown = vi.fn();
+			window.addEventListener('keydown', onWindowKeydown);
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+
+			press(document.activeElement!, 'Escape');
+			await nextTick();
+			window.removeEventListener('keydown', onWindowKeydown);
+
+			expect(onWindowKeydown).not.toHaveBeenCalled();
+			expect(ran).toEqual([]);
+			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('trigger');
+		});
+
+		it('closes on Tab, which goes on from its ⋮', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+
+			// The browser then moves the focus from where the menu put it.
+			const prevented = press(document.activeElement!, 'Tab');
+			await nextTick();
+
+			expect(prevented).toBe(false);
+			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('trigger');
+		});
+
+		it('opens at its ⋮ on Shift+F10 or the context menu key, which give no pointer position', async () => {
+			for (const event of keyboardContextMenus()) {
+				const { menu } = mountMenu({ trigger: true });
+				trigger(menu).focus();
+
+				trigger(menu).dispatchEvent(event);
+				await nextTick();
+				await nextTick();
+
+				expect(focused(menu)).toBe('localized Equip');
+				// Laid out by its container, under its ⋮, rather than moved.
+				expect(menu.get('[role="menu"]').attributes('style')).toBeUndefined();
+				menu.unmount();
+			}
+		});
+
+		it('opens under the pointer on a right-click on its ⋮', async () => {
+			const { menu } = mountMenu({ trigger: true });
+
+			trigger(menu).dispatchEvent(
+				new PointerEvent('contextmenu', {
+					bubbles: true,
+					cancelable: true,
+					pointerType: 'mouse',
+					button: 2,
+					clientX: 10,
+					clientY: 20,
+				}),
+			);
+			await nextTick();
+			await nextTick();
+
+			expect(menu.get('[role="menu"]').attributes('style')).toContain('translate');
+		});
+
+		it('opens on Shift+F10 on a control of a row without a ⋮, and gives the focus back to it on Escape', async () => {
+			const { menu } = mountMenu();
+			const row = menu.get<HTMLButtonElement>('.row').element;
+			row.focus();
+
+			row.dispatchEvent(keyboardContextMenu());
+			await nextTick();
+			expect(focused(menu)).toBe('localized Equip');
+
+			press(document.activeElement!, 'Escape');
+			await nextTick();
+			expect(document.activeElement).toBe(row);
+		});
 	});
 });

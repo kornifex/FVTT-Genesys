@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); and the headings each tab of each sheet type starts its sections with (#584). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); and the headings each tab of each sheet type starts its sections with (#584). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -28,6 +28,8 @@ type AccessibilityHelpers = {
 	openPrompt(prompt: string): Promise<string>;
 	/** Closes every window but the Story Point tracker. */
 	closeAll(): Promise<void>;
+	/** Opens the menu of the Hero's Sword row in the Inventory tab from its ⋮ (#576), and returns the menu's selector. */
+	openRowMenu(): Promise<string>;
 	/** Shows the pages in a Style, by its key, as the world setting does, without writing the setting. */
 	setStyle(style: string): Promise<void>;
 	/**
@@ -444,6 +446,20 @@ function installAccessibilityHelpers() {
 			await settle();
 		},
 
+		async openRowMenu() {
+			await window.e2e.showTab('Hero', 'inventory');
+			const root = await sheet('Hero');
+			const row = [...root.querySelectorAll('.tab-inventory .inventory-item')].find((row) =>
+				text(row.querySelector('.name button')).startsWith('E2E Sword'),
+			);
+			if (!row) throw new Error('No row of the Sword');
+			find(row, ':scope > .actions > .menu-trigger').click();
+			const selector = `${selectorOf(actor('Hero').sheet)} .tab-inventory [role="menu"]`;
+			await waitFor('the menu of the Sword', () => document.querySelector(selector));
+			await settle();
+			return selector;
+		},
+
 		async setStyle(style) {
 			document.documentElement.dataset.genesysStyle = style;
 			// The colours change through the sheets' transitions, which a check reading them mid-way would get wrong.
@@ -843,6 +859,24 @@ export async function run(e2e: ScenarioContext) {
 				});
 			}
 			expectNamedButtons('#574 A2 no prompt has a button without a name');
+		});
+
+		// §#576: an open actions menu, which its sheet's check never finds open.
+		await e2e.part('rowMenu', async () => {
+			let findings: Record<string, Record<string, number>> = {};
+			await e2e.step("#576 M1 the menu of the Hero's Sword row opened from its ⋮, then checked", async () => {
+				const selector = await gm.evaluate(() => window.accessibilityE2E.openRowMenu());
+				findings = await gm.axe(selector);
+				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+			});
+			// What axe-core couldn't decide is logged for a person to look at, as the sheets' checks log it: the contrast of the
+			// entries over the menu's background image, and the size of the entries.
+			e2e.log('axe the open actions menu of an inventory row, WCAG 2.2 AA in the world Style', findings);
+			e2e.expect(
+				'#576 M1 an open actions menu violates no accessibility rule',
+				Object.keys(findings).filter((rule) => !rule.endsWith(' (needs review)')),
+				[],
+			);
 		});
 
 		await e2e.part('storyPointTracker', async () => {

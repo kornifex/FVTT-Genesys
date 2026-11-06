@@ -339,7 +339,7 @@ function openMenu(event: MouseEvent) {
 			<template #icon><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i></template>
 		</ActionButton>
 
-		<ContextMenu ref="menu" class="actions" orientation="left" use-primary-click :disable-menu="!editable || mini">
+		<ContextMenu ref="menu" class="actions" orientation="left" trigger :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
 					v-for="move in stateMoves()"
@@ -357,11 +357,6 @@ function openMenu(event: MouseEvent) {
 
 				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem(item)" />
 			</template>
-
-			<!-- eslint-disable-next-line vuejs-accessibility/anchor-has-content -- #576 makes the menu's trigger a named button. -->
-			<a>
-				<i class="fas fa-ellipsis-vertical"></i>
-			</a>
 		</ContextMenu>
 
 		<!-- The contents stay rendered while the Container is closed, for the fold to close over them. -->

@@ -657,6 +657,7 @@ Genesys:
     CloseContainer: Close Container
     OpenContainer: Open the container
     SendToChat: Send to chat
+    Actions: Actions
     BuyTalentRank: Buy a rank of the talent
     BuySkillRank: Buy a rank
     DeleteRole: Delete the role
