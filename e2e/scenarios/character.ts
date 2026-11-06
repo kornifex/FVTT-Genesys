@@ -2922,6 +2922,7 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 /**
  * §#393: the chevron after the name of a Combat tab row opens and closes its description, each Weapon Profile's row on
  * its own, on a sheet the user can't edit too; a row without a description shows none, and the name keeps its click.
+ * §#579: the chevron of a second open sheet points at its own fold.
  */
 async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const C = 'Duelist';
@@ -2963,7 +2964,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		},
 	);
 	e2e.expect(
-		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, pointing right, to show the description',
+		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, which tells their description is collapsed',
 		await rows(),
 		{ main: CLOSED_CHEVRON, thrown: CLOSED_CHEVRON, armor: CLOSED_CHEVRON, injury: CLOSED_CHEVRON },
 	);
@@ -3032,6 +3033,25 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			thrown: CLOSED_DESCRIPTION,
 		},
 	);
+
+	// §#579: every Vue app numbers its ids from the same start, so that the folds of two open sheets shared their ids, and a
+	// chevron's `aria-controls` pointed at the fold of the sheet opened first. Each sheet's ids now start with its own.
+	const SECOND = 'Second';
+	await e2e.step("#579 C1 a second character's sheet opened on its Combat tab, beside Duelist's", async () => {
+		await page((name) => window.characterE2E.create(name), SECOND);
+		await page((args) => window.characterE2E.createItems(args.name, args.items), {
+			name: SECOND,
+			items: [{ name: 'E2E Gambeson', type: 'armor', system: { state: 'equipped', description: '<p>Quilted.</p>' } }],
+		});
+		await page((name) => window.characterE2E.open(name), SECOND);
+		await page((name) => window.e2e.showTab(name, 'combat'), SECOND);
+	});
+	e2e.expect(
+		"#579 C1 the chevron of a row on the second sheet points at its own fold, not at a fold of Duelist's sheet",
+		await page((args) => window.characterE2E.chevron(args.name, args.row), { name: SECOND, row: { armor: 'Gambeson' } }),
+		CLOSED_CHEVRON,
+	);
+	await page((name) => window.characterE2E.close(name), SECOND);
 
 	await e2e.step('#393 B1 the name of the armor clicked', () => clickName({ armor: 'Leather' }));
 	e2e.expect(
@@ -3204,7 +3224,7 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 
 	await e2e.step("#515 A5 the talent's chevron clicked", () => clickChevron(LORE));
 	e2e.expect(
-		'#515 A5 the chevron closes the description, and points right again',
+		'#515 A5 the chevron closes the description, and tells it is collapsed again',
 		{ box: await closed(LORE), chevron: await chevron(LORE) },
 		{ box: CLOSED_DESCRIPTION, chevron: CLOSED_CHEVRON },
 	);
@@ -3221,7 +3241,7 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	);
 	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
 	e2e.expect(
-		"#515 A7 the special ability's description closes, its chevron pointing right",
+		"#515 A7 the special ability's description closes, its chevron telling it is collapsed",
 		{ box: await closed(INSIGHT), chevron: await chevron(INSIGHT) },
 		{ box: CLOSED_DESCRIPTION, chevron: CLOSED_CHEVRON },
 	);

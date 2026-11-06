@@ -95,6 +95,13 @@ export type CounterState = {
 };
 
 /**
+ * A toggle that shows text, the Pool Modifications' title or a Container's count, as a screen reader and the eye read it:
+ * its text, which names it, whether it is expanded, its icon's Font Awesome class, and whether its `aria-controls` points
+ * at a `DescriptionFold`'s fold (#579).
+ */
+export type FoldToggle = { text: string; expanded: boolean; icon: string | null; controlsFold: boolean };
+
+/**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the documents and applications differ between the Foundry versions the harness drives.
@@ -237,6 +244,8 @@ type PageHelpers = {
 	showTab: (name: string, tab: string) => Promise<void>;
 	/** The chevron of a row with an expandable description, or null when the row shows none. */
 	chevron: (row: Element) => Chevron | null;
+	/** A toggle that shows text and folds something, as read (#579). */
+	foldToggle: (toggle: Element) => FoldToggle;
 	/** Clicks the chevron of a row, which opens or closes its description; false when the row shows none. */
 	clickChevron: (row: Element) => boolean;
 	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
@@ -733,6 +742,16 @@ export function installHelpers() {
 				// The button's name, which its bare `data-tooltip` shows.
 				name: toggle.getAttribute('aria-label') ?? '',
 				controlsFold: !!controlled && controlled.matches('.description-fold') && row.contains(controlled),
+			};
+		},
+
+		foldToggle(toggle) {
+			const controlled = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+			return {
+				text: (toggle.textContent ?? '').replace(/\s+/g, ' ').trim(),
+				expanded: toggle.getAttribute('aria-expanded') === 'true',
+				icon: [...(toggle.querySelector('i')?.classList ?? [])].find((name) => name.startsWith('fa-')) ?? null,
+				controlsFold: !!controlled && controlled.matches('.description-fold'),
 			};
 		},
 

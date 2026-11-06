@@ -163,5 +163,7 @@ describe('DescriptionFold', () => {
 			undefined,
 		]);
 		expect(chevron.attributes('aria-expanded')).toBe('false');
+		expect(fold.get('.description-fold').attributes('id')).toBe(chevron.attributes('aria-controls'));
+		expect(chevron.get('i').classes()).toEqual(['fas', 'fa-chevron-right']);
 	});
 });

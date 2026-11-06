@@ -1,6 +1,7 @@
 /** @file #211: the Dice Prompt and checks: the pool a check rolls, its Pool Modifications, its links, its chance to succeed and its messages. */
 import type { GlyphName } from '../accessibility.ts';
 import { FOLD_TRANSITION } from '../descriptions.ts';
+import type { FoldToggle } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
 
@@ -164,6 +165,8 @@ type DicePromptHelpers = {
 	 */
 	openPromptSource(name: string): Promise<{ opened: { type: string; name: string }; prompts: number; enabled: boolean } | null>;
 	poolModificationsBox(): PoolModificationsBox;
+	/** The Pool Modifications' title, which folds and unfolds them, as read (#579). */
+	poolModificationsToggle(): FoldToggle;
 	/** Clicks the Pool Modifications' title, which folds or unfolds them, and waits for their transitions to end. */
 	togglePoolModifications(): Promise<PoolModificationsBox>;
 	/** Clicks the dice box's buttons, named by glyph and operator: `A+` adds an Ability die, `A^` upgrades one. */
@@ -764,6 +767,10 @@ function installDicePromptHelpers() {
 				visibility: getComputedStyle(container).visibility,
 				modifications: !!container.querySelector('[data-pool-entity]'),
 			};
+		},
+
+		poolModificationsToggle() {
+			return window.e2e.foldToggle(htmlOf(thePrompt())!.querySelector('.pool-modifications-title')!);
 		},
 
 		async togglePoolModifications() {
@@ -2844,7 +2851,7 @@ export async function run(e2e: ScenarioContext) {
 	});
 
 	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 0.2s ease-out of every fold since
-	// #516 (1s before), and their folded container is hidden from Tab.
+	// #516 (1s before), and their folded container is hidden from Tab. §#579: their title is a `DescriptionFold`'s chevron.
 	await part('modificationFolds', async () => {
 		await setSetting('dicePoolCollapseModificationsDetails', true);
 		// The Difficulty, DD, shows its dice among the Pool Modifications.
@@ -2860,6 +2867,12 @@ export async function run(e2e: ScenarioContext) {
 			visibility: 'visible',
 			modifications: true,
 		});
+		const toggle = () => gm.evaluate(() => window.dicePromptE2E.poolModificationsToggle());
+		e2e.expect(
+			"#579 E1 the unfolded Pool Modifications' title tells it is expanded, points at their fold, and shows a chevron pointing down",
+			await toggle(),
+			{ text: 'Pool Modifications', expanded: true, icon: 'fa-chevron-down', controlsFold: true },
+		);
 		let refolded: PoolModificationsBox | null = null;
 		await e2e.step('#396 A2 GM folds the Pool Modifications', async () => {
 			refolded = await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
@@ -2875,6 +2888,11 @@ export async function run(e2e: ScenarioContext) {
 				visibility: 'hidden',
 				modifications: true,
 			},
+		);
+		e2e.expect(
+			"#579 E2 the folded Pool Modifications' title tells it is collapsed, and shows a chevron pointing right",
+			await toggle(),
+			{ text: 'Pool Modifications', expanded: false, icon: 'fa-chevron-right', controlsFold: true },
 		);
 		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	});

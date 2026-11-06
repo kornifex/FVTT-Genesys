@@ -678,7 +678,7 @@ async function combatRowDescriptions(e2e: ScenarioContext) {
 		},
 	);
 	e2e.expect(
-		"#393 C1 a vehicle weapon's row shows a chevron after its name, pointing right, to show the description, which starts closed",
+		"#393 C1 a vehicle weapon's row shows a chevron after its name, which tells its description is collapsed, and the description starts closed",
 		{ chevron: await chevron(harpoon), box: await closed() },
 		{ chevron: CLOSED_CHEVRON, box: CLOSED_DESCRIPTION },
 	);
