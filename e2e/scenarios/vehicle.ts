@@ -422,8 +422,9 @@ function installVehicleHelpers() {
 
 		async submitClone(name) {
 			const app = await waitFor('the clone prompt', () => apps('app-clone-actor-prompt')[0]);
-			const root = await waitFor('its choices', () => htmlOf(app)?.querySelector('#clone-actor-prompt-method-clone') && htmlOf(app));
-			const method = root.querySelector<HTMLInputElement>('#clone-actor-prompt-method-clone')!;
+			const clone = 'input[type="radio"][value="Clone"]';
+			const root = await waitFor('its choices', () => htmlOf(app)?.querySelector(clone) && htmlOf(app));
+			const method = root.querySelector<HTMLInputElement>(clone)!;
 			method.checked = true;
 			method.dispatchEvent(new Event('change', { bubbles: true }));
 			const input = root.querySelector<HTMLInputElement>('.clone-name input')!;
