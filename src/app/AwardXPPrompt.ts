@@ -1,7 +1,10 @@
 import VueAwardXPPrompt from '@/vue/apps/AwardXPPrompt.vue';
 import { VuePrompt } from '@/vue/VuePrompt';
 
-type AwardData = {
+/**
+ * What the XP award prompt answers.
+ */
+export type AwardData = {
 	/**
 	 * Amount of XP awarded to the player.
 	 */
@@ -11,13 +14,6 @@ type AwardData = {
 	 * Details about why the XP was awarded.
 	 */
 	reason: string;
-};
-
-/**
- * What the XP award prompt resolves with.
- */
-export type AwardXPContext = {
-	answer: (value: AwardData) => void;
 };
 
 /**
@@ -39,9 +35,5 @@ export class AwardXPPrompt extends VuePrompt<AwardData | undefined>(undefined) {
 	 */
 	static async promptForXPAward() {
 		return new AwardXPPrompt().prompt();
-	}
-
-	override async getVueContext(): Promise<AwardXPContext> {
-		return { answer: (data) => this.answer(data) };
 	}
 }

@@ -18,21 +18,21 @@ const { system } = useSheetDocument<GenesysItem<'talent'>>();
 
 		<template v-slot:data>
 			<section class="data-grid">
-				<DataRow label="Genesys.Labels.Tier">
-					<input type="number" name="system.tier" :value="system.tier" :min="1" :max="MAX_TIER" />
+				<DataRow label="Genesys.Labels.Tier" v-slot="{ id }">
+					<input :id="id" type="number" name="system.tier" :value="system.tier" :min="1" :max="MAX_TIER" />
 				</DataRow>
 
 				<ActivationRow :activation="system.activation" />
 
-				<DataRow label="Genesys.Labels.Ranked">
-					<select name="system.ranked" :value="system.ranked">
+				<DataRow label="Genesys.Labels.Ranked" v-slot="{ id }">
+					<select :id="id" name="system.ranked" :value="system.ranked">
 						<option value="yes"><Localized label="Genesys.Labels.Yes" /></option>
 						<option value="no"><Localized label="Genesys.Labels.No" /></option>
 					</select>
 				</DataRow>
 
-				<DataRow v-if="system.ranked === 'yes'" label="Genesys.Labels.EffectsScaleWithRank">
-					<select name="system.scalesWithRank" :value="system.scalesWithRank">
+				<DataRow v-if="system.ranked === 'yes'" label="Genesys.Labels.EffectsScaleWithRank" v-slot="{ id }">
+					<select :id="id" name="system.scalesWithRank" :value="system.scalesWithRank">
 						<option value="yes"><Localized label="Genesys.Labels.Yes" /></option>
 						<option value="no"><Localized label="Genesys.Labels.No" /></option>
 					</select>

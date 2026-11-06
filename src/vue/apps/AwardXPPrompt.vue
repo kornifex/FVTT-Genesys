@@ -1,38 +1,33 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, useId } from 'vue';
 
-import { AwardXPContext } from '@/app/AwardXPPrompt';
-import { useSheetContext } from '@/vue/SheetContext';
+import type { AwardData } from '@/app/AwardXPPrompt';
+import { usePromptAnswer } from '@/vue/usePrompt';
 import Localized from '@/vue/components/Localized.vue';
-
-const context = useSheetContext<AwardXPContext>();
+import PromptFooter from '@/vue/components/PromptFooter.vue';
 
 const amount = ref(0);
 const reason = ref('');
 
-function awardXP(event: Event) {
-	event.preventDefault();
+const amountId = useId();
+const reasonId = useId();
 
-	context.value.answer({
-		amount: amount.value,
-		reason: reason.value,
-	});
-}
+usePromptAnswer<AwardData>(() => ({ amount: amount.value, reason: reason.value }));
 </script>
 
 <template>
 	<div class="genesys award-xp-prompt">
 		<div class="amount">
-			<label><Localized label="Genesys.RewardsPrompt.Amount" /></label>
-			<input type="number" min="0" v-model="amount" />
+			<label :for="amountId"><Localized label="Genesys.RewardsPrompt.Amount" /></label>
+			<input :id="amountId" type="number" min="0" v-model="amount" />
 		</div>
 
 		<div class="reason">
-			<label><Localized label="Genesys.RewardsPrompt.Reason" /></label>
-			<textarea v-model="reason"></textarea>
+			<label :for="reasonId"><Localized label="Genesys.RewardsPrompt.Reason" /></label>
+			<textarea :id="reasonId" v-model="reason"></textarea>
 		</div>
 
-		<button @click="awardXP"><Localized label="Genesys.Labels.Add" /></button>
+		<PromptFooter label="Genesys.Labels.Add" />
 	</div>
 </template>
 

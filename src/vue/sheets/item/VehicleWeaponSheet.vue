@@ -12,11 +12,11 @@ const { system } = useSheetDocument<GenesysItem<'vehicleWeapon'>>();
 <template>
 	<BaseWeaponSheet>
 		<template v-slot:extra-data>
-			<DataRow label="Genesys.Labels.FiringArc">
+			<DataRow label="Genesys.Labels.FiringArc" group v-slot="{ id }">
 				<div class="firing-arc-options">
 					<div v-for="(label, arc) in FIRING_ARC_LABELS" :key="arc">
-						<input type="checkbox" :name="`system.firingArc.${arc}`" :checked="system.firingArc[arc]" />
-						<label><Localized :label="label" /></label>
+						<input :id="`${id}-${arc}`" type="checkbox" :name="`system.firingArc.${arc}`" :checked="system.firingArc[arc]" />
+						<label :for="`${id}-${arc}`"><Localized :label="label" /></label>
 					</div>
 				</div>
 			</DataRow>

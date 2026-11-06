@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, shallowRef, watch } from 'vue';
+import { ref, shallowRef, useId, watch } from 'vue';
 import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
@@ -31,6 +31,7 @@ type GroupingMode = 'member' | 'skill';
 const context = useSheetContext<DocumentSheetContext<GenesysActor<'vehicle'>>>();
 
 const groupingMode = ref<GroupingMode>('member');
+const groupingId = useId();
 const byMember = shallowRef<MemberRow[]>([]);
 const bySkill = shallowRef<SkillRow[]>([]);
 
@@ -76,8 +77,8 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 <template>
 	<section class="tab-skills">
 		<div class="grouping-mode">
-			<Localized label="Genesys.Labels.GroupBy" />:
-			<select v-model="groupingMode">
+			<label :for="groupingId"><Localized label="Genesys.Labels.GroupBy" />:</label>
+			<select :id="groupingId" v-model="groupingMode">
 				<option value="member"><Localized label="Genesys.Tabs.Crew" /></option>
 				<option value="skill"><Localized label="Genesys.Labels.Skill" /></option>
 			</select>

@@ -46,6 +46,11 @@ function numberOf(event: Event) {
 	return Number.isNaN(value) ? 0 : value;
 }
 
+// The name of a quality's rating field, which shows no label of its own: "Pierce Rating".
+function qualityRatingLabel(quality: string) {
+	return game.i18n.format('Genesys.Labels.QualityRating', { quality });
+}
+
 function updateQualityRating(index: number, event: Event) {
 	// A rating that isn't a number changes nothing.
 	const qualities = withQualityRating(props.profile.qualities, index, parseInt(valueOf(event), 10));
@@ -56,8 +61,9 @@ function updateQualityRating(index: number, event: Event) {
 </script>
 
 <template>
-	<DataRow v-if="profile.damageCharacteristic !== undefined" label="Genesys.Labels.DamageCharacteristic">
+	<DataRow v-if="profile.damageCharacteristic !== undefined" label="Genesys.Labels.DamageCharacteristic" v-slot="{ id }">
 		<select
+			:id="id"
 			class="profile-damage-characteristic"
 			:name="fieldName('damageCharacteristic')"
 			:value="profile.damageCharacteristic"
@@ -70,8 +76,9 @@ function updateQualityRating(index: number, event: Event) {
 		</select>
 	</DataRow>
 
-	<DataRow label="Genesys.Labels.Damage">
+	<DataRow label="Genesys.Labels.Damage" v-slot="{ id }">
 		<input
+			:id="id"
 			type="number"
 			class="profile-damage"
 			:name="fieldName('baseDamage')"
@@ -80,8 +87,9 @@ function updateQualityRating(index: number, event: Event) {
 		/>
 	</DataRow>
 
-	<DataRow label="Genesys.Labels.Critical">
+	<DataRow label="Genesys.Labels.Critical" v-slot="{ id }">
 		<input
+			:id="id"
 			type="number"
 			class="profile-critical"
 			:name="fieldName('critical')"
@@ -90,8 +98,9 @@ function updateQualityRating(index: number, event: Event) {
 		/>
 	</DataRow>
 
-	<DataRow label="Genesys.Labels.Range">
+	<DataRow label="Genesys.Labels.Range" v-slot="{ id }">
 		<select
+			:id="id"
 			class="profile-range"
 			:name="fieldName('range')"
 			:value="profile.range"
@@ -105,7 +114,7 @@ function updateQualityRating(index: number, event: Event) {
 
 	<slot />
 
-	<DataRow label="Genesys.Labels.Skills">
+	<DataRow label="Genesys.Labels.Skills" group>
 		<div class="profile-skills">
 			<div v-for="(skill, index) in profile.skills" :key="index" class="data">
 				<div>{{ skill }}</div>
@@ -119,13 +128,17 @@ function updateQualityRating(index: number, event: Event) {
 		</div>
 	</DataRow>
 
-	<DataRow label="Genesys.Labels.Qualities">
+	<DataRow label="Genesys.Labels.Qualities" group>
 		<div class="profile-qualities">
 			<div v-for="(quality, index) in profile.qualities" :key="index" class="data-rated">
 				<div>{{ quality.name }}</div>
 				<div>
 					<span v-if="quality.isRated"
-						><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)"
+						><input
+							type="text"
+							:value="quality.rating"
+							:aria-label="qualityRatingLabel(quality.name)"
+							@blur="updateQualityRating(index, $event)"
 					/></span>
 				</div>
 				<ActionButton
