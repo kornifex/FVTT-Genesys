@@ -6,12 +6,10 @@ import { severityDifficulty } from '@/item/data/Injuries';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import Enriched from '@/vue/components/Enriched.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import RollLink from '@/vue/components/RollLink.vue';
-import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
-import { useOpenRows } from '@/vue/useOpenRows';
 
 // A character suffers Critical Injuries, a vehicle Critical Hits: the same items, under their own names. A character
 // heals one with the world's healing skill, and a vehicle's crew repairs one with its repairing skill.
@@ -46,7 +44,6 @@ const emit = defineEmits<{
 
 const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
-const { isOpen, toggle } = useOpenRows();
 </script>
 
 <template>
@@ -60,18 +57,16 @@ const { isOpen, toggle } = useOpenRows();
 		<div v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']">
 			<div class="severity"><Glyphs :glyphs="severityDifficulty(injury.system.severity)" /></div>
 			<ActionButton class="item-icon" :image="injury.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(injury)" />
-			<div class="name">
+			<DescriptionFold class="name" :description="injury.system.description">
 				<RollLink :label="kind.rollLabel" :label-data="kind.rollData(injury.name)" @roll="emit('roll', injury)">{{
 					injury.name
 				}}</RollLink>
-				<DescriptionToggle :description="injury.system.description" :open="isOpen(injury.id)" @toggle="toggle(injury.id)" />
-			</div>
+			</DescriptionFold>
 			<div v-if="editable" class="actions">
 				<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(injury)" />
 				<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 			</div>
 			<div v-else />
-			<div :class="['description', { active: isOpen(injury.id) }]"><Enriched :value="injury.system.description" /></div>
 		</div>
 	</div>
 </template>
@@ -112,7 +107,9 @@ const { isOpen, toggle } = useOpenRows();
 	border-bottom: 1px dashed colors.$blue;
 	column-gap: 0.5em;
 
-	.name {
+	// The name and the fold are the roots of the row's `DescriptionFold`, which take no scope attribute from the row: :deep()
+	// reaches them.
+	& > :deep(.name) {
 		font-family: 'Roboto Serif', serif;
 	}
 
@@ -135,7 +132,7 @@ const { isOpen, toggle } = useOpenRows();
 		border-bottom: none;
 	}
 
-	.description {
+	& > :deep(.description-fold) {
 		@include combat-tab.row-description(1em);
 	}
 }

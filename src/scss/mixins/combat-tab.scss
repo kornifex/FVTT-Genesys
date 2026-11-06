@@ -1,5 +1,4 @@
 @use '@scss/vars/colors.scss';
-@use '@scss/mixins/expandable.scss';
 @use '@scss/mixins/headings.scss';
 
 // The layout the Combat tabs of characters and vehicles share: blocks of rows under a heading, their columns' labels
@@ -44,8 +43,8 @@
 	}
 }
 
-// The description of a row of the Combat tabs, in the grid row `$row` under its columns: an item's, a Critical Injury's
-// or a Critical Hit's.
+// The fold of a row of the Combat tabs (a `DescriptionFold`, which folds it), in the grid row `$row` under its columns:
+// an item's, a Critical Injury's or a Critical Hit's.
 @mixin row-description($margin-left, $row: 2) {
 	grid-column: 1 / span all;
 	justify-self: left;
@@ -55,10 +54,11 @@
 
 	grid-row: $row / span 1;
 	padding-right: 0.5em;
-	@include expandable.description;
 }
 
-// A row of a weapon or an armor: its columns are the tab's, its qualities then its description go below them.
+// A row of a weapon or an armor: its columns are the tab's, its qualities then its description go below them. The name and
+// the fold of a row are the roots of its `DescriptionFold`, which take no scope attribute from the row: :deep() reaches
+// them.
 @mixin item-row {
 	display: grid;
 	grid-template-rows: repeat(3, auto);
@@ -66,11 +66,11 @@
 	align-items: center;
 	justify-items: center;
 
-	.name {
+	& > :deep(.name) {
 		justify-self: left;
 	}
 
-	&:not(.columns) > .name {
+	&:not(.columns) > :deep(.name) {
 		font-family: 'Roboto Serif', serif;
 	}
 
@@ -87,7 +87,7 @@
 		grid-row: 2 / span 1;
 	}
 
-	.description {
+	& > :deep(.description-fold) {
 		@include row-description(0.5em, 3);
 	}
 }

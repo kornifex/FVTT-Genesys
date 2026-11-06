@@ -85,8 +85,7 @@ Genesys:
     IsInitiative: Whether the skill is commonly used for Initiative or not. Setting this to true will make it appear as an option in the combat tracker for mass rolls.
     CycleInitiativeSkill: Cycle which initiative skill the combatant is using.
     AddExtraInitiativeSlot: Adds an extra initiative slot.
-    ShowDescription: Show the description
-    HideDescription: Hide the description
+    Details: Details
     OpenSkill: Open the skill's sheet
     OpenItem: Open the item's sheet
     OpenActor: Open the actor's sheet
@@ -671,8 +670,6 @@ Genesys:
     GroupBy: Group By
     Item: Item
     Items: Items
-    CloseContainer: Close Container
-    OpenContainer: Open the container
     SendToChat: Send to chat
     Actions: Actions
     BuyTalentRank: Buy a rank of the talent

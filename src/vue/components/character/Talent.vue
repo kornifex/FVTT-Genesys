@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import Enriched from '@/vue/components/Enriched.vue';
-import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
@@ -28,8 +27,6 @@ const emit = defineEmits<{
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
-const expanded = ref(false);
-
 // Named as the prop, which it shadows in the template: the talent reads the item through `useRendered`.
 const item = useRendered(() => props.item);
 const talent = toRef(() => (item.value.type === 'talent' ? (item.value.system as TalentDataModel) : undefined));
@@ -39,16 +36,26 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 <template>
 	<div class="talent">
 		<img :src="item.img ?? undefined" :alt="item.name" />
-		<span class="name">
-			<ActionButton :expanded="expanded" @click="expanded = !expanded">
+		<!-- The name opens the talent's sheet, as on any row that can't roll; the chevron opens its tier and source too. -->
+		<DescriptionFold class="name" :description="item.system.description">
+			<ActionButton @click="openSheet(item)">
 				{{ item.name }}
 				<template v-if="ranked">
 					{{ talent?.rank }}
 				</template>
 			</ActionButton>
-			<!-- The name keeps its click: it opens the tier and source of a talent without a description too. -->
-			<DescriptionToggle :description="item.system.description" :open="expanded" @toggle="expanded = !expanded" />
 
+			<template v-if="talent" #fold>
+				<div class="tier-container">
+					<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent.effectiveTier }}</span>
+				</div>
+			</template>
+			<template v-if="item.system.source" #fold-end>
+				<div class="source">{{ item.system.source }}</div>
+			</template>
+		</DescriptionFold>
+		<!-- Its own cell, after the chevron, rendered without its button too, so that the columns don't move. -->
+		<span class="upgrade">
 			<ActionButton
 				v-if="ranked && canUpgrade"
 				icon="fas fa-arrow-circle-up"
@@ -67,36 +74,25 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 		<span v-if="editable">
 			<ActionButton icon="fas fa-comment" label="Genesys.Labels.SendToChat" @click="sendToChat(item, actor)" />
 		</span>
-		<div :class="`desc-container ${expanded ? 'active' : ''}`">
-			<!-- The expandable description opens its only child. -->
-			<div class="desc-content">
-				<div v-if="talent" class="tier-container">
-					<span class="tier"><Localized label="Genesys.Labels.Tier" />: {{ talent?.effectiveTier }}</span>
-				</div>
-
-				<Enriched class="desc" :value="item.system.description"></Enriched>
-
-				<div v-if="item.system.source" class="source">{{ item.system.source }}</div>
-			</div>
-		</div>
 	</div>
 </template>
 
 <style lang="scss" scoped>
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
-@use '@scss/mixins/expandable.scss';
 
+// The name and the fold are the roots of the row's `DescriptionFold`, which take no scope attribute from the row: :deep()
+// reaches them.
 .talent {
 	display: grid;
-	grid-template-columns: /* Image */ 2em /* Name */ auto /* Spacer */ 1fr /* Action Buttons */ auto;
+	grid-template-columns: /* Image */ 2em /* Name */ auto /* Upgrade */ auto /* Spacer */ 1fr /* Action Buttons */ auto;
 	grid-template-rows: repeat(2, auto);
 	align-items: center;
 	padding: 0.25em;
 	column-gap: 0.5em;
 	row-gap: 0.1em;
 
-	& > * {
+	& > :deep(*) {
 		grid-row: 1 / span 1;
 	}
 
@@ -109,7 +105,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 		object-fit: contain;
 	}
 
-	.name {
+	& > :deep(.name) {
 		font-family: 'Roboto Slab', serif;
 		font-size: 1.1em;
 		display: flex;
@@ -118,11 +114,14 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 		align-items: baseline;
 	}
 
-	.desc-container {
+	.upgrade {
+		font-size: 1.1em;
+	}
+
+	& > :deep(.description-fold) {
 		grid-column: 1 / span all;
 		grid-row: 2 / span 1;
 		padding-left: 0.5em;
-		@include expandable.description;
 
 		.tier-container {
 			margin-top: 0.5em;

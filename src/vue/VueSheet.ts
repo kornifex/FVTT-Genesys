@@ -91,6 +91,9 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 				content.replaceChildren(mountPoint);
 
 				this.vueApp = createApp(this.vueComponent);
+				// `useId()` counts from the same start in every Vue app: the application's id, unique in the page, keeps the
+				// ids of two open sheets apart, as `aria-controls` needs.
+				this.vueApp.config.idPrefix = this.id;
 				this.#renderContext = provideSheetContext(this.vueApp, vueContext);
 				this.#contentShown = providePendingContent(this.vueApp);
 				this.vueApp.mount(mountPoint);

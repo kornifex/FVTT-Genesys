@@ -85,8 +85,7 @@ Genesys:
     IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
     CycleInitiativeSkill: Cycle de la compétence d'initiative utilisée par le combattant.
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
-    ShowDescription: Afficher la description
-    HideDescription: Masquer la description
+    Details: Détails
     OpenSkill: Ouvrir la fiche de la compétence
     OpenItem: Ouvrir la fiche de l'objet
     OpenActor: Ouvrir la fiche de l'acteur
@@ -676,8 +675,6 @@ Genesys:
     GroupBy: Regrouper
     Item: Objet
     Items: Objets
-    CloseContainer: Fermer le conteneur
-    OpenContainer: Ouvrir le conteneur
     SendToChat: Envoyer dans le chat
     Actions: Actions
     BuyTalentRank: Acheter un rang du talent

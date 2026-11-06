@@ -746,16 +746,19 @@ function installDicePromptHelpers() {
 
 		poolModificationsBox() {
 			const root = htmlOf(thePrompt())!;
-			const expander = root.querySelector('.pool-modifications-expander')!;
+			// A `DescriptionFold` since #579; before, on the build a comparison runs, an expander of their own.
+			const expander = root.querySelector(':scope .dice-prompt > :is(.description-fold, .pool-modifications-expander)')!;
 			const container = root.querySelector('.pool-modifications-container')!;
+			// The expander's only child, which it folds: the container, or since #579 the fold's content around it.
+			const content = expander.firstElementChild!;
 			const style = getComputedStyle(expander);
 			const height = expander.getBoundingClientRect().height;
-			// Shown whole, the container stands at its full height in the expander, and cuts none of its rows; a pixel of
+			// Shown whole, the content stands at its full height in the expander, and cuts none of its rows; a pixel of
 			// slack for the heights rounded apart.
 			const whole =
-				Math.abs(height - container.getBoundingClientRect().height) <= 1 && container.scrollHeight - container.clientHeight <= 1;
+				Math.abs(height - content.getBoundingClientRect().height) <= 1 && content.scrollHeight - content.clientHeight <= 1;
 			return {
-				unfolded: expander.classList.contains('pool-modifications-expanded'),
+				unfolded: root.querySelector('.pool-modifications-title')!.getAttribute('aria-expanded') === 'true',
 				transition: `${style.transitionProperty} ${style.transitionDuration} ${style.transitionTimingFunction}`,
 				height: height > 0 && whole ? 'whole' : Math.round(height),
 				visibility: getComputedStyle(container).visibility,

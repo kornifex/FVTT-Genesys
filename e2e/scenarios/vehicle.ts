@@ -1,5 +1,12 @@
 /** @file #214: a vehicle's Crew and its Roles, its Skills tab, the crew members who roll its checks, and deleting vehicles with their crew. */
-import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
+import {
+	CLOSED_DESCRIPTION,
+	closedDescription,
+	OPEN_CHEVRON,
+	LONG_DESCRIPTION,
+	CLOSED_CHEVRON,
+	shownDescription,
+} from '../descriptions.ts';
 import type { Chevron, DescriptionBox } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 
@@ -547,7 +554,8 @@ function installVehicleHelpers() {
 		},
 
 		async descriptionBox({ actor: name, row, cap }) {
-			const description = find(await sheet(name), row).querySelector(':scope > .description');
+			// `.description` before #579, on the build a comparison runs.
+			const description = find(await sheet(name), row).querySelector(':scope > :is(.description-fold, .description)');
 			return description && window.e2e.descriptionBox(description, cap);
 		},
 	};
@@ -672,7 +680,7 @@ async function combatRowDescriptions(e2e: ScenarioContext) {
 	e2e.expect(
 		"#393 C1 a vehicle weapon's row shows a chevron after its name, pointing right, to show the description, which starts closed",
 		{ chevron: await chevron(harpoon), box: await closed() },
-		{ chevron: SHOW_CHEVRON, box: CLOSED_DESCRIPTION },
+		{ chevron: CLOSED_CHEVRON, box: CLOSED_DESCRIPTION },
 	);
 	e2e.expect(
 		"#393 C1 a vehicle weapon's row without a description shows no chevron",
@@ -686,7 +694,7 @@ async function combatRowDescriptions(e2e: ScenarioContext) {
 	e2e.expect(
 		"#393 C2 the vehicle weapon's description shows its last line, at its full height past 200px, its chevron pointing down to hide it, and no prompt opens",
 		{ box: await box(200), chevron: await chevron(harpoon), prompts: await vehicleE2E('prompts') },
-		{ box: shownDescription(200), chevron: HIDE_CHEVRON, prompts: noPrompts },
+		{ box: shownDescription(200), chevron: OPEN_CHEVRON, prompts: noPrompts },
 	);
 
 	await e2e.step('#393 C3 the chevron of the vehicle weapon clicked again', () =>
@@ -695,7 +703,7 @@ async function combatRowDescriptions(e2e: ScenarioContext) {
 	e2e.expect(
 		"#393 C3 the vehicle weapon's description closes, its chevron pointing right again",
 		{ box: await closed(), chevron: await chevron(harpoon) },
-		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+		{ box: CLOSED_DESCRIPTION, chevron: CLOSED_CHEVRON },
 	);
 
 	await e2e.step('#393 C4 the name of the vehicle weapon clicked', () =>

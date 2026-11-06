@@ -268,12 +268,15 @@ function installInventoryHelpers() {
 	const rowOf = async (ref: string, name: string) => findRow(await sheet(ref), name);
 	// Opening or closing a Container's row only changes the row's own state: no document changes, so its toggle is waited
 	// for, then the fold of its contents, which stay rendered while closed since #516.
+	// The toggle is the chevron of the row's details since #579, and was a box before, on the build a comparison runs; both
+	// tell whether the Container is open.
 	const foldRow = async (row: HTMLElement, open: boolean) => {
-		const toggle = () => row.querySelector<HTMLElement>('[data-item-type="container"] button');
-		const [from, to] = open ? ['.fa-box', '.fa-box-open'] : ['.fa-box-open', '.fa-box'];
-		if (toggle()?.querySelector(from)) {
+		const toggle = () =>
+			row.querySelector<HTMLElement>(':scope > .details > .description-toggle, :scope [data-item-type="container"] button');
+		const isOpen = () => toggle()?.getAttribute('aria-expanded') === 'true';
+		if (toggle() && isOpen() !== open) {
 			toggle()!.click();
-			await waitFor(`the toggle of ${text(row.querySelector('.name button'))}`, () => toggle()?.querySelector(to));
+			await waitFor(`the toggle of ${text(row.querySelector('.name button'))}`, () => isOpen() === open);
 			await settle();
 		}
 	};
@@ -1235,7 +1238,8 @@ function installInventoryHelpers() {
 		},
 
 		async contentsBox(ref, name) {
-			const contents = (await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .contents');
+			// The fold of a `DescriptionFold` since #579; `.contents` before.
+			const contents = (await rowOf(ref, name)).querySelector<HTMLElement>(':scope > :is(.description-fold, .contents)');
 			if (!contents) return null;
 			const rows = [...contents.querySelectorAll('.inventory-item')];
 			const box = contents.getBoundingClientRect();
