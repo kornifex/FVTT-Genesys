@@ -3012,9 +3012,10 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 
 	await e2e.step('#393 B2 the name of the Critical Injury clicked', () => clickName({ injury: 'Bruise' }));
 	e2e.expect(
-		"#393 B2 the Critical Injury's name opens its sheet, and leaves its description closed",
+		// §#578: the name heals the injury.
+		"#393 B2 the Critical Injury's name opens the Dice Prompt of its healing check, and leaves its description closed",
 		{ box: await closed({ injury: 'Bruise' }), ...(await closeOpened('Bruise')) },
-		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
+		{ box: CLOSED_DESCRIPTION, sheet: false, dicePrompt: true },
 	);
 
 	let prompt: unknown;

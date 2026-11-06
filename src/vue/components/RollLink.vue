@@ -29,7 +29,15 @@ const tooltip = computed(() => game.i18n.format(props.label, props.labelData ?? 
 </script>
 
 <template>
-	<ActionButton class="roll-link" icon="fas fa-dice-d20" :localized-label="tooltip" @click="emit('roll')">
+	<ActionButton class="roll-link" :localized-label="tooltip" @click="emit('roll')">
+		<!-- In the icon slot, which puts no space in the name's text: a margin keeps the die apart. -->
+		<template #icon><i class="fas fa-dice-d20 roll-die" aria-hidden="true"></i></template>
 		<slot />
 	</ActionButton>
 </template>
+
+<style lang="scss" scoped>
+.roll-die {
+	margin-right: 0.25em;
+}
+</style>

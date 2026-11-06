@@ -1562,7 +1562,9 @@ function installSheetsHelpers() {
 			};
 			const drawn = (node: Node): string => {
 				if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-				if (!(node instanceof Element) || getComputedStyle(node).display === 'none') return '';
+				// An icon hidden from screen readers draws a glyph of its font, no text: a rolling name's die (#578).
+				if (!(node instanceof Element) || getComputedStyle(node).display === 'none' || node.matches('[aria-hidden="true"]'))
+					return '';
 				return `${pseudo(node, '::before')}${[...node.childNodes].map(drawn).join('')}${pseudo(node, '::after')}`;
 			};
 			return drawn(find(sheetElement(name), selector, which))

@@ -37,9 +37,10 @@ describe('RollLink', () => {
 	it('shows a die before the name, hidden from screen readers', () => {
 		const link = mountLink();
 
-		expect(link.get('i').classes()).toEqual(['fas', 'fa-dice-d20']);
+		expect(link.get('i').classes()).toContain('fa-dice-d20');
 		expect(link.get('i').attributes('aria-hidden')).toBe('true');
-		expect((link.element as HTMLElement).textContent).toBe(' E2E Sword');
+		// No space before the name: the die keeps apart by a margin.
+		expect((link.element as HTMLElement).textContent).toBe('E2E Sword');
 		link.unmount();
 	});
 

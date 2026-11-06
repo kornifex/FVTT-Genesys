@@ -50,7 +50,7 @@ describe('SkillRow', () => {
 	it('shows a die before its name, hidden from screen readers, and a tooltip naming the check', () => {
 		const name = mountRow(athletics).get('.skill-name');
 
-		expect(name.get('i').classes()).toEqual(['fas', 'fa-dice-d20']);
+		expect(name.get('i').classes()).toContain('fa-dice-d20');
 		expect(name.get('i').attributes('aria-hidden')).toBe('true');
 		expect(name.attributes('data-tooltip')).toBe('Genesys.Tooltips.RollSkill Athletics');
 	});
