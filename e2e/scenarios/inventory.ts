@@ -1,5 +1,5 @@
 /** @file The inventory of #37: drops on actor and item sheets, Containers, Equipment States and their effects, armor, encumbrance and inventory rows. */
-import type { ConfirmDialog, Point } from '../page.ts';
+import type { ConfirmDialog, FoldToggle, Point } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 
 type EquipmentState = 'equipped' | 'carried' | 'dropped';
@@ -147,6 +147,8 @@ type InventoryHelpers = {
 	contents(actor: string, container: string): Promise<string[]>;
 	/** Opens or closes a Container's row in the Inventory tab, and waits for its fold to end. */
 	foldContainer(actor: string, container: string, open: boolean): Promise<void>;
+	/** The toggle of a Container's row, which folds its contents, as read (#579); null when the row shows none. */
+	containerToggle(actor: string, container: string): Promise<FoldToggle | null>;
 	/** A Container's contents as laid out, or null while the row renders none. */
 	contentsBox(actor: string, container: string): Promise<ContentsBox | null>;
 	effects(actor: string): { onActor: number; applied: string[]; suppressed: string[] };
@@ -241,9 +243,10 @@ function installInventoryHelpers() {
 	// for, then the fold of its contents, which stay rendered while closed since #516.
 	// The toggle is the chevron of the row's details since #579, and was a box before, on the build a comparison runs; both
 	// tell whether the Container is open.
+	const toggleOf = (row: HTMLElement) =>
+		row.querySelector<HTMLElement>(':scope > .details > .description-toggle, :scope [data-item-type="container"] button');
 	const foldRow = async (row: HTMLElement, open: boolean) => {
-		const toggle = () =>
-			row.querySelector<HTMLElement>(':scope > .details > .description-toggle, :scope [data-item-type="container"] button');
+		const toggle = () => toggleOf(row);
 		const isOpen = () => toggle()?.getAttribute('aria-expanded') === 'true';
 		if (toggle() && isOpen() !== open) {
 			toggle()!.click();
@@ -1132,6 +1135,11 @@ function installInventoryHelpers() {
 		async foldContainer(ref, name, open) {
 			await window.e2e.showTab(ref, 'inventory');
 			await foldRow(await rowOf(ref, name), open);
+		},
+
+		async containerToggle(ref, name) {
+			const toggle = toggleOf(await rowOf(ref, name));
+			return toggle && window.e2e.foldToggle(toggle);
 		},
 
 		async contentsBox(ref, name) {
@@ -2316,7 +2324,10 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
 }
 
-/** §#516: an open Container shows all its contents, with no cap or scrollbar of its own, and closes over them. */
+/**
+ * §#516: an open Container shows all its contents, with no cap or scrollbar of its own, and closes over them. §#579: its
+ * count is a `DescriptionFold`'s chevron.
+ */
 async function containerFold(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const HELD = ['Awl', 'Bobbin', 'Candle', 'Dice', 'Eyeglass', 'Flint', 'Gloves', 'Hook'];
@@ -2340,12 +2351,23 @@ async function containerFold(e2e: ScenarioContext) {
 		lastInside: true,
 		visibility: 'visible',
 	});
+	const toggle = () => gm.evaluate(() => window.inventoryE2E.containerToggle('Hoarder', 'Chest'));
+	e2e.expect(
+		"#579 D1 the open Container's count tells it is expanded, points at the fold of its contents, and shows a chevron pointing down",
+		await toggle(),
+		{ text: '8 Items', expanded: true, icon: 'fa-chevron-down', controlsFold: true },
+	);
 
 	await e2e.step("#516 A2 Hoarder's Chest closed", () => gm.evaluate(() => window.inventoryE2E.foldContainer('Hoarder', 'Chest', false)));
 	e2e.expect(
 		'#516 A2 the closed Container keeps its contents rendered, which take no height and are hidden from Tab once the fold ends',
 		await box(),
 		{ rows: HELD, height: 0, scrollbar: false, lastInside: false, visibility: 'hidden' },
+	);
+	e2e.expect(
+		'#579 D2 the closed Container keeps its count as its name, tells it is collapsed, and shows a chevron pointing right',
+		await toggle(),
+		{ text: '8 Items', expanded: false, icon: 'fa-chevron-right', controlsFold: true },
 	);
 	await gm.evaluate(() => window.e2e.closeSetUp());
 }

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Comment, Fragment, Text, useId, useSlots, type VNode } from 'vue';
+import { Comment, Fragment, type FunctionalComponent, h, mergeProps, Text, useId, useSlots, type VNode } from 'vue';
 import { isEmptyDescription } from '@/data/Descriptions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Enriched from '@/vue/components/Enriched.vue';
@@ -42,11 +42,15 @@ function rendersSomething(nodes: VNode[] | undefined): boolean {
 	});
 }
 
-const chevronIcon = () => `fas ${open.value ? 'fa-chevron-down' : 'fa-chevron-right'}`;
-
-// A summary is the chevron's text, which names it, and needs no tooltip; without one, it shows its icon alone, named
-// Details whether the fold is open or not, as `aria-expanded` tells which.
-const chevronLabel = () => (slots.summary ? undefined : 'Genesys.Tooltips.Details');
+/**
+ * The head: a span around the row's name and the chevron, which takes the component's attributes, or the chevron alone,
+ * which takes them itself. A summary is the chevron's text, which names it and needs no tooltip; without one, the chevron
+ * shows its icon alone, named Details whether the fold is open or not, as `aria-expanded` tells which.
+ */
+const Head: FunctionalComponent<{ wrap: boolean }> = (headProps, { attrs, slots: headSlots }) =>
+	headProps.wrap ? h('span', mergeProps(attrs, { class: 'description-fold-head' }), headSlots.default?.()) : headSlots.default?.() ?? [];
+Head.props = ['wrap'];
+Head.inheritAttrs = false;
 
 // The chevron shows while the fold has something to show: a description, or what its slots add, such as a talent's tier.
 function hasContent() {
@@ -56,32 +60,21 @@ function hasContent() {
 
 <template>
 	<!-- Reading a fold edits nothing: the chevron shows on a sheet the user can't edit too. -->
-	<span v-if="$slots.default" class="description-fold-head" v-bind="$attrs">
+	<Head :wrap="!!$slots.default" v-bind="$slots.default ? $attrs : {}">
 		<slot />
 		<ActionButton
 			v-if="hasContent()"
+			v-bind="$slots.default ? {} : $attrs"
 			:class="['description-toggle', { 'icon-only': !$slots.summary }]"
-			:icon="chevronIcon()"
-			:label="chevronLabel()"
+			:icon="`fas ${open ? 'fa-chevron-down' : 'fa-chevron-right'}`"
+			:label="$slots.summary ? undefined : 'Genesys.Tooltips.Details'"
 			:expanded="open"
 			:aria-controls="foldId"
 			@click="open = !open"
 		>
 			<template v-if="$slots.summary" #default><slot name="summary" /></template>
 		</ActionButton>
-	</span>
-	<ActionButton
-		v-else-if="hasContent()"
-		v-bind="$attrs"
-		:class="['description-toggle', { 'icon-only': !$slots.summary }]"
-		:icon="chevronIcon()"
-		:label="chevronLabel()"
-		:expanded="open"
-		:aria-controls="foldId"
-		@click="open = !open"
-	>
-		<template v-if="$slots.summary" #default><slot name="summary" /></template>
-	</ActionButton>
+	</Head>
 
 	<!-- The closed fold stays rendered, for it to close over its content. -->
 	<div :id="foldId" :class="['description-fold', { open }]">
