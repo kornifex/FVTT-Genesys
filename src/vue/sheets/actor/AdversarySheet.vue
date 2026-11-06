@@ -220,8 +220,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 								v-for="{ item, profile, name, skill } in weapons"
 								:key="`${item.id}-${profile.index}`"
 								class="weapon"
-								:disable-menu="!editable"
 							>
+								<!-- On a sheet the user can't edit, the menu keeps the entries that read: Edit opens the weapon's sheet. -->
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
 
@@ -232,7 +232,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										@click="attackWith(actor, item, profile)"
 									/>
 
-									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
+									<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
 								<!-- The button holds the name alone: its details hold the Attack Skill's select, which a button can't.

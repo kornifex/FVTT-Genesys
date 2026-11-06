@@ -42,9 +42,10 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 	<h3><Localized :label="props.label" /></h3>
 	<div class="container">
 		<ListEmpty v-if="skills.length === 0" />
-		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill" :disable-menu="!editable">
+		<!-- On a sheet the user can't edit, the menu keeps Edit, which opens the skill's sheet, as the character's skills do (#512). -->
+		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
 			<template v-slot:menu-items>
-				<template v-if="props.groupRank === undefined">
+				<template v-if="props.groupRank === undefined && editable">
 					<MenuItem icon="fas fa-circle-up" label="Genesys.Labels.FreeRankUp" @click="freeSkillRank(skill, 1)" />
 
 					<MenuItem icon="fas fa-circle-down" label="Genesys.Labels.FreeRankDown" @click="freeSkillRank(skill, -1)" />
@@ -52,7 +53,7 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(skill)" />
 
-				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
+				<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 			</template>
 
 			<ActionButton class="skill-icon" :image="skill.img ?? undefined" label="Genesys.Tooltips.OpenSkill" @click="openSheet(skill)" />
