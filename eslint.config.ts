@@ -68,8 +68,7 @@ export default defineConfig(
 		plugins: { 'vuejs-accessibility': vuejsAccessibility },
 		rules: {
 			'vuejs-accessibility/click-events-have-key-events': 'error',
-			// A link's text is often a localized one, which `Localized` renders.
-			'vuejs-accessibility/anchor-has-content': ['error', { accessibleChildren: ['Localized'] }],
+			'vuejs-accessibility/anchor-has-content': 'error',
 			'vuejs-accessibility/alt-text': 'error',
 		},
 	},

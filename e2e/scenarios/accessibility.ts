@@ -277,10 +277,20 @@ function installAccessibilityHelpers() {
 		if (before) {
 			before.focus();
 		} else {
-			content.tabIndex = -1;
-			content.focus();
+			focusContent(content);
 		}
 	};
+	// Focuses a window's content, before its first control, until the focus leaves it: its tabindex then goes as it was.
+	function focusContent(content: HTMLElement) {
+		const tabindex = content.getAttribute('tabindex');
+		content.tabIndex = -1;
+		content.focus();
+		content.addEventListener(
+			'blur',
+			() => (tabindex === null ? content.removeAttribute('tabindex') : content.setAttribute('tabindex', tabindex)),
+			{ once: true },
+		);
+	}
 	// Marks the element a step clicks with the mouse.
 	const markForPointer = (target: HTMLElement) => {
 		for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
@@ -462,9 +472,7 @@ function installAccessibilityHelpers() {
 			if (tabbable(find(document, `${selector} .window-content`)).includes(first)) {
 				focusBefore(selector, first, `the tabs of ${sheet}`);
 			} else {
-				const content = find(document, `${selector} .window-content`);
-				content.tabIndex = -1;
-				content.focus();
+				focusContent(find(document, `${selector} .window-content`));
 			}
 			markForPointer(third);
 			tabSteps = selector;

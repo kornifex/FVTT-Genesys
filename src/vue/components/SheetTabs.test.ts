@@ -141,4 +141,18 @@ describe('SheetTabs', () => {
 		expect(keydown.defaultPrevented).toBe(false);
 		expect(wrapper.get('[aria-selected="true"]').attributes('data-tab')).toBe('combat');
 	});
+
+	it.each(['altKey', 'ctrlKey', 'metaKey'])('leaves an arrow key held with %s to the page', async (modifier) => {
+		const sheet = sheetOn('combat');
+		const wrapper = mountTabs(sheet);
+		const tab = wrapper.get('[data-tab="combat"][role="tab"]');
+		const keydown = new KeyboardEvent('keydown', { key: 'ArrowRight', [modifier]: true, bubbles: true, cancelable: true });
+
+		tab.element.dispatchEvent(keydown);
+		await wrapper.vm.$nextTick();
+
+		expect(keydown.defaultPrevented).toBe(false);
+		expect(wrapper.get('[aria-selected="true"]').attributes('data-tab')).toBe('combat');
+		expect(sheet.tabGroups.primary).toBe('combat');
+	});
 });

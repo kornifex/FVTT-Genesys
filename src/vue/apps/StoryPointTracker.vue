@@ -143,7 +143,8 @@ async function toggleEdit(pool: StoryPointPool) {
 		align-items: center;
 		flex: 1 1 0;
 		min-width: 4.5em;
-		padding: 0.25em 0.75em 0.125em;
+		// Room for the focus ring (#575), which reaches 4px past a button: the tracker hides what passes its edge.
+		padding: 0.3em 0.75em 0.375em;
 	}
 
 	// The two sides of Genesys' Story Point token: the GM's dark, the players' light.

@@ -70,9 +70,14 @@ function activate(id: string) {
 /**
  * Move to another tab from the keyboard, showing its panel: the arrow keys move to the tab beside the focused one,
  * wrapping round the ends, and Home and End to the first and the last. The listener sits on the tabs, inside the sheet's
- * element: on v14 a window can be detached into another document.
+ * element: on v14 a window can be detached into another document. A key held with Alt, Ctrl or Meta is left to the
+ * browser and the system, as Alt+Left goes back.
  */
 function moveFrom(index: number, event: KeyboardEvent) {
+	if (event.altKey || event.ctrlKey || event.metaKey) {
+		return;
+	}
+
 	const last = props.tabs.length - 1;
 	const target = {
 		ArrowLeft: index === 0 ? last : index - 1,
