@@ -1549,12 +1549,12 @@ async function crewRolls(e2e: ScenarioContext) {
 		{ prompts: noPrompts, notifications: cannotSelect },
 	);
 	// §#578: a picture opens a sheet the player may see, and only shows one they may not, which Foundry would refuse with
-	// an error.
+	// an error. Ace rolls gunnery unranked, as the Skills Compendium defines it, whose sheet every player sees.
 	e2e.expect(
-		"#578 F1 player, Skills tab by crew member: the pictures of an owned member and of their skills open their sheets, the others' only show",
+		"#578 F1 player, Skills tab by crew member: the pictures of an owned member, of their skills and of the Skills Compendium's open their sheets, the others' only show",
 		await playerE2E('skillIcons', 'Ship'),
 		{
-			Ace: { member: 'image', skills: ['image', 'image'] },
+			Ace: { member: 'image', skills: ['button', 'image'] },
 			Gun: { member: 'button', skills: ['button'] },
 			Mob: { member: 'image', skills: ['image'] },
 			Wrench: { member: 'image', skills: ['image'] },
