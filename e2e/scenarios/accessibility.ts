@@ -127,7 +127,12 @@ type AccessibilityHelpers = {
 	focusedName(): string | null;
 	/** The Dice Prompt's pool: its Boost dice, and its Difficulty's label. */
 	dicePromptPool(): { boost: number; difficulty: string };
-	/** Gives back the Ship's roles and the Hero's journal as they were before the prompt steps answered. */
+	/** How many actors bear the Minion's name: the Minion, and the clones a clone prompt made of it under that name. */
+	minionCopies(): number;
+	/**
+	 * Gives back the Ship's roles and the Hero's journal as they were before the prompt steps answered, and deletes the
+	 * Minion's clones.
+	 */
 	undoPromptAnswers(): Promise<void>;
 };
 
@@ -1102,6 +1107,8 @@ function installAccessibilityHelpers() {
 					await game.actors.getName('E2E Recruit')?.delete();
 					await Actor.create({ name: 'E2E Recruit', type: 'character' });
 				}
+				// The Minion leaves the Role a previous answer put it in: a Crew it is in offers no clone.
+				if (prompt === 'cloneActor') await actor('Ship').update({ 'system.roles': promptFound.roles });
 				await settle();
 				return false;
 			}
@@ -1180,8 +1187,14 @@ function installAccessibilityHelpers() {
 			};
 		},
 
+		minionCopies: () => game.actors.filter((doc: { name: string }) => doc.name === 'E2E Minion').length,
+
 		async undoPromptAnswers() {
 			await game.actors.getName('E2E Recruit')?.delete();
+			const clones = game.actors.filter(
+				(doc: { name: string; id: string }) => doc.name === 'E2E Minion' && doc.id !== actor('Minion').id,
+			);
+			if (clones.length) await Actor.deleteDocuments(clones.map((clone: { id: string }) => clone.id));
 			if (promptFound) {
 				await actor('Ship').update({ 'system.roles': promptFound.roles });
 				await actor('Hero').update({ 'system.experienceJournal.entries': promptFound.entries });
@@ -1560,9 +1573,45 @@ async function promptKeys(e2e: ScenarioContext) {
 					{ checked: [1], selected: [1], marks: [1] },
 				);
 				e2e.expect('#581 C1 Enter rolls for the member the arrow keys chose', await outcome(prompt), ['Loader']);
+
+				let diceOpened: unknown = null;
+				await e2e.step("#581 C2 Escape pressed in the Dice Prompt the crew member's choice opened", async () => {
+					// A crew prompt left unanswered opens no Dice Prompt: the step's expectation fails rather than the scenario.
+					await gm.evaluate(async () => {
+						const shown = () => window.e2e.apps('app-dice-prompt').some((app: { rendered: boolean }) => app.rendered);
+						for (let waited = 0; waited < 3000 && !shown(); waited += 100) await window.e2e.sleep(100);
+						if (shown()) await window.accessibilityE2E.promptShown('dice');
+					});
+					diceOpened = await focus('dice');
+					await press('Escape');
+					await closed('dice');
+				});
+				e2e.expect(
+					"#581 C2 the Dice Prompt a crew member's choice opens takes the focus, and Escape there gives it back to the button that opened the crew member prompt",
+					{ opened: diceOpened, after: await focus('dice') },
+					{ opened: { open: true, focused: 'select skill' }, after: { open: false, focused: 'opener' } },
+				);
 			}
 			await closeAll();
 		}
+
+		let copies: number[] = [];
+		await e2e.step(
+			'#581 A6 cloneActor prompt opened by a drop, Clone chosen with an arrow key, then Select double-clicked',
+			async () => {
+				await ready('cloneActor');
+				const minions = () => gm.evaluate(() => window.accessibilityE2E.minionCopies());
+				copies = [await minions()];
+				await trigger('cloneActor', false);
+				await press('ArrowRight');
+				// The primary button, which keeps this class on both builds.
+				await gm.page.dblclick('.app-clone-actor-prompt .submit-button');
+				await closed('cloneActor');
+				await gm.evaluate(() => window.e2e.settle());
+				copies.push(await minions());
+			},
+		);
+		e2e.expect("#581 A6 a double click on the clone prompt's Select makes one clone", copies[1] - copies[0], 1);
 
 		let built: unknown = null;
 		let messages = 0;
