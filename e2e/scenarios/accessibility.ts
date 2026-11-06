@@ -39,6 +39,8 @@ type AccessibilityHelpers = {
 	keyboardAction(): { focused: boolean; ran: boolean };
 	/** Whether the sheet of the last action readied is still open. */
 	keyboardSheetOpen(): boolean;
+	/** Gives back the data the last action readied wrote, so that the parts after it find the world as it was. */
+	undoKeyboardAction(): Promise<void>;
 	/** Readies a mouse click on the Story Point tracker's player pool, with 2 points in it and the game unpaused. */
 	readySpend(): Promise<void>;
 	/** The points left in the player pool, whether the spend button has focus, and whether the game is paused. */
@@ -184,7 +186,13 @@ function installAccessibilityHelpers() {
 		[...root.querySelectorAll('.adversary-items .talent')]
 			.find((row) => row.textContent?.includes('E2E Grit'))
 			?.querySelector<HTMLElement>('.send-to-chat-link') ?? null;
-	type KeyboardAction = { tab: string; button: (root: Element) => HTMLElement | null; state: (button: HTMLElement) => unknown };
+	type KeyboardAction = {
+		tab: string;
+		button: (root: Element) => HTMLElement | null;
+		state: (button: HTMLElement) => unknown;
+		/** Gives back the data the action wrote, from its state before it ran. */
+		undo?: (before: unknown) => Promise<unknown>;
+	};
 	const KEYBOARD: Record<string, KeyboardAction> = {
 		Hero: {
 			tab: 'talents',
@@ -201,15 +209,25 @@ function installAccessibilityHelpers() {
 			tab: 'crew',
 			button: (root) => root.querySelector<HTMLElement>('.tab-crew .heading-row button'),
 			state: () => actor('Ship').system.roles.length,
+			// The Role added comes last.
+			undo: (before) => actor('Ship').update({ 'system.roles': actor('Ship')._source.system.roles.slice(0, before) }),
 		},
 		weapon: {
 			tab: 'effects',
 			button: (root) => root.querySelector<HTMLElement>('.effects-view > .columns .buttons button'),
 			state: () => documentNamed('weapon').effects.size,
+			// The effect added comes last; the headings part reads this weapon's Effects tab empty.
+			undo: (before) => {
+				const weapon = documentNamed('weapon');
+				const added = weapon.effects.contents.slice(before).map((effect: { id: string }) => effect.id);
+				return weapon.deleteEmbeddedDocuments('ActiveEffect', added);
+			},
 		},
 	};
 	// The action readied last, its sheet's window, and what it changes as it was before.
-	let keyboard: { button: HTMLElement; selector: string; before: unknown; state: KeyboardAction['state'] } | undefined;
+	let keyboard:
+		| { button: HTMLElement; selector: string; before: unknown; state: KeyboardAction['state']; undo: KeyboardAction['undo'] }
+		| undefined;
 	// The Story Points and the pause the tracker's step found, to give back.
 	let spendFound: { points: { player: number; gm: number }; paused: boolean } | undefined;
 	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds.
@@ -346,7 +364,7 @@ function installAccessibilityHelpers() {
 		},
 
 		async readyKeyboardAction(sheet) {
-			const { tab, button, state } = KEYBOARD[sheet];
+			const { tab, button, state, undo } = KEYBOARD[sheet];
 			const { selector, tabs } = await helpers.openSheet(sheet);
 			const panel = tabs[0] === tab ? `${selector} .tab[data-tab="${tab}"]` : await helpers.showTab(selector, tab);
 			const target = button(find(document, panel));
@@ -363,7 +381,7 @@ function installAccessibilityHelpers() {
 				content.tabIndex = -1;
 				content.focus();
 			}
-			keyboard = { button: target, selector, before: state(target), state };
+			keyboard = { button: target, selector, before: state(target), state, undo };
 			// Marked for a step that clicks it with the mouse instead.
 			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
 			target.dataset.e2ePointer = '';
@@ -376,6 +394,12 @@ function installAccessibilityHelpers() {
 
 		keyboardSheetOpen() {
 			return !!keyboard && !!document.querySelector(keyboard.selector);
+		},
+
+		async undoKeyboardAction() {
+			if (!keyboard?.undo || keyboard.state(keyboard.button) === keyboard.before) return;
+			await keyboard.undo(keyboard.before);
+			await settle();
 		},
 
 		async readySpend() {
@@ -685,6 +709,8 @@ export async function run(e2e: ScenarioContext) {
 					);
 				}
 				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+				// The Role and the effect added go, so that the parts after this one find the world as it was (#584's headings).
+				await gm.evaluate(() => window.accessibilityE2E.undoKeyboardAction());
 			}
 		});
 
