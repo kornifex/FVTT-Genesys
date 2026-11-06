@@ -29,6 +29,7 @@ import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { signed } from '@/vue/format';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -252,6 +253,45 @@ function openMenu(event: MouseEvent) {
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 		</span>
+		<!-- A Container's details are the count of its contents, which opens them, in a fold below the row. -->
+		<DescriptionFold
+			v-else-if="item.type === 'container'"
+			v-model:open="displayContainerContents"
+			class="details"
+			@dragenter="containerDrag.enter"
+			@dragleave="containerDrag.leave"
+		>
+			<span class="name">
+				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
+			</span>
+
+			<template #summary>
+				{{ containedItems.length }}
+				<Localized label="Genesys.Labels.Items" v-if="containedItems.length !== 1" />
+				<Localized label="Genesys.Labels.Item" v-else />
+			</template>
+
+			<!-- Always rendered, as the count is: an empty Container opens on nothing. -->
+			<template #fold>
+				<div class="contents">
+					<InventoryItem
+						v-for="item in containedItems"
+						:item="item"
+						:key="item.id"
+						mini
+						draggable="true"
+						@dragstart="
+							$event.stopPropagation();
+							emit('dragstart', $event);
+						"
+						@dragend="
+							$event.stopPropagation();
+							emit('dragend', $event);
+						"
+					/>
+				</div>
+			</template>
+		</DescriptionFold>
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
 				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
@@ -292,23 +332,6 @@ function openMenu(event: MouseEvent) {
 					</div>
 
 					<QualityList :qualities="armorData().qualities" class="item-qualities" />
-				</template>
-
-				<template v-else-if="item.type === 'container'">
-					<ActionButton v-if="displayContainerContents" icon="fas fa-box-open" expanded @click="displayContainerContents = false"
-						><Localized label="Genesys.Labels.CloseContainer"
-					/></ActionButton>
-					<ActionButton
-						v-else
-						icon="fas fa-box"
-						label="Genesys.Labels.OpenContainer"
-						:expanded="false"
-						@click="displayContainerContents = true"
-					>
-						{{ containedItems.length }}
-						<Localized label="Genesys.Labels.Items" v-if="containedItems.length !== 1" />
-						<Localized label="Genesys.Labels.Item" v-else />
-					</ActionButton>
 				</template>
 			</div>
 		</div>
@@ -363,35 +386,21 @@ function openMenu(event: MouseEvent) {
 				<i class="fas fa-ellipsis-vertical"></i>
 			</a>
 		</ContextMenu>
-
-		<!-- The contents stay rendered while the Container is closed, for the fold to close over them. -->
-		<div v-if="item.type === 'container' && !mini" :class="{ contents: true, open: displayContainerContents }">
-			<div>
-				<InventoryItem
-					v-for="item in containedItems"
-					:item="item"
-					:key="item.id"
-					mini
-					draggable="true"
-					@dragstart="
-						$event.stopPropagation();
-						emit('dragstart', $event);
-					"
-					@dragend="
-						$event.stopPropagation();
-						emit('dragend', $event);
-					"
-				/>
-			</div>
-		</div>
 	</div>
 </template>
 
 <style lang="scss" scoped>
 @use 'sass:color';
 @use '@scss/vars/colors.scss';
-@use '@scss/mixins/expandable.scss';
 @use '@scss/mixins/headings.scss';
+
+// The details of a row that has some: its name, and below it what it is.
+@mixin details {
+	display: grid;
+	grid-template-rows: auto auto;
+	grid-column: name / span 2;
+	font-family: 'Roboto Serif', serif;
+}
 
 .inventory-item {
 	display: grid;
@@ -495,12 +504,24 @@ function openMenu(event: MouseEvent) {
 	}
 
 	// Open, a Container shows all its contents: a cap of their own, with its own scrollbar, hid some and nested a scroll
-	// inside the sheet's (#516).
-	.contents {
+	// inside the sheet's (#516). The fold, and the details that open it, are the roots of a `DescriptionFold`, which take no
+	// scope attribute from the row: :deep() reaches them.
+	& > :deep(.description-fold) {
 		grid-column: icon / span all;
 		grid-row: 2 / span all;
 		padding-right: 0.5em;
-		@include expandable.description($open: open);
+	}
+
+	& > :deep(.details) {
+		@include details;
+
+		// The count of the Container's contents, under its name.
+		& > .description-toggle {
+			grid-row: 2 / span 1;
+			justify-self: start;
+			font-size: 0.9em;
+			color: colors.$dark-blue;
+		}
 	}
 
 	.name {
@@ -524,10 +545,7 @@ function openMenu(event: MouseEvent) {
 	}
 
 	.details {
-		display: grid;
-		grid-template-rows: auto auto;
-		grid-column: name / span 2;
-		font-family: 'Roboto Serif', serif;
+		@include details;
 
 		& > div {
 			grid-row: 2 / span 1;
@@ -536,10 +554,7 @@ function openMenu(event: MouseEvent) {
 			font-size: 0.9em;
 			color: colors.$dark-blue;
 			gap: 0.25em;
-
-			&:not([data-item-type='container']) {
-				margin-left: 0.5em;
-			}
+			margin-left: 0.5em;
 
 			// The details, separated by semicolons. A Weapon Profile's stats are among them, the roots of a component with
 			// several, which take no scope attribute from the row: :deep() reaches them.

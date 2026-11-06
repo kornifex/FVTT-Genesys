@@ -4371,16 +4371,18 @@ function installSheetHeightHelpers() {
 			const afterTab = helpers.height(name);
 			const row = elementOf(name).querySelector<HTMLElement>(`.tab[data-tab="${tab}"] .talent`);
 			if (!row) throw new Error(`No talent on the ${tab} tab of E2E ${name}`);
-			// The talent's name opens its description, or its chevron once it has one (#515).
+			// The talent's chevron opens its description (#515); a talent shows one for its tier since #579, and its name
+			// opened it before, on the build a comparison runs.
 			if (!window.e2e.clickChevron(row)) row.querySelector<HTMLElement>('.name button')!.click();
-			// The description opens through a transition, which settling waits for.
-			await waitFor(`the description of the talent on the ${tab} tab of E2E ${name}`, () => row.querySelector('.active'));
+			// The description opens through a transition, which settling waits for. `.active` marked it open before #579.
+			const open = () => row.querySelector('.description-fold.open, .active');
+			await waitFor(`the description of the talent on the ${tab} tab of E2E ${name}`, open);
 			await settle();
 			return {
 				opened,
 				tab: afterTab,
 				talent: helpers.height(name),
-				expanded: !!row.querySelector('.active'),
+				expanded: !!open(),
 			};
 		},
 	};

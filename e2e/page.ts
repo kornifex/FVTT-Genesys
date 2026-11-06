@@ -74,10 +74,11 @@ export type DescriptionBox = {
 };
 
 /**
- * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515): where it
- * points, `right` closed and `down` open, and its tooltip: its name, which its bare `data-tooltip` shows.
+ * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515), as a screen
+ * reader reads it since #579: whether it is expanded (`aria-expanded`), its name, which its bare `data-tooltip` shows, and
+ * whether its `aria-controls` points at the row's fold.
  */
-export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
+export type Chevron = { expanded: boolean; name: string; controlsFold: boolean };
 
 /**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
@@ -655,11 +656,12 @@ export function installHelpers() {
 		chevron(row) {
 			const toggle = row.querySelector<HTMLElement>('.description-toggle');
 			if (!toggle) return null;
-			const icon = toggle.querySelector('i');
+			const controlled = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
 			return {
-				points: icon?.classList.contains('fa-chevron-down') ? 'down' : icon?.classList.contains('fa-chevron-right') ? 'right' : '?',
+				expanded: toggle.getAttribute('aria-expanded') === 'true',
 				// The button's name, which its bare `data-tooltip` shows.
-				tooltip: toggle.getAttribute('aria-label') ?? '',
+				name: toggle.getAttribute('aria-label') ?? '',
+				controlsFold: !!controlled && controlled.matches('.description-fold') && row.contains(controlled),
 			};
 		},
 

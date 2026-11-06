@@ -76,8 +76,8 @@ describe('ActionButton', () => {
 
 	it('tells whether what it folds is open, and whether it is on, only when it does either', () => {
 		const plain = mountButton({ icon: 'fas fa-trash', label: 'Genesys.Labels.Delete' });
-		const closed = mountButton({ icon: 'fas fa-chevron-right', label: 'Genesys.Tooltips.ShowDescription', expanded: false });
-		const open = mountButton({ icon: 'fas fa-chevron-down', label: 'Genesys.Tooltips.HideDescription', expanded: true });
+		const closed = mountButton({ icon: 'fas fa-chevron-right', label: 'Genesys.Tooltips.Details', expanded: false });
+		const open = mountButton({ icon: 'fas fa-chevron-down', label: 'Genesys.Tooltips.Details', expanded: true });
 		const on = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.Toggle', pressed: true });
 		const off = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.Toggle', pressed: false });
 
