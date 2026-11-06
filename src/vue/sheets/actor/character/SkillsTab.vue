@@ -7,17 +7,16 @@ import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
-import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import { GenesysItem } from '@/item/GenesysItem';
-import SkillRanks from '@/vue/components/character/SkillRanks.vue';
+import SkillRow from '@/vue/components/SkillRow.vue';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
 import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
-import { freeRank, SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
-import { deleteItem, openSheet } from '@/operations/ItemActions';
+import { CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
+import { SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
+import { deleteItem, freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
@@ -25,10 +24,6 @@ const advancement = computed(() => advancementCharacter(actor.value));
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
 
 const canMarkSuper = computed(() => canMarkSuperCharacteristics(system.value.experienceJournal.entries));
-
-async function rollSkill(skill: Stored<GenesysItem<'skill'>>) {
-	await DicePrompt.promptForRoll(actor.value, skill.name);
-}
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
@@ -55,12 +50,6 @@ function canPurchaseSkillRank(skill: Stored<GenesysItem<'skill'>>) {
 async function toggleCareerSkill(skill: Stored<GenesysItem<'skill'>>) {
 	await skill.update({
 		system: { career: !skill.system.career },
-	});
-}
-
-async function freeSkillRank(skill: Stored<GenesysItem<'skill'>>, step: 1 | -1) {
-	await skill.update({
-		system: { rank: freeRank(skill.system.rank, step) },
 	});
 }
 
@@ -145,32 +134,19 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 						</template>
 
-						<ActionButton
-							class="skill-icon"
-							:image="skill.img ?? undefined"
-							label="Genesys.Tooltips.OpenSkill"
-							@click="openSheet(skill)"
-						/>
-						<ActionButton class="name" @click="rollSkill(skill)">
-							<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic]" />)</span>
-							<i v-if="skill.system.career" class="fas fa-star"></i>
-						</ActionButton>
-
-						<span class="rank-display">
-							{{ skill.system.rank }}
-
-							<ActionButton
-								v-if="canPurchaseSkillRank(skill)"
-								icon="fas fa-arrow-circle-up"
-								label="Genesys.Labels.BuySkillRank"
-								edits
-								@click="purchaseSkillRank(skill)"
-							/>
-						</span>
-
-						<SkillRanks
+						<SkillRow
+							:name="skill.name"
+							:skill="skill.name"
+							:characteristic="skill.system.characteristic"
+							:career="skill.system.career"
+							:image="skill.img"
+							:rank="skill.system.rank"
+							:can-buy-rank="canPurchaseSkillRank(skill)"
 							:skill-value="skill.system.rank"
 							:characteristic-value="system.characteristics[skill.system.characteristic]"
+							@open="openSheet(skill)"
+							@roll="rollSkill(actor, skill)"
+							@buy-rank="purchaseSkillRank(skill)"
 						/>
 					</ContextMenu>
 				</div>
@@ -298,22 +274,24 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		}
 	}
 
+	// The row is a ContextMenu's root, and the skill's cells are a SkillRow's roots, which take no scope attribute from the
+	// tab: :deep() reaches them.
 	.row {
 		border-bottom: 1px dashed black;
 
-		// The row is a ContextMenu's root: its open menu keeps its own padding.
-		& > :where(:not(.context-menu)) {
+		// The open menu keeps its own padding.
+		& > :deep(:where(:not(.context-menu))) {
 			padding: 0.2em;
 		}
 
 		// The icon opens the skill's sheet, to read its description; the name rolls it.
-		.skill-icon {
+		& > :deep(.skill-icon) {
 			width: 100%;
 			padding: 0;
 			margin-left: 0.1em;
 		}
 
-		.name {
+		& > :deep(.skill-name) {
 			text-overflow: ellipsis;
 			overflow: hidden;
 
@@ -321,7 +299,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				font-family: 'Roboto Slab', serif;
 			}
 
-			i {
+			.career-skill {
 				position: relative;
 				top: -2px;
 				left: 3px;
@@ -332,7 +310,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			border-bottom: none;
 		}
 
-		.rank-display {
+		& > :deep(.skill-rank) {
 			background: color.adjust(white, $alpha: -0.5);
 			border: 1px dashed black;
 			border-radius: 0.75rem;

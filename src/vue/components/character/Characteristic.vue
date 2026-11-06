@@ -5,6 +5,7 @@ import ContextMenu from '@/vue/components/ContextMenu.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
+import RollLink from '@/vue/components/RollLink.vue';
 
 const props = withDefaults(
 	defineProps<{
@@ -63,10 +64,13 @@ const emit = defineEmits<{
 	(e: 'toggleSuper'): void;
 }>();
 
-// Raising a characteristic edits the sheet's document: on a sheet the user can't edit, its label rolls instead, when it
-// can. `canUpgrade` only weighs the character's XP.
+// Raising a characteristic edits the sheet's document: a sheet the user can't edit shows no ↑ beside the label, which
+// rolls either way. `canUpgrade` only weighs the character's XP.
 const editable = useEditable();
 const upgradable = computed(() => props.canUpgrade && editable.value);
+
+// The characteristic the label's tooltip names: "Roll Brawn".
+const characteristicName = computed(() => game.i18n.localize(props.label));
 
 const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristics;
 </script>
@@ -88,17 +92,27 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 
 			<!-- Not a label, which would pass a click on its margin to the button. -->
 			<span class="characteristic-label">
-				<ActionButton
-					v-if="upgradable || canRollCharacteristicCheck"
-					@click="upgradable ? emit('upgrade') : emit('rollCharacteristicCheck')"
+				<RollLink
+					v-if="canRollCharacteristicCheck"
+					label="Genesys.Tooltips.RollCharacteristic"
+					:label-data="{ characteristic: characteristicName }"
+					@roll="emit('rollCharacteristicCheck')"
 				>
 					<Localized :label="label" />
-					<i v-if="upgradable" class="fas fa-arrow-circle-up"></i>
-				</ActionButton>
+				</RollLink>
 
 				<span v-else>
 					<Localized :label="label" />
 				</span>
+
+				<ActionButton
+					v-if="upgradable"
+					class="raise"
+					icon="fas fa-arrow-circle-up"
+					label="Genesys.Labels.RaiseCharacteristic"
+					edits
+					@click="emit('upgrade')"
+				/>
 			</span>
 		</ContextMenu>
 
@@ -231,18 +245,18 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		margin-top: 2px;
 		margin-bottom: 2px;
 
-		.action-button,
-		span {
+		// The name, which rolls, and the ↑ that raises the characteristic beside it, centred under the value.
+		display: flex;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25em;
+
+		.roll-link {
 			display: flex;
 			flex-wrap: nowrap;
 			align-items: center;
-			justify-content: center;
 			gap: 0.25em;
-		}
-
-		// A button takes its content's width, where the link it replaced filled the label.
-		.action-button {
-			width: 100%;
 		}
 	}
 }

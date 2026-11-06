@@ -34,6 +34,7 @@ import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
+import RollLink from '@/vue/components/RollLink.vue';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import { firingArcLabels } from '@/item/Weapons';
 import { weaponProfiles } from '@/item/WeaponProfiles';
@@ -143,6 +144,11 @@ function skillForWeapon() {
 	return attackSkill(actor.value, weaponProfiles((item.value as GenesysItem<'weapon'>).system)[0]);
 }
 
+// Whether the row's name attacks: a character's weapon attacks while it is Equipped, with an Attack Skill.
+function attacks() {
+	return item.value.type === 'weapon' && system.value.state === EquipmentState.Equipped && !!skillForWeapon();
+}
+
 // The Equipment State moves the row's menu offers.
 function stateMoves() {
 	return equipmentStateMoves(actor.value.type, item.value);
@@ -249,22 +255,22 @@ function openMenu(event: MouseEvent) {
 		@drop="drop"
 		@contextmenu="openMenu"
 	>
-		<img :src="item.img ?? undefined" :alt="item.name" />
+		<!-- The icon opens the item's sheet; the name attacks with an equipped weapon, and opens the sheet otherwise. -->
+		<ActionButton class="item-icon" :image="item.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(item)" />
 
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 		</span>
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
-				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
-				<button
-					type="button"
-					class="attack"
-					v-if="item.type === 'weapon' && system.state === EquipmentState.Equipped && skillForWeapon()"
-					@click="attackWith(actor, item as GenesysItem<'weapon'>)"
+				<RollLink
+					v-if="attacks()"
+					label="Genesys.Tooltips.RollAttack"
+					:label-data="{ weapon: item.name }"
+					@roll="attackWith(actor, item as GenesysItem<'weapon'>)"
+					>{{ item.name }}</RollLink
 				>
-					<Localized label="Genesys.Labels.Attack" />
-				</button>
+				<ActionButton v-else @click="openSheet(item)">{{ item.name }}</ActionButton>
 			</span>
 
 			<div :data-item-type="item.type">
@@ -481,9 +487,13 @@ function openMenu(event: MouseEvent) {
 		border: 1px solid colors.alpha(colors.$light-blue, 0.5);
 	}
 
-	img {
+	> .item-icon {
 		grid-column: icon / span 1;
-		border-radius: 0.25em;
+		width: 100%;
+
+		:deep(img) {
+			border-radius: 0.25em;
+		}
 	}
 
 	& > .name {
@@ -505,18 +515,6 @@ function openMenu(event: MouseEvent) {
 		display: flex;
 		align-items: center;
 		gap: 0.25em;
-
-		button.attack {
-			height: 1.5em;
-			padding: 0;
-			margin: 0;
-			width: auto !important;
-			line-height: 1em;
-			padding: 2px;
-
-			background: colors.$gold;
-			color: white;
-		}
 	}
 
 	.details {

@@ -844,7 +844,7 @@ function installInventoryHelpers() {
 		async rightClickMenu(ref, name, on = 'image') {
 			const root = await sheet(ref);
 			const row = await heldRow(ref, name);
-			const target = row.querySelector(on === 'image' ? ':scope > img' : ':scope > .quantity');
+			const target = row.querySelector(on === 'image' ? ':scope > .item-icon' : ':scope > .quantity');
 			if (!target) throw new Error(`No ${on} on the row of ${name}`);
 			target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			// Opening a menu changes no document: the row's render is waited for.
@@ -876,7 +876,7 @@ function installInventoryHelpers() {
 					app.element.style.minHeight = '0';
 					app.setPosition({ height: row.getBoundingClientRect().bottom - app.element.getBoundingClientRect().top + 8 });
 				}
-				const target = at === 'image' ? row.querySelector(':scope > img')! : row;
+				const target = at === 'image' ? row.querySelector(':scope > .item-icon')! : row;
 				const box = target.getBoundingClientRect();
 				point =
 					at === 'image' ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: box.right - 4, y: box.bottom - 4 };
@@ -921,7 +921,7 @@ function installInventoryHelpers() {
 			const box = row.getBoundingClientRect();
 			scroller.scrollTop += where === 'middle' ? box.top - (shown.top + shown.height / 5) : box.bottom - (shown.bottom - 2);
 			await settle();
-			return { point: uncoveredMiddle(row.querySelector(':scope > img')!), scrolled: Math.round(scroller.scrollTop) };
+			return { point: uncoveredMiddle(row.querySelector(':scope > .item-icon')!), scrolled: Math.round(scroller.scrollTop) };
 		},
 
 		async buttonPoint(ref, name) {
@@ -1127,7 +1127,8 @@ function installInventoryHelpers() {
 		},
 
 		async attack(ref, name) {
-			(await rowOf(ref, name)).querySelector<HTMLElement>('button.attack')!.click();
+			// An Equipped weapon's name attacks (#578).
+			(await rowOf(ref, name)).querySelector<HTMLElement>('.name .roll-link')!.click();
 			// The prompt shows a spinner while it counts its chance to succeed, which may roll dice, and builds its pool from
 			// the actor once open: the attack's dice are fixed after both.
 			await waitFor('the dice prompt', () => {

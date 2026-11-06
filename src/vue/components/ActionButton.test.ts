@@ -68,6 +68,13 @@ describe('ActionButton', () => {
 		expect(plain.attributes('data-tooltip')).toBeUndefined();
 	});
 
+	it('takes words already localized as its tooltip alone when it shows text', () => {
+		const button = mountButton({ localizedLabel: 'Roll Athletics' }, { text: 'Athletics (Br)' });
+
+		expect(button.attributes('aria-label')).toBeUndefined();
+		expect(button.attributes('data-tooltip')).toBe('Roll Athletics');
+	});
+
 	it('keeps a space between its icon and its text', () => {
 		const button = mountButton({ icon: 'fas fa-plus' }, { text: 'Add' });
 

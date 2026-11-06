@@ -940,7 +940,7 @@ function installDicePromptHelpers() {
 				const select = row.querySelector<HTMLSelectElement>('select.attack-skill');
 				return {
 					name: text(row.querySelector('.name')),
-					link: !!row.querySelector('.name button:not(.description-toggle)'),
+					link: !!row.querySelector('.name .roll-link'),
 					skill: withSelect(row.querySelector('.skill')),
 					choices: select ? [...select.options].map(text) : null,
 				};
@@ -967,7 +967,7 @@ function installDicePromptHelpers() {
 				.filter((row) => row.querySelector('[data-item-type=weapon]'))
 				.map((row) => ({
 					name: text(row.querySelector('.name button')),
-					attack: !!row.querySelector('button.attack'),
+					attack: !!row.querySelector('.name .roll-link'),
 					skill: text(row.querySelector('[data-item-type=weapon] > div')),
 				}));
 		},
@@ -1414,7 +1414,7 @@ export async function run(e2e: ScenarioContext) {
 	const target = (name: string | null) => gm.evaluate((name) => window.e2e.target(name), name);
 	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
 	const ada = { actor: 'Ada' };
-	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.name|${skill} (`);
+	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.skill-name|${skill} (`);
 	const characteristicRoll = (index: number, doc: Doc = ada) =>
 		click(gm, doc, `.tab-skills .characteristics-row .characteristic-field:nth-child(${index}) .characteristic-label button`);
 	const attack = (weapon: string) => click(gm, ada, `.tab-combat .weapon .name button|E2E ${weapon}`);
@@ -1853,10 +1853,17 @@ export async function run(e2e: ScenarioContext) {
 			{ stored: await attackSkill({ actor: 'Rival', item: 'Knife' }), actor: knife.actor, skill: knife.skill },
 			{ stored: 'Ranged', actor: 'Rival', skill: 'Ranged (Ag)' },
 		);
+		// §#578: its name opens its sheet instead, which closes again.
 		e2e.expect(
 			"#49 D11 a rival's weapon without skill doesn't roll, and its menu has no check",
 			{
-				click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> .weapon-attack')),
+				click: await noPrompt(gm, click(gm, { actor: 'Rival' }, '.adversary-items .weapon|E2E Twig >> .weapon-name')),
+				sheet: await gm.evaluate(async () => {
+					const sheet = window.e2e.actor('Rival').items.getName('E2E Twig').sheet;
+					const opened = sheet.rendered;
+					if (opened) await sheet.close();
+					return opened;
+				}),
 				twig: await gm.evaluate(() =>
 					window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Twig' }),
 				),
@@ -1864,7 +1871,12 @@ export async function run(e2e: ScenarioContext) {
 					window.dicePromptE2E.menu({ doc: { actor: 'Rival' }, path: '.adversary-items .weapon|E2E Knife' }),
 				),
 			},
-			{ click: { prompts: 0, notifications: [] }, twig: ['Edit', 'Delete'], knife: ['Edit', 'Perform Check', 'Delete'] },
+			{
+				click: { prompts: 0, notifications: [] },
+				sheet: true,
+				twig: ['Edit', 'Delete'],
+				knife: ['Edit', 'Perform Check', 'Delete'],
+			},
 		);
 
 		// A vehicle's weapons and skills.
@@ -1895,7 +1907,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const bySkill = await opened(
 			gm,
-			click(gm, skiff, '.tab-skills .skills-container section|Ranged >> .skill-content-details >> .skill-content-details-roll'),
+			click(gm, skiff, '.tab-skills .skills-container section|Ranged >> .skill-content-details >> .skill-name'),
 		);
 		e2e.expect(
 			"#49 D15 the vehicle's Skills tab, in both groupings, rolls the owned Ranged (light) with its Pool Modification",
@@ -2064,7 +2076,7 @@ export async function run(e2e: ScenarioContext) {
 
 	// E: healing and initiative with a skill the actor lacks (§#49), and the messages of checks (§#50, §#157).
 	await part('checkMessages', async () => {
-		const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .severity button'));
+		const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));
 		e2e.expect(
 			'#49 E1 a character without Resilience heals an injury with an Unranked Skill Check of Resilience',
 			{ skill: heal.skill, pool: heal.pool, unranked: heal.skills?.Unranked?.includes('Resilience (Br)') },
@@ -2186,7 +2198,7 @@ export async function run(e2e: ScenarioContext) {
 		const coolMessage = await roll();
 		await opened(gm, characteristicRoll(5));
 		const willpowerMessage = await roll();
-		await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > .skill-roll|Melee'));
+		await opened(gm, click(gm, { actor: 'Grunts' }, '.adversary-items .skill > .skill-name|Melee'));
 		const minionMessage = await roll();
 		await setSetting('useSuperCharacteristics', true);
 		await update(ada, { 'system.superCharacteristics': ['brawn'] });
@@ -2986,7 +2998,7 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 		await setSetting('defaultDifficulty', 'DDD');
-		await opened(gm, click(gm, ada, '.tab-combat .injury .severity button'));
+		await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));
 		const injury = shown(await difficultyState());
 		await control(gm, ['Bo']);
 		await linkPrompt(gm, journal, 'Athletics', 'CDD');

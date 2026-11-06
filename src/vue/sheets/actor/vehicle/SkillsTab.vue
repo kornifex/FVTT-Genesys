@@ -4,14 +4,13 @@ import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
 import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations/CrewRoll';
-import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { worldCheckRules } from '@/dice/Check';
 import { openSheet } from '@/operations/ItemActions';
 import { usePendingContent } from '@/vue/PendingContent';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import SkillRanks from '@/vue/components/character/SkillRanks.vue';
+import SkillRow from '@/vue/components/SkillRow.vue';
 
 type MemberRow = {
 	member: string;
@@ -20,7 +19,7 @@ type MemberRow = {
 	skills: ActorCrewMemberSkill[];
 };
 
-type SkillRow = {
+type SkillSection = {
 	skillName: string;
 	skillImage: string;
 	members: ActorCrewMemberSkill[];
@@ -32,7 +31,7 @@ const context = useSheetContext<DocumentSheetContext<GenesysActor<'vehicle'>>>()
 
 const groupingMode = ref<GroupingMode>('member');
 const byMember = shallowRef<MemberRow[]>([]);
-const bySkill = shallowRef<SkillRow[]>([]);
+const bySkill = shallowRef<SkillSection[]>([]);
 
 const pendingContent = usePendingContent();
 
@@ -96,17 +95,17 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 
 						<div class="member-skills-container">
 							<div v-for="rolledSkill in details.skills" :key="rolledSkill.skillName" class="member-skill">
-								<img :src="rolledSkill.skill.img ?? undefined" :alt="rolledSkill.skill.name" />
-								<ActionButton class="skill-name" @click="rollForCrew([rolledSkill])">
-									<span
-										>{{ rolledSkill.skill.name }} (<Localized
-											:label="CHARACTERISTIC_ABBREVIATIONS[rolledSkill.skill.system.characteristic]"
-										/>)</span
-									>
-								</ActionButton>
-
-								<span class="skill-rank">{{ rolledSkill.rank }}</span>
-								<SkillRanks :skill-value="rolledSkill.rank" :characteristic-value="rolledSkill.characteristicValue" />
+								<SkillRow
+									:name="rolledSkill.skill.name"
+									:skill="rolledSkill.skill.name"
+									:characteristic="rolledSkill.skill.system.characteristic"
+									:image="rolledSkill.skill.img"
+									:rank="rolledSkill.rank"
+									:skill-value="rolledSkill.rank"
+									:characteristic-value="rolledSkill.characteristicValue"
+									@open="openSheet(rolledSkill.skill)"
+									@roll="rollForCrew([rolledSkill])"
+								/>
 							</div>
 						</div>
 					</div>
@@ -128,26 +127,22 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 						</div>
 
 						<div v-for="memberSkill in details.members" :key="memberSkill.member" class="skill-content-details">
-							<img
-								class="skill-content-details-charImage"
-								:src="memberSkill.actor.img ?? undefined"
-								:alt="memberSkill.actor.name"
-								draggable="false"
-							/>
-							<ActionButton class="skill-content-details-charName" @click="openSheet(memberSkill.actor)">{{
-								memberSkill.actor.name
-							}}</ActionButton>
-							<div>{{ memberSkill.role.name }}</div>
-							<div class="skill-content-details-skillRank">{{ memberSkill.rank }}</div>
-							<ActionButton
-								class="skill-content-details-roll"
-								label="Genesys.Labels.PerformCheck"
-								@click="rollForCrew([memberSkill])"
+							<!-- The member's name rolls the skill for the vehicle, and their icon opens their sheet. -->
+							<SkillRow
+								:name="memberSkill.actor.name"
+								:skill="memberSkill.skill.name"
+								:image="memberSkill.actor.img"
+								open-label="Genesys.Tooltips.OpenActor"
+								:rank="memberSkill.rank"
+								:skill-value="memberSkill.rank"
+								:characteristic-value="memberSkill.characteristicValue"
+								@open="openSheet(memberSkill.actor)"
+								@roll="rollForCrew([memberSkill])"
 							>
-								<template #icon>
-									<SkillRanks :skill-value="memberSkill.rank" :characteristic-value="memberSkill.characteristicValue" />
+								<template #after-name>
+									<div class="role">{{ memberSkill.role.name }}</div>
 								</template>
-							</ActionButton>
+							</SkillRow>
 						</div>
 					</div>
 				</div>
@@ -234,17 +229,18 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 							border-bottom: none;
 						}
 
-						& > * {
+						// The cells are a SkillRow's roots, which take no scope attribute from the tab: :deep() reaches them.
+						& > :deep(*) {
 							padding: 0.2em;
 						}
 
-						img {
-							border: none;
+						& > :deep(.skill-icon) {
+							width: 100%;
 							padding: 0;
 							margin-left: 0.1em;
 						}
 
-						.skill-name {
+						& > :deep(.skill-name) {
 							text-overflow: ellipsis;
 							overflow: hidden;
 
@@ -253,7 +249,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 							}
 						}
 
-						.skill-rank {
+						& > :deep(.skill-rank) {
 							background: color.adjust(white, $alpha: -0.5);
 							border: 1px dashed black;
 							border-radius: 0.75rem;
@@ -335,18 +331,23 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 					padding: 2px 0;
 					gap: 0.5em;
 
-					.skill-content-details-charImage {
-						border: none;
-						border-radius: 0.25rem;
+					// The cells are a SkillRow's roots, which take no scope attribute from the tab: :deep() reaches them.
+					& > :deep(.skill-icon) {
+						width: 1.5rem;
+						height: 1.5rem;
+
+						img {
+							border-radius: 0.25rem;
+						}
 					}
 
-					.skill-content-details-charName {
+					& > :deep(.skill-name) {
 						font-family: 'Roboto Serif', serif;
 						font-size: 1rem;
 						justify-self: left;
 					}
 
-					.skill-content-details-skillRank {
+					& > :deep(.skill-rank) {
 						background: color.adjust(white, $alpha: -0.5);
 						border: 1px dashed black;
 						border-radius: 0.75rem;

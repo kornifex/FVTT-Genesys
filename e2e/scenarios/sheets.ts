@@ -2460,7 +2460,7 @@ export async function run(e2e: ScenarioContext) {
 				const sheets = window.sheetsE2E;
 				await sheets.open('Bearer');
 				await sheets.clickTab('Bearer', 'skills');
-				await sheets.click('Bearer', '.tab-skills button.name', 'Athletics');
+				await sheets.click('Bearer', '.tab-skills button.skill-name', 'Athletics');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
 				await ui.chat.processMessage('/gendr');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');

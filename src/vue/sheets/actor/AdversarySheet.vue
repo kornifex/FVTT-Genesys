@@ -7,6 +7,7 @@ import Characteristic from '@/vue/components/character/Characteristic.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import RollLink from '@/vue/components/RollLink.vue';
 import SheetTabs from '@/vue/components/SheetTabs.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
@@ -235,12 +236,18 @@ async function toggleSuper(characteristic: CharacteristicType) {
 									<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
 								</template>
 
-								<!-- The button holds the name alone: its details hold the Attack Skill's select, which a button can't.
-								The drag starts on the button's wrapper, since Firefox starts none from a button. -->
+								<!-- The name attacks with a profile that has an Attack Skill, and opens the weapon's sheet otherwise. The
+								button holds the name alone: its details hold the Attack Skill's select, which a button can't. The drag
+								starts on the button's wrapper, since Firefox starts none from a button. -->
 								<span draggable="true" @dragstart="startDocumentDrag($event, item)"
-									><ActionButton class="weapon-attack" icon="fas fa-dice-d20" @click="attackWith(actor, item, profile)">{{
-										name
-									}}</ActionButton></span
+									><RollLink
+										v-if="skill"
+										class="weapon-attack"
+										label="Genesys.Tooltips.RollAttack"
+										:label-data="{ weapon: name }"
+										@roll="attackWith(actor, item, profile)"
+										>{{ name }}</RollLink
+									><ActionButton v-else class="weapon-name" @click="openSheet(item)">{{ name }}</ActionButton></span
 								>
 								(<span class="weapon-details">
 									<span v-if="skill">
@@ -521,29 +528,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 	:deep(.container) {
 		padding-left: 1em;
-	}
-
-	:deep(.skill) {
-		display: inline-block;
-
-		& > .skill-roll {
-			display: inline-flex;
-			flex-direction: row;
-			flex-wrap: nowrap;
-			align-items: center;
-			gap: 0.5em;
-		}
-
-		& > .skill-roll::after {
-			display: block;
-			content: ',';
-			margin-right: 0.25em;
-			margin-left: -0.4em;
-		}
-
-		&:last-of-type > .skill-roll::after {
-			display: none;
-		}
 	}
 
 	.inventory-item {

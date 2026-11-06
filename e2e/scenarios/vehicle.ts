@@ -194,7 +194,7 @@ function installVehicleHelpers() {
 				name: text(section.querySelector('.skill-details-name')),
 				members: [...section.querySelectorAll('.skill-content-details')].map(
 					(row) =>
-						`${unprefixed(text(row.querySelector('.skill-content-details-charName')))} ${text(row.querySelector(':scope > div'))} ${text(row.querySelector('.skill-content-details-skillRank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
+						`${unprefixed(text(row.querySelector('.skill-name')))} ${text(row.querySelector(':scope > .role'))} ${text(row.querySelector('.skill-rank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
 				),
 			})),
 		};
@@ -1260,7 +1260,7 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 	);
 	await step(
 		'#127 K6 the character buys a rank of Piloting with XP',
-		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.rank-display button|1'] }),
+		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.skill-rank button|1'] }),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PP'] },
 			{ name: 'Ivy', skills: ['E2E Astrogation (Int) 2 PP', 'Piloting (Ag) 1 PAA'] },
@@ -1275,7 +1275,8 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 		() =>
 			vehicleE2E('click', {
 				actor: 'Hal',
-				target: ['.characteristics-row .characteristic-field|2', '.characteristic-label button|1'],
+				// The ↑ beside the label, which rolls (#578).
+				target: ['.characteristics-row .characteristic-field|2', '.characteristic-label .raise|1'],
 			}),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PPA'] },
@@ -1392,7 +1393,8 @@ async function crewRolls(e2e: ScenarioContext) {
 	const skillMember = (skill: string, member: string): Target => [
 		`.tab-skills .skills-container > section|~${skill}`,
 		`.skill-content-details|~E2E ${member}`,
-		':scope > .skill-content-details-roll|1',
+		// The member's name rolls for the vehicle (#578).
+		':scope > .skill-name|1',
 	];
 	const weapon = (name: string): Target => [`.tab-combat .weapon|~E2E ${name}`, '.name button|1'];
 
@@ -1464,7 +1466,8 @@ async function crewRolls(e2e: ScenarioContext) {
 	await vehicleE2E('closePrompts');
 
 	await e2e.step('#133 a Critical Hit repaired', () =>
-		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.severity button|1'] }),
+		// Its name repairs it (#578).
+		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.name .roll-link|1'] }),
 	);
 	e2e.expect('#133 A8 a repair one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
 		...noPrompts,

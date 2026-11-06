@@ -33,10 +33,13 @@
 			@include headings.font;
 		}
 
-		img {
-			border: none;
+		// A row's icon, which opens its item's sheet: its image is the button's, which :deep() reaches.
+		.item-icon {
 			padding: 2px;
-			border-radius: 0.25rem;
+
+			:deep(img) {
+				border-radius: 0.25rem;
+			}
 		}
 	}
 }

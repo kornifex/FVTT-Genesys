@@ -29,7 +29,7 @@ const props = withDefaults(
 
 		/**
 		 * The button's name and tooltip, already in the user's language, in `label`'s place: for words the code puts
-		 * together, such as a Pool Modification's.
+		 * together, such as a Pool Modification's. A button that shows text takes them as its tooltip alone.
 		 */
 		localizedLabel?: string;
 
@@ -63,7 +63,7 @@ const name = computed(() => {
 	}
 	return props.localizedLabel ?? (props.label ? game.i18n.localize(props.label) : undefined);
 });
-const tooltip = computed(() => (showsText.value ? props.label : ''));
+const tooltip = computed(() => (showsText.value ? props.localizedLabel ?? props.label : ''));
 
 // Glyphs inside the button would show their own words as a tooltip over the button's, when the pointer is on them.
 provideNamedButton(computed(() => name.value !== undefined));

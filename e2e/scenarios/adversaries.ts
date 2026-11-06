@@ -170,7 +170,7 @@ function installAdversariesHelpers() {
 	const menuContainer = async ({ actor: name, kind, name: itemName }: MenuTarget) => {
 		const root = await sheet(name);
 		const selector = kind === 'skill' ? '.skill.menu-container' : '.talent > .menu-container';
-		const label = kind === 'skill' ? ':scope > .skill-roll > span' : ':scope > .item-label > button';
+		const label = kind === 'skill' ? ':scope > .skill-name > span' : ':scope > .item-label > button';
 		return waitFor(`the ${kind} ${itemName} of ${name}`, () =>
 			[...root.querySelectorAll<HTMLElement>(selector)].find((container) =>
 				text(container.querySelector(label)).startsWith(`E2E ${itemName}`),
@@ -187,9 +187,10 @@ function installAdversariesHelpers() {
 		);
 	};
 
-	// An adversary's weapon rows, and the name each row's attack button reads, before its weapon details in brackets.
+	// An adversary's weapon rows, and the name each row's attack button reads, before its weapon details in brackets: or
+	// the button that opens the weapon's sheet, for a profile without an Attack Skill (#578).
 	const weaponRowsOf = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.adversary-items .weapon.menu-container')];
-	const weaponRowName = (row: Element) => text(row.querySelector('.weapon-attack'));
+	const weaponRowName = (row: Element) => text(row.querySelector('.weapon-attack, .weapon-name'));
 	const attackButton = (row: Element) => row.querySelector<HTMLElement>('.weapon-attack')!;
 
 	const closePrompts = async () => {
@@ -396,7 +397,7 @@ function installAdversariesHelpers() {
 		async rollSkill({ actor: name, skill }) {
 			await closePrompts();
 			const container = await menuContainer({ actor: name, kind: 'skill', name: skill });
-			container.querySelector<HTMLElement>(':scope > .skill-roll')!.click();
+			container.querySelector<HTMLElement>(':scope > .skill-name')!.click();
 			return readPrompt();
 		},
 
