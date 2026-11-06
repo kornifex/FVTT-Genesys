@@ -220,6 +220,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 								v-for="{ item, profile, name, skill } in weapons"
 								:key="`${item.id}-${profile.index}`"
 								class="weapon"
+								:disable-menu="!editable"
 							>
 								<template v-slot:menu-items>
 									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />

@@ -23,7 +23,7 @@ const props = defineProps<{
 	groupRank?: number;
 }>();
 
-const { document: actor } = useSheetDocument<GenesysActor<AdversaryType>>();
+const { document: actor, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 const characteristics = toRef(() => actor.value.system.characteristics);
 const skills = computed(() => actor.value.skills);
 
@@ -42,7 +42,7 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 	<h3><Localized :label="props.label" /></h3>
 	<div class="container">
 		<ListEmpty v-if="skills.length === 0" />
-		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
+		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill" :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<template v-if="props.groupRank === undefined">
 					<MenuItem icon="fas fa-circle-up" label="Genesys.Labels.FreeRankUp" @click="freeSkillRank(skill, 1)" />
