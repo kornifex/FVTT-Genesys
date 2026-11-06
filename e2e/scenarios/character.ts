@@ -1,4 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
+import type { GlyphName } from '../accessibility.ts';
 import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
 import type { Chevron, ConfirmDialog, DescriptionBox, OwnershipLevel } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
@@ -2382,6 +2383,37 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 	);
 	await page((name) => window.characterE2E.close(name), 'Sorted');
 
+	// §#582: a skill's ranks read as a dice pool in words, as an image's name to a screen reader and as its tooltip.
+	await e2e.step('#582 A7 a character whose Charm has 1 rank on a Presence of 3, and whose Lore none on an Intellect of 0', () =>
+		page(async () => {
+			await Actor.create({
+				name: 'E2E Ranks',
+				type: 'character',
+				system: { characteristics: { presence: 3, intellect: 0 } },
+				items: [
+					{ name: 'Charm', type: 'skill', system: { category: 'social', characteristic: 'presence', rank: 1 } },
+					{ name: 'Lore', type: 'skill', system: { category: 'knowledge', characteristic: 'intellect', rank: 0 } },
+				],
+			});
+			await window.characterE2E.open('Ranks');
+			await window.e2e.showTab('Ranks', 'skills');
+			const root = window.e2e.htmlOf(window.e2e.actor('Ranks').sheet)!;
+			for (const row of root.querySelectorAll<HTMLElement>('.tab-skills .skill.row')) {
+				const ranks = row.querySelector<HTMLElement>('.skill-ranks');
+				if (ranks && /^(Charm|Lore) /.test(window.e2e.text(row.querySelector('.name span')))) ranks.dataset.e2e = 'glyph-ranks';
+			}
+		}, undefined),
+	);
+	e2e.expect(
+		"#582 A7 a skill's ranks read as their dice in words, the Proficiency dice first, in their tooltip too, and no dice as nothing",
+		await e2e.gm.glyphNames('[data-e2e="glyph-ranks"]'),
+		[
+			{ text: '', name: '1 Proficiency die, 2 Ability dice', tooltip: '1 Proficiency die, 2 Ability dice' },
+			{ text: '', name: null, tooltip: null },
+		],
+	);
+	await page((name) => window.characterE2E.close(name), 'Ranks');
+
 	await e2e.step('#114 J2 Rank Up twice then Rank Down three times on a rival skill', async () => {
 		await page(
 			(name) =>
@@ -2715,6 +2747,34 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 		'#126 L1 each Critical Hit shows a difficulty die per step of its severity',
 		await page((name) => window.characterE2E.severities(name), 'Wreck'),
 		cells,
+	);
+	// §#582: in words, as an image's name to a screen reader and as its tooltip, on the Combat tab shown; the image names
+	// the button rolling the healing check, which has no label of its own.
+	await page(async () => {
+		await window.e2e.showTab('Wounded', 'combat');
+		const root = window.e2e.htmlOf(window.e2e.actor('Wounded').sheet)!;
+		for (const button of root.querySelectorAll<HTMLElement>('.critical-injuries .injury .severity button')) {
+			button.dataset.e2e = 'severity-button';
+			button.querySelector<HTMLElement>(':scope > span')!.dataset.e2e = 'glyph-severity';
+		}
+	}, undefined);
+	const byLength = (names: GlyphName[]) => names.sort((left, right) => left.text.length - right.text.length);
+	e2e.expect(
+		"#582 A8 a Critical Injury's severity reads as its difficulty dice in words, in its tooltip too, and none as nothing",
+		byLength(await e2e.gm.glyphNames('[data-e2e="glyph-severity"]')).map(({ text, name, tooltip }) => [text, name, tooltip === name]),
+		[
+			['', null, true],
+			['D', '1 Difficulty die', true],
+			['DD', '2 Difficulty dice', true],
+			['DDD', '3 Difficulty dice', true],
+			['DDDD', '4 Difficulty dice', true],
+			['DDDDD', '5 Difficulty dice', true],
+		],
+	);
+	e2e.expect(
+		"#582 A8 a Critical Injury's severity button is named by its dice in words",
+		byLength(await e2e.gm.glyphNames('[data-e2e="severity-button"]')).map(({ name }) => name),
+		[null, '1 Difficulty die', '2 Difficulty dice', '3 Difficulty dice', '4 Difficulty dice', '5 Difficulty dice'],
 	);
 	let prompt: unknown;
 	await e2e.step('#126 L2 the Formidable Critical Injury clicked', async () => {

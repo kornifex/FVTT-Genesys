@@ -79,3 +79,47 @@ export async function checkAccessibility(page: Page, selector: string, rules?: s
 		{ selector, rules, tags: WCAG_AA, surroundings: UNDECIDED_BY_SURROUNDINGS },
 	);
 }
+
+/**
+ * How an element holding glyphs reads: its glyphs' text, its name as an image or a button to a screen reader (null when
+ * it is neither, or hidden), and the tooltip Foundry shows on hovering it (null without one).
+ */
+export type GlyphName = { text: string; name: string | null; tooltip: string | null };
+
+/**
+ * How each element a selector finds reads, in the order of the page. Its name comes from Playwright's accessibility
+ * snapshot, which only holds what shows: a sidebar tab or a window must be shown first.
+ */
+export async function glyphNames(page: Page, selector: string): Promise<GlyphName[]> {
+	const names: GlyphName[] = [];
+	for (const element of await page.locator(selector).all()) {
+		const name = accessibleName(await element.ariaSnapshot());
+		const { text, tooltip } = await element.evaluate(async (element: HTMLElement) => {
+			const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
+			if (element.dataset.tooltip === undefined) return { text, tooltip: null };
+
+			// Hovering the element, as TooltipManager listens for it, shows its tooltip after a delay.
+			const manager = (game as { tooltip: { element: Element | null; tooltip: HTMLElement; deactivate(): void } }).tooltip;
+			element.dispatchEvent(new PointerEvent('pointerenter'));
+			await window.e2e.waitFor('the tooltip', () => manager.element === element);
+			const tooltip = (manager.tooltip.textContent ?? '').trim();
+			manager.deactivate();
+			return { text, tooltip };
+		});
+		names.push({ text, name, tooltip });
+	}
+	return names;
+}
+
+/**
+ * The name of the image or button an element's accessibility snapshot starts with, null when it starts with neither. The
+ * snapshot is YAML: `- img "1 Success": s`, the element's text after its name, the key single-quoted when the name holds
+ * `: `, with its own single quotes doubled, and the name's double quotes escaped.
+ */
+export function accessibleName(snapshot: string): string | null {
+	const line = (snapshot.split('\n')[0] ?? '').replace(/^- /, '');
+	const quoted = /^'((?:[^']|'')*)'/.exec(line);
+	const key = quoted ? quoted[1].replace(/''/g, "'") : line;
+	const named = /^(?:img|button) "((?:[^"\\]|\\.)*)"/.exec(key);
+	return named ? named[1].replace(/\\(.)/g, '$1') : null;
+}

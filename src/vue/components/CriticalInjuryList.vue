@@ -7,6 +7,7 @@ import { deleteItem, openSheet } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import Glyphs from '@/vue/components/Glyphs.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
 import { useOpenRows } from '@/vue/useOpenRows';
 
@@ -42,7 +43,8 @@ const { isOpen, toggle } = useOpenRows();
 
 		<div v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']">
 			<div class="severity">
-				<ActionButton @click="emit('roll', injury)">{{ severityDifficulty(injury.system.severity) }}</ActionButton>
+				<!-- The image's words name the button. -->
+				<ActionButton @click="emit('roll', injury)"><Glyphs :glyphs="severityDifficulty(injury.system.severity)" /></ActionButton>
 			</div>
 			<div class="name">
 				<ActionButton @click="openSheet(injury)">{{ injury.name }}</ActionButton>

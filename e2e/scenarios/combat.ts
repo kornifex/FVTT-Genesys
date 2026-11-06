@@ -1226,6 +1226,31 @@ export async function run(e2e: ScenarioContext) {
 			),
 			bothClients({ 'Hero:-1': 'ssaaa', 'Ally:-1': 'aa', 'Boss:-1': '' }),
 		);
+
+		// §#582: in words, as an image's name to a screen reader and as its tooltip, on the combat tab shown: v13's headless
+		// window collapses the sidebar, whose hidden tabs read as nothing.
+		const sidebar = await e2e.gm.evaluate(() => {
+			const state = { expanded: ui.sidebar.expanded as boolean, tab: ui.sidebar.tabGroups.primary as string };
+			ui.sidebar.expand();
+			ui.sidebar.changeTab('combat', 'primary');
+			return state;
+		});
+		await e2e.settle();
+		const initiatives = await e2e.gm.glyphNames('#combat li.combatant .initiative');
+		await e2e.gm.evaluate(({ expanded, tab }) => {
+			ui.sidebar.changeTab(tab, 'primary');
+			if (expanded) ui.sidebar.expand();
+			else ui.sidebar.collapse();
+		}, sidebar);
+		e2e.expect(
+			'#582 A6 an Initiative Slot reads its initiative in words, in its tooltip too, and an initiative of nothing as nothing',
+			initiatives,
+			[
+				{ text: 'ssaaa', name: '2 Successes, 3 Advantage', tooltip: '2 Successes, 3 Advantage' },
+				{ text: 'aa', name: '2 Advantage', tooltip: '2 Advantage' },
+				{ text: '', name: null, tooltip: null },
+			],
+		);
 	}
 
 	/** §#190: a slot's side comes from the player ownership of the combatant's actor, not from its token's disposition. */

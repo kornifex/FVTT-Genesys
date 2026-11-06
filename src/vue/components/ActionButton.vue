@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { computed, useSlots } from 'vue';
 import { useEditable } from '@/vue/SheetContext';
+import { provideNamedButton } from '@/vue/useNamedButton';
 
 /**
  * An action of a sheet or a prompt: a button the keyboard reaches, with a name. A button that shows no text (an icon, an
- * image, a drawing given through its `icon` slot) is named by its label, which is its tooltip too; one that shows text,
- * through its default slot, is named by it, its label only adding a tooltip.
+ * image, a drawing given through its `icon` slot) is named by its label, which is its tooltip too, and the glyphs it
+ * holds then give no words of their own; one that shows text, through its default slot, is named by it, its label only
+ * adding a tooltip.
  */
 const props = withDefaults(
 	defineProps<{
@@ -23,6 +25,12 @@ const props = withDefaults(
 		 * The localization key of the button's name when it shows no text, and of its tooltip.
 		 */
 		label?: string;
+
+		/**
+		 * The button's name and tooltip, already in the user's language, in `label`'s place: for words the code puts
+		 * together, such as a Pool Modification's.
+		 */
+		localizedLabel?: string;
 
 		/**
 		 * Whether the action edits the sheet's document: such a button is left out of a sheet the user can't edit.
@@ -48,8 +56,16 @@ const editable = useEditable();
 
 const showsText = computed(() => !!slots.default);
 // A bare `data-tooltip` shows the button's `aria-label`, as Foundry's TooltipManager reads it.
-const name = computed(() => (showsText.value || !props.label ? undefined : game.i18n.localize(props.label)));
+const name = computed(() => {
+	if (showsText.value) {
+		return undefined;
+	}
+	return props.localizedLabel ?? (props.label ? game.i18n.localize(props.label) : undefined);
+});
 const tooltip = computed(() => (showsText.value ? props.label : ''));
+
+// Glyphs inside the button would show their own words as a tooltip over the button's, when the pointer is on them.
+provideNamedButton(computed(() => name.value !== undefined));
 
 /**
  * Release the focus a click with a pointer gives the button. Foundry skips every keybinding while a button of a form has

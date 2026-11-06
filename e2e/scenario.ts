@@ -2,7 +2,7 @@
 import type { Browser, Page } from 'playwright-core';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { type AccessibilityFindings, checkAccessibility } from './accessibility.ts';
+import { type AccessibilityFindings, checkAccessibility, type GlyphName, glyphNames } from './accessibility.ts';
 import { type CombatSetup, type CombatState, type FixedDie, installHelpers } from './page.ts';
 import { assertionStep, fatalStep, lateErrorsStep, type PartRange, partSelection, type Step, type StepLog } from './steps.ts';
 
@@ -34,6 +34,11 @@ export type Client = {
 	 * violations by rule.
 	 */
 	axe(selector: string, rules?: string[]): Promise<AccessibilityFindings>;
+	/**
+	 * How each element a selector finds holding glyphs reads: its text, its name as an image, and its tooltip. The
+	 * elements must show, as a sidebar tab or a window does.
+	 */
+	glyphNames(selector: string): Promise<GlyphName[]>;
 };
 
 /**
@@ -377,6 +382,7 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 		},
 		fixDice: (dice) => client.page.evaluate((dice) => window.e2e.fixDice(dice), dice),
 		axe: (selector, rules) => checkAccessibility(client.page, selector, rules),
+		glyphNames: (selector) => glyphNames(client.page, selector),
 	};
 	return client;
 }

@@ -136,6 +136,53 @@ Genesys:
     Difficulty: Dé de difficulté
     Challenge: Dé de défi
 
+  # The dice and symbols in words, as a screen reader and a tooltip read them
+  Symbols:
+    Proficiency:
+      one: '{count} dé de maîtrise'
+      other: '{count} dés de maîtrise'
+    Ability:
+      one: "{count} dé d'aptitude"
+      other: "{count} dés d'aptitude"
+    Boost:
+      one: '{count} dé de fortune'
+      other: '{count} dés de fortune'
+    Challenge:
+      one: '{count} dé de défi'
+      other: '{count} dés de défi'
+    Difficulty:
+      one: '{count} dé de difficulté'
+      other: '{count} dés de difficulté'
+    Setback:
+      one: "{count} dé d'infortune"
+      other: "{count} dés d'infortune"
+    Triumph:
+      one: '{count} triomphe'
+      other: '{count} triomphes'
+    Success:
+      one: '{count} succès'
+      other: '{count} succès'
+    Advantage:
+      one: '{count} avantage'
+      other: '{count} avantages'
+    Despair:
+      one: '{count} désastre'
+      other: '{count} désastres'
+    Failure:
+      one: '{count} échec'
+      other: '{count} échecs'
+    Threat:
+      one: '{count} menace'
+      other: '{count} menaces'
+  Glyphs:
+    BlankFace: face vierge
+    DieResult: '{die} : {face}'
+    Operations:
+      Add: Ajouter {glyphs}
+      Remove: Retirer {glyphs}
+      Upgrade: Améliorer {glyphs}
+      Downgrade: Rétrograder {glyphs}
+
   # Difficulty Ranks
   Difficulty:
     Simple: Simple
@@ -177,12 +224,9 @@ Genesys:
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     UnrankedSkills: Sans rang
     WeaponSkills: Compétences de l'arme
-    RemoveDie: Retirer un dé
-    RemoveSymbol: Retirer un symbole
     PoolModifications:
       Title: Modification de la réserve de dés
-      Add: Ajouter cette modification
-      Remove: Retirer cette modification
+      Cancel: 'Annuler : {modification}'
       Difficulty: 'Difficulté : {level}'
       ManualChanges: Modifications manuelles
       SelfEffects: 'Soi : '

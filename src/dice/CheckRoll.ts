@@ -99,9 +99,9 @@ export function parseRollResults(roll: Roll<PoolRollData>): GenesysRollResults {
 	const faces = roll.dice.reduce((faces: Record<string, string[]>, die) => {
 		const genDie = <GenesysDie>die;
 		if (faces[genDie.denomination] === undefined) {
-			faces[genDie.denomination] = die.results.map((r) => genDie.getResultLabel(r));
+			faces[genDie.denomination] = die.results.map((r) => genDie.resultFace(r));
 		} else {
-			faces[genDie.denomination].push(...die.results.map((r) => genDie.getResultLabel(r)));
+			faces[genDie.denomination].push(...die.results.map((r) => genDie.resultFace(r)));
 		}
 
 		return faces;

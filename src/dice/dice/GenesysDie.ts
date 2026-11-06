@@ -3,6 +3,7 @@
  */
 
 import type { InexactPartial } from 'fvtt-types/utils';
+import { glyphLabelAttributesHTML } from '@/dice/GenesysPoolModifications';
 
 export type DieCategory = 'positive' | 'negative';
 
@@ -56,11 +57,21 @@ export abstract class GenesysDie extends foundry.dice.terms.Die {
 	}
 
 	/**
-	 * Fetch the actual label for each result from the die class's specified faces.
+	 * The glyphs of the face a result landed on, from the die class's specified faces.
 	 */
-	override getResultLabel(result: foundry.dice.terms.DiceTerm.Result): string {
+	resultFace(result: foundry.dice.terms.DiceTerm.Result): string {
 		const FACES = (this.constructor as typeof GenesysDie).FACES;
 
 		return FACES[result.result - 1] ?? 'unknown';
+	}
+
+	/**
+	 * The face of a result, labelled in words. Foundry writes it in a roll's tooltip as HTML.
+	 */
+	override getResultLabel(result: foundry.dice.terms.DiceTerm.Result): string {
+		const face = this.resultFace(result);
+		const attributes = glyphLabelAttributesHTML(face);
+
+		return attributes ? `<span ${attributes}>${face}</span>` : face;
 	}
 }

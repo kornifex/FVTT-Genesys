@@ -8,6 +8,7 @@ import {
 	claimQueryRefusal,
 	claimRefusal,
 	decodeInitiative,
+	initiativeGlyphs,
 	encodeInitiative,
 	ExtraSlot,
 	extraSlotResets,
@@ -396,5 +397,16 @@ describe('initiative', () => {
 
 	it('decodes no initiative as nothing', () => {
 		expect(decodeInitiative(null)).toEqual({ successes: 0, advantages: 0 });
+	});
+
+	it('shows an initiative as the glyphs of its Successes then its Advantage, none without one', () => {
+		expect(initiativeGlyphs(encodeInitiative(2, 3))).toBe('ssaaa');
+		expect(initiativeGlyphs(encodeInitiative(0, 1))).toBe('a');
+		expect(initiativeGlyphs(null)).toBe('');
+	});
+
+	it('shows no Successes for a negative initiative, as a macro can store', () => {
+		expect(initiativeGlyphs(-50)).toBe('');
+		expect(initiativeGlyphs(-0.5)).toBe('a'.repeat(50));
 	});
 });
