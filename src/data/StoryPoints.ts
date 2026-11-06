@@ -36,14 +36,9 @@ export function storyPointsAfterSpending(storyPoints: StoryPointData, pool: Stor
 }
 
 /**
- * The pools once the GM types a new count for one of them. Undefined when the input isn't a whole number of points, or
- * is the pool's current count: the tracker then keeps the pools as they are and writes nothing.
+ * The pools once the GM sets one of them, typing its count or adding a point with its +: the other pool keeps its
+ * points, unlike a spend.
  */
-export function storyPointsAfterEditing(storyPoints: StoryPointData, pool: StoryPointPool, input: string): StoryPointData | undefined {
-	const count = input.trim();
-	if (!/^\d+$/.test(count) || Number(count) === storyPoints[pool]) {
-		return undefined;
-	}
-
-	return { ...storyPoints, [pool]: Number(count) };
+export function storyPointsAfterSetting(storyPoints: StoryPointData, pool: StoryPointPool, count: number): StoryPointData {
+	return { ...storyPoints, [pool]: count };
 }

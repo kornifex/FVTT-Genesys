@@ -1,5 +1,5 @@
 /** @file The inventory of #37: drops on actor and item sheets, Containers, Equipment States and their effects, armor, encumbrance and inventory rows. */
-import type { ConfirmDialog, Point } from '../page.ts';
+import type { ConfirmDialog, CounterState, Point } from '../page.ts';
 import type { Client, ScenarioContext } from '../scenario.ts';
 
 type EquipmentState = 'equipped' | 'carried' | 'dropped';
@@ -123,6 +123,9 @@ type InventoryHelpers = {
 	damageToNothing(actor: string, item: string): Promise<void>;
 	/** Clicks the quantity and the damage state of an item's row once. */
 	clickQuantityAndDamage(actor: string, item: string): Promise<void>;
+	/** Focuses the spin button of a row's quantity or damage counter, its text selected when it can be typed into. */
+	focusCounter(actor: string, item: string, kind: 'quantity' | 'damage'): Promise<void>;
+	counter(actor: string, item: string, kind: 'quantity' | 'damage'): Promise<CounterState | null>;
 	/** Attacks with a weapon from its inventory row, which opens the dice prompt. */
 	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
@@ -224,7 +227,7 @@ function installInventoryHelpers() {
 		return;
 	}
 
-	const { settle, waitFor, render, text, unprefixed, isSetUp, effectRows } = window.e2e;
+	const { settle, waitFor, render, text, unprefixed, isSetUp, effectRows, counterValue, clickCounter, counterState } = window.e2e;
 	const full = (name: string) => `E2E ${name}`;
 	const PACKS = { items: 'e2e-inventory-items', actors: 'e2e-inventory-actors' };
 	const pack = (key: keyof typeof PACKS) => game.packs.get(`world.${PACKS[key]}`);
@@ -1072,9 +1075,13 @@ function installInventoryHelpers() {
 		},
 
 		async stepToDeletion(ref, name, kind, answer) {
-			const control = (await rowOf(ref, name)).querySelector<HTMLElement>(`:scope > .${kind}`)!;
-			// The quantity steps down on a right click, the damage up on a left one.
-			control.dispatchEvent(new MouseEvent(kind === 'quantity' ? 'contextmenu' : 'click', { bubbles: true, cancelable: true }));
+			const counter = (await rowOf(ref, name)).querySelector<HTMLElement>(`:scope > .${kind}`)!;
+			// The quantity steps down on a right click, the damage up with its +.
+			if (kind === 'quantity') {
+				counter.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			} else {
+				clickCounter(counter, 1);
+			}
 			return window.e2e.answerConfirm(answer);
 		},
 
@@ -1089,16 +1096,30 @@ function installInventoryHelpers() {
 
 		async damageToNothing(ref, name) {
 			for (let step = 0; step < 4; step++) {
-				(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!.click();
+				clickCounter((await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!, 1);
 				await settle();
 			}
 			await window.e2e.answerConfirm('yes');
 		},
 
+		async focusCounter(ref, name, kind) {
+			// An element of a hidden tab takes no focus.
+			await window.e2e.showTab(ref, 'inventory');
+			const spinButton = (await rowOf(ref, name)).querySelector<HTMLElement>(`:scope > .${kind} [role="spinbutton"]`);
+			if (!spinButton) throw new Error(`No ${kind} spin button on the row of ${name}`);
+			spinButton.focus();
+			if (document.activeElement !== spinButton) throw new Error(`The ${kind} spin button of ${name} took no focus`);
+			if (spinButton instanceof HTMLInputElement) spinButton.select();
+		},
+
+		async counter(ref, name, kind) {
+			return counterState((await rowOf(ref, name)).querySelector(`:scope > .${kind}`));
+		},
+
 		async clickQuantityAndDamage(ref, name) {
-			(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .quantity')!.click();
+			clickCounter((await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .quantity')!, 1);
 			await settle();
-			(await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!.click();
+			clickCounter((await rowOf(ref, name)).querySelector<HTMLElement>(':scope > .damage')!, 1);
 			await settle();
 		},
 
@@ -1277,10 +1298,10 @@ function installInventoryHelpers() {
 			const row = await rowOf(ref, name);
 			return {
 				details: [...(row.querySelector('[data-item-type]')?.children ?? [])].map((part) => unprefixed(text(part))).join(' | '),
-				quantity: text(row.querySelector(':scope > .quantity')),
+				quantity: counterValue(row.querySelector(':scope > .quantity')),
 				encumbrance: text(row.querySelector(':scope > .weight')),
-				// The damage button's name, which its bare `data-tooltip` shows.
-				damageState: row.querySelector(':scope > .damage')?.getAttribute('aria-label') ?? null,
+				// The damage counter's value, its state's name, which it shows and reads to a screen reader.
+				damageState: row.querySelector(':scope > .damage [role="spinbutton"]')?.getAttribute('aria-valuetext') ?? null,
 			};
 		},
 
@@ -2628,6 +2649,54 @@ async function itemActions(e2e: ScenarioContext) {
 		asked = await deleteFromMenu('Twine', 'yes');
 	});
 	e2e.expect("#252 D2 Yes deletes the item from the row's Delete", await twine(), []);
+
+	// §#580: a row's quantity and damage are counters, stepped from the keyboard, the quantity typed in too.
+	const counter = (item: string, kind: 'quantity' | 'damage') =>
+		gm.evaluate((args) => window.inventoryE2E.counter('Stepper', args.item, args.kind), { item, kind });
+	const pressOn = async (item: string, kind: 'quantity' | 'damage', keys: string[]) => {
+		await gm.evaluate((args) => window.inventoryE2E.focusCounter('Stepper', args.item, args.kind), { item, kind });
+		for (const key of keys) {
+			await gm.page.keyboard.press(key);
+			// Each step writes the item before the next one reads it, as a user's next key would wait for the row.
+			await gm.evaluate(() => window.e2e.settle());
+		}
+	};
+	e2e.expect(
+		"#580 A1 a row's quantity is a spin button named Quantity, which can be typed into, and its damage one named Damage that reads its state in words; a − and a + where a step is possible",
+		{ quantity: await counter('Pick', 'quantity'), damage: await counter('Pick', 'damage') },
+		{
+			quantity: {
+				shown: '1',
+				spinButton: { name: 'Quantity', now: '1', min: '0', max: null, text: null, typed: true },
+				buttons: ['Decrease', 'Increase'],
+			},
+			damage: {
+				shown: 'Undamaged',
+				spinButton: { name: 'Damage', now: '0', min: '0', max: null, text: 'Undamaged', typed: false },
+				buttons: ['Increase'],
+			},
+		},
+	);
+	await e2e.step("#580 A2 Stepper's Pick's quantity and damage each focused, then ArrowUp pressed twice and ArrowDown once", async () => {
+		await pressOn('Pick', 'quantity', ['ArrowUp', 'ArrowUp', 'ArrowDown']);
+		await pressOn('Pick', 'damage', ['ArrowUp', 'ArrowUp', 'ArrowDown']);
+	});
+	e2e.expect(
+		"#580 A2 ArrowUp and ArrowDown step a row's quantity and damage",
+		{ quantity: (await counter('Pick', 'quantity'))?.shown, damage: (await counter('Pick', 'damage'))?.shown },
+		{ quantity: '2', damage: 'Minor Damage' },
+	);
+	await e2e.step("#580 A3 5 typed into Stepper's Pick's quantity, then Enter", () => pressOn('Pick', 'quantity', ['5', 'Enter']));
+	e2e.expect("#580 A3 a quantity typed into a row's counter is written", (await counter('Pick', 'quantity'))?.shown, '5');
+	await e2e.step("#580 A4 0 typed into Stepper's Pick's quantity, then Enter, and No answered", async () => {
+		await pressOn('Pick', 'quantity', ['0', 'Enter']);
+		asked = await gm.evaluate(() => window.e2e.answerConfirm('no'));
+	});
+	e2e.expect(
+		'#580 A4 a quantity of 0 typed into a row asks as a step down to 0 does, and No keeps the item at its quantity',
+		{ asked, quantity: (await counter('Pick', 'quantity'))?.shown },
+		{ asked: dialog, quantity: '5' },
+	);
 }
 
 /** §#358: an inventory row's menu opens on a right-click, and an item dropped on a row lands before or after it. */

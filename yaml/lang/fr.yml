@@ -406,8 +406,19 @@ Genesys:
     GMShort: Fatalité
     Reset: Réinitialise les points Narratifs
     Spend: Dépenser un point Narratif
+    Add: Ajouter un point Narratif
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !
+
+  # A value counted up from 0, stepped with − and +: its buttons, and the names of the sheets' counters.
+  Counter:
+    Decrease: Diminuer
+    Increase: Augmenter
+    CurrentWounds: Blessures actuelles
+    CurrentStrain: Stress actuel
+    CurrentHullTrauma: Dégâts de la coque actuels
+    CurrentSystemStrain: Stress mécanique actuel
+    Damage: Dégâts
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:

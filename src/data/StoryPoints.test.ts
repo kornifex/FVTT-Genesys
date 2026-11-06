@@ -1,7 +1,7 @@
 /** @file Tests for the two Story Point pools, against the Core Rulebook. */
 
 import { describe, expect, it } from 'vitest';
-import { sessionStoryPoints, storyPointsAfterEditing, storyPointsAfterSpending } from '@/data/StoryPoints';
+import { sessionStoryPoints, storyPointsAfterSetting, storyPointsAfterSpending } from '@/data/StoryPoints';
 
 describe('sessionStoryPoints', () => {
 	it('puts one point per player in the player pool and one in the GM pool at the start of a session (CRB p. 28)', () => {
@@ -22,20 +22,9 @@ describe('storyPointsAfterSpending', () => {
 	});
 });
 
-describe('storyPointsAfterEditing', () => {
-	it('sets the pool the GM edits to the count typed, and leaves the other one alone', () => {
-		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'gm', '4')).toEqual({ player: 3, gm: 4 });
-		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'player', ' 0 ')).toEqual({ player: 0, gm: 1 });
-	});
-
-	it('changes nothing when the input is not a whole number of points (#263)', () => {
-		for (const input of ['abc', '', '2a', '1.5', '-1']) {
-			expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'gm', input)).toBeUndefined();
-		}
-	});
-
-	it('changes nothing when the GM confirms the count the pool already holds (#528)', () => {
-		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'gm', '1')).toBeUndefined();
-		expect(storyPointsAfterEditing({ player: 3, gm: 1 }, 'player', ' 03 ')).toBeUndefined();
+describe('storyPointsAfterSetting', () => {
+	it('sets the pool the GM edits to its new count, and leaves the other one alone', () => {
+		expect(storyPointsAfterSetting({ player: 3, gm: 1 }, 'gm', 4)).toEqual({ player: 3, gm: 4 });
+		expect(storyPointsAfterSetting({ player: 3, gm: 1 }, 'player', 0)).toEqual({ player: 0, gm: 1 });
 	});
 });

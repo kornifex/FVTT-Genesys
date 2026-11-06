@@ -400,8 +400,19 @@ Genesys:
     PlayerShort: PJ
     GMShort: DJ
     Reset: Reiniciar puntos de Historia
+    Add: Añadir un punto de Historia
     ChatMessageGmPool: ¡Punto de Historia gastado!
     ChatMessagePlayerPool: ¡Punto de Historia gastado!
+
+  # A value counted up from 0, stepped with − and +: its buttons, and the names of the sheets' counters.
+  Counter:
+    Decrease: Disminuir
+    Increase: Aumentar
+    CurrentWounds: Heridas actuales
+    CurrentStrain: Tensión actual
+    CurrentHullTrauma: Daños en el casco actuales
+    CurrentSystemStrain: Tensión de sistemas actual
+    Damage: Daño
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:

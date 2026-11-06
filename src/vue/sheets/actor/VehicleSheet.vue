@@ -54,19 +54,25 @@ const TABS = [
 						label="Genesys.Labels.HullTrauma"
 						primary-label="Genesys.Labels.Threshold"
 						name="system.hullTrauma.max"
+						field-label="Genesys.Labels.HullTraumaThreshold"
 						:value="system.hullTrauma.max"
-						:secondary="{ label: 'Genesys.Labels.Current', value: system.hullTrauma.value, name: 'system.hullTrauma.value' }"
+						:secondary="{
+							label: 'Genesys.Labels.Current',
+							value: system.hullTrauma.value,
+							counter: { attribute: 'trauma', label: 'Genesys.Counter.CurrentHullTrauma' },
+						}"
 					/>
 
 					<CombatStat
 						label="Genesys.Labels.SystemStrain"
 						primary-label="Genesys.Labels.Threshold"
 						name="system.systemStrain.max"
+						field-label="Genesys.Labels.SystemStrainThreshold"
 						:value="system.systemStrain.max"
 						:secondary="{
 							label: 'Genesys.Labels.Current',
 							value: system.systemStrain.value,
-							name: 'system.systemStrain.value',
+							counter: { attribute: 'strain', label: 'Genesys.Counter.CurrentSystemStrain' },
 						}"
 					/>
 				</div>

@@ -256,8 +256,7 @@ export function equipmentStep(
 	direction: StepDirection,
 ): EquipmentStep {
 	if (kind === 'quantity') {
-		const quantity = item.system.quantity + direction;
-		return quantity <= 0 ? { action: 'delete' } : { action: 'update', update: { system: { quantity } } };
+		return quantityChange(item.system.quantity + direction);
 	}
 
 	const damage = damageStep(item.system.damage, direction);
@@ -266,6 +265,13 @@ export function equipmentStep(
 	}
 
 	return damage === 'destroyed' ? { action: 'delete' } : { action: 'update', update: { system: { damage } } };
+}
+
+/**
+ * What a quantity typed on an item's row, or stepped to, does: an item left with none is deleted.
+ */
+export function quantityChange(quantity: number): EquipmentStep {
+	return quantity <= 0 ? { action: 'delete' } : { action: 'update', update: { system: { quantity } } };
 }
 
 /**

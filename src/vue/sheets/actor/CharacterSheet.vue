@@ -38,14 +38,22 @@ const TABS = [
 				label="Genesys.Labels.Wounds"
 				primary-label="Genesys.Labels.Threshold"
 				:value="system.wounds.max"
-				:secondary="{ label: 'Genesys.Labels.Current', value: system.wounds.value, name: 'system.wounds.value' }"
+				:secondary="{
+					label: 'Genesys.Labels.Current',
+					value: system.wounds.value,
+					counter: { attribute: 'wounds', label: 'Genesys.Counter.CurrentWounds' },
+				}"
 			/>
 
 			<CombatStat
 				label="Genesys.Labels.Strain"
 				primary-label="Genesys.Labels.Threshold"
 				:value="system.strain.max"
-				:secondary="{ label: 'Genesys.Labels.Current', value: system.strain.value, name: 'system.strain.value' }"
+				:secondary="{
+					label: 'Genesys.Labels.Current',
+					value: system.strain.value,
+					counter: { attribute: 'strain', label: 'Genesys.Counter.CurrentStrain' },
+				}"
 			/>
 
 			<CombatStat

@@ -8,7 +8,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
-import { EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
+import { damageLevel, EQUIPMENT_DAMAGE_LABELS, EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import { CharacterDataModel } from '@/actor/data/CharacterDataModel';
@@ -23,13 +23,13 @@ import {
 	SteppedValue,
 } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
-import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
+import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, setEquipmentQuantity, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
-import { isKeyboardContextMenu } from '@/vue/inputSource';
 import { signed } from '@/vue/format';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
+import Counter from '@/vue/components/Counter.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
@@ -177,18 +177,6 @@ function step(kind: SteppedValue, direction: StepDirection) {
 	return stepEquipment(props.item, kind, direction);
 }
 
-// A right-click on the quantity or the damage steps it down. Shift+F10 or the context menu key there opens the row's
-// menu instead, as on the row's other controls.
-function stepDown(event: MouseEvent, kind: SteppedValue) {
-	if (isKeyboardContextMenu(event)) {
-		return;
-	}
-
-	event.preventDefault();
-	event.stopPropagation();
-	void step(kind, -1);
-}
-
 function edgeOf(event: DragEvent) {
 	return rowEdge(event.clientY, (event.currentTarget as HTMLElement).getBoundingClientRect());
 }
@@ -327,31 +315,30 @@ function openMenu(event: MouseEvent) {
 			</div>
 		</div>
 
-		<!-- The steppers check no editable sheet: #580 makes them counters, which do. -->
-		<ActionButton
+		<Counter
 			v-if="item.type !== 'container'"
 			class="quantity"
 			label="Genesys.Labels.Quantity"
-			@click="step('quantity', 1)"
-			@contextmenu="stepDown($event, 'quantity')"
-		>
-			{{ item.system.quantity }}
-			<i class="fas fa-suitcase"></i>
-		</ActionButton>
+			:value="item.system.quantity"
+			@step="step('quantity', $event)"
+			@type="setEquipmentQuantity(item, $event)"
+			><i class="fas fa-suitcase"></i
+		></Counter>
 
 		<div class="weight" data-tooltip="Genesys.Labels.Encumbrance">
 			{{ system.encumbrance < 0 ? '+' : null }}{{ Math.abs(system.encumbrance) }} <i class="fas fa-weight-hanging"></i>
 		</div>
 
-		<ActionButton
+		<!-- A damage past Major destroys the item: the counter has no cap, and its owner asks before deleting it. -->
+		<Counter
 			class="damage"
-			:label="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
-			@click="step('damage', 1)"
-			@contextmenu="stepDown($event, 'damage')"
-		>
-			<!-- In the icon slot, for the row's rule on its icons to reach it. -->
-			<template #icon><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i></template>
-		</ActionButton>
+			label="Genesys.Counter.Damage"
+			:value="damageLevel(item.system.damage)"
+			:value-label="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
+			:can-type="false"
+			@step="step('damage', $event)"
+			><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i
+		></Counter>
 
 		<ContextMenu ref="menu" class="actions" orientation="left" trigger :focus-key="item.uuid" :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
@@ -404,7 +391,7 @@ function openMenu(event: MouseEvent) {
 
 .inventory-item {
 	display: grid;
-	grid-template-columns: [icon] 2rem [name] auto [spacer] 1fr [quantity] 2.5em [weight] 2.5em [damage] 2em [actions] auto;
+	grid-template-columns: [icon] 2rem [name] auto [spacer] 1fr [quantity] 2.5em [weight] 2.5em [damage] 8.5em [actions] auto;
 	grid-template-rows: auto auto;
 	align-items: center;
 	column-gap: 0.5em;
@@ -469,7 +456,7 @@ function openMenu(event: MouseEvent) {
 	}
 
 	&.mini {
-		grid-template-columns: [icon] 1.5em [name] auto [spacer] 1fr [quantity] 2.5em [weight] 2.5em [damage] 2em [actions] auto;
+		grid-template-columns: [icon] 1.5em [name] auto [spacer] 1fr [quantity] 2.5em [weight] 2.5em [damage] 8.5em [actions] auto;
 		height: 2em;
 		overflow: hidden;
 		font-size: 0.8em;
@@ -623,9 +610,11 @@ function openMenu(event: MouseEvent) {
 		grid-column: quantity / span 1;
 	}
 
+	// The damage reads its name beside its icon, so that it doesn't rest on the icon alone.
 	> .damage {
 		grid-column: damage / span 1;
-		font-size: 1.5em;
+		font-size: 1.1em;
+		white-space: nowrap;
 	}
 
 	.actions {

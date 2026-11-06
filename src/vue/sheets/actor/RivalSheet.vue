@@ -16,8 +16,13 @@ const { system } = useSheetDocument<GenesysActor<'rival'>>();
 				label="Genesys.Labels.Wounds"
 				primary-label="Genesys.Labels.Threshold"
 				name="system.wounds.max"
+				field-label="Genesys.Labels.WoundThreshold"
 				:value="system.wounds.max"
-				:secondary="{ label: 'Genesys.Labels.Current', value: system.wounds.value, name: 'system.wounds.value' }"
+				:secondary="{
+					label: 'Genesys.Labels.Current',
+					value: system.wounds.value,
+					counter: { attribute: 'wounds', label: 'Genesys.Counter.CurrentWounds' },
+				}"
 			/>
 
 			<CombatStat
@@ -25,7 +30,13 @@ const { system } = useSheetDocument<GenesysActor<'rival'>>();
 				primary-label="Genesys.Labels.DefenseRanged"
 				:value="system.defense.ranged"
 				name="system.defense.ranged"
-				:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.defense.melee, name: 'system.defense.melee' }"
+				field-label="Genesys.Labels.RangedDefense"
+				:secondary="{
+					label: 'Genesys.Labels.DefenseMelee',
+					value: system.defense.melee,
+					name: 'system.defense.melee',
+					fieldLabel: 'Genesys.Labels.MeleeDefense',
+				}"
 			/>
 		</template>
 	</AdversarySheet>

@@ -26,6 +26,13 @@ export const EQUIPMENT_DAMAGE_LABELS: Record<EquipmentDamageState, string> = {
 const DAMAGE_STEPS: EquipmentDamageState[] = Object.values(EquipmentDamageState);
 
 /**
+ * How many steps an item's damage is from undamaged, as its counter shows it: 0 for a damage this module doesn't know.
+ */
+export function damageLevel(damage: EquipmentDamageState): number {
+	return Math.max(DAMAGE_STEPS.indexOf(damage), 0);
+}
+
+/**
  * The damage an item has one step up or down from its damage: destroyed past major damage, and undefined below
  * undamaged or from a damage this module doesn't know.
  */

@@ -1,5 +1,5 @@
 /** @file #215, #246, #269, #300, #343 and #380: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
-import type { ConfirmDialog } from '../page.ts';
+import type { ConfirmDialog, CounterState } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
 
@@ -80,6 +80,14 @@ type AdversariesHelpers = {
 	characteristicAlignment(args: { actor: string }): Promise<Record<string, string>>;
 	/** Types a value in a number field of an actor's sheet, then returns the value stored. */
 	typeInSheet(args: { actor: string; name: string; value: string; path: string }): Promise<unknown>;
+	/** Types a value into the counter of the sheet the spin button's name gives, and reads the path it writes. */
+	typeInCounter(args: { actor: string; counter: string; value: string; path: string }): Promise<unknown>;
+	/** The names of the spin buttons of an actor's sheet. */
+	counterNames(args: { actor: string }): Promise<string[]>;
+	/** The counter of an actor's sheet that the spin button's name gives. */
+	counter(args: { actor: string; counter: string }): Promise<CounterState | null>;
+	/** Focuses the spin button of an actor's sheet that its name gives, for the keyboard. */
+	focusCounter(args: { actor: string; counter: string }): Promise<void>;
 	update(args: { actor: string; data: object }): Promise<void>;
 	/** Types a change in a bar of the Token HUD of an actor's token, then returns the value stored. */
 	hud(args: { actor: string; bar: 'bar1' | 'bar2'; input: string; path: string }): Promise<unknown>;
@@ -116,8 +124,24 @@ declare global {
  * module.
  */
 function installAdversariesHelpers() {
-	const { settle, waitFor, render, text, unprefixed, htmlOf, actor, token, target, apps, drop, poolPreview, poolModification } =
-		window.e2e;
+	const {
+		settle,
+		waitFor,
+		render,
+		text,
+		unprefixed,
+		htmlOf,
+		actor,
+		token,
+		target,
+		apps,
+		drop,
+		poolPreview,
+		poolModification,
+		counterNamed,
+		counterState,
+		typeInCounter,
+	} = window.e2e;
 	const sheet = (name: string) => render(actor(name).sheet, (root) => root.querySelector('input'));
 	const itemRow = (item: { type: string; name: string; system: { rank?: number } }) =>
 		[item.type, unprefixed(item.name), item.system.rank].filter((part) => part !== undefined).join(' ');
@@ -431,6 +455,29 @@ function installAdversariesHelpers() {
 			return foundry.utils.getProperty(actor(name), path);
 		},
 
+		async typeInCounter({ actor: name, counter: counterName, value, path }) {
+			const root = await sheet(name);
+			const counter = await waitFor(`the counter ${counterName}`, () => counterNamed(root, counterName));
+			typeInCounter(counter, value);
+			await settle();
+			return foundry.utils.getProperty(actor(name), path);
+		},
+
+		async counter({ actor: name, counter: counterName }) {
+			return counterState(counterNamed(await sheet(name), counterName));
+		},
+
+		async focusCounter({ actor: name, counter: counterName }) {
+			const root = await sheet(name);
+			const counter = await waitFor(`the counter ${counterName}`, () => counterNamed(root, counterName));
+			counter.querySelector<HTMLElement>('[role="spinbutton"]')!.focus();
+		},
+
+		async counterNames({ actor: name }) {
+			const root = await sheet(name);
+			return [...root.querySelectorAll('[role="spinbutton"]')].map((spinButton) => spinButton.getAttribute('aria-label') ?? '');
+		},
+
 		async update({ actor: name, data }) {
 			await actor(name).update(data);
 		},
@@ -534,6 +581,8 @@ export async function run(e2e: ScenarioContext) {
 	const clickMenu = (actor: string, kind: 'skill' | 'talent', name: string, label: string, answer?: 'yes' | 'no') =>
 		gm.evaluate((args) => window.adversariesE2E.clickMenu(args), { actor, kind, name, label, ...(answer ? { answer } : {}) });
 	const update = (actor: string, data: object) => gm.evaluate((args) => window.adversariesE2E.update(args), { actor, data });
+	const read = (actor: string, path: string) =>
+		gm.evaluate((args) => foundry.utils.getProperty(window.e2e.actor(args.actor), args.path), { actor, path });
 	const byAdversary = async <T>(names: Adversary[], action: (name: Adversary) => Promise<T>) => {
 		const results: Partial<Record<Adversary, T>> = {};
 		for (const name of names) results[name] = await action(name);
@@ -848,18 +897,22 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 
-		// The character sheet's number fields (§#195).
-		const typeInSheet = (path: string, value: string) =>
-			gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), { actor: 'Hero', name: path, value, path });
+		// The character sheet's current wounds and strain, counters that keep to the Token HUD's bounds (§#195, §#580).
+		const typeInCounter = (actor: string, counter: string, path: string, value: string) =>
+			gm.evaluate((args) => window.adversariesE2E.typeInCounter(args), { actor, counter, value, path });
+		await update('Hero', { [WOUNDS]: 5 });
 		e2e.expect(
-			"#195 E3 the character sheet's wounds field takes a value past twice the wound threshold",
-			await typeInSheet(WOUNDS, '40'),
-			40,
+			"#195 E3 a value typed past twice the wound threshold in the character sheet's current wounds stops at twice the threshold, as on the Token HUD",
+			await typeInCounter('Hero', 'Current Wounds', WOUNDS, '40'),
+			24,
 		);
 		e2e.expect(
 			"#195 E4 a value below 0 typed in the character sheet's current wounds or strain field becomes 0",
-			{ '-3 typed on 40 wounds': await typeInSheet(WOUNDS, '-3'), '-3 typed on 14 strain': await typeInSheet(STRAIN, '-3') },
-			{ '-3 typed on 40 wounds': 0, '-3 typed on 14 strain': 0 },
+			{
+				'-3 typed on 24 wounds': await typeInCounter('Hero', 'Current Wounds', WOUNDS, '-3'),
+				'-3 typed on 14 strain': await typeInCounter('Hero', 'Current Strain', STRAIN, '-3'),
+			},
+			{ '-3 typed on 24 wounds': 0, '-3 typed on 14 strain': 0 },
 		);
 
 		// Rivals' and nemeses' wounds and strain are whole numbers, as a character's are (§#269).
@@ -869,10 +922,64 @@ export async function run(e2e: ScenarioContext) {
 			"#269 E5 a fraction typed in a rival's or a nemesis's wounds or strain field is stored rounded to a whole number",
 			{
 				'rival wound threshold 12.4': await typeInAdversary('Rival', 'system.wounds.max', '12.4'),
-				'nemesis current strain 2.6': await typeInAdversary('Nemesis', STRAIN, '2.6'),
+				'nemesis current strain 2.6': await typeInCounter('Nemesis', 'Current Strain', STRAIN, '2.6'),
 			},
 			{ 'rival wound threshold 12.4': 12, 'nemesis current strain 2.6': 3 },
 		);
+
+		// §#580: every counter of the sheets steps from the keyboard, within the Token HUD's bounds.
+		const pressOnCounter = async (actor: string, counter: string, keys: string[]) => {
+			await gm.evaluate((args) => window.adversariesE2E.focusCounter(args), { actor, counter });
+			for (const key of keys) {
+				await gm.page.keyboard.press(key);
+				// Each step writes the actor before the next one reads it, as a user's next key would wait for the sheet.
+				await e2e.settle();
+			}
+		};
+		const counterOf = (actor: string, counter: string) =>
+			gm.evaluate((args) => window.adversariesE2E.counter(args), { actor, counter });
+		await update('Hero', { [WOUNDS]: 23 });
+		await e2e.step("#580 B1 Hero's current wounds, 23 for a wound threshold of 12, focused, then ArrowUp pressed twice", () =>
+			pressOnCounter('Hero', 'Current Wounds', ['ArrowUp', 'ArrowUp']),
+		);
+		e2e.expect(
+			"#580 B1 a character's wounds stop at twice their threshold on the sheet, as on the Token HUD, and their counter then shows no +",
+			{ wounds: await read('Hero', WOUNDS), counter: await counterOf('Hero', 'Current Wounds') },
+			{
+				wounds: 24,
+				counter: {
+					shown: '24',
+					spinButton: { name: 'Current Wounds', now: '24', min: '0', max: '24', text: null, typed: true },
+					buttons: ['Decrease'],
+				},
+			},
+		);
+		const keyboardCounters = [
+			{ actor: 'Hero', counter: 'Current Strain', path: STRAIN },
+			{ actor: 'Rival', counter: 'Current Wounds', path: WOUNDS },
+			{ actor: 'Nemesis', counter: 'Current Wounds', path: WOUNDS },
+			{ actor: 'Nemesis', counter: 'Current Strain', path: STRAIN },
+			{ actor: 'Wagon', counter: 'Current Hull Trauma', path: 'system.hullTrauma.value' },
+			{ actor: 'Wagon', counter: 'Current System Strain', path: 'system.systemStrain.value' },
+		];
+		const stepped: Record<string, unknown> = {};
+		await e2e.step(
+			"#580 B2 a character's strain, a rival's wounds, a nemesis's wounds and strain, a vehicle's hull trauma and system strain, each at 3, focused, then ArrowUp pressed twice and ArrowDown once",
+			async () => {
+				for (const { actor, counter, path } of keyboardCounters) {
+					await update(actor, { [path]: 3 });
+					await pressOnCounter(actor, counter, ['ArrowUp', 'ArrowUp', 'ArrowDown']);
+					stepped[`${actor} ${counter}`] = await read(actor, path);
+				}
+			},
+		);
+		e2e.expect(
+			"#580 B2 ArrowUp and ArrowDown step every current value of the sheets' combat stats",
+			stepped,
+			Object.fromEntries(keyboardCounters.map(({ actor, counter }) => [`${actor} ${counter}`, 4])),
+		);
+		const rivalMax = await counterOf('Rival', 'Current Wounds');
+		e2e.expect("#580 B3 a rival's current wounds have no maximum, as on the Token HUD", rivalMax?.spinButton?.max, null);
 		e2e.expect(
 			"#269 E6 a rival's or a nemesis's wounds and strain stored as fractions, before they were whole numbers, read rounded",
 			await gm.evaluate(() => {
@@ -958,10 +1065,12 @@ export async function run(e2e: ScenarioContext) {
 
 	// G: a minion's open sheet follows its independentMinion flag (§#343).
 	await e2e.part('minionFlag', async () => {
+		// The threshold's input, and the current wounds' counter (§#580).
 		const woundFields = async () => {
-			const names = ['system.wounds.threshold', 'system.wounds.value'];
+			const names = ['system.wounds.threshold'];
 			const fields = await gm.evaluate((args) => window.adversariesE2E.sheetInputs(args), { actor: 'Grunts', names });
-			return names.filter((name) => fields[name] !== '');
+			const counters = await gm.evaluate((args) => window.adversariesE2E.counterNames(args), { actor: 'Grunts' });
+			return [...names.filter((name) => fields[name] !== ''), ...counters.filter((name) => name === 'Current Wounds')];
 		};
 		const dependent = await woundFields();
 		await e2e.step('#343 GM marks the minion of an open sheet as independent', () =>
@@ -970,7 +1079,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#343 A3 a minion's open sheet follows its independentMinion flag: an independent minion's wounds take a current value",
 			{ dependent, independent: await woundFields() },
-			{ dependent: ['system.wounds.threshold'], independent: ['system.wounds.value'] },
+			{ dependent: ['system.wounds.threshold'], independent: ['Current Wounds'] },
 		);
 		// The parts after this one see the minion of the setup, as when they run alone.
 		await update('Grunts', { 'flags.genesys.independentMinion': false });

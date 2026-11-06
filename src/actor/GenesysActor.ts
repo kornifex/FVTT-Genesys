@@ -1,7 +1,7 @@
 import type { GenesysRollInitiativeOptions } from '@/combat/GenesysCombat';
 import type { Stored } from '@/data/Stored';
 import { DataModelWithTokenAttributes, TokenAttributeDetails } from '@/token/GenesysTokenDocument';
-import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
+import { newTokenAttributeValue, tokenAttributeMax } from '@/token/TokenAttributeValue';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
@@ -68,8 +68,8 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 	}
 
 	/**
-	 * Change one of the system's token attributes from a token's bar or the Token HUD, within the bounds the rules give
-	 * it.
+	 * Change one of the system's token attributes from a token's bar, the Token HUD or a counter of the sheet, within the
+	 * bounds the rules give it.
 	 * @inheritDoc
 	 */
 	override async modifyTokenAttribute(attribute: string, value: number, isDelta?: boolean, isBar?: boolean) {
@@ -80,19 +80,34 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 				return this;
 			}
 
-			const read = (path: string) => Number(foundry.utils.getProperty(this.system, path));
-
 			return await this.update({
 				[`system.${tokenAttribute.valuePath}`]: newTokenAttributeValue({
-					current: read(tokenAttribute.valuePath),
+					current: this.#read(tokenAttribute.valuePath),
 					value,
 					isDelta: !!isDelta,
-					cappedThreshold: tokenAttribute.isBar && tokenAttribute.cappedAtTwiceMax ? read(tokenAttribute.maxPath) : undefined,
+					cappedThreshold: this.#cappedThreshold(tokenAttribute),
 				}),
 			});
 		} else {
 			return super.modifyTokenAttribute(attribute, value, isDelta, isBar);
 		}
+	}
+
+	/**
+	 * The highest value one of the system's token attributes takes, such as twice a character's wound threshold:
+	 * undefined when nothing caps it.
+	 */
+	tokenAttributeMax(attribute: string): number | undefined {
+		const tokenAttribute = (this.system.constructor as DataModelWithTokenAttributes)?.tokenAttributes?.[attribute];
+		return tokenAttribute ? tokenAttributeMax(this.#cappedThreshold(tokenAttribute)) : undefined;
+	}
+
+	#read(path: string) {
+		return Number(foundry.utils.getProperty(this.system, path));
+	}
+
+	#cappedThreshold(tokenAttribute: TokenAttributeDetails) {
+		return tokenAttribute.isBar && tokenAttribute.cappedAtTwiceMax ? this.#read(tokenAttribute.maxPath) : undefined;
 	}
 
 	/**
