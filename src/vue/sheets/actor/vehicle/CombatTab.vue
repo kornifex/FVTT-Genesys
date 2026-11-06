@@ -10,13 +10,11 @@ import { EquipmentState } from '@/item/data/EquipmentState';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import Enriched from '@/vue/components/Enriched.vue';
-import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
-import { useOpenRows } from '@/vue/useOpenRows';
 
 import { rollForCrew } from '@/operations/CrewRoll';
 import { attackWithVehicleWeapon } from '@/operations/ItemActions';
@@ -27,7 +25,6 @@ const { document: actor } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 const weapons = computed(() => itemsOfType(actor.value, 'vehicleWeapon').filter((i) => i.system.state === EquipmentState.Equipped));
 const criticalHits = computed(() => itemsOfType(actor.value, 'injury'));
-const openWeapons = useOpenRows();
 
 async function repairHit(criticalHit: GenesysItem<'injury'>) {
 	await rollForCrew(crewForSkills(actor.value.system.crew, [CONFIG.genesys.settings.skillForRepairingHit]), {
@@ -51,14 +48,9 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
 
-					<div class="name">
+					<DescriptionFold class="name" :description="weapon.system.description">
 						<ActionButton @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</ActionButton>
-						<DescriptionToggle
-							:description="weapon.system.description"
-							:open="openWeapons.isOpen(weapon.id)"
-							@toggle="openWeapons.toggle(weapon.id)"
-						/>
-					</div>
+					</DescriptionFold>
 
 					<div class="skill" v-if="weapon.system.skills.length > 0">
 						{{ weapon.system.skills.join(', ') }}
@@ -72,10 +64,6 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 					</div>
 
 					<QualityList :qualities="weapon.system.qualities" tags class="qualities" />
-
-					<div :class="['description', { active: openWeapons.isOpen(weapon.id) }]">
-						<Enriched :value="weapon.system.description" />
-					</div>
 				</div>
 			</div>
 			<ListEmpty v-else />

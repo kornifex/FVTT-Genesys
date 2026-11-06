@@ -6,11 +6,9 @@ import { severityDifficulty } from '@/item/data/Injuries';
 import { deleteItem, openSheet } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import Enriched from '@/vue/components/Enriched.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
-import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
-import { useOpenRows } from '@/vue/useOpenRows';
 
 // A character suffers Critical Injuries, a vehicle Critical Hits: the same items, under their own names.
 const KINDS = {
@@ -32,7 +30,6 @@ const emit = defineEmits<{
 
 const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
-const { isOpen, toggle } = useOpenRows();
 </script>
 
 <template>
@@ -48,16 +45,14 @@ const { isOpen, toggle } = useOpenRows();
 				<!-- The image's words name the button. -->
 				<ActionButton @click="emit('roll', injury)"><Glyphs :glyphs="severityDifficulty(injury.system.severity)" /></ActionButton>
 			</div>
-			<div class="name">
+			<DescriptionFold class="name" :description="injury.system.description">
 				<ActionButton @click="openSheet(injury)">{{ injury.name }}</ActionButton>
-				<DescriptionToggle :description="injury.system.description" :open="isOpen(injury.id)" @toggle="toggle(injury.id)" />
-			</div>
+			</DescriptionFold>
 			<div v-if="editable" class="actions">
 				<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(injury)" />
 				<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
 			</div>
 			<div v-else />
-			<div :class="['description', { active: isOpen(injury.id) }]"><Enriched :value="injury.system.description" /></div>
 		</div>
 	</div>
 </template>
@@ -98,7 +93,9 @@ const { isOpen, toggle } = useOpenRows();
 	border-bottom: 1px dashed colors.$blue;
 	column-gap: 0.5em;
 
-	.name {
+	// The name and the fold are the roots of the row's `DescriptionFold`, which take no scope attribute from the row: :deep()
+	// reaches them.
+	& > :deep(.name) {
 		font-family: 'Roboto Serif', serif;
 	}
 
@@ -106,7 +103,7 @@ const { isOpen, toggle } = useOpenRows();
 		border-bottom: none;
 	}
 
-	.description {
+	& > :deep(.description-fold) {
 		@include combat-tab.row-description(1em);
 	}
 }

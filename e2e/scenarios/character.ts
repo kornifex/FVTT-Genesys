@@ -1,6 +1,13 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
 import type { GlyphName } from '../accessibility.ts';
-import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
+import {
+	CLOSED_CHEVRON,
+	CLOSED_DESCRIPTION,
+	closedDescription,
+	LONG_DESCRIPTION,
+	OPEN_CHEVRON,
+	shownDescription,
+} from '../descriptions.ts';
 import type { Chevron, ConfirmDialog, DescriptionBox, OwnershipLevel } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
@@ -93,8 +100,6 @@ type CharacterHelpers = {
 	talentsTab(actor: string): { abilities: string[]; talents: string[] };
 	/** Clicks the trash icon of a row of the Talents tab. */
 	trashTalentRow(actor: string, name: string): void;
-	/** Clicks the name of a talent in the Talents tab, which opens or closes its description. */
-	toggleTalent(actor: string, talent: string): void;
 	/**
 	 * Clicks the chevron of a row of the Combat or Talents tab, which opens or closes its description; false when the row
 	 * shows none.
@@ -102,9 +107,16 @@ type CharacterHelpers = {
 	clickChevron(actor: string, row: DescriptionRow): boolean;
 	/** The chevron of a row of the Combat or Talents tab, or null when the row shows none. */
 	chevron(actor: string, row: DescriptionRow): Chevron | null;
+	/** Puts the focus on the chevron of a row, as Tab would. */
+	focusChevron(actor: string, row: DescriptionRow): void;
 	/**
-	 * What the name of a Talents tab row shows, in order: its name and rank as text, `chevron` for its chevron and
-	 * `upgrade` for its rank upgrade arrow.
+	 * Where the focus is, from a row's point of view: on its `chevron`, on a `link` of its fold, on another element of the
+	 * `row`, or `elsewhere`.
+	 */
+	focusInRow(actor: string, row: DescriptionRow): 'chevron' | 'link' | 'row' | 'elsewhere';
+	/**
+	 * What the name of a Talents tab row shows, then the cell after it, in order: its name and rank as text, `chevron` for
+	 * its chevron and `upgrade` for its rank upgrade arrow.
 	 */
 	talentNameParts(actor: string, talent: string): string[];
 	/** Clicks the name of a row of the Combat or Talents tab. */
@@ -120,7 +132,7 @@ type CharacterHelpers = {
 	 */
 	descriptionBox(actor: string, row: DescriptionRow, cap: number): DescriptionBox | null;
 	/**
-	 * Opens or closes a row's description, by a talent's name or a Combat tab row's chevron, and reads its fold halfway
+	 * Opens or closes a row's description by its chevron, and reads its fold halfway
 	 * through, its transitions paused at 100ms; then finishes them (#516).
 	 */
 	foldHalfway(actor: string, row: DescriptionRow): Promise<FoldHalfway>;
@@ -282,9 +294,10 @@ function installCharacterHelpers() {
 		if (!found) throw new Error(`No row for ${JSON.stringify(row)}`);
 		return found;
 	};
-	// The element of a row that its `active` class opens.
+	// The fold of a row, which its chevron opens; before #579, on the build a comparison runs, the element its `active`
+	// class opened.
 	const description = (name: string, row: DescriptionRow) =>
-		rowOf(name, row).querySelector('talent' in row ? '.desc-container' : '.description');
+		rowOf(name, row).querySelector(':scope > :is(.description-fold, .description, .desc-container)');
 	const entryText = (entry: { type: string; amount: number; data?: Record<string, string | number | undefined> }) => {
 		const data = entry.data ?? {};
 		switch (entry.type) {
@@ -491,7 +504,8 @@ function installCharacterHelpers() {
 		},
 
 		upgradeTalent(name, talent) {
-			const arrow = talentRow(name, talent)?.querySelector('.name button:has(.fa-arrow-circle-up)');
+			// In its own cell after the name since #579, in the name before.
+			const arrow = talentRow(name, talent)?.querySelector('button:has(.fa-arrow-circle-up)');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
@@ -693,8 +707,9 @@ function installCharacterHelpers() {
 				tier: item.system.effectiveTier,
 				row: text(row?.querySelector('.name button')),
 				rowTier: text(row?.querySelector('.tier')).replace(/^.*?(\d+)$/, '$1'),
-				description: text(row?.querySelector('.desc')),
-				canUpgrade: !!row?.querySelector('.name button:has(.fa-arrow-circle-up)'),
+				// `.desc` before #579, on the build a comparison runs.
+				description: text(row?.querySelector('.description-fold .description, .desc')),
+				canUpgrade: !!row?.querySelector('button:has(.fa-arrow-circle-up)'),
 			};
 		},
 
@@ -745,10 +760,6 @@ function installCharacterHelpers() {
 			click(row?.querySelector('.fa-trash')?.closest('button'), `trash icon of ${item}`);
 		},
 
-		toggleTalent(name, talent) {
-			click(talentRow(name, `E2E ${talent}`)?.querySelector('.name button'), `name of the talent ${talent}`);
-		},
-
 		clickChevron(name, row) {
 			return window.e2e.clickChevron(rowOf(name, row));
 		},
@@ -757,8 +768,25 @@ function installCharacterHelpers() {
 			return window.e2e.chevron(rowOf(name, row));
 		},
 
+		focusChevron(name, row) {
+			const toggle = rowOf(name, row).querySelector<HTMLElement>('.description-toggle');
+			if (!toggle) throw new Error(`No chevron for ${JSON.stringify(row)}`);
+			toggle.focus();
+		},
+
+		focusInRow(name, row) {
+			const element = rowOf(name, row);
+			const focused = document.activeElement;
+			if (!focused || !element.contains(focused)) return 'elsewhere';
+			if (focused.matches('.description-toggle')) return 'chevron';
+			return focused.matches('.description-fold a') ? 'link' : 'row';
+		},
+
 		talentNameParts(name, talent) {
-			return [...(rowOf(name, { talent }).querySelector('.name')?.children ?? [])].map((child) => {
+			const row = rowOf(name, { talent });
+			// The upgrade arrow sits in its own cell, after the name and its fold, since #579.
+			const after = [...(row.querySelector(':scope > .upgrade')?.children ?? [])];
+			return [...(row.querySelector('.name')?.children ?? []), ...after].map((child) => {
 				if (child.classList.contains('description-toggle')) return 'chevron';
 				if (child.querySelector('.fa-arrow-circle-up')) return 'upgrade';
 				return text(child);
@@ -791,8 +819,7 @@ function installCharacterHelpers() {
 			// as no frame has drawn it, so it is read now, as a user sees the tab before clicking in it.
 			const before = getComputedStyle(element).gridTemplateRows;
 			if (!before) throw new Error(`No style for ${JSON.stringify(row)}`);
-			if ('talent' in row) window.characterE2E.toggleTalent(name, row.talent);
-			else window.characterE2E.clickChevron(name, row);
+			window.characterE2E.clickChevron(name, row);
 			// Vue renders the row's new class before the next frame, which starts its transitions.
 			await new Promise(requestAnimationFrame);
 			const transitions = [element, content].flatMap((animated) => animated.getAnimations()) as CSSTransition[];
@@ -2839,14 +2866,14 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		});
 		await page((name) => window.characterE2E.open(name), D);
 		await page((name) => window.e2e.showTab(name, 'talents'), D);
-		await page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D);
+		await clickChevron({ talent: 'Verbose' });
 	});
 	e2e.expect(
 		"#325 A1 the talent's description shows its last line, at its full height past 500px",
 		await box({ talent: 'Verbose' }, 500),
 		shownDescription(500),
 	);
-	await e2e.step('#325 A2 the talent clicked closed', () => page((name) => window.characterE2E.toggleTalent(name, 'Verbose'), D));
+	await e2e.step('#325 A2 the talent clicked closed', () => clickChevron({ talent: 'Verbose' }));
 	e2e.expect(
 		"#325 A2 the talent's closed description takes no height, and animates its rows",
 		await closed({ talent: 'Verbose' }),
@@ -2889,6 +2916,7 @@ async function expandedDescriptions(e2e: ScenarioContext, page: Evaluate) {
 /**
  * §#393: the chevron after the name of a Combat tab row opens and closes its description, each Weapon Profile's row on
  * its own, on a sheet the user can't edit too; a row without a description shows none, and the name keeps its click.
+ * §#579: the chevron of a second open sheet points at its own fold.
  */
 async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const C = 'Duelist';
@@ -2930,9 +2958,9 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		},
 	);
 	e2e.expect(
-		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, pointing right, to show the description',
+		'#393 A1 the rows of a weapon, of each of its Weapon Profiles, of an armor and of a Critical Injury show a chevron after their name, which tells their description is collapsed',
 		await rows(),
-		{ main: SHOW_CHEVRON, thrown: SHOW_CHEVRON, armor: SHOW_CHEVRON, injury: SHOW_CHEVRON },
+		{ main: CLOSED_CHEVRON, thrown: CLOSED_CHEVRON, armor: CLOSED_CHEVRON, injury: CLOSED_CHEVRON },
 	);
 	e2e.expect(
 		"#393 A1 the rows of a weapon and of a Critical Injury without a description show no chevron, and every row's description starts closed",
@@ -2964,7 +2992,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#393 A2 the main row's chevron points down, to hide the description, and the Thrown row's stays closed",
 		{ main: await chevron(MAIN), thrown: await chevron(THROWN), thrownBox: await closed(THROWN) },
-		{ main: HIDE_CHEVRON, thrown: SHOW_CHEVRON, thrownBox: CLOSED_DESCRIPTION },
+		{ main: OPEN_CHEVRON, thrown: CLOSED_CHEVRON, thrownBox: CLOSED_DESCRIPTION },
 	);
 	e2e.expect("#393 A2 the chevron opens neither the weapon's sheet nor the Dice Prompt", opened, { sheet: false, dicePrompt: false });
 
@@ -2984,7 +3012,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			thrown: await box(THROWN, 200),
 			thrownChevron: await chevron(THROWN),
 		},
-		{ main: CLOSED_DESCRIPTION, mainChevron: SHOW_CHEVRON, thrown: shownDescription(200), thrownChevron: HIDE_CHEVRON },
+		{ main: CLOSED_DESCRIPTION, mainChevron: CLOSED_CHEVRON, thrown: shownDescription(200), thrownChevron: OPEN_CHEVRON },
 	);
 
 	await e2e.step('#393 A5 the sheet closed and opened again, on its Combat tab, with the Thrown row open', async () => {
@@ -2994,8 +3022,30 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		'#393 A5 every row opens closed again',
 		{ rows: await rows(), thrown: await closed(THROWN) },
-		{ rows: { main: SHOW_CHEVRON, thrown: SHOW_CHEVRON, armor: SHOW_CHEVRON, injury: SHOW_CHEVRON }, thrown: CLOSED_DESCRIPTION },
+		{
+			rows: { main: CLOSED_CHEVRON, thrown: CLOSED_CHEVRON, armor: CLOSED_CHEVRON, injury: CLOSED_CHEVRON },
+			thrown: CLOSED_DESCRIPTION,
+		},
 	);
+
+	// §#579: every Vue app numbers its ids from the same start, so that the folds of two open sheets shared their ids, and a
+	// chevron's `aria-controls` pointed at the fold of the sheet opened first. Each sheet's ids now start with its own.
+	const SECOND = 'Second';
+	await e2e.step("#579 C1 a second character's sheet opened on its Combat tab, beside Duelist's", async () => {
+		await page((name) => window.characterE2E.create(name), SECOND);
+		await page((args) => window.characterE2E.createItems(args.name, args.items), {
+			name: SECOND,
+			items: [{ name: 'E2E Gambeson', type: 'armor', system: { state: 'equipped', description: '<p>Quilted.</p>' } }],
+		});
+		await page((name) => window.characterE2E.open(name), SECOND);
+		await page((name) => window.e2e.showTab(name, 'combat'), SECOND);
+	});
+	e2e.expect(
+		"#579 C1 the chevron of a row on the second sheet points at its own fold, not at a fold of Duelist's sheet",
+		await page((args) => window.characterE2E.chevron(args.name, args.row), { name: SECOND, row: { armor: 'Gambeson' } }),
+		CLOSED_CHEVRON,
+	);
+	await page((name) => window.characterE2E.close(name), SECOND);
 
 	await e2e.step('#393 B1 the name of the armor clicked', () => clickName({ armor: 'Leather' }));
 	e2e.expect(
@@ -3055,7 +3105,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			editable: await playerPage((name) => game.actors.getName(`E2E ${name}`).sheet.isEditable, C),
 			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
 		},
-		{ editable: false, chevron: SHOW_CHEVRON },
+		{ editable: false, chevron: CLOSED_CHEVRON },
 	);
 
 	await e2e.step("#393 D2 the chevron of the dagger's main row clicked in the player's page", () =>
@@ -3071,7 +3121,7 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			}),
 			chevron: await playerPage((args) => window.characterE2E.chevron(args.name, args.row), { name: C, row: MAIN }),
 		},
-		{ box: shownDescription(200), chevron: HIDE_CHEVRON },
+		{ box: shownDescription(200), chevron: OPEN_CHEVRON },
 	);
 
 	// The player leaves as it came: the steps after these run without it.
@@ -3081,8 +3131,9 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 }
 
 /**
- * §#515: the chevron after the name of a Talents tab row, a talent's or a special ability's, opens and closes the
- * description its name opens and closes; a row without a description shows none, and its name still shows its tier.
+ * §#515, §#579: the chevron after the name of a Talents tab row, a talent's or a special ability's, opens and closes its
+ * description; since #579 the name opens the talent's sheet, and a talent without a description shows a chevron too,
+ * which opens its tier and source.
  */
 async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const S = 'Scholar';
@@ -3092,6 +3143,7 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	const chevron = (row: DescriptionRow) => page((args) => window.characterE2E.chevron(args.name, args.row), { name: S, row });
 	const clickChevron = (row: DescriptionRow) => page((args) => window.characterE2E.clickChevron(args.name, args.row), { name: S, row });
 	const clickName = (row: DescriptionRow) => page((args) => window.characterE2E.clickName(args.name, args.row), { name: S, row });
+	const closeOpened = (item: string) => page((args) => window.characterE2E.closeOpened(args.name, args.item), { name: S, item });
 	const LORE = { talent: 'Lore' };
 	const INSIGHT = { talent: 'Insight' };
 	const BLANK = { talent: 'Blank' };
@@ -3125,24 +3177,23 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 		},
 	);
 	e2e.expect(
-		"#515 A1 a talent's and a special ability's rows show a chevron after their name, pointing right, a talent without a description none, and every description starts closed",
+		"#515 A1 a talent's and a special ability's rows show a chevron after their name, pointing right, and every description starts closed",
 		{
 			lore: await chevron(LORE),
 			insight: await chevron(INSIGHT),
-			blank: await chevron(BLANK),
 			loreBox: await closed(LORE),
 			insightBox: await closed(INSIGHT),
 			blankBox: await closed(BLANK),
 		},
 		{
-			lore: SHOW_CHEVRON,
-			insight: SHOW_CHEVRON,
-			blank: null,
+			lore: CLOSED_CHEVRON,
+			insight: CLOSED_CHEVRON,
 			loreBox: CLOSED_DESCRIPTION,
 			insightBox: CLOSED_DESCRIPTION,
 			blankBox: CLOSED_DESCRIPTION,
 		},
 	);
+	e2e.expect('#579 B1 a talent without a description shows a chevron too, for its tier and source', await chevron(BLANK), CLOSED_CHEVRON);
 	e2e.expect(
 		"#515 A1 the chevron sits after the talent's name and rank, before its rank upgrade arrow",
 		await page((name) => window.characterE2E.talentNameParts(name, 'Lore'), S),
@@ -3153,28 +3204,22 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#515 A2 the talent's description shows its last line, at its full height past 500px, its chevron pointing down, and the special ability's stays closed",
 		{ box: await box(LORE, 500), chevron: await chevron(LORE), insight: await closed(INSIGHT) },
-		{ box: shownDescription(500), chevron: HIDE_CHEVRON, insight: CLOSED_DESCRIPTION },
+		{ box: shownDescription(500), chevron: OPEN_CHEVRON, insight: CLOSED_DESCRIPTION },
 	);
 
-	await e2e.step("#515 A3 the talent's name clicked", () => clickName(LORE));
+	// Since #579, the name opens the talent's sheet, as on any row that can't roll, rather than folding its description.
+	await e2e.step("#579 B2 the talent's name clicked", () => clickName(LORE));
 	e2e.expect(
-		'#515 A3 the name closes the description the chevron opened, and the chevron points right again',
-		{ box: await closed(LORE), chevron: await chevron(LORE) },
-		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
-	);
-
-	await e2e.step("#515 A4 the talent's name clicked again", () => clickName(LORE));
-	e2e.expect(
-		'#515 A4 the name opens the description, and the chevron points down',
-		{ box: await box(LORE, 500), chevron: await chevron(LORE) },
-		{ box: shownDescription(500), chevron: HIDE_CHEVRON },
+		"#579 B2 the talent's name opens its sheet, and leaves the description the chevron opened open",
+		{ box: await box(LORE, 500), chevron: await chevron(LORE), ...(await closeOpened('Lore')) },
+		{ box: shownDescription(500), chevron: OPEN_CHEVRON, sheet: true, dicePrompt: false },
 	);
 
 	await e2e.step("#515 A5 the talent's chevron clicked", () => clickChevron(LORE));
 	e2e.expect(
-		'#515 A5 the chevron closes the description the name opened, and points right again',
+		'#515 A5 the chevron closes the description, and tells it is collapsed again',
 		{ box: await closed(LORE), chevron: await chevron(LORE) },
-		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+		{ box: CLOSED_DESCRIPTION, chevron: CLOSED_CHEVRON },
 	);
 
 	await e2e.step("#515 A6 the special ability's chevron clicked", () => clickChevron(INSIGHT));
@@ -3185,19 +3230,19 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			open: insightOpen && { clipped: insightOpen.clipped, lastInside: insightOpen.lastInside, transition: insightOpen.transition },
 			chevron: await chevron(INSIGHT),
 		},
-		{ open: { clipped: 0, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, chevron: HIDE_CHEVRON },
+		{ open: { clipped: 0, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, chevron: OPEN_CHEVRON },
 	);
 	await e2e.step("#515 A7 the special ability's chevron clicked again", () => clickChevron(INSIGHT));
 	e2e.expect(
-		"#515 A7 the special ability's description closes, its chevron pointing right",
+		"#515 A7 the special ability's description closes, its chevron telling it is collapsed",
 		{ box: await closed(INSIGHT), chevron: await chevron(INSIGHT) },
-		{ box: CLOSED_DESCRIPTION, chevron: SHOW_CHEVRON },
+		{ box: CLOSED_DESCRIPTION, chevron: CLOSED_CHEVRON },
 	);
 
-	await e2e.step('#515 A8 the name of the talent without a description clicked', () => clickName(BLANK));
+	await e2e.step('#579 B3 the chevron of the talent without a description clicked', () => clickChevron(BLANK));
 	const blankOpen = await box(BLANK, 500);
 	e2e.expect(
-		'#515 A8 the name of a talent without a description still opens its tier and source, with no chevron',
+		'#579 B3 the chevron of a talent without a description opens its tier and source',
 		{
 			open: blankOpen && {
 				shown: typeof blankOpen.height === 'number' && blankOpen.height > 0,
@@ -3208,7 +3253,7 @@ async function talentRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 			tier: (await page((name) => window.characterE2E.talent(name, 'E2E Blank'), S))?.rowTier,
 			chevron: await chevron(BLANK),
 		},
-		{ open: { shown: true, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, tier: '1', chevron: null },
+		{ open: { shown: true, lastInside: true, transition: CLOSED_DESCRIPTION.transition }, tier: '1', chevron: OPEN_CHEVRON },
 	);
 	await page((name) => window.characterE2E.close(name), S);
 }
@@ -3436,7 +3481,7 @@ async function talentTiers(
 /**
  * §#516: a fold opens and closes in 0.2s, its content shown from its opening's start and until its closing's end, then
  * hidden, so that Tab skips it; under `prefers-reduced-motion`, at once. Read on a talent whose long description ends
- * with a link, as #325's.
+ * with a link, as #325's. §#579: its chevron opens and closes it from the keyboard.
  */
 async function folds(e2e: ScenarioContext, page: Evaluate) {
 	const D = 'Folder';
@@ -3494,6 +3539,40 @@ async function folds(e2e: ScenarioContext, page: Evaluate) {
 		opening: { transitions: [], height: 'whole', lastVisibility: 'visible' },
 		closing: { transitions: [], height: 'none', lastVisibility: 'hidden' },
 	});
+
+	// §#579: the chevron opens and closes the fold from the keyboard, and Tab reaches the fold's link only while it shows.
+	const chevron = () => page((args) => window.characterE2E.chevron(args.name, args.row), { name: D, row: TALENT });
+	const focus = () => page((args) => window.characterE2E.focusInRow(args.name, args.row), { name: D, row: TALENT });
+	await e2e.step("#579 A1 the talent's chevron focused, Enter pressed", async () => {
+		await page((args) => window.characterE2E.focusChevron(args.name, args.row), { name: D, row: TALENT });
+		await gm.page.keyboard.press('Enter');
+	});
+	e2e.expect(
+		'#579 A1 Enter on the chevron opens the fold, and the focus stays on the chevron',
+		{
+			chevron: await chevron(),
+			box: await page((args) => window.characterE2E.descriptionBox(args.name, args.row, args.cap), {
+				name: D,
+				row: TALENT,
+				cap: 500,
+			}),
+			focus: await focus(),
+		},
+		{ chevron: OPEN_CHEVRON, box: shownDescription(500), focus: 'chevron' },
+	);
+	await e2e.step('#579 A2 Tab pressed', () => gm.page.keyboard.press('Tab'));
+	e2e.expect('#579 A2 from the chevron of an open fold, Tab reaches the link at the end of its description', await focus(), 'link');
+	await e2e.step('#579 A3 Shift+Tab pressed, then Space', async () => {
+		await gm.page.keyboard.press('Shift+Tab');
+		await gm.page.keyboard.press('Space');
+	});
+	e2e.expect(
+		'#579 A3 Space on the chevron closes the fold, and the focus stays on the chevron',
+		{ chevron: await chevron(), box: await closed(), focus: await focus() },
+		{ chevron: CLOSED_CHEVRON, box: CLOSED_DESCRIPTION, focus: 'chevron' },
+	);
+	await e2e.step('#579 A4 Tab pressed once the fold closed', () => gm.page.keyboard.press('Tab'));
+	e2e.expect("#579 A4 from the chevron of a closed fold, Tab skips the fold's link for the row's next button", await focus(), 'row');
 	await page((name) => window.characterE2E.close(name), D);
 }
 

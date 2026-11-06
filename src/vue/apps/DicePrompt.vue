@@ -10,6 +10,7 @@ import { rollCheck, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { useSheetContext } from '@/vue/SheetContext';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
@@ -430,64 +431,60 @@ async function onRoll() {
 			<label><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
 		</div>
 
-		<ActionButton
-			class="pool-modifications-title"
-			:expanded="showPoolModifications"
-			@click="showPoolModifications = !showPoolModifications"
-		>
-			<i :class="`fas fa-caret-${showPoolModifications ? 'down' : 'right'}`"></i>
-			<span><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></span>
-		</ActionButton>
-
-		<div :class="{ 'pool-modifications-expander': true, 'pool-modifications-expanded': showPoolModifications }">
-			<div class="pool-modifications-container">
-				<div class="pool-modifications-difficulty">
-					<span>
-						<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
-					</span>
-					<div>
-						<button
-							v-for="(die, index) in difficultyRow(difficulty)"
-							:key="index"
-							type="button"
-							:name="`difficulty-${index + 1}`"
-							:class="`difficulty-die difficulty-die-${die}`"
-							:data-tooltip="DIFFICULTY_LABELS[index + 1]"
-							v-localize:aria-label="DIFFICULTY_LABELS[index + 1]"
-							@click="onDifficultyDieClick(index + 1)"
-						>
-							{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
-						</button>
+		<DescriptionFold v-model:open="showPoolModifications" class="pool-modifications-title">
+			<template #summary>
+				<span><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></span>
+			</template>
+			<template #fold>
+				<div class="pool-modifications-container">
+					<div class="pool-modifications-difficulty">
+						<span>
+							<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
+						</span>
+						<div>
+							<button
+								v-for="(die, index) in difficultyRow(difficulty)"
+								:key="index"
+								type="button"
+								:name="`difficulty-${index + 1}`"
+								:class="`difficulty-die difficulty-die-${die}`"
+								:data-tooltip="DIFFICULTY_LABELS[index + 1]"
+								v-localize:aria-label="DIFFICULTY_LABELS[index + 1]"
+								@click="onDifficultyDieClick(index + 1)"
+							>
+								{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
+							</button>
+						</div>
 					</div>
-				</div>
-				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
-					<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
-					<span>
-						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
+					<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
+						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
+						<span>
+							<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
 						the checkbox alone turns the modification on. -->
-						<!-- prettier-ignore -->
-						<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></span>
-					</span>
-					<div>
-						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
+							<!-- prettier-ignore -->
+							<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></span>
+						</span>
+						<div>
+							<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
+						</div>
+					</div>
+					<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
+					<div class="pool-modifications-manual">
+						<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
+						<div>
+							<ActionButton
+								v-for="(modification, index) in manualChanges"
+								:key="index"
+								:localized-label="cancelName(modification)"
+								@click="removeManualChange(index)"
+							>
+								<template #icon><PoolModificationIcon :glyph="modification" /></template>
+							</ActionButton>
+						</div>
 					</div>
 				</div>
-				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
-				<div class="pool-modifications-manual">
-					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
-					<div>
-						<ActionButton
-							v-for="(modification, index) in manualChanges"
-							:key="index"
-							:localized-label="cancelName(modification)"
-							@click="removeManualChange(index)"
-						>
-							<template #icon><PoolModificationIcon :glyph="modification" /></template>
-						</ActionButton>
-					</div>
-				</div>
-			</div>
-		</div>
+			</template>
+		</DescriptionFold>
 
 		<div v-if="USE_CHANCE_TO_SUCCEED" class="chance-to-succeed">
 			<label>
@@ -526,16 +523,15 @@ async function onRoll() {
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/appv1.scss';
 @use '@scss/mixins/reset.scss';
-@use '@scss/mixins/expandable.scss';
 @use '@scss/mixins/headings.scss';
 
-// The Pool Modifications' title: its caret alone in the margin, its text on the table's left edge.
+// The Pool Modifications' title: its chevron alone in the margin, its text on the table's left edge.
 $title-font-size: 1.2rem;
-$caret-column: 1rem;
-$caret-gap: 0.4 * $title-font-size;
+$chevron-column: 1rem;
+$chevron-gap: 0.4 * $title-font-size;
 
 // The Pool Modifications' rows, in rem, as the checkbox's size, so that it is centred on a label's first line: Foundry
-// gives inputs a font of their own. Their columns are as far apart as the caret is from the title.
+// gives inputs a font of their own. Their columns are as far apart as the chevron is from the title.
 $row-line-height: 1.25rem;
 $row-padding: 0.15rem;
 $row-column-gap: 0.4em;
@@ -604,14 +600,16 @@ $difficulty-die-scale: 1.4;
 		}
 	}
 
-	.pool-modifications-title {
+	// The title and the fold of the Pool Modifications are the roots of a `DescriptionFold`, which take no scope attribute
+	// from the prompt: :deep() reaches them.
+	& > :deep(.pool-modifications-title) {
 		grid-column: 1 / span all;
 		grid-row: 4 / span all;
 		display: grid;
-		// The caret's column keeps its width whichever way it points, so that the text doesn't move as the section folds;
+		// The chevron's column keeps its width whichever way it points, so that the text doesn't move as the section folds;
 		// Bebas Neue's letters have almost no side bearing, which the gap makes up for.
-		grid-template-columns: $caret-column 1fr;
-		column-gap: $caret-gap;
+		grid-template-columns: $chevron-column 1fr;
+		column-gap: $chevron-gap;
 		align-items: center;
 		@include headings.font;
 		font-size: $title-font-size;
@@ -620,30 +618,33 @@ $difficulty-die-scale: 1.4;
 		width: 100%;
 		text-align: start;
 
-		// `caret-right` and `caret-down` are not as wide: centred, they turn on one axis.
+		// `chevron-right` and `chevron-down` are not as wide: centred, they turn on one axis. Smaller than the title, as
+		// the chevrons after the rows' names are smaller than the names.
 		i {
 			justify-self: center;
+			font-size: 0.8em;
 		}
 	}
 
-	.pool-modifications-expander {
+	& > :deep(.description-fold) {
 		grid-column: 1 / span all;
 		grid-row: 5 / span all;
 		overflow: hidden;
-		@include expandable.description($open: pool-modifications-expanded);
 
-		// The expander clips the folded Pool Modifications, and the container, which the mixin would clip too, doesn't: the
-		// glow and the focus outline of a Difficulty die, in the first row, pass its top edge.
-		& > .pool-modifications-container {
+		// The fold clips the folded Pool Modifications, and its content, which `DescriptionFold` would clip too, doesn't:
+		// the glow and the focus outline of a Difficulty die, in the first row, pass its top edge. The content, the fold's
+		// only child, holds the top border: folded, the fold keeps its 1px, which a border on the container inside would
+		// overflow.
+		& > .description-fold-content {
 			overflow: visible;
+			margin-left: $chevron-column + $chevron-gap;
+			border-top: 1px dotted black;
 		}
 	}
 
 	.pool-modifications-container {
 		display: grid;
 		font-family: 'Roboto', sans-serif;
-		margin-left: $caret-column + $caret-gap;
-		border-top: 1px dotted black;
 
 		// A row: its checkbox, left empty for the Difficulty and the manual changes, so that every label starts on one edge
 		// and a label that wraps goes on under its own text; then its label, and its modifications.

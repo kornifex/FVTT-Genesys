@@ -8,9 +8,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import { itemsOfType } from '@/item/ItemTypes';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import Enriched from '@/vue/components/Enriched.vue';
-import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
-import { useOpenRows } from '@/vue/useOpenRows';
+import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import { severityDifficulty } from '@/item/data/Injuries';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import { DicePrompt } from '@/app/DicePrompt';
@@ -41,8 +39,6 @@ const weaponRows = computed(() =>
 );
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
-const openWeapons = useOpenRows();
-const openArmors = useOpenRows();
 
 async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
@@ -82,15 +78,10 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 				<div v-for="{ key, weapon, profile, name } in weaponRows" :key="key" class="weapon">
 					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
-					<div class="name">
+					<DescriptionFold class="name" :description="weapon.system.description">
 						<ActionButton v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</ActionButton>
 						<span v-else>{{ name }}</span>
-						<DescriptionToggle
-							:description="weapon.system.description"
-							:open="openWeapons.isOpen(key)"
-							@toggle="openWeapons.toggle(key)"
-						/>
-					</div>
+					</DescriptionFold>
 					<div class="skill" v-for="weaponSkill in [skillForProfile(profile)]" :key="weaponSkill?.name ?? 'skill'">
 						<template v-if="weaponSkill">
 							<!-- A choice the character can't roll stays changeable here. -->
@@ -111,7 +102,6 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					</div>
 					<WeaponProfileStats layout="grid" :profile="profile" :characteristics="actor.system.characteristics" />
 					<QualityList :qualities="profile.qualities" tags class="qualities" />
-					<div :class="['description', { active: openWeapons.isOpen(key) }]"><Enriched :value="weapon.system.description" /></div>
 				</div>
 			</div>
 			<ListEmpty v-else />
@@ -128,20 +118,12 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 				<div v-for="armor in armors" :key="armor.id" class="armor">
 					<img :src="armor.img ?? undefined" :alt="armor.name" />
-					<div class="name">
+					<DescriptionFold class="name" :description="armor.system.description">
 						<ActionButton @click="openSheet(armor)">{{ armor.name }}</ActionButton>
-						<DescriptionToggle
-							:description="armor.system.description"
-							:open="openArmors.isOpen(armor.id)"
-							@toggle="openArmors.toggle(armor.id)"
-						/>
-					</div>
+					</DescriptionFold>
 					<div class="soak">{{ armor.system.soak }}</div>
 					<div class="defense">{{ armor.system.defense }}</div>
 					<QualityList :qualities="armor.system.qualities" tags class="qualities" />
-					<div :class="['description', { active: openArmors.isOpen(armor.id) }]">
-						<Enriched :value="armor.system.description" />
-					</div>
 				</div>
 			</div>
 			<ListEmpty v-else />

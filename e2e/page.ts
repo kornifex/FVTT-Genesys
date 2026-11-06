@@ -74,10 +74,18 @@ export type DescriptionBox = {
 };
 
 /**
- * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515): where it
- * points, `right` closed and `down` open, and its tooltip: its name, which its bare `data-tooltip` shows.
+ * The chevron that opens and closes the description of a Combat tab row (#393) or a Talents tab row (#515), as a screen
+ * reader reads it since #579: whether it is expanded (`aria-expanded`), its name, which its bare `data-tooltip` shows, and
+ * whether its `aria-controls` points at the row's fold.
  */
-export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
+export type Chevron = { expanded: boolean; name: string; controlsFold: boolean };
+
+/**
+ * A toggle that shows text, the Pool Modifications' title or a Container's count, as a screen reader and the eye read it:
+ * its text, which names it, whether it is expanded, its icon's Font Awesome class, and whether its `aria-controls` points
+ * at a `DescriptionFold`'s fold (#579).
+ */
+export type FoldToggle = { text: string; expanded: boolean; icon: string | null; controlsFold: boolean };
 
 /**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
@@ -209,6 +217,8 @@ type PageHelpers = {
 	showTab: (name: string, tab: string) => Promise<void>;
 	/** The chevron of a row with an expandable description, or null when the row shows none. */
 	chevron: (row: Element) => Chevron | null;
+	/** A toggle that shows text and folds something, as read (#579). */
+	foldToggle: (toggle: Element) => FoldToggle;
 	/** Clicks the chevron of a row, which opens or closes its description; false when the row shows none. */
 	clickChevron: (row: Element) => boolean;
 	/** An expandable description as laid out, its height given as `>cap` past `cap` px. */
@@ -655,11 +665,22 @@ export function installHelpers() {
 		chevron(row) {
 			const toggle = row.querySelector<HTMLElement>('.description-toggle');
 			if (!toggle) return null;
-			const icon = toggle.querySelector('i');
+			const controlled = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
 			return {
-				points: icon?.classList.contains('fa-chevron-down') ? 'down' : icon?.classList.contains('fa-chevron-right') ? 'right' : '?',
+				expanded: toggle.getAttribute('aria-expanded') === 'true',
 				// The button's name, which its bare `data-tooltip` shows.
-				tooltip: toggle.getAttribute('aria-label') ?? '',
+				name: toggle.getAttribute('aria-label') ?? '',
+				controlsFold: !!controlled && controlled.matches('.description-fold') && row.contains(controlled),
+			};
+		},
+
+		foldToggle(toggle) {
+			const controlled = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+			return {
+				text: (toggle.textContent ?? '').replace(/\s+/g, ' ').trim(),
+				expanded: toggle.getAttribute('aria-expanded') === 'true',
+				icon: [...(toggle.querySelector('i')?.classList ?? [])].find((name) => name.startsWith('fa-')) ?? null,
+				controlsFold: !!controlled && controlled.matches('.description-fold'),
 			};
 		},
 
