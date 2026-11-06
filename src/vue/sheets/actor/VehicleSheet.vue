@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
-import Localized from '@/vue/components/Localized.vue';
+import SheetTabs from '@/vue/components/SheetTabs.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 
@@ -16,6 +16,15 @@ import { useDocumentEffects } from '@/vue/useDocumentEffects';
 const { document: actor, system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 const { effects, addEffect } = useDocumentEffects();
+
+const TABS = [
+	{ id: 'skills', label: 'Genesys.Tabs.Skills' },
+	{ id: 'combat', label: 'Genesys.Tabs.Combat' },
+	{ id: 'inventory', label: 'Genesys.Tabs.Inventory' },
+	{ id: 'crew', label: 'Genesys.Tabs.Crew' },
+	{ id: 'effects', label: 'Genesys.Tabs.Effects' },
+	{ id: 'details', label: 'Genesys.Tabs.Details' },
+];
 </script>
 
 <template>
@@ -64,31 +73,14 @@ const { effects, addEffect } = useDocumentEffects();
 			</div>
 		</section>
 
-		<nav class="sheet-tabs" data-group="primary">
-			<div class="spacer"></div>
-
-			<a class="item" data-tab="skills"><Localized label="Genesys.Tabs.Skills" /></a>
-			<a class="item" data-tab="combat"><Localized label="Genesys.Tabs.Combat" /></a>
-			<a class="item" data-tab="inventory"><Localized label="Genesys.Tabs.Inventory" /></a>
-			<a class="item" data-tab="crew"><Localized label="Genesys.Tabs.Crew" /></a>
-			<a class="item" data-tab="effects"><Localized label="Genesys.Tabs.Effects" /></a>
-			<a class="item" data-tab="details"><Localized label="Genesys.Tabs.Details" /></a>
-
-			<div class="spacer"></div>
-		</nav>
-
-		<section class="sheet-body">
-			<div class="tab" data-tab="skills"><SkillsTab /></div>
-			<div class="tab" data-tab="combat"><CombatTab /></div>
-			<div class="tab" data-tab="inventory"><InventoryTab summary-on-top /></div>
-			<div class="tab" data-tab="crew"><CrewTab /></div>
-
-			<div class="tab" data-tab="effects">
-				<EffectsView :effects="[...effects]" @add-effect="addEffect" />
-			</div>
-
-			<div class="tab" data-tab="details"><DetailsTab /></div>
-		</section>
+		<SheetTabs :tabs="TABS">
+			<template #skills><SkillsTab /></template>
+			<template #combat><CombatTab /></template>
+			<template #inventory><InventoryTab summary-on-top /></template>
+			<template #crew><CrewTab /></template>
+			<template #effects><EffectsView :effects="[...effects]" @add-effect="addEffect" /></template>
+			<template #details><DetailsTab /></template>
+		</SheetTabs>
 	</div>
 </template>
 

@@ -1,5 +1,6 @@
 // The time every fold takes to open or close (#516): a description, the Dice Prompt's Pool Modifications, a Container's
-// contents. Short and fast at its start, so that a click answers at once.
+// contents. Short and fast at its start, so that a click answers at once. Under `prefers-reduced-motion`, VueSheet.scss
+// turns it off with every other transition.
 $duration: 0.2s;
 $easing: ease-out;
 
@@ -31,13 +32,6 @@ $easing: ease-out;
 
 		& > * {
 			visibility: visible;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		&,
-		& > * {
-			transition: none;
 		}
 	}
 }

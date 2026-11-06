@@ -49,16 +49,6 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		#contentShown?: () => Promise<void>;
 
 		/**
-		 * Tab controller, kept for the application's lifetime so that a reopened application shows the tab it was closed on.
-		 */
-		#tabs?: foundry.applications.ux.Tabs;
-
-		/**
-		 * The element the tab controller is bound to: closing the application discards its element.
-		 */
-		#tabsElement?: HTMLElement;
-
-		/**
 		 * This component must be implemented by children to define the Vue component to use for the sheet.
 		 */
 		get vueComponent(): Component {
@@ -73,7 +63,8 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		}
 
 		/**
-		 * The tab shown first, when the Vue component lays out tabs: a `.sheet-tabs` nav switching the tabs of a `.sheet-body`.
+		 * The tab shown first, when the Vue component lays out tabs (`SheetTabs.vue`) and the application's `tabGroups`
+		 * keep none yet.
 		 */
 		get initialTab(): string | undefined {
 			return undefined;
@@ -112,21 +103,8 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		protected override async _onRender(context: DeepPartial<RenderContext>, options: RenderOptions) {
 			await super._onRender(context, options);
 
-			// Vue patches the DOM on its next tick, which may add tabs.
+			// Vue patches the DOM on its next tick: what runs after a render (VueDocumentSheet's height) reads it patched.
 			await nextTick();
-
-			const initial = this.initialTab;
-			if (!initial) {
-				return;
-			}
-
-			this.#tabs ??= new foundry.applications.ux.Tabs({ navSelector: '.sheet-tabs', contentSelector: '.sheet-body', initial });
-			if (this.#tabsElement === this.element) {
-				this.#tabs.activate(this.#tabs.active ?? initial);
-			} else {
-				this.#tabs.bind(this.element);
-				this.#tabsElement = this.element;
-			}
 		}
 
 		/**

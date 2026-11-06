@@ -8,6 +8,10 @@
 
 		&:focus {
 			border: none;
+		}
+
+		// The focus ring shows where the browser judges it helps (`:focus-visible`), as from the keyboard (#575).
+		&:focus:not(:focus-visible) {
 			outline: none;
 			box-shadow: none;
 		}

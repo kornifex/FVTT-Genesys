@@ -1,5 +1,6 @@
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/appv1.scss';
+@use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
 
 // ApplicationV2 lays out its window content unlike AppV1's windows, whose layout the Vue components are written for.
@@ -64,6 +65,7 @@
 // (`ActionButton.vue`) shows its icon or its text alone, as the links it replaced did, glowing under the pointer as they
 // did. Foundry's button styles sit in a cascade layer, so these weigh as little as `.vue-app`: a component's rule for its
 // buttons outweighs them. The focus ring shows from the keyboard only, as Foundry's ring on `:focus` would show on a click.
+// Foundry also outlines an `.active` button, such as the tab shown (#575), which the ring below replaces.
 .vue-app :where(.action-button) {
 	display: inline;
 	width: auto;
@@ -74,6 +76,7 @@
 	background: none;
 	border: none;
 	border-radius: 0;
+	outline: none;
 	box-shadow: none;
 	color: inherit;
 	font: inherit;
@@ -94,6 +97,27 @@
 .vue-app :where(.action-button:focus:not(:focus-visible)) {
 	outline: none;
 	box-shadow: none;
+}
+
+// Every control the keyboard reaches shows that it has the focus, with the same ring (#575): a blue line, held apart
+// from the control by a paper one, so that it shows on the paper of the sheets as on the blue of their tabs. The browser
+// shows it where it helps (`:focus-visible`): from the keyboard, and in a text field, but not after a click on a button.
+// It outweighs Foundry's focus styles, which sit in a cascade layer, and the fields' styles above.
+.vue-app :focus-visible {
+	outline: 2px solid colors.$blue;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 2px colors.$paper;
+}
+
+// Motion follows the user's setting (#534): under `prefers-reduced-motion`, nothing moves, a fold, a row sliding into
+// place or a hover's fade. The components' own transitions are scoped, so more specific than this rule, hence
+// `!important`; Vue's transitions, as TransitionGroup's, read the duration of none and end at once.
+@media (prefers-reduced-motion: reduce) {
+	.vue-app *,
+	.vue-app *::before,
+	.vue-app *::after {
+		transition: none !important;
+	}
 }
 
 // The components' headings are their sections', each of the same look. ApplicationV2 gives headings a larger size, a
