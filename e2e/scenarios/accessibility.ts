@@ -506,7 +506,14 @@ function installAccessibilityHelpers() {
 						const durations = getComputedStyle(element, pseudo).transitionDuration.split(', ');
 						const longest = Math.max(...durations.map((duration) => parseFloat(duration)));
 						if (longest > 0) {
-							const kind = (node: Element | null) => (node ? [node.localName, ...node.classList].join('.') : '?');
+							// An element's kind leaves out the TransitionGroup classes the check gives every element.
+							const kind = (node: Element | null) =>
+								node
+									? [
+											node.localName,
+											...[...node.classList].filter((name) => !TRANSITION_GROUP_CLASSES.includes(name)),
+										].join('.')
+									: '?';
 							moving.add(`${kind(element.parentElement)} > ${kind(element)}${pseudo ?? ''} ${longest}s`);
 						}
 					}
