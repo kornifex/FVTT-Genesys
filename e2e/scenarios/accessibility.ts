@@ -1710,8 +1710,6 @@ export async function run(e2e: ScenarioContext) {
 				[],
 			);
 		});
-		await e2e.part('promptKeys', () => promptKeys(e2e));
-
 		await e2e.part('storyPointTracker', async () => {
 			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
 			expectNamedButtons('#574 A3 the Story Point tracker has no button without a name');
@@ -1859,6 +1857,8 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('headings', () => headings(e2e));
 
 		await e2e.part('rollLinks', () => rollLinks(e2e));
+		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
+		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
 	}
