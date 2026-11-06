@@ -504,7 +504,8 @@ function installCharacterHelpers() {
 		},
 
 		upgradeTalent(name, talent) {
-			const arrow = talentRow(name, talent)?.querySelector('.name button:has(.fa-arrow-circle-up)');
+			// In its own cell after the name since #579, in the name before.
+			const arrow = talentRow(name, talent)?.querySelector('button:has(.fa-arrow-circle-up)');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
@@ -706,7 +707,8 @@ function installCharacterHelpers() {
 				tier: item.system.effectiveTier,
 				row: text(row?.querySelector('.name button')),
 				rowTier: text(row?.querySelector('.tier')).replace(/^.*?(\d+)$/, '$1'),
-				description: text(row?.querySelector('.description-fold .description')),
+				// `.desc` before #579, on the build a comparison runs.
+				description: text(row?.querySelector('.description-fold .description, .desc')),
 				canUpgrade: !!row?.querySelector('button:has(.fa-arrow-circle-up)'),
 			};
 		},
