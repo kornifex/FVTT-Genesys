@@ -421,14 +421,15 @@ export class GenesysCombat extends Combat {
 			let checkRoll: CheckRoll;
 
 			if (prompt) {
-				try {
-					checkRoll = await DicePrompt.promptForInitiative(combatant.actor ?? undefined, initiativeSkill.skillName, {
-						difficulty: '',
-						characteristic: initiativeSkill.skillChar,
-					});
-				} catch {
+				const answered = await DicePrompt.promptForInitiative(combatant.actor ?? undefined, initiativeSkill.skillName, {
+					difficulty: '',
+					characteristic: initiativeSkill.skillChar,
+				});
+				// A prompt closed without a roll leaves the slot unrolled.
+				if (!answered) {
 					continue;
 				}
+				checkRoll = answered;
 			} else {
 				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
 				const check = resolveCheck(

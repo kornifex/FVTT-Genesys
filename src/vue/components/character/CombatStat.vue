@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useId } from 'vue';
 import Localized from '@/vue/components/Localized.vue';
 
 defineProps<{
@@ -24,6 +25,10 @@ defineProps<{
 	secondary?: { label: string; value: number; name?: string };
 }>();
 
+const statId = useId();
+const primaryLabelId = useId();
+const secondaryLabelId = useId();
+
 function validateInput(event: Event) {
 	const newValue = parseInt((event.currentTarget as HTMLInputElement).value);
 
@@ -37,13 +42,22 @@ function validateInput(event: Event) {
 	<div class="combat-stat">
 		<div class="rounded-bg-outer">
 			<div :class="`rounded-bg ${secondary ? 'secondary' : ''}`">
-				<label v-if="primaryLabel"><Localized :label="primaryLabel" /></label>
-				<label v-if="secondary"><Localized :label="secondary.label" /></label>
+				<label v-if="primaryLabel" :id="primaryLabelId"><Localized :label="primaryLabel" /></label>
+				<label v-if="secondary" :id="secondaryLabelId"><Localized :label="secondary.label" /></label>
 			</div>
 		</div>
 
+		<!-- Each value is named by the stat, then by its own label when it has one: "Wounds Threshold". -->
 		<div class="value-container">
-			<input v-if="name" type="number" :name="name" :value="value" class="value" min="0" />
+			<input
+				v-if="name"
+				type="number"
+				:name="name"
+				:value="value"
+				class="value"
+				min="0"
+				:aria-labelledby="primaryLabel ? `${statId} ${primaryLabelId}` : statId"
+			/>
 			<div v-else class="value">{{ value }}</div>
 			<template v-if="secondary">
 				<div class="separator"></div>
@@ -55,13 +69,14 @@ function validateInput(event: Event) {
 					class="value"
 					:value="secondary.value"
 					min="0"
+					:aria-labelledby="`${statId} ${secondaryLabelId}`"
 				/>
 				<div v-else class="value">{{ secondary.value }}</div>
 			</template>
 		</div>
 
 		<div class="stat-label-outer">
-			<span><Localized :label="label" /></span>
+			<span :id="statId"><Localized :label="label" /></span>
 		</div>
 	</div>
 </template>

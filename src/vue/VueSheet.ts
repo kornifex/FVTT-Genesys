@@ -80,6 +80,11 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		}
 
 		/**
+		 * Provide what the application hands its Vue app besides its render context, before the app mounts.
+		 */
+		protected provideToVueApp(_app: App) {}
+
+		/**
 		 * Resolves once the Vue app shows the content its components render after an asynchronous task, such as an
 		 * enriched text.
 		 */
@@ -100,8 +105,11 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 				content.replaceChildren(mountPoint);
 
 				this.vueApp = createApp(this.vueComponent);
+				// Each window's app numbers the ids of `useId()` from 0: the window's id keeps them apart in the page.
+				this.vueApp.config.idPrefix = this.id;
 				this.#renderContext = provideSheetContext(this.vueApp, vueContext);
 				this.#contentShown = providePendingContent(this.vueApp);
+				this.provideToVueApp(this.vueApp);
 				this.vueApp.mount(mountPoint);
 			} else {
 				// Foundry changes the documents out of Vue's sight: each render signals the components to read them again.

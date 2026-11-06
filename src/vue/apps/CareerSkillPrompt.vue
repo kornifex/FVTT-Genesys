@@ -6,7 +6,9 @@ import { CareerSkillPromptContext } from '@/app/CareerSkillPrompt';
 import { toggledFreeRankChoice } from '@/actor/data/character/Career';
 import { CHARACTERISTIC_ABBREVIATIONS } from '@/data/Characteristics';
 import { useSheetContext } from '@/vue/SheetContext';
+import { usePromptAnswer } from '@/vue/usePrompt';
 import Localized from '@/vue/components/Localized.vue';
+import PromptFooter from '@/vue/components/PromptFooter.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 
 const context = useSheetContext<CareerSkillPromptContext>();
@@ -14,17 +16,11 @@ const context = useSheetContext<CareerSkillPromptContext>();
 const selectedSkillIDs = ref<string[]>([]);
 const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - selectedSkillIDs.value.length);
 
-function selectSkill(event: Event, skill: Stored<GenesysItem<'skill'>>) {
-	event.preventDefault();
-
+function selectSkill(skill: Stored<GenesysItem<'skill'>>) {
 	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, CONFIG.genesys.settings.freeCareerSkillRanks);
 }
 
-function confirm(event: Event) {
-	event.preventDefault();
-
-	context.value.answer(selectedSkillIDs.value);
-}
+usePromptAnswer<string[]>(() => selectedSkillIDs.value);
 </script>
 
 <template>
@@ -35,20 +31,20 @@ function confirm(event: Event) {
 			<button
 				v-for="skill in context.skills"
 				:key="skill.id"
+				type="button"
 				:class="`select-skill ${selectedSkillIDs.includes(skill.id) ? 'selected' : ''}`"
-				@click="(ev) => selectSkill(ev, skill)"
+				:aria-pressed="selectedSkillIDs.includes(skill.id)"
+				@click="selectSkill(skill)"
 			>
-				<i v-if="selectedSkillIDs.includes(skill.id)" class="fas fa-check-circle" />
-				<img :src="skill.img ?? undefined" :alt="skill.name" />
+				<i v-if="selectedSkillIDs.includes(skill.id)" class="fas fa-check-circle" aria-hidden="true" />
+				<img :src="skill.img ?? undefined" alt="" />
 				<span>{{ skill.name }} (<Localized :label="CHARACTERISTIC_ABBREVIATIONS[skill.system.characteristic]" />)</span>
 			</button>
 		</div>
 
 		<div class="remaining"><Localized label="Genesys.CareerSkillPrompt.RemainingChoices" />: {{ remaining }}</div>
 
-		<footer>
-			<button @click="confirm" :disabled="remaining > 0"><Localized label="Genesys.CareerSkillPrompt.Confirm" /></button>
-		</footer>
+		<PromptFooter label="Genesys.CareerSkillPrompt.Confirm" :disabled="remaining > 0" />
 	</div>
 </template>
 

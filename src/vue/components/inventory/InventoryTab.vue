@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
 import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
@@ -32,6 +32,7 @@ const props = defineProps<{
 }>();
 
 const CURRENCY_LABEL = CONFIG.genesys.settings.currencyName;
+const currencyId = useId();
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
@@ -113,8 +114,8 @@ function resetDrags() {
 		<template v-for="part in layout" :key="part">
 			<div v-if="part === 'summary'" class="encumbrance-currency-row">
 				<div class="currency-row">
-					<label><i class="fas fa-coins"></i> {{ CURRENCY_LABEL }}:</label>
-					<input type="text" name="system.currency" :value="system.currency" />
+					<label :for="currencyId"><i class="fas fa-coins" aria-hidden="true"></i> {{ CURRENCY_LABEL }}:</label>
+					<input :id="currencyId" type="text" name="system.currency" :value="system.currency" />
 				</div>
 
 				<div :class="`encumbrance-row ${system.isEncumbered ? 'encumbered' : ''}`">

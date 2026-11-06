@@ -12,6 +12,7 @@ import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import DetailsTab from '@/vue/sheets/actor/vehicle/DetailsTab.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
+import { vLocalize } from '@/vue/directives';
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
@@ -22,7 +23,7 @@ const { effects, addEffect } = useDocumentEffects();
 	<div class="vehicle-sheet">
 		<header>
 			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
-			<input type="text" name="name" :value="actor.name" />
+			<input type="text" name="name" :value="actor.name" v-localize:aria-label="'Genesys.Labels.Name'" />
 		</header>
 
 		<section class="stats-section">

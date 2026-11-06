@@ -549,6 +549,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('poolModifications', poolModifications);
 	await e2e.part('slotRolls', slotRolls);
 	await e2e.part('cancelledPrompt', cancelledPrompt);
+	await e2e.part('chainedPromptsFocus', chainedPromptsFocus);
 	await e2e.part('claimWithAssistantGM', claimWithAssistantGM);
 	await e2e.part('actingGmQueries', actingGmQueries);
 	await e2e.part('noGM', noGM);
@@ -1579,6 +1580,71 @@ export async function run(e2e: ScenarioContext) {
 			{ messages: sent.map(({ speaker, sound }) => ({ speaker, sound })), rolled: rolled((await stored()).initiatives) },
 			{ messages: [{ speaker: 'Boss', sound: await gm.evaluate(() => CONFIG.sounds.dice) }], rolled: { Hero: false, Boss: true } },
 		);
+	}
+
+	/**
+	 * §#581: a batch of initiative prompts from the keyboard. Each next combatant's prompt takes the focus as it opens,
+	 * and the last one closed gives it back to the control the rolls started from.
+	 */
+	async function chainedPromptsFocus() {
+		await setUp({ Hero: null, Boss: null });
+		// Waits, 5 s at most, until a Dice Prompt other than those already seen has the focus; gives its id, or null.
+		const nextPrompt = (seen: string[]) =>
+			gm.evaluate(async (seen) => {
+				for (let waited = 0; waited < 5000; waited += 100) {
+					const focused = window.e2e
+						.apps('app-dice-prompt')
+						.find(
+							(app: { id: string; element?: HTMLElement }) =>
+								!seen.includes(app.id) && app.element?.contains(document.activeElement),
+						);
+					if (focused) return (focused as { id: string }).id;
+					await window.e2e.sleep(100);
+				}
+				return null;
+			}, seen);
+		let found: (string | null)[] = [];
+		let focused: string | null = null;
+		try {
+			await e2e.step(
+				"#581 F1 GM rolls Hero's and Boss's slots from a focused button, answers Hero's prompt with Enter, then Boss's with Escape",
+				async () => {
+					await gm.evaluate(() => {
+						const opener = document.createElement('button');
+						opener.type = 'button';
+						opener.id = 'e2e-rolls-opener';
+						opener.textContent = 'Roll';
+						document.body.append(opener);
+						opener.focus();
+						const ids = [window.e2e.slotId('Hero'), window.e2e.slotId('Boss')];
+						(window as unknown as { e2eRolls: Promise<unknown> }).e2eRolls = game.combat.rollSlotsInitiative(ids, {
+							prompt: true,
+						});
+					});
+					const first = await nextPrompt([]);
+					if (first) await gm.page.keyboard.press('Enter');
+					const second = first ? await nextPrompt([first]) : null;
+					if (second) await gm.page.keyboard.press('Escape');
+					found = [first, second];
+					focused = await gm.evaluate(async () => {
+						await Promise.race([(window as unknown as { e2eRolls: Promise<unknown> }).e2eRolls, window.e2e.sleep(3000)]);
+						await window.e2e.settle();
+						return document.activeElement?.id || null;
+					});
+				},
+			);
+			e2e.expect(
+				'#581 F1 each initiative prompt takes the focus as it opens, and the focus goes back to the button the rolls started from once the last one closes',
+				{ prompts: found.map((id) => id !== null), focused, rolled: rolled((await stored()).initiatives) },
+				{ prompts: [true, true], focused: 'e2e-rolls-opener', rolled: { Hero: true, Boss: false } },
+			);
+		} finally {
+			await gm.evaluate(async () => {
+				for (const app of window.e2e.apps('app-dice-prompt')) await (app as { close(): Promise<void> }).close();
+				document.getElementById('e2e-rolls-opener')?.remove();
+				await window.e2e.settle();
+			});
+		}
 	}
 
 	/** §#250: with a GM and an Assistant GM online, a player's Claim is written once, by the Acting GM: the GM. */

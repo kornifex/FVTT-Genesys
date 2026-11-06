@@ -12,15 +12,15 @@ const { system } = useSheetDocument<GenesysItem<'quality'>>();
 	<BasicItemSheet>
 		<template v-slot:data>
 			<section class="data-grid">
-				<DataRow label="Genesys.Labels.Activation">
-					<select name="system.activation" :value="system.activation">
+				<DataRow label="Genesys.Labels.Activation" v-slot="{ id }">
+					<select :id="id" name="system.activation" :value="system.activation">
 						<option value="passive"><Localized label="Genesys.Labels.Passive" /></option>
 						<option value="active"><Localized label="Genesys.Labels.Active" /></option>
 					</select>
 				</DataRow>
 
-				<DataRow label="Genesys.Labels.IsRated">
-					<input type="checkbox" name="system.isRated" :checked="system.isRated" />
+				<DataRow label="Genesys.Labels.IsRated" v-slot="{ id }">
+					<input :id="id" type="checkbox" name="system.isRated" :checked="system.isRated" />
 				</DataRow>
 
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />

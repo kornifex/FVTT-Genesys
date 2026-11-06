@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { toRef } from 'vue';
+import { toRef, useId } from 'vue';
 
 import { canReplaceCareer } from '@/actor/data/character/Advancement';
 import { canRemoveArchetype } from '@/actor/data/character/Archetype';
@@ -17,6 +17,9 @@ const { document: actor, system, editable } = useSheetDocument<GenesysActor<'cha
 
 const archetype = toRef(() => itemsOfType(actor.value, 'archetype').at(0));
 const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
+
+const nameId = useId();
+const silhouetteId = useId();
 </script>
 
 <template>
@@ -24,8 +27,8 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 		<div class="data">
 			<div class="title"><Localized label="TYPES.Actor.character" /></div>
 
-			<label><Localized label="Genesys.Labels.CharacterName" /></label>
-			<input type="text" name="name" :value="actor.name" v-localize:placeholder="'Genesys.Labels.CharacterName'" />
+			<label :for="nameId"><Localized label="Genesys.Labels.CharacterName" /></label>
+			<input :id="nameId" type="text" name="name" :value="actor.name" v-localize:placeholder="'Genesys.Labels.CharacterName'" />
 
 			<div class="underline"></div>
 
@@ -80,8 +83,8 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 
 			<div class="underline"></div>
 
-			<label><Localized label="Genesys.Labels.Silhouette" /></label>
-			<input type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />
+			<label :for="silhouetteId"><Localized label="Genesys.Labels.Silhouette" /></label>
+			<input :id="silhouetteId" type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />
 
 			<div class="underline"></div>
 		</div>

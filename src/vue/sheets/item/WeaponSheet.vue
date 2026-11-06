@@ -56,8 +56,9 @@ async function deleteProfile(profile: WeaponProfile) {
 					/>
 				</div>
 
-				<DataRow label="Genesys.Labels.Name">
+				<DataRow label="Genesys.Labels.Name" v-slot="{ id }">
 					<input
+						:id="id"
 						type="text"
 						class="profile-name"
 						:value="profile.name"

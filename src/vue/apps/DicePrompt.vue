@@ -1,17 +1,19 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, ref, shallowRef, useId } from 'vue';
 import type { Stored } from '@/data/Stored';
 import { DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { DEFENSE_LABELS } from '@/data/Actors';
-import { rollCheck, rollPool } from '@/dice/CheckRoll';
+import { type CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { useSheetContext } from '@/vue/SheetContext';
+import { usePromptAnswer } from '@/vue/usePrompt';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
+import PromptFooter from '@/vue/components/PromptFooter.vue';
 import { vLocalize } from '@/vue/directives';
 import type { DieCategory } from '@/dice/dice/GenesysDie';
 import {
@@ -345,24 +347,11 @@ function cancelName(glyph: string) {
 	return game.i18n.format('Genesys.DicePrompt.PoolModifications.Cancel', { modification: modificationName(glyph) });
 }
 
-async function onRoll() {
-	const checkRoll = { check: check.value!, dicePool: currentDicePool.value };
+// The prompt answers with the check and the pool built for it; its caller rolls them.
+usePromptAnswer<CheckRoll>(() => ({ check: check.value!, dicePool: currentDicePool.value }));
 
-	switch (context.value.roll.type) {
-		case RollType.Attack:
-			await rollCheck(checkRoll, context.value.roll.profile);
-			break;
-
-		case RollType.Initiative:
-			context.value.roll.resolve(checkRoll);
-			break;
-
-		default:
-			await rollCheck(checkRoll);
-	}
-
-	await context.value.app.close();
-}
+const superCharacteristicId = useId();
+const chanceId = useId();
 </script>
 
 <template>
@@ -403,6 +392,7 @@ async function onRoll() {
 		<div v-if="context.actor" class="characteristic-skill-row">
 			<select
 				name="characteristic"
+				v-localize:aria-label="'Genesys.Labels.Characteristic'"
 				:value="selectedCharacteristic ?? '-'"
 				:disabled="!characteristicPickable"
 				@change="onCharacteristicChange"
@@ -413,7 +403,7 @@ async function onRoll() {
 				</option>
 			</select>
 
-			<select name="skill" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
+			<select name="skill" v-localize:aria-label="'Genesys.Labels.Skill'" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
 				<optgroup v-if="weaponSkills.length > 0" v-localize:label="'Genesys.DicePrompt.WeaponSkills'">
 					<option v-for="skill in weaponSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
@@ -426,8 +416,8 @@ async function onRoll() {
 		</div>
 
 		<div v-else-if="USE_SUPER_CHARACTERISTICS" class="super-characteristic-row">
-			<input type="checkbox" v-model="useSuperCharacteristic" @change="resolve({})" />
-			<label><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
+			<input :id="superCharacteristicId" type="checkbox" v-model="useSuperCharacteristic" @change="resolve({})" />
+			<label :for="superCharacteristicId"><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
 		</div>
 
 		<ActionButton
@@ -490,7 +480,7 @@ async function onRoll() {
 		</div>
 
 		<div v-if="USE_CHANCE_TO_SUCCEED" class="chance-to-succeed">
-			<label>
+			<label :for="chanceId">
 				<i
 					class="fas fa-circle-info"
 					:data-tooltip="
@@ -503,11 +493,13 @@ async function onRoll() {
 				<Localized label="Genesys.DicePrompt.ChanceToSucceed" />
 			</label>
 
-			<i v-if="!probabilityOfSuccess" class="fas fa-spinner fa-spin"></i>
-			<span v-else>{{ probabilityOfSuccess }}%</span>
+			<output :id="chanceId">
+				<i v-if="!probabilityOfSuccess" class="fas fa-spinner fa-spin"></i>
+				<span v-else>{{ probabilityOfSuccess }}%</span>
+			</output>
 		</div>
 
-		<button class="roll-button" @click.prevent="onRoll"><Localized label="Genesys.DicePrompt.Roll" /></button>
+		<PromptFooter class="roll-button" label="Genesys.DicePrompt.Roll" />
 	</div>
 </template>
 
@@ -550,6 +542,8 @@ $checkbox-size: 1.25rem;
 
 // The Difficulty dice, larger than the modifications' glyphs.
 $difficulty-die-scale: 1.4;
+// The smallest size of a pointer's target (WCAG 2.2, 2.5.8).
+$target-size: 24px;
 
 .dice-prompt {
 	display: grid;
@@ -750,22 +744,25 @@ $difficulty-die-scale: 1.4;
 
 		// Five dice in a row, as many lit as the level has Difficulty dice (§#469).
 		.pool-modifications-difficulty .difficulty-die {
-			// Foundry styles every button as a box; the die is only its glyph.
-			display: inline;
+			// Foundry styles every button as a box; the die shows only its glyph, centred in a box of the smallest target
+			// size WCAG 2.2 asks for, 24 px.
+			display: inline-block;
 			width: auto;
-			min-width: 0;
-			height: auto;
+			min-width: $target-size;
+			height: $target-size;
 			min-height: 0;
+			text-align: center;
 			// The negative margins keep the lowered die within the row's line, which takes the die's margin box: the
-			// focus outline still goes round the whole glyph.
-			margin: -0.25em 0.2rem -0.25em 0;
+			// focus outline still goes round the whole target. They take back the leading a line of 24 px adds to the
+			// glyph's, so the margin box is the glyph's own.
+			margin: calc(-0.25em - ($target-size - 1em) / 2) 0.2rem calc(-0.25em - ($target-size - 1em) / 2) 0;
 			padding: 0;
 			border: none;
 			border-radius: 0;
 			background: none;
 			box-shadow: none;
 			font-size: $difficulty-die-scale * 1em;
-			line-height: 1;
+			line-height: $target-size;
 			vertical-align: onto-capitals($difficulty-die-scale);
 			font-family: 'Genesys Symbols', sans-serif;
 			-webkit-text-stroke: 0.5px black;
@@ -843,7 +840,7 @@ $difficulty-die-scale: 1.4;
 		}
 	}
 
-	.roll-button {
+	.prompt-footer {
 		grid-column: 3 / span 1;
 		grid-row: 6 / span 1;
 		margin-top: 1rem;
@@ -856,7 +853,8 @@ $difficulty-die-scale: 1.4;
 		font-size: 2em;
 	}
 
-	.roll-button {
+	// The footer's buttons are its own elements, which the scoped rules don't reach.
+	.prompt-footer :deep(.roll-button) {
 		color: colors.$blue;
 		@include headings.font;
 		font-size: 1.25em;
