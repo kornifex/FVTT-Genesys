@@ -457,7 +457,15 @@ function installAccessibilityHelpers() {
 			const [first, , third] = tabLinks(find(document, selector));
 			if (!third) throw new Error(`No third tab on ${sheet}`);
 			await helpers.showTab(selector, first.dataset.tab!);
-			focusBefore(selector, first, `the tabs of ${sheet}`);
+			// Tab doesn't reach tabs that are links without an `href`, as before #575: the step then starts from the window's
+			// content, and its assertion tells where Tab goes.
+			if (tabbable(find(document, `${selector} .window-content`)).includes(first)) {
+				focusBefore(selector, first, `the tabs of ${sheet}`);
+			} else {
+				const content = find(document, `${selector} .window-content`);
+				content.tabIndex = -1;
+				content.focus();
+			}
 			markForPointer(third);
 			tabSteps = selector;
 		},
