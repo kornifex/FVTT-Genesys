@@ -4,6 +4,7 @@ import { addRoleSkill, CrewPlace, placeActor, removeActors } from '@/actor/data/
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { CloneActorPrompt } from '@/app/CloneActorPrompt';
+import { cloneActor } from '@/operations/CloneActor';
 import { CrewDragTransferData, dragData } from '@/data/DragTransferData';
 
 /**
@@ -88,8 +89,8 @@ export async function receiveCrewDrop(vehicle: GenesysActor<'vehicle'>, data: Cr
 }
 
 /**
- * The uuid of the clone the user makes of an actor that makes unlinked tokens, when they can create actors. Undefined
- * when no clone is offered, null when the user closes the prompt.
+ * The uuid of the actor the user places for one that makes unlinked tokens, when they can create actors: its clone, or
+ * the actor itself. Undefined when no clone is offered, null when the user closes the prompt.
  */
 async function cloneForCrew(uuid: string) {
 	const actor = fromUuidSync(uuid) as GenesysActor | null;
@@ -97,6 +98,12 @@ async function cloneForCrew(uuid: string) {
 		return undefined;
 	}
 
-	const clone = await CloneActorPrompt.promptForInstantiation(actor);
-	return clone ? clone.uuid : null;
+	const instantiation = await CloneActorPrompt.promptForInstantiation(actor);
+	if (!instantiation) {
+		return null;
+	}
+
+	// Made once the prompt has answered: a prompt closed meanwhile leaves no clone behind.
+	const placed = instantiation.method === 'Clone' ? await cloneActor(actor, instantiation.name) : actor;
+	return placed ? placed.uuid : null;
 }
