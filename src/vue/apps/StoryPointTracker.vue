@@ -2,7 +2,7 @@
 import { vLocalize } from '@/vue/directives';
 import { useSheetContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
-import { StoryPointPool, storyPointsAfterSetting } from '@/data/StoryPoints';
+import type { StoryPointPool } from '@/data/StoryPoints';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Counter from '@/vue/components/Counter.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -32,12 +32,14 @@ async function step(pool: StoryPointPool, direction: 1 | -1) {
 	if (direction === -1) {
 		await StoryPointTracker.spendStoryPoint(pool);
 	} else {
-		await setPool(pool, context.value[pool] + 1);
+		await StoryPointTracker.addStoryPoint(pool);
 	}
 }
 
+// The tracker changes the pool from the pools stored when its write runs, not from those it rendered: a change made
+// before the previous one rendered still counts.
 async function setPool(pool: StoryPointPool, count: number) {
-	await StoryPointTracker.resetStoryPoints(storyPointsAfterSetting(context.value, pool, count));
+	await StoryPointTracker.setStoryPointPool(pool, count);
 }
 
 async function resetStoryPoints() {
@@ -68,6 +70,7 @@ async function resetStoryPoints() {
 			:can-decrease="canSpend(pool.id)"
 			:can-increase="isGM"
 			:can-type="isGM"
+			refuses-negative
 			decrease-label="Genesys.StoryPoints.Spend"
 			increase-label="Genesys.StoryPoints.Add"
 			@step="step(pool.id, $event)"

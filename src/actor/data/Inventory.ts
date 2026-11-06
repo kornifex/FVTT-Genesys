@@ -241,7 +241,7 @@ export type StepDirection = 1 | -1;
 /**
  * What a step of an item's quantity or damage on its row does: update it, delete it, or nothing.
  */
-type EquipmentStep =
+export type EquipmentStep =
 	| { action: 'update'; update: { system: { quantity: number } | { damage: EquipmentDamageState } } }
 	| { action: 'delete' }
 	| { action: 'none' };

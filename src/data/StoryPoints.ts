@@ -42,3 +42,31 @@ export function storyPointsAfterSpending(storyPoints: StoryPointData, pool: Stor
 export function storyPointsAfterSetting(storyPoints: StoryPointData, pool: StoryPointPool, count: number): StoryPointData {
 	return { ...storyPoints, [pool]: count };
 }
+
+/**
+ * A change of the pools, made from the pools stored when it runs: the pools to write, or undefined to write nothing.
+ */
+export type StoryPointChange = (storyPoints: StoryPointData) => StoryPointData | undefined;
+
+/**
+ * Returns the function through which a client writes the pools: one change at a time, each reading the pools the
+ * previous one wrote, so that changes that reach the client together all count (a double click on +, a spend then a +,
+ * two players' spends). It resolves to whether the change wrote anything.
+ */
+export function serialStoryPointWrites(read: () => StoryPointData, write: (storyPoints: StoryPointData) => Promise<unknown>) {
+	let queue: Promise<unknown> = Promise.resolve();
+
+	return (change: StoryPointChange): Promise<boolean> => {
+		const written = queue.then(async () => {
+			const storyPoints = change(read());
+			if (!storyPoints) {
+				return false;
+			}
+			await write(storyPoints);
+			return true;
+		});
+		// A failed write rejects to its own caller; the next ones still run.
+		queue = written.catch(() => false);
+		return written;
+	};
+}

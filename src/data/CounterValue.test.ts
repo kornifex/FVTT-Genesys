@@ -62,7 +62,14 @@ describe('typedValue', () => {
 	});
 
 	it('keeps a value typed past the cap at the cap', () => {
-		expect(typedValue('40', 24)).toBe(24);
+		expect(typedValue('40', { max: 24 })).toBe(24);
+	});
+
+	it('refuses a number below 0 where asked, as the Story Point pools do (#263), and still rounds the others', () => {
+		expect(typedValue('-1', { refuseNegative: true })).toBeUndefined();
+		expect(typedValue('-0.4', { refuseNegative: true })).toBeUndefined();
+		expect(typedValue('1.5', { refuseNegative: true })).toBe(2);
+		expect(typedValue('0', { refuseNegative: true })).toBe(0);
 	});
 
 	it('reads no value from text that is no number', () => {

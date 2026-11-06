@@ -8,7 +8,8 @@ import ActionButton from '@/vue/components/ActionButton.vue';
  * A value that counts up from 0, such as wounds, a quantity or Story Points: the value alone, a spin button the keyboard
  * steps with its arrows, with − and + buttons that show on hover and focus. A right-click takes one off, and a value
  * typed into it goes through the counter's parsing. On a sheet the user can't edit, and where none of its changes is
- * allowed, it shows the value alone.
+ * allowed, it shows the value alone. The − and + take no focus on a press, which stays in the value being typed (and
+ * out of a button, where Foundry would skip its keybindings).
  */
 const props = withDefaults(
 	defineProps<{
@@ -42,6 +43,11 @@ const props = withDefaults(
 		canType?: boolean;
 
 		/**
+		 * Whether a number typed below 0 writes nothing, rather than 0, as for the Story Point pools (#263).
+		 */
+		refusesNegative?: boolean;
+
+		/**
 		 * The localization keys of the − and + buttons' names.
 		 */
 		decreaseLabel?: string;
@@ -51,6 +57,7 @@ const props = withDefaults(
 		canDecrease: true,
 		canIncrease: true,
 		canType: true,
+		refusesNegative: false,
 		decreaseLabel: 'Genesys.Counter.Decrease',
 		increaseLabel: 'Genesys.Counter.Increase',
 	},
@@ -89,12 +96,30 @@ const shownValue = computed(() => (props.valueLabel ? game.i18n.localize(props.v
 // The text being typed, until Enter or a blur writes it and Escape drops it: a render meanwhile keeps it.
 const draft = ref<string>();
 
+function typed(text: string) {
+	return typedValue(text, { max: props.max, refuseNegative: props.refusesNegative });
+}
+
 function step(direction: 1 | -1) {
-	if (direction === 1 ? !showsIncrease.value : !showsDecrease.value) {
+	if (!(direction === 1 ? increases.value : decreases.value)) {
 		return;
 	}
+
+	// A step while a value is typed steps from that value, written as a typed one: writing the typed value, then a step
+	// from the value stored before it lands, would leave the step alone (3, 10 typed, then + gave 4).
+	const typedBefore = draft.value === undefined ? undefined : typed(draft.value);
 	draft.value = undefined;
-	emit('step', direction);
+	if (typedBefore !== undefined) {
+		const value = steppedValue(typedBefore, direction, props.max);
+		if (value !== props.value) {
+			emit('type', value);
+		}
+		return;
+	}
+
+	if (direction === 1 ? showsIncrease.value : showsDecrease.value) {
+		emit('step', direction);
+	}
 }
 
 function keydown(event: KeyboardEvent) {
@@ -124,7 +149,7 @@ function commit() {
 	}
 
 	// Text that is no number, or the value the counter already holds, writes nothing (#277, #528).
-	const value = typedValue(draft.value, props.max);
+	const value = typed(draft.value);
 	draft.value = undefined;
 	if (value !== undefined && value !== props.value) {
 		emit('type', value);
@@ -150,6 +175,7 @@ function contextmenu(event: MouseEvent) {
 			icon="fas fa-minus"
 			:label="decreaseLabel"
 			tabindex="-1"
+			@mousedown.prevent
 			@click="step(-1)"
 		/>
 		<input
@@ -187,7 +213,15 @@ function contextmenu(event: MouseEvent) {
 			>{{ shownValue }}</span
 		>
 		<template v-if="$slots.default">{{ ' ' }}<slot /></template>
-		<ActionButton v-if="showsIncrease" class="step increase" icon="fas fa-plus" :label="increaseLabel" tabindex="-1" @click="step(1)" />
+		<ActionButton
+			v-if="showsIncrease"
+			class="step increase"
+			icon="fas fa-plus"
+			:label="increaseLabel"
+			tabindex="-1"
+			@mousedown.prevent
+			@click="step(1)"
+		/>
 	</span>
 </template>
 

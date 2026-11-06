@@ -20,14 +20,21 @@ export function steppedValue(value: number, direction: 1 | -1, max?: number): nu
 }
 
 /**
- * The value a counter takes from the text typed into it: a number, rounded to a whole one (#269), within its bounds.
- * Undefined when the text is no number: the counter then keeps its value.
+ * How a counter reads the text typed into it: its cap, and whether a number below 0 is refused rather than raised to 0,
+ * as the Story Point pools refuse one (#263).
  */
-export function typedValue(input: string, max?: number): number | undefined {
+type TypedValueOptions = { max?: number; refuseNegative?: boolean };
+
+/**
+ * The value a counter takes from the text typed into it: a number, rounded to a whole one (#269), within its bounds.
+ * Undefined when the text is no number, or a refused number below 0: the counter then keeps its value.
+ */
+export function typedValue(input: string, { max, refuseNegative = false }: TypedValueOptions = {}): number | undefined {
 	const text = input.trim();
 	if (!/^[-+]?(\d+(\.\d*)?|\.\d+)$/.test(text)) {
 		return undefined;
 	}
 
-	return boundedValue(Math.round(Number(text)), max);
+	const typed = Number(text);
+	return refuseNegative && typed < 0 ? undefined : boundedValue(Math.round(typed), max);
 }

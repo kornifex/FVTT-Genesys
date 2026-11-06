@@ -152,6 +152,8 @@ type SheetsHelpers = {
 	 * Escape. Returns whether the counter still shows the text typed rather than the pool's count.
 	 */
 	editGMStoryPoints(input: string, close?: 'Enter' | 'blur' | 'Escape'): Promise<boolean>;
+	/** Clicks buttons of the Story Point tracker one after the other, before any of their writes lands. */
+	clickStoryPointsTogether(selectors: string[]): Promise<void>;
 	/** Right-clicks a Story Point pool's counter, which takes one off: a spend. */
 	rightClickStoryPoints(pool: 'gm' | 'player'): Promise<void>;
 	/** What each pool's counter offers this user. */
@@ -863,6 +865,14 @@ function installSheetsHelpers() {
 			await settle();
 			// The edit is over once the counter shows the pool's count again, rather than the text typed.
 			return field.value !== String(game.settings.get('genesys', 'storyPoints').gm);
+		},
+
+		async clickStoryPointsTogether(selectors) {
+			const tracker = htmlOf(foundry.applications.instances.get('story-point-tracker'))!;
+			// The buttons are found first: the clicks then go in one go, before any write lands and the tracker renders.
+			const buttons = selectors.map((selector) => find(tracker, selector));
+			for (const button of buttons) button.click();
+			await settle();
 		},
 
 		async rightClickStoryPoints(pool) {
@@ -2817,6 +2827,16 @@ export async function run(e2e: ScenarioContext) {
 			"#580 C4 GM: a pool's + adds a point to that pool alone, and a right-click on a pool spends one of its points",
 			{ afterAdd, afterRightClick: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
 			{ afterAdd: { gm: 4, player: 1 }, afterRightClick: { gm: 5, player: 0 } },
+		);
+		await e2e.step("#580 C5 GM clicks the GM pool's −, then its + twice, before the tracker renders again", () =>
+			gm.evaluate(() =>
+				window.sheetsE2E.clickStoryPointsTogether(['.gm button.decrease', '.gm button.increase', '.gm button.increase']),
+			),
+		);
+		e2e.expect(
+			'#580 C5 GM: a spend and two points added before the tracker renders all count, each from the pools the previous one wrote',
+			await gm.evaluate(() => window.sheetsE2E.storyPoints()),
+			{ gm: 6, player: 1 },
 		);
 
 		// §#343: a context menu left open on a sheet that closes.

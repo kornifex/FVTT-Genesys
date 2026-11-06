@@ -602,6 +602,13 @@ function openMenu(event: MouseEvent) {
 		}
 	}
 
+	// A counter keeps to its content at the end of its column, so that its − and + sit beside its value.
+	> .quantity,
+	> .damage {
+		width: auto;
+		justify-self: end;
+	}
+
 	.weight {
 		grid-column: weight / span 1;
 	}

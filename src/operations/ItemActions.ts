@@ -9,7 +9,7 @@ import { talentRankChange } from '@/actor/data/AdversaryItems';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates } from '@/actor/data/character/Career';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { equipmentStep, quantityChange, StepDirection, SteppedValue } from '@/actor/data/Inventory';
+import { type EquipmentStep, equipmentStep, quantityChange, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
@@ -126,7 +126,7 @@ export async function setEquipmentQuantity(item: GenesysItem<EquipmentType>, qua
 	await applyEquipmentStep(item, quantityChange(quantity));
 }
 
-async function applyEquipmentStep(item: GenesysItem<EquipmentType>, step: ReturnType<typeof equipmentStep>) {
+async function applyEquipmentStep(item: GenesysItem<EquipmentType>, step: EquipmentStep) {
 	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDeletion()))) {
 		return;
 	}

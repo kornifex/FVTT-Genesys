@@ -171,6 +171,44 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
+	it('steps from a value being typed, and writes the result once, as a typed value', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.Counter.CurrentWounds', max: 24 });
+		const input = counter.get('input');
+
+		await input.setValue('10');
+		await counter.get('button.increase').trigger('click');
+		await input.setValue('abc');
+		await counter.get('button.increase').trigger('click');
+
+		// 10 typed then + gives 11, not 10 and then 4; text that is no number is dropped, and the step steps the value.
+		expect(counter.emitted('type')).toEqual([[11]]);
+		expect(counter.emitted('step')).toEqual([[1]]);
+		counter.unmount();
+	});
+
+	it('keeps the focus in the value being typed when its − or + is pressed', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+
+		counter.get('button.increase').element.dispatchEvent(press);
+
+		expect(press.defaultPrevented).toBe(true);
+		counter.unmount();
+	});
+
+	it('writes nothing for a number typed below 0 where it refuses one, and rounds the others', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.StoryPoints.GM', refusesNegative: true });
+		const input = counter.get('input');
+
+		await input.setValue('-1');
+		await input.trigger('keydown', { key: 'Enter' });
+		await input.setValue('1.5');
+		await input.trigger('keydown', { key: 'Enter' });
+
+		expect(counter.emitted('type')).toEqual([[2]]);
+		counter.unmount();
+	});
+
 	it('keeps the text being typed through a render, until it is written', async () => {
 		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
 		const input = counter.get('input');
