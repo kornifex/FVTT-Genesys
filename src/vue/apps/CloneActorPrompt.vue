@@ -1,14 +1,10 @@
 <script lang="ts" setup>
 import { ref, useId } from 'vue';
-import { CloneActorPromptContext } from '@/app/CloneActorPrompt';
-import { GenesysActor } from '@/actor/GenesysActor';
+import type { CloneActorPromptContext, Instantiation, InstantiationMethod } from '@/app/CloneActorPrompt';
 import { useSheetContext } from '@/vue/SheetContext';
 import { usePromptAnswer } from '@/vue/usePrompt';
 import Localized from '@/vue/components/Localized.vue';
 import PromptFooter from '@/vue/components/PromptFooter.vue';
-import { cloneActor } from '@/operations/CloneActor';
-
-type InstantiationMethod = 'Original' | 'Clone';
 
 const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
 	Original: 'Genesys.CloneActorPrompt.OriginalMethod.Description',
@@ -18,13 +14,11 @@ const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
 const context = useSheetContext<CloneActorPromptContext>();
 const actorName = ref(context.value.targetActor.name);
 const instantiationMethod = ref<InstantiationMethod>('Original');
+const methodId = useId();
 const nameId = useId();
 
-usePromptAnswer<GenesysActor | undefined>(async () => {
-	const targetActor = context.value.targetActor;
-
-	return instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor;
-});
+// The prompt answers with the choice; its caller makes the clone.
+usePromptAnswer<Instantiation>(() => ({ method: instantiationMethod.value, name: actorName.value }));
 </script>
 
 <template>
@@ -32,13 +26,13 @@ usePromptAnswer<GenesysActor | undefined>(async () => {
 		<fieldset class="instantiation-method">
 			<legend><Localized label="Genesys.CloneActorPrompt.Method" /></legend>
 			<div class="instantiation-method-choice">
-				<input type="radio" id="clone-actor-prompt-method-original" value="Original" v-model="instantiationMethod" />
-				<label for="clone-actor-prompt-method-original"><Localized label="Genesys.CloneActorPrompt.OriginalMethod.Label" /></label>
+				<input :id="`${methodId}-original`" type="radio" value="Original" v-model="instantiationMethod" />
+				<label :for="`${methodId}-original`"><Localized label="Genesys.CloneActorPrompt.OriginalMethod.Label" /></label>
 			</div>
 
 			<div class="instantiation-method-choice">
-				<input type="radio" id="clone-actor-prompt-method-clone" value="Clone" v-model="instantiationMethod" />
-				<label for="clone-actor-prompt-method-clone"><Localized label="Genesys.CloneActorPrompt.CloneMethod.Label" /></label>
+				<input :id="`${methodId}-clone`" type="radio" value="Clone" v-model="instantiationMethod" />
+				<label :for="`${methodId}-clone`"><Localized label="Genesys.CloneActorPrompt.CloneMethod.Label" /></label>
 			</div>
 		</fieldset>
 		<div class="instantiation-description">

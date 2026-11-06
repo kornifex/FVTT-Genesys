@@ -24,6 +24,27 @@ function reachable(element: HTMLElement) {
 }
 
 /**
+ * The opener of each prompt that has settled, by its element, which stays in the page while it fades out. A prompt asked
+ * for from it, as the Dice Prompt a crew member's choice opens, or the next combatant's initiative, takes its opener: its
+ * own focus would be on a control that leaves the page. A map rather than a private field, as each `VuePrompt()` call
+ * makes a class of its own.
+ */
+const settledOpeners = new WeakMap<Element, HTMLElement | undefined>();
+
+/**
+ * Whether a select's dropdown is open, where the browser says so (`:open`): Enter and Escape are the dropdown's then.
+ */
+function dropdownOpen(target: EventTarget | null) {
+	if (!(target instanceof HTMLSelectElement)) return false;
+	try {
+		return target.matches(':open');
+	} catch {
+		// A browser without the `:open` selector throws on it: its dropdowns go unseen.
+		return false;
+	}
+}
+
+/**
  * A Vue application that waits for the user's answer, the fallback when the user closes it without one.
  *
  * It owns how a prompt is answered: its form's submission answers it, from the primary button of its `PromptFooter` or
@@ -54,9 +75,20 @@ export function VuePrompt<T>(fallback: T) {
 		 */
 		#restoreFocus = false;
 
+		/**
+		 * Whether a submission is reading the answer: another one, from a held Enter or a double click, is ignored.
+		 */
+		#answering = false;
+
 		static async #onSubmit(this: Prompt) {
-			const value = await this.#readAnswer?.();
-			this.answer(value as T);
+			if (!this.#resolve || this.#answering) return;
+			this.#answering = true;
+			try {
+				const value = await this.#readAnswer?.();
+				this.answer(value as T);
+			} finally {
+				this.#answering = false;
+			}
 		}
 
 		/**
@@ -68,7 +100,12 @@ export function VuePrompt<T>(fallback: T) {
 			});
 			// A pointer's click on an action button leaves it without focus, and the body holds it then.
 			const focused = document.activeElement;
-			this.#opener = focused instanceof HTMLElement && focused !== document.body ? focused : undefined;
+			const settled = focused?.closest('.application');
+			if (settled && settledOpeners.has(settled)) {
+				this.#opener = settledOpeners.get(settled);
+			} else {
+				this.#opener = focused instanceof HTMLElement && focused !== document.body ? focused : undefined;
+			}
 			await this.render(true);
 
 			return answer;
@@ -83,6 +120,8 @@ export function VuePrompt<T>(fallback: T) {
 		}
 
 		#settle(value: T) {
+			// Before the answer reaches its caller, who may ask for the next prompt at once.
+			if (this.#resolve && this.element) settledOpeners.set(this.element, this.#opener);
 			this.#resolve?.(value);
 			this.#resolve = undefined;
 		}
@@ -104,6 +143,13 @@ export function VuePrompt<T>(fallback: T) {
 
 		#onKeyDown(event: KeyboardEvent) {
 			if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+			if (dropdownOpen(event.target)) return;
+
+			// A held Enter repeats the browser's submission of the form; in a text area it adds lines.
+			if (event.key === 'Enter' && event.repeat) {
+				if (!(event.target instanceof HTMLTextAreaElement)) event.preventDefault();
+				return;
+			}
 
 			// Foundry's Escape keybinding skips a page whose focus is in a field of a form: the prompt listens itself, and
 			// keeps Foundry from closing another window too.

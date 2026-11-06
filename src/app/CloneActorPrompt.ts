@@ -11,9 +11,19 @@ export type CloneActorPromptContext = {
 };
 
 /**
+ * How the user places the actor: as it is, or a clone of it.
+ */
+export type InstantiationMethod = 'Original' | 'Clone';
+
+/**
+ * What the clone prompt answers: how to place the actor, and the clone's name.
+ */
+export type Instantiation = { method: InstantiationMethod; name: string };
+
+/**
  * Prompt the user to place an actor as it is, or a clone of it.
  */
-export class CloneActorPrompt extends VuePrompt<GenesysActor | undefined>(undefined) {
+export class CloneActorPrompt extends VuePrompt<Instantiation | undefined>(undefined) {
 	override get vueComponent() {
 		return VueCloneActorPrompt;
 	}
@@ -25,8 +35,7 @@ export class CloneActorPrompt extends VuePrompt<GenesysActor | undefined>(undefi
 	};
 
 	/**
-	 * Ask the user whether to place the actor or a clone of it, and return the one placed. Undefined when the prompt is
-	 * closed.
+	 * Ask the user whether to place the actor or a clone of it, and under which name. Undefined when the prompt is closed.
 	 */
 	static async promptForInstantiation(targetActor: GenesysActor) {
 		return new CloneActorPrompt(targetActor).prompt();
