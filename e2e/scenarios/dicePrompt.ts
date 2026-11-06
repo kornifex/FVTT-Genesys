@@ -3214,9 +3214,9 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('T end');
 	});
 
-	// §#582: the dice and symbols read in words, as an image's name to a screen reader and as its tooltip: the Dice
-	// Prompt's pool and Pool Modifications, a check's chat card, a die's result in a roll's tooltip, and the links of a
-	// journal. Each element reads as its glyphs' text and its name, null when it is no image.
+	// §#582: the dice and symbols read in words, as an image's or a button's name to a screen reader and as its tooltip:
+	// the Dice Prompt's pool and Pool Modifications, a check's chat card, a die's result in a roll's tooltip, and the links
+	// of a journal. Each element reads as its glyphs' text and its name, null when it is neither.
 	await part('glyphLabels', async () => {
 		const read = (names: GlyphName[]) => names.map(({ text, name }) => [text, name]);
 		const tooltipsRead = (names: GlyphName[]) => names.every(({ name, tooltip }) => tooltip === name);
@@ -3226,24 +3226,38 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.dicePromptE2E.promptAdd(['P+', 's+']));
 		const pool = await gm.glyphNames('.app-dice-prompt .preview .positive > *, .app-dice-prompt .preview .negative > *');
 		e2e.expect(
-			"#582 A1 the Dice Prompt's pool reads each die and symbol in words, in its tooltip too",
+			"#582 A1 the Dice Prompt's pool names each die's and symbol's button by its removal in words, in its tooltip too",
 			[read(pool), tooltipsRead(pool)],
 			[
 				[
-					['P', '1 Proficiency die'],
-					['A', '1 Ability die'],
-					['s', '1 Success'],
-					['D', '1 Difficulty die'],
-					['D', '1 Difficulty die'],
+					['P', 'Remove 1 Proficiency die'],
+					['A', 'Remove 1 Ability die'],
+					['s', 'Remove 1 Success'],
+					['D', 'Remove 1 Difficulty die'],
+					['D', 'Remove 1 Difficulty die'],
 				],
 				true,
 			],
 		);
-		const diceBox = await gm.glyphNames('.app-dice-prompt .dice-box a > *');
-		const manualChanges = await gm.glyphNames('.app-dice-prompt .pool-modifications-manual a > *');
+		const diceBox = await gm.glyphNames('.app-dice-prompt .dice-box button');
+		const manualChanges = await gm.glyphNames('.app-dice-prompt .pool-modifications-manual button');
+		// The glyphs inside a named button give no words of their own, whose tooltip would cover the button's.
+		const wordedGlyphs = await gm.evaluate(
+			() =>
+				document.querySelectorAll(
+					['.preview', '.dice-box', '.pool-modifications-manual']
+						.map((area) => `.app-dice-prompt ${area} button :is([role], [aria-label], [data-tooltip])`)
+						.join(', '),
+				).length,
+		);
 		e2e.expect(
-			"#582 A2 the Dice Prompt's dice box and manual changes read each Pool Modification as an operation, in its tooltip too",
-			{ diceBox: read(diceBox), manualChanges: read(manualChanges), tooltips: tooltipsRead([...diceBox, ...manualChanges]) },
+			"#582 A2 the Dice Prompt's dice box names each button by its Pool Modification as an operation, and a manual change's by its cancellation, in their tooltips too",
+			{
+				diceBox: read(diceBox),
+				manualChanges: read(manualChanges),
+				tooltips: tooltipsRead([...diceBox, ...manualChanges]),
+				wordedGlyphs,
+			},
 			{
 				diceBox: [
 					['A', 'Add 1 Ability die'],
@@ -3264,10 +3278,11 @@ export async function run(e2e: ScenarioContext) {
 					['d', 'Add 1 Despair'],
 				],
 				manualChanges: [
-					['P', 'Add 1 Proficiency die'],
-					['s', 'Add 1 Success'],
+					['P', 'Cancel: Add 1 Proficiency die'],
+					['s', 'Cancel: Add 1 Success'],
 				],
 				tooltips: true,
+				wordedGlyphs: 0,
 			},
 		);
 

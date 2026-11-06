@@ -49,6 +49,13 @@ describe('ActionButton', () => {
 		expect(drawing.find('.ranks').exists()).toBe(true);
 	});
 
+	it('is named by words already localized in place of a label, which are its tooltip too', () => {
+		const button = mountButton({ localizedLabel: 'Remove 1 Ability die' }, { icon: '<span>A</span>' });
+
+		expect(button.attributes('aria-label')).toBe('Remove 1 Ability die');
+		expect(button.attributes('data-tooltip')).toBe('');
+	});
+
 	it('is named by the text it shows, its label adding a tooltip', () => {
 		const labelled = mountButton({ label: 'Genesys.Labels.Quantity' }, { text: '2' });
 		const plain = mountButton({}, { text: 'E2E Sword' });

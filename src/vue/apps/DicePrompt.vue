@@ -14,7 +14,14 @@ import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import { vLocalize } from '@/vue/directives';
 import type { DieCategory } from '@/dice/dice/GenesysDie';
-import { DIE_GLYPHS, GRADE_GLYPHS, removalGlyph, SYMBOL_GLYPHS } from '@/dice/GenesysPoolModifications';
+import {
+	DIE_GLYPHS,
+	GRADE_GLYPHS,
+	poolModificationLabel,
+	removalGlyph,
+	SYMBOL_GLYPHS,
+	worldGlyphLocalizer,
+} from '@/dice/GenesysPoolModifications';
 import { promptSkills } from '@/data/Skills';
 import {
 	type Check,
@@ -322,6 +329,22 @@ function removeManualChange(index: number) {
 	buildDicePool();
 }
 
+const glyphLocalizer = worldGlyphLocalizer();
+
+/**
+ * A Pool Modification in words, which names the button applying it: "Upgrade 1 Ability die".
+ */
+function modificationName(glyph: string) {
+	return poolModificationLabel([glyph], glyphLocalizer);
+}
+
+/**
+ * The name of the button cancelling a manual change: "Cancel: Remove 1 Ability die".
+ */
+function cancelName(glyph: string) {
+	return game.i18n.format('Genesys.DicePrompt.PoolModifications.Cancel', { modification: modificationName(glyph) });
+}
+
 async function onRoll() {
 	const checkRoll = { check: check.value!, dicePool: currentDicePool.value };
 
@@ -350,11 +373,11 @@ async function onRoll() {
 
 		<div class="preview">
 			<div v-for="category in DIE_CATEGORIES" :key="category" :class="category">
-				<!-- The glyph draws the die: the button is named by its label. -->
+				<!-- The glyph draws the die: the button is named by what a click does, "Remove 1 Ability die". -->
 				<ActionButton
 					v-for="(entry, index) in poolEntries(currentDicePool, category)"
 					:key="index"
-					:label="entry.kind === 'die' ? 'Genesys.DicePrompt.RemoveDie' : 'Genesys.DicePrompt.RemoveSymbol'"
+					:localized-label="modificationName(removalGlyph(entry.glyph))"
 					:class="entry.kind === 'die' ? `die die-${entry.name}` : 'symbol'"
 					@click="addManualChange(removalGlyph(entry.glyph))"
 				>
@@ -367,7 +390,7 @@ async function onRoll() {
 					<ActionButton
 						v-for="glyph in row"
 						:key="glyph"
-						label="Genesys.DicePrompt.PoolModifications.Add"
+						:localized-label="modificationName(glyph)"
 						@click="addManualChange(glyph)"
 					>
 						<template #icon><PoolModificationIcon :glyph /></template>
@@ -456,7 +479,7 @@ async function onRoll() {
 						<ActionButton
 							v-for="(modification, index) in manualChanges"
 							:key="index"
-							label="Genesys.DicePrompt.PoolModifications.Remove"
+							:localized-label="cancelName(modification)"
 							@click="removeManualChange(index)"
 						>
 							<template #icon><PoolModificationIcon :glyph="modification" /></template>

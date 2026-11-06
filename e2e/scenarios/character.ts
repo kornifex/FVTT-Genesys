@@ -1,4 +1,5 @@
 /** @file The character items of the test checklist: Advancement and the Experience Journal, Archetype, Career, the Talent Pyramid, talents, characteristics, super-characteristics, the Skills tab, Critical Injuries, expanded descriptions and a weapon's Weapon Profiles. */
+import type { GlyphName } from '../accessibility.ts';
 import { CLOSED_DESCRIPTION, closedDescription, HIDE_CHEVRON, LONG_DESCRIPTION, SHOW_CHEVRON, shownDescription } from '../descriptions.ts';
 import type { Chevron, ConfirmDialog, DescriptionBox, OwnershipLevel } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
@@ -2747,18 +2748,20 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.severities(name), 'Wreck'),
 		cells,
 	);
-	// §#582: in words, as an image's name to a screen reader and as its tooltip, on the Combat tab shown.
+	// §#582: in words, as an image's name to a screen reader and as its tooltip, on the Combat tab shown; the image names
+	// the button rolling the healing check, which has no label of its own.
 	await page(async () => {
 		await window.e2e.showTab('Wounded', 'combat');
 		const root = window.e2e.htmlOf(window.e2e.actor('Wounded').sheet)!;
-		for (const severity of root.querySelectorAll<HTMLElement>('.critical-injuries .injury .severity button > span'))
-			severity.dataset.e2e = 'glyph-severity';
+		for (const button of root.querySelectorAll<HTMLElement>('.critical-injuries .injury .severity button')) {
+			button.dataset.e2e = 'severity-button';
+			button.querySelector<HTMLElement>(':scope > span')!.dataset.e2e = 'glyph-severity';
+		}
 	}, undefined);
+	const byLength = (names: GlyphName[]) => names.sort((left, right) => left.text.length - right.text.length);
 	e2e.expect(
 		"#582 A8 a Critical Injury's severity reads as its difficulty dice in words, in its tooltip too, and none as nothing",
-		(await e2e.gm.glyphNames('[data-e2e="glyph-severity"]'))
-			.sort((left, right) => left.text.length - right.text.length)
-			.map(({ text, name, tooltip }) => [text, name, tooltip === name]),
+		byLength(await e2e.gm.glyphNames('[data-e2e="glyph-severity"]')).map(({ text, name, tooltip }) => [text, name, tooltip === name]),
 		[
 			['', null, true],
 			['D', '1 Difficulty die', true],
@@ -2767,6 +2770,11 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 			['DDDD', '4 Difficulty dice', true],
 			['DDDDD', '5 Difficulty dice', true],
 		],
+	);
+	e2e.expect(
+		"#582 A8 a Critical Injury's severity button is named by its dice in words",
+		byLength(await e2e.gm.glyphNames('[data-e2e="severity-button"]')).map(({ name }) => name),
+		[null, '1 Difficulty die', '2 Difficulty dice', '3 Difficulty dice', '4 Difficulty dice', '5 Difficulty dice'],
 	);
 	let prompt: unknown;
 	await e2e.step('#126 L2 the Formidable Critical Injury clicked', async () => {

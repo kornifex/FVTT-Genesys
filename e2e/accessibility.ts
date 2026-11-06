@@ -81,8 +81,8 @@ export async function checkAccessibility(page: Page, selector: string, rules?: s
 }
 
 /**
- * How an element holding glyphs reads: its glyphs' text, its name as an image to a screen reader (null when it is no
- * image, or hidden), and the tooltip Foundry shows on hovering it (null without one).
+ * How an element holding glyphs reads: its glyphs' text, its name as an image or a button to a screen reader (null when
+ * it is neither, or hidden), and the tooltip Foundry shows on hovering it (null without one).
  */
 export type GlyphName = { text: string; name: string | null; tooltip: string | null };
 
@@ -93,7 +93,7 @@ export type GlyphName = { text: string; name: string | null; tooltip: string | n
 export async function glyphNames(page: Page, selector: string): Promise<GlyphName[]> {
 	const names: GlyphName[] = [];
 	for (const element of await page.locator(selector).all()) {
-		const name = imageName(await element.ariaSnapshot());
+		const name = accessibleName(await element.ariaSnapshot());
 		const { text, tooltip } = await element.evaluate(async (element: HTMLElement) => {
 			const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
 			if (element.dataset.tooltip === undefined) return { text, tooltip: null };
@@ -112,14 +112,14 @@ export async function glyphNames(page: Page, selector: string): Promise<GlyphNam
 }
 
 /**
- * The name of the image an element's accessibility snapshot starts with, null when it starts with no image. The snapshot
- * is YAML: `- img "1 Success": s`, the image's text after its name, the key single-quoted when the name holds `: `, with
- * its own single quotes doubled, and the name's double quotes escaped.
+ * The name of the image or button an element's accessibility snapshot starts with, null when it starts with neither. The
+ * snapshot is YAML: `- img "1 Success": s`, the element's text after its name, the key single-quoted when the name holds
+ * `: `, with its own single quotes doubled, and the name's double quotes escaped.
  */
-export function imageName(snapshot: string): string | null {
+export function accessibleName(snapshot: string): string | null {
 	const line = (snapshot.split('\n')[0] ?? '').replace(/^- /, '');
 	const quoted = /^'((?:[^']|'')*)'/.exec(line);
 	const key = quoted ? quoted[1].replace(/''/g, "'") : line;
-	const image = /^img "((?:[^"\\]|\\.)*)"/.exec(key);
-	return image ? image[1].replace(/\\(.)/g, '$1') : null;
+	const named = /^(?:img|button) "((?:[^"\\]|\\.)*)"/.exec(key);
+	return named ? named[1].replace(/\\(.)/g, '$1') : null;
 }

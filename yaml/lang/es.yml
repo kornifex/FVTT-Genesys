@@ -225,6 +225,7 @@ Genesys:
     WeaponSkills: Habilidades del arma
     PoolModifications:
       Title: Modificaciones de la reserva
+      Cancel: 'Cancelar: {modification}'
       Difficulty: 'Dificultad: {level}'
       ManualChanges: Cambios manuales
       SelfEffects: 'Propios: '

@@ -224,12 +224,9 @@ Genesys:
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     UnrankedSkills: Sans rang
     WeaponSkills: Compétences de l'arme
-    RemoveDie: Retirer un dé
-    RemoveSymbol: Retirer un symbole
     PoolModifications:
       Title: Modification de la réserve de dés
-      Add: Ajouter cette modification
-      Remove: Retirer cette modification
+      Cancel: 'Annuler : {modification}'
       Difficulty: 'Difficulté : {level}'
       ManualChanges: Modifications manuelles
       SelfEffects: 'Soi : '

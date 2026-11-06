@@ -5,6 +5,8 @@ import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { h } from 'vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 
 describe('Glyphs', () => {
@@ -53,5 +55,28 @@ describe('Glyphs', () => {
 		await glyphs.setProps({ glyphs: '' });
 
 		expect(glyphs.attributes()).toEqual({});
+	});
+
+	it("gives no words inside a button its label names, whose name and tooltip they'd repeat or cover", () => {
+		const keyed = mount(ActionButton, {
+			props: { label: 'Genesys.Labels.PerformCheck' },
+			slots: { icon: () => h(Glyphs, { glyphs: 'PA' }) },
+		});
+		const worded = mount(ActionButton, {
+			props: { localizedLabel: 'Upgrade 1 Ability die' },
+			slots: { icon: () => h(Glyphs, { modifications: ['^'] }) },
+		});
+
+		expect(keyed.attributes('aria-label')).toBe('Perform Check');
+		expect(keyed.get('span').attributes()).toEqual({});
+		expect(worded.attributes('aria-label')).toBe('Upgrade 1 Ability die');
+		expect(worded.get('span').attributes()).toEqual({});
+	});
+
+	it('keeps its words inside a button its content names, which they name', () => {
+		const button = mount(ActionButton, { slots: { default: () => h(Glyphs, { glyphs: 'DD' }) } });
+
+		expect(button.attributes('aria-label')).toBeUndefined();
+		expect(button.get('span').attributes()).toEqual({ role: 'img', 'aria-label': '2 Difficulty dice', 'data-tooltip': '' });
 	});
 });

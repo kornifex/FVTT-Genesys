@@ -224,12 +224,9 @@ Genesys:
     UseSuperCharacteristic: Roll as a super-characteristic
     UnrankedSkills: Unranked
     WeaponSkills: Weapon Skills
-    RemoveDie: Remove a die
-    RemoveSymbol: Remove a symbol
     PoolModifications:
       Title: Pool Modifications
-      Add: Add this Pool Modification
-      Remove: Remove this Pool Modification
+      Cancel: 'Cancel: {modification}' # e.g. Cancel: Upgrade 1 Ability die
       Difficulty: 'Difficulty: {level}'
       ManualChanges: Manual Changes
       SelfEffects: 'From Self: '
