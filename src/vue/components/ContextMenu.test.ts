@@ -108,15 +108,18 @@ describe('ContextMenu', () => {
 			expect(focused(menu)).toBe('localized Equip');
 		});
 
-		it('closes on a click on its ⋮ while it is open', async () => {
+		it('closes on a click on its ⋮ while it is open, leaving no focus on it', async () => {
 			const { menu } = mountMenu({ trigger: true });
 			trigger(menu).dispatchEvent(pointerClick());
 			await nextTick();
 
+			// The press of the mouse button focuses the ⋮ before its click.
+			trigger(menu).focus();
 			trigger(menu).dispatchEvent(pointerClick());
 			await nextTick();
 
 			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('BODY');
 		});
 
 		it('runs an entry clicked, then stays closed, leaving the focus on no button', async () => {
@@ -367,6 +370,67 @@ describe('ContextMenu', () => {
 			press(document.activeElement!, 'Escape');
 			await nextTick();
 			expect(document.activeElement).toBe(row);
+		});
+
+		it('is named after its ⋮', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+
+			expect(menu.get('[role="menu"]').attributes('aria-labelledby')).toBe(trigger(menu).id);
+			expect(trigger(menu).id).not.toBe('');
+		});
+	});
+
+	describe('after an entry run from the keyboard moves or removes its row', () => {
+		/** Runs the second entry of a menu from the keyboard, which gives the focus back to its ⋮. */
+		async function runFromKeyboard(menu: ReturnType<typeof mountMenu>['menu']) {
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+			entries(menu)[1]?.dispatchEvent(keyboardClick());
+			await nextTick();
+		}
+		const afterTheRender = () => new Promise((resolve) => setTimeout(resolve));
+
+		it('gives the focus to the ⋮ of the menu with the same key, rendered again elsewhere', async () => {
+			const { menu: before } = mountMenu({ trigger: true, focusKey: 'Item.sword' });
+			await runFromKeyboard(before);
+			expect(focused(before)).toBe('trigger');
+
+			before.unmount();
+			const { menu: after } = mountMenu({ trigger: true, focusKey: 'Item.sword' });
+			await afterTheRender();
+
+			expect(focused(after)).toBe('trigger');
+		});
+
+		it("leaves another key's menu alone, and gives the focus to the sheet's content once the row is gone", async () => {
+			const content = document.body.appendChild(document.createElement('div'));
+			content.className = 'window-content';
+			const { menu: before } = mountMenu({ trigger: true, focusKey: 'Item.sword' }, content);
+			await runFromKeyboard(before);
+
+			before.unmount();
+			const { menu: other } = mountMenu({ trigger: true, focusKey: 'Item.shield' }, content);
+			await afterTheRender();
+
+			expect(focused(other)).not.toBe('trigger');
+			expect(document.activeElement).toBe(content);
+			content.remove();
+		});
+
+		it('takes no focus once the user moved it elsewhere', async () => {
+			const { menu: before } = mountMenu({ trigger: true, focusKey: 'Item.sword' });
+			await runFromKeyboard(before);
+			const elsewhere = document.body.appendChild(document.createElement('button'));
+			elsewhere.focus();
+
+			before.unmount();
+			mountMenu({ trigger: true, focusKey: 'Item.sword' });
+			await afterTheRender();
+
+			expect(document.activeElement).toBe(elsewhere);
+			elsewhere.remove();
 		});
 	});
 });

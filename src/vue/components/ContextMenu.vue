@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import { nextTick, onUnmounted, ref, useTemplateRef } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import { handOffFocus, leaveFocus, takeFocus } from '@/vue/components/menuFocus';
 import { menuAtPointer } from '@/vue/components/menuPlacement';
+import { isKeyboardClick, isKeyboardContextMenu } from '@/vue/inputSource';
 import ActionButton from '@/vue/components/ActionButton.vue';
 
 /**
@@ -17,6 +19,12 @@ const props = withDefaults(
 		 * Whether the menu has a ⋮ button, named Actions, which opens it on a click, Enter, Space or the arrow keys.
 		 */
 		trigger?: boolean;
+
+		/**
+		 * What the menu's row shows, such as its item's uuid: when an entry run from the keyboard moves the row elsewhere
+		 * in the sheet, the focus goes on to the ⋮ of the menu with the same key there.
+		 */
+		focusKey?: string;
 
 		orientation?: 'left' | 'right';
 		position?: 'above' | 'below';
@@ -46,21 +54,8 @@ let listened: Document | undefined;
 
 type Focus = 'first' | 'last';
 
-/**
- * Whether an event comes from the keyboard rather than a pointer: a click from Enter or Space, a `contextmenu` from
- * Shift+F10 or the context menu key.
- */
-function fromKeyboard(event: MouseEvent) {
-	const namesNoPointer = 'pointerType' in event && (event as PointerEvent).pointerType === '';
-	if (event.type === 'contextmenu') {
-		// Chromium's names a mouse but no button (-1, where a right-click's is 2), Firefox marks it with its input source
-		// (6, the keyboard), and the Pointer Events spec has it name no pointer.
-		return event.button === -1 || (event as { mozInputSource?: number }).mozInputSource === 6 || namesNoPointer;
-	}
-
-	// A click names no pointer, or, when it is no PointerEvent, counts no click.
-	return 'pointerType' in event ? namesNoPointer : event.detail === 0;
-}
+// Names the menu after its ⋮.
+const triggerId = useId();
 
 function triggerButton() {
 	return container.value?.querySelector<HTMLElement>(':scope > .menu-trigger') ?? undefined;
@@ -120,14 +115,25 @@ function closeContextMenu(event: MouseEvent) {
 	event.preventDefault();
 
 	const target = event.target as Node | null;
-	// A click on the ⋮ of an open menu only closes it, rather than reaching the button, which would open it again.
-	if (target && triggerButton()?.contains(target)) {
+	const fromKeyboard = event.type === 'click' && isKeyboardClick(event);
+	// A click on the ⋮ of an open menu only closes it, rather than reaching the button, which would open it again; with
+	// the mouse, it leaves no focus on the button, as the button's own click handler would have.
+	const trigger = triggerButton();
+	if (target && trigger?.contains(target)) {
 		event.stopPropagation();
+		if (!fromKeyboard) {
+			trigger.blur();
+		}
 	}
 
 	// An entry run from the keyboard gives the focus back; one clicked with the mouse leaves none, as its button does.
-	if (target && menu.value?.contains(target) && fromKeyboard(event)) {
+	if (target && menu.value?.contains(target) && fromKeyboard) {
 		closeToOpener();
+		// The entry may move the row elsewhere in the sheet, which renders its ⋮ again there, or remove it: the focus then
+		// goes to the sheet's content, from where Tab goes on through the sheet, rather than to the page.
+		if (props.focusKey && opener?.isConnected) {
+			handOffFocus(props.focusKey, opener, opener.closest<HTMLElement>('.window-content'));
+		}
 	} else {
 		hideMenu();
 	}
@@ -142,12 +148,28 @@ function removeDocumentListeners() {
 // A menu still open when its sheet closes would otherwise swallow the next click anywhere.
 onUnmounted(removeDocumentListeners);
 
+// The row of an entry run from the keyboard renders again elsewhere in the sheet: its new ⋮ takes the focus.
+onMounted(() => {
+	const trigger = triggerButton();
+	if (props.focusKey && trigger) {
+		takeFocus(props.focusKey, trigger);
+	}
+});
+
+// The row of an entry run from the keyboard leaves the sheet: the focus goes to the sheet's content.
+onBeforeUnmount(() => {
+	const trigger = triggerButton();
+	if (trigger) {
+		leaveFocus(trigger);
+	}
+});
+
 /**
  * Opens the menu at the pointer of a right-click, or at its ⋮ button for a `contextmenu` from the keyboard, which has
  * no pointer position.
  */
 function openAtPointer(event: MouseEvent) {
-	if (fromKeyboard(event)) {
+	if (isKeyboardContextMenu(event)) {
 		showContextMenu(event);
 		return;
 	}
@@ -183,7 +205,7 @@ function onContextMenu(event: MouseEvent) {
 
 // An open menu closes on a click on its ⋮ before the button gets it.
 function onTriggerClick(event: MouseEvent) {
-	showContextMenu(event, 'first', { preventScroll: !fromKeyboard(event) });
+	showContextMenu(event, 'first', { preventScroll: !isKeyboardClick(event) });
 }
 
 function onTriggerKeydown(event: KeyboardEvent) {
@@ -257,6 +279,7 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 				[props.orientation]: true,
 				[props.position]: true,
 			}"
+			:aria-labelledby="trigger ? triggerId : undefined"
 			@keydown="onMenuKeydown"
 		>
 			<slot name="menu-items"></slot>
@@ -265,6 +288,7 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 		<!-- A menu that never opens shows no button. -->
 		<ActionButton
 			v-if="trigger && !disableMenu"
+			:id="triggerId"
 			class="menu-trigger"
 			icon="fas fa-ellipsis-vertical"
 			label="Genesys.Labels.Actions"

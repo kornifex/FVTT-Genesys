@@ -26,6 +26,7 @@ import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import { isKeyboardContextMenu } from '@/vue/inputSource';
 import { signed } from '@/vue/format';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -176,6 +177,18 @@ function step(kind: SteppedValue, direction: StepDirection) {
 	return stepEquipment(props.item, kind, direction);
 }
 
+// A right-click on the quantity or the damage steps it down. Shift+F10 or the context menu key there opens the row's
+// menu instead, as on the row's other controls.
+function stepDown(event: MouseEvent, kind: SteppedValue) {
+	if (isKeyboardContextMenu(event)) {
+		return;
+	}
+
+	event.preventDefault();
+	event.stopPropagation();
+	void step(kind, -1);
+}
+
 function edgeOf(event: DragEvent) {
 	return rowEdge(event.clientY, (event.currentTarget as HTMLElement).getBoundingClientRect());
 }
@@ -320,7 +333,7 @@ function openMenu(event: MouseEvent) {
 			class="quantity"
 			label="Genesys.Labels.Quantity"
 			@click="step('quantity', 1)"
-			@contextmenu.prevent.stop="step('quantity', -1)"
+			@contextmenu="stepDown($event, 'quantity')"
 		>
 			{{ item.system.quantity }}
 			<i class="fas fa-suitcase"></i>
@@ -334,13 +347,13 @@ function openMenu(event: MouseEvent) {
 			class="damage"
 			:label="EQUIPMENT_DAMAGE_LABELS[item.system.damage]"
 			@click="step('damage', 1)"
-			@contextmenu.prevent.stop="step('damage', -1)"
+			@contextmenu="stepDown($event, 'damage')"
 		>
 			<!-- In the icon slot, for the row's rule on its icons to reach it. -->
 			<template #icon><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i></template>
 		</ActionButton>
 
-		<ContextMenu ref="menu" class="actions" orientation="left" trigger :disable-menu="!editable || mini">
+		<ContextMenu ref="menu" class="actions" orientation="left" trigger :focus-key="item.uuid" :disable-menu="!editable || mini">
 			<template v-slot:menu-items>
 				<MenuItem
 					v-for="move in stateMoves()"
