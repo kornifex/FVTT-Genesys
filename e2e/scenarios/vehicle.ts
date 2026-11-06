@@ -73,6 +73,11 @@ type VehicleHelpers = {
 	/** The vehicles updated with a change to their Crew since the last call. */
 	takeCrewUpdates(): string[];
 	skillsTab(vehicle: string): Promise<SkillsTab>;
+	/**
+	 * The pictures of the Skills tab grouped by crew member (#578), by member: whether the member's and each of their
+	 * skills' open a sheet (`button`) or only show (`image`).
+	 */
+	skillIcons(vehicle: string): Promise<Record<string, { member: string; skills: string[] }>>;
 	/** The Skills tab of the n-th vehicle token of a scene from the left, from 1, opening its sheet if needed. */
 	tokenSkillsTab(args: { scene: string; n: number }): Promise<SkillsTab>;
 	groupBy(args: { vehicle: string; mode: 'member' | 'skill' }): Promise<void>;
@@ -366,6 +371,20 @@ function installVehicleHelpers() {
 
 		async skillsTab(vehicle) {
 			return readSkillsTab(await sheet(vehicle));
+		},
+
+		async skillIcons(vehicle) {
+			const root = await sheet(vehicle);
+			const kind = (element: Element | null) => (element?.matches('button') ? 'button' : element ? 'image' : 'none');
+			return Object.fromEntries(
+				[...root.querySelectorAll('.tab-skills .members-container > section')].map((section) => [
+					unprefixed(text(section.querySelector('.member-name'))),
+					{
+						member: kind(section.querySelector('.member-image')),
+						skills: [...section.querySelectorAll('.member-skill')].map((row) => kind(row.querySelector('.skill-icon'))),
+					},
+				]),
+			);
 		},
 
 		async tokenSkillsTab(token) {
@@ -1528,6 +1547,18 @@ async function crewRolls(e2e: ScenarioContext) {
 			await playerE2E('selectCrewMember', 'Ace');
 		}),
 		{ prompts: noPrompts, notifications: cannotSelect },
+	);
+	// §#578: a picture opens a sheet the player may see, and only shows one they may not, which Foundry would refuse with
+	// an error.
+	e2e.expect(
+		"#578 F1 player, Skills tab by crew member: the pictures of an owned member and of their skills open their sheets, the others' only show",
+		await playerE2E('skillIcons', 'Ship'),
+		{
+			Ace: { member: 'image', skills: ['image', 'image'] },
+			Gun: { member: 'button', skills: ['button'] },
+			Mob: { member: 'image', skills: ['image'] },
+			Wrench: { member: 'image', skills: ['image'] },
+		},
 	);
 	await player.leave();
 

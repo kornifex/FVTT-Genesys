@@ -70,6 +70,15 @@ export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, 
 }
 
 /**
+ * Whether the user may open a document's sheet, at least as Limited: an owned item follows its actor's ownership. A
+ * crew member's skills show on a vehicle's sheet to users who can't see the member, and Foundry refuses their sheets
+ * with an error.
+ */
+export function canOpenSheet(document: GenesysItem | GenesysActor) {
+	return document.testUserPermission(game.user, 'LIMITED');
+}
+
+/**
  * Open the sheet of any document: an item, or an actor.
  */
 export async function openSheet(document: GenesysItem | GenesysActor) {

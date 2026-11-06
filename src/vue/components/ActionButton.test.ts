@@ -68,11 +68,13 @@ describe('ActionButton', () => {
 		expect(plain.attributes('data-tooltip')).toBeUndefined();
 	});
 
-	it('takes words already localized as its tooltip alone when it shows text', () => {
-		const button = mountButton({ localizedLabel: 'Roll Athletics' }, { text: 'Athletics (Br)' });
+	it('takes words already localized as its tooltip alone when it shows text, which Foundry shows as text', () => {
+		const button = mountButton({ localizedLabel: 'Attack with Blaster <Mk II>' }, { text: 'Blaster' });
 
 		expect(button.attributes('aria-label')).toBeUndefined();
-		expect(button.attributes('data-tooltip')).toBe('Roll Athletics');
+		expect(button.attributes('data-tooltip-text')).toBe('Attack with Blaster <Mk II>');
+		// `data-tooltip` would render the words as HTML.
+		expect(button.attributes('data-tooltip')).toBeUndefined();
 	});
 
 	it('keeps a space between its icon and its text', () => {

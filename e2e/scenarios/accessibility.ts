@@ -98,6 +98,8 @@ type AccessibilityHelpers = {
 	 * of the documents opened, by name.
 	 */
 	rollRowOutcome(): Promise<{ dicePrompt: RolledCheck | null; opened: string[] }>;
+	/** Hovers the name of a row that rolls, by its key in `ROLL_ROWS`, and gives the tooltip Foundry shows. */
+	rollRowTooltip(row: string): Promise<string>;
 	/** The Roller's Brawn, and the XP they have left. */
 	rollerBrawn(): { brawn: number; xp: number };
 };
@@ -149,6 +151,8 @@ const ROLL_ROWS: {
 	check: RolledCheck | null;
 	opens?: string;
 	iconLabel?: string;
+	/** Whether the row is a heading, whose icon alone the steps press. */
+	heading?: boolean;
 }[] = [
 	{
 		key: 'skill',
@@ -249,6 +253,27 @@ const ROLL_ROWS: {
 		tooltip: 'Roll Mechanics to repair E2E Breach',
 		check: { actor: 'E2E Roller', check: 'Mechanics', type: 'skill' },
 		opens: 'E2E Breach',
+	},
+	// The headings of a vehicle's Skills tab: their names open a sheet, or name a skill.
+	{
+		key: 'memberHeading',
+		code: 14,
+		row: "a crew member's heading on a vehicle's Skills tab, by crew member",
+		heading: true,
+		tooltip: '',
+		check: null,
+		opens: 'E2E Roller',
+		iconLabel: "Open the actor's sheet",
+	},
+	{
+		key: 'skillHeading',
+		code: 15,
+		row: "a skill's heading on a vehicle's Skills tab, by skill",
+		heading: true,
+		tooltip: '',
+		check: null,
+		opens: 'E2E Gunnery',
+		iconLabel: "Open the skill's sheet",
 	},
 ];
 
@@ -520,14 +545,36 @@ function installAccessibilityHelpers() {
 			tab: 'inventory',
 			row: (root) => rowWith(root, '.inventory-item', 'E2E Blade'),
 			name: '.name button',
-			icon: '.item-icon',
+			// The button in the picture's wrapper, which the row's drag starts on.
+			icon: '.item-icon button',
 		},
 		carried: {
 			sheet: 'Roller',
 			tab: 'inventory',
 			row: (root) => rowWith(root, '.inventory-item', 'E2E Spare'),
 			name: '.name button',
-			icon: '.item-icon',
+			icon: '.item-icon button',
+		},
+		blaster: {
+			sheet: 'Roller',
+			tab: 'inventory',
+			row: (root) => rowWith(root, '.inventory-item', 'E2E Blaster'),
+			name: '.name button',
+		},
+		memberHeading: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			row: (root) => rowWith(root, '.members-container > section', 'E2E Roller'),
+			name: '.member-name',
+			icon: '.member-image',
+		},
+		skillHeading: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			bySkill: true,
+			row: (root) => rowWith(root, '.skills-container > section', 'E2E Gunnery'),
+			name: '.skill-details-name',
+			icon: '.skill-details-image',
 		},
 		rivalSkill: {
 			sheet: 'Roller Rival',
@@ -889,6 +936,12 @@ function installAccessibilityHelpers() {
 						{ name: 'E2E Gunnery', type: 'skill', system: { category: 'combat', characteristic: 'agility', rank: 1 } },
 						blade,
 						{ name: 'E2E Spare', type: 'weapon', system: { skills: ['E2E Brawl'], baseDamage: 2, state: 'carried' } },
+						// A name HTML would cut short.
+						{
+							name: 'E2E Blaster <Mk II>',
+							type: 'weapon',
+							system: { skills: ['E2E Brawl'], baseDamage: 5, state: 'equipped' },
+						},
 						{ name: 'E2E Gash', type: 'injury', system: { severity: 'average' } },
 					],
 				},
@@ -948,7 +1001,7 @@ function installAccessibilityHelpers() {
 				? {
 						focused,
 						die: !!element.querySelector(':scope > i.fa-dice-d20[aria-hidden="true"]'),
-						tooltip: element.dataset.tooltip ?? '',
+						tooltip: element.dataset.tooltipText ?? '',
 					}
 				: { focused, label: element.getAttribute('aria-label') ?? '' };
 		},
@@ -966,6 +1019,21 @@ function installAccessibilityHelpers() {
 			for (const app of opened) await app.close();
 			await settle();
 			return { dicePrompt, opened: sheets };
+		},
+
+		async rollRowTooltip(key) {
+			const target = ROLL_ROW_TARGETS[key];
+			await window.e2e.showTab(target.sheet, target.tab);
+			const root = await render(actor(target.sheet).sheet);
+			const row = await waitFor(`the ${key} row`, () => target.row(root));
+			const element = find(row, target.name);
+			// Hovering the element, as TooltipManager listens for it, shows its tooltip after a delay.
+			const manager = (game as { tooltip: { element: Element | null; tooltip: HTMLElement; deactivate(): void } }).tooltip;
+			element.dispatchEvent(new PointerEvent('pointerenter'));
+			await waitFor('the tooltip', () => manager.element === element);
+			const shown = manager.tooltip.textContent ?? '';
+			manager.deactivate();
+			return shown;
 		},
 
 		rollerBrawn() {
@@ -992,25 +1060,28 @@ async function rollLinks(e2e: ScenarioContext) {
 		return { ...shown, ...(await gm.evaluate(() => window.accessibilityE2E.rollRowOutcome())) };
 	};
 	try {
-		for (const { key, code, row, tooltip, check, opens, iconLabel } of ROLL_ROWS) {
+		for (const { key, code, row, tooltip, check, opens, iconLabel, heading } of ROLL_ROWS) {
 			let pressed: unknown;
-			await e2e.step(`#578 A${code} ${row}: its name focused, then Enter`, async () => {
-				pressed = await press(key, 'name');
-			});
-			if (check) {
-				e2e.expect(
-					`#578 A${code} the name of ${row} shows a die and the tooltip "${tooltip}", and Enter on it opens the Dice Prompt of its check`,
-					pressed,
-					{ focused: true, die: true, tooltip, dicePrompt: check, opened: [] },
-				);
-			} else {
-				e2e.expect(`#578 A${code} the name of ${row} shows no die, and Enter on it opens its sheet`, pressed, {
-					focused: true,
-					die: false,
-					tooltip: '',
-					dicePrompt: null,
-					opened: [opens],
+			// A heading's icon alone is under test.
+			if (!heading) {
+				await e2e.step(`#578 A${code} ${row}: its name focused, then Enter`, async () => {
+					pressed = await press(key, 'name');
 				});
+				if (check) {
+					e2e.expect(
+						`#578 A${code} the name of ${row} shows a die and the tooltip "${tooltip}", and Enter on it opens the Dice Prompt of its check`,
+						pressed,
+						{ focused: true, die: true, tooltip, dicePrompt: check, opened: [] },
+					);
+				} else {
+					e2e.expect(`#578 A${code} the name of ${row} shows no die, and Enter on it opens its sheet`, pressed, {
+						focused: true,
+						die: false,
+						tooltip: '',
+						dicePrompt: null,
+						opened: [opens],
+					});
+				}
 			}
 			if (!opens) continue;
 			await e2e.step(`#578 B${code} ${row}: its icon focused, then Enter`, async () => {
@@ -1024,6 +1095,16 @@ async function rollLinks(e2e: ScenarioContext) {
 				opened: [opens],
 			});
 		}
+
+		let shownTooltip: unknown;
+		await e2e.step('#578 E1 the name of the Equipped "E2E Blaster <Mk II>" hovered on the Inventory tab', async () => {
+			shownTooltip = await gm.evaluate(() => window.accessibilityE2E.rollRowTooltip('blaster'));
+		});
+		e2e.expect(
+			"#578 E1 a name's tooltip shows the item's name as text, brackets included, as Foundry renders `data-tooltip-text`",
+			shownTooltip,
+			'Attack with E2E Blaster <Mk II>',
+		);
 
 		let before: unknown;
 		let raised: unknown;

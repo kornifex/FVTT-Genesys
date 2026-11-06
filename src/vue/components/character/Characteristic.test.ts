@@ -32,7 +32,7 @@ describe('Characteristic', () => {
 		const label = mountCharacteristic({ ...brawn, onRollCharacteristicCheck }).get('.characteristic-label .roll-link');
 
 		expect(label.text()).toBe('Genesys.Characteristics.Brawn');
-		expect(label.attributes('data-tooltip')).toBe('Genesys.Tooltips.RollCharacteristic Genesys.Characteristics.Brawn');
+		expect(label.attributes('data-tooltip-text')).toBe('Genesys.Tooltips.RollCharacteristic Genesys.Characteristics.Brawn');
 		await label.trigger('click');
 
 		expect(onRollCharacteristicCheck).toHaveBeenCalledOnce();

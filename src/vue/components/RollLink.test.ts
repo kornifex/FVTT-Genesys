@@ -47,7 +47,7 @@ describe('RollLink', () => {
 	it('names the check in its tooltip', () => {
 		const link = mountLink();
 
-		expect(link.attributes('data-tooltip')).toBe('Genesys.Tooltips.RollAttack E2E Sword');
+		expect(link.attributes('data-tooltip-text')).toBe('Genesys.Tooltips.RollAttack E2E Sword');
 		link.unmount();
 	});
 

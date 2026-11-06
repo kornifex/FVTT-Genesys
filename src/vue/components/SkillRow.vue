@@ -44,6 +44,12 @@ const props = withDefaults(
 		openLabel?: string;
 
 		/**
+		 * Whether the icon opens a sheet: the user may not see a crew member, nor their skills. Otherwise it shows the
+		 * image alone.
+		 */
+		canOpen?: boolean;
+
+		/**
 		 * The rank shown in a cell of its own. Left out where it shows elsewhere, as a Minion Group's group rank.
 		 */
 		rank?: number;
@@ -63,7 +69,7 @@ const props = withDefaults(
 		 */
 		characteristicValue: number;
 	}>(),
-	{ career: false, openLabel: 'Genesys.Tooltips.OpenSkill', canBuyRank: false },
+	{ career: false, openLabel: 'Genesys.Tooltips.OpenSkill', canOpen: true, canBuyRank: false },
 );
 
 const emit = defineEmits<{
@@ -85,7 +91,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-	<ActionButton class="skill-icon" :image="image ?? undefined" :label="openLabel" @click="emit('open')" />
+	<ActionButton v-if="canOpen" class="skill-icon" :image="image ?? undefined" :label="openLabel" @click="emit('open')" />
+	<img v-else class="skill-icon" :src="image ?? undefined" alt="" />
 
 	<RollLink class="skill-name" label="Genesys.Tooltips.RollSkill" :label-data="{ skill: props.skill }" @roll="emit('roll')">
 		<span

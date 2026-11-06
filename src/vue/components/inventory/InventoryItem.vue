@@ -255,8 +255,11 @@ function openMenu(event: MouseEvent) {
 		@drop="drop"
 		@contextmenu="openMenu"
 	>
-		<!-- The icon opens the item's sheet; the name attacks with an equipped weapon, and opens the sheet otherwise. -->
-		<ActionButton class="item-icon" :image="item.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(item)" />
+		<!-- The icon opens the item's sheet; the name attacks with an equipped weapon, and opens the sheet otherwise. The row's
+		drag starts on the icon's wrapper too, since Firefox starts none from a button: the dragstart reaches the row. -->
+		<span class="item-icon" draggable="true"
+			><ActionButton :image="item.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(item)"
+		/></span>
 
 		<span v-if="mini || isBasicItem" class="name" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
@@ -489,7 +492,12 @@ function openMenu(event: MouseEvent) {
 
 	> .item-icon {
 		grid-column: icon / span 1;
-		width: 100%;
+		display: block;
+
+		.action-button {
+			display: block;
+			width: 100%;
+		}
 
 		:deep(img) {
 			border-radius: 0.25em;

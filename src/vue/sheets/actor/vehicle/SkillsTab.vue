@@ -2,10 +2,11 @@
 import { ref, shallowRef, watch } from 'vue';
 import { type DocumentSheetContext, useSheetContext } from '@/vue/SheetContext';
 import { GenesysActor } from '@/actor/GenesysActor';
+import type { GenesysItem } from '@/item/GenesysItem';
 import { crewForSkills, crewMemberSkills, crewSkillsByMember, crewSkillsBySkill, Role } from '@/actor/data/CrewRoster';
 import { type ActorCrewMemberSkill, crewActors, rollForCrew } from '@/operations/CrewRoll';
 import { worldCheckRules } from '@/dice/Check';
-import { openSheet } from '@/operations/ItemActions';
+import { canOpenSheet, openSheet } from '@/operations/ItemActions';
 import { usePendingContent } from '@/vue/PendingContent';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -22,6 +23,7 @@ type MemberRow = {
 type SkillSection = {
 	skillName: string;
 	skillImage: string;
+	skill: GenesysItem<'skill'>;
 	members: ActorCrewMemberSkill[];
 };
 
@@ -84,7 +86,14 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 		<div v-if="groupingMode === 'member'" class="members-container">
 			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
-					<img class="member-image" :src="details.actor.img ?? undefined" :alt="details.actor.name" draggable="false" />
+					<ActionButton
+						v-if="canOpenSheet(details.actor)"
+						class="member-image"
+						:image="details.actor.img ?? undefined"
+						label="Genesys.Tooltips.OpenActor"
+						@click="openSheet(details.actor)"
+					/>
+					<img v-else class="member-image" :src="details.actor.img ?? undefined" alt="" draggable="false" />
 					<h3 class="member-heading">
 						<ActionButton class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</ActionButton>
 					</h3>
@@ -100,6 +109,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 									:skill="rolledSkill.skill.name"
 									:characteristic="rolledSkill.skill.system.characteristic"
 									:image="rolledSkill.skill.img"
+									:can-open="canOpenSheet(rolledSkill.skill)"
 									:rank="rolledSkill.rank"
 									:skill-value="rolledSkill.rank"
 									:characteristic-value="rolledSkill.characteristicValue"
@@ -116,7 +126,14 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 			<section v-for="details in bySkill" :key="details.skillName">
 				<div class="skill-details">
 					<h3 class="skill-details-name">
-						<img class="skill-details-image" :src="details.skillImage" :alt="details.skillName" draggable="false" />
+						<ActionButton
+							v-if="canOpenSheet(details.skill)"
+							class="skill-details-image"
+							:image="details.skillImage"
+							label="Genesys.Tooltips.OpenSkill"
+							@click="openSheet(details.skill)"
+						/>
+						<img v-else class="skill-details-image" :src="details.skillImage" alt="" draggable="false" />
 						{{ details.skillName }}
 					</h3>
 					<div class="skill-contents">
@@ -133,6 +150,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 								:skill="memberSkill.skill.name"
 								:image="memberSkill.actor.img"
 								open-label="Genesys.Tooltips.OpenActor"
+								:can-open="canOpenSheet(memberSkill.actor)"
 								:rank="memberSkill.rank"
 								:skill-value="memberSkill.rank"
 								:characteristic-value="memberSkill.characteristicValue"
@@ -186,10 +204,16 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 			gap: 0.5em;
 			padding: 0.5rem;
 
+			// The member's picture, which opens their sheet: a button's image, which :deep() reaches.
 			.member-image {
 				grid-row: 1 / span 2;
 				grid-column: 1 / span 1;
+				width: 100%;
 				border-radius: 0.25em;
+
+				:deep(img) {
+					border-radius: 0.25em;
+				}
 			}
 
 			.member-heading {
@@ -284,11 +308,18 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 				grid-row: 1 / span 1;
 				width: 100%;
 
+				// The skill's picture, which opens its sheet: a button's image, which :deep() reaches.
 				.skill-details-image {
+					display: inline-block;
 					width: 1.5em;
+					height: 1.5em;
 					border: none;
 					border-radius: 0.25rem;
 					vertical-align: middle;
+
+					:deep(img) {
+						border-radius: 0.25rem;
+					}
 				}
 			}
 

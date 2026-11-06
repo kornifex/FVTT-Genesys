@@ -52,14 +52,14 @@ describe('SkillRow', () => {
 
 		expect(name.get('i').classes()).toContain('fa-dice-d20');
 		expect(name.get('i').attributes('aria-hidden')).toBe('true');
-		expect(name.attributes('data-tooltip')).toBe('Genesys.Tooltips.RollSkill Athletics');
+		expect(name.attributes('data-tooltip-text')).toBe('Genesys.Tooltips.RollSkill Athletics');
 	});
 
 	it("names the skill in the tooltip when its name shows a crew member's, whose sheet the icon opens", () => {
 		const row = mountRow({ ...athletics, name: 'Hal', characteristic: undefined, openLabel: 'Genesys.Tooltips.OpenActor' });
 
 		expect(row.get('.skill-name').text()).toBe('Hal');
-		expect(row.get('.skill-name').attributes('data-tooltip')).toBe('Genesys.Tooltips.RollSkill Athletics');
+		expect(row.get('.skill-name').attributes('data-tooltip-text')).toBe('Genesys.Tooltips.RollSkill Athletics');
 		expect(row.get('.skill-icon').attributes('aria-label')).toBe('Genesys.Tooltips.OpenActor');
 	});
 
@@ -100,6 +100,14 @@ describe('SkillRow', () => {
 
 		expect(readOnly.find('.skill-rank button').exists()).toBe(false);
 		expect(unaffordable.find('.skill-rank button').exists()).toBe(false);
+	});
+
+	it('shows its image alone where the user may not open the sheet', () => {
+		const icon = mountRow({ ...athletics, canOpen: false }).get('.skill-icon');
+
+		expect((icon.element as HTMLElement).tagName).toBe('IMG');
+		expect(icon.attributes('src')).toBe('athletics.webp');
+		expect(icon.attributes('alt')).toBe('');
 	});
 
 	it('marks a career skill with a star', () => {
