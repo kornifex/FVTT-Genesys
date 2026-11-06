@@ -93,8 +93,8 @@ function resetDrags() {
 
 <template>
 	<section class="tab-crew" @drop.capture="resetDrags" @dragenter="dragEnter" @dragleave="dragLeave">
-		<div class="section-header">
-			<span><Localized label="Genesys.Labels.Roles" /></span>
+		<div class="heading-row">
+			<h3><Localized label="Genesys.Labels.Roles" /></h3>
 			<ActionButton icon="fas fa-plus" edits @click="addNewRole"><Localized label="Genesys.Labels.Add" /></ActionButton>
 		</div>
 
@@ -119,8 +119,8 @@ function resetDrags() {
 			</TransitionGroup>
 		</section>
 
-		<div class="section-header">
-			<span><Localized label="Genesys.Labels.Passengers" /></span>
+		<div class="heading-row">
+			<h3><Localized label="Genesys.Labels.Passengers" /></h3>
 			<div
 				:class="{
 					'capacity-section': true,
@@ -162,6 +162,7 @@ function resetDrags() {
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -196,7 +197,7 @@ function resetDrags() {
 		display: flex;
 		flex-wrap: nowrap;
 		gap: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		align-items: center;
 
 		background: colors.$dark-blue;
@@ -215,11 +216,12 @@ function resetDrags() {
 		}
 	}
 
-	.section-header {
+	// A section's heading, then its action or its count at the other end.
+	.heading-row {
 		display: grid;
 		grid-template-columns: auto 1fr auto;
-		font-size: 1.25em;
-		font-family: 'Bebas Neue', sans-serif;
+		align-items: center;
+		@include headings.font;
 		margin-bottom: 0.5rem;
 
 		> :first-child {
@@ -229,6 +231,7 @@ function resetDrags() {
 		// The Roles' header holds its title alone on a sheet the user can't edit, which shows no Add button.
 		> :last-child:not(:first-child) {
 			grid-column: 3 / span 1;
+			font-size: 1.25em;
 		}
 	}
 }

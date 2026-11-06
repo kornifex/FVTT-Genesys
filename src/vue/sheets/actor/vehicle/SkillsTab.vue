@@ -86,13 +86,13 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 			<section v-for="details in byMember" :key="details.member">
 				<div class="member-details">
 					<img class="member-image" :src="details.actor.img ?? undefined" :alt="details.actor.name" draggable="false" />
-					<ActionButton class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</ActionButton>
+					<h3 class="member-heading">
+						<ActionButton class="member-name" @click="openSheet(details.actor)">{{ details.actor.name }}</ActionButton>
+					</h3>
 					<div class="member-roles"><Localized label="Genesys.Labels.Role" />: {{ details.role.name }}</div>
 
 					<div class="member-skills" v-if="details.skills.length > 0">
-						<div class="member-skills-header">
-							<span><Localized label="Genesys.Labels.RoleSkills" /></span>
-						</div>
+						<h4><Localized label="Genesys.Labels.RoleSkills" /></h4>
 
 						<div class="member-skills-container">
 							<div v-for="rolledSkill in details.skills" :key="rolledSkill.skillName" class="member-skill">
@@ -116,12 +116,12 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 		<div v-else-if="groupingMode === 'skill'" class="skills-container">
 			<section v-for="details in bySkill" :key="details.skillName">
 				<div class="skill-details">
-					<div class="skill-details-name">
+					<h3 class="skill-details-name">
 						<img class="skill-details-image" :src="details.skillImage" :alt="details.skillName" draggable="false" />
 						{{ details.skillName }}
-					</div>
+					</h3>
 					<div class="skill-contents">
-						<div class="skill-content-header">
+						<div class="columns">
 							<div class="skill-content-header-charName"><Localized label="Genesys.Labels.CrewMember" /></div>
 							<div class="skill-content-header-roles"><Localized label="Genesys.Labels.Role" /></div>
 							<div class="skill-content-header-skill"><Localized label="Genesys.Labels.Skill" /></div>
@@ -158,6 +158,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 
 <style lang="scss" scoped>
 @use 'sass:color';
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .tab-skills {
@@ -165,7 +166,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 	flex-direction: column;
 
 	.grouping-mode {
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1em;
 		margin-left: auto;
 
@@ -196,15 +197,10 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 				border-radius: 0.25em;
 			}
 
-			.member-name {
+			.member-heading {
 				grid-row: 1 / span 1;
 				grid-column: 2 / span 1;
-
-				font-family: 'Roboto Serif', serif;
-				font-size: 1.15em;
-				display: flex;
-				align-items: center;
-				gap: 0.25em;
+				align-self: center;
 			}
 
 			.member-roles {
@@ -220,14 +216,6 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 			.member-skills {
 				grid-row: 4 / span 1;
 				grid-column: 1 / span all;
-
-				.member-skills-header {
-					& > span {
-						font-family: 'Bebas Neue', sans-serif;
-						font-size: 1em;
-						color: colors.$gray;
-					}
-				}
 
 				.member-skills-container {
 					border: 1px solid black;
@@ -298,14 +286,10 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 
 			.skill-details-name {
 				grid-row: 1 / span 1;
-				font-family: 'Bebas Neue', sans-serif;
 				width: 100%;
-				font-size: 2rem;
-				vertical-align: bottom;
-				padding: 0px;
 
 				.skill-details-image {
-					width: 2rem;
+					width: 1.5em;
 					border: none;
 					border-radius: 0.25rem;
 					vertical-align: middle;
@@ -317,11 +301,11 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 				display: grid;
 				grid-template-rows: auto auto;
 
-				.skill-content-header {
+				.columns {
 					grid-row: 1 / span 1;
 					display: grid;
 					grid-template-columns: 1.5rem 2fr 1.5fr 1.5em 80px;
-					font-family: 'Bebas Neue', sans-serif;
+					@include headings.font;
 					align-items: center;
 					justify-items: center;
 					gap: 0.5em;

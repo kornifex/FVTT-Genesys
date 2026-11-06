@@ -1,3 +1,4 @@
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
 
@@ -17,7 +18,7 @@
 		align-items: center;
 
 		// Make it look pretty!
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		color: white;
 
 		// Create a decorative border effect to reuse on the tabs.

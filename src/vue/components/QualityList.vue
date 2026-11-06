@@ -33,6 +33,7 @@ withDefaults(
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .tags {
@@ -46,7 +47,7 @@ withDefaults(
 		border: 1px dashed colors.$gold;
 		border-radius: 0.25em;
 		padding: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 	}
 }
 

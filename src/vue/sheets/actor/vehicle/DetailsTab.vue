@@ -14,18 +14,18 @@ const illustrationName = game.i18n.localize('Genesys.Labels.Illustration');
 	<section class="tab-details">
 		<div class="description-section">
 			<section class="description">
-				<div class="header"><Localized label="Genesys.Tabs.Description" /></div>
+				<h3><Localized label="Genesys.Tabs.Description" /></h3>
 				<Editor name="system.description" />
 			</section>
 
 			<section class="illustration">
-				<div class="header"><Localized label="Genesys.Labels.Illustration" /></div>
+				<h3><Localized label="Genesys.Labels.Illustration" /></h3>
 				<img :src="system.illustration" data-edit="system.illustration" :alt="illustrationName" />
 			</section>
 		</div>
 
 		<section class="info-section">
-			<div class="header"><Localized label="Genesys.Labels.Information" /></div>
+			<h3><Localized label="Genesys.Labels.Information" /></h3>
 
 			<div class="details">
 				<label><Localized label="Genesys.Labels.Complement" /></label>
@@ -77,13 +77,6 @@ const illustrationName = game.i18n.localize('Genesys.Labels.Illustration');
 		background: colors.alpha(colors.$light-blue, 0.2);
 		border-radius: 1em;
 		padding: 0.75em;
-
-		& > .header {
-			text-align: right;
-			font-size: 1.1em;
-			font-family: 'Bebas Neue', sans-serif;
-			width: 100%;
-		}
 	}
 
 	img {

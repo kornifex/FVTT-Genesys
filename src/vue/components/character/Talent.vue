@@ -83,6 +83,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 @use '@scss/mixins/expandable.scss';
 
@@ -132,7 +133,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 			border: 1px dotted colors.$gold;
 			background: colors.alpha(colors.$gold, 0.5);
 			border-radius: 0.5em;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			padding: 2px;
 		}
 

@@ -2,6 +2,7 @@
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import Localized from '@/vue/components/Localized.vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
@@ -9,8 +10,6 @@ import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 
 const { document: item, system, editable } = useSheetDocument<GenesysItem<'career'>>();
-
-const careerSkillsHeaderWords = game.i18n.localize('Genesys.Career.Skills').split(' ');
 
 async function removeSkill(index: number) {
 	await item.value.update({ system: { careerSkills: withoutIndex(system.value.careerSkills, index) } });
@@ -27,9 +26,7 @@ async function removeSkill(index: number) {
 				</section>
 
 				<section class="stats">
-					<div class="header">
-						<div v-for="word in careerSkillsHeaderWords" :key="word">{{ word }}</div>
-					</div>
+					<h3><Localized label="Genesys.Career.Skills" /></h3>
 
 					<ul>
 						<li v-for="skill in system.careerSkills" :key="skill.name">
@@ -73,19 +70,6 @@ section.overview {
 
 	.description {
 		min-height: 120px;
-	}
-
-	.header {
-		display: flex;
-		flex-wrap: nowrap;
-		gap: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
-		font-size: 1.75em;
-		color: colors.$blue;
-
-		& > div:first-letter {
-			font-size: 1.25em;
-		}
 	}
 
 	li {

@@ -477,7 +477,6 @@ Genesys:
     Talents: Talents
     Abilities: Aptitudes
     Equipment: Equipement
-    None: Rien
     Base: Base
     Remaining: Reste
 
@@ -623,7 +622,7 @@ Genesys:
     Injury: Blessure
     Hit: Touche
     Skill: Compétence
-    Crit: Crit
+    ListEmpty: Rien
     GroupSize: Taille du groupe
     RemainingMembers: Membres restants
     SkillNotFound: Compétence non trouvée

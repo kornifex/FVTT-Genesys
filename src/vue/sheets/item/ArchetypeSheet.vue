@@ -15,8 +15,6 @@ import Characteristic from '@/vue/components/character/Characteristic.vue';
 
 const { document: item, system, editable } = useSheetDocument<GenesysItem<'archetype'>>();
 
-const abilitiesHeaderWords = game.i18n.localize('Genesys.Archetype.Abilities').split(' ');
-
 const specialAbilities = computed(() => system.value.grantedItems.filter((i) => i.type === 'ability'));
 
 async function deleteGrantedItem(index: number) {
@@ -34,9 +32,7 @@ async function deleteGrantedItem(index: number) {
 				</section>
 
 				<section class="stats">
-					<div class="header">
-						<div v-for="word in abilitiesHeaderWords" :key="word">{{ word }}</div>
-					</div>
+					<h3><Localized label="Genesys.Archetype.Abilities" /></h3>
 
 					<div class="characteristics-container">
 						<div class="characteristics-row">
@@ -153,19 +149,6 @@ section.overview {
 
 	.description {
 		min-height: 150px;
-	}
-
-	.header {
-		display: flex;
-		flex-wrap: nowrap;
-		gap: 0.25em;
-		font-family: 'Bebas Neue', sans-serif;
-		font-size: 1.75em;
-		color: colors.$blue;
-
-		& > div:first-letter {
-			font-size: 1.25em;
-		}
 	}
 
 	li {

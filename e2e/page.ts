@@ -603,7 +603,7 @@ export function installHelpers() {
 			const rows: EffectsTabRow[] = [];
 			let section = '';
 			for (const element of helpers.effectsView(sheet)?.children ?? []) {
-				if (element.matches('.effects-header')) section = helpers.text(element.querySelector('.name'));
+				if (element.matches('.columns')) section = helpers.text(element.querySelector('h3'));
 				for (const row of element.matches('.effects-category') ? element.querySelectorAll<HTMLElement>('.effect') : []) {
 					rows.push({
 						section,
@@ -632,7 +632,7 @@ export function installHelpers() {
 		},
 
 		async addEffect(sheet, section) {
-			const add = helpers.effectsView(sheet)?.querySelectorAll<HTMLElement>('.effects-header .buttons button')[section - 1];
+			const add = helpers.effectsView(sheet)?.querySelectorAll<HTMLElement>(':scope > .columns .buttons button')[section - 1];
 			if (!add) throw new Error(`No Add button in section ${section} of the Effects tab`);
 			add.click();
 			await helpers.settle();

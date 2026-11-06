@@ -91,6 +91,7 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -131,7 +132,7 @@ const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
 
 		label,
 		.title {
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 		}
 
 		.title {

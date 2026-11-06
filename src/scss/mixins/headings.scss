@@ -1,4 +1,36 @@
 @use '@scss/vars/appv1.scss';
+@use '@scss/vars/colors.scss';
+
+// The system's display font: its headings, tabs, counters and labels.
+@mixin font {
+	font-family: 'Bebas Neue', sans-serif;
+}
+
+// A section heading of the sheets and prompts: an h3 for a section of a tab, an h4 for a group in it, an h5 for a group
+// within that group. The sheets lay them out, the mixin owns how they look, so that every section reads the same.
+@mixin section {
+	@include font;
+	margin: 0;
+	padding: 0;
+	border: none;
+	font-weight: normal;
+	line-height: normal;
+
+	&:is(h3) {
+		font-size: 1.25em;
+		color: colors.$blue;
+	}
+
+	&:is(h4) {
+		font-size: 1.1em;
+		color: colors.$dark-blue;
+	}
+
+	&:is(h5) {
+		font-size: 1em;
+		color: colors.$dark-blue;
+	}
+}
 
 // AppV1's rich-text headings, which the descriptions were written for. Their sizes are in em, so that they follow the
 // text around them. AppV1 left the h4 at the text's size and relied on its bold weight; with every heading at a normal

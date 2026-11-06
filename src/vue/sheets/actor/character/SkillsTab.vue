@@ -109,9 +109,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				class="skill-category"
 				:style="{ zIndex: skillCategories.length - index }"
 			>
-				<div class="header">
-					<label><Localized :label="SKILL_CATEGORY_HEADINGS[skillCategory.category]" /></label>
-					<div class="blank" />
+				<div class="columns">
+					<h3><Localized :label="SKILL_CATEGORY_HEADINGS[skillCategory.category]" /></h3>
 
 					<label class="rank-label"><Localized label="Genesys.Labels.Rank" /></label>
 					<div class="blank" />
@@ -187,6 +186,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 <style lang="scss" scoped>
 @use 'sass:color';
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .tab-skills {
@@ -264,7 +264,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		position: relative;
 	}
 
-	.header,
+	.columns,
 	.body .row {
 		width: 100%;
 		display: grid;
@@ -273,10 +273,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		gap: 0.25rem;
 	}
 
-	.header {
-		font-family: 'Bebas Neue', sans-serif;
-		font-size: 1em;
-		color: colors.$gray;
+	// The category's heading, over the icon and name columns, then the label of the rank column.
+	.columns {
+		@include headings.font;
+
+		h3 {
+			grid-column: 1 / span 2;
+		}
 
 		// The label sits 3px to the left, so that it lines up over the rank inputs of the rows below.
 		.rank-label {

@@ -1,4 +1,5 @@
 @use '@scss/mixins/backgrounds.scss';
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
@@ -59,7 +60,7 @@
 		// Name Input
 		input {
 			width: 100%;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			font-size: 2rem;
 			color: colors.$blue;
 
@@ -89,7 +90,6 @@
 		display: flex;
 		flex-direction: column;
 
-		.header,
 		.row {
 			display: grid;
 			grid-template-columns: minmax(min-content, 30%) 1fr;
@@ -97,13 +97,6 @@
 			padding: 0.25em;
 			row-gap: 0.1em;
 			column-gap: 0.25em;
-		}
-
-		.header {
-			font-family: 'Bebas Neue', sans-serif;
-		}
-
-		.row {
 			border-bottom: 1px dashed black;
 
 			input,
@@ -133,8 +126,7 @@
 	}
 
 	section.effect-grid {
-		.row,
-		.header {
+		.row {
 			grid-template-columns: /* Key */ 2fr /* Change Mode */ 1fr /* Value */ 1fr /* Actions */ auto;
 		}
 

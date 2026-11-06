@@ -46,6 +46,8 @@ function awardXP(event: Event) {
 </style>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
+
 .award-xp-prompt {
 	display: flex;
 	flex-direction: column;
@@ -53,7 +55,7 @@ function awardXP(event: Event) {
 	gap: 0.5em;
 
 	label {
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.1em;
 	}
 

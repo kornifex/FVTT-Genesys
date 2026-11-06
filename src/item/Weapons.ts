@@ -38,6 +38,24 @@ export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; c
 }
 
 /**
+ * A weapon's damage as the sheets show it in the hands of an actor with these characteristics: `Br+1 (3)`, the
+ * characteristic's abbreviation and the base damage then the total, when a characteristic adds to it; the total
+ * otherwise. An actor without characteristics, like a vehicle, adds none, whatever the weapon's damage characteristic.
+ */
+export function damageLabel(
+	weapon: WeaponDamageData,
+	characteristics: CharacteristicsContainer | undefined,
+	i18n: { localize(key: string): string },
+) {
+	const { baseDamage, characteristic } = damageFormula(weapon);
+	const total = weaponDamage(weapon, characteristics);
+
+	return characteristic && characteristics
+		? `${i18n.localize(characteristic)}${baseDamage < 0 ? '' : '+'}${baseDamage} (${total})`
+		: `${total}`;
+}
+
+/**
  * The range bands a weapon can reach, from engaged to strategic.
  */
 export const RANGES = ['engaged', 'short', 'medium', 'long', 'extreme', 'strategic'] as const;

@@ -17,6 +17,7 @@ defineProps<{
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
 .xp-container {
@@ -82,7 +83,7 @@ defineProps<{
 		width: calc(100% - 4px);
 		clip-path: polygon(0% calc(100% - 2em), 100% calc(100% - 2em), 100% 100%, 0% 100%);
 		color: white;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		text-transform: uppercase;
 
 		span {

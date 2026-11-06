@@ -27,8 +27,9 @@ import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
 import type { StepDirection } from '@/actor/data/Inventory';
-import { RANGE_LABELS, weaponDamage } from '@/item/Weapons';
-import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
+import { profileRowName, weaponProfiles } from '@/item/WeaponProfiles';
+import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
@@ -68,10 +69,6 @@ function canChangeTalentRank(talent: Stored<GenesysItem<'talent'>>) {
 
 async function changeTalentRank(talent: Stored<GenesysItem<'talent'>>, direction: StepDirection) {
 	await stepTalentRank(actor.value, talent, direction);
-}
-
-function damageForProfile(profile: WeaponProfile) {
-	return weaponDamage(profile, system.value.characteristics);
 }
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
@@ -149,9 +146,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					</div>
 
 					<div class="adversary-items">
-						<span class="header"><Localized label="Genesys.Adversary.Talents" />:</span>
+						<h3><Localized label="Genesys.Adversary.Talents" /></h3>
 						<div class="container">
-							<Localized v-if="talents.length === 0" label="Genesys.Adversary.None" />
+							<ListEmpty v-if="talents.length === 0" />
 							<div v-for="talent in talents" :key="talent.id" class="talent">
 								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
@@ -194,9 +191,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					</div>
 
 					<div class="adversary-items">
-						<span class="header"><Localized label="Genesys.Adversary.Abilities" />:</span>
+						<h3><Localized label="Genesys.Adversary.Abilities" /></h3>
 						<div class="container">
-							<Localized v-if="abilities.length === 0" label="Genesys.Adversary.None" />
+							<ListEmpty v-if="abilities.length === 0" />
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
 								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
@@ -219,9 +216,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					</div>
 
 					<div class="adversary-items">
-						<span class="header"><Localized label="Genesys.Adversary.Equipment" />:</span>
+						<h3><Localized label="Genesys.Adversary.Equipment" /></h3>
 						<div class="container">
-							<Localized v-if="equipment.length === 0" label="Genesys.Adversary.None" />
+							<ListEmpty v-if="equipment.length === 0" />
 							<ContextMenu
 								v-for="{ item, profile, name, skill } in weapons"
 								:key="`${item.id}-${profile.index}`"
@@ -258,13 +255,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										/>
 									</span>
 									<span v-else><Localized label="Genesys.Labels.NoSkill" /></span>
-									<span><Localized label="Genesys.Labels.Damage" /> {{ damageForProfile(profile) }}</span>
-									<span><Localized label="Genesys.Labels.Critical" /> {{ profile.critical }}</span>
-									<span
-										><Localized label="Genesys.Labels.Range" /> [<Localized
-											:label="RANGE_LABELS[profile.range]"
-										/>]</span
-									>
+									<WeaponProfileStats layout="inline" :profile="profile" :characteristics="system.characteristics" />
 									<QualityList :qualities="profile.qualities" class="weapon-qualities" /> </span
 								>)
 								<ActionButton
@@ -313,9 +304,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			<div class="tab" data-tab="miscellaneous">
 				<section class="motivations">
 					<div class="adversary-items">
-						<span class="header"><Localized label="Genesys.Labels.CriticalInjuries" />:</span>
+						<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
 						<div class="container">
-							<Localized v-if="injuries.length === 0" label="Genesys.Adversary.None" />
+							<ListEmpty v-if="injuries.length === 0" />
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
 								<ContextMenu :disable-menu="!editable">
 									<template v-slot:menu-items>
@@ -331,7 +322,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						</div>
 					</div>
 
-					<div class="header"><Localized label="Genesys.Labels.Motivations" /></div>
+					<h3><Localized label="Genesys.Labels.Motivations" /></h3>
 					<Motivations :motivations="system.motivations" />
 
 					<DataRow class="data-row" label="Genesys.Labels.Source" name="system.source" :value="system.source" />
@@ -347,6 +338,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 <style lang="scss" scoped>
 @use '@scss/mixins/data-row.scss';
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -432,12 +424,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		display: flex;
 		flex-direction: column;
 
-		:deep(.header) {
-			font-family: 'Bebas Neue', sans-serif;
-			font-size: 1.25em;
-			color: colors.$blue;
-		}
-
 		.send-to-chat-link {
 			margin-left: 0.2em;
 		}
@@ -460,7 +446,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		@include reset.input;
 		input[type='text'] {
 			width: 100%;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			font-size: 2rem;
 			color: colors.$blue;
 			height: 2rem;
@@ -480,7 +466,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			display: flex;
 			gap: 0.5em;
 			align-items: baseline;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			color: colors.$blue;
 
 			input {
@@ -585,7 +571,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		padding-right: 0.2em;
 	}
 
-	.weapon-details > span {
+	// A Weapon Profile's stats are among the details, the roots of a component with several, which take no scope attribute
+	// from the sheet: :deep() reaches them.
+	.weapon-details > :deep(span) {
 		&::after {
 			display: inline;
 			content: ';';
@@ -614,12 +602,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	}
 
 	.motivations {
-		& > .header {
-			font-family: 'Bebas Neue', sans-serif;
-			font-size: 1.25em;
-			color: colors.$blue;
-		}
-
 		// An adversary's motivations share their tab with its Critical Injuries, so they start shorter, their editor filling
 		// the height they take.
 		:deep(.motivation .body) {

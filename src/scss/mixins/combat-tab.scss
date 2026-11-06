@@ -1,7 +1,9 @@
 @use '@scss/vars/colors.scss';
 @use '@scss/mixins/expandable.scss';
+@use '@scss/mixins/headings.scss';
 
-// The layout the Combat tabs of characters and vehicles share: blocks of rows under a header.
+// The layout the Combat tabs of characters and vehicles share: blocks of rows under a heading, their columns' labels
+// in a first row.
 @mixin tab {
 	display: flex;
 	flex-direction: column;
@@ -27,12 +29,8 @@
 		padding: 0.5em;
 		border-radius: 0.5em;
 
-		.header {
-			font-family: 'Bebas Neue', sans-serif;
-		}
-
-		& > .header {
-			font-size: 1.25em;
+		.columns {
+			@include headings.font;
 		}
 
 		img {
@@ -69,11 +67,11 @@
 		justify-self: left;
 	}
 
-	&:not(.header) > .name {
+	&:not(.columns) > .name {
 		font-family: 'Roboto Serif', serif;
 	}
 
-	&.header > .name {
+	&.columns > .name {
 		grid-column: 1 / span 2;
 	}
 

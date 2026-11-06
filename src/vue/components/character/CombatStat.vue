@@ -67,6 +67,7 @@ function validateInput(event: Event) {
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
 
@@ -92,7 +93,7 @@ function validateInput(event: Event) {
 		margin-left: ($box-margin + 2px);
 		width: calc(100% - ($box-margin + 2px) * 2);
 		color: white;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;
 		position: relative;
@@ -139,7 +140,7 @@ function validateInput(event: Event) {
 			height: calc(100% - 2px);
 			padding-top: 1.25rem;
 			background: white;
-			font-family: 'Bebas Neue', sans-serif;
+			@include headings.font;
 			font-size: 1.75em;
 			text-align: center;
 
@@ -189,7 +190,7 @@ function validateInput(event: Event) {
 				position: relative;
 				z-index: 1;
 				color: white;
-				font-family: 'Bebas Neue', sans-serif;
+				@include headings.font;
 				text-transform: uppercase;
 				font-size: 0.8em;
 				grid-row: 2 / span 1;

@@ -1943,7 +1943,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#95 GM opens the dice prompt with /gendr and the award XP prompt from the journal', async () => {
 			await gm.evaluate(() => ui.chat.processMessage('/gendr'));
 			await gm.evaluate(() => window.sheetsE2E.clickTab('Hero', 'journal'));
-			await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header button'));
+			await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .columns button'));
 		});
 		e2e.expect(
 			'#95 A4 every prompt and the story point tracker is an ApplicationV2 window',
@@ -1973,7 +1973,7 @@ export async function run(e2e: ScenarioContext) {
 			true,
 		);
 		e2e.log('award XP prompts open after Enter', await gm.evaluate(() => window.sheetsE2E.prompts('app-award-xp-prompt').length));
-		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .entries-header button'));
+		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .columns button'));
 		e2e.expect('#95 A6 a prompt resolves when it starts closing', await gm.evaluate(() => window.sheetsE2E.promptResolution()), {
 			resolved: true,
 			value: null,
@@ -2314,7 +2314,7 @@ export async function run(e2e: ScenarioContext) {
 			gm.evaluate(async () => {
 				const sheets = window.sheetsE2E;
 				await sheets.clickTab('Bearer', 'journal');
-				await sheets.click('Bearer', '.xp-journal .entries-header button');
+				await sheets.click('Bearer', '.xp-journal .columns button');
 				sheets.setPromptInput('app-award-xp-prompt', '.amount input', '50', 'input');
 				sheets.setPromptInput('app-award-xp-prompt', '.reason textarea', 'E2E', 'input');
 				await sheets.clickPrompt('app-award-xp-prompt', '.award-xp-prompt button');
@@ -2341,7 +2341,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('#95 GM drops a minion on a vehicle', () =>
 			gm.evaluate(async () => {
 				await window.sheetsE2E.open('Vehicle');
-				await window.sheetsE2E.drop('Vehicle', { type: 'Actor', name: 'Minion' }, '.tab-crew .section-header');
+				await window.sheetsE2E.drop('Vehicle', { type: 'Actor', name: 'Minion' }, '.tab-crew .heading-row');
 			}),
 		);
 		e2e.expect(
@@ -3164,9 +3164,9 @@ export async function run(e2e: ScenarioContext) {
 			passengersAdded: await crew('#82 GM adds two passengers and a role', () =>
 				gm.evaluate(async () => {
 					const sheets = window.sheetsE2E;
-					await sheets.drop('Vehicle', { type: 'Actor', name: 'Hero' }, '.tab-crew .section-header');
-					await sheets.drop('Vehicle', { type: 'Actor', name: 'Bearer' }, '.tab-crew .section-header');
-					await sheets.click('Vehicle', '.tab-crew .section-header button');
+					await sheets.drop('Vehicle', { type: 'Actor', name: 'Hero' }, '.tab-crew .heading-row');
+					await sheets.drop('Vehicle', { type: 'Actor', name: 'Bearer' }, '.tab-crew .heading-row');
+					await sheets.click('Vehicle', '.tab-crew .heading-row button');
 				}),
 			),
 			memberAdded: await crew('#82 GM moves a passenger to the role', () =>
@@ -3449,7 +3449,7 @@ export async function run(e2e: ScenarioContext) {
 				await window.sheetsE2E.clickTab('Vehicle', 'inventory');
 			}),
 		);
-		// The Nemesis has Brawn 3: an adversary's list reads the damage total. Rock and Shiv, created together, share a sort
+		// The Nemesis has Brawn 3: an adversary's list reads the characteristic and the base damage, then the total. Rock and Shiv, created together, share a sort
 		// value, so their order varies between runs: the rows are compared sorted by name.
 		e2e.expect(
 			"#134 N1 an adversary lists a weapon's damage with its characteristic, without one, and with a negative base damage",
@@ -3458,9 +3458,9 @@ export async function run(e2e: ScenarioContext) {
 				return [...htmlOf(actor('Nemesis').sheet)!.querySelectorAll('.adversary-items .weapon')].map((row) => text(row)).sort();
 			}),
 			[
-				'E2E Rock (MeleeDamage 2Critical 0Range [Engaged])',
-				'E2E Shiv (MeleeDamage 2Critical 0Range [Engaged])',
-				'E2E Sword (MeleeDamage 6Critical 0Range [Engaged]E2E Pierce 3)',
+				'E2E Rock (MeleeDamage 2Critical 0Range Engaged)',
+				'E2E Shiv (MeleeDamage Br-1 (2)Critical 0Range Engaged)',
+				'E2E Sword (MeleeDamage Br+3 (6)Critical 0Range EngagedE2E Pierce 3)',
 			],
 		);
 		// The separators are drawn by CSS, after each part: a comma between two firing arcs, a semicolon between two details.
@@ -3471,8 +3471,8 @@ export async function run(e2e: ScenarioContext) {
 				vehicleWeapon: window.sheetsE2E.renderedText('Vehicle', '.tab-inventory .inventory-item .details', 'E2E Cannon'),
 			})),
 			{
-				weapon: 'E2E SwordMelee;Damage Br+3 (3);Critical 0;Range [Engaged];E2E Pierce 1',
-				vehicleWeapon: 'E2E CannonGunnery;Firing Arc Fore,Port;Damage 6;Critical 0;Range [Engaged];E2E Pierce 1',
+				weapon: 'E2E SwordMelee;Damage Br+3 (3);Critical 0;Range Engaged;E2E Pierce 1',
+				vehicleWeapon: 'E2E CannonGunnery;Firing Arc Fore,Port;Damage 6;Critical 0;Range Engaged;E2E Pierce 1',
 			},
 		);
 		// The Combat tab lists the equipped vehicle weapons.
@@ -3483,7 +3483,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		e2e.expect(
 			"#134 N3 a vehicle's Combat tab draws the commas between a weapon's firing arcs",
-			await gm.evaluate(() => window.sheetsE2E.renderedText('Vehicle', '.tab-combat .weapon:not(.header)', 'E2E Cannon')),
+			await gm.evaluate(() => window.sheetsE2E.renderedText('Vehicle', '.tab-combat .weapon:not(.columns)', 'E2E Cannon')),
 			'E2E CannonGunnery60EngagedFore,PortE2E Pierce 1',
 		);
 		// Hero rolls Gunnery with Agility 2 and no rank: two Ability dice against the attack's two Difficulty dice.

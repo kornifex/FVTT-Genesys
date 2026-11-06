@@ -189,7 +189,7 @@ function installVehicleHelpers() {
 		const skillsContainer = root.querySelector('.tab-skills .skills-container')!;
 		return {
 			mode: 'skill',
-			header: [...skillsContainer.querySelectorAll('.skill-content-header > div')].map(text).slice(0, 3),
+			header: [...skillsContainer.querySelectorAll('.columns > div')].map(text).slice(0, 3),
 			skills: [...skillsContainer.querySelectorAll(':scope > section')].map((section) => ({
 				name: text(section.querySelector('.skill-details-name')),
 				members: [...section.querySelectorAll('.skill-content-details')].map(
@@ -717,7 +717,7 @@ async function crewDrops(e2e: ScenarioContext) {
 	const drag = (from: { vehicle: string; tile: Target }, to: { vehicle: string; target: Target }) => () => vehicleE2E('drag', from, to);
 
 	// Joining: on the sheet anywhere, then on the passengers' slots.
-	await step('#109 A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .section-header|1']), {
+	await step('#109 A1 A dropped from the sidebar on the sheet', fromSidebar('A', ['.tab-crew .heading-row|1']), {
 		V1: { passengers: ['A'], roles: [] },
 	});
 	await step('#109 A2 B dropped from the sidebar after A', fromSidebar('B', passengerSlot(2)), {
@@ -751,7 +751,7 @@ async function crewDrops(e2e: ScenarioContext) {
 	);
 
 	// Roles.
-	const addRole = (vehicle: string) => vehicleE2E('click', { actor: vehicle, target: ['.tab-crew .section-header|1', 'button|1'] });
+	const addRole = (vehicle: string) => vehicleE2E('click', { actor: vehicle, target: ['.tab-crew .heading-row|1', 'button|1'] });
 	await step(
 		'#109 C1 two Roles added',
 		async () => {
@@ -889,7 +889,7 @@ async function crewDrops(e2e: ScenarioContext) {
 		{ name: 'U', type: 'minion' },
 		{ name: 'V3', type: 'vehicle' },
 	]);
-	await step('#109 F1 rival R dropped from the sidebar on the sheet', fromSidebar('R', ['.tab-crew .section-header|1'], 'V3'), {
+	await step('#109 F1 rival R dropped from the sidebar on the sheet', fromSidebar('R', ['.tab-crew .heading-row|1'], 'V3'), {
 		V3: { passengers: ['R'], roles: [] },
 	});
 	await step('#109 F2 nemesis N dropped from the sidebar first', fromSidebar('N', passengerSlot(1), 'V3'), {

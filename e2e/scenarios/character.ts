@@ -255,16 +255,22 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
 			(candidate) => text(candidate.querySelector('.name')) === `E2E ${injury}`,
 		);
+	// The lists of the Talents tab, its abilities' then its talents': each under its heading, or none for an empty one.
+	const talentsContainers = (name: string) =>
+		[...sheet(name).querySelectorAll('.tab-talents .block > h3')].map((heading) => {
+			const list = heading.nextElementSibling;
+			return list?.matches('.talents-container') ? list : undefined;
+		});
 	const talentRow = (name: string, talent: string) =>
 		[...sheet(name).querySelectorAll('.tab-talents .talent')].find(
 			(row) => text(row.querySelector('.name button')).replace(/ \d+$/, '') === talent,
 		);
 	const armorRow = (name: string, armor: string) =>
-		[...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.header)')].find(
+		[...sheet(name).querySelectorAll('.tab-combat .armors .armor:not(.columns)')].find(
 			(candidate) => text(candidate.querySelector('.name')) === `E2E ${armor}`,
 		);
 	const weaponRow = (name: string, row: string) =>
-		[...sheet(name).querySelectorAll('.tab-combat .weapons .weapon:not(.header)')].find(
+		[...sheet(name).querySelectorAll('.tab-combat .weapons .weapon:not(.columns)')].find(
 			(candidate) => unprefixed(text(candidate.querySelector('.name'))) === row,
 		);
 	const rowOf = (name: string, row: DescriptionRow) => {
@@ -499,7 +505,7 @@ function installCharacterHelpers() {
 		},
 
 		async award(name, amount, reason) {
-			click(sheet(name).querySelector('.xp-journal .entries-header button'), 'XP Award button');
+			click(sheet(name).querySelector('.xp-journal .columns button'), 'XP Award button');
 			const app = await findApp('app-award-xp-prompt', '.award-xp-prompt > button');
 			const fill = (selector: string, value: string) => {
 				const field = app.element.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
@@ -711,7 +717,7 @@ function installCharacterHelpers() {
 		},
 
 		abilityRows(name, ability) {
-			const abilities = sheet(name).querySelectorAll('.tab-talents .talents-container')[0];
+			const [abilities] = talentsContainers(name);
 			return [...(abilities?.querySelectorAll('.talent') ?? [])]
 				.filter((row) => text(row.querySelector('.name button')) === ability)
 				.map((row) => ({
@@ -722,10 +728,10 @@ function installCharacterHelpers() {
 		},
 
 		talentsTab(name) {
-			const [abilities, talents] = [...sheet(name).querySelectorAll('.tab-talents .talents-container')].map((container) =>
-				[...container.children].map((child) => {
-					if (child.matches('.category-header')) return `[${text(child)}]`;
-					if (child.matches('.sub-category-header')) return `[[${text(child)}]]`;
+			const [abilities, talents] = talentsContainers(name).map((container) =>
+				[...(container?.children ?? [])].map((child) => {
+					if (child.matches('h4')) return `[${text(child)}]`;
+					if (child.matches('h5')) return `[[${text(child)}]]`;
 					return unprefixed(text(child.querySelector('.name button')));
 				}),
 			);
@@ -880,9 +886,9 @@ function installCharacterHelpers() {
 
 		severities(name) {
 			return Object.fromEntries(
-				[...sheet(name).querySelectorAll('.critical-injuries .injury:not(.header), .critical-hits .critical-hit:not(.header)')].map(
-					(row) => [unprefixed(text(row.querySelector('.name'))), text(row.querySelector('.severity'))],
-				),
+				[
+					...sheet(name).querySelectorAll('.critical-injuries .injury:not(.columns), .critical-hits .critical-hit:not(.columns)'),
+				].map((row) => [unprefixed(text(row.querySelector('.name'))), text(row.querySelector('.severity'))]),
 			);
 		},
 
@@ -892,10 +898,10 @@ function installCharacterHelpers() {
 			const names = (category: Element) =>
 				[...category.querySelectorAll('.skill.row .name span')].map((span) => text(span).replace(/ \([^()]*\)$/, ''));
 			const social = categories.find(
-				(category) => text(category.querySelector('.header label')) === game.i18n.localize('Genesys.Labels.SocialSkills'),
+				(category) => text(category.querySelector('.columns h3')) === game.i18n.localize('Genesys.Labels.SocialSkills'),
 			);
 			return {
-				categories: categories.map((category) => text(category.querySelector('.header label'))),
+				categories: categories.map((category) => text(category.querySelector('.columns h3'))),
 				social: social ? names(social) : [],
 			};
 		},
@@ -952,7 +958,7 @@ function installCharacterHelpers() {
 
 		async weaponRows(name) {
 			const root = await render(actor(name).sheet, (element) => element.querySelector('.tab-combat .weapons'));
-			const combatRows = () => [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.header)')];
+			const combatRows = () => [...root.querySelectorAll('.tab-combat .weapons .weapon:not(.columns)')];
 			await waitFor(`the Combat tab's weapons of E2E ${name}`, () => combatRows().length);
 			const weapons = actor(name).items.filter((item: { type: string }) => item.type === 'weapon');
 			return {

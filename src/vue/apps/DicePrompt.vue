@@ -527,6 +527,7 @@ async function onRoll() {
 @use '@scss/vars/appv1.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/mixins/expandable.scss';
+@use '@scss/mixins/headings.scss';
 
 // The Pool Modifications' title: its caret alone in the margin, its text on the table's left edge.
 $title-font-size: 1.2rem;
@@ -612,7 +613,7 @@ $difficulty-die-scale: 1.4;
 		grid-template-columns: $caret-column 1fr;
 		column-gap: $caret-gap;
 		align-items: center;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: $title-font-size;
 		margin-bottom: -0.5em;
 		// A button takes its content's width, where the row it replaced filled the prompt's.
@@ -851,13 +852,13 @@ $difficulty-die-scale: 1.4;
 
 	header {
 		color: colors.$blue;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 2em;
 	}
 
 	.roll-button {
 		color: colors.$blue;
-		font-family: 'Bebas Neue', sans-serif;
+		@include headings.font;
 		font-size: 1.25em;
 	}
 

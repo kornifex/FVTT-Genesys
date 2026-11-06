@@ -23,8 +23,8 @@ defineProps<{
 <template>
 	<div class="container">
 		<div v-for="{ motivation, label } in MOTIVATIONS" :key="motivation" class="motivation">
-			<div class="header">
-				<span><Localized :label="label" /></span>
+			<div class="name-row">
+				<h4><Localized :label="label" /></h4>
 				<input type="text" :name="`system.motivations.${motivation}.name`" :value="motivations[motivation].name" />
 			</div>
 
@@ -64,22 +64,18 @@ defineProps<{
 		font-family: 'Roboto', sans-serif;
 	}
 
-	.header {
+	// The motivation's heading, then its name.
+	.name-row {
 		display: flex;
 		flex-direction: row;
 		flex-wrap: nowrap;
 		align-items: center;
-		font-family: 'Bebas Neue', sans-serif;
 		width: 100%;
 		gap: 0.5em;
 		padding: 0.25em;
 		padding-left: 0.5em;
 		border-bottom: 1px solid black;
 		clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1px), 80% calc(100% - 1px), 80% 100%, 0% 100%);
-
-		span {
-			font-size: 1.1em;
-		}
 	}
 
 	.body {

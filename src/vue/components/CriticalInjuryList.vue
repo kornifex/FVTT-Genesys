@@ -9,6 +9,7 @@ import Localized from '@/vue/components/Localized.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
+import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { useOpenRows } from '@/vue/useOpenRows';
 
 // A character suffers Critical Injuries, a vehicle Critical Hits: the same items, under their own names.
@@ -35,8 +36,9 @@ const { isOpen, toggle } = useOpenRows();
 </script>
 
 <template>
-	<div :class="kind.list">
-		<div :class="[kind.row, 'critical', 'header']">
+	<ListEmpty v-if="injuries.length === 0" />
+	<div v-else :class="kind.list">
+		<div :class="[kind.row, 'critical', 'columns']">
 			<div><Localized label="Genesys.Labels.Severity" /></div>
 			<div><Localized :label="kind.label" /></div>
 		</div>
@@ -63,6 +65,7 @@ const { isOpen, toggle } = useOpenRows();
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
 @use '@scss/mixins/combat-tab.scss';
+@use '@scss/mixins/headings.scss';
 
 .critical-injuries,
 .critical-hits {
@@ -72,8 +75,8 @@ const { isOpen, toggle } = useOpenRows();
 	padding: 0.25em;
 }
 
-.header {
-	font-family: 'Bebas Neue', sans-serif;
+.columns {
+	@include headings.font;
 }
 
 .severity {
