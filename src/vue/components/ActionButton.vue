@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, useSlots } from 'vue';
 import { useEditable } from '@/vue/SheetContext';
+import { isKeyboardClick } from '@/vue/inputSource';
 import { provideNamedButton } from '@/vue/useNamedButton';
 
 /**
@@ -70,12 +71,10 @@ provideNamedButton(computed(() => name.value !== undefined));
 /**
  * Release the focus a click with a pointer gives the button. Foundry skips every keybinding while a button of a form has
  * focus (`KeyboardManager#hasFocus`, on v13 and v14): Escape, the GM's Space pause, the token controls… and Space would
- * press the button again. An activation from the keyboard keeps the focus where the user put it. A click's
- * `pointerType` names the pointer, and is empty for a keyboard's; a browser without it counts the clicks in `detail`.
+ * press the button again. An activation from the keyboard keeps the focus where the user put it.
  */
 function releasePointerFocus(event: MouseEvent) {
-	const fromPointer = 'pointerType' in event ? (event as PointerEvent).pointerType !== '' : event.detail > 0;
-	if (fromPointer && event.currentTarget instanceof HTMLElement) {
+	if (!isKeyboardClick(event) && event.currentTarget instanceof HTMLElement) {
 		event.currentTarget.blur();
 	}
 }

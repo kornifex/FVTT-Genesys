@@ -49,6 +49,25 @@ type WindowDrag = { genesysType: string | null; sections: EquipmentState[] };
 type OpenMenu = { corner: string; inside: boolean; covered: string[]; look: Record<string, string> };
 
 /**
+ * A row's menu as the keyboard finds it (#576): what has the focus (the ⋮ by its name, an entry by its label, or else
+ * the element's tag), whether the menu is open, at its ⋮ (its top-right corner on the bottom-right of the ⋮'s
+ * container), and what the ⋮'s `aria-expanded` says; whether the actor's sheet is still open; the chat messages; the
+ * item's Equipment State and damage; and the Escape keydowns that reached the window since the first
+ * {@link InventoryHelpers.readyMenuKeys}.
+ */
+type MenuKeys = {
+	focus: string;
+	open: boolean;
+	atTrigger: boolean;
+	expanded: string | null;
+	sheetOpen: boolean;
+	messages: number;
+	state: string;
+	damage: string;
+	escapes: number;
+};
+
+/**
  * A Container's contents as laid out in its row (#516): the rows they list; their height in px, rounded, or `>100` past
  * the 100px that once capped them; whether they or their box show a scrollbar of their own; whether the last row ends
  * inside them; and its visibility, which Tab follows.
@@ -120,6 +139,13 @@ type InventoryHelpers = {
 	openMenu(actor: string, item: string, from: Point): Promise<OpenMenu | null>;
 	/** Closes the menu of an item's row, as a click elsewhere does. */
 	closeMenu(actor: string, item: string): Promise<void>;
+	/**
+	 * Brings an actor's sheet to the front on its Inventory tab, and focuses the control of an item's row before its ⋮,
+	 * its damage state, so that one Tab reaches the ⋮ (#576).
+	 */
+	readyMenuKeys(actor: string, item: string): Promise<void>;
+	/** The menu of an item's row as the keyboard finds it. */
+	menuKeys(actor: string, item: string): MenuKeys;
 	/** Puts an actor's sheet back to the size and place it had before {@link pointAtRow}. */
 	restoreSheet(actor: string): Promise<void>;
 	/** Writes an item's damage state to the database, past the client's data model, as a broken world may hold it. */
@@ -419,6 +445,9 @@ function installInventoryHelpers() {
 
 	// The sheets pointAtRow moved and cut short, with the size, place and minimum height to put back.
 	const movedSheets = new Map<string, { position: object; minHeight: string }>();
+	// The Escape keydowns that reached the window, once the keyboard steps of #576 count them.
+	let escapesOnWindow = 0;
+	let countingEscapes = false;
 	// The element that scrolls a row into view: its nearest ancestor that scrolls its overflow, and has some.
 	const scrollerOf = (element: Element) => {
 		for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
@@ -788,7 +817,7 @@ function installInventoryHelpers() {
 				chat: '.fa-comment',
 			};
 			const row = await rowOf(ref, name);
-			row.querySelector<HTMLElement>(':scope > .actions')!.click();
+			row.querySelector<HTMLElement>(':scope > .actions > .menu-trigger')!.click();
 			const entry = await waitFor(`${action} in the menu of ${name}`, () =>
 				[...row.querySelectorAll<HTMLElement>(':scope > .actions .context-menu .menu-item')].find((menuItem) =>
 					menuItem.querySelector(icons[action]),
@@ -800,7 +829,7 @@ function installInventoryHelpers() {
 
 		async menuEntries(ref, name) {
 			const row = await rowOf(ref, name);
-			row.querySelector<HTMLElement>(':scope > .actions')!.click();
+			row.querySelector<HTMLElement>(':scope > .actions > .menu-trigger')!.click();
 			const menu = await waitFor(`the menu of ${name}`, () => row.querySelector(':scope > .actions .context-menu'));
 			const entries = menuEntriesOf(menu);
 			// Any click outside closes the menu.
@@ -833,9 +862,10 @@ function installInventoryHelpers() {
 			const { minHeight } = app.element.style;
 			let point: Point;
 			if (at === 'button') {
-				const button = row.querySelector<HTMLElement>(':scope > .actions')!;
-				button.click();
-				const box = button.getBoundingClientRect();
+				// The menu hangs from its container, which holds its ⋮.
+				const container = row.querySelector<HTMLElement>(':scope > .actions')!;
+				container.querySelector<HTMLElement>(':scope > .menu-trigger')!.click();
+				const box = container.getBoundingClientRect();
 				point = { x: box.right, y: box.bottom };
 			} else {
 				if (at === 'sheetEdge') {
@@ -892,7 +922,7 @@ function installInventoryHelpers() {
 		},
 
 		async buttonPoint(ref, name) {
-			return uncoveredMiddle((await heldRow(ref, name)).querySelector(':scope > .actions')!);
+			return uncoveredMiddle((await heldRow(ref, name)).querySelector(':scope > .actions > .menu-trigger')!);
 		},
 
 		async openMenu(ref, name, from) {
@@ -950,6 +980,54 @@ function installInventoryHelpers() {
 			const row = await heldRow(ref, name);
 			document.body.click();
 			await waitFor(`the menu of ${name} to close`, () => !row.querySelector(':scope > .actions .context-menu'));
+		},
+
+		async readyMenuKeys(ref, name) {
+			if (!countingEscapes) {
+				countingEscapes = true;
+				// Where Foundry's keybindings listen, `core.dismiss` among them.
+				window.addEventListener('keydown', (event) => {
+					if (event.key === 'Escape') escapesOnWindow++;
+				});
+			}
+			await window.e2e.showTab(ref, 'inventory');
+			actor(ref).sheet.bringToFront();
+			const row = await heldRow(ref, name);
+			row.querySelector<HTMLElement>(':scope > .damage')!.focus();
+			await settle();
+		},
+
+		menuKeys(ref, name) {
+			const app = actor(ref).sheet;
+			// A row moved to another section leaves its old one through a transition, which keeps it a while.
+			const row = app.rendered
+				? [...(app.element as HTMLElement).querySelectorAll('.tab-inventory .inventory-item')].find(
+						(candidate) =>
+							text(candidate.querySelector('.name button')) === full(name) &&
+							![...candidate.classList].some((cssClass) => cssClass.includes('leave')),
+					)
+				: undefined;
+			const container = row?.querySelector(':scope > .actions');
+			const trigger = container?.querySelector(':scope > .menu-trigger');
+			const menu = container?.querySelector(':scope > [role="menu"]');
+			const active = document.activeElement;
+			const entry = active?.closest('[role="menuitem"]');
+			let focus = active?.tagName.toLowerCase() ?? 'none';
+			if (active && active === trigger) focus = active.getAttribute('aria-label') ?? '⋮';
+			else if (entry) focus = text(entry.querySelector('.menu-label'));
+			const box = menu?.getBoundingClientRect();
+			const under = container?.getBoundingClientRect();
+			return {
+				focus,
+				open: !!menu,
+				atTrigger: !!box && !!under && Math.abs(box.right - under.right) < 1 && Math.abs(box.top - under.bottom) < 1,
+				expanded: trigger?.getAttribute('aria-expanded') ?? null,
+				sheetOpen: app.rendered,
+				messages: game.messages.size,
+				state: item(ref, name).system.state,
+				damage: item(ref, name).system.damage,
+				escapes: escapesOnWindow,
+			};
 		},
 
 		async restoreSheet(ref) {
@@ -2308,8 +2386,123 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('unknownDamageState', () => unknownDamageState(e2e));
 	await e2e.part('usedState', () => usedState(e2e));
 	await e2e.part('containerFold', () => containerFold(e2e));
+	await e2e.part('menuKeyboard', () => menuKeyboard(e2e));
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
+}
+
+/**
+ * §#576: an inventory row's menu from the keyboard, with real key presses: Tab reaches its ⋮, Enter opens it, the arrow
+ * keys and Enter run an entry, and Escape closes it without closing the sheet.
+ */
+async function menuKeyboard(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const keys = () => gm.evaluate(() => window.inventoryE2E.menuKeys('Hoarder', 'Lantern'));
+	let state: MenuKeys | undefined;
+	// The menu of a carried gear: Drop, then a separator, To Chat, Edit and Delete.
+	await gm.evaluate(() => window.inventoryE2E.createItems('Hoarder', [{ name: 'Lantern', type: 'gear', system: { state: 'carried' } }]));
+
+	try {
+		await e2e.step("#576 K1 Hoarder's Lantern row: Tab pressed from its damage state", async () => {
+			await gm.evaluate(() => window.inventoryE2E.readyMenuKeys('Hoarder', 'Lantern'));
+			await gm.page.keyboard.press('Tab');
+			state = await keys();
+		});
+		e2e.expect(
+			"#576 K1 Tab reaches the row's ⋮, a button named Actions, which says its menu is closed",
+			{ focus: state?.focus, open: state?.open, expanded: state?.expanded },
+			{ focus: 'Actions', open: false, expanded: 'false' },
+		);
+
+		await e2e.step('#576 K2 Enter pressed on the ⋮', async () => {
+			await gm.page.keyboard.press('Enter');
+			state = await keys();
+		});
+		e2e.expect(
+			'#576 K2 Enter opens the menu under the ⋮, on its first entry, and the ⋮ says it is open',
+			{ focus: state?.focus, open: state?.open, atTrigger: state?.atTrigger, expanded: state?.expanded },
+			{ focus: 'Drop', open: true, atTrigger: true, expanded: 'true' },
+		);
+
+		const messages = state?.messages ?? 0;
+		await e2e.step('#576 K3 ArrowDown pressed in the menu, then Enter', async () => {
+			await gm.page.keyboard.press('ArrowDown');
+			state = await keys();
+			await gm.page.keyboard.press('Enter');
+		});
+		const afterRun = await keys();
+		e2e.expect(
+			'#576 K3 ArrowDown moves past the separator to To Chat, and Enter runs it, closes the menu and gives the focus back to the ⋮',
+			{ moved: state?.focus, posted: afterRun.messages - messages, open: afterRun.open, focus: afterRun.focus },
+			{ moved: 'To Chat', posted: 1, open: false, focus: 'Actions' },
+		);
+
+		await e2e.step('#576 E1 the menu opened again with ArrowUp, then Escape pressed', async () => {
+			await gm.page.keyboard.press('ArrowUp');
+			state = await keys();
+			await gm.page.keyboard.press('Escape');
+		});
+		const afterEscape = await keys();
+		// Foundry skips its keybindings while a form's button has focus, which leaves the sheet open on its own: the menu
+		// stopping Escape shows in what reaches the window.
+		e2e.expect(
+			'#576 E1 ArrowUp opens the menu on its last entry, and Escape closes it without reaching the window, leaves the sheet open and gives the focus back to the ⋮',
+			{
+				openedOn: state?.focus,
+				open: afterEscape.open,
+				escapesOnWindow: afterEscape.escapes - (state?.escapes ?? 0),
+				sheetOpen: afterEscape.sheetOpen,
+				focus: afterEscape.focus,
+			},
+			{ openedOn: 'Delete', open: false, escapesOnWindow: 0, sheetOpen: true, focus: 'Actions' },
+		);
+
+		await e2e.step('#576 K4 Shift+F10 pressed on the ⋮, then Tab', async () => {
+			await gm.page.keyboard.press('Shift+F10');
+			state = await keys();
+			await gm.page.keyboard.press('Tab');
+		});
+		const afterTab = await keys();
+		e2e.expect(
+			'#576 K4 Shift+F10 opens the menu at the ⋮, on its first entry, and Tab closes it, going on from the ⋮',
+			{
+				opened: state && { focus: state.focus, atTrigger: state.atTrigger },
+				open: afterTab.open,
+				// On the control after the ⋮, whichever it is, rather than the ⋮, an entry or the page.
+				movedOn: ['a', 'button', 'input', 'select', 'textarea'].includes(afterTab.focus),
+			},
+			{ opened: { focus: 'Drop', atTrigger: true }, open: false, movedOn: true },
+		);
+
+		await e2e.step('#576 K5 Shift+F10 pressed on the damage state of the row', async () => {
+			await gm.evaluate(() => window.inventoryE2E.readyMenuKeys('Hoarder', 'Lantern'));
+			state = await keys();
+			await gm.page.keyboard.press('Shift+F10');
+		});
+		const onDamage = await keys();
+		e2e.expect(
+			"#576 K5 Shift+F10 on the damage state opens the row's menu at the ⋮, on its first entry, rather than repairing the item",
+			{ focus: onDamage.focus, atTrigger: onDamage.atTrigger, damage: onDamage.damage },
+			{ focus: 'Drop', atTrigger: true, damage: state?.damage },
+		);
+		await gm.page.keyboard.press('Escape');
+
+		await e2e.step('#576 K6 Enter pressed on the ⋮, then Enter on Drop', async () => {
+			await gm.page.keyboard.press('Enter');
+			await gm.page.keyboard.press('Enter');
+		});
+		const afterDrop = await keys();
+		e2e.expect(
+			"#576 K6 Drop run from the keyboard moves the row to the Dropped section, and the focus goes on to the row's ⋮ there",
+			{ state: afterDrop.state, open: afterDrop.open, focus: afterDrop.focus },
+			{ state: 'dropped', open: false, focus: 'Actions' },
+		);
+		await e2e.step('#576 E2 Escape pressed after the Drop', () => gm.page.keyboard.press('Escape'));
+		e2e.expect('#576 E2 Escape after an entry that moved the row leaves the sheet open', (await keys()).sheetOpen, true);
+	} finally {
+		await gm.evaluate(() => window.inventoryE2E.deleteItem('Hoarder', 'Lantern'));
+		await gm.evaluate(() => window.e2e.closeSetUp());
+	}
 }
 
 /** §#516: an open Container shows all its contents, with no cap or scrollbar of its own, and closes over them. */

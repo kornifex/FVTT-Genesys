@@ -1,61 +1,180 @@
 <script lang="ts" setup>
-import { nextTick, onUnmounted, ref, useTemplateRef } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import { handOffFocus, leaveFocus, takeFocus } from '@/vue/components/menuFocus';
 import { menuAtPointer } from '@/vue/components/menuPlacement';
+import { isKeyboardClick, isKeyboardContextMenu } from '@/vue/inputSource';
+import ActionButton from '@/vue/components/ActionButton.vue';
 
+/**
+ * A row's actions menu, as the WAI-ARIA menu button pattern has it: it opens on a right-click on its content, under the
+ * pointer when it has a ⋮ button, and from the keyboard (Shift+F10, the context menu key, or the ⋮ button), on its
+ * first entry. The arrow keys, Home and End move between its entries; Escape and Tab close it and give the focus back.
+ */
 const props = withDefaults(
 	defineProps<{
 		disableMenu?: boolean;
-		usePrimaryClick?: boolean;
+
+		/**
+		 * Whether the menu has a ⋮ button, named Actions, which opens it on a click, Enter, Space or the arrow keys.
+		 */
+		trigger?: boolean;
+
+		/**
+		 * What the menu's row shows, such as its item's uuid: when an entry run from the keyboard moves the row elsewhere
+		 * in the sheet, the focus goes on to the ⋮ of the menu with the same key there.
+		 */
+		focusKey?: string;
+
 		orientation?: 'left' | 'right';
 		position?: 'above' | 'below';
 	}>(),
 	{
 		disableMenu: false,
-		usePrimaryClick: false,
+		trigger: false,
 		orientation: 'right',
 		position: 'below',
 	},
 );
 
 const showMenu = ref(false);
+const container = useTemplateRef<HTMLElement>('container');
 const menu = useTemplateRef<HTMLElement>('menu');
 
 // How far a menu opened at the pointer is moved from its place by the container, in the sheet's own pixels.
 const shift = ref<{ x: number; y: number }>();
 
-function showContextMenu(event: Event) {
-	if (props.disableMenu) {
+// The control the focus goes back to once the menu closes from the keyboard: its ⋮ button, or the control that had the
+// focus when it opened from a row without one.
+let opener: HTMLElement | undefined;
+
+// The document the menu listens to while it is open: on v14, a window detached from the main one has a document of its
+// own.
+let listened: Document | undefined;
+
+type Focus = 'first' | 'last';
+
+// Names the menu after its ⋮.
+const triggerId = useId();
+
+function triggerButton() {
+	return container.value?.querySelector<HTMLElement>(':scope > .menu-trigger') ?? undefined;
+}
+
+function entries() {
+	return [...(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+}
+
+function showContextMenu(event: Event, focus: Focus = 'first', options: { preventScroll?: boolean } = {}) {
+	if (props.disableMenu || !container.value) {
 		return;
 	}
 
 	event.stopImmediatePropagation();
 	event.preventDefault();
 
+	// The elements of a detached window are another window's, which `instanceof HTMLElement` doesn't know.
+	const ownerDocument = container.value.ownerDocument;
+	const focused = ownerDocument.activeElement as HTMLElement | null;
+	opener = triggerButton() ?? (focused && focused !== ownerDocument.body && !menu.value?.contains(focused) ? focused : undefined);
+
 	showMenu.value = true;
 	shift.value = undefined;
 
-	document.addEventListener('click', closeContextMenu, { capture: true });
-	document.addEventListener('contextmenu', closeContextMenu, { capture: true });
+	if (!listened) {
+		listened = ownerDocument;
+		listened.addEventListener('click', closeContextMenu, { capture: true });
+		listened.addEventListener('contextmenu', closeContextMenu, { capture: true });
+	}
+
+	// From the pointer too, as the pattern has it: the focus in the menu keeps Escape from Foundry's keybindings, and a
+	// click on an entry or elsewhere leaves no focus behind.
+	void nextTick(() => {
+		const shown = entries();
+		(focus === 'first' ? shown[0] : shown.at(-1))?.focus({ preventScroll: options.preventScroll });
+	});
 }
 
-function closeContextMenu(event: Event) {
-	event.preventDefault();
+function hideMenu() {
 	showMenu.value = false;
-
 	removeDocumentListeners();
 }
 
+/**
+ * Closes the menu and gives the focus back to its opener, after a close from the keyboard.
+ */
+function closeToOpener() {
+	hideMenu();
+	if (opener?.isConnected) {
+		opener.focus();
+	}
+}
+
+// It listens to the clicks and right-clicks of the whole document, which are mouse events.
+function closeContextMenu(event: MouseEvent) {
+	event.preventDefault();
+
+	const target = event.target as Node | null;
+	const fromKeyboard = event.type === 'click' && isKeyboardClick(event);
+	// A click on the ⋮ of an open menu only closes it, rather than reaching the button, which would open it again; with
+	// the mouse, it leaves no focus on the button, as the button's own click handler would have.
+	const trigger = triggerButton();
+	if (target && trigger?.contains(target)) {
+		event.stopPropagation();
+		if (!fromKeyboard) {
+			trigger.blur();
+		}
+	}
+
+	// An entry run from the keyboard gives the focus back; one clicked with the mouse leaves none, as its button does.
+	if (target && menu.value?.contains(target) && fromKeyboard) {
+		closeToOpener();
+		// The entry may move the row elsewhere in the sheet, which renders its ⋮ again there, or remove it: the focus then
+		// goes to the sheet's content, from where Tab goes on through the sheet, rather than to the page.
+		if (props.focusKey && opener?.isConnected) {
+			handOffFocus(props.focusKey, opener, opener.closest<HTMLElement>('.window-content'));
+		}
+	} else {
+		hideMenu();
+	}
+}
+
 function removeDocumentListeners() {
-	document.removeEventListener('click', closeContextMenu, { capture: true });
-	document.removeEventListener('contextmenu', closeContextMenu, { capture: true });
+	listened?.removeEventListener('click', closeContextMenu, { capture: true });
+	listened?.removeEventListener('contextmenu', closeContextMenu, { capture: true });
+	listened = undefined;
 }
 
 // A menu still open when its sheet closes would otherwise swallow the next click anywhere.
 onUnmounted(removeDocumentListeners);
 
+// The row of an entry run from the keyboard renders again elsewhere in the sheet: its new ⋮ takes the focus.
+onMounted(() => {
+	const trigger = triggerButton();
+	if (props.focusKey && trigger) {
+		takeFocus(props.focusKey, trigger);
+	}
+});
+
+// The row of an entry run from the keyboard leaves the sheet: the focus goes to the sheet's content.
+onBeforeUnmount(() => {
+	const trigger = triggerButton();
+	if (trigger) {
+		leaveFocus(trigger);
+	}
+});
+
+/**
+ * Opens the menu at the pointer of a right-click, or at its ⋮ button for a `contextmenu` from the keyboard, which has
+ * no pointer position.
+ */
 function openAtPointer(event: MouseEvent) {
-	showContextMenu(event);
+	if (isKeyboardContextMenu(event)) {
+		showContextMenu(event);
+		return;
+	}
+
+	showContextMenu(event, 'first', { preventScroll: true });
 	if (!showMenu.value) {
 		return;
 	}
@@ -74,12 +193,64 @@ function openAtPointer(event: MouseEvent) {
 	});
 }
 
+// A menu with a ⋮ opens under the pointer, like the one its row opens through its handle; one without opens at its
+// container, as it always has.
+function onContextMenu(event: MouseEvent) {
+	if (props.trigger) {
+		openAtPointer(event);
+	} else {
+		showContextMenu(event);
+	}
+}
+
+// An open menu closes on a click on its ⋮ before the button gets it.
+function onTriggerClick(event: MouseEvent) {
+	showContextMenu(event, 'first', { preventScroll: !isKeyboardClick(event) });
+}
+
+function onTriggerKeydown(event: KeyboardEvent) {
+	if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+		showContextMenu(event, event.key === 'ArrowDown' ? 'first' : 'last');
+	}
+}
+
+function onMenuKeydown(event: KeyboardEvent) {
+	const shown = entries();
+	const current = shown.indexOf(event.target as HTMLElement);
+	const moves: Record<string, () => number> = {
+		ArrowDown: () => (current + 1) % shown.length,
+		ArrowUp: () => (current - 1 + shown.length) % shown.length,
+		Home: () => 0,
+		End: () => shown.length - 1,
+	};
+
+	const move = moves[event.key];
+	if (move) {
+		event.preventDefault();
+		shown[move()]?.focus();
+	} else if (event.key === 'Escape') {
+		// Foundry's `core.dismiss` keybinding, on the window, would close every open window, the sheet included.
+		event.stopPropagation();
+		event.preventDefault();
+		closeToOpener();
+	} else if (event.key === 'Tab') {
+		// The focus goes back to the opener before the browser moves it on, so Tab goes on from there; without an
+		// opener, the entry it would move on from leaves with the menu.
+		if (!opener?.isConnected) {
+			event.preventDefault();
+		}
+		closeToOpener();
+	}
+}
+
 // The part of the viewport an element shows in: each ancestor that clips its overflow, such as the sheet's scrolling tab
 // and its window, cuts it down.
 function visibleArea(element: HTMLElement) {
-	const area = { left: 0, top: 0, right: document.documentElement.clientWidth, bottom: document.documentElement.clientHeight };
+	const { documentElement, defaultView } = element.ownerDocument;
+	const view = defaultView ?? window;
+	const area = { left: 0, top: 0, right: documentElement.clientWidth, bottom: documentElement.clientHeight };
 	for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-		if (getComputedStyle(ancestor).overflow === 'visible') {
+		if (view.getComputedStyle(ancestor).overflow === 'visible') {
 			continue;
 		}
 
@@ -97,25 +268,35 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 </script>
 
 <template>
-	<!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events -- #576 opens the menu from a trigger button. -->
-	<div
-		class="menu-container"
-		@contextmenu="!usePrimaryClick && showContextMenu($event)"
-		@click="usePrimaryClick && showContextMenu($event)"
-	>
+	<div ref="container" class="menu-container" @contextmenu="onContextMenu">
 		<div
 			v-if="showMenu"
 			ref="menu"
+			role="menu"
 			:style="shift && { transform: `translate(${shift.x}px, ${shift.y}px)` }"
 			:class="{
 				'context-menu': true,
 				[props.orientation]: true,
 				[props.position]: true,
 			}"
+			:aria-labelledby="trigger ? triggerId : undefined"
+			@keydown="onMenuKeydown"
 		>
 			<slot name="menu-items"></slot>
 		</div>
 		<slot></slot>
+		<!-- A menu that never opens shows no button. -->
+		<ActionButton
+			v-if="trigger && !disableMenu"
+			:id="triggerId"
+			class="menu-trigger"
+			icon="fas fa-ellipsis-vertical"
+			label="Genesys.Labels.Actions"
+			aria-haspopup="menu"
+			:expanded="showMenu"
+			@click="onTriggerClick"
+			@keydown="onTriggerKeydown"
+		/>
 	</div>
 </template>
 

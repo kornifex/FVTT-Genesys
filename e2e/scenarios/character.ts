@@ -188,7 +188,12 @@ type FoldHalfway = { transitions: string[]; height: 'none' | 'partway' | 'whole'
 /** A skill of a character's Skills tab, or of an adversary's skills, by its name. */
 type SkillTarget = { skill: string } | { adversarySkill: string };
 
-type MenuTarget = { characteristic: Characteristic } | { meta: 'archetype' | 'career' } | SkillTarget;
+type MenuTarget =
+	| { characteristic: Characteristic }
+	| { meta: 'archetype' | 'career' }
+	| SkillTarget
+	/** A weapon of an adversary's sheet, by its name. */
+	| { adversaryWeapon: string };
 
 declare global {
 	interface Window {
@@ -456,6 +461,10 @@ function installCharacterHelpers() {
 			let container: Element | undefined | null;
 			if ('characteristic' in target) container = characteristicField(name, target.characteristic)?.querySelector('.menu-container');
 			else if ('meta' in target) container = sheet(name).querySelector(`.character-meta .${target.meta} .menu-container`);
+			else if ('adversaryWeapon' in target)
+				container = [...sheet(name).querySelectorAll('.adversary-items .weapon.menu-container')].find(
+					(weapon) => text(weapon.querySelector('.weapon-attack')) === `E2E ${target.adversaryWeapon}`,
+				);
 			else container = skillContainer(name, target);
 			if (!container) throw new Error(`No menu for ${JSON.stringify(target)}`);
 			container.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
@@ -3317,6 +3326,24 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 		"#512 B3 a skill's context menu keeps its Edit entry on a sheet the player can't edit",
 		await hasEdit(playerPage),
 		eachSheet(true),
+	);
+	// §#576: an adversary's skill menu checks the sheet's `editable`, as the character's does.
+	e2e.expect(
+		"#576 R1 on a sheet the player can't edit, a skill's menu offers Edit alone: no Free Rank, Career Skill mark or Delete",
+		await bySheet(({ name, target }) => playerPage((args) => window.characterE2E.menu(args.name, args.target), { name, target })),
+		eachSheet(['Edit']),
+	);
+	await e2e.step('#576 R2 the rival Sage given a Sword', () =>
+		page(async (name) => {
+			await game.actors
+				.getName(`E2E ${name}`)
+				.createEmbeddedDocuments('Item', [{ name: 'E2E Sword', type: 'weapon', system: { skills: ['Melee'] } }]);
+		}, 'Sage'),
+	);
+	e2e.expect(
+		"#576 R2 on a sheet the player can't edit, an adversary's weapon menu keeps the entries that read, without Delete",
+		await playerPage((name) => window.characterE2E.menu(name, { adversaryWeapon: 'Sword' }), 'Sage'),
+		['Edit', 'Perform Check'],
 	);
 	// §#574: the skill's name, a button Foundry disables with the rest of a read-only sheet's form, which the sheet enables.
 	await e2e.step("#574 R3 the skill's name clicked on each sheet in the player's page", async () => {

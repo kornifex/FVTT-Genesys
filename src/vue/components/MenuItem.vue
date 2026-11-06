@@ -16,8 +16,9 @@ defineProps<{
 </script>
 
 <template>
-	<!-- A button holds phrasing content only: the parts are spans, laid out by the entry's flex row. -->
-	<ActionButton class="menu-item">
+	<!-- A button holds phrasing content only: the parts are spans, laid out by the entry's flex row. Tab leaves the entries
+	out: the menu moves the focus between them with the arrow keys. -->
+	<ActionButton class="menu-item" role="menuitem" tabindex="-1">
 		<span class="menu-icon">
 			<i :class="icon"></i>
 		</span>

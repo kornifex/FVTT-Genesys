@@ -93,15 +93,12 @@ async function openActorSheet() {
 			<div v-if="career"><Localized label="Genesys.Labels.Career" />: {{ career }}</div>
 		</div>
 
-		<ContextMenu class="actions" orientation="left" use-primary-click :disable-menu="!editable">
+		<ContextMenu class="actions" orientation="left" trigger :disable-menu="!editable">
 			<template v-slot:menu-items>
 				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openActorSheet" />
 
 				<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeMember')" />
 			</template>
-
-			<!-- eslint-disable-next-line vuejs-accessibility/anchor-has-content -- #576 makes the menu's trigger a named button. -->
-			<a><i class="fas fa-ellipsis-vertical"></i></a>
 		</ContextMenu>
 	</div>
 

@@ -753,12 +753,10 @@ function installSheetsHelpers() {
 		async menu(name, container, which, icon) {
 			const element = find(sheetElement(name), container, which);
 			const menu = element.matches('.menu-container') ? element : element.querySelector<HTMLElement>('.menu-container')!;
-			// A menu opens on a click or a right click, and the other closes it.
-			menu.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-			await settle();
-			if (!menu.querySelector('.context-menu')) {
-				menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-			}
+			// A menu opens on a click on its ⋮, when it has one, or on a right click.
+			const trigger = menu.querySelector<HTMLElement>(':scope > .menu-trigger');
+			if (trigger) trigger.click();
+			else menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			const entry = await waitFor(`menu entry ${icon}`, () =>
 				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) => item.querySelector(`i.${icon}`)),
 			);
