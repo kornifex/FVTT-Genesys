@@ -924,6 +924,11 @@ function installAccessibilityHelpers() {
 
 		async readyRollRow(key, control) {
 			const target = ROLL_ROW_TARGETS[key];
+			// Only the row's sheet stays open, so that a sheet the control opens shows as opened: the Roller's, from the
+			// vehicle's crew.
+			for (const app of [...foundry.applications.instances.values()]) {
+				if (app.rendered && app.document && app.document !== actor(target.sheet)) await app.close();
+			}
 			await window.e2e.showTab(target.sheet, target.tab);
 			const root = await render(actor(target.sheet).sheet);
 			const grouping = root.querySelector<HTMLSelectElement>('.tab-skills .grouping-mode select');
