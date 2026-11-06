@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { shallowRef, watch } from 'vue';
+import { shallowRef, useId, watch } from 'vue';
 
 import type { Stored } from '@/data/Stored';
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -35,6 +35,7 @@ const emit = defineEmits<{
 }>();
 
 const { isHovered, enter, leave, reset } = useDragHover();
+const fieldId = useId();
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<Stored<GenesysActor>[]>([]);
 
@@ -76,8 +77,13 @@ function drop(event: DragEvent, memberUnder?: string) {
 	>
 		<div class="role-data">
 			<div class="role-name">
-				<label><Localized label="Genesys.Labels.Name" /></label>
-				<input type="text" :value="name" @change="emit('updateName', ($event.target as HTMLInputElement).value)" />
+				<label :for="`${fieldId}-name`"><Localized label="Genesys.Labels.Name" /></label>
+				<input
+					:id="`${fieldId}-name`"
+					type="text"
+					:value="name"
+					@change="emit('updateName', ($event.target as HTMLInputElement).value)"
+				/>
 				<ActionButton icon="fas fa-trash" label="Genesys.Labels.DeleteRole" edits @click="emit('delete')" />
 			</div>
 			<div class="underline" />
@@ -97,8 +103,13 @@ function drop(event: DragEvent, memberUnder?: string) {
 			<div class="underline" />
 
 			<div class="role-pilot" data-tooltip="Genesys.Labels.PilotRoleHint">
-				<label><Localized label="Genesys.Labels.PilotRole" /></label>
-				<input type="checkbox" :checked="pilot" @change="emit('updatePilot', ($event.target as HTMLInputElement).checked)" />
+				<label :for="`${fieldId}-pilot`"><Localized label="Genesys.Labels.PilotRole" /></label>
+				<input
+					:id="`${fieldId}-pilot`"
+					type="checkbox"
+					:checked="pilot"
+					@change="emit('updatePilot', ($event.target as HTMLInputElement).checked)"
+				/>
 			</div>
 			<div class="underline" />
 

@@ -71,6 +71,11 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 		}
 
 		/**
+		 * Provide what the application hands its Vue app besides its render context, before the app mounts.
+		 */
+		protected provideToVueApp(_app: App) {}
+
+		/**
 		 * Resolves once the Vue app shows the content its components render after an asynchronous task, such as an
 		 * enriched text.
 		 */
@@ -92,10 +97,11 @@ export function VueSheet<TBase extends ApplicationConstructor, ContextType exten
 
 				this.vueApp = createApp(this.vueComponent);
 				// `useId()` counts from the same start in every Vue app: the application's id, unique in the page, keeps the
-				// ids of two open sheets apart, as `aria-controls` needs.
+				// ids of two open sheets apart, as `aria-controls` and `aria-labelledby` need.
 				this.vueApp.config.idPrefix = this.id;
 				this.#renderContext = provideSheetContext(this.vueApp, vueContext);
 				this.#contentShown = providePendingContent(this.vueApp);
+				this.provideToVueApp(this.vueApp);
 				this.vueApp.mount(mountPoint);
 			} else {
 				// Foundry changes the documents out of Vue's sight: each render signals the components to read them again.

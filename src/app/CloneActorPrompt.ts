@@ -8,7 +8,6 @@ import { GenesysActor } from '@/actor/GenesysActor';
  */
 export type CloneActorPromptContext = {
 	targetActor: GenesysActor;
-	answer: (targetActor?: GenesysActor) => void;
 };
 
 /**
@@ -42,9 +41,6 @@ export class CloneActorPrompt extends VuePrompt<GenesysActor | undefined>(undefi
 	}
 
 	override async getVueContext(): Promise<CloneActorPromptContext> {
-		return {
-			targetActor: this.targetActor,
-			answer: (targetActor) => this.answer(targetActor),
-		};
+		return { targetActor: this.targetActor };
 	}
 }

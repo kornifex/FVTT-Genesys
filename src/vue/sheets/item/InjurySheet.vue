@@ -13,8 +13,8 @@ const { system } = useSheetDocument<GenesysItem<'injury'>>();
 	<BasicItemSheet show-effects-tab>
 		<template v-slot:data>
 			<section class="data-grid">
-				<DataRow label="Genesys.Labels.Severity">
-					<select name="system.severity" :value="system.severity">
+				<DataRow label="Genesys.Labels.Severity" v-slot="{ id }">
+					<select :id="id" name="system.severity" :value="system.severity">
 						<option value="-">—</option>
 						<option v-for="(label, severity) in SEVERITY_LABELS" :key="severity" :value="severity">
 							<Localized :label="label" />

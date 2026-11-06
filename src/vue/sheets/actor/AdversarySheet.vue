@@ -20,6 +20,7 @@ import { DicePrompt } from '@/app/DicePrompt';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import Enriched from '@/vue/components/Enriched.vue';
+import { vLocalize } from '@/vue/directives';
 import Motivations from '@/vue/components/Motivations.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import { CHARACTERISTICS, Characteristic as CharacteristicType, toggledSuperCharacteristics } from '@/data/Characteristics';
@@ -97,7 +98,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	<div class="adversary-sheet">
 		<header>
 			<img :src="actor.img ?? undefined" :alt="actor.name" data-edit="img" />
-			<input type="text" name="name" :value="actor.name" />
+			<input type="text" name="name" :value="actor.name" v-localize:aria-label="'Genesys.Labels.Name'" />
 			<label class="silhouette">
 				<Localized label="Genesys.Labels.Silhouette" />
 				<input type="number" name="system.silhouette" :value="system.silhouette" min="0" step="1" />

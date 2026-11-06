@@ -6,6 +6,7 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
 import RollLink from '@/vue/components/RollLink.vue';
+import { vLocalize } from '@/vue/directives';
 
 const props = withDefaults(
 	defineProps<{
@@ -119,7 +120,8 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		<div class="value">
 			<i v-if="allowSuperCharacteristics && isSuper" class="fas fa-star super-star"></i>
 
-			<input v-if="canEdit" type="text" data-dtype="Number" :name="name" :value="value" />
+			<!-- Named by the characteristic: its label above may be a button, which a label can't name a field with. -->
+			<input v-if="canEdit" type="text" data-dtype="Number" :name="name" :value="value" v-localize:aria-label="label" />
 			<div v-else>{{ value }}</div>
 		</div>
 	</div>

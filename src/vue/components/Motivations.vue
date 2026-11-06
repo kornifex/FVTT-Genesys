@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useId } from 'vue';
 import Localized from '@/vue/components/Localized.vue';
 import Editor from '@/vue/components/Editor.vue';
 
@@ -18,14 +19,22 @@ defineProps<{
 	 */
 	motivations: Record<Motivation, { name: string }>;
 }>();
+
+const headingId = useId();
 </script>
 
 <template>
 	<div class="container">
 		<div v-for="{ motivation, label } in MOTIVATIONS" :key="motivation" class="motivation">
+			<!-- The heading names the motivation's name. -->
 			<div class="name-row">
-				<h4><Localized :label="label" /></h4>
-				<input type="text" :name="`system.motivations.${motivation}.name`" :value="motivations[motivation].name" />
+				<h4 :id="`${headingId}-${motivation}`"><Localized :label="label" /></h4>
+				<input
+					type="text"
+					:name="`system.motivations.${motivation}.name`"
+					:value="motivations[motivation].name"
+					:aria-labelledby="`${headingId}-${motivation}`"
+				/>
 			</div>
 
 			<div class="body">

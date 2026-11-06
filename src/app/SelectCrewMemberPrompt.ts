@@ -10,7 +10,6 @@ import type { ActorCrewMemberSkill } from '@/operations/CrewRoll';
  */
 export type SelectCrewMemberPromptContext = {
 	memberSkills: ActorCrewMemberSkill[];
-	answer: (selected: ActorCrewMemberSkill) => void;
 };
 
 /**
@@ -43,9 +42,6 @@ export class SelectCrewMemberPrompt extends VuePrompt<ActorCrewMemberSkill | und
 	}
 
 	override async getVueContext(): Promise<SelectCrewMemberPromptContext> {
-		return {
-			memberSkills: this.memberSkills,
-			answer: (selected) => this.answer(selected),
-		};
+		return { memberSkills: this.memberSkills };
 	}
 }
