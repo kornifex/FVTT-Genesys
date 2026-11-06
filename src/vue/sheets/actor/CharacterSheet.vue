@@ -3,7 +3,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
-import Localized from '@/vue/components/Localized.vue';
+import SheetTabs from '@/vue/components/SheetTabs.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
@@ -16,6 +16,15 @@ import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 const { system } = useSheetDocument<GenesysActor<'character'>>();
 
 const { effects, addEffect } = useDocumentEffects();
+
+const TABS = [
+	{ id: 'skills', label: 'Genesys.Tabs.Skills' },
+	{ id: 'combat', label: 'Genesys.Tabs.Combat' },
+	{ id: 'talents', label: 'Genesys.Tabs.Talents' },
+	{ id: 'inventory', label: 'Genesys.Tabs.Inventory' },
+	{ id: 'effects', label: 'Genesys.Tabs.Effects' },
+	{ id: 'journal', label: 'Genesys.Tabs.Journal' },
+];
 </script>
 
 <template>
@@ -47,36 +56,14 @@ const { effects, addEffect } = useDocumentEffects();
 			/>
 		</section>
 
-		<nav class="sheet-tabs" data-group="primary">
-			<div class="spacer"></div>
-
-			<a class="item" data-tab="skills"><Localized label="Genesys.Tabs.Skills" /></a>
-			<a class="item" data-tab="combat"><Localized label="Genesys.Tabs.Combat" /></a>
-			<a class="item" data-tab="talents"><Localized label="Genesys.Tabs.Talents" /></a>
-			<a class="item" data-tab="inventory"><Localized label="Genesys.Tabs.Inventory" /></a>
-			<a class="item" data-tab="effects"><Localized label="Genesys.Tabs.Effects" /></a>
-			<a class="item" data-tab="journal"><Localized label="Genesys.Tabs.Journal" /></a>
-
-			<div class="spacer"></div>
-		</nav>
-
-		<section class="sheet-body">
-			<div class="tab" data-tab="skills"><SkillsTab /></div>
-
-			<div class="tab" data-tab="combat"><CombatTab /></div>
-
-			<div class="tab" data-tab="talents"><TalentsTab /></div>
-
-			<div class="tab" data-tab="inventory"><InventoryTab allow-dropped-state /></div>
-
-			<div class="tab" data-tab="effects">
-				<EffectsView :effects="[...effects]" @add-effect="addEffect" />
-			</div>
-
-			<div class="tab" data-tab="journal">
-				<JournalTab />
-			</div>
-		</section>
+		<SheetTabs :tabs="TABS">
+			<template #skills><SkillsTab /></template>
+			<template #combat><CombatTab /></template>
+			<template #talents><TalentsTab /></template>
+			<template #inventory><InventoryTab allow-dropped-state /></template>
+			<template #effects><EffectsView :effects="[...effects]" @add-effect="addEffect" /></template>
+			<template #journal><JournalTab /></template>
+		</SheetTabs>
 	</div>
 </template>
 

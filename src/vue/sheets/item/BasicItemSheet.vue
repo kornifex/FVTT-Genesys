@@ -1,14 +1,15 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { vLocalize } from '@/vue/directives';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
-import Localized from '@/vue/components/Localized.vue';
+import SheetTabs from '@/vue/components/SheetTabs.vue';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 
-defineProps<{
+const props = defineProps<{
 	/**
 	 * Whether the item has a decoration field to display.
 	 */
@@ -23,6 +24,12 @@ defineProps<{
 const { document: item, system } = useSheetDocument<GenesysItem>();
 
 const { effects, addEffect } = useDocumentEffects();
+
+const tabs = computed(() => [
+	{ id: 'description', label: 'Genesys.Tabs.Description' },
+	{ id: 'data', label: 'Genesys.Tabs.Data' },
+	...(props.showEffectsTab ? [{ id: 'effects', label: 'Genesys.Tabs.Effects' }] : []),
+]);
 </script>
 
 <template>
@@ -33,44 +40,24 @@ const { effects, addEffect } = useDocumentEffects();
 			<slot v-if="hasDecoration" name="decoration"></slot>
 		</header>
 
-		<nav class="sheet-tabs" data-group="primary">
-			<div class="spacer"></div>
-
-			<slot name="tabs">
-				<a class="item" data-tab="description">
-					<Localized label="Genesys.Tabs.Description" />
-				</a>
-
-				<a class="item" data-tab="data">
-					<Localized label="Genesys.Tabs.Data" />
-				</a>
-
-				<a v-if="showEffectsTab" class="item" data-tab="effects">
-					<Localized label="Genesys.Tabs.Effects" />
-				</a>
-			</slot>
-
-			<div class="spacer"></div>
-		</nav>
-
-		<section class="sheet-body">
-			<div class="tab" data-group="primary" data-tab="description">
+		<SheetTabs :tabs="tabs">
+			<template #description>
 				<slot name="description">
 					<section class="description">
 						<Editor name="system.description" />
 						<Enriched class="source" :value="system.source" />
 					</section>
 				</slot>
-			</div>
+			</template>
 
-			<div class="tab" data-group="primary" data-tab="data">
+			<template #data>
 				<slot name="data" />
-			</div>
+			</template>
 
-			<div v-if="showEffectsTab" class="tab" data-group="primary" data-tab="effects">
+			<template #effects>
 				<EffectsView :effects="[...effects]" @add-effect="addEffect" />
-			</div>
-		</section>
+			</template>
+		</SheetTabs>
 	</div>
 </template>
 
@@ -170,7 +157,8 @@ const { effects, addEffect } = useDocumentEffects();
 		}
 	}
 
-	.tab {
+	// The panels are SheetTabs', outside this component's scope.
+	:deep(.tab) {
 		padding-left: sheet.$padding;
 		padding-right: sheet.$padding;
 	}

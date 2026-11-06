@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type; and the headings each tab of each sheet type starts its sections with (#584). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); and the headings each tab of each sheet type starts its sections with (#584). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -48,6 +48,22 @@ type AccessibilityHelpers = {
 	/** Gives back the Story Points and the pause the tracker's step found. */
 	restoreSpend(): Promise<void>;
 	/**
+	 * Readies the tab steps on a sheet (#575), by its document's name: renders it on its first tab, marks its third tab for
+	 * a click with the mouse, and focuses the control before the first tab in Tab order, so that one Tab reaches it.
+	 */
+	readyTabs(sheet: string): Promise<void>;
+	/** Readies a field step on the sheet of the tab steps (#575): focuses the control before its name field in Tab order. */
+	readyNameField(): void;
+	/** What has the focus: a tab, by its id, or a field, by its name, and the focus ring it shows; and the tab shown. */
+	focusState(): Promise<{ focused: string | null; ring: string; shown: string | null }>;
+	/** The tab the tab steps marked for a click: whether it is shown and has the focus, and the focus ring it shows. */
+	clickedTab(): Promise<{ shown: boolean; focused: boolean; ring: string }>;
+	/**
+	 * Opens a document's sheet, or a prompt by its name, and returns the elements of its Vue app that have a transition, as
+	 * `div.tile > a 0.25s`, with the classes Vue gives the rows of a TransitionGroup while they move or not.
+	 */
+	transitions(name: string): Promise<string[]>;
+	/**
 	 * Opens a document's sheet, shows each of its tabs, and returns each tab's outline: its section headings, as `h3
 	 * Attacks`, and the empty state of each empty list, in their order. The headings of a description are left out.
 	 */
@@ -78,6 +94,17 @@ const KEYBOARD_ACTIONS: { sheet: string; code: string; target: string; result: s
 	{ sheet: 'Nemesis', code: 'K4', target: "a talent's Send to chat", result: 'posts the talent' },
 	{ sheet: 'Ship', code: 'K5', target: "the Crew tab's Add", result: 'adds a Role' },
 	{ sheet: 'weapon', code: 'K6', target: "the Effects tab's Add", result: 'adds an effect' },
+];
+
+/**
+ * The sheets of the tab steps (#575), by the name of the document whose sheet each opens: the step's code, and the tabs
+ * the steps go through, the first three of the sheet's.
+ */
+const TAB_STEPS: { sheet: string; code: string; tabs: string[] }[] = [
+	{ sheet: 'Hero', code: 'T1', tabs: ['skills', 'combat', 'talents'] },
+	{ sheet: 'Rival', code: 'T2', tabs: ['stats', 'miscellaneous', 'effects'] },
+	{ sheet: 'Ship', code: 'T3', tabs: ['skills', 'combat', 'inventory'] },
+	{ sheet: 'weapon', code: 'T4', tabs: ['description', 'data', 'effects'] },
 ];
 
 declare global {
@@ -230,14 +257,74 @@ function installAccessibilityHelpers() {
 		| undefined;
 	// The Story Points and the pause the tracker's step found, to give back.
 	let spendFound: { points: { player: number; gm: number }; paused: boolean } | undefined;
-	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds.
+	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds, nor the
+	// inactive tabs of a tab list, which the arrow keys reach.
 	const tabbable = (root: Element) =>
-		[...root.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
+		[...root.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]')].filter(
 			(element) =>
+				element.tabIndex >= 0 &&
 				!(element as HTMLButtonElement).disabled &&
 				element.getClientRects().length > 0 &&
 				getComputedStyle(element).visibility === 'visible',
 		);
+	// Focuses the control before a target in Tab order, or the window's content before its first control.
+	const focusBefore = (selector: string, target: HTMLElement, what: string) => {
+		const content = find(document, `${selector} .window-content`);
+		const controls = tabbable(content);
+		const index = controls.indexOf(target);
+		if (index < 0) throw new Error(`Tab doesn't reach ${what}`);
+		const before = controls[index - 1];
+		if (before) {
+			before.focus();
+		} else {
+			focusContent(content);
+		}
+	};
+	// Focuses a window's content, before its first control, until the focus leaves it: its tabindex then goes as it was.
+	function focusContent(content: HTMLElement) {
+		const tabindex = content.getAttribute('tabindex');
+		content.tabIndex = -1;
+		content.focus();
+		content.addEventListener(
+			'blur',
+			() => (tabindex === null ? content.removeAttribute('tabindex') : content.setAttribute('tabindex', tabindex)),
+			{ once: true },
+		);
+	}
+	// Marks the element a step clicks with the mouse.
+	const markForPointer = (target: HTMLElement) => {
+		for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
+		target.dataset.e2ePointer = '';
+	};
+	// A Palette colour's name, when a computed colour is one of those the focus ring draws with.
+	const colourName = (colour: string) => {
+		const probe = document.body.appendChild(document.createElement('span'));
+		try {
+			for (const name of ['blue', 'paper']) {
+				probe.style.color = `var(--genesys-${name})`;
+				if (getComputedStyle(probe).color === colour) return name;
+			}
+			return colour;
+		} finally {
+			probe.remove();
+		}
+	};
+	// The focus ring an element shows (#575): its outline, and the gap its box shadow draws between it and the element.
+	const ringOf = (element: Element) => {
+		const style = getComputedStyle(element);
+		if (style.outlineStyle === 'none' || parseFloat(style.outlineWidth) === 0) return 'no outline';
+		const outline = `${style.outlineWidth} ${style.outlineStyle} ${colourName(style.outlineColor)} outline`;
+		// A box shadow computes to its colour, then its offsets, blur and spread: `rgb(…) 0px 0px 0px 2px`.
+		const shadow = /^(rgba?\([^)]*\)) 0px 0px 0px (\S+)$/.exec(style.boxShadow);
+		return shadow ? `${outline}, ${shadow[2]} ${colourName(shadow[1])} gap` : `${outline}, box shadow ${style.boxShadow}`;
+	};
+	// The window of the tab steps.
+	let tabSteps: string | undefined;
+	// The classes Vue gives the rows of a TransitionGroup while they move, enter and leave: the inventory's, a Role's
+	// members' and the Crew tab's.
+	const TRANSITION_GROUP_CLASSES = ['inv', 'mems', 'crew-trans'].flatMap((name) =>
+		['move', 'enter-active', 'leave-active'].map((state) => `${name}-${state}`),
+	);
 
 	const helpers: AccessibilityHelpers = {
 		async setUp() {
@@ -369,22 +456,86 @@ function installAccessibilityHelpers() {
 			const panel = tabs[0] === tab ? `${selector} .tab[data-tab="${tab}"]` : await helpers.showTab(selector, tab);
 			const target = button(find(document, panel));
 			if (!target) throw new Error(`No action button for the keyboard step on ${sheet}`);
-			const content = find(document, `${selector} .window-content`);
-			const controls = tabbable(content);
-			const index = controls.indexOf(target);
-			if (index < 0) throw new Error(`Tab doesn't reach the action button on ${sheet}`);
-			// The control before the button, or the window's content before its first control.
-			const before = controls[index - 1];
-			if (before) {
-				before.focus();
-			} else {
-				content.tabIndex = -1;
-				content.focus();
-			}
+			focusBefore(selector, target, `the action button on ${sheet}`);
 			keyboard = { button: target, selector, before: state(target), state, undo };
 			// Marked for a step that clicks it with the mouse instead.
-			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
-			target.dataset.e2ePointer = '';
+			markForPointer(target);
+		},
+
+		async readyTabs(sheet) {
+			const { selector } = await helpers.openSheet(sheet);
+			const [first, , third] = tabLinks(find(document, selector));
+			if (!third) throw new Error(`No third tab on ${sheet}`);
+			await helpers.showTab(selector, first.dataset.tab!);
+			// Tab doesn't reach tabs that are links without an `href`, as before #575: the step then starts from the window's
+			// content, and its assertion tells where Tab goes.
+			if (tabbable(find(document, `${selector} .window-content`)).includes(first)) {
+				focusBefore(selector, first, `the tabs of ${sheet}`);
+			} else {
+				focusContent(find(document, `${selector} .window-content`));
+			}
+			markForPointer(third);
+			tabSteps = selector;
+		},
+
+		readyNameField() {
+			if (!tabSteps) throw new Error('No tab steps readied');
+			focusBefore(tabSteps, find(document, `${tabSteps} input[name="name"]`), 'the name field');
+		},
+
+		async focusState() {
+			if (!tabSteps) throw new Error('No tab steps readied');
+			const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+			const root = find(document, tabSteps);
+			// Foundry fades a field's outline in: the ring is read once it has.
+			await Promise.all(focused?.getAnimations().map((animation) => animation.finished) ?? []);
+			return {
+				focused:
+					focused && root.contains(focused) ? focused.dataset.tab ?? focused.getAttribute('name') ?? focused.localName : null,
+				ring: focused ? ringOf(focused) : 'no focus',
+				shown: root.querySelector<HTMLElement>('.sheet-body > .tab.active')?.dataset.tab ?? null,
+			};
+		},
+
+		async clickedTab() {
+			const tab = find(document, '[data-e2e-pointer]');
+			const panel = find(document, `${tabSteps} .sheet-body > .tab[data-tab="${tab.dataset.tab}"]`);
+			await Promise.all(tab.getAnimations().map((animation) => animation.finished));
+			return { shown: panel.classList.contains('active'), focused: document.activeElement === tab, ring: ringOf(tab) };
+		},
+
+		async transitions(name) {
+			const selector = PROMPTS[name] ? await helpers.openPrompt(name) : (await helpers.openSheet(name)).selector;
+			const elements = [...find(document, `${selector} .vue-app`).querySelectorAll('*')];
+			const moving = new Set<string>();
+			const read = () => {
+				for (const element of elements) {
+					for (const pseudo of [null, '::before', '::after']) {
+						const durations = getComputedStyle(element, pseudo).transitionDuration.split(', ');
+						const longest = Math.max(...durations.map((duration) => parseFloat(duration)));
+						if (longest > 0) {
+							// An element's kind leaves out the TransitionGroup classes the check gives every element.
+							const kind = (node: Element | null) =>
+								node
+									? [
+											node.localName,
+											...[...node.classList].filter((name) => !TRANSITION_GROUP_CLASSES.includes(name)),
+										].join('.')
+									: '?';
+							moving.add(`${kind(element.parentElement)} > ${kind(element)}${pseudo ?? ''} ${longest}s`);
+						}
+					}
+				}
+			};
+			read();
+			for (const element of elements) element.classList.add(...TRANSITION_GROUP_CLASSES);
+			try {
+				read();
+			} finally {
+				for (const element of elements) element.classList.remove(...TRANSITION_GROUP_CLASSES);
+			}
+			await helpers.closeAll();
+			return [...moving].sort();
 		},
 
 		keyboardAction() {
@@ -646,6 +797,19 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(name, unnamedButtons, []);
 		unnamedButtons = [];
 	};
+	// The rules a sheet's tab list violates (#575), as `Hero in Genesys: aria-required-children (critical)`. What axe-core
+	// can't decide, such as the tabs' contrast over the nav's gradient (#583), is logged alone.
+	const tabListViolations: string[] = [];
+	const checkTabList = async (name: string, selector: string) => {
+		for (const style of STYLES) {
+			await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
+			const findings = await gm.axe(`${selector} nav.sheet-tabs`, style.rules);
+			e2e.log(`axe ${name} sheet's tab list, ${style.checks} in ${style.name}`, findings);
+			for (const rule of Object.keys(findings).filter((rule) => !rule.endsWith('(needs review)'))) {
+				tabListViolations.push(`${name} in ${style.name}: ${rule}`);
+			}
+		}
+	};
 
 	// Each window is checked in a step of its own, which logs the errors its rendering threw after its findings.
 	try {
@@ -655,6 +819,7 @@ export async function run(e2e: ScenarioContext) {
 					const { selector, tabs } = await gm.evaluate((name) => window.accessibilityE2E.openSheet(name), name);
 					// The first tab is checked with the rest of the window, the others alone.
 					await check(`${name} sheet${tabs[0] ? `, ${tabs[0]} tab` : ''}`, `${selector} .window-content`);
+					if (tabs[0]) await checkTabList(name, selector);
 					for (const tab of tabs.slice(1)) {
 						const panel = await gm.evaluate((args) => window.accessibilityE2E.showTab(args.selector, args.tab), {
 							selector,
@@ -666,6 +831,7 @@ export async function run(e2e: ScenarioContext) {
 				});
 			}
 			expectNamedButtons('#574 A1 no tab of any sheet type has a button without a name');
+			e2e.expect("#575 A1 no sheet type's tab list violates an accessibility rule", tabListViolations, []);
 		});
 
 		await e2e.part('prompts', async () => {
@@ -751,6 +917,74 @@ export async function run(e2e: ScenarioContext) {
 			} finally {
 				await gm.evaluate(() => window.accessibilityE2E.restoreSpend());
 			}
+		});
+
+		// §#575: the tabs of each sheet type follow the WAI-ARIA tabs pattern, and a control the keyboard reaches shows the
+		// focus ring, which a click on a tab leaves off.
+		await e2e.part('tabs', async () => {
+			type FocusState = Awaited<ReturnType<typeof window.accessibilityE2E.focusState>>;
+			const ring = '2px solid blue outline, 2px paper gap';
+			for (const { sheet, code, tabs } of TAB_STEPS) {
+				const [first, second, third] = tabs;
+				let reached: FocusState | undefined;
+				let moved: FocusState | undefined;
+				await e2e.step(`#575 ${code} ${sheet} sheet: Tab pressed to reach its tabs, then the right arrow`, async () => {
+					await gm.evaluate((sheet) => window.accessibilityE2E.readyTabs(sheet), sheet);
+					await gm.page.keyboard.press('Tab');
+					reached = await gm.evaluate(() => window.accessibilityE2E.focusState());
+					await gm.page.keyboard.press('ArrowRight');
+					moved = await gm.evaluate(() => window.accessibilityE2E.focusState());
+				});
+				e2e.expect(
+					`#575 ${code} on the ${sheet} sheet, Tab reaches the tab shown, with the focus ring, and the right arrow moves to the next tab and shows its panel`,
+					{ reached, moved },
+					{ reached: { focused: first, ring, shown: first }, moved: { focused: second, ring, shown: second } },
+				);
+
+				let clicked: unknown;
+				await e2e.step(`#575 ${code} ${sheet} sheet: its ${third} tab clicked with the mouse`, async () => {
+					await gm.page.click(POINTER_TARGET);
+					clicked = await gm.evaluate(() => window.accessibilityE2E.clickedTab());
+				});
+				e2e.expect(`#575 ${code} on the ${sheet} sheet, a tab clicked shows its panel, without the focus ring`, clicked, {
+					shown: true,
+					focused: false,
+					ring: 'no outline',
+				});
+
+				let field: FocusState | undefined;
+				await e2e.step(`#575 ${code} ${sheet} sheet: Tab pressed to reach its name field`, async () => {
+					await gm.evaluate(() => window.accessibilityE2E.readyNameField());
+					await gm.page.keyboard.press('Tab');
+					field = await gm.evaluate(() => window.accessibilityE2E.focusState());
+				});
+				e2e.expect(`#575 ${code} on the ${sheet} sheet, the name field reached with Tab shows the focus ring`, field, {
+					focused: 'name',
+					ring,
+					shown: third,
+				});
+				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+			}
+		});
+
+		// §#575: under `prefers-reduced-motion`, nothing moves on a sheet or a prompt, with #516 C1's emulation.
+		await e2e.part('reducedMotion', async () => {
+			const moving: Record<string, string[]> = {};
+			await e2e.step('#575 M1 each sheet type and the crew member prompt read under prefers-reduced-motion', async () => {
+				await gm.page.emulateMedia({ reducedMotion: 'reduce' });
+				try {
+					for (const name of [...(await gm.evaluate(() => window.accessibilityE2E.sheets())), 'crewMember']) {
+						moving[name] = await gm.evaluate((name) => window.accessibilityE2E.transitions(name), name);
+					}
+				} finally {
+					await gm.page.emulateMedia({ reducedMotion: null });
+				}
+			});
+			e2e.expect(
+				'#575 M1 under prefers-reduced-motion, no element of a sheet or a prompt has a transition, the rows of a TransitionGroup included',
+				Object.fromEntries(Object.entries(moving).filter(([, elements]) => elements.length > 0)),
+				{},
+			);
 		});
 
 		await e2e.part('headings', () => headings(e2e));

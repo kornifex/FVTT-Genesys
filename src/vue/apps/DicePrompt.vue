@@ -763,7 +763,6 @@ $difficulty-die-scale: 1.4;
 			border: none;
 			border-radius: 0;
 			background: none;
-			box-shadow: none;
 			font-size: $difficulty-die-scale * 1em;
 			line-height: 1;
 			vertical-align: onto-capitals($difficulty-die-scale);
@@ -789,10 +788,14 @@ $difficulty-die-scale: 1.4;
 				text-shadow: 0 0 4px colors.$die-difficulty;
 			}
 
+			// The focus ring's gap is a box shadow (VueSheet.scss), which a die keeps from the keyboard.
+			&:not(:focus-visible) {
+				box-shadow: none;
+			}
+
 			// Foundry outlines a focused button; a click on a die leaves none, the keyboard still shows it.
 			&:focus:not(:focus-visible) {
 				outline: none;
-				box-shadow: none;
 			}
 		}
 

@@ -7,6 +7,7 @@ import Characteristic from '@/vue/components/character/Characteristic.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import SheetTabs from '@/vue/components/SheetTabs.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
 import { AdversaryDataModel, type AdversaryType } from '@/actor/data/AdversaryDataModel';
@@ -58,6 +59,12 @@ const weapons = computed(() =>
 
 const { effects, addEffect } = useDocumentEffects();
 
+const TABS = [
+	{ id: 'stats', label: 'Genesys.Tabs.Data' },
+	{ id: 'miscellaneous', label: 'Genesys.Tabs.Miscellaneous' },
+	{ id: 'effects', label: 'Genesys.Tabs.Effects' },
+];
+
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
 }
@@ -96,18 +103,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			</label>
 		</header>
 
-		<nav class="sheet-tabs" data-group="primary">
-			<div class="spacer"></div>
-
-			<a class="item" data-tab="stats"><Localized label="Genesys.Tabs.Data" /></a>
-			<a class="item" data-tab="miscellaneous"><Localized label="Genesys.Tabs.Miscellaneous" /></a>
-			<a class="item" data-tab="effects"><Localized label="Genesys.Tabs.Effects" /></a>
-
-			<div class="spacer"></div>
-		</nav>
-
-		<section class="sheet-body">
-			<div class="tab" data-tab="stats">
+		<SheetTabs :tabs="TABS">
+			<template #stats>
 				<section class="stats-tab">
 					<!-- A sheet the user can't edit has nothing to show for an empty description, not even its edit toggle. -->
 					<div v-if="editable || hasDescription || system.source.trim() !== ''" class="description-area">
@@ -299,9 +296,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						</div>
 					</div>
 				</section>
-			</div>
+			</template>
 
-			<div class="tab" data-tab="miscellaneous">
+			<template #miscellaneous>
 				<section class="motivations">
 					<div class="adversary-items">
 						<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
@@ -327,12 +324,12 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 					<DataRow class="data-row" label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 				</section>
-			</div>
+			</template>
 
-			<div class="tab" data-tab="effects">
+			<template #effects>
 				<EffectsView :effects="[...effects]" @add-effect="addEffect" />
-			</div>
-		</section>
+			</template>
+		</SheetTabs>
 	</div>
 </template>
 
