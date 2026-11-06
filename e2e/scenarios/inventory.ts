@@ -144,7 +144,7 @@ type InventoryHelpers = {
 	closeMenu(actor: string, item: string): Promise<void>;
 	/**
 	 * Brings an actor's sheet to the front on its Inventory tab, and focuses the control of an item's row before its ⋮,
-	 * its damage state, so that one Tab reaches the ⋮ (#576).
+	 * its damage state's spin button, so that one Tab reaches the ⋮ (#576, #580).
 	 */
 	readyMenuKeys(actor: string, item: string): Promise<void>;
 	/** The menu of an item's row as the keyboard finds it. */
@@ -996,7 +996,10 @@ function installInventoryHelpers() {
 			await window.e2e.showTab(ref, 'inventory');
 			actor(ref).sheet.bringToFront();
 			const row = await heldRow(ref, name);
-			row.querySelector<HTMLElement>(':scope > .damage')!.focus();
+			// The damage counter's spin button, its only Tab stop (§#580).
+			const damage = row.querySelector<HTMLElement>(':scope > .damage [role="spinbutton"]')!;
+			damage.focus();
+			if (document.activeElement !== damage) throw new Error(`The damage state of ${name} took no focus`);
 			await settle();
 		},
 
