@@ -156,8 +156,18 @@ function commit() {
 	}
 }
 
-// A right-click on the counter takes one off, rather than opening the menu of the row it sits in.
+// A right-click on the counter takes one off, rather than opening the menu of the row it sits in. The context menu key
+// or Shift+F10 opens that menu, as from any control of the row: Chromium gives such an event the button -1, Firefox the
+// keyboard as its input source (6), and either no pointer type.
+function fromKeyboard(event: MouseEvent) {
+	const mozInputSource = (event as MouseEvent & { mozInputSource?: number }).mozInputSource;
+	return event.button === -1 || mozInputSource === 6 || ('pointerType' in event && (event as PointerEvent).pointerType === '');
+}
+
 function contextmenu(event: MouseEvent) {
+	if (fromKeyboard(event)) {
+		return;
+	}
 	event.preventDefault();
 	event.stopPropagation();
 	step(-1);

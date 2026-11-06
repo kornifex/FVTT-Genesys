@@ -141,6 +141,30 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
+	it('lets the context menu key and Shift+F10 through to the row it sits in, taking nothing off', () => {
+		const rowMenu = vi.fn();
+		document.body.addEventListener('contextmenu', rowMenu);
+		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		const spinButton = counter.get('[role="spinbutton"]').element;
+		const fromKeys = [
+			// Chromium's Shift+F10 and context menu key.
+			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: -1 }),
+			// A contextmenu with no pointer behind it.
+			new PointerEvent('contextmenu', { bubbles: true, cancelable: true, pointerType: '' }),
+		];
+		// Firefox names the keyboard as the event's input source.
+		const firefox = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+		Object.defineProperty(firefox, 'mozInputSource', { value: 6 });
+
+		for (const event of [...fromKeys, firefox]) spinButton.dispatchEvent(event);
+
+		expect(counter.emitted('step')).toBeUndefined();
+		expect([...fromKeys, firefox].map((event) => event.defaultPrevented)).toEqual([false, false, false]);
+		expect(rowMenu).toHaveBeenCalledTimes(3);
+		document.body.removeEventListener('contextmenu', rowMenu);
+		counter.unmount();
+	});
+
 	it('writes a value typed into it on Enter or a blur, parsed and within its bounds', async () => {
 		const counter = mountCounter({ value: 5, label: 'Genesys.Counter.CurrentWounds', max: 24 });
 		const input = counter.get('input');
