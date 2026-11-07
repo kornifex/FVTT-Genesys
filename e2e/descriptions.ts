@@ -41,8 +41,8 @@ export async function closedDescription(read: (cap: number) => Promise<Descripti
 	return box && { height: box.height, transition: box.transition, lastVisibility: box.lastVisibility };
 }
 
-/** The chevron of a closed description, which offers to show it. */
-export const SHOW_CHEVRON: Chevron = { points: 'right', tooltip: 'Show the description' };
+/** The chevron of a closed description: named Details whether open or not since #579, it tells it is collapsed. */
+export const CLOSED_CHEVRON: Chevron = { expanded: false, name: 'Details', controlsFold: true };
 
-/** The chevron of an open description, which offers to hide it. */
-export const HIDE_CHEVRON: Chevron = { points: 'down', tooltip: 'Hide the description' };
+/** The chevron of an open description, which tells it is expanded. */
+export const OPEN_CHEVRON: Chevron = { expanded: true, name: 'Details', controlsFold: true };
