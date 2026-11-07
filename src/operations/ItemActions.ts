@@ -105,7 +105,7 @@ export async function deleteDocument(document: { name: string; delete(): Promise
  * A deletion that says in its own words what it does, such as the undo of an Experience Journal entry: the localization
  * key of the dialog's title, and its question, already localized.
  */
-export type DeletionQuestion = { title: string; question: string };
+type DeletionQuestion = { title: string; question: string };
 
 /**
  * Ask the user to confirm the deletion of what a sheet names: an item, an Active Effect, an extra Weapon Profile, a

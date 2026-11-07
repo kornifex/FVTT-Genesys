@@ -3355,14 +3355,10 @@ export async function run(e2e: ScenarioContext) {
 			),
 			memberRemoved: await crew('#82 GM removes the role member', () =>
 				// Its entry reads Remove from Crew since #577, with its own icon.
-				gm.evaluate(() =>
-					window.sheetsE2E.menu('Vehicle', '.tab-crew .roles .role-member', 'E2E Bearer', 'fa-user-minus|fa-trash'),
-				),
+				gm.evaluate(() => window.sheetsE2E.menu('Vehicle', '.tab-crew .roles .role-member', 'E2E Bearer', 'fa-user-minus')),
 			),
 			passengerRemoved: await crew('#82 GM removes a passenger', () =>
-				gm.evaluate(() =>
-					window.sheetsE2E.menu('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Hero', 'fa-user-minus|fa-trash'),
-				),
+				gm.evaluate(() => window.sheetsE2E.menu('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Hero', 'fa-user-minus')),
 			),
 		};
 		e2e.expect('#82 A2 the Crew tab follows the passengers and role members added and removed', crewSteps, {

@@ -19,6 +19,7 @@ import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt } from '@/app/DicePrompt';
 import RowActions from '@/vue/components/RowActions.vue';
 import type { RowAction } from '@/vue/components/RowAction';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import Enriched from '@/vue/components/Enriched.vue';
 import { vLocalize } from '@/vue/directives';
 import Motivations from '@/vue/components/Motivations.vue';
@@ -37,6 +38,18 @@ import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
 const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
+
+// The menu of each talent and ability, by id, for a right-click on its description to open it, as one on its name does.
+const rowMenus = new Map<string, ContextMenuHandle>();
+function rowMenu(id: string) {
+	return (handle: unknown) => {
+		if (handle) {
+			rowMenus.set(id, handle as ContextMenuHandle);
+		} else {
+			rowMenus.delete(id);
+		}
+	};
+}
 
 const hasDescription = computed(() => !isEmptyDescription(system.value.description));
 
@@ -167,8 +180,18 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<h3><Localized label="Genesys.Adversary.Talents" /></h3>
 						<div class="container">
 							<ListEmpty v-if="talents.length === 0" />
-							<div v-for="talent in talents" :key="talent.id" class="talent">
-								<RowActions :document="talent" :actions="talentActions(talent)" orientation="right">
+							<div
+								v-for="talent in talents"
+								:key="talent.id"
+								class="talent"
+								@contextmenu="rowMenus.get(talent.id)?.open($event)"
+							>
+								<RowActions
+									:ref="rowMenu(talent.id)"
+									:document="talent"
+									:actions="talentActions(talent)"
+									orientation="right"
+								>
 									<!-- Not a label, which would pass a click anywhere on it to its first button. -->
 									<span class="item-label">
 										<ActionButton @click="openSheet(talent)"
@@ -186,8 +209,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<h3><Localized label="Genesys.Adversary.Abilities" /></h3>
 						<div class="container">
 							<ListEmpty v-if="abilities.length === 0" />
-							<div v-for="ability in abilities" :key="ability.id" class="talent">
-								<RowActions :document="ability" orientation="right">
+							<div
+								v-for="ability in abilities"
+								:key="ability.id"
+								class="talent"
+								@contextmenu="rowMenus.get(ability.id)?.open($event)"
+							>
+								<RowActions :ref="rowMenu(ability.id)" :document="ability" orientation="right">
 									<span class="item-label">
 										<ActionButton @click="openSheet(ability)">{{ ability.name }}</ActionButton>
 									</span>

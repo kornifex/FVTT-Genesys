@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { shallowRef, useId, watch } from 'vue';
+import { shallowRef, useId, useTemplateRef, watch } from 'vue';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 
 import type { Stored } from '@/data/Stored';
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -36,6 +37,14 @@ const emit = defineEmits<{
 
 const { isHovered, enter, leave, reset } = useDragHover();
 const fieldId = useId();
+const menu = useTemplateRef<ContextMenuHandle>('menu');
+
+// A right-click on the Role opens its menu, except in its name's field, which keeps the browser's own.
+function openMenu(event: MouseEvent) {
+	if (!(event.target as Element).closest('input')) {
+		menu.value?.open(event);
+	}
+}
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<Stored<GenesysActor>[]>([]);
 
@@ -79,7 +88,8 @@ function drop(event: DragEvent, memberUnder?: string) {
 		@dragleave="leave"
 		@drop="drop($event)"
 	>
-		<div class="role-data">
+		<!-- A right-click on the Role's name or skills opens its menu, at the pointer; its members' tiles have their own. -->
+		<div class="role-data" @contextmenu="openMenu">
 			<div class="role-name">
 				<label :for="`${fieldId}-name`"><Localized label="Genesys.Labels.Name" /></label>
 				<input
@@ -89,7 +99,7 @@ function drop(event: DragEvent, memberUnder?: string) {
 					@change="emit('updateName', ($event.target as HTMLInputElement).value)"
 				/>
 				<!-- The Role's menu: its Delete asks first, naming it. -->
-				<RowActions :removal="{ run: () => emit('delete') }" :focus-key="props.id" />
+				<RowActions ref="menu" :removal="{ run: () => emit('delete') }" :focus-key="props.id" />
 			</div>
 			<div class="underline" />
 

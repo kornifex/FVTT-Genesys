@@ -54,7 +54,9 @@ function qualityRatingLabel(quality: string) {
 
 // Removing a quality asks first, naming it.
 async function removeQuality(index: number) {
-	if (await confirmDelete(props.profile.qualities[index].name)) {
+	const { name } = props.profile.qualities[index];
+	// The list may change while the dialog is open: remove the quality it named, or nothing.
+	if ((await confirmDelete(name)) && props.profile.qualities[index]?.name === name) {
 		emit('change', { qualities: withoutIndex(props.profile.qualities, index) });
 	}
 }

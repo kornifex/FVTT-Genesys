@@ -119,6 +119,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 					v-for="(entry, index) in system.experienceJournal.entries"
 					:key="index"
 					class="entry"
+					:focus-key="`journal-${index}`"
 					:deletable="entry.type !== JournalEntryType.Starting"
 					:removal="{ label: 'Genesys.XPJournal.UndoEntry', run: () => removeJournalEntry(index) }"
 				>

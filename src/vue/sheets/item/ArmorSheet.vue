@@ -20,7 +20,9 @@ async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 
 // Removing a quality asks first, naming it.
 async function deleteQuality(index: number) {
-	if (await confirmDelete(system.value.qualities[index].name)) {
+	const { name } = system.value.qualities[index];
+	// The list may change while the dialog is open: remove the quality it named, or nothing.
+	if ((await confirmDelete(name)) && system.value.qualities[index]?.name === name) {
 		await updateQualities(withoutIndex(system.value.qualities, index));
 	}
 }

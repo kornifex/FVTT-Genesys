@@ -34,7 +34,12 @@ async function addProfile() {
 
 // Deleting an extra profile asks first, naming it as the weapon's rows do: "Blaster (Stun)".
 async function deleteProfile(profile: WeaponProfile) {
-	if (await confirmDelete(profileRowName(item.value.name, profile, game.i18n))) {
+	const { name } = system.value.extraProfiles[profile.index - 1];
+	// The list may change while the dialog is open: delete the profile it named, or nothing.
+	if (
+		(await confirmDelete(profileRowName(item.value.name, profile, game.i18n))) &&
+		system.value.extraProfiles[profile.index - 1]?.name === name
+	) {
 		await item.value.update({ system: deleteExtraProfileUpdate(system.value, profile.index) });
 	}
 }
