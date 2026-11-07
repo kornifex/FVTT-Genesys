@@ -1,5 +1,65 @@
 # Changelog
 
+## [0.6.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0...v0.6.0-rc.1) (2026-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **combat:** keep the Initiative Slots' state in the combat's system data ([#569](https://github.com/kornifex/FVTT-Genesys/issues/569))
+
+### Features
+
+* **dice:** read dice symbols and pools in words, to a screen reader and in their tooltips ([#586](https://github.com/kornifex/FVTT-Genesys/issues/586)) ([0e41f3a](https://github.com/kornifex/FVTT-Genesys/commit/0e41f3a6693c77ed8eae1dfb3fe93d5d2aa29a0a))
+* send the Acting GM's operations as Foundry queries, and tell the player when one fails ([#561](https://github.com/kornifex/FVTT-Genesys/issues/561)) ([fb48eb4](https://github.com/kornifex/FVTT-Genesys/commit/fb48eb469ed0cd5cdf1a8b5d1ec04414fc13b083))
+* **ui:** answer every prompt from the keyboard, and label every field ([#593](https://github.com/kornifex/FVTT-Genesys/issues/593)) ([7538953](https://github.com/kornifex/FVTT-Genesys/commit/7538953764d57f1ac46aff64cb96ce666ee0c793))
+* **ui:** bring a Container's contents and the super-characteristic star up to contrast in both Styles ([#597](https://github.com/kornifex/FVTT-Genesys/issues/597)) ([8c6562c](https://github.com/kornifex/FVTT-Genesys/commit/8c6562c245f96cd28d541a940b2723d09a4de011))
+* **ui:** bring text to 4.5:1 in both Styles, and keep meaning off colour alone ([#594](https://github.com/kornifex/FVTT-Genesys/issues/594)) ([e9bd38f](https://github.com/kornifex/FVTT-Genesys/commit/e9bd38f23967f0714d3349326a3ddaf18ddab705))
+* **ui:** fold every description with one component ([#591](https://github.com/kornifex/FVTT-Genesys/issues/591)) ([0191928](https://github.com/kornifex/FVTT-Genesys/commit/0191928df6d40b01649c59e73d14edcd38b4b759))
+* **ui:** give every row a ⋮ menu of its actions, and confirm every deletion through one dialog ([#596](https://github.com/kornifex/FVTT-Genesys/issues/596)) ([2f2047c](https://github.com/kornifex/FVTT-Genesys/commit/2f2047cad4802da3bfc6e58f5476f0d624a1a552))
+* **ui:** give every sheet a visible focus ring, reduced motion and accessible tabs ([#588](https://github.com/kornifex/FVTT-Genesys/issues/588)) ([c148697](https://github.com/kornifex/FVTT-Genesys/commit/c148697aa44a1ab0f66b28b26c6aa7b25e490b36))
+* **ui:** make every sheet action a focusable button with a name ([#585](https://github.com/kornifex/FVTT-Genesys/issues/585)) ([9f5f1eb](https://github.com/kornifex/FVTT-Genesys/commit/9f5f1eb7df8e7a4242c2a11fd9b6ea1d42530596))
+* **ui:** open the actions menu from the keyboard, and close it with Escape without closing the sheet ([#589](https://github.com/kornifex/FVTT-Genesys/issues/589)) ([e1a5896](https://github.com/kornifex/FVTT-Genesys/commit/e1a5896c91a5e0e53bcfe4ea1731f6dbe0ba08a7))
+* **ui:** roll a row's check from its name, and open its sheet from its icon ([#590](https://github.com/kornifex/FVTT-Genesys/issues/590)) ([bf9bf52](https://github.com/kornifex/FVTT-Genesys/commit/bf9bf52380cfac89a8685d40a3312bd5ab61aa68))
+* **ui:** show a Weapon Profile's stats, section headings and empty lists the same way on every sheet ([#587](https://github.com/kornifex/FVTT-Genesys/issues/587)) ([631c689](https://github.com/kornifex/FVTT-Genesys/commit/631c689069e6a0e87755862157336fce5bc7c773))
+* **ui:** show every counter as one compact stepper ([#592](https://github.com/kornifex/FVTT-Genesys/issues/592)) ([2199c67](https://github.com/kornifex/FVTT-Genesys/commit/2199c67ad83d836308c95f4259713a749e06346b))
+* validate the settings through DataFields ([#544](https://github.com/kornifex/FVTT-Genesys/issues/544)) ([6b5dfd8](https://github.com/kornifex/FVTT-Genesys/commit/6b5dfd8398175a1c51beb7464a940024f9277e19))
+
+
+### Bug Fixes
+
+* give messages the chat's mode through one module, and let modules refuse a drop on a v14 item sheet ([#546](https://github.com/kornifex/FVTT-Genesys/issues/546)) ([8350e39](https://github.com/kornifex/FVTT-Genesys/commit/8350e398afd8a65716b560f30c72bd32b66b0525))
+* **i18n:** summarize 0.6.0-rc.1's changes in the welcome message ([#598](https://github.com/kornifex/FVTT-Genesys/issues/598)) ([a8309ae](https://github.com/kornifex/FVTT-Genesys/commit/a8309ae72671c754da7d44d337498bf7e913a414))
+* **vehicle:** add the Pilot's Defensive Driving to the vehicle's defense, still capped at 4 ([#551](https://github.com/kornifex/FVTT-Genesys/issues/551)) ([401cac8](https://github.com/kornifex/FVTT-Genesys/commit/401cac875966f3bb6491c0d7352440e87d708e31))
+* **vehicle:** remove every actor of one deletion from each vehicle's Crew in one write ([#572](https://github.com/kornifex/FVTT-Genesys/issues/572)) ([f3a70b4](https://github.com/kornifex/FVTT-Genesys/commit/f3a70b4362bb02e6b6ef8970d85a087857e723de))
+
+
+### Code Refactoring
+
+* **combat:** keep core's combat tracker header, and build the Initiative Slot rows' context per turn ([#568](https://github.com/kornifex/FVTT-Genesys/issues/568)) ([95a9c58](https://github.com/kornifex/FVTT-Genesys/commit/95a9c585651e8e5a919653d42ae6e8a057bbae9b))
+* **combat:** keep the Initiative Slots' state in the combat's system data ([#569](https://github.com/kornifex/FVTT-Genesys/issues/569)) ([01a4cf5](https://github.com/kornifex/FVTT-Genesys/commit/01a4cf53f9cb3d5b42c01a5895c210658bfa3513))
+* **ui:** set the compendium window class as each pack is added ([#547](https://github.com/kornifex/FVTT-Genesys/issues/547)) ([c596b79](https://github.com/kornifex/FVTT-Genesys/commit/c596b799a63a973be46270cbac60e442b3d0ff7e))
+* **vehicle:** find the open vehicle sheets through Foundry, without a registry of vehicles ([#549](https://github.com/kornifex/FVTT-Genesys/issues/549)) ([850e168](https://github.com/kornifex/FVTT-Genesys/commit/850e168c5304b8708fee700c75ea27339acda6f9))
+
+
+### Continuous Integration
+
+* remove release-as now that 0.5.0 is out ([#542](https://github.com/kornifex/FVTT-Genesys/issues/542)) ([805aa68](https://github.com/kornifex/FVTT-Genesys/commit/805aa68f3f4441550f146e7f5c68fc5c28df41e0))
+* retire the 0.4.x release line, and point the docs at 0.6.0 ([#541](https://github.com/kornifex/FVTT-Genesys/issues/541)) ([63e0a90](https://github.com/kornifex/FVTT-Genesys/commit/63e0a90d1d71eee6b3888703c3887eef9b3ec51a))
+* set the next release to 0.6.0-rc.1 ([#599](https://github.com/kornifex/FVTT-Genesys/issues/599)) ([809baaa](https://github.com/kornifex/FVTT-Genesys/commit/809baaa8757205fccb7cffce6fdceabd04add7a2))
+
+
+### Tests
+
+* cache the compare baseline's step log, per part ([#564](https://github.com/kornifex/FVTT-Genesys/issues/564)) ([059a24b](https://github.com/kornifex/FVTT-Genesys/commit/059a24be8b0f153c3cfa85e4a2321d285b740474))
+* log a part's errors given after its last step within that part ([#571](https://github.com/kornifex/FVTT-Genesys/issues/571)) ([421ddcd](https://github.com/kornifex/FVTT-Genesys/commit/421ddcd5817376b66428721dc3fa58b96cdb3bc7))
+* run a scenario's parts alone, and log each step's part and duration ([#563](https://github.com/kornifex/FVTT-Genesys/issues/563)) ([fd04d2c](https://github.com/kornifex/FVTT-Genesys/commit/fd04d2ccd16827163fd68b64a7f99a6895bd4960))
+* run the e2e suite on a pool of parallel launches, splitting long scenarios into slices of their parts ([#573](https://github.com/kornifex/FVTT-Genesys/issues/573)) ([1820269](https://github.com/kornifex/FVTT-Genesys/commit/18202692a40219035fdc17acafa04ac9877b7d02))
+* split the dicePrompt scenario into parts ([#566](https://github.com/kornifex/FVTT-Genesys/issues/566)) ([fb33c3f](https://github.com/kornifex/FVTT-Genesys/commit/fb33c3f8a46b1e2904a978fb38e2c6055cc69d7c))
+* split the inventory, adversaries and accessibility scenarios into parts ([#567](https://github.com/kornifex/FVTT-Genesys/issues/567)) ([1806a23](https://github.com/kornifex/FVTT-Genesys/commit/1806a235cc09640e099860cf556ace6b541ab189))
+* split the sheets scenario into parts ([#565](https://github.com/kornifex/FVTT-Genesys/issues/565)) ([6145eeb](https://github.com/kornifex/FVTT-Genesys/commit/6145eeb12f508a1c5e7e344fe4d0e435e37d119b))
+* test the Vue components in a DOM, and check the sheets and prompts with axe-core ([#553](https://github.com/kornifex/FVTT-Genesys/issues/553)) ([dda7e26](https://github.com/kornifex/FVTT-Genesys/commit/dda7e2642eb7417706eee8899aa2b2448c787dee))
+* wait for the Backpack's new row before [#235](https://github.com/kornifex/FVTT-Genesys/issues/235) I7 drops the Vest into it ([#570](https://github.com/kornifex/FVTT-Genesys/issues/570)) ([8b7f30c](https://github.com/kornifex/FVTT-Genesys/commit/8b7f30cb3ba7dc83d6378dab5caaf30dc7b9494e))
+
 ## [0.5.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0-rc.7...v0.5.0) (2026-11-03)
 
 
