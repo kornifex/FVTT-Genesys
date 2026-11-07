@@ -461,7 +461,7 @@ function installAccessibilityHelpers() {
 	let spendFound: { points: { player: number; gm: number }; paused: boolean } | undefined;
 	// §#581: the button of a sheet that opens each prompt a button opens, on its tab.
 	const PROMPT_OPENERS: Record<string, { sheet: string; tab: string; selector: string }> = {
-		dice: { sheet: 'Hero', tab: 'skills', selector: '.tab[data-tab="skills"] button.name' },
+		dice: { sheet: 'Hero', tab: 'skills', selector: '.tab[data-tab="skills"] button.skill-name' },
 		awardXP: { sheet: 'Hero', tab: 'journal', selector: '.xp-journal .columns button' },
 		crewMember: { sheet: 'Ship', tab: 'combat', selector: '.tab-combat .weapon .name button:not(.description-toggle)' },
 	};
