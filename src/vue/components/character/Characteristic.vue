@@ -82,7 +82,8 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 			<div class="box-inner"></div>
 		</div>
 
-		<ContextMenu :disable-menu="!(allowSuperCharacteristics && canMarkSuper)" class="super-char">
+		<!-- Its ⋮ opens the Mark Superior menu from the keyboard too, as a right-click on the label does. -->
+		<ContextMenu :disable-menu="!(allowSuperCharacteristics && canMarkSuper)" class="super-char" trigger>
 			<template v-slot:menu-items>
 				<MenuItem
 					:icon="`${isSuper ? 'far' : 'fas'} fa-star`"
@@ -233,6 +234,17 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 	.super-char {
 		display: contents;
 		white-space: nowrap;
+
+		// The menu's ⋮, its own, which :deep() reaches, sits beside the value's top, over the sheet's background, across
+		// from the star of a super-characteristic.
+		:deep(.menu-trigger) {
+			grid-row: 1 / span 1;
+			grid-column: 1 / span 1;
+			justify-self: end;
+			align-self: start;
+			margin-right: -1.25em;
+			z-index: 2;
+		}
 	}
 
 	.characteristic-label {

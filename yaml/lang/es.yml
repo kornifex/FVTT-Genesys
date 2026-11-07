@@ -316,9 +316,9 @@ Genesys:
 
   # Dialogs Prompts
   Dialogs:
-    ConfirmDeleteItem:
+    ConfirmDelete:
       Title: Confirmar la eliminación
-      Content: Esto eliminará el item. ¿Deseas continuar?
+      Content: ¿Eliminar {name}? Esta acción no se puede deshacer.
     ConfirmUndoEntry:
       Title: Deshacer la entrada
       Award: ¿Deshacer la concesión de PE «{reason}»?

@@ -17,6 +17,7 @@ import {
 	removeRoleSkill,
 	renameRole,
 	Role,
+	roleName,
 } from '@/actor/data/CrewRoster';
 import { Characteristic } from '@/data/Characteristics';
 import type { CheckActor, CheckSkill } from '@/dice/Check';
@@ -269,6 +270,14 @@ describe('Roles', () => {
 		const crew: Crew = { passengers: [], roles: [{ ...role('pilot'), skills: ['Piloting'] }] };
 
 		expect(removeRoleSkill(crew, 'pilot', 'Gunnery')).toBeUndefined();
+	});
+
+	it('goes by its name, or by "Unnamed role" while it has none', () => {
+		const i18n = { localize: (key: string) => `localized ${key}` };
+
+		expect(roleName({ name: 'Gunner' }, i18n)).toBe('Gunner');
+		expect(roleName({ name: '' }, i18n)).toBe('localized Genesys.Labels.UnnamedRole');
+		expect(roleName({ name: '  ' }, i18n)).toBe('localized Genesys.Labels.UnnamedRole');
 	});
 });
 

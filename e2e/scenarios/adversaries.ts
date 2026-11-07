@@ -679,7 +679,7 @@ export async function run(e2e: ScenarioContext) {
 			eachAdversary(() => ['create Gash']),
 		);
 
-		// B: the menus of an adversary's talents and skills (§#131).
+		// B: the menus of an adversary's talents and skills (§#131). A talent's menu holds its Send to chat since #577.
 		e2e.expect(
 			"#131 B1 a non-ranked talent's menu on an adversary offers no Rank Up and Rank Down, a ranked talent's does",
 			await byAdversary(adversaries, async (name) => ({
@@ -687,7 +687,13 @@ export async function run(e2e: ScenarioContext) {
 				Toughened: await menu(name, 'talent', 'Toughened'),
 			})),
 			Object.fromEntries(
-				adversaries.map((name) => [name, { Grit: ['Edit', 'Delete'], Toughened: ['Rank Up', 'Rank Down', 'Edit', 'Delete'] }]),
+				adversaries.map((name) => [
+					name,
+					{
+						Grit: ['Send to chat', 'Edit', 'Delete'],
+						Toughened: ['Rank Up', 'Rank Down', 'Send to chat', 'Edit', 'Delete'],
+					},
+				]),
 			),
 		);
 		e2e.expect(
@@ -746,14 +752,15 @@ export async function run(e2e: ScenarioContext) {
 			await clickMenu('Rival', 'talent', 'Grit', 'Delete');
 			asked = await answer('no');
 		});
+		// The system's deletion dialog replaced Foundry's (#577).
 		e2e.expect(
-			"#252 E1 an adversary talent's Delete asks in Foundry's deletion dialog, which names the talent, No by default, and No keeps it",
+			"#252 E1 an adversary talent's Delete asks in the deletion dialog, which names the talent, No by default, and No keeps it",
 			{ asked, talents: await rivalTalents() },
 			{
 				asked: {
 					application: 'DialogV2',
-					title: 'Delete Item: E2E Grit',
-					content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+					title: 'Confirm Deletion',
+					content: "Delete E2E Grit? This can't be undone.",
 					buttons: ['yes', 'no'],
 					defaultButton: 'no',
 				},
@@ -773,13 +780,13 @@ export async function run(e2e: ScenarioContext) {
 			rankDown = await clickMenu('Nemesis', 'talent', 'Toughened', 'Rank Down', 'no');
 		});
 		e2e.expect(
-			"#252 E3 an adversary talent's Rank Down below rank 1 asks in the step's own dialog, No by default, and No keeps the talent at rank 1",
+			"#252 E3 an adversary talent's Rank Down below rank 1 asks in the deletion dialog, which names the talent, No by default, and No keeps the talent at rank 1",
 			{ dialog: rankDown?.dialog, writes: rankDown?.writes, talents: rankDown?.items.filter((item) => item.startsWith('talent')) },
 			{
 				dialog: {
 					application: 'DialogV2',
-					title: 'Confirm Removal',
-					content: 'This will remove the item. Do you want to proceed?',
+					title: 'Confirm Deletion',
+					content: "Delete E2E Toughened? This can't be undone.",
 					buttons: ['yes', 'no'],
 					defaultButton: 'no',
 				},

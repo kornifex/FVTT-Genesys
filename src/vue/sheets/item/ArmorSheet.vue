@@ -8,6 +8,7 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withQualityRating } from '@/item/data/Qualities';
 import { withoutIndex } from '@/arrays';
+import { confirmDelete } from '@/operations/ItemActions';
 
 const { document: item, system } = useSheetDocument<GenesysItem<'armor'>>();
 
@@ -17,8 +18,13 @@ async function updateQualities(qualities: ContainedItemQuality[] | undefined) {
 	}
 }
 
-function deleteQuality(index: number) {
-	return updateQualities(withoutIndex(system.value.qualities, index));
+// Removing a quality asks first, naming it.
+async function deleteQuality(index: number) {
+	const { name } = system.value.qualities[index];
+	// The list may change while the dialog is open: remove the quality it named, or nothing.
+	if ((await confirmDelete(name)) && system.value.qualities[index]?.name === name) {
+		await updateQualities(withoutIndex(system.value.qualities, index));
+	}
 }
 
 // The name of a quality's rating field, which shows no label of its own: "Pierce Rating".

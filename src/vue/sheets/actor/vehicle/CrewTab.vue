@@ -12,8 +12,19 @@ import ActorTile from '@/vue/components/ActorTile.vue';
 
 import { GenesysActor } from '@/actor/GenesysActor';
 import { draggedGenesysType } from '@/data/DragTransferData';
-import { addRole, CrewPlace, markPilotRole, removeActors, removeRole, removeRoleSkill, renameRole } from '@/actor/data/CrewRoster';
+import {
+	addRole,
+	CrewPlace,
+	markPilotRole,
+	removeActors,
+	removeRole,
+	removeRoleSkill,
+	renameRole,
+	type Role as RoleData,
+	roleName,
+} from '@/actor/data/CrewRoster';
 import { receiveCrewEvent } from '@/operations/CrewDrop';
+import { confirmDelete } from '@/operations/ItemActions';
 import { crewActors } from '@/operations/CrewRoll';
 import { useDragHover } from '@/vue/useDragHover';
 
@@ -55,6 +66,19 @@ function sortPassenger(left: { sort: number }, right: { sort: number }) {
 
 function addNewRole() {
 	void system.value.updateCrew((crew) => addRole(crew, foundry.utils.randomID()));
+}
+
+// Deleting a Role asks first, naming it: its members leave the Crew with it.
+async function deleteRole(role: RoleData) {
+	if (await confirmDelete(roleName(role, game.i18n))) {
+		await system.value.updateCrew((crew) => removeRole(crew, role.id));
+	}
+}
+
+async function removeSkill(role: RoleData, skill: string) {
+	if (await confirmDelete(skill)) {
+		await system.value.updateCrew((crew) => removeRoleSkill(crew, role.id, skill));
+	}
 }
 
 function dropToPassengers(event: DragEvent, place: CrewPlace) {
@@ -108,10 +132,10 @@ function resetDrags() {
 						:members="role.members"
 						:pilot="role.pilot"
 						:dragging="roleDrag.isHovered.value"
-						@delete="system.updateCrew((crew) => removeRole(crew, role.id))"
+						@delete="deleteRole(role)"
 						@update-pilot="(pilot) => system.updateCrew((crew) => markPilotRole(crew, role.id, pilot))"
 						@update-name="(newName) => system.updateCrew((crew) => renameRole(crew, role.id, newName))"
-						@remove-skill="(skillName) => system.updateCrew((crew) => removeRoleSkill(crew, role.id, skillName))"
+						@remove-skill="(skillName) => removeSkill(role, skillName)"
 						@remove-member="(memberId) => system.updateCrew((crew) => removeActors(crew, [memberId]))"
 						@entity-drop="(event, memberUnder) => dropToRole(event, role.id, memberUnder)"
 					/>

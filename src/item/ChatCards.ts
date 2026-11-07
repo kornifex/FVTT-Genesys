@@ -94,6 +94,25 @@ export type ItemCard = {
  */
 type Localizer = { localize(key: string): string; format(key: string, data: Record<string, string>): string };
 
+// The item types a card posts: every `CardSource`.
+const CARD_TYPES: ReadonlySet<string> = new Set<CardSource['type']>([
+	'ability',
+	'talent',
+	'armor',
+	'weapon',
+	'vehicleWeapon',
+	'consumable',
+	'gear',
+	'container',
+]);
+
+/**
+ * Whether an item of this type has a chat card: a skill, an injury, an Archetype or a Career has none.
+ */
+export function hasChatCard(type: string) {
+	return CARD_TYPES.has(type);
+}
+
 /**
  * The template of an item's chat card and the data it is rendered with. Descriptions are left as they are saved, for
  * the poster to enrich.

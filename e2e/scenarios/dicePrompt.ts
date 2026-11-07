@@ -1884,8 +1884,9 @@ export async function run(e2e: ScenarioContext) {
 			{
 				click: { prompts: 0, notifications: [] },
 				sheet: true,
-				twig: ['Edit', 'Delete'],
-				knife: ['Edit', 'Perform Check', 'Delete'],
+				// The row's own entries first, then a separator, as every row's menu has them since #577.
+				twig: ['Send to chat', 'Edit', 'Delete'],
+				knife: ['Perform Check', '', 'Send to chat', 'Edit', 'Delete'],
 			},
 		);
 

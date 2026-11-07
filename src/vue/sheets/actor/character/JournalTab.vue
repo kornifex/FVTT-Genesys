@@ -8,6 +8,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 import Editor from '@/vue/components/Editor.vue';
 import { AwardXPPrompt } from '@/app/AwardXPPrompt';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
@@ -112,19 +113,21 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			</div>
 
 			<div class="entries">
-				<div v-for="(entry, index) in system.experienceJournal.entries" :key="index" class="entry">
+				<!-- An entry's menu undoes it, in a dialog that says what the undo does; the Starting XP can't be undone, and
+				has no menu. -->
+				<RowActions
+					v-for="(entry, index) in system.experienceJournal.entries"
+					:key="index"
+					class="entry"
+					:focus-key="`journal-${index}`"
+					:deletable="entry.type !== JournalEntryType.Starting"
+					:removal="{ label: 'Genesys.XPJournal.UndoEntry', run: () => removeJournalEntry(index) }"
+				>
 					<div>
 						<Localized :label="ENTRY_LABELS[entry.type]" :format-args="journalEntryFormatArgs(entry)" enriched />
 					</div>
 					<div class="value">{{ entry.amount }}</div>
-					<ActionButton
-						v-if="entry.type !== JournalEntryType.Starting"
-						icon="fas fa-trash"
-						label="Genesys.XPJournal.UndoEntry"
-						edits
-						@click="removeJournalEntry(index)"
-					/>
-				</div>
+				</RowActions>
 			</div>
 		</section>
 
@@ -296,7 +299,8 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 	.entry {
 		padding: 0.25em;
 
-		.action-button {
+		// The entry's ⋮ is its menu's own, which :deep() reaches.
+		:deep(.menu-trigger) {
 			grid-column: 4 / span 1;
 		}
 

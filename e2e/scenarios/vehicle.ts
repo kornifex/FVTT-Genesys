@@ -75,6 +75,8 @@ type VehicleHelpers = {
 	click(args: { actor: string; target: Target }): Promise<void>;
 	/** Opens the context menu of an element of an actor's sheet and clicks its entry showing that icon. */
 	menu(args: { actor: string; target: Target; icon: string }): Promise<void>;
+	/** Opens the ⋮ menu of a row or a tile (#577), and gives its entries' labels, a separator as `---`. */
+	menuLabels(args: { actor: string; target: Target }): Promise<string[]>;
 	rename(vehicle: string, role: number, name: string): Promise<void>;
 	setRoleSkills(args: { vehicle: string; role: number; skills: string[] }): Promise<void>;
 	/** The vehicles updated with a change to their Crew since the last call. */
@@ -348,6 +350,10 @@ function installVehicleHelpers() {
 
 		async click({ actor, target }) {
 			(find(await sheet(actor), target) as HTMLElement).click();
+		},
+
+		async menuLabels({ actor, target }) {
+			return window.e2e.rowMenu(find(await sheet(actor), target));
 		},
 
 		async menu({ actor, target, icon }) {
@@ -871,9 +877,32 @@ async function crewDrops(e2e: ScenarioContext) {
 		{ V1: { passengers: ['A'], roles: v1Roles([]) }, V2: { passengers: ['D', 'P', 'B'], roles: [] } },
 	);
 
+	// The Role's Delete and a skill's × ask first since #577: Yes answers them.
+	const answer = (yesOrNo: 'yes' | 'no') => gm.evaluate((value) => window.e2e.answerConfirm(value), yesOrNo);
+	const deletion = (name: string) => ({
+		application: 'DialogV2',
+		title: 'Confirm Deletion',
+		content: `Delete ${name}? This can't be undone.`,
+		buttons: ['yes', 'no'],
+		defaultButton: 'no',
+	});
+	const gunnerRole = ['.tab-crew .roles .role-section|2', '.role-name .menu-container|1'];
+	let asked: unknown;
+	await step(
+		'#577 D1 the Delete of the Gunner Role clicked, and No answered',
+		async () => {
+			await vehicleE2E('menu', { actor: 'V1', target: gunnerRole, icon: 'fa-trash' });
+			asked = await answer('no');
+		},
+		{ V1: { passengers: ['A'], roles: v1Roles([]) }, V2: { passengers: ['D', 'P', 'B'], roles: [] } },
+	);
+	e2e.expect('#577 D1 deleting a Role asks first, in the deletion dialog that names it, No by default', asked, deletion('Gunner'));
 	await step(
 		'#109 E1 Gunner deleted',
-		() => vehicleE2E('click', { actor: 'V1', target: ['.tab-crew .roles .role-section|2', '.role-name button|1'] }),
+		async () => {
+			await vehicleE2E('menu', { actor: 'V1', target: gunnerRole, icon: 'fa-trash' });
+			await answer('yes');
+		},
 		{
 			V1: { passengers: ['A'], roles: [expectedRole('Pilot', { skills: ['E2E Piloting'] })] },
 			V2: { passengers: ['D', 'P', 'B'], roles: [] },
@@ -883,12 +912,20 @@ async function crewDrops(e2e: ScenarioContext) {
 	await vehicleE2E('setRoleSkills', { vehicle: 'V1', role: 1, skills: ['E2E Piloting', 'E2E piloting'] });
 	await e2e.settle();
 	await step(
-		'#109 E2 a skill removed from its Role menu, in both its cases',
-		() => vehicleE2E('menu', { actor: 'V1', target: [...role(1), '.role-skill|1'], icon: 'fa-trash' }),
+		'#109 E2 a skill removed from its Role by its ×, in both its cases',
+		async () => {
+			await vehicleE2E('click', { actor: 'V1', target: [...role(1), '.role-skill|1', '.remove-skill|1'] });
+			asked = await answer('yes');
+		},
 		{
 			V1: { passengers: ['A'], roles: [expectedRole('Pilot')] },
 			V2: { passengers: ['D', 'P', 'B'], roles: [] },
 		},
+	);
+	e2e.expect(
+		'#577 D2 removing a Role skill by its × asks first, in the deletion dialog that names the skill',
+		asked,
+		deletion('E2E Piloting'),
 	);
 
 	// A move whose second update fails, then a drop of an actor the Crew already has.
@@ -946,11 +983,47 @@ async function crewDrops(e2e: ScenarioContext) {
 		drag({ vehicle: 'V3', tile: roleMemberTile(1, 1) }, { vehicle: 'V3', target: role(1) }),
 		{ V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L', 'R'] })] } },
 	);
+	// Its entry reads Remove from Crew since #577, and asks nothing: the actor stays in the world.
+	let removalAsked: unknown;
 	await step(
 		'#109 F6 R removed from its Role member menu leaves the Crew',
-		() => vehicleE2E('menu', { actor: 'V3', target: [...roleMember(1, 2), '.actions|1'], icon: 'fa-trash' }),
+		async () => {
+			await vehicleE2E('menu', { actor: 'V3', target: [...roleMember(1, 2), '.actions|1'], icon: 'fa-user-minus' });
+			removalAsked = await gm.evaluate(() => window.e2e.answerConfirm('yes'));
+		},
 		{ V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L'] })] } },
 	);
+	e2e.expect('#577 D3 Remove from Crew asks nothing', removalAsked, null);
+
+	// §#577: a tile's menu places its actor in the Crew, which a drag did alone.
+	let menus: unknown;
+	await step(
+		"#577 A1 N assigned to the unnamed Role from its passenger tile's menu",
+		async () => {
+			menus = await vehicleE2E('menuLabels', { actor: 'V3', target: [...passengerTile('N'), '.actions|1'] });
+			await vehicleE2E('menu', { actor: 'V3', target: [...passengerTile('N'), '.actions|1'], icon: 'fa-user-tag' });
+		},
+		{ V3: { passengers: [], roles: [expectedRole('', { members: ['L', 'N'] })] } },
+	);
+	e2e.expect(
+		"#577 A1 a passenger's menu offers each Role by its name, an unnamed one as Unnamed role, then Edit and Remove from Crew",
+		menus,
+		['Assign to Unnamed role', '---', 'Edit', 'Remove from Crew'],
+	);
+	await step(
+		"#577 A2 N moved back to the passengers from its Role member tile's menu",
+		async () => {
+			menus = await vehicleE2E('menuLabels', { actor: 'V3', target: [...roleMember(1, 2), '.actions|1'] });
+			await vehicleE2E('menu', { actor: 'V3', target: [...roleMember(1, 2), '.actions|1'], icon: 'fa-users' });
+		},
+		{ V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L'] })] } },
+	);
+	e2e.expect("#577 A2 a Role member's menu leaves its own Role out, and offers to move it to the passengers", menus, [
+		'Move to passengers',
+		'---',
+		'Edit',
+		'Remove from Crew',
+	]);
 	await step('#109 F7 U, making unlinked tokens, dropped from the sidebar on the Role', fromSidebar('U', role(1), 'V3'), {
 		V3: { passengers: ['N'], roles: [expectedRole('', { members: ['L'] })] },
 	});

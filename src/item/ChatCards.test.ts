@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Characteristic } from '@/data/Characteristics';
-import { chatCard, enrichedQualities, ItemCard } from '@/item/ChatCards';
+import { chatCard, enrichedQualities, hasChatCard, ItemCard } from '@/item/ChatCards';
 
 const i18n = {
 	localize: (key: string) => key.split('.').pop()!,
@@ -218,6 +218,19 @@ describe('chatCard', () => {
 			system: { description: '<p>Long.</p>' },
 			description: '<p>Long.</p>',
 		});
+	});
+});
+
+describe('hasChatCard', () => {
+	it.each(['ability', 'talent', 'armor', 'weapon', 'vehicleWeapon', 'consumable', 'gear', 'container'])(
+		'posts a card of a %s',
+		(type) => {
+			expect(hasChatCard(type)).toBe(true);
+		},
+	);
+
+	it.each(['skill', 'injury', 'archetype', 'career'])('posts no card of a %s', (type) => {
+		expect(hasChatCard(type)).toBe(false);
 	});
 });
 

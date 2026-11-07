@@ -41,8 +41,14 @@ export function takeFocus(key: string, to: HTMLElement): boolean {
 		return false;
 	}
 
-	forget();
 	to.focus();
+	if (to.ownerDocument.activeElement !== to) {
+		// A ⋮ in a closed fold, such as a Container's contents, can't take the focus: the fallback takes it as the old ⋮
+		// leaves.
+		return false;
+	}
+
+	forget();
 	return true;
 }
 

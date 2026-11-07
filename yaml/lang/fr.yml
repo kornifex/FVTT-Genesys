@@ -318,9 +318,9 @@ Genesys:
 
   # Dialogs Prompts
   Dialogs:
-    ConfirmDeleteItem:
+    ConfirmDelete:
       Title: Confirmer la suppression
-      Content: L'objet va être supprimé. Êtes-vous sûr ?
+      Content: Supprimer {name} ? Cette action est irréversible.
     ConfirmUndoEntry:
       Title: Annuler l'entrée
       Award: Annuler l'attribution d'XP « {reason} » ?
@@ -541,9 +541,6 @@ Genesys:
       Unequip: Déséquiper
       Drop: Laisser
       PickUp: Ramasser
-      ToChat: Au chat
-      Edit: Éditer
-      Delete: Supprimer
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
@@ -580,7 +577,7 @@ Genesys:
     KnowledgeSkills: Compétences de connaissances
     Category: Catégorie
     Skills: Compétences
-    Delete: Suprimer
+    Delete: Supprimer
     Edit: Editer
     NoCareer: Aucune carrière sélectionnée - glissez en une !
     NoArchetype: Aucun archetype sélectionné - glissez en un !
@@ -685,7 +682,13 @@ Genesys:
     BuyTalentRank: Acheter un rang du talent
     BuySkillRank: Acheter un rang
     RaiseCharacteristic: Augmenter la caractéristique
-    DeleteRole: Supprimer le rôle
     RemoveSkill: Retirer la compétence
     RemoveQuality: Retirer l'attribut
     RemoveGrantedItem: Retirer l'objet accordé
+    PutInContainer: Ranger dans {container}
+    TakeOutOfContainer: Sortir de {container}
+    AssignToRole: Affecter au rôle {role}
+    UnnamedRole: Rôle sans nom
+    MoveToPassengers: Passer en passager
+    RemoveFromCrew: Retirer de l'équipage
+    RemoveNamedSkill: Retirer {skill}

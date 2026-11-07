@@ -10,10 +10,9 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import { itemsOfType } from '@/item/ItemTypes';
 import { openSheet, removeArchetype, removeCareer } from '@/operations/ItemActions';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<'character'>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 
 const archetype = toRef(() => itemsOfType(actor.value, 'archetype').at(0));
 const career = toRef(() => itemsOfType(actor.value, 'career').at(0));
@@ -35,22 +34,17 @@ const silhouetteId = useId();
 			<label><Localized label="Genesys.Labels.SpeciesArchetype" /></label>
 			<div>
 				<span v-if="archetype" class="archetype">
-					<ContextMenu>
-						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(archetype)" />
-
-							<MenuItem
-								v-if="editable && canRemoveArchetype(system)"
-								icon="fas fa-trash"
-								label="Genesys.Labels.Delete"
-								@click="removeArchetype(actor, archetype)"
-							/>
-						</template>
-
+					<!-- Its Delete takes back what the Archetype gave, in a dialog that says what. -->
+					<RowActions
+						:document="archetype"
+						:deletable="canRemoveArchetype(system)"
+						:removal="{ run: () => removeArchetype(actor, archetype!) }"
+						orientation="right"
+					>
 						<ActionButton @click="openSheet(archetype)"
 							>{{ archetype.name }} <i class="fas fa-arrow-up-right-from-square"></i
 						></ActionButton>
-					</ContextMenu>
+					</RowActions>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoArchetype" /></span>
 			</div>
@@ -60,23 +54,17 @@ const silhouetteId = useId();
 			<label><Localized label="Genesys.Labels.Career" /></label>
 			<div>
 				<span v-if="career" class="career">
-					<ContextMenu>
-						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(career)" />
-
-							<!-- Deleting the Career then dropping another would get around the rule its drop follows. -->
-							<MenuItem
-								v-if="editable && canReplaceCareer(system.experienceJournal.entries)"
-								icon="fas fa-trash"
-								label="Genesys.Labels.Delete"
-								@click="removeCareer(actor, career)"
-							/>
-						</template>
-
+					<!-- Deleting the Career then dropping another would get around the rule its drop follows. -->
+					<RowActions
+						:document="career"
+						:deletable="canReplaceCareer(system.experienceJournal.entries)"
+						:removal="{ run: () => removeCareer(actor, career!) }"
+						orientation="right"
+					>
 						<ActionButton @click="openSheet(career)"
 							>{{ career.name }} <i class="fas fa-arrow-up-right-from-square"></i
 						></ActionButton>
-					</ContextMenu>
+					</RowActions>
 				</span>
 				<span v-else><Localized label="Genesys.Labels.NoCareer" /></span>
 			</div>

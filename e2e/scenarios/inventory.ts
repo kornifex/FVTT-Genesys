@@ -88,13 +88,19 @@ type InventoryHelpers = {
 	dropOnItemSheet(source: Source, item: string, actor?: string): Promise<void>;
 	/**
 	 * Types a rating in the n-th quality of a sidebar weapon's or armor's sheet, as leaving the field does, or deletes the
-	 * quality from its trash icon when the rating is `null`.
+	 * quality from its trash icon when the rating is `null`, answering Yes to the dialog that asks first: the dialog read,
+	 * null when none opens.
 	 */
-	editQuality(item: string, quality: number, rating: string | null): Promise<void>;
+	editQuality(item: string, quality: number, rating: string | null): Promise<ConfirmDialog | null>;
 	/** Picks an action in the menu of an item's inventory row. */
 	menu(actor: string, item: string, action: MenuAction): Promise<void>;
 	/** Changes a field of an item's sheet, as typing in it does. */
 	editItemSheet(actor: string, item: string, field: string, value: string): Promise<void>;
+	/**
+	 * Runs the entry of that label from the ⋮ menu of an item's inventory row (#577), the row of a Container's contents
+	 * once the Container is opened, and gives the menu's labels.
+	 */
+	menuEntry(actor: string, item: string, label: string): Promise<string[]>;
 	/** The entries of the menu of an item's inventory row, as `Label [icon]`, a separator as `---`. */
 	menuEntries(actor: string, item: string): Promise<string[]>;
 	/**
@@ -809,12 +815,14 @@ function installInventoryHelpers() {
 			const row = root.querySelectorAll('.data-rated')[index];
 			if (rating === null) {
 				row.querySelector<HTMLElement>('button')!.click();
-			} else {
-				const input = row.querySelector<HTMLInputElement>('input')!;
-				input.value = rating;
-				input.dispatchEvent(new FocusEvent('blur'));
+				// The removal asks first since #577: Yes removes the quality.
+				return window.e2e.answerConfirm('yes');
 			}
+			const input = row.querySelector<HTMLInputElement>('input')!;
+			input.value = rating;
+			input.dispatchEvent(new FocusEvent('blur'));
 			await settle();
+			return null;
 		},
 
 		async menu(ref, name, action) {
@@ -834,6 +842,11 @@ function installInventoryHelpers() {
 			);
 			entry.click();
 			await settle();
+		},
+
+		async menuEntry(ref, name, label) {
+			await window.e2e.showTab(ref, 'inventory');
+			return window.e2e.rowMenu(await heldRow(ref, name), label);
 		},
 
 		async menuEntries(ref, name) {
@@ -1396,8 +1409,8 @@ function held(item: string, by: string): Source {
 	return { held: item, by };
 }
 
-// The entries every inventory row's menu ends with.
-const MENU_TAIL = ['To Chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
+// The entries every inventory row's menu ends with, under the labels every row's menu shares since #577.
+const MENU_TAIL = ['Send to chat [fa-comment]', 'Edit [fa-edit]', 'Delete [fa-trash]'];
 
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -1470,7 +1483,21 @@ export async function run(e2e: ScenarioContext) {
 		);
 		await e2e.step("#251 a rating of 4 typed for the Mail's quality in its sheet", editQuality('Mail', '4'));
 		e2e.expect("#251 an armor's quality takes the rating typed in its sheet", await qualities('Mail'), ['E2E Quality 4']);
-		await e2e.step("#251 the Mail's quality deleted from its sheet", editQuality('Mail', null));
+		let askedForQuality: unknown;
+		await e2e.step("#251 the Mail's quality deleted from its sheet", async () => {
+			askedForQuality = await editQuality('Mail', null)();
+		});
+		e2e.expect(
+			'#577 Q1 removing a Quality of a list asks first, in the deletion dialog that names it, No by default',
+			askedForQuality,
+			{
+				application: 'DialogV2',
+				title: 'Confirm Deletion',
+				content: "Delete E2E Quality? This can't be undone.",
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+		);
 		e2e.expect("#251 an armor's quality deleted from its sheet is removed", await qualities('Mail'), []);
 
 		await e2e.step('#82 A2 a talent dropped on an archetype sheet', () =>
@@ -2436,7 +2463,7 @@ async function menuKeyboard(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	const keys = () => gm.evaluate(() => window.inventoryE2E.menuKeys('Hoarder', 'Lantern'));
 	let state: MenuKeys | undefined;
-	// The menu of a carried gear: Drop, then a separator, To Chat, Edit and Delete.
+	// The menu of a carried gear, with no Container to put it in: Drop, then a separator, Send to chat, Edit and Delete.
 	await gm.evaluate(() => window.inventoryE2E.createItems('Hoarder', [{ name: 'Lantern', type: 'gear', system: { state: 'carried' } }]));
 
 	try {
@@ -2469,9 +2496,9 @@ async function menuKeyboard(e2e: ScenarioContext) {
 		});
 		const afterRun = await keys();
 		e2e.expect(
-			'#576 K3 ArrowDown moves past the separator to To Chat, and Enter runs it, closes the menu and gives the focus back to the ⋮',
+			'#576 K3 ArrowDown moves past the separator to Send to chat, and Enter runs it, closes the menu and gives the focus back to the ⋮',
 			{ moved: state?.focus, posted: afterRun.messages - messages, open: afterRun.open, focus: afterRun.focus },
-			{ moved: 'To Chat', posted: 1, open: false, focus: 'Actions' },
+			{ moved: 'Send to chat', posted: 1, open: false, focus: 'Actions' },
 		);
 
 		await e2e.step('#576 E1 the menu opened again with ArrowUp, then Escape pressed', async () => {
@@ -2587,6 +2614,8 @@ async function containerFold(e2e: ScenarioContext) {
 		await toggle(),
 		{ text: '8 Items', expanded: false, icon: 'fa-chevron-right', controlsFold: true },
 	);
+	// The Chest goes with its contents: the parts after this one find the Hoarder's rows offering no Container (#577).
+	await gm.evaluate(() => window.inventoryE2E.deleteItem('Hoarder', 'Chest'));
 	await gm.evaluate(() => window.e2e.closeSetUp());
 }
 
@@ -2615,29 +2644,50 @@ async function itemActions(e2e: ScenarioContext) {
 			vehicleWeapon: await entries('Barge', 'Harpoon'),
 			vehicleGear: await entries('Barge', 'Tarp'),
 		},
+		// The Stepper's Pouch is a Container, which the items that are none can be put in (#577).
 		{
-			weapon: ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
-			wornArmor: ['Unequip [fa-suitcase]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
-			carriedArmor: ['Equip [fa-shield]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL],
-			droppedGear: ['Pick Up [fa-suitcase]', '---', ...MENU_TAIL],
+			weapon: ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', 'Put in E2E Pouch [fa-box-open]', '---', ...MENU_TAIL],
+			wornArmor: ['Unequip [fa-suitcase]', 'Drop [fa-box-archive]', 'Put in E2E Pouch [fa-box-open]', '---', ...MENU_TAIL],
+			carriedArmor: ['Equip [fa-shield]', 'Drop [fa-box-archive]', 'Put in E2E Pouch [fa-box-open]', '---', ...MENU_TAIL],
+			droppedGear: ['Pick Up [fa-suitcase]', 'Put in E2E Pouch [fa-box-open]', '---', ...MENU_TAIL],
 			container: ['Drop [fa-box-archive]', '---', ...MENU_TAIL],
 			vehicleWeapon: ['Equip [fa-hand-fist]', '---', ...MENU_TAIL],
 			vehicleGear: MENU_TAIL,
 		},
 	);
 
-	const dialog = {
+	// The deletion dialog, which names the item since #577.
+	// §#577: putting an item in a Container and taking it out, which a drag did alone, from the row's menu.
+	const menuEntry = (item: string, label: string) =>
+		gm.evaluate((args) => window.inventoryE2E.menuEntry('Stepper', args.item, args.label), { item, label });
+	const hauberk = async () =>
+		(await gm.evaluate(() => window.inventoryE2E.items('Stepper'))).filter((name) => name.startsWith('Hauberk'));
+	await e2e.step("#577 M1 Stepper's Hauberk put in the Pouch from its menu", () => menuEntry('Hauberk', 'Put in E2E Pouch'));
+	e2e.expect('#577 M1 Put in moves the item into the Container, which gives it its Equipment State', await hauberk(), [
+		'Hauberk:carried@Pouch',
+	]);
+	let heldMenu: string[] = [];
+	await e2e.step("#577 M2 the Hauberk taken out of the Pouch from its row's menu, in the Pouch's contents", async () => {
+		heldMenu = await menuEntry('Hauberk', 'Take out of E2E Pouch');
+	});
+	e2e.expect(
+		"#577 M2 an item in a Container offers to take it out, and Take out puts it back in the Container's section",
+		{ menu: heldMenu, items: await hauberk() },
+		{ menu: ['Take out of E2E Pouch', '---', 'Send to chat', 'Edit', 'Delete'], items: ['Hauberk:carried'] },
+	);
+
+	const dialog = (name: string) => ({
 		application: 'DialogV2',
-		title: 'Confirm Removal',
-		content: 'This will remove the item. Do you want to proceed?',
+		title: 'Confirm Deletion',
+		content: `Delete E2E ${name}? This can't be undone.`,
 		buttons: ['yes', 'no'],
 		defaultButton: 'no',
-	};
+	});
 	let asked: ConfirmDialog | null = null;
 	await e2e.step("#252 A1 Stepper's Pebble stepped down to a quantity of 0 from its row, and No answered", async () => {
 		asked = await stepToDeletion('Stepper', 'Pebble', 'quantity', 'no');
 	});
-	e2e.expect('#252 A1 an item stepped down to a quantity of 0 asks in an ApplicationV2 dialog, No by default', asked, dialog);
+	e2e.expect('#252 A1 an item stepped down to a quantity of 0 asks in an ApplicationV2 dialog, No by default', asked, dialog('Pebble'));
 	e2e.expect('#252 A1 No keeps the item, at its quantity', await stepperItems(), ['Pebble:carried', 'Shard:carried']);
 	await e2e.step("#252 A2 Stepper's Pebble stepped down again, and Yes answered", async () => {
 		asked = await stepToDeletion('Stepper', 'Pebble', 'quantity', 'yes');
@@ -2650,7 +2700,7 @@ async function itemActions(e2e: ScenarioContext) {
 		'#252 A3 an item damaged past major damage asks in the same dialog, and Yes deletes it',
 		{ asked, items: await stepperItems() },
 		{
-			asked: dialog,
+			asked: dialog('Shard'),
 			items: [],
 		},
 	);
@@ -2667,13 +2717,11 @@ async function itemActions(e2e: ScenarioContext) {
 	await e2e.step("#252 D1 Stepper's Twine deleted from its menu, and No answered", async () => {
 		asked = await deleteFromMenu('Twine', 'no');
 	});
-	e2e.expect("#252 D1 an inventory row's Delete asks in Foundry's deletion dialog, which names the item, No by default", asked, {
-		application: 'DialogV2',
-		title: 'Delete Item: E2E Twine',
-		content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
-		buttons: ['yes', 'no'],
-		defaultButton: 'no',
-	});
+	e2e.expect(
+		"#252 D1 an inventory row's Delete asks in the deletion dialog, which names the item, No by default",
+		asked,
+		dialog('Twine'),
+	);
 	e2e.expect('#252 D1 No keeps the item', await twine(), ['Twine:dropped']);
 	await e2e.step("#252 D2 Stepper's Twine deleted from its menu, and Yes answered", async () => {
 		asked = await deleteFromMenu('Twine', 'yes');
@@ -2725,7 +2773,7 @@ async function itemActions(e2e: ScenarioContext) {
 	e2e.expect(
 		'#580 A4 a quantity of 0 typed into a row asks as a step down to 0 does, and No keeps the item at its quantity',
 		{ asked, quantity: (await counter('Pick', 'quantity'))?.shown },
-		{ asked: dialog, quantity: '5' },
+		{ asked: dialog('Pick'), quantity: '5' },
 	);
 }
 
@@ -2751,7 +2799,8 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 	});
 	const rover = async () => ({ equipped: await section('Rover', 'equipped'), carried: await section('Rover', 'carried') });
 	await gm.evaluate(() => window.e2e.showTab('Placer', 'inventory'));
-	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', '---', ...MENU_TAIL];
+	// The Placer's Basket is a Container, which the Lance can be put in (#577).
+	const lanceMenu = ['Equip [fa-hand-fist]', 'Drop [fa-box-archive]', 'Put in E2E Basket [fa-box-open]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 A1 a right-click on a character's inventory row opens the menu of its … button, which a left-click still opens",
 		{ rightClick: await rightClick('Placer', 'Lance'), button: await entries('Placer', 'Lance') },
@@ -2840,13 +2889,18 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 	);
 	const player = await e2e.player();
 	await player.evaluate(installInventoryHelpers);
+	// §#577: a sheet the user can't edit keeps the entries that edit nothing, and a Container's contents have a menu of
+	// their own, which takes them out of it.
 	e2e.expect(
-		"#358 A3 a right-click opens no menu on the row of a sheet the user can't edit, nor on a Container's contents",
+		"#577 C1 a right-click opens the row's menu on a sheet the user can't edit, with Send to chat and Edit alone, and on a Container's contents, which it takes out",
 		{
 			observer: await player.evaluate(() => window.inventoryE2E.rightClickMenu('Ally', 'Lockpick')),
 			contents: await rightClick('Placer', 'Berry'),
 		},
-		{ observer: null, contents: null },
+		{
+			observer: ['Send to chat [fa-comment]', 'Edit [fa-edit]'],
+			contents: ['Take out of E2E Basket [fa-arrow-right-from-bracket]', '---', ...MENU_TAIL],
+		},
 	);
 
 	e2e.expect(
@@ -2926,7 +2980,8 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 	});
 
 	await gm.evaluate(() => window.e2e.showTab('Rover', 'inventory'));
-	const railgunMenu = ['Unequip [fa-suitcase]', '---', ...MENU_TAIL];
+	// The Rover's Locker is a Container, which the Railgun can be put in (#577).
+	const railgunMenu = ['Unequip [fa-suitcase]', 'Put in E2E Locker [fa-box-open]', '---', ...MENU_TAIL];
 	e2e.expect(
 		"#358 C1 a right-click on a vehicle's inventory row opens the menu of its … button",
 		{ rightClick: await rightClick('Rover', 'Railgun'), button: await entries('Rover', 'Railgun') },

@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { shallowRef, useId, watch } from 'vue';
+import { shallowRef, useId, useTemplateRef, watch } from 'vue';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 
 import type { Stored } from '@/data/Stored';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { useDragHover } from '@/vue/useDragHover';
@@ -25,6 +25,7 @@ const props = withDefaults(
 	},
 );
 
+// The Role's deletion and its skills' removals ask first: the Crew tab confirms them.
 const emit = defineEmits<{
 	(e: 'delete'): void;
 	(e: 'updateName', newName: string): void;
@@ -36,6 +37,14 @@ const emit = defineEmits<{
 
 const { isHovered, enter, leave, reset } = useDragHover();
 const fieldId = useId();
+const menu = useTemplateRef<ContextMenuHandle>('menu');
+
+// A right-click on the Role opens its menu, except in its name's field, which keeps the browser's own.
+function openMenu(event: MouseEvent) {
+	if (!(event.target as Element).closest('input')) {
+		menu.value?.open(event);
+	}
+}
 // Shallow, so that Vue never wraps the actors in reactive proxies.
 const actorsInRole = shallowRef<Stored<GenesysActor>[]>([]);
 
@@ -56,6 +65,10 @@ watch(
 	{ immediate: true },
 );
 
+function removeSkillLabel(skill: string) {
+	return game.i18n.format('Genesys.Labels.RemoveNamedSkill', { skill });
+}
+
 function drop(event: DragEvent, memberUnder?: string) {
 	reset();
 
@@ -75,7 +88,8 @@ function drop(event: DragEvent, memberUnder?: string) {
 		@dragleave="leave"
 		@drop="drop($event)"
 	>
-		<div class="role-data">
+		<!-- A right-click on the Role's name or skills opens its menu, at the pointer; its members' tiles have their own. -->
+		<div class="role-data" @contextmenu="openMenu">
 			<div class="role-name">
 				<label :for="`${fieldId}-name`"><Localized label="Genesys.Labels.Name" /></label>
 				<input
@@ -84,20 +98,26 @@ function drop(event: DragEvent, memberUnder?: string) {
 					:value="name"
 					@change="emit('updateName', ($event.target as HTMLInputElement).value)"
 				/>
-				<ActionButton icon="fas fa-trash" label="Genesys.Labels.DeleteRole" edits @click="emit('delete')" />
+				<!-- The Role's menu: its Delete asks first, naming it. -->
+				<RowActions ref="menu" :removal="{ run: () => emit('delete') }" :focus-key="props.id" />
 			</div>
 			<div class="underline" />
 
 			<div class="role-skills">
 				<label><Localized label="Genesys.Labels.Skills" /></label>
 				<div>
-					<ContextMenu v-for="skill in skills" :key="skill" class="role-skill">
-						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeSkill', skill)" />
-						</template>
-
-						<span>{{ skill }}</span>
-					</ContextMenu>
+					<!-- Each skill's × removes it from the Role, once the user confirms. -->
+					<span v-for="skill in skills" :key="skill" class="role-skill">
+						<span
+							>{{ skill }}
+							<ActionButton
+								class="remove-skill"
+								icon="fas fa-xmark"
+								:localized-label="removeSkillLabel(skill)"
+								edits
+								@click="emit('removeSkill', skill)"
+						/></span>
+					</span>
 				</div>
 			</div>
 			<div class="underline" />

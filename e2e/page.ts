@@ -234,8 +234,16 @@ type PageHelpers = {
 	effectRows: (sheet: Element | { element?: unknown }) => EffectsTabRow[];
 	/** Clicks the on/off toggle of an Effects tab row, and waits for the row to show its effect turned on or off. */
 	toggleEffect: (row: EffectsTabRow) => Promise<void>;
-	/** Clicks the Edit button of an Effects tab row, which opens its effect's sheet: the caller waits for the one it expects. */
-	editEffect: (row: EffectsTabRow) => void;
+	/** Runs Edit from the ⋮ menu of an Effects tab row, which opens its effect's sheet: the caller waits for the one it expects. */
+	editEffect: (row: EffectsTabRow) => Promise<void>;
+	/**
+	 * Opens a row's ⋮ menu (#577), by the row, or the menu's own container, and gives its entries as their labels, a
+	 * separator as `---`; then runs the entry whose label or icon class is `run`, or closes the menu. Fails when the row
+	 * shows no ⋮, or has no such entry.
+	 */
+	rowMenu: (row: Element, run?: string) => Promise<string[]>;
+	/** Whether a row shows a ⋮ (#577): a row with no entry to show has none. */
+	hasRowMenu: (row: Element) => boolean;
 	/** Clicks the Add button of a section of a sheet's Effects tab, the first section being 1, and settles. */
 	addEffect: (sheet: Element | { element?: unknown }, section: number) => Promise<void>;
 	/** Gives a user, by name, a permission level on an actor; the user `default` stands for every user without one. */
@@ -708,8 +716,38 @@ export function installHelpers() {
 			await helpers.settle();
 		},
 
-		editEffect(row) {
-			row.element.querySelector<HTMLElement>('.fa-edit')!.closest('button')!.click();
+		async editEffect(row) {
+			// Its ⋮ menu's Edit since #577, a button of the row before.
+			if (helpers.hasRowMenu(row.element)) await helpers.rowMenu(row.element, 'fa-edit');
+			else row.element.querySelector<HTMLElement>('.fa-edit')!.closest('button')!.click();
+		},
+
+		async rowMenu(row, run) {
+			const container = row.matches('.menu-container') ? row : row.querySelector(':scope > .menu-container');
+			const trigger = container?.querySelector<HTMLElement>(':scope > .menu-trigger');
+			if (!container || !trigger) throw new Error(`No ⋮ in the row ${helpers.text(row).slice(0, 60)}`);
+			trigger.click();
+			const menu = await helpers.waitFor('the row menu', () => container.querySelector(':scope > [role="menu"]'));
+			const entries = [...menu.children];
+			const labels = entries.map((entry) => (entry.matches('hr') ? '---' : helpers.text(entry.querySelector('.menu-label'))));
+			if (run === undefined) {
+				document.body.click();
+			} else {
+				const entry = entries.find(
+					(candidate) =>
+						!candidate.matches('hr') &&
+						(helpers.text(candidate.querySelector('.menu-label')) === run || !!candidate.querySelector(`.menu-icon i.${run}`)),
+				);
+				if (!entry) throw new Error(`No entry ${run} in the row menu: ${labels.join(', ')}`);
+				(entry as HTMLElement).click();
+			}
+			await helpers.settle();
+			return labels;
+		},
+
+		hasRowMenu(row) {
+			const container = row.matches('.menu-container') ? row : row.querySelector(':scope > .menu-container');
+			return !!container?.querySelector(':scope > .menu-trigger');
 		},
 
 		async addEffect(sheet, section) {

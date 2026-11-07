@@ -8,6 +8,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 
 defineProps<{
 	effects: Stored<GenesysEffect>[];
@@ -66,18 +67,10 @@ function suppressionReason(effect: GenesysEffect) {
 	return game.i18n.format('Genesys.ActiveEffects.SuppressedByEquipmentState', { item: item.name, state });
 }
 
-async function openEffect(effect: GenesysEffect) {
-	await effect.sheet?.render(true);
-}
-
 async function toggleDisabled(effect: GenesysEffect) {
 	await effect.update({
 		disabled: !effect.disabled,
 	});
-}
-
-async function deleteEffect(effect: GenesysEffect) {
-	await effect.delete();
 }
 </script>
 
@@ -100,7 +93,16 @@ async function deleteEffect(effect: GenesysEffect) {
 
 			<section class="effects-category">
 				<ListEmpty v-if="!effects.some(filter)" />
-				<div v-for="effect in effects.filter(filter)" :key="effect.uuid" class="effect" :data-tooltip="suppressionReason(effect)">
+				<!-- The row is its menu's content: a right-click anywhere on it opens the menu at the pointer, and its ⋮ ends it. An
+				actor's tab can't delete the effect of one of its items, which lives on the item. -->
+				<RowActions
+					v-for="effect in effects.filter(filter)"
+					:key="effect.uuid"
+					class="effect"
+					:data-tooltip="suppressionReason(effect)"
+					:document="effect"
+					:deletable="livesOnSheetDocument(effect)"
+				>
 					<img :src="effect.img ?? undefined" :alt="effect.name" />
 					<div class="name">{{ effect.name }}</div>
 					<div class="source">{{ sourceName(effect) }}</div>
@@ -108,6 +110,7 @@ async function deleteEffect(effect: GenesysEffect) {
 						<Localized v-if="effect.isExpired" label="Genesys.ActiveEffects.Expired" />
 						<template v-else>{{ effect.duration.label }}</template>
 					</div>
+					<!-- The on/off toggle stays on the row, where it shows the effect's state. -->
 					<div v-if="editable" class="buttons">
 						<!-- The button names what it does, which says whether the effect is on, besides the row's opacity. -->
 						<ActionButton
@@ -116,15 +119,9 @@ async function deleteEffect(effect: GenesysEffect) {
 							:style="effect.disabled ? 'opacity: 25%' : undefined"
 							@click="toggleDisabled(effect)"
 						/>
-						<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openEffect(effect)" />
-						<ActionButton
-							v-if="livesOnSheetDocument(effect)"
-							icon="fas fa-trash"
-							label="Genesys.Labels.Delete"
-							@click="deleteEffect(effect)"
-						/>
 					</div>
-				</div>
+					<div v-else />
+				</RowActions>
 			</section>
 		</template>
 	</section>
@@ -148,7 +145,7 @@ async function deleteEffect(effect: GenesysEffect) {
 	.columns {
 		align-items: center;
 		display: grid;
-		grid-template-columns: /* Icon */ 1.5rem /* Name */ 1fr /* Source */ 120px /* Duration */ 120px /* Actions */ 60px;
+		grid-template-columns: /* Icon */ 1.5rem /* Name */ 1fr /* Source */ 120px /* Duration */ 120px /* Toggle */ 2em /* Actions */ 1.5em;
 		grid-template-rows: 1.75rem;
 		column-gap: 0.5em;
 
@@ -186,8 +183,10 @@ async function deleteEffect(effect: GenesysEffect) {
 			grid-column: 1 / span 2;
 		}
 
+		// The section's Add button stands over the toggles and the ⋮.
 		.buttons {
-			grid-column: 5 / span 1;
+			grid-column: 5 / span 2;
+			justify-content: flex-end;
 		}
 	}
 
