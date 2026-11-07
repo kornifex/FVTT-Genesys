@@ -109,10 +109,10 @@ async function deleteEffect(effect: GenesysEffect) {
 						<template v-else>{{ effect.duration.label }}</template>
 					</div>
 					<div v-if="editable" class="buttons">
+						<!-- The button names what it does, which says whether the effect is on, besides the row's opacity. -->
 						<ActionButton
-							icon="fas fa-power-off"
-							label="Genesys.ActiveEffects.Toggle"
-							:pressed="!effect.disabled"
+							:icon="effect.disabled ? 'fas fa-toggle-off' : 'fas fa-toggle-on'"
+							:label="effect.disabled ? 'Genesys.ActiveEffects.TurnOn' : 'Genesys.ActiveEffects.TurnOff'"
 							:style="effect.disabled ? 'opacity: 25%' : undefined"
 							@click="toggleDisabled(effect)"
 						/>

@@ -232,7 +232,7 @@ type PageHelpers = {
 	 * row element, to click its buttons; none when the sheet shows no Effects view.
 	 */
 	effectRows: (sheet: Element | { element?: unknown }) => EffectsTabRow[];
-	/** Clicks the power button of an Effects tab row, and waits for the row to show its effect turned on or off. */
+	/** Clicks the on/off toggle of an Effects tab row, and waits for the row to show its effect turned on or off. */
 	toggleEffect: (row: EffectsTabRow) => Promise<void>;
 	/** Clicks the Edit button of an Effects tab row, which opens its effect's sheet: the caller waits for the one it expects. */
 	editEffect: (row: EffectsTabRow) => void;
@@ -700,8 +700,8 @@ export function installHelpers() {
 		},
 
 		async toggleEffect(row) {
-			const power = row.element.querySelector<HTMLElement>('.fa-power-off')!.closest('button')!;
-			// The power button dims a disabled effect; an effect that changes section leaves its row for another one.
+			const power = row.element.querySelector<HTMLElement>('.fa-toggle-on, .fa-toggle-off')!.closest('button')!;
+			// The toggle dims a disabled effect; an effect that changes section leaves its row for another one.
 			const opacity = power.style.opacity;
 			power.click();
 			await helpers.waitFor(`${row.name} turned on or off`, () => !row.element.isConnected || power.style.opacity !== opacity);

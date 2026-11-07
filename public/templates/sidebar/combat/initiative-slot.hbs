@@ -15,6 +15,8 @@
 		<div class="token-name">
 			<strong class="name">{{name}}</strong>
 			<div class="combatant-controls">
+				{{!-- The slot's side in words, as an unclaimed slot names it, besides its tint. --}}
+				<span class="slot-side">{{localize slotLabel}}</span>
 				{{#if (and canRollInitiative (not hasRolled))}}
 					<button type="button" class="inline-control combatant-control initiative-skill" data-action="cycleInitiativeSkill" data-tooltip="Genesys.Tooltips.CycleInitiativeSkill">{{initiativeSkill}}</button>
 				{{/if}}
@@ -48,6 +50,7 @@
 	<li class="combatant initiative-slot slot-{{slotType}} {{css}}" data-combatant-id="{{id}}" data-slot-id="{{slotId}}">
 		<div class="token-name">
 			{{#if (and canClaim active)}}
+				<span class="slot-side">{{localize slotLabel}}</span>
 				<button type="button" class="claim-slot" data-action="claimInitiativeSlot">{{localize "Genesys.CombatTracker.ClaimInitiativeSlot"}}</button>
 			{{else}}
 				<strong class="name">{{localize slotLabel}}</strong>

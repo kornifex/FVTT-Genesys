@@ -10,6 +10,8 @@ type TrackerRow = {
 	/** The slot, named as in `CombatState.slots`. */
 	slot: string;
 	side: string;
+	/** The side the row names in words: its side label beside a combatant or a Claim button, or its slot label alone. */
+	sideLabel: string | null;
 	claimed: boolean;
 	/** The combatant the row shows, or its "Claim" button or slot label when unclaimed. */
 	name: string;
@@ -219,6 +221,7 @@ function installCombatHelpers() {
 			return [...document.querySelectorAll<HTMLElement>('#combat li.combatant')].map((li) => ({
 				slot: window.e2e.name(li.dataset.slotId),
 				side: li.classList.contains('slot-pc') ? 'pc' : li.classList.contains('slot-npc') ? 'npc' : '?',
+				sideLabel: (li.querySelector('.slot-side') ?? li.querySelector('.token-name .name'))?.textContent?.trim() ?? null,
 				claimed: li.classList.contains('claimed'),
 				name: li.querySelector('.token-name h4, .token-name .name, [data-claim-slot], .claim-slot')?.textContent?.trim() ?? '',
 				initiative: li.querySelector('.initiative')?.textContent?.trim() ?? '',
@@ -977,6 +980,19 @@ export async function run(e2e: ScenarioContext) {
 			bothClients({ 'Hero:-1': false, 'Boss:-1': false, 'Ally:-1': false }),
 		);
 		await e2e.step('#35 GM starts the combat', () => gm.evaluate(() => game.combat.startCombat()));
+		// §#583: the side reads in words, not in the row's tint alone.
+		const sideLabels = async () =>
+			Object.fromEntries(
+				Object.entries(await rows()).map(([user, clientRows]) => [
+					user,
+					Object.fromEntries(clientRows.map((row) => [row.slot, `${row.claimed ? 'claimed' : 'unclaimed'} ${row.sideLabel}`])),
+				]),
+			);
+		e2e.expect(
+			'#583 S1 every unclaimed row names its side, the current one beside its Claim button',
+			await sideLabels(),
+			bothClients({ 'Hero:-1': 'unclaimed PC Slot', 'Boss:-1': 'unclaimed NPC Slot', 'Ally:-1': 'unclaimed PC Slot' }),
+		);
 
 		const claim = await e2e.step("#35 player claims Hero's slot from the tracker, with Hero's token controlled", () =>
 			player.evaluate(() => {
@@ -997,6 +1013,11 @@ export async function run(e2e: ScenarioContext) {
 				notifications: notifications(claim, e2e.playerUser),
 			},
 			{ claims: { 'Hero:-1': 'Hero' }, rows: bothClients(['Hero:-1 Hero']), notifications: [] },
+		);
+		e2e.expect(
+			"#583 S2 a claimed row names its slot's side beside its combatant",
+			await sideLabels(),
+			bothClients({ 'Hero:-1': 'claimed PC Slot', 'Boss:-1': 'unclaimed NPC Slot', 'Ally:-1': 'unclaimed PC Slot' }),
 		);
 
 		// Each refused claim, with the code of its assertion.

@@ -12,6 +12,8 @@ type EffectRow = {
 	source: string;
 	tooltip: string | null;
 	buttons: string[];
+	/** The button that turns the effect on or off: its name, its icon and its `aria-pressed`. */
+	toggle: { name: string | null; icon: string | null; pressed: string | null };
 };
 
 /**
@@ -728,7 +730,7 @@ function installSheetsHelpers() {
 				actions: actions.length,
 				enabledActions: actions.filter((action) => !action.disabled).length,
 				editActions: actions.filter((action) =>
-					action.querySelector(':scope > i:is(.fa-trash, .fa-plus, .fa-arrow-circle-up, .fa-power-off)'),
+					action.querySelector(':scope > i:is(.fa-trash, .fa-plus, .fa-arrow-circle-up, .fa-toggle-on, .fa-toggle-off)'),
 				).length,
 			};
 		},
@@ -1068,13 +1070,22 @@ function installSheetsHelpers() {
 		},
 
 		effectRows(name) {
-			return effectRows(sheetElement(name)).map((row) => ({
-				section: row.section,
-				name: row.name,
-				source: row.source,
-				tooltip: row.tooltip,
-				buttons: [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
-			}));
+			return effectRows(sheetElement(name)).map((row) => {
+				const icon = row.element.querySelector('.buttons i:is(.fa-toggle-on, .fa-toggle-off)');
+				const toggle = icon?.closest('button');
+				return {
+					section: row.section,
+					name: row.name,
+					source: row.source,
+					tooltip: row.tooltip,
+					buttons: [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]),
+					toggle: {
+						name: toggle?.getAttribute('aria-label') ?? null,
+						icon: icon?.classList[1] ?? null,
+						pressed: toggle?.getAttribute('aria-pressed') ?? null,
+					},
+				};
+			});
 		},
 
 		addEffect(name, section) {
@@ -3372,8 +3383,8 @@ export async function run(e2e: ScenarioContext) {
 			}
 			return rows;
 		});
-		const ownerRow = { name: 'E2E Own', source: 'None', buttons: ['fa-power-off', 'fa-edit', 'fa-trash'] };
-		const kitRow = { name: 'E2E Kit effect', source: 'E2E Kit', buttons: ['fa-power-off', 'fa-edit'] };
+		const ownerRow = { name: 'E2E Own', source: 'None', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] };
+		const kitRow = { name: 'E2E Kit effect', source: 'E2E Kit', buttons: ['fa-toggle-on', 'fa-edit'] };
 		e2e.expect(
 			"#102 A1 an actor's Effects tab lists its own effects and its items', with the item as source, and Delete only for its own",
 			ownerRows,
@@ -3420,6 +3431,19 @@ export async function run(e2e: ScenarioContext) {
 			{ opened: [true], rival: ['E2E Own'], effect: { disabled: true, rest: kitBefore.rest } },
 		);
 		e2e.expect("#102 A3 the item's effect was enabled before the power button", kitBefore.disabled, false);
+		e2e.expect(
+			'#583 E1 an effect turned off names its toggle "Turn the effect on", with a switch turned off; one turned on, "Turn the effect off"',
+			await gm.evaluate(() =>
+				window.sheetsE2E
+					.effectRows('Rival')
+					.filter((row) => row.name === 'E2E Own' || row.name === 'E2E Kit effect')
+					.map(({ name, toggle }) => ({ name, toggle })),
+			),
+			[
+				{ name: 'E2E Own', toggle: { name: 'Turn the effect off', icon: 'fa-toggle-on', pressed: null } },
+				{ name: 'E2E Kit effect', toggle: { name: 'Turn the effect on', icon: 'fa-toggle-off', pressed: null } },
+			],
+		);
 		await gm.evaluate(() => window.sheetsE2E.closeAll());
 
 		await e2e.step("#102 GM gives an owned item an effect with an origin and opens the item's Effects tab", () =>
@@ -3436,8 +3460,8 @@ export async function run(e2e: ScenarioContext) {
 			"#102 A4 on an item's Effects tab, Delete shows for every effect, those with an origin included",
 			await gm.evaluate(() => window.sheetsE2E.effectRows('Bearer/Kit').map(({ name, buttons }) => ({ name, buttons }))),
 			[
-				{ name: 'E2E Kit effect', buttons: ['fa-power-off', 'fa-edit', 'fa-trash'] },
-				{ name: 'E2E Origin', buttons: ['fa-power-off', 'fa-edit', 'fa-trash'] },
+				{ name: 'E2E Kit effect', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },
+				{ name: 'E2E Origin', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },
 			],
 		);
 		e2e.expect(

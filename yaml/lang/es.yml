@@ -210,6 +210,8 @@ Genesys:
     SuppressedByEquipmentState: Inactivo mientras el estado de {item} sea «{state}».
     Duration: Duración
     Expired: Expirado
+    TurnOn: Activar el efecto
+    TurnOff: Desactivar el efecto
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada

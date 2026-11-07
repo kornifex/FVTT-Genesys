@@ -474,7 +474,11 @@ function installVehicleHelpers() {
 			);
 			if (!row) throw new Error(`No crew member E2E ${name} in the prompt`);
 			row.click();
-			await waitFor(`crew member ${name} picked in the prompt`, () => row.classList.contains('selected-option'));
+			// The choice reads in its checked radio and its check mark, not in the row's tint alone (#583).
+			await waitFor(
+				`crew member ${name} picked in the prompt`,
+				() => row.querySelector<HTMLInputElement>('input[type="radio"]')?.checked && row.querySelector('.fa-check-circle'),
+			);
 			root.querySelector<HTMLButtonElement>('.submit-button')!.click();
 			// The prompt's closing transition can outlast a step's wait on a busy machine.
 			await waitFor('the crew member prompt to close', () => !foundry.applications.instances.has(app.id));

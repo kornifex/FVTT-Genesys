@@ -26,6 +26,13 @@
 		text-shadow: none;
 	}
 
+	// A claimed slot's side, before its controls.
+	.slot-side {
+		flex: none;
+		font-size: 0.8em;
+		margin-right: 4px;
+	}
+
 	.slot-pc {
 		background: colors.alpha(colors.$initiative-slot-pc, 0.3);
 	}
