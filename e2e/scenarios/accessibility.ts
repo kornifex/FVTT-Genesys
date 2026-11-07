@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -1659,6 +1659,8 @@ export async function run(e2e: ScenarioContext) {
 	// The violations of the running part's checks of a field without a label (#581) and of a target under 24 px, by check.
 	let unlabelledFields: Record<string, string[]> = {};
 	let smallTargets: Record<string, string[]> = {};
+	// The running part's checks that found text under 4.5:1 (#583), in either Style.
+	let lowContrasts: Record<string, string[]> = {};
 	const violated = (findings: Record<string, unknown>, rules: string[]) =>
 		Object.keys(findings).filter(
 			(finding) => rules.some((rule) => finding.startsWith(`${rule} (`)) && !finding.endsWith('(needs review)'),
@@ -1675,7 +1677,13 @@ export async function run(e2e: ScenarioContext) {
 			if (unlabelled.length) unlabelledFields[checked] = unlabelled;
 			const small = violated(findings, ['target-size']);
 			if (small.length) smallTargets[checked] = small;
+			const contrasts = violated(findings, ['color-contrast']);
+			if (contrasts.length) lowContrasts[checked] = contrasts;
 		}
+	};
+	const expectContrasts = (name: string) => {
+		e2e.expect(name, lowContrasts, {});
+		lowContrasts = {};
 	};
 	const expectNamedButtons = (name: string) => {
 		e2e.expect(name, unnamedButtons, []);
@@ -1725,6 +1733,7 @@ export async function run(e2e: ScenarioContext) {
 			expectNamedButtons('#574 A1 no tab of any sheet type has a button without a name');
 			e2e.expect("#575 A1 no sheet type's tab list violates an accessibility rule", tabListViolations, []);
 			expectLabelledFields('#581 L1 no tab of any sheet type has a field or a select without a label');
+			expectContrasts('#583 C1 no tab of any sheet type has text under 4.5:1, in either Style');
 			// The sheets' small targets go to #577 and #579, which rewrite their buttons.
 			smallTargets = {};
 		});
@@ -1740,6 +1749,7 @@ export async function run(e2e: ScenarioContext) {
 			expectNamedButtons('#574 A2 no prompt has a button without a name');
 			expectLabelledFields('#581 L2 no prompt has a field or a select without a label');
 			expectTargetSizes('#581 L3 no prompt has a target under 24 px, the Difficulty dice included');
+			expectContrasts('#583 C2 no prompt has text under 4.5:1, in either Style');
 		});
 
 		// §#576: an open actions menu, which its sheet's check never finds open.
@@ -1762,6 +1772,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('storyPointTracker', async () => {
 			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
 			expectNamedButtons('#574 A3 the Story Point tracker has no button without a name');
+			expectContrasts('#583 C3 the Story Point tracker has no text under 4.5:1, in either Style');
 		});
 
 		// §#574: an action of each sheet type is reached with Tab and run with Enter.
