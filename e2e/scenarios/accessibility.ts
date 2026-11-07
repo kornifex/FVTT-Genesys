@@ -573,8 +573,9 @@ function installAccessibilityHelpers() {
 			spendFound = { points: game.settings.get('genesys', 'storyPoints'), paused: game.paused };
 			await game.settings.set('genesys', 'storyPoints', { ...spendFound.points, player: 2 });
 			if (game.paused) game.togglePause(false, { broadcast: true });
+			// The − of the players' pool's counter, which spends one of its points (§#580).
 			const button = await waitFor('the player pool spend button', () =>
-				document.querySelector<HTMLElement>('#story-point-tracker .player button.points'),
+				document.querySelector<HTMLElement>('#story-point-tracker .player button.decrease'),
 			);
 			for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
 			button.dataset.e2ePointer = '';
@@ -582,7 +583,7 @@ function installAccessibilityHelpers() {
 		},
 
 		spendState() {
-			const button = document.querySelector('#story-point-tracker .player button.points');
+			const button = document.querySelector('#story-point-tracker .player button.decrease');
 			return {
 				player: game.settings.get('genesys', 'storyPoints').player,
 				focused: !!button && document.activeElement === button,
@@ -938,6 +939,8 @@ export async function run(e2e: ScenarioContext) {
 			try {
 				await e2e.step("#574 P3 the players' Story Points clicked with the mouse on the tracker, then Space pressed", async () => {
 					await gm.evaluate(() => window.accessibilityE2E.readySpend());
+					// The pool's − shows while the pointer is on its counter (§#580).
+					await gm.page.hover('#story-point-tracker .player .points');
 					await gm.page.click(POINTER_TARGET);
 					await gm.evaluate(() => window.e2e.settle());
 					afterClick = await gm.evaluate(() => window.accessibilityE2E.spendState());

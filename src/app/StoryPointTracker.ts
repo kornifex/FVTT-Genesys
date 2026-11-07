@@ -4,7 +4,14 @@
 
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
-import { sessionStoryPoints, SPEND_MESSAGES, type StoryPointPool, storyPointsAfterSpending } from '@/data/StoryPoints';
+import {
+	serialStoryPointWrites,
+	sessionStoryPoints,
+	SPEND_MESSAGES,
+	type StoryPointPool,
+	storyPointsAfterSetting,
+	storyPointsAfterSpending,
+} from '@/data/StoryPoints';
 import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
 import VueStoryPointTracker from '@/vue/apps/StoryPointTracker.vue';
 import { VueSheet } from '@/vue/VueSheet';
@@ -89,10 +96,8 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 
 		const session = sessionStoryPoints(game.users.filter((u) => !u.isGM && u.active).length);
-		await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, {
-			player: player ?? session.player,
-			gm: gm ?? session.gm,
-		});
+		// After the changes already on their way, as they would land before it.
+		await StoryPointTracker.#write(() => ({ player: player ?? session.player, gm: gm ?? session.gm }));
 	}
 
 	/**
@@ -118,37 +123,38 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 	}
 
-	static #writes: Promise<unknown> = Promise.resolve();
+	/**
+	 * Add a point to one pool, as the GM's + does: the other pool keeps its points. Only a GM may.
+	 */
+	static async addStoryPoint(pool: StoryPointPool) {
+		if (game.user.isGM) {
+			await StoryPointTracker.#write((storyPoints) => storyPointsAfterSetting(storyPoints, pool, storyPoints[pool] + 1));
+		}
+	}
 
 	/**
-	 * Writes a spend from a pool, and tells whether there was a point to spend.
+	 * Set one pool to a count the GM typed, leaving the other as it is when the write runs. Only a GM may.
 	 */
-	static async #writeSpend(pool: StoryPointPool) {
-		if (!StoryPointTracker.instance) {
-			return false;
+	static async setStoryPointPool(pool: StoryPointPool, count: number) {
+		if (game.user.isGM) {
+			await StoryPointTracker.#write((storyPoints) => storyPointsAfterSetting(storyPoints, pool, count));
 		}
-
-		// The pools may have changed since the user spent the point: a player's spend reaches the GM later.
-		const spentStoryPoints = storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, pool);
-		if (!spentStoryPoints) {
-			return false;
-		}
-
-		await game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, spentStoryPoints);
-		return true;
 	}
+
+	// The GM's changes of the pools that reach this client together (a double click, a spend then a +, two players'
+	// spends) are written one after the other, each from the pools the previous one wrote, so that none is lost and no
+	// point is spent twice. A player's spend reaches the GM later than the player clicked: it reads the pools then too.
+	static #write = serialStoryPointWrites(
+		() => game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS),
+		(storyPoints) => game.settings.set(SETTINGS_NAMESPACE, KEY_STORY_POINTS, storyPoints),
+	);
 
 	/**
 	 * Writes a user's spend from a pool, then posts its chat message as that user, and tells whether there was a point to
 	 * spend. Only a GM may write the pools.
 	 */
 	static async #spend(pool: StoryPointPool, user: User) {
-		// Spends that reach the GM together, from a double click or two players, are written one after the other: each
-		// reads the pools the previous one wrote, so that no point is spent twice.
-		const written = StoryPointTracker.#writes.then(() => StoryPointTracker.#writeSpend(pool));
-		// The failed write rejects to its own caller; the next ones still run.
-		StoryPointTracker.#writes = written.catch(() => false);
-		if (!(await written)) {
+		if (!(await StoryPointTracker.#write((storyPoints) => storyPointsAfterSpending(storyPoints, pool)))) {
 			return false;
 		}
 

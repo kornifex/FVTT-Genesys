@@ -1,7 +1,7 @@
 /** @file Tests for the value a token attribute change leaves, against the Core Rulebook. */
 
 import { describe, expect, it } from 'vitest';
-import { newTokenAttributeValue } from '@/token/TokenAttributeValue';
+import { newTokenAttributeValue, tokenAttributeMax } from '@/token/TokenAttributeValue';
 
 describe('newTokenAttributeValue', () => {
 	it("stops healing a character's wounds at 0 (CRB p. 113, 116-117)", () => {
@@ -44,5 +44,15 @@ describe('newTokenAttributeValue', () => {
 
 	it('gives no cap when the threshold is missing from the data', () => {
 		expect(newTokenAttributeValue({ current: 8, value: 4, isDelta: true, cappedThreshold: NaN })).toBe(12);
+	});
+});
+
+describe('tokenAttributeMax', () => {
+	it("is twice a character's wound threshold (CRB p. 113)", () => {
+		expect(tokenAttributeMax(12)).toBe(24);
+	});
+
+	it('is none for an attribute without a cap', () => {
+		expect(tokenAttributeMax(undefined)).toBeUndefined();
 	});
 });

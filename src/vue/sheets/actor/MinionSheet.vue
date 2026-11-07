@@ -33,7 +33,11 @@ const isIndependent = computed(() => actor.value.getFlag('genesys', 'independent
 				label="Genesys.Labels.Wounds"
 				primary-label="Genesys.Labels.Threshold"
 				:value="system.groupWoundThreshold"
-				:secondary="{ label: 'Genesys.Labels.Current', value: system.wounds.value, name: 'system.wounds.value' }"
+				:secondary="{
+					label: 'Genesys.Labels.Current',
+					value: system.wounds.value,
+					counter: { attribute: 'wounds', label: 'Genesys.Counter.CurrentWounds' },
+				}"
 			/>
 
 			<CombatStat v-else label="Genesys.Labels.WoundThreshold" name="system.wounds.threshold" :value="system.wounds.threshold" />
@@ -43,7 +47,13 @@ const isIndependent = computed(() => actor.value.getFlag('genesys', 'independent
 				primary-label="Genesys.Labels.DefenseRanged"
 				:value="system.defense.ranged"
 				name="system.defense.ranged"
-				:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.defense.melee, name: 'system.defense.melee' }"
+				field-label="Genesys.Labels.RangedDefense"
+				:secondary="{
+					label: 'Genesys.Labels.DefenseMelee',
+					value: system.defense.melee,
+					name: 'system.defense.melee',
+					fieldLabel: 'Genesys.Labels.MeleeDefense',
+				}"
 			/>
 		</template>
 

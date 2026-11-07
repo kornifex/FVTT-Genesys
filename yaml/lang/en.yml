@@ -401,8 +401,19 @@ Genesys:
     GMShort: GM
     Reset: Reset Story Points
     Spend: Spend a Story Point
+    Add: Add a Story Point
     ChatMessageGmPool: Spending a GM Story Point!
     ChatMessagePlayerPool: Spending a Player Story Point!
+
+  # A value counted up from 0, stepped with − and +: its buttons, and the names of the sheets' counters.
+  Counter:
+    Decrease: Decrease
+    Increase: Increase
+    CurrentWounds: Current Wounds
+    CurrentStrain: Current Strain
+    CurrentHullTrauma: Current Hull Trauma
+    CurrentSystemStrain: Current System Strain
+    Damage: Damage
 
   # Localized strings used in TextEditor enrichers.
   Enrichers:

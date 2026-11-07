@@ -1,7 +1,24 @@
 <script lang="ts" setup>
+import { GenesysActor } from '@/actor/GenesysActor';
+import { useSheetDocument } from '@/vue/useSheetDocument';
+import Counter from '@/vue/components/Counter.vue';
 import Localized from '@/vue/components/Localized.vue';
 
-defineProps<{
+/**
+ * A field of a stat beside the first: an input when it names a field, a counter of a token attribute when it names
+ * one, such as the current wounds, and a value only shown otherwise.
+ */
+type SecondaryValue = {
+	/** The localization key of the label under the value. */
+	label: string;
+	value: number;
+	name?: string;
+	/** The localization key of the input's name, the stat's when left out. */
+	fieldLabel?: string;
+	counter?: { attribute: string; label: string };
+};
+
+const props = defineProps<{
 	/**
 	 * The localization key of the stat's name.
 	 */
@@ -14,6 +31,11 @@ defineProps<{
 	name?: string;
 
 	/**
+	 * The localization key of the field's name, such as Wound Threshold: the stat's name when left out.
+	 */
+	fieldLabel?: string;
+
+	/**
 	 * The localization key of the value's label, when the stat has a secondary value.
 	 */
 	primaryLabel?: string;
@@ -21,8 +43,24 @@ defineProps<{
 	/**
 	 * A second value beside the first, such as the current wounds beside their threshold.
 	 */
-	secondary?: { label: string; value: number; name?: string };
+	secondary?: SecondaryValue;
 }>();
+
+const { document: actor } = useSheetDocument<GenesysActor>();
+
+// A counter writes through the token attribute it shows, as the Token HUD does: the sheet keeps to the same bounds, such
+// as a character's wounds stopping at twice their threshold (CRB p. 113).
+function step(attribute: string, direction: 1 | -1) {
+	return actor.value.modifyTokenAttribute(attribute, direction, true, true);
+}
+
+function type(attribute: string, value: number) {
+	return actor.value.modifyTokenAttribute(attribute, value, false, true);
+}
+
+function localize(key: string) {
+	return game.i18n.localize(key);
+}
 
 function validateInput(event: Event) {
 	const newValue = parseInt((event.currentTarget as HTMLInputElement).value);
@@ -43,18 +81,36 @@ function validateInput(event: Event) {
 		</div>
 
 		<div class="value-container">
-			<input v-if="name" type="number" :name="name" :value="value" class="value" min="0" />
+			<input
+				v-if="name"
+				type="number"
+				:name="name"
+				:value="value"
+				class="value"
+				min="0"
+				:aria-label="localize(props.fieldLabel ?? label)"
+			/>
 			<div v-else class="value">{{ value }}</div>
 			<template v-if="secondary">
 				<div class="separator"></div>
+				<div v-if="secondary.counter" class="value">
+					<Counter
+						:value="secondary.value"
+						:label="secondary.counter.label"
+						:max="actor.tokenAttributeMax(secondary.counter.attribute)"
+						@step="step(secondary.counter.attribute, $event)"
+						@type="type(secondary.counter.attribute, $event)"
+					/>
+				</div>
 				<input
-					v-if="secondary.name"
+					v-else-if="secondary.name"
 					@change="validateInput"
 					:name="secondary.name"
 					type="number"
 					class="value"
 					:value="secondary.value"
 					min="0"
+					:aria-label="localize(secondary.fieldLabel ?? label)"
 				/>
 				<div v-else class="value">{{ secondary.value }}</div>
 			</template>

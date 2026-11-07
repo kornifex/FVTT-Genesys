@@ -79,6 +79,20 @@ export type DescriptionBox = {
  */
 export type Chevron = { points: 'right' | 'down' | '?'; tooltip: string };
 
+/** A counter as {@link PageHelpers.counterState} reads it. */
+export type CounterState = {
+	shown: string;
+	spinButton: {
+		name: string | null;
+		now: string | null;
+		min: string | null;
+		max: string | null;
+		text: string | null;
+		typed: boolean;
+	} | null;
+	buttons: string[];
+};
+
 /**
  * A Foundry document or application: untyped, as the globals of `foundry.d.ts`.
  */
@@ -132,6 +146,19 @@ type PageHelpers = {
 	waitFor: <T>(what: string, find: () => T | undefined | null | false, timeout?: number) => Promise<T>;
 	/** An element's text, its white space collapsed. */
 	text: (element: Element | null | undefined) => string;
+	/** The value a counter (`Counter.vue`) shows: the text of its input, which a GM may type into, or its own text. */
+	counterValue: (counter: Element | null | undefined) => string;
+	/** Clicks a counter's − or + button, which shows on hover: a click in the page reaches it hidden too. */
+	clickCounter: (counter: Element, direction: 1 | -1) => void;
+	/**
+	 * What a counter offers: its spin button's name, value, bounds and words (null where it shows its value alone),
+	 * whether it can be typed into, and the names of its − and + buttons.
+	 */
+	counterState: (counter: Element | null | undefined) => CounterState | null;
+	/** The counter in an element whose spin button has this name, or null. */
+	counterNamed: (root: Element, name: string) => HTMLElement | null;
+	/** Types a value into a counter's input and presses Enter, which writes it. */
+	typeInCounter: (counter: Element, value: string) => void;
 	/** A name without its `E2E ` prefix. */
 	unprefixed: (name: string) => string;
 	/** Whether a scenario set the document up: its name starts with `E2E `. */
@@ -431,6 +458,50 @@ export function installHelpers() {
 
 		text(element) {
 			return (element?.textContent ?? '').replace(/\s+/g, ' ').trim();
+		},
+
+		counterValue(counter) {
+			const input = counter?.querySelector('input');
+			return input ? input.value : helpers.text(counter);
+		},
+
+		counterState(counter) {
+			if (!counter) return null;
+			const spinButton = counter.querySelector('[role="spinbutton"]');
+			return {
+				shown: helpers.counterValue(counter),
+				spinButton: spinButton && {
+					name: spinButton.getAttribute('aria-label'),
+					now: spinButton.getAttribute('aria-valuenow'),
+					min: spinButton.getAttribute('aria-valuemin'),
+					max: spinButton.getAttribute('aria-valuemax'),
+					text: spinButton.getAttribute('aria-valuetext'),
+					typed: spinButton.tagName === 'INPUT',
+				},
+				buttons: [...counter.querySelectorAll('button')].map((button) => button.getAttribute('aria-label') ?? ''),
+			};
+		},
+
+		counterNamed(root, name) {
+			const spinButton = [...root.querySelectorAll('[role="spinbutton"]')].find(
+				(element) => element.getAttribute('aria-label') === name,
+			);
+			return spinButton?.closest<HTMLElement>('.counter') ?? null;
+		},
+
+		typeInCounter(counter, value) {
+			const input = counter.querySelector('input');
+			if (!input) throw new Error('The counter takes no value typed in');
+			input.focus();
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		},
+
+		clickCounter(counter, direction) {
+			const button = counter.querySelector<HTMLElement>(direction === 1 ? 'button.increase' : 'button.decrease');
+			if (!button) throw new Error(`No ${direction === 1 ? '+' : '−'} button on the counter`);
+			button.click();
 		},
 
 		unprefixed(name) {

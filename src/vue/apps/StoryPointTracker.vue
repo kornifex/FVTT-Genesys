@@ -1,57 +1,45 @@
 <script lang="ts" setup>
-import { nextTick, ref } from 'vue';
 import { vLocalize } from '@/vue/directives';
 import { useSheetContext } from '@/vue/SheetContext';
 import { StoryPointTracker, StoryPointTrackerContext } from '@/app/StoryPointTracker';
-import { StoryPointPool, storyPointsAfterEditing } from '@/data/StoryPoints';
+import type { StoryPointPool } from '@/data/StoryPoints';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import Counter from '@/vue/components/Counter.vue';
 import Localized from '@/vue/components/Localized.vue';
 
-// The GM pool on the left of the players' pool, each under its short label, the full one in its tooltip.
+// The GM pool on the left of the players' pool, each under its short label, the full one in its tooltip and naming its
+// counter.
 const POOLS = [
-	{ id: 'gm', label: 'Genesys.StoryPoints.GMShort', tooltip: 'Genesys.StoryPoints.GM' },
-	{ id: 'player', label: 'Genesys.StoryPoints.PlayerShort', tooltip: 'Genesys.StoryPoints.Player' },
-] as const satisfies { id: StoryPointPool; label: string; tooltip: string }[];
+	{ id: 'gm', label: 'Genesys.StoryPoints.GMShort', name: 'Genesys.StoryPoints.GM' },
+	{ id: 'player', label: 'Genesys.StoryPoints.PlayerShort', name: 'Genesys.StoryPoints.Player' },
+] as const satisfies { id: StoryPointPool; label: string; name: string }[];
 
 const isGM = game.user.isGM;
 const context = useSheetContext<StoryPointTrackerContext>();
 
-// The pool the GM types a count into, one at a time.
-const editing = ref<StoryPointPool>();
-const editInputs = ref<HTMLInputElement[]>([]);
-
+/**
+ * Whether the user may spend from a pool: anyone from the players' pool, through the Acting GM, and only the GM from the
+ * GM pool.
+ */
 function canSpend(pool: StoryPointPool) {
-	// Only the GM spends from the GM pool.
-	return (pool === 'player' || isGM) && context.value[pool] > 0;
-}
-
-async function spendStoryPoint(pool: StoryPointPool) {
-	if (!canSpend(pool)) {
-		return;
-	}
-	await StoryPointTracker.spendStoryPoint(pool);
+	return pool === 'player' || isGM;
 }
 
 /**
- * Closes the GM's input, writing the count it holds when `write` is set. Enter and a blur both confirm, since the
- * input's `change` event only fires on a different value and would leave it open on the same count (#528).
+ * A step of a pool's counter: − spends a point, which goes to the other pool; the GM's + adds one to this pool alone.
  */
-async function finishEditing(pool: StoryPointPool, event: Event, write: boolean) {
-	// Enter or Escape already closed the input: its removal must not confirm it again.
-	if (!isGM || editing.value !== pool) {
-		return;
+async function step(pool: StoryPointPool, direction: 1 | -1) {
+	if (direction === -1) {
+		await StoryPointTracker.spendStoryPoint(pool);
+	} else {
+		await StoryPointTracker.addStoryPoint(pool);
 	}
+}
 
-	editing.value = undefined;
-	if (!write) {
-		return;
-	}
-
-	const input = (event.currentTarget as HTMLInputElement).value;
-	const storyPoints = storyPointsAfterEditing(context.value, pool, input);
-	if (storyPoints) {
-		await StoryPointTracker.resetStoryPoints(storyPoints);
-	}
+// The tracker changes the pool from the pools stored when its write runs, not from those it rendered: a change made
+// before the previous one rendered still counts.
+async function setPool(pool: StoryPointPool, count: number) {
+	await StoryPointTracker.setStoryPointPool(pool, count);
 }
 
 async function resetStoryPoints() {
@@ -61,23 +49,10 @@ async function resetStoryPoints() {
 
 	await StoryPointTracker.resetStoryPoints();
 }
-
-async function toggleEdit(pool: StoryPointPool) {
-	if (!isGM) {
-		return;
-	}
-
-	editing.value = pool;
-	await nextTick();
-
-	// Only the edited pool shows an input.
-	editInputs.value[0]?.focus();
-	editInputs.value[0]?.select();
-}
 </script>
 
 <template>
-	<div v-for="pool in POOLS" :key="pool.id" class="pool" :class="pool.id" v-localize:data-tooltip="pool.tooltip">
+	<div v-for="pool in POOLS" :key="pool.id" class="pool" :class="pool.id" v-localize:data-tooltip="pool.name">
 		<header>
 			<Localized :label="pool.label" />
 			<ActionButton
@@ -87,24 +62,20 @@ async function toggleEdit(pool: StoryPointPool) {
 				@click="resetStoryPoints"
 			/>
 		</header>
-		<input
-			v-if="editing === pool.id"
-			ref="editInputs"
+		<!-- Only the GM adds a point or types a count (StoryPointTracker.resetStoryPoints refuses a player's write). -->
+		<Counter
 			class="points"
+			:label="pool.name"
 			:value="context[pool.id]"
-			@keydown.enter="finishEditing(pool.id, $event, true)"
-			@keydown.escape="finishEditing(pool.id, $event, false)"
-			@blur="finishEditing(pool.id, $event, true)"
+			:can-decrease="canSpend(pool.id)"
+			:can-increase="isGM"
+			:can-type="isGM"
+			refuses-negative
+			decrease-label="Genesys.StoryPoints.Spend"
+			increase-label="Genesys.StoryPoints.Add"
+			@step="step(pool.id, $event)"
+			@type="setPool(pool.id, $event)"
 		/>
-		<ActionButton
-			v-else-if="canSpend(pool.id)"
-			class="points"
-			label="Genesys.StoryPoints.Spend"
-			@click="spendStoryPoint(pool.id)"
-			@contextmenu="toggleEdit(pool.id)"
-			>{{ context[pool.id] }}</ActionButton
-		>
-		<div v-else class="points" @contextmenu="toggleEdit(pool.id)">{{ context[pool.id] }}</div>
 	</div>
 </template>
 
@@ -177,15 +148,6 @@ async function toggleEdit(pool: StoryPointPool) {
 		.action-button {
 			font-size: 0.75em;
 		}
-	}
-
-	input.points {
-		width: 1.25em;
-		text-align: center;
-		border: 1px dashed colors.$gold;
-		border-radius: 50%;
-		aspect-ratio: 1;
-		color: inherit;
 	}
 
 	.points {

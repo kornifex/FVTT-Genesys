@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { damageStep } from '@/item/data/EquipmentDamage';
+import { damageLevel, damageStep } from '@/item/data/EquipmentDamage';
+
+describe('damageLevel', () => {
+	it('counts the steps from undamaged', () => {
+		expect(damageLevel('undamaged')).toBe(0);
+		expect(damageLevel('minor')).toBe(1);
+		expect(damageLevel('moderate')).toBe(2);
+		expect(damageLevel('major')).toBe(3);
+	});
+
+	it('reads a damage it does not know as undamaged', () => {
+		expect(damageLevel('scratched' as 'minor')).toBe(0);
+	});
+});
 
 describe('damageStep', () => {
 	it('damages an item one step at a time, from undamaged to minor, moderate and major (CRB p. 88-89)', () => {

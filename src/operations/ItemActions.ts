@@ -9,7 +9,7 @@ import { talentRankChange } from '@/actor/data/AdversaryItems';
 import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates } from '@/actor/data/character/Career';
 import { crewForSkills } from '@/actor/data/CrewRoster';
-import { equipmentStep, StepDirection, SteppedValue } from '@/actor/data/Inventory';
+import { type EquipmentStep, equipmentStep, quantityChange, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
@@ -115,7 +115,18 @@ export async function sendToChat(item: GenesysItem, actor: GenesysActor) {
  * major damage, is deleted once the user confirms.
  */
 export async function stepEquipment(item: GenesysItem<EquipmentType>, kind: SteppedValue, direction: StepDirection) {
-	const step = equipmentStep({ system: item.system }, kind, direction);
+	await applyEquipmentStep(item, equipmentStep({ system: item.system }, kind, direction));
+}
+
+/**
+ * Set an item's quantity to a value typed on its row. An item left with none is deleted once the user confirms, as a
+ * step down to 0 is.
+ */
+export async function setEquipmentQuantity(item: GenesysItem<EquipmentType>, quantity: number) {
+	await applyEquipmentStep(item, quantityChange(quantity));
+}
+
+async function applyEquipmentStep(item: GenesysItem<EquipmentType>, step: EquipmentStep) {
 	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDeletion()))) {
 		return;
 	}

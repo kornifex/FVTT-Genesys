@@ -36,14 +36,37 @@ export function storyPointsAfterSpending(storyPoints: StoryPointData, pool: Stor
 }
 
 /**
- * The pools once the GM types a new count for one of them. Undefined when the input isn't a whole number of points, or
- * is the pool's current count: the tracker then keeps the pools as they are and writes nothing.
+ * The pools once the GM sets one of them, typing its count or adding a point with its +: the other pool keeps its
+ * points, unlike a spend.
  */
-export function storyPointsAfterEditing(storyPoints: StoryPointData, pool: StoryPointPool, input: string): StoryPointData | undefined {
-	const count = input.trim();
-	if (!/^\d+$/.test(count) || Number(count) === storyPoints[pool]) {
-		return undefined;
-	}
+export function storyPointsAfterSetting(storyPoints: StoryPointData, pool: StoryPointPool, count: number): StoryPointData {
+	return { ...storyPoints, [pool]: count };
+}
 
-	return { ...storyPoints, [pool]: Number(count) };
+/**
+ * A change of the pools, made from the pools stored when it runs: the pools to write, or undefined to write nothing.
+ */
+export type StoryPointChange = (storyPoints: StoryPointData) => StoryPointData | undefined;
+
+/**
+ * Returns the function through which a client writes the pools: one change at a time, each reading the pools the
+ * previous one wrote, so that changes that reach the client together all count (a double click on +, a spend then a +,
+ * two players' spends). It resolves to whether the change wrote anything.
+ */
+export function serialStoryPointWrites(read: () => StoryPointData, write: (storyPoints: StoryPointData) => Promise<unknown>) {
+	let queue: Promise<unknown> = Promise.resolve();
+
+	return (change: StoryPointChange): Promise<boolean> => {
+		const written = queue.then(async () => {
+			const storyPoints = change(read());
+			if (!storyPoints) {
+				return false;
+			}
+			await write(storyPoints);
+			return true;
+		});
+		// A failed write rejects to its own caller; the next ones still run.
+		queue = written.catch(() => false);
+		return written;
+	};
 }

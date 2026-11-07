@@ -13,6 +13,7 @@ import {
 	equipmentStateMoves,
 	equipmentStateUpdates,
 	equipmentStep,
+	quantityChange,
 	rowDropTarget,
 	rowEdge,
 	sectionItems,
@@ -657,5 +658,15 @@ describe('equipmentStep', () => {
 
 	it('does nothing below undamaged', () => {
 		expect(equipmentStep(held(1, EquipmentDamageState.Undamaged), 'damage', -1)).toEqual({ action: 'none' });
+	});
+});
+
+describe('quantityChange', () => {
+	it('sets a quantity typed above 0', () => {
+		expect(quantityChange(5)).toEqual({ action: 'update', update: { system: { quantity: 5 } } });
+	});
+
+	it('deletes an item whose quantity is typed as 0', () => {
+		expect(quantityChange(0)).toEqual({ action: 'delete' });
 	});
 });
