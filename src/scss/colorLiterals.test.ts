@@ -165,8 +165,9 @@ const NAMED_COLORS = [
 
 const LITERAL = new RegExp(
 	[
-		'#[0-9a-f]{3,8}\\b',
-		'\\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\\(',
+		// Not the start of an id such as `#add-button`.
+		'#[0-9a-f]{3,8}(?![\\w-])',
+		'\\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\(',
 		// A name, not part of a longer identifier, a variable, a class or an id.
 		`(?<![\\w$.#-])(?:${NAMED_COLORS.join('|')})(?![\\w-])`,
 	].join('|'),
