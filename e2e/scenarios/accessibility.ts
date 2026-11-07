@@ -107,12 +107,12 @@ type AccessibilityHelpers = {
 	deleteRowMenus(): Promise<void>;
 	/**
 	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
-	 * holds it, and focuses the ⋮. Whether it took the focus, and its name.
+	 * holds it, and focuses the ⋮. Whether it took the focus, and its name: null for a row without one.
 	 */
 	readyRowMenu(row: string): Promise<{ focused: boolean; name: string | null }>;
 	/**
 	 * The menu of the ⋮ readied last: whether it is open, its entries' labels, `---` for a separator, and what has the
-	 * focus: the ⋮, an entry by its label, or null for anything else.
+	 * focus: the ⋮, an entry by its label, or null for anything else; no menu when the row readied has no ⋮.
 	 */
 	rowMenuState(): { open: boolean; entries: string[]; focused: string | null };
 	/** Hovers the name of a row that rolls, by its key in `ROLL_ROWS`, and gives the tooltip Foundry shows. */
@@ -1296,15 +1296,15 @@ function installAccessibilityHelpers() {
 			const root = await render(actor(target.sheet).sheet);
 			await target.open?.(root);
 			const row = await waitFor(`the ${key} row`, () => target.row(root));
-			const trigger = menuContainerOf(row)?.querySelector<HTMLElement>(':scope > .menu-trigger');
-			if (!trigger) throw new Error(`No ⋮ on the ${key} row`);
-			trigger.focus();
+			// A row without a ⋮, as before #577, leaves the focus where it was: the step reads no menu.
+			const trigger = menuContainerOf(row)?.querySelector<HTMLElement>(':scope > .menu-trigger') ?? undefined;
 			rowMenuTrigger = trigger;
-			return { focused: document.activeElement === trigger, name: trigger.getAttribute('aria-label') };
+			trigger?.focus();
+			return { focused: !!trigger && document.activeElement === trigger, name: trigger?.getAttribute('aria-label') ?? null };
 		},
 
 		rowMenuState() {
-			if (!rowMenuTrigger) throw new Error('No row menu readied');
+			if (!rowMenuTrigger) return { open: false, entries: [], focused: null };
 			const menu = rowMenuTrigger.parentElement?.querySelector(':scope > [role="menu"]');
 			const active = document.activeElement;
 			return {
