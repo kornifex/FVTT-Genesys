@@ -19,13 +19,15 @@ import {
 	equipmentStateUpdates,
 	rowEdge,
 	type RowEdge,
+	sectionItems,
 	StepDirection,
 	SteppedValue,
 } from '@/actor/data/Inventory';
-import { receiveInventoryEvent } from '@/operations/InventoryDrop';
-import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, setEquipmentQuantity, stepEquipment } from '@/operations/ItemActions';
+import { receiveInventoryDrop, receiveInventoryEvent } from '@/operations/InventoryDrop';
+import { attackSkill, attackWith, openSheet, setEquipmentQuantity, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
+import type { RowAction } from '@/vue/components/RowAction';
 import { signed } from '@/vue/format';
 
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -33,8 +35,7 @@ import Counter from '@/vue/components/Counter.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 import RollLink from '@/vue/components/RollLink.vue';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import { firingArcLabels } from '@/item/Weapons';
@@ -105,7 +106,7 @@ const shownEdge = computed(() =>
 
 const menu = useTemplateRef<ContextMenuHandle>('menu');
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
+const { document: actor } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
 const isBasicItem = computed(() => ['consumable', 'gear'].includes(props.item.type));
 
@@ -157,6 +158,53 @@ function stateMoves() {
 
 function moveIcon(action: keyof typeof MOVE_ENTRIES) {
 	return action === 'equip' && props.item.type === 'armor' ? 'fas fa-shield' : MOVE_ENTRIES[action].icon;
+}
+
+// The Containers the row's item can be put in, which the drag onto a Container did alone: the actor's others, for an
+// item that is no Container.
+function otherContainers() {
+	return props.item.type === 'container'
+		? []
+		: itemsOfType(actor.value, 'container').filter((container) => container.id !== system.value.container);
+}
+
+// The Container that holds the row's item, which it can be taken out of to the end of the Container's section.
+function holdingContainer() {
+	return system.value.container === '' ? undefined : actor.value.items.get(system.value.container);
+}
+
+async function takeOut() {
+	const { state } = system.value;
+	const after = sectionItems(itemsOfType(actor.value, EQUIPMENT_TYPES), state).length - 1;
+	await receiveInventoryDrop(actor.value, props.item, { kind: 'section', state, after });
+}
+
+// The row's own actions: its Equipment State moves, then putting it in a Container or taking it out of its own.
+function rowActions(): RowAction[] {
+	const holder = holdingContainer();
+	return [
+		...stateMoves().map((move) => ({
+			icon: moveIcon(move.action),
+			label: MOVE_ENTRIES[move.action].label,
+			run: () => setItemState(move.state),
+		})),
+		...otherContainers().map((container) => ({
+			icon: 'fas fa-box-open',
+			label: 'Genesys.Labels.PutInContainer',
+			labelData: { container: container.name },
+			run: () => receiveInventoryDrop(actor.value, props.item, { kind: 'container', id: container.id }),
+		})),
+		...(holder
+			? [
+					{
+						icon: 'fas fa-arrow-right-from-bracket',
+						label: 'Genesys.Labels.TakeOutOfContainer',
+						labelData: { container: holder.name },
+						run: takeOut,
+					},
+				]
+			: []),
+	];
 }
 
 async function setItemState(state: EquipmentState) {
@@ -224,14 +272,9 @@ async function drop(event: DragEvent) {
 }
 
 // A right-click anywhere on the row opens its menu at the pointer, as Foundry's context menus open; Shift+F10 or the
-// context menu key, on any control of the row, at its ⋮. The row of a Container's contents has no menu, and keeps the
-// right-click from opening the Container's; the browser's own menu is left to Foundry.
+// context menu key, on any control of the row, at its ⋮. The row of a Container's contents opens its own menu, not the
+// Container's.
 function openMenu(event: MouseEvent) {
-	if (props.mini) {
-		event.stopPropagation();
-		return;
-	}
-
 	menu.value?.open(event);
 }
 </script>
@@ -372,25 +415,7 @@ function openMenu(event: MouseEvent) {
 			><i :class="{ fas: true, [damageStateToIcon.get(item.system.damage)!]: true }"></i
 		></Counter>
 
-		<ContextMenu ref="menu" class="actions" orientation="left" trigger :focus-key="item.uuid" :disable-menu="!editable || mini">
-			<template v-slot:menu-items>
-				<MenuItem
-					v-for="move in stateMoves()"
-					:key="move.action"
-					:icon="moveIcon(move.action)"
-					:label="MOVE_ENTRIES[move.action].label"
-					@click="setItemState(move.state)"
-				/>
-
-				<hr v-if="stateMoves().length > 0" />
-
-				<MenuItem icon="fas fa-comment" label="Genesys.Equipment.Dropdown.ToChat" @click="sendToChat(item, actor)" />
-
-				<MenuItem icon="fas fa-edit" label="Genesys.Equipment.Dropdown.Edit" @click="openSheet(item)" />
-
-				<MenuItem icon="fas fa-trash" label="Genesys.Equipment.Dropdown.Delete" @click="deleteItem(item)" />
-			</template>
-		</ContextMenu>
+		<RowActions ref="menu" class="actions" :document="item" :actions="rowActions()" />
 	</div>
 </template>
 

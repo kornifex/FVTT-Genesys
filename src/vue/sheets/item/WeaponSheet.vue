@@ -11,10 +11,12 @@ import {
 	addExtraProfileUpdate,
 	deleteExtraProfileUpdate,
 	type ExtraWeaponProfile,
+	profileRowName,
 	profileUpdate,
 	weaponProfiles,
 	type WeaponProfile,
 } from '@/item/WeaponProfiles';
+import { confirmDelete } from '@/operations/ItemActions';
 
 const { document: item, system, editable } = useSheetDocument<GenesysItem<'weapon'>>();
 
@@ -30,8 +32,11 @@ async function addProfile() {
 	await item.value.update({ system: addExtraProfileUpdate(system.value) });
 }
 
+// Deleting an extra profile asks first, naming it as the weapon's rows do: "Blaster (Stun)".
 async function deleteProfile(profile: WeaponProfile) {
-	await item.value.update({ system: deleteExtraProfileUpdate(system.value, profile.index) });
+	if (await confirmDelete(profileRowName(item.value.name, profile, game.i18n))) {
+		await item.value.update({ system: deleteExtraProfileUpdate(system.value, profile.index) });
+	}
 }
 </script>
 

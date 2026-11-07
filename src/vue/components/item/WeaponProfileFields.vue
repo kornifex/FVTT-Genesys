@@ -7,6 +7,7 @@ import { withQualityRating } from '@/item/data/Qualities';
 import { type DamageCharacteristic, RANGE_LABELS, type RangeBand } from '@/item/Weapons';
 import type { VehicleWeaponProfileData, WeaponProfileData } from '@/item/WeaponProfiles';
 import { withoutIndex } from '@/arrays';
+import { confirmDelete } from '@/operations/ItemActions';
 
 /**
  * The rows of a Weapon Profile on a weapon's Data tab: its damage characteristic when it has one, damage, Critical
@@ -49,6 +50,13 @@ function numberOf(event: Event) {
 // The name of a quality's rating field, which shows no label of its own: "Pierce Rating".
 function qualityRatingLabel(quality: string) {
 	return game.i18n.format('Genesys.Labels.QualityRating', { quality });
+}
+
+// Removing a quality asks first, naming it.
+async function removeQuality(index: number) {
+	if (await confirmDelete(props.profile.qualities[index].name)) {
+		emit('change', { qualities: withoutIndex(props.profile.qualities, index) });
+	}
 }
 
 function updateQualityRating(index: number, event: Event) {
@@ -141,12 +149,7 @@ function updateQualityRating(index: number, event: Event) {
 							@blur="updateQualityRating(index, $event)"
 					/></span>
 				</div>
-				<ActionButton
-					icon="fas fa-trash"
-					label="Genesys.Labels.RemoveQuality"
-					edits
-					@click="emit('change', { qualities: withoutIndex(profile.qualities, index) })"
-				/>
+				<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveQuality" edits @click="removeQuality(index)" />
 			</div>
 		</div>
 	</DataRow>

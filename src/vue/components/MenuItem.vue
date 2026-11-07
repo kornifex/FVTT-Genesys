@@ -12,6 +12,11 @@ defineProps<{
 	 * The localization key of the item's label.
 	 */
 	label: string;
+
+	/**
+	 * The values the label is formatted with, such as the name of the Container an item is put in.
+	 */
+	labelData?: Record<string, string>;
 }>();
 </script>
 
@@ -24,7 +29,7 @@ defineProps<{
 		</span>
 
 		<span class="menu-label">
-			<Localized :label="label" />
+			<Localized :label="label" :format-args="labelData" />
 		</span>
 	</ActionButton>
 </template>

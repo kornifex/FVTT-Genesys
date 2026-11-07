@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import type { Stored } from '@/data/Stored';
-import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import { severityDifficulty } from '@/item/data/Injuries';
-import { deleteItem, openSheet } from '@/operations/ItemActions';
+import { openSheet } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 import Localized from '@/vue/components/Localized.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import RollLink from '@/vue/components/RollLink.vue';
@@ -42,7 +42,6 @@ const emit = defineEmits<{
 	(e: 'roll', injury: Stored<GenesysItem<'injury'>>): void;
 }>();
 
-const { editable } = useSheetDocument();
 const kind = KINDS[props.kind];
 </script>
 
@@ -54,7 +53,8 @@ const kind = KINDS[props.kind];
 			<div class="name"><Localized :label="kind.label" /></div>
 		</div>
 
-		<div v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']">
+		<!-- The row is its menu's content: a right-click anywhere on it opens the menu at the pointer, and its ⋮ ends it. -->
+		<RowActions v-for="injury in injuries" :key="injury.id" :class="[kind.row, 'critical']" :document="injury">
 			<div class="severity"><Glyphs :glyphs="severityDifficulty(injury.system.severity)" /></div>
 			<ActionButton class="item-icon" :image="injury.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(injury)" />
 			<DescriptionFold class="name" :description="injury.system.description">
@@ -62,12 +62,7 @@ const kind = KINDS[props.kind];
 					injury.name
 				}}</RollLink>
 			</DescriptionFold>
-			<div v-if="editable" class="actions">
-				<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(injury)" />
-				<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
-			</div>
-			<div v-else />
-		</div>
+		</RowActions>
 	</div>
 </template>
 
@@ -135,10 +130,11 @@ const kind = KINDS[props.kind];
 	& > :deep(.description-fold) {
 		@include combat-tab.row-description(1em);
 	}
-}
 
-.actions {
-	display: flex;
-	gap: 0.25em;
+	// The row's ⋮ is its menu's own, which :deep() reaches: it ends the row's first line.
+	& > :deep(.menu-trigger) {
+		grid-row: 1 / span 1;
+		grid-column: 4 / span 1;
+	}
 }
 </style>

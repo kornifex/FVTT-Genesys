@@ -318,9 +318,9 @@ Genesys:
 
   # Dialogs Prompts
   Dialogs:
-    ConfirmDeleteItem:
-      Title: Confirm Removal
-      Content: This will remove the item. Do you want to proceed?
+    ConfirmDelete:
+      Title: Confirm Deletion
+      Content: Delete {name}? This can't be undone.
     ConfirmUndoEntry:
       Title: Undo Entry
       Award: Undo the XP award "{reason}"?
@@ -536,9 +536,6 @@ Genesys:
       Unequip: Unequip
       Drop: Drop
       PickUp: Pick Up
-      ToChat: To Chat
-      Edit: Edit
-      Delete: Delete
 
   # Misc. Unsorted Labels (to be cleaned up later)
   Labels:
@@ -680,7 +677,13 @@ Genesys:
     BuyTalentRank: Buy a rank of the talent
     BuySkillRank: Buy a rank
     RaiseCharacteristic: Raise the characteristic
-    DeleteRole: Delete the role
     RemoveSkill: Remove the skill
     RemoveQuality: Remove the Quality
     RemoveGrantedItem: Remove the granted item
+    PutInContainer: Put in {container}
+    TakeOutOfContainer: Take out of {container}
+    AssignToRole: Assign to {role}
+    UnnamedRole: Unnamed role
+    MoveToPassengers: Move to passengers
+    RemoveFromCrew: Remove from Crew
+    RemoveNamedSkill: Remove {skill}

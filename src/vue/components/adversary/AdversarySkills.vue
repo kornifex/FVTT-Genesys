@@ -3,11 +3,12 @@ import { computed, toRef } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import type { AdversaryType } from '@/actor/data/AdversaryDataModel';
-import { deleteItem, freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
+import type { GenesysItem } from '@/item/GenesysItem';
+import { freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
+import type { RowAction } from '@/vue/components/RowAction';
 import SkillRow from '@/vue/components/SkillRow.vue';
 
 const props = defineProps<{
@@ -19,9 +20,19 @@ const props = defineProps<{
 	groupRank?: number;
 }>();
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
+const { document: actor } = useSheetDocument<GenesysActor<AdversaryType>>();
 const characteristics = toRef(() => actor.value.system.characteristics);
 const skills = computed(() => actor.value.skills);
+
+// A skill's own actions: its Free Ranks, but in a Minion Group, whose skills roll at the group rank.
+function skillActions(skill: GenesysItem<'skill'>): RowAction[] {
+	return props.groupRank === undefined
+		? [
+				{ icon: 'fas fa-circle-up', label: 'Genesys.Labels.FreeRankUp', run: () => freeSkillRank(skill, 1) },
+				{ icon: 'fas fa-circle-down', label: 'Genesys.Labels.FreeRankDown', run: () => freeSkillRank(skill, -1) },
+			]
+		: [];
+}
 </script>
 
 <template>
@@ -29,19 +40,14 @@ const skills = computed(() => actor.value.skills);
 	<div class="container">
 		<ListEmpty v-if="skills.length === 0" />
 		<!-- On a sheet the user can't edit, the menu keeps Edit, which opens the skill's sheet, as the character's skills do (#512). -->
-		<ContextMenu v-for="skill in skills" :key="skill.id" class="skill">
-			<template v-slot:menu-items>
-				<template v-if="props.groupRank === undefined && editable">
-					<MenuItem icon="fas fa-circle-up" label="Genesys.Labels.FreeRankUp" @click="freeSkillRank(skill, 1)" />
-
-					<MenuItem icon="fas fa-circle-down" label="Genesys.Labels.FreeRankDown" @click="freeSkillRank(skill, -1)" />
-				</template>
-
-				<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(skill)" />
-
-				<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
-			</template>
-
+		<RowActions
+			v-for="skill in skills"
+			:key="skill.id"
+			class="skill"
+			:document="skill"
+			:actions="skillActions(skill)"
+			orientation="right"
+		>
 			<SkillRow
 				:name="skill.name"
 				:skill="skill.name"
@@ -52,7 +58,7 @@ const skills = computed(() => actor.value.skills);
 				@open="openSheet(skill)"
 				@roll="rollSkill(actor, skill)"
 			/>
-		</ContextMenu>
+		</RowActions>
 	</div>
 </template>
 

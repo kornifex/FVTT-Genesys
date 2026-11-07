@@ -12,13 +12,13 @@ import { GenesysItem } from '@/item/GenesysItem';
 import SkillRow from '@/vue/components/SkillRow.vue';
 import XPContainer from '@/vue/components/character/XPContainer.vue';
 import { DicePrompt } from '@/app/DicePrompt';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
+import type { RowAction } from '@/vue/components/RowAction';
 import { CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
-import { deleteItem, freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
+import { freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<'character'>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
 
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
@@ -51,6 +51,19 @@ async function toggleCareerSkill(skill: Stored<GenesysItem<'skill'>>) {
 	await skill.update({
 		system: { career: !skill.system.career },
 	});
+}
+
+// A skill's own actions: marking it as a career skill or not, and its Free Ranks.
+function skillActions(skill: Stored<GenesysItem<'skill'>>): RowAction[] {
+	return [
+		{
+			icon: `${skill.system.career ? 'far' : 'fas'} fa-star`,
+			label: skill.system.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill',
+			run: () => toggleCareerSkill(skill),
+		},
+		{ icon: 'fas fa-circle-up', label: 'Genesys.Labels.FreeRankUp', run: () => freeSkillRank(skill, 1) },
+		{ icon: 'fas fa-circle-down', label: 'Genesys.Labels.FreeRankDown', run: () => freeSkillRank(skill, -1) },
+	];
 }
 
 async function toggleSuper(characteristic: CharacteristicType) {
@@ -106,34 +119,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				</div>
 
 				<div class="body">
-					<ContextMenu v-for="skill in skillCategory.skills" :key="skill.id" class="skill row">
-						<template v-slot:menu-items>
-							<MenuItem
-								v-if="editable"
-								:icon="`${skill.system.career ? 'far' : 'fas'} fa-star`"
-								:label="skill.system.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill'"
-								@click="toggleCareerSkill(skill)"
-							/>
-
-							<MenuItem
-								v-if="editable"
-								icon="fas fa-circle-up"
-								label="Genesys.Labels.FreeRankUp"
-								@click="freeSkillRank(skill, 1)"
-							/>
-
-							<MenuItem
-								v-if="editable"
-								icon="fas fa-circle-down"
-								label="Genesys.Labels.FreeRankDown"
-								@click="freeSkillRank(skill, -1)"
-							/>
-
-							<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(skill)" />
-
-							<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
-						</template>
-
+					<RowActions
+						v-for="skill in skillCategory.skills"
+						:key="skill.id"
+						class="skill row"
+						:document="skill"
+						:actions="skillActions(skill)"
+					>
 						<SkillRow
 							:name="skill.name"
 							:skill="skill.name"
@@ -148,7 +140,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							@roll="rollSkill(actor, skill)"
 							@buy-rank="purchaseSkillRank(skill)"
 						/>
-					</ContextMenu>
+					</RowActions>
 				</div>
 			</div>
 		</div>
@@ -243,7 +235,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	.body .row {
 		width: 100%;
 		display: grid;
-		grid-template-columns: /* image */ 1.5rem /* name */ 1fr /* Rank Input */ auto /* Dice Preview */ 80px;
+		grid-template-columns: /* image */ 1.5rem /* name */ 1fr /* Rank Input */ auto /* Dice Preview */ 80px /* Actions */ 1.25em;
 		align-items: center;
 		gap: 0.25rem;
 	}
@@ -273,8 +265,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		}
 	}
 
-	// The row is a ContextMenu's root, and the skill's cells are a SkillRow's roots, which take no scope attribute from the
-	// tab: :deep() reaches them.
+	// The row is a RowActions' root, its ⋮ its own, and the skill's cells are a SkillRow's roots, which take no scope
+	// attribute from the tab: :deep() reaches them.
 	.row {
 		border-bottom: 1px dashed colors.$ink;
 

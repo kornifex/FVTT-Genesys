@@ -17,8 +17,8 @@ import { GenesysItem } from '@/item/GenesysItem';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt } from '@/app/DicePrompt';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
+import type { RowAction } from '@/vue/components/RowAction';
 import Enriched from '@/vue/components/Enriched.vue';
 import { vLocalize } from '@/vue/directives';
 import Motivations from '@/vue/components/Motivations.vue';
@@ -28,9 +28,9 @@ import { startDocumentDrag } from '@/data/DragTransferData';
 import { isEmptyDescription } from '@/data/Descriptions';
 import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
-import { attackSkill, attackWith, deleteItem, openSheet, sendToChat, stepTalentRank } from '@/operations/ItemActions';
+import { attackSkill, attackWith, openSheet, stepTalentRank } from '@/operations/ItemActions';
 import type { StepDirection } from '@/actor/data/Inventory';
-import { profileRowName, weaponProfiles } from '@/item/WeaponProfiles';
+import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
@@ -71,13 +71,32 @@ async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
 }
 
-// A non-ranked talent offers no rank change, as on characters.
-function canChangeTalentRank(talent: Stored<GenesysItem<'talent'>>) {
-	return talentRankChange(talent, 1).action !== 'refuse';
+// A talent's own actions: its Rank Up and Rank Down. A non-ranked talent offers no rank change, as on characters.
+function talentActions(talent: Stored<GenesysItem<'talent'>>): RowAction[] {
+	if (talentRankChange(talent, 1).action === 'refuse') {
+		return [];
+	}
+
+	const step = (direction: StepDirection) => () => stepTalentRank(actor.value, talent, direction);
+	return [
+		{ icon: 'fas fa-circle-up', label: 'Genesys.Labels.RankUp', run: step(1) },
+		{ icon: 'fas fa-circle-down', label: 'Genesys.Labels.RankDown', run: step(-1) },
+	];
 }
 
-async function changeTalentRank(talent: Stored<GenesysItem<'talent'>>, direction: StepDirection) {
-	await stepTalentRank(actor.value, talent, direction);
+// A weapon's own action: the attack of the row's Weapon Profile, as its name rolls it, which edits nothing and stays
+// on a sheet the user can't edit.
+function weaponActions(weapon: Stored<GenesysItem<'weapon'>>, profile: WeaponProfile, skill: string | undefined): RowAction[] {
+	return skill
+		? [
+				{
+					icon: 'fas fa-dice-d20',
+					label: 'Genesys.Labels.PerformCheck',
+					edits: false,
+					run: () => attackWith(actor.value, weapon, profile),
+				},
+			]
+		: [];
 }
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
@@ -149,41 +168,15 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<ListEmpty v-if="talents.length === 0" />
 							<div v-for="talent in talents" :key="talent.id" class="talent">
-								<ContextMenu :disable-menu="!editable">
-									<template v-slot:menu-items>
-										<template v-if="canChangeTalentRank(talent)">
-											<MenuItem
-												icon="fas fa-circle-up"
-												label="Genesys.Labels.RankUp"
-												@click="changeTalentRank(talent, 1)"
-											/>
-
-											<MenuItem
-												icon="fas fa-circle-down"
-												label="Genesys.Labels.RankDown"
-												@click="changeTalentRank(talent, -1)"
-											/>
-										</template>
-
-										<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(talent)" />
-
-										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(talent)" />
-									</template>
-
+								<RowActions :document="talent" :actions="talentActions(talent)" orientation="right">
 									<!-- Not a label, which would pass a click anywhere on it to its first button. -->
 									<span class="item-label">
 										<ActionButton @click="openSheet(talent)"
 											>{{ talent.name }}
 											{{ talent.system.ranked === 'yes' ? talent.system.rank : null }}</ActionButton
 										>
-										<ActionButton
-											class="send-to-chat-link"
-											icon="fas fa-comment"
-											label="Genesys.Labels.SendToChat"
-											@click="sendToChat(talent, actor)"
-										/>
 									</span>
-								</ContextMenu>
+								</RowActions>
 								<Enriched class="description" v-if="talent.system.description" :value="talent.system.description" />
 							</div>
 						</div>
@@ -194,21 +187,11 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<ListEmpty v-if="abilities.length === 0" />
 							<div v-for="ability in abilities" :key="ability.id" class="talent">
-								<ContextMenu :disable-menu="!editable">
-									<template v-slot:menu-items>
-										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(ability)" />
-									</template>
-
+								<RowActions :document="ability" orientation="right">
 									<span class="item-label">
 										<ActionButton @click="openSheet(ability)">{{ ability.name }}</ActionButton>
-										<ActionButton
-											class="send-to-chat-link"
-											icon="fas fa-comment"
-											label="Genesys.Labels.SendToChat"
-											@click="sendToChat(ability, actor)"
-										/>
 									</span>
-								</ContextMenu>
+								</RowActions>
 								<Enriched class="description" v-if="ability.system.description" :value="ability.system.description" />
 							</div>
 						</div>
@@ -218,25 +201,16 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<h3><Localized label="Genesys.Adversary.Equipment" /></h3>
 						<div class="container">
 							<ListEmpty v-if="equipment.length === 0" />
-							<ContextMenu
+							<!-- A row for each Weapon Profile, whose ⋮ the focus finds again by the profile. -->
+							<RowActions
 								v-for="{ item, profile, name, skill } in weapons"
 								:key="`${item.id}-${profile.index}`"
 								class="weapon"
+								:document="item"
+								:actions="weaponActions(item, profile, skill)"
+								:focus-key="`${item.uuid}-${profile.index}`"
+								orientation="right"
 							>
-								<!-- On a sheet the user can't edit, the menu keeps the entries that read: Edit opens the weapon's sheet. -->
-								<template v-slot:menu-items>
-									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
-
-									<MenuItem
-										v-if="skill"
-										icon="fas fa-dice-d20"
-										label="Genesys.Labels.PerformCheck"
-										@click="attackWith(actor, item, profile)"
-									/>
-
-									<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
-								</template>
-
 								<!-- The name attacks with a profile that has an Attack Skill, and opens the weapon's sheet otherwise. The
 								button holds the name alone: its details hold the Attack Skill's select, which a button can't. The drag
 								starts on the button's wrapper, since Firefox starts none from a button. -->
@@ -264,25 +238,14 @@ async function toggleSuper(characteristic: CharacteristicType) {
 									<WeaponProfileStats layout="inline" :profile="profile" :characteristics="system.characteristics" />
 									<QualityList :qualities="profile.qualities" class="weapon-qualities" /> </span
 								>)
-								<ActionButton
-									class="send-to-chat-link"
-									icon="fas fa-comment"
-									label="Genesys.Labels.SendToChat"
-									@click="sendToChat(item, actor)"
-								/>
-							</ContextMenu>
-							<ContextMenu
+							</RowActions>
+							<RowActions
 								v-for="item in equipment.filter((i) => i.type !== 'weapon')"
 								:key="item.id"
 								class="inventory-item"
-								:disable-menu="!editable"
+								:document="item"
+								orientation="right"
 							>
-								<template v-slot:menu-items>
-									<MenuItem icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
-
-									<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(item)" />
-								</template>
-
 								<!-- The drag starts on the button's wrapper, since Firefox starts none from a button. -->
 								<span draggable="true" @dragstart="startDocumentDrag($event, item)">
 									<ActionButton class="item-name" @click="openSheet(item)">
@@ -295,13 +258,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 										<i v-if="item.type !== 'weapon'" class="fas fa-arrow-up-right-from-square"></i>
 									</ActionButton>
 								</span>
-								<ActionButton
-									class="send-to-chat-link"
-									icon="fas fa-comment"
-									label="Genesys.Labels.SendToChat"
-									@click="sendToChat(item, actor)"
-								/>
-							</ContextMenu>
+							</RowActions>
 						</div>
 					</div>
 				</section>
@@ -314,15 +271,11 @@ async function toggleSuper(characteristic: CharacteristicType) {
 						<div class="container">
 							<ListEmpty v-if="injuries.length === 0" />
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
-								<ContextMenu :disable-menu="!editable">
-									<template v-slot:menu-items>
-										<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(injury)" />
-									</template>
-
+								<RowActions :document="injury" orientation="right">
 									<span class="item-label"
 										><ActionButton @click="openSheet(injury)">{{ injury.name }}</ActionButton></span
 									>
-								</ContextMenu>
+								</RowActions>
 								<Enriched class="description" v-if="injury.system.description" :value="injury.system.description" />
 							</div>
 						</div>
@@ -430,7 +383,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		display: flex;
 		flex-direction: column;
 
-		.send-to-chat-link {
+		// A row's ⋮ is its menu's own, which :deep() reaches: it follows the row's text on its line.
+		:deep(.menu-trigger) {
 			margin-left: 0.2em;
 		}
 	}

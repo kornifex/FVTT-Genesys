@@ -4,8 +4,7 @@ import { shallowRef, useId, watch } from 'vue';
 import type { Stored } from '@/data/Stored';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
-import ContextMenu from '@/vue/components/ContextMenu.vue';
-import MenuItem from '@/vue/components/MenuItem.vue';
+import RowActions from '@/vue/components/RowActions.vue';
 import ActorTile from '@/vue/components/ActorTile.vue';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { useDragHover } from '@/vue/useDragHover';
@@ -25,6 +24,7 @@ const props = withDefaults(
 	},
 );
 
+// The Role's deletion and its skills' removals ask first: the Crew tab confirms them.
 const emit = defineEmits<{
 	(e: 'delete'): void;
 	(e: 'updateName', newName: string): void;
@@ -56,6 +56,10 @@ watch(
 	{ immediate: true },
 );
 
+function removeSkillLabel(skill: string) {
+	return game.i18n.format('Genesys.Labels.RemoveNamedSkill', { skill });
+}
+
 function drop(event: DragEvent, memberUnder?: string) {
 	reset();
 
@@ -84,20 +88,26 @@ function drop(event: DragEvent, memberUnder?: string) {
 					:value="name"
 					@change="emit('updateName', ($event.target as HTMLInputElement).value)"
 				/>
-				<ActionButton icon="fas fa-trash" label="Genesys.Labels.DeleteRole" edits @click="emit('delete')" />
+				<!-- The Role's menu: its Delete asks first, naming it. -->
+				<RowActions :removal="{ run: () => emit('delete') }" :focus-key="props.id" />
 			</div>
 			<div class="underline" />
 
 			<div class="role-skills">
 				<label><Localized label="Genesys.Labels.Skills" /></label>
 				<div>
-					<ContextMenu v-for="skill in skills" :key="skill" class="role-skill">
-						<template v-slot:menu-items>
-							<MenuItem icon="fas fa-trash" label="Genesys.Labels.Delete" @click="emit('removeSkill', skill)" />
-						</template>
-
-						<span>{{ skill }}</span>
-					</ContextMenu>
+					<!-- Each skill's × removes it from the Role, once the user confirms. -->
+					<span v-for="skill in skills" :key="skill" class="role-skill">
+						<span
+							>{{ skill }}
+							<ActionButton
+								class="remove-skill"
+								icon="fas fa-xmark"
+								:localized-label="removeSkillLabel(skill)"
+								edits
+								@click="emit('removeSkill', skill)"
+						/></span>
+					</span>
 				</div>
 			</div>
 			<div class="underline" />

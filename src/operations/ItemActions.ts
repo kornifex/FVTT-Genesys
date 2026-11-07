@@ -14,11 +14,17 @@ import { DicePrompt, RollType } from '@/app/DicePrompt';
 import { attackSkillName, freeRank } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
+import type { GenesysEffect } from '@/effects/GenesysEffect';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentType } from '@/item/ItemTypes';
 import { attackProfile, vehicleAttackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
 import { notify } from '@/notifications';
+
+/**
+ * A document a sheet's row shows: an item, an actor, or an Active Effect.
+ */
+export type RowDocument = GenesysItem | GenesysActor | GenesysEffect;
 
 /**
  * The name of the Attack Skill an actor rolls a Weapon Profile with: a weapon's own fields are its main profile.
@@ -74,24 +80,44 @@ export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, 
  * crew member's skills show on a vehicle's sheet to users who can't see the member, and Foundry refuses their sheets
  * with an error.
  */
-export function canOpenSheet(document: GenesysItem | GenesysActor) {
+export function canOpenSheet(document: RowDocument) {
 	return document.testUserPermission(game.user, 'LIMITED');
 }
 
 /**
- * Open the sheet of any document: an item, or an actor.
+ * Open the sheet of any document: an item, an actor, or an Active Effect.
  */
-export async function openSheet(document: GenesysItem | GenesysActor) {
+export async function openSheet(document: RowDocument) {
 	await document.sheet?.render(true);
 }
 
 /**
- * Delete an item once the user confirms, in Foundry's own dialog, which names the item. No is its default button, and
- * closing it keeps the item. A Container's contents are deleted with it.
+ * Delete a document of a row, an item or an Active Effect, once the user confirms in the dialog that names it. A
+ * Container's contents are deleted with it.
  */
-export async function deleteItem(item: GenesysItem) {
-	// The dialog deletes the item itself when the user answers Yes.
-	await item.deleteDialog();
+export async function deleteDocument(document: { name: string; delete(): Promise<unknown> }) {
+	if (await confirmDelete(document.name)) {
+		await document.delete();
+	}
+}
+
+/**
+ * A deletion that says in its own words what it does, such as the undo of an Experience Journal entry: the localization
+ * key of the dialog's title, and its question, already localized.
+ */
+export type DeletionQuestion = { title: string; question: string };
+
+/**
+ * Ask the user to confirm the deletion of what a sheet names: an item, an Active Effect, an extra Weapon Profile, a
+ * Role, a Quality of a list, by its name; or a deletion that asks its own question. No is the dialog's default button,
+ * and closing it answers No.
+ */
+export async function confirmDelete(deleted: string | DeletionQuestion) {
+	if (typeof deleted === 'string') {
+		return confirmDialog('Genesys.Dialogs.ConfirmDelete.Title', 'Genesys.Dialogs.ConfirmDelete.Content', deleted);
+	}
+
+	return confirmQuestion(deleted.title, deleted.question);
 }
 
 /**
@@ -153,7 +179,7 @@ export async function setEquipmentQuantity(item: GenesysItem<EquipmentType>, qua
 }
 
 async function applyEquipmentStep(item: GenesysItem<EquipmentType>, step: EquipmentStep) {
-	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDeletion()))) {
+	if (step.action === 'none' || (step.action === 'delete' && !(await confirmDelete(item.name)))) {
 		return;
 	}
 
@@ -176,7 +202,7 @@ export async function stepTalentRank(adversary: GenesysActor, talent: Stored<Gen
 			await adversary.updateEmbeddedDocuments('Item', [change.update]);
 			break;
 		case 'delete':
-			if (await confirmDeletion()) {
+			if (await confirmDelete(talent.name)) {
 				await adversary.deleteEmbeddedDocuments('Item', [change.id]);
 			}
 			break;
@@ -189,21 +215,20 @@ export async function stepTalentRank(adversary: GenesysActor, talent: Stored<Gen
 }
 
 /**
- * Ask the user to confirm an item's deletion. Foundry's confirmation dialog makes No its default button, as the AppV1
- * dialog it replaces did with `defaultYes: false`.
+ * Ask the user a yes-or-no question, which names an item.
  */
-async function confirmDeletion() {
-	return confirmDialog('Genesys.Dialogs.ConfirmDeleteItem.Title', 'Genesys.Dialogs.ConfirmDeleteItem.Content');
+async function confirmDialog(titleKey: string, contentKey: string, name: string) {
+	return confirmQuestion(titleKey, game.i18n.format(contentKey, { name }));
 }
 
 /**
- * Ask the user a yes-or-no question, which may name an item. No is the dialog's default button, and closing it answers
- * No.
+ * Ask the user a yes-or-no question, already localized. Foundry's confirmation dialog makes No its default button, and
+ * closing it answers No.
  */
-async function confirmDialog(titleKey: string, contentKey: string, name?: string) {
-	// The name is the user's text: the paragraph takes it as text, never as HTML.
+async function confirmQuestion(titleKey: string, question: string) {
+	// The question holds the user's text, such as an item's name: the paragraph takes it as text, never as HTML.
 	const paragraph = document.createElement('p');
-	paragraph.textContent = game.i18n.format(contentKey, { name: name ?? '' });
+	paragraph.textContent = question;
 	const body = document.createElement('div');
 	body.append(paragraph);
 

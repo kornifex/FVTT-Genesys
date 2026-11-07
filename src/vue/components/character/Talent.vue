@@ -1,17 +1,21 @@
 <script lang="ts" setup>
-import { computed, toRef } from 'vue';
-import { useRendered, useSheetDocument } from '@/vue/useSheetDocument';
-import { GenesysActor } from '@/actor/GenesysActor';
+import { computed, toRef, useTemplateRef } from 'vue';
+import { useRendered } from '@/vue/useSheetDocument';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
+import RowActions from '@/vue/components/RowActions.vue';
+import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { GenesysItem } from '@/item/GenesysItem';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
-import { deleteItem, openSheet, sendToChat } from '@/operations/ItemActions';
+import { openSheet } from '@/operations/ItemActions';
 
 const props = withDefaults(
 	defineProps<{
 		item: GenesysItem<'talent' | 'ability'>;
+		/**
+		 * Whether the row's menu offers Delete: an ability its Archetype doesn't grant.
+		 */
 		canDelete?: boolean;
 		canUpgrade?: boolean;
 	}>(),
@@ -25,7 +29,7 @@ const emit = defineEmits<{
 	(e: 'upgrade'): void;
 }>();
 
-const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
+const menu = useTemplateRef<ContextMenuHandle>('menu');
 
 // Named as the prop, which it shadows in the template: the talent reads the item through `useRendered`.
 const item = useRendered(() => props.item);
@@ -34,7 +38,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 </script>
 
 <template>
-	<div class="talent">
+	<!-- A right-click anywhere on the row opens its menu, at the pointer. -->
+	<div class="talent" @contextmenu="menu?.open($event)">
 		<img :src="item.img ?? undefined" :alt="item.name" />
 		<!-- The name opens the talent's sheet, as on any row that can't roll; the chevron opens its tier and source too. -->
 		<DescriptionFold class="name" :description="item.system.description">
@@ -65,15 +70,8 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 			/>
 		</span>
 		<div></div>
-		<span v-if="canDelete">
-			<ActionButton icon="fas fa-trash" label="Genesys.Labels.Delete" edits @click="deleteItem(item)" />
-		</span>
-		<span v-if="editable">
-			<ActionButton icon="fas fa-edit" label="Genesys.Labels.Edit" @click="openSheet(item)" />
-		</span>
-		<span v-if="editable">
-			<ActionButton icon="fas fa-comment" label="Genesys.Labels.SendToChat" @click="sendToChat(item, actor)" />
-		</span>
+		<!-- A character loses a talent by undoing its Advancement in the Experience Journal: its menu offers no Delete. -->
+		<RowActions ref="menu" class="actions" :document="item" :deletable="canDelete" />
 	</div>
 </template>
 

@@ -168,6 +168,13 @@ export function removeRole(crew: Crew, roleId: string): Crew | undefined {
 }
 
 /**
+ * The name a Role goes by in a menu or a dialog: its own, or "Unnamed role" while it has none, as a new Role does.
+ */
+export function roleName(role: Pick<Role, 'name'>, i18n: { localize(key: string): string }) {
+	return role.name.trim() || i18n.localize('Genesys.Labels.UnnamedRole');
+}
+
+/**
  * The Crew with a Role renamed. Undefined when the Role isn't the vehicle's.
  */
 export function renameRole(crew: Crew, roleId: string, name: string): Crew | undefined {
