@@ -144,7 +144,7 @@ type SheetsHelpers = {
 	click(name: string, selector: string, which?: number | string): Promise<void>;
 	/** Drags an element of a sheet, found as {@link click} finds it, and drops it on another. */
 	drag(name: string, from: string, which: string, to: string): Promise<void>;
-	/** Opens the context menu of an element of a sheet and clicks its entry with an icon. */
+	/** Opens the context menu of an element of a sheet and clicks its entry with an icon, or with one of icons `a|b`. */
 	menu(name: string, container: string, which: string, icon: string): Promise<void>;
 	/** Opens the context menu of an element of a sheet, closes the sheet, then clicks the page: whether the click was blocked. */
 	clickAfterClosingMenu(name: string, container: string): Promise<boolean>;
@@ -202,6 +202,8 @@ type SheetsHelpers = {
 	};
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
+	/** The rows of a sheet's Effects tab, with the icons of their buttons, then of their ⋮ menu's entries (#577). */
+	effectButtons(name: string): Promise<EffectRow[]>;
 	/** Clicks the Add button of a section of a sheet's Effects tab, from 1. */
 	addEffect(name: string, section: number): Promise<void>;
 	effectsData(name: string): { name: string; disabled: boolean; rounds: number | null }[];
@@ -811,7 +813,9 @@ function installSheetsHelpers() {
 			if (trigger) trigger.click();
 			else menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 			const entry = await waitFor(`menu entry ${icon}`, () =>
-				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) => item.querySelector(`i.${icon}`)),
+				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) =>
+					icon.split('|').some((name) => item.querySelector(`i.${name}`)),
+				),
 			);
 			entry.click();
 			await settle();
@@ -1088,6 +1092,24 @@ function installSheetsHelpers() {
 			});
 		},
 
+		async effectButtons(name) {
+			const rows: EffectRow[] = [];
+			for (const row of effectRows(sheetElement(name))) {
+				// The row's own buttons, then the entries of its ⋮ menu, where Edit and Delete went in #577.
+				const buttons = [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]);
+				if (window.e2e.hasRowMenu(row.element)) {
+					const container = row.element;
+					container.querySelector<HTMLElement>(':scope > .menu-trigger')!.click();
+					const menu = await waitFor('the menu of an effect', () => container.querySelector(':scope > [role="menu"]'));
+					buttons.push(...[...menu.querySelectorAll('.menu-icon i')].map((icon) => icon.classList[1]));
+					document.body.click();
+					await settle();
+				}
+				rows.push({ section: row.section, name: row.name, source: row.source, tooltip: row.tooltip, buttons });
+			}
+			return rows;
+		},
+
 		addEffect(name, section) {
 			return addEffect(sheetElement(name), section);
 		},
@@ -1186,18 +1208,24 @@ function installSheetsHelpers() {
 			const element = sheetElement(name);
 			const isAdversary = !!element.querySelector('.adversary-sheet');
 			const owned = documentNamed(name).items.getName(`E2E ${item}`);
+			// Send to chat is an entry of the row's ⋮ menu since #577, a button of its own on a talent's row before.
+			const sendFrom = async (row: HTMLElement) => {
+				const button = row.querySelector<HTMLElement>('button.send-to-chat-link, button:has(> i.fa-comment)');
+				if (window.e2e.hasRowMenu(row) || !button) await window.e2e.rowMenu(row, 'fa-comment');
+				else button.click();
+			};
 			if (isAdversary) {
-				const row = [...element.querySelectorAll<HTMLElement>('.adversary-items .talent, .adversary-items .weapon')].find((row) =>
-					text(row).includes(`E2E ${item}`),
-				);
+				const row = [
+					...element.querySelectorAll<HTMLElement>('.adversary-items .talent > .menu-container, .adversary-items .weapon'),
+				].find((row) => text(row).includes(`E2E ${item}`));
 				if (!row) throw new Error(`No row for ${item}`);
-				row.querySelector<HTMLElement>('button.send-to-chat-link')!.click();
+				await sendFrom(row);
 			} else if (['talent', 'ability'].includes(owned.type)) {
 				const row = [...element.querySelectorAll<HTMLElement>('.talent')].find((row) =>
 					text(row.querySelector('.name')).includes(`E2E ${item}`),
 				);
 				if (!row) throw new Error(`No talent row for ${item}`);
-				[...row.querySelectorAll('button')].find((button) => button.querySelector('i.fa-comment'))!.click();
+				await sendFrom(row);
 			} else {
 				await helpers.menu(name, '.inventory-item', `E2E ${item}`, 'fa-comment');
 			}
@@ -2905,7 +2933,7 @@ export async function run(e2e: ScenarioContext) {
 				await sheets.open('Hero');
 				await sheets.clickTab('Hero', 'effects');
 				const hero = game.actors.getName('E2E Hero');
-				editEffect(effectRows(hero.sheet).find((row) => row.name === 'E2E Edited')!);
+				await editEffect(effectRows(hero.sheet).find((row) => row.name === 'E2E Edited')!);
 				const effectSheet = hero.effects.getName('E2E Edited').sheet;
 				await waitFor(
 					'the effect sheet',
@@ -3326,10 +3354,15 @@ export async function run(e2e: ScenarioContext) {
 				),
 			),
 			memberRemoved: await crew('#82 GM removes the role member', () =>
-				gm.evaluate(() => window.sheetsE2E.menu('Vehicle', '.tab-crew .roles .role-member', 'E2E Bearer', 'fa-trash')),
+				// Its entry reads Remove from Crew since #577, with its own icon.
+				gm.evaluate(() =>
+					window.sheetsE2E.menu('Vehicle', '.tab-crew .roles .role-member', 'E2E Bearer', 'fa-user-minus|fa-trash'),
+				),
 			),
 			passengerRemoved: await crew('#82 GM removes a passenger', () =>
-				gm.evaluate(() => window.sheetsE2E.menu('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Hero', 'fa-trash')),
+				gm.evaluate(() =>
+					window.sheetsE2E.menu('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Hero', 'fa-user-minus|fa-trash'),
+				),
 			),
 		};
 		e2e.expect('#82 A2 the Crew tab follows the passengers and role members added and removed', crewSteps, {
@@ -3376,8 +3409,7 @@ export async function run(e2e: ScenarioContext) {
 			const rows: Record<string, unknown> = {};
 			for (const name of ['Bearer', 'Rival', 'Vehicle']) {
 				await window.sheetsE2E.open(name);
-				rows[name] = window.sheetsE2E
-					.effectRows(name)
+				rows[name] = (await window.sheetsE2E.effectButtons(name))
 					.filter((row) => row.name.startsWith('E2E Own') || row.name.startsWith('E2E Kit'))
 					.map(({ name, source, buttons }) => ({ name, source, buttons }));
 			}
@@ -3407,7 +3439,7 @@ export async function run(e2e: ScenarioContext) {
 				await sheets.clickTab('Rival', 'effects');
 				const row = () => effectRows(game.actors.getName('E2E Rival').sheet).find((row) => row.name === 'E2E Kit effect')!;
 				// Which effect sheet opens is under test: the step waits for the click's work to end, not for a sheet.
-				editEffect(row());
+				await editEffect(row());
 				await settle();
 				await toggleEffect(row());
 			}),
@@ -3458,7 +3490,9 @@ export async function run(e2e: ScenarioContext) {
 		);
 		e2e.expect(
 			"#102 A4 on an item's Effects tab, Delete shows for every effect, those with an origin included",
-			await gm.evaluate(() => window.sheetsE2E.effectRows('Bearer/Kit').map(({ name, buttons }) => ({ name, buttons }))),
+			await gm.evaluate(async () =>
+				(await window.sheetsE2E.effectButtons('Bearer/Kit')).map(({ name, buttons }) => ({ name, buttons })),
+			),
 			[
 				{ name: 'E2E Kit effect', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },
 				{ name: 'E2E Origin', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },
@@ -3471,6 +3505,35 @@ export async function run(e2e: ScenarioContext) {
 			),
 			[{ section: 'Inactive Effects', name: 'E2E Mail effect', tooltip: 'Inactive while E2E Mail is Carried.' }],
 		);
+
+		// §#577: deleting an effect asks first, which its trash icon didn't.
+		const deleteOrigin = (answer: 'yes' | 'no') =>
+			gm.evaluate(async (answer) => {
+				const { effectRows, rowMenu, hasRowMenu, answerConfirm } = window.e2e;
+				const kit = game.actors.getName('E2E Bearer').items.getName('E2E Kit');
+				const row = effectRows(kit.sheet).find((row) => row.name === 'E2E Origin')!;
+				if (hasRowMenu(row.element)) await rowMenu(row.element, 'fa-trash');
+				else row.element.querySelector<HTMLElement>('.fa-trash')!.closest('button')!.click();
+				return { asked: await answerConfirm(answer), effects: kit.effects.map((effect: { name: string }) => effect.name).sort() };
+			}, answer);
+		let deleted: unknown;
+		await e2e.step("#577 E1 GM deletes the E2E Origin effect from the Kit's Effects tab, and answers No", async () => {
+			deleted = await deleteOrigin('no');
+		});
+		e2e.expect('#577 E1 deleting an Active Effect asks first, in the deletion dialog that names it, and No keeps it', deleted, {
+			asked: {
+				application: 'DialogV2',
+				title: 'Confirm Deletion',
+				content: "Delete E2E Origin? This can't be undone.",
+				buttons: ['yes', 'no'],
+				defaultButton: 'no',
+			},
+			effects: ['E2E Kit effect', 'E2E Origin'],
+		});
+		await e2e.step('#577 E2 GM deletes the E2E Origin effect again, and answers Yes', async () => {
+			deleted = await deleteOrigin('yes');
+		});
+		e2e.expect('#577 E2 Yes deletes the effect', (deleted as { effects: string[] }).effects, ['E2E Kit effect']);
 		await gm.evaluate(() => window.sheetsE2E.closeAll());
 	});
 
@@ -3821,13 +3884,33 @@ export async function run(e2e: ScenarioContext) {
 			},
 			{ main: mainBefore, skills: [], qualities: [{ name: 'E2E quality', rating: 3 }] },
 		);
-		await e2e.step('#366 B4 GM deletes the profile', () =>
-			gm.evaluate(async () => {
-				if (window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile')) {
-					await window.sheetsE2E.click('weapon', '.weapon-profile .delete-profile');
-				}
-			}),
+		// The deletion asks first since #577: No keeps the profile, Yes deletes it.
+		const deleteProfile = (answer: 'yes' | 'no') =>
+			gm.evaluate(async (answer) => {
+				if (!window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile'))
+					return null;
+				await window.sheetsE2E.click('weapon', '.weapon-profile .delete-profile');
+				return window.e2e.answerConfirm(answer);
+			}, answer);
+		let askedForProfile: unknown;
+		await e2e.step('#577 W1 GM deletes the profile, and answers No', async () => {
+			askedForProfile = await deleteProfile('no');
+		});
+		e2e.expect(
+			'#577 W1 deleting an extra Weapon Profile asks first, in the deletion dialog that names it as its row does, and No keeps it',
+			{ asked: askedForProfile, blocks: (await weaponProfiles()).blocks },
+			{
+				asked: {
+					application: 'DialogV2',
+					title: 'Confirm Deletion',
+					content: "Delete E2E weapon (Thrown)? This can't be undone.",
+					buttons: ['yes', 'no'],
+					defaultButton: 'no',
+				},
+				blocks: 1,
+			},
 		);
+		await e2e.step('#366 B4 GM deletes the profile', () => deleteProfile('yes'));
 		e2e.expect('#366 B4 the deleted profile leaves the weapon and its sheet', await weaponProfiles(), {
 			main: mainBefore,
 			extraProfiles: [],

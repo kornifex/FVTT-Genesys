@@ -48,10 +48,10 @@ type CharacterHelpers = {
 	buySkill(actor: string, skill: string): boolean;
 	upgradeTalent(actor: string, talent: string): boolean;
 	/**
-	 * Clicks the trash of the last Experience Journal entry whose summary starts so; false when the journal holds none, as
-	 * when a build that doesn't ask has already undone it.
+	 * Runs Undo the entry from the ⋮ menu of the last Experience Journal entry whose summary starts so, its trash before
+	 * #577; false when the journal holds none, as when a build that doesn't ask has already undone it.
 	 */
-	undo(actor: string, entry: string): boolean;
+	undo(actor: string, entry: string): Promise<boolean>;
 	award(actor: string, amount: number, reason: string): Promise<void>;
 	/** Waits for the Career's Free Rank prompt to open. */
 	careerPromptOpen(): Promise<void>;
@@ -67,8 +67,8 @@ type CharacterHelpers = {
 	pickFreeRanks(picks: string[]): Promise<string[]>;
 	/** Clicks the name of a Critical Injury or Hit, which heals or repairs it. */
 	rollInjury(actor: string, name: string): void;
-	/** Clicks the trash icon of a Critical Injury or Hit. */
-	trashInjury(actor: string, name: string): void;
+	/** Runs the Delete of a Critical Injury or Hit, from its ⋮ menu since #577, its trash icon before. */
+	trashInjury(actor: string, name: string): Promise<void>;
 	crewPrompt(member: string): Promise<string[]>;
 	/** Reads the open Dice Prompt, then closes it. */
 	dicePrompt(): Promise<{ actor: string | null; skill: string | null; difficulty: string; difficultyDice: number }>;
@@ -92,14 +92,14 @@ type CharacterHelpers = {
 	/** The actor's non-skill items, as `type:name:flag`, the flag being `own` when it holds the actor's id. */
 	grants(actor: string): string[];
 	/** The Talents tab's rows of the abilities of that name: whether each was added by hand, and can be deleted. */
-	abilityRows(actor: string, name: string): { handMade: boolean; canDelete: boolean }[];
+	abilityRows(actor: string, name: string): Promise<{ handMade: boolean; canDelete: boolean }[]>;
 	/**
 	 * The Talents tab's lists of abilities and of talents, in order: a category header as `[Active]`, an activation detail
 	 * header as `[[maneuver]]`, a row as its name.
 	 */
 	talentsTab(actor: string): { abilities: string[]; talents: string[] };
-	/** Clicks the trash icon of a row of the Talents tab. */
-	trashTalentRow(actor: string, name: string): void;
+	/** Runs the Delete of a row of the Talents tab, from its ⋮ menu since #577, its trash icon before. */
+	trashTalentRow(actor: string, name: string): Promise<void>;
 	/**
 	 * Clicks the chevron of a row of the Combat or Talents tab, which opens or closes its description; false when the row
 	 * shows none.
@@ -519,11 +519,15 @@ function installCharacterHelpers() {
 			return !!arrow;
 		},
 
-		undo(name, entry) {
+		async undo(name, entry) {
 			const entries = actor(name).system.experienceJournal.entries.map(entryText);
 			const index = entries.findLastIndex((summary: string) => summary.startsWith(entry));
 			if (index < 0) return false;
-			click(sheet(name).querySelectorAll('.xp-journal .entries .entry')[index]?.querySelector('button'), `trash of ${entry}`);
+			const row = sheet(name).querySelectorAll('.xp-journal .entries .entry')[index];
+			if (!row) throw new Error(`No row of ${entry}`);
+			// Its ⋮ menu's Undo the entry, which was a trash icon before #577.
+			if (window.e2e.hasRowMenu(row)) await window.e2e.rowMenu(row, 'fa-trash');
+			else click(row.querySelector('button'), `trash of ${entry}`);
 			return true;
 		},
 
@@ -593,8 +597,12 @@ function installCharacterHelpers() {
 			click(injuryRow(name, injury)?.querySelector('.name .roll-link'), `name of ${injury}`);
 		},
 
-		trashInjury(name, injury) {
-			click(injuryRow(name, injury)?.querySelector('.actions .fa-trash')?.closest('button'), `trash icon of ${injury}`);
+		async trashInjury(name, injury) {
+			const row = injuryRow(name, injury);
+			if (!row) throw new Error(`No row of ${injury}`);
+			// Its ⋮ menu's Delete, which was a trash icon before #577.
+			if (window.e2e.hasRowMenu(row)) await window.e2e.rowMenu(row, 'fa-trash');
+			else click(row.querySelector('.actions .fa-trash')?.closest('button'), `trash icon of ${injury}`);
 		},
 
 		async crewPrompt(member) {
@@ -745,15 +753,20 @@ function installCharacterHelpers() {
 				.sort();
 		},
 
-		abilityRows(name, ability) {
+		async abilityRows(name, ability) {
 			const [abilities] = talentsContainers(name);
-			return [...(abilities?.querySelectorAll('.talent') ?? [])]
-				.filter((row) => text(row.querySelector('.name button')) === ability)
-				.map((row) => ({
-					handMade: row.querySelector('img')?.getAttribute('src') === HAND_IMG,
-					canDelete: !!row.querySelector('.fa-trash'),
-				}))
-				.sort((left, right) => Number(left.handMade) - Number(right.handMade));
+			const rows = [...(abilities?.querySelectorAll('.talent') ?? [])].filter(
+				(row) => text(row.querySelector('.name button')) === ability,
+			);
+			const read = [];
+			for (const row of rows) {
+				// Its Delete is in its ⋮ menu since #577, a trash icon before.
+				const canDelete = window.e2e.hasRowMenu(row)
+					? (await window.e2e.rowMenu(row)).includes('Delete')
+					: !!row.querySelector('.fa-trash');
+				read.push({ handMade: row.querySelector('img')?.getAttribute('src') === HAND_IMG, canDelete });
+			}
+			return read.sort((left, right) => Number(left.handMade) - Number(right.handMade));
 		},
 
 		talentsTab(name) {
@@ -767,11 +780,14 @@ function installCharacterHelpers() {
 			return { abilities: abilities ?? [], talents: talents ?? [] };
 		},
 
-		trashTalentRow(name, item) {
+		async trashTalentRow(name, item) {
 			const row = [...sheet(name).querySelectorAll('.tab-talents .talent')].find(
 				(candidate) => unprefixed(text(candidate.querySelector('.name button'))) === item,
 			);
-			click(row?.querySelector('.fa-trash')?.closest('button'), `trash icon of ${item}`);
+			if (!row) throw new Error(`No row of ${item}`);
+			// Its ⋮ menu's Delete, which was a trash icon before #577.
+			if (window.e2e.hasRowMenu(row)) await window.e2e.rowMenu(row, 'fa-trash');
+			else click(row.querySelector('.fa-trash')?.closest('button'), `trash icon of ${item}`);
 		},
 
 		clickChevron(name, row) {
@@ -1363,7 +1379,7 @@ async function advancement(
 	// Undoes an entry, which asks first unless the undo is refused, and answers the dialog; the dialog read, or null when
 	// none opens or the entry is gone.
 	const undoAndAnswer = (entry: string, answer: 'yes' | 'no') =>
-		page(async (args) => (window.characterE2E.undo(args.actor, args.entry) ? window.e2e.answerConfirm(args.answer) : null), {
+		page(async (args) => ((await window.characterE2E.undo(args.actor, args.entry)) ? window.e2e.answerConfirm(args.answer) : null), {
 			actor: A,
 			entry,
 			answer,
@@ -1908,7 +1924,7 @@ async function advancement(
 	}
 	await e2e.step('#198 F4 undo the last Brawn raise under the effect', () =>
 		page(async (name) => {
-			window.characterE2E.undo(name, 'Characteristic -50 brawn 5');
+			await window.characterE2E.undo(name, 'Characteristic -50 brawn 5');
 			await window.e2e.answerConfirm('yes');
 		}, E),
 	);
@@ -2219,7 +2235,7 @@ async function careerSkillsOnCreation(e2e: ScenarioContext, page: Evaluate) {
 	await e2e.step("#199 H5 Ranged's rank undone, then the Career removed", async () => {
 		// The Career can only be removed until a skill rank is bought (#436).
 		await page(async (name) => {
-			window.characterE2E.undo(name, 'Skill');
+			await window.characterE2E.undo(name, 'Skill');
 			// The build may ask before undoing (#432): Yes undoes the entry.
 			await window.e2e.answerConfirm('yes');
 		}, H);
@@ -2728,31 +2744,32 @@ async function talentsTab(e2e: ScenarioContext, page: Evaluate) {
 	const trash = (answer: 'yes' | 'no') =>
 		page(
 			async (args) => {
-				window.characterE2E.trashTalentRow(args.actor, 'Rally');
+				await window.characterE2E.trashTalentRow(args.actor, 'Rally');
 				return window.e2e.answerConfirm(args.answer);
 			},
 			{ actor: L, answer },
 		);
 	const rally = async () => (await page((name) => window.characterE2E.items(name), L)).filter((item) => item.endsWith(':E2E Rally'));
 	let asked: Awaited<ReturnType<typeof trash>> = null;
-	await e2e.step("#252 C2 the trash icon of Lister's ability Rally clicked, and No answered", async () => {
+	// Its trash icon moved into its ⋮ menu, and the system's deletion dialog replaced Foundry's (#577).
+	await e2e.step("#252 C2 the Delete of Lister's ability Rally clicked, and No answered", async () => {
 		asked = await trash('no');
 	});
 	e2e.expect(
-		"#252 C2 the Talents tab's trash icon asks in Foundry's deletion dialog, which names the ability, No by default, and No keeps it",
+		"#252 C2 the Talents tab's Delete asks in the deletion dialog, which names the ability, No by default, and No keeps it",
 		{ asked, rally: await rally() },
 		{
 			asked: {
 				application: 'DialogV2',
-				title: 'Delete Item: E2E Rally',
-				content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+				title: 'Confirm Deletion',
+				content: "Delete E2E Rally? This can't be undone.",
 				buttons: ['yes', 'no'],
 				defaultButton: 'no',
 			},
 			rally: ['ability:E2E Rally'],
 		},
 	);
-	await e2e.step("#252 C3 the trash icon of Lister's ability Rally clicked, and Yes answered", async () => {
+	await e2e.step("#252 C3 the Delete of Lister's ability Rally clicked, and Yes answered", async () => {
 		asked = await trash('yes');
 	});
 	e2e.expect('#252 C3 Yes deletes the ability', await rally(), []);
@@ -3391,7 +3408,8 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#576 R2 on a sheet the player can't edit, an adversary's weapon menu keeps the entries that read, without Delete",
 		await playerPage((name) => window.characterE2E.menu(name, { adversaryWeapon: 'Sword' }), 'Sage'),
-		['Edit', 'Perform Check'],
+		// Its own entries first, then Send to chat and Edit, as every row's menu has them since #577.
+		['Perform Check', 'Send to chat', 'Edit'],
 	);
 	// §#574: the skill's name, a button Foundry disables with the rest of a read-only sheet's form, which the sheet enables.
 	await e2e.step("#574 R3 the skill's name clicked on each sheet in the player's page", async () => {
@@ -3610,10 +3628,11 @@ async function folds(e2e: ScenarioContext, page: Evaluate) {
 async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 	const D = 'Doubter';
 	const W = 'Wary';
+	// The system's deletion dialog, which replaced Foundry's (#577).
 	const deletion = (name: string) => ({
 		application: 'DialogV2',
-		title: `Delete Item: ${name}`,
-		content: 'Are You Sure? This Item will be permanently deleted and cannot be recovered.',
+		title: 'Confirm Deletion',
+		content: `Delete ${name}? This can't be undone.`,
 		buttons: ['yes', 'no'],
 		defaultButton: 'no',
 	});
@@ -3629,7 +3648,7 @@ async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 	const deleteFromRow = (row: 'adversarySkill' | 'skill' | 'injury', answer: 'yes' | 'no') =>
 		page(
 			async (args) => {
-				if (args.row === 'injury') window.characterE2E.trashInjury(args.D, 'Sprain');
+				if (args.row === 'injury') await window.characterE2E.trashInjury(args.D, 'Sprain');
 				else if (args.row === 'skill') await window.characterE2E.menu(args.D, { skill: 'Cool' }, 'Genesys.Labels.Delete');
 				else await window.characterE2E.menu(args.W, { adversarySkill: 'Survival' }, 'Genesys.Labels.Delete');
 				return window.e2e.answerConfirm(args.answer);
@@ -3731,7 +3750,7 @@ async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 	);
 	await e2e.step("#436 A2 the skill rank's entry undone from the Experience Journal", async () => {
 		await page(async (name) => {
-			window.characterE2E.undo(name, 'Skill');
+			await window.characterE2E.undo(name, 'Skill');
 			// The build may ask before undoing (#432): Yes undoes the entry.
 			await window.e2e.answerConfirm('yes');
 		}, D);

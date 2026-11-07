@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -98,6 +98,23 @@ type AccessibilityHelpers = {
 	 * of the documents opened, by name.
 	 */
 	rollRowOutcome(): Promise<{ dicePrompt: RolledCheck | null; opened: string[] }>;
+	/**
+	 * Creates the actors whose rows the ⋮ steps of #577 open, with the optional rule of super-characteristics on, for a
+	 * characteristic's menu.
+	 */
+	setUpRowMenus(): Promise<void>;
+	/** Deletes the actors {@link setUpRowMenus} created, and gives back the rule as it was. */
+	deleteRowMenus(): Promise<void>;
+	/**
+	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
+	 * holds it, and focuses the ⋮. Whether it took the focus, and its name.
+	 */
+	readyRowMenu(row: string): Promise<{ focused: boolean; name: string | null }>;
+	/**
+	 * The menu of the ⋮ readied last: whether it is open, its entries' labels, `---` for a separator, and what has the
+	 * focus: the ⋮, an entry by its label, or null for anything else.
+	 */
+	rowMenuState(): { open: boolean; entries: string[]; focused: string | null };
 	/** Hovers the name of a row that rolls, by its key in `ROLL_ROWS`, and gives the tooltip Foundry shows. */
 	rollRowTooltip(row: string): Promise<string>;
 	/** The Roller's Brawn, and the XP they have left. */
@@ -151,9 +168,9 @@ const POINTER_TARGET = '[data-e2e-pointer]';
  */
 const KEYBOARD_ACTIONS: { sheet: string; code: string; target: string; result: string }[] = [
 	{ sheet: 'Hero', code: 'K1', target: 'the chevron of a talent', result: "opens the talent's description" },
-	{ sheet: 'Minion', code: 'K2', target: "a talent's Send to chat", result: 'posts the talent' },
-	{ sheet: 'Rival', code: 'K3', target: "a talent's Send to chat", result: 'posts the talent' },
-	{ sheet: 'Nemesis', code: 'K4', target: "a talent's Send to chat", result: 'posts the talent' },
+	{ sheet: 'Minion', code: 'K2', target: "a talent's ⋮", result: 'opens its menu' },
+	{ sheet: 'Rival', code: 'K3', target: "a talent's ⋮", result: 'opens its menu' },
+	{ sheet: 'Nemesis', code: 'K4', target: "a talent's ⋮", result: 'opens its menu' },
 	{ sheet: 'Ship', code: 'K5', target: "the Crew tab's Add", result: 'adds a Role' },
 	{ sheet: 'weapon', code: 'K6', target: "the Effects tab's Add", result: 'adds an effect' },
 ];
@@ -309,6 +326,62 @@ const ROLL_ROWS: {
 	},
 ];
 
+// The tail every row's menu ends with, where its document has a chat card.
+const CHAT_TAIL = ['Send to chat', 'Edit', 'Delete'];
+
+/**
+ * The rows whose ⋮ the steps of #577 open from the keyboard, by their key in the page's targets: the step's number,
+ * where the row is, and the entries its menu shows, in order: the row's own, a separator, Send to chat, Edit, Delete.
+ */
+const ROW_MENUS: { key: string; code: number; row: string; entries: string[] }[] = [
+	{
+		key: 'inventory',
+		code: 1,
+		row: "a carried gear on a character's Inventory tab",
+		entries: ['Drop', 'Put in E2E Row Pack', '---', ...CHAT_TAIL],
+	},
+	{ key: 'contents', code: 2, row: "a Container's contents", entries: ['Take out of E2E Row Pack', '---', ...CHAT_TAIL] },
+	{ key: 'talent', code: 3, row: "a character's talent, which offers no Delete", entries: ['Send to chat', 'Edit'] },
+	{ key: 'ability', code: 4, row: "a character's ability added by hand", entries: CHAT_TAIL },
+	{ key: 'injury', code: 5, row: "a character's Critical Injury", entries: ['Edit', 'Delete'] },
+	{
+		key: 'skill',
+		code: 6,
+		row: "a character's skill",
+		entries: ['Mark As Career Skill', 'Rank Up (Free)', 'Rank Down (Free)', '---', 'Edit', 'Delete'],
+	},
+	{ key: 'archetype', code: 7, row: "a character's Archetype, past its Starting XP", entries: ['Edit'] },
+	{ key: 'career', code: 8, row: "a character's Career", entries: ['Edit', 'Delete'] },
+	{ key: 'effect', code: 9, row: "a character's own Active Effect", entries: ['Edit', 'Delete'] },
+	{ key: 'journal', code: 10, row: 'an entry of the Experience Journal', entries: ['Undo the entry'] },
+	{
+		key: 'rivalSkill',
+		code: 11,
+		row: "a rival's skill",
+		entries: ['Rank Up (Free)', 'Rank Down (Free)', '---', 'Edit', 'Delete'],
+	},
+	{ key: 'rivalTalent', code: 12, row: "a rival's talent", entries: CHAT_TAIL },
+	{ key: 'rivalAbility', code: 13, row: "a rival's ability", entries: CHAT_TAIL },
+	{ key: 'rivalWeapon', code: 14, row: "a rival's weapon", entries: ['Perform Check', '---', ...CHAT_TAIL] },
+	{ key: 'rivalGear', code: 15, row: "a rival's gear", entries: CHAT_TAIL },
+	{ key: 'rivalInjury', code: 16, row: "a rival's Critical Injury", entries: ['Edit', 'Delete'] },
+	{ key: 'characteristic', code: 17, row: "a rival's Brawn, under the optional rule", entries: ['Mark As Super-Characteristic'] },
+	{ key: 'role', code: 18, row: "a vehicle's Role", entries: ['Delete'] },
+	{
+		key: 'passenger',
+		code: 19,
+		row: "a passenger's tile on a vehicle's Crew tab",
+		entries: ['Assign to Gunners', '---', 'Edit', 'Remove from Crew'],
+	},
+	{
+		key: 'member',
+		code: 20,
+		row: "a Role member's tile on a vehicle's Crew tab",
+		entries: ['Move to passengers', '---', 'Edit', 'Remove from Crew'],
+	},
+	{ key: 'hit', code: 21, row: "a vehicle's Critical Hit", entries: ['Edit', 'Delete'] },
+];
+
 declare global {
 	interface Window {
 		accessibilityE2E: AccessibilityHelpers;
@@ -411,10 +484,11 @@ function installAccessibilityHelpers() {
 	/**
 	 * The keyboard step's action of each sheet: its tab, its button, and what the action changes, read before and after.
 	 */
-	const talentSendToChat = (root: Element) =>
+	// A talent's Send to chat went into its ⋮ menu in #577: the step opens the menu instead.
+	const talentMenu = (root: Element) =>
 		[...root.querySelectorAll('.adversary-items .talent')]
 			.find((row) => row.textContent?.includes('E2E Grit'))
-			?.querySelector<HTMLElement>('.send-to-chat-link') ?? null;
+			?.querySelector<HTMLElement>('.menu-trigger') ?? null;
 	type KeyboardAction = {
 		tab: string;
 		button: (root: Element) => HTMLElement | null;
@@ -431,9 +505,9 @@ function installAccessibilityHelpers() {
 					?.querySelector<HTMLElement>('.description-toggle') ?? null,
 			state: (button) => button.getAttribute('aria-expanded'),
 		},
-		Minion: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
-		Rival: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
-		Nemesis: { tab: 'stats', button: talentSendToChat, state: () => game.messages.size },
+		Minion: { tab: 'stats', button: talentMenu, state: (button) => button.getAttribute('aria-expanded') },
+		Rival: { tab: 'stats', button: talentMenu, state: (button) => button.getAttribute('aria-expanded') },
+		Nemesis: { tab: 'stats', button: talentMenu, state: (button) => button.getAttribute('aria-expanded') },
 		Ship: {
 			tab: 'crew',
 			button: (root) => root.querySelector<HTMLElement>('.tab-crew .heading-row button'),
@@ -680,6 +754,69 @@ function installAccessibilityHelpers() {
 		},
 	};
 	const ROLL_ACTORS = ['Roller Ship', 'Roller Minion', 'Roller Rival', 'Roller'];
+
+	// The rows whose ⋮ the steps of #577 open, by their key in `ROW_MENUS`: the actor whose sheet shows the row, its tab,
+	// and the row, or the menu's own container; `open` first opens what holds the row, as a Container does its contents.
+	type RowMenuTarget = {
+		sheet: string;
+		tab: string;
+		row: (root: Element) => Element | null | undefined;
+		open?: (root: Element) => Promise<void>;
+	};
+	const ROW_MENU_TARGETS: Record<string, RowMenuTarget> = {
+		inventory: { sheet: 'Rower', tab: 'inventory', row: (root) => rowWith(root, '.inventory-item:not(.mini)', 'E2E Row Rope') },
+		contents: {
+			sheet: 'Rower',
+			tab: 'inventory',
+			row: (root) => rowWith(root, '.inventory-item.mini', 'E2E Row Flint'),
+			async open(root) {
+				const toggle = rowWith(root, '.inventory-item:not(.mini)', 'E2E Row Pack')?.querySelector<HTMLElement>(
+					'.description-toggle',
+				);
+				if (toggle?.getAttribute('aria-expanded') === 'false') {
+					toggle.click();
+					await waitFor('the Pack opened', () => toggle.getAttribute('aria-expanded') === 'true');
+				}
+			},
+		},
+		talent: { sheet: 'Rower', tab: 'talents', row: (root) => rowWith(root, '.tab-talents .talent', 'E2E Row Grit') },
+		ability: { sheet: 'Rower', tab: 'talents', row: (root) => rowWith(root, '.tab-talents .talent', 'E2E Row Nimble') },
+		injury: { sheet: 'Rower', tab: 'combat', row: (root) => rowWith(root, '.critical-injuries .injury:not(.columns)', 'E2E Row Gash') },
+		skill: { sheet: 'Rower', tab: 'skills', row: (root) => rowWith(root, '.tab-skills .skill.row', 'E2E Row Brawl') },
+		archetype: { sheet: 'Rower', tab: 'skills', row: (root) => root.querySelector('.character-meta .archetype') },
+		career: { sheet: 'Rower', tab: 'skills', row: (root) => root.querySelector('.character-meta .career') },
+		effect: { sheet: 'Rower', tab: 'effects', row: (root) => rowWith(root, '.effects-view .effect', 'E2E Row Ward') },
+		journal: { sheet: 'Rower', tab: 'journal', row: (root) => rowWith(root, '.xp-journal .entries .entry', 'E2E Row award') },
+		rivalSkill: { sheet: 'Rower Rival', tab: 'stats', row: (root) => rowWith(root, '.adversary-items .skill', 'E2E Row Brawl') },
+		rivalTalent: { sheet: 'Rower Rival', tab: 'stats', row: (root) => rowWith(root, '.adversary-items .talent', 'E2E Row Grit') },
+		rivalAbility: { sheet: 'Rower Rival', tab: 'stats', row: (root) => rowWith(root, '.adversary-items .talent', 'E2E Row Nimble') },
+		rivalWeapon: { sheet: 'Rower Rival', tab: 'stats', row: (root) => rowWith(root, '.adversary-items .weapon', 'E2E Row Blade') },
+		rivalGear: { sheet: 'Rower Rival', tab: 'stats', row: (root) => rowWith(root, '.adversary-items .inventory-item', 'E2E Row Rope') },
+		rivalInjury: {
+			sheet: 'Rower Rival',
+			tab: 'miscellaneous',
+			row: (root) => rowWith(root, '.adversary-items .injury', 'E2E Row Gash'),
+		},
+		// Brawn comes first.
+		characteristic: { sheet: 'Rower Rival', tab: 'stats', row: (root) => root.querySelector('.characteristic-field') },
+		role: { sheet: 'Rower Ship', tab: 'crew', row: (root) => root.querySelector('.tab-crew .role-section .role-name') },
+		passenger: {
+			sheet: 'Rower Ship',
+			tab: 'crew',
+			row: (root) => rowWith(root, '.tab-crew .passengers .actor-tile-mini', 'E2E Rower Mate'),
+		},
+		member: { sheet: 'Rower Ship', tab: 'crew', row: (root) => root.querySelector('.tab-crew .role-member .actor-tile-normal') },
+		hit: {
+			sheet: 'Rower Ship',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.critical-hits .critical-hit:not(.columns)', 'E2E Row Breach'),
+		},
+	};
+	const ROW_MENU_ACTORS = ['Rower Ship', 'Rower Rival', 'Rower', 'Rower Mate', 'Rower Hand'];
+	// The ⋮ readied last, and the world setting the characteristic's menu needs, as found.
+	let rowMenuTrigger: HTMLElement | undefined;
+	let superCharacteristicsFound: unknown;
+	const menuContainerOf = (row: Element) => (row.matches('.menu-container') ? row : row.querySelector(':scope > .menu-container'));
 	// The windows open before the control readied last was pressed.
 	let windowsBefore = new Set<unknown>();
 
@@ -1074,6 +1211,116 @@ function installAccessibilityHelpers() {
 			return { dicePrompt, opened: sheets };
 		},
 
+		async setUpRowMenus() {
+			await helpers.deleteRowMenus();
+			superCharacteristicsFound = window.e2e.settings(['useSuperCharacteristics']);
+			// The characteristic's Mark as Super-Characteristic menu shows under the optional rule only.
+			await window.e2e.setSettings({ useSuperCharacteristics: true });
+			const brawl = { name: 'E2E Row Brawl', type: 'skill', system: { category: 'combat', characteristic: 'brawn', rank: 1 } };
+			const grit = { name: 'E2E Row Grit', type: 'talent' };
+			const nimble = { name: 'E2E Row Nimble', type: 'ability' };
+			const rope = { name: 'E2E Row Rope', type: 'gear', system: { state: 'carried' } };
+			const gash = { name: 'E2E Row Gash', type: 'injury', system: { severity: 'easy' } };
+			await Actor.createDocuments([
+				{
+					name: 'E2E Rower',
+					type: 'character',
+					// An XP award past the Starting XP: the Archetype can't be removed any more, the Career still can.
+					system: {
+						experienceJournal: {
+							entries: [
+								{ amount: 100, type: 'Starting' },
+								{ amount: 10, type: 'Award', data: { reason: 'E2E Row award' } },
+							],
+						},
+					},
+					items: [
+						brawl,
+						grit,
+						nimble,
+						gash,
+						rope,
+						{ name: 'E2E Row Pack', type: 'container', system: { state: 'carried' } },
+						{ name: 'E2E Row Lineage', type: 'archetype' },
+						{ name: 'E2E Row Calling', type: 'career' },
+					],
+					effects: [{ name: 'E2E Row Ward', img: 'icons/svg/aura.svg' }],
+				},
+				{
+					name: 'E2E Rower Rival',
+					type: 'rival',
+					items: [
+						brawl,
+						grit,
+						nimble,
+						gash,
+						rope,
+						{ name: 'E2E Row Blade', type: 'weapon', system: { skills: ['E2E Row Brawl'], baseDamage: 3 } },
+					],
+				},
+				{ name: 'E2E Rower Mate', type: 'character' },
+				{ name: 'E2E Rower Hand', type: 'character' },
+			]);
+			const rower = actor('Rower');
+			await rower.createEmbeddedDocuments('Item', [
+				{ name: 'E2E Row Flint', type: 'gear', system: { state: 'carried', container: rower.items.getName('E2E Row Pack').id } },
+			]);
+			await Actor.create({
+				name: 'E2E Rower Ship',
+				type: 'vehicle',
+				items: [{ name: 'E2E Row Breach', type: 'injury', system: { severity: 'hard' } }],
+				system: {
+					passengers: { list: [{ uuid: actor('Rower Mate').uuid, sort: 100000 }] },
+					roles: [{ id: foundry.utils.randomID(), name: 'Gunners', skills: [], members: [actor('Rower Hand').uuid] }],
+				},
+			});
+			await settle();
+		},
+
+		async deleteRowMenus() {
+			await helpers.closeAll();
+			const ids = ROW_MENU_ACTORS.flatMap((name) => game.actors.getName(`E2E ${name}`)?.id ?? []);
+			if (ids.length) await Actor.deleteDocuments(ids);
+			if (superCharacteristicsFound) await window.e2e.setSettings(superCharacteristicsFound as Record<string, unknown>);
+			superCharacteristicsFound = undefined;
+			await settle();
+		},
+
+		async readyRowMenu(key) {
+			const target = ROW_MENU_TARGETS[key];
+			// Only the row's sheet stays open, so that its ⋮ is the one the keys reach.
+			for (const app of [...foundry.applications.instances.values()]) {
+				if (app.rendered && app.document && app.document !== actor(target.sheet)) await app.close();
+			}
+			await window.e2e.showTab(target.sheet, target.tab);
+			const root = await render(actor(target.sheet).sheet);
+			await target.open?.(root);
+			const row = await waitFor(`the ${key} row`, () => target.row(root));
+			const trigger = menuContainerOf(row)?.querySelector<HTMLElement>(':scope > .menu-trigger');
+			if (!trigger) throw new Error(`No ⋮ on the ${key} row`);
+			trigger.focus();
+			rowMenuTrigger = trigger;
+			return { focused: document.activeElement === trigger, name: trigger.getAttribute('aria-label') };
+		},
+
+		rowMenuState() {
+			if (!rowMenuTrigger) throw new Error('No row menu readied');
+			const menu = rowMenuTrigger.parentElement?.querySelector(':scope > [role="menu"]');
+			const active = document.activeElement;
+			return {
+				open: !!menu,
+				entries: [...(menu?.children ?? [])].map((entry) =>
+					entry.matches('hr') ? '---' : text(entry.querySelector('.menu-label')),
+				),
+				focused:
+					active === rowMenuTrigger
+						? '⋮'
+						: active?.closest('[role="menuitem"]')
+							? text(active.querySelector('.menu-label'))
+							: null,
+			};
+		},
+
 		async rollRowTooltip(key) {
 			const target = ROLL_ROW_TARGETS[key];
 			await window.e2e.showTab(target.sheet, target.tab);
@@ -1285,6 +1532,38 @@ async function rollLinks(e2e: ScenarioContext) {
 		);
 	} finally {
 		await gm.evaluate(() => window.accessibilityE2E.deleteRollRows());
+	}
+}
+
+/**
+ * §#577: each kind of row's ⋮, from the keyboard: Enter opens its menu on its first entry, its entries in their order, and
+ * Escape closes it and gives the focus back to the ⋮.
+ */
+async function rowActions(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	await e2e.step('#577 actors whose rows have a menu set up', () => gm.evaluate(() => window.accessibilityE2E.setUpRowMenus()));
+	try {
+		for (const { key, code, row, entries } of ROW_MENUS) {
+			let opened: unknown;
+			let closed: unknown;
+			await e2e.step(`#577 K${code} ${row}: its ⋮ focused, Enter, then Escape`, async () => {
+				const { name } = await gm.evaluate((key) => window.accessibilityE2E.readyRowMenu(key), key);
+				await gm.page.keyboard.press('Enter');
+				opened = { name, ...(await gm.evaluate(() => window.accessibilityE2E.rowMenuState())) };
+				await gm.page.keyboard.press('Escape');
+				closed = await gm.evaluate(() => window.accessibilityE2E.rowMenuState());
+			});
+			e2e.expect(
+				`#577 K${code} the ⋮ of ${row} is named Actions, Enter opens its menu on its first entry, which lists ${entries.join(', ')}, and Escape closes it on the ⋮`,
+				{ opened, closed },
+				{
+					opened: { name: 'Actions', open: true, entries, focused: entries[0] },
+					closed: { open: false, entries: [], focused: '⋮' },
+				},
+			);
+		}
+	} finally {
+		await gm.evaluate(() => window.accessibilityE2E.deleteRowMenus());
 	}
 }
 
@@ -1917,6 +2196,8 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('headings', () => headings(e2e));
 
 		await e2e.part('rollLinks', () => rollLinks(e2e));
+
+		await e2e.part('rowActions', () => rowActions(e2e));
 		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
 		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {
