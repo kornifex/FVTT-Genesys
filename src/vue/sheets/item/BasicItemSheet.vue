@@ -69,6 +69,7 @@ const tabs = computed(() => [
 
 <style lang="scss">
 @use '@scss/mixins/data-row.scss';
+@use '@scss/vars/colors.scss';
 
 // Unscoped: the item sheets pass their own description and data sections through the slots, which these rules lay out.
 .item-sheet-basic {
@@ -90,7 +91,7 @@ const tabs = computed(() => [
 			padding-top: 0.25rem;
 			padding-right: 1.5rem;
 			margin-bottom: 0.5rem;
-			border-top: 1px dashed black;
+			border-top: 1px dashed colors.$ink;
 
 			&:empty {
 				border-top: none;
@@ -103,7 +104,7 @@ const tabs = computed(() => [
 		flex-direction: column;
 
 		.row {
-			border-bottom: 1px dashed black;
+			border-bottom: 1px dashed colors.$ink;
 			@include data-row.grid;
 		}
 	}
@@ -149,7 +150,7 @@ const tabs = computed(() => [
 			width: 100%;
 			@include headings.font;
 			font-size: 2rem;
-			color: colors.$blue;
+			color: colors.$text-blue;
 			height: 2rem;
 
 			&,

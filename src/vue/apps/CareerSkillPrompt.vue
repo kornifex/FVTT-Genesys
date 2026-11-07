@@ -86,7 +86,7 @@ usePromptAnswer<string[]>(() => selectedSkillIDs.value);
 			justify-items: left;
 			background: colors.$blue;
 			border: 1px solid colors.$light-blue;
-			color: white;
+			color: colors.$text-on-dark;
 			border-radius: 0.5em;
 
 			&.selected {

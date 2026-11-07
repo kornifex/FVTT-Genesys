@@ -148,7 +148,8 @@ function validateInput(event: Event) {
 		margin-top: 2px;
 		margin-left: ($box-margin + 2px);
 		width: calc(100% - ($box-margin + 2px) * 2);
-		color: white;
+		// On the red of the span inside, which leaves the gold a frame of 1px.
+		color: colors.$text-on-dark;
 		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;
@@ -185,7 +186,7 @@ function validateInput(event: Event) {
 		.separator {
 			margin-top: 1px;
 			width: 1px;
-			background: linear-gradient(to bottom, white 3px, colors.$red 3px);
+			background: linear-gradient(to bottom, colors.$field 3px, colors.$red 3px);
 		}
 
 		.value {
@@ -195,7 +196,7 @@ function validateInput(event: Event) {
 			width: calc(100% - 1px);
 			height: calc(100% - 2px);
 			padding-top: 1.25rem;
-			background: white;
+			background: colors.$field;
 			@include headings.font;
 			font-size: 1.75em;
 			text-align: center;
@@ -245,7 +246,7 @@ function validateInput(event: Event) {
 				width: 100%;
 				position: relative;
 				z-index: 1;
-				color: white;
+				color: colors.$text-on-dark;
 				@include headings.font;
 				text-transform: uppercase;
 				font-size: 0.8em;

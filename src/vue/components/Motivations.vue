@@ -46,6 +46,7 @@ const headingId = useId();
 
 <style lang="scss" scoped>
 @use '@scss/mixins/reset.scss';
+@use '@scss/vars/colors.scss';
 
 .container {
 	display: flex;
@@ -65,8 +66,8 @@ const headingId = useId();
 	display: flex;
 	flex-direction: column;
 	flex-wrap: nowrap;
-	border: 1px solid black;
-	background: white;
+	border: 1px solid colors.$ink;
+	background: colors.$field;
 
 	@include reset.input;
 	input {
@@ -83,7 +84,7 @@ const headingId = useId();
 		gap: 0.5em;
 		padding: 0.25em;
 		padding-left: 0.5em;
-		border-bottom: 1px solid black;
+		border-bottom: 1px solid colors.$ink;
 		clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1px), 80% calc(100% - 1px), 80% 100%, 0% 100%);
 	}
 

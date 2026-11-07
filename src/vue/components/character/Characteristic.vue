@@ -152,7 +152,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		border-radius: 50%;
 		width: $row-size * 2;
 		height: $row-size * 2;
-		background: white;
+		background: colors.$field;
 		@include headings.font;
 		font-size: 2em;
 		text-align: center;
@@ -198,7 +198,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 			width: calc(100% - 2px);
 			height: calc(100% - 2px);
 
-			background: white;
+			background: colors.$field;
 
 			clip-path: $clip-path;
 
@@ -210,7 +210,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 				left: 1px;
 				width: calc(100% - 2px);
 				height: 100%;
-				background: radial-gradient(white 50%, colors.$blue 50%);
+				background: radial-gradient(colors.$field 50%, colors.$blue 50%);
 				background-size: ($row-size * 3) calc(($row-size * 3));
 				background-repeat: no-repeat;
 				background-position: 50% -14px;
@@ -239,7 +239,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		width: 100%;
 		grid-row: 3 / span 1;
 		grid-column: 1 / span 1;
-		color: white;
+		color: colors.$text-on-dark;
 		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;

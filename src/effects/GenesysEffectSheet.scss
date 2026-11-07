@@ -62,7 +62,7 @@
 			width: 100%;
 			@include headings.font;
 			font-size: 2rem;
-			color: colors.$blue;
+			color: colors.$text-blue;
 
 			&,
 			&:focus {
@@ -97,7 +97,7 @@
 			padding: 0.25em;
 			row-gap: 0.1em;
 			column-gap: 0.25em;
-			border-bottom: 1px dashed black;
+			border-bottom: 1px dashed colors.$ink;
 
 			input,
 			select {

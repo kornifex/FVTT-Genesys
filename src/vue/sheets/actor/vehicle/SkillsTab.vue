@@ -171,7 +171,6 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 </template>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
@@ -238,7 +237,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 				grid-column: 1 / span all;
 
 				.member-skills-container {
-					border: 1px solid black;
+					border: 1px solid colors.$ink;
 
 					.member-skill {
 						width: 100%;
@@ -247,7 +246,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 						align-items: center;
 						gap: 0.25rem;
 
-						border-bottom: 1px dashed black;
+						border-bottom: 1px dashed colors.$ink;
 						padding: 1px;
 
 						&:last-of-type {
@@ -275,8 +274,8 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 						}
 
 						& > :deep(.skill-rank) {
-							background: color.adjust(white, $alpha: -0.5);
-							border: 1px dashed black;
+							background: colors.alpha(colors.$field, 0.5);
+							border: 1px dashed colors.$ink;
 							border-radius: 0.75rem;
 							text-align: center;
 							margin: 0.1em;
@@ -380,8 +379,8 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 					}
 
 					& > :deep(.skill-rank) {
-						background: color.adjust(white, $alpha: -0.5);
-						border: 1px dashed black;
+						background: colors.alpha(colors.$field, 0.5);
+						border: 1px dashed colors.$ink;
 						border-radius: 0.75rem;
 						text-align: center;
 						margin: 0.1em;

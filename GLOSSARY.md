@@ -179,7 +179,7 @@ _Avoid_: Destiny Point, narrative point
 ### Presentation
 
 **Palette**:
-The set of colors the system draws with, exposed as `--genesys-<name>` CSS custom properties that worlds and modules may override. Names describe the Genesys color they started from, not a role, and stay stable whatever the Style.
+The set of colors the system draws with, exposed as `--genesys-<name>` CSS custom properties that worlds and modules may override. The names published before 0.6.0 describe the Genesys color they started from (blue, gold, paper…); the names added since name a role (ink, text-blue, field…). Each keeps its color and meaning whatever the Style: a color whose role changes gets a new name rather than a new value.
 _Avoid_: Theme, color scheme
 
 **Style**:

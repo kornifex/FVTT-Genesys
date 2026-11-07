@@ -510,7 +510,6 @@ const chanceId = useId();
 </style>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use 'sass:math';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/appv1.scss';
@@ -632,7 +631,7 @@ $target-size: 24px;
 		& > .description-fold-content {
 			overflow: visible;
 			margin-left: $chevron-column + $chevron-gap;
-			border-top: 1px dotted black;
+			border-top: 1px dotted colors.$ink;
 		}
 	}
 
@@ -646,7 +645,7 @@ $target-size: 24px;
 			display: grid;
 			grid-template-columns: $checkbox-size minmax(0, 2fr) minmax(0, 1.2fr);
 			column-gap: $row-column-gap;
-			border-bottom: 1px dotted black;
+			border-bottom: 1px dotted colors.$ink;
 			line-height: $row-line-height;
 
 			& > span,
@@ -660,7 +659,7 @@ $target-size: 24px;
 
 			& > div {
 				grid-column: 3;
-				border-left: 1px dotted black;
+				border-left: 1px dotted colors.$ink;
 				padding-left: 0.5rem;
 			}
 		}
@@ -687,38 +686,38 @@ $target-size: 24px;
 			}
 
 			&[data-pool-entity='Ability'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-ability;
 			}
 
 			&[data-pool-entity='Proficiency'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-proficiency;
 			}
 
 			&[data-pool-entity='Boost'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-boost;
 			}
 
 			&[data-pool-entity='Difficulty'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-difficulty;
 			}
 
 			&[data-pool-entity='Challenge'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-challenge;
 			}
 
 			&[data-pool-entity='Setback'] {
-				-webkit-text-stroke: 0.5px black;
-				text-stroke: 0.5px black;
+				-webkit-text-stroke: 0.5px colors.$die-outline;
+				text-stroke: 0.5px colors.$die-outline;
 				color: colors.$die-setback;
 			}
 		}
@@ -737,7 +736,7 @@ $target-size: 24px;
 		}
 
 		:deep(i) {
-			color: black;
+			color: colors.$ink;
 			position: relative;
 			font-size: 0.5em;
 			top: -0.25em;
@@ -765,8 +764,8 @@ $target-size: 24px;
 			line-height: $target-size;
 			vertical-align: onto-capitals($difficulty-die-scale);
 			font-family: 'Genesys Symbols', sans-serif;
-			-webkit-text-stroke: 0.5px black;
-			text-stroke: 0.5px black;
+			-webkit-text-stroke: 0.5px colors.$die-outline;
+			text-stroke: 0.5px colors.$die-outline;
 			cursor: pointer;
 
 			&.difficulty-die-Difficulty {
@@ -852,14 +851,14 @@ $target-size: 24px;
 	//#endregion
 
 	header {
-		color: colors.$blue;
+		color: colors.$text-blue;
 		@include headings.font;
 		font-size: 2em;
 	}
 
 	// The footer's buttons are its own elements, which the scoped rules don't reach.
 	.prompt-footer :deep(.roll-button) {
-		color: colors.$blue;
+		color: colors.$text-blue;
 		@include headings.font;
 		font-size: 1.25em;
 	}
@@ -870,9 +869,9 @@ $target-size: 24px;
 		grid-template-rows: /* Positive Dice */ 1fr /* Negative Dice */ 1fr;
 		gap: 0.5em;
 
-		background: linear-gradient(to bottom, black -40%, colors.$blue 20%, colors.$blue-shade 70%, black 130%);
-		border-top: 1px solid black;
-		border-bottom: 1px solid black;
+		background: linear-gradient(to bottom, colors.$shadow -40%, colors.$blue 20%, colors.$blue-shade 70%, colors.$shadow 130%);
+		border-top: 1px solid colors.$ink;
+		border-bottom: 1px solid colors.$ink;
 		margin-left: -0.5rem;
 		margin-right: -0.5rem;
 		padding-left: 0.5em;
@@ -898,10 +897,10 @@ $target-size: 24px;
 		.dice-box {
 			grid-column: 2 / span 1;
 			grid-row: 1 / span all;
-			background: color.adjust(black, $alpha: -0.75);
+			background: colors.alpha(colors.$shadow, 0.25);
 			border-top-left-radius: 0.5rem;
 			border-bottom-left-radius: 0.5rem;
-			color: white;
+			color: colors.$text-on-dark;
 			padding: 0.5em;
 			column-gap: 0.25em;
 			align-items: center;
@@ -931,8 +930,8 @@ $target-size: 24px;
 				}
 
 				&[data-pool-entity='Difficulty'] {
-					-webkit-text-stroke: 0.5px white;
-					text-stroke: 0.5px white;
+					-webkit-text-stroke: 0.5px colors.$text-on-dark;
+					text-stroke: 0.5px colors.$text-on-dark;
 					color: colors.$die-difficulty;
 
 					:deep(i) {
@@ -942,8 +941,8 @@ $target-size: 24px;
 				}
 
 				&[data-pool-entity='Challenge'] {
-					-webkit-text-stroke: 0.5px white;
-					text-stroke: 0.5px white;
+					-webkit-text-stroke: 0.5px colors.$text-on-dark;
+					text-stroke: 0.5px colors.$text-on-dark;
 					color: colors.$die-challenge;
 
 					:deep(i) {
@@ -953,8 +952,8 @@ $target-size: 24px;
 				}
 
 				&[data-pool-entity='Setback'] {
-					-webkit-text-stroke: 0.5px white;
-					text-stroke: 0.5px white;
+					-webkit-text-stroke: 0.5px colors.$text-on-dark;
+					text-stroke: 0.5px colors.$text-on-dark;
 					color: colors.$die-setback;
 
 					:deep(i) {
@@ -965,7 +964,7 @@ $target-size: 24px;
 			}
 
 			:deep(i) {
-				color: white;
+				color: colors.$text-on-dark;
 				position: relative;
 				font-size: 0.5em;
 				top: -0.25em;
@@ -977,7 +976,7 @@ $target-size: 24px;
 			display: inline;
 			font-family: 'Genesys Symbols', sans-serif;
 			font-size: 2rem;
-			color: white;
+			color: colors.$text-on-dark;
 			cursor: pointer;
 
 			&:hover {
@@ -996,8 +995,8 @@ $target-size: 24px;
 			margin-left: -0.1em;
 			margin-right: -0.05em;
 			margin-top: 0.1em;
-			-webkit-text-stroke: 2px black;
-			text-stroke: 2px black;
+			-webkit-text-stroke: 2px colors.$die-outline;
+			text-stroke: 2px colors.$die-outline;
 			font-size: 2.5rem;
 
 			&.die-Ability {

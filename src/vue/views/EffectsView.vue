@@ -165,7 +165,7 @@ async function deleteEffect(effect: GenesysEffect) {
 		}
 
 		.effect {
-			border-bottom: 1px dashed black;
+			border-bottom: 1px dashed colors.$ink;
 			padding-left: 0.5em;
 
 			&:last-of-type {

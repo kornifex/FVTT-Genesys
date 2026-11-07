@@ -97,7 +97,7 @@ const ranked = computed(() => talent.value?.ranked === 'yes');
 	}
 
 	& + .talent {
-		border-top: 1px dashed black;
+		border-top: 1px dashed colors.$ink;
 	}
 
 	img {

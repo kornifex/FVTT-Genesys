@@ -140,7 +140,7 @@ const silhouetteId = useId();
 
 		.title {
 			grid-column: 1 / span 2;
-			color: colors.$blue-gray;
+			color: colors.$ink-muted;
 			text-transform: uppercase;
 		}
 
@@ -148,7 +148,7 @@ const silhouetteId = useId();
 		// Allows us to have the benefits of both the alignment from display: grid and underlining we could get by containing each row in its own div.
 		.underline {
 			grid-column: 1 / span 2;
-			border-top: 1px solid black;
+			border-top: 1px solid colors.$ink;
 
 			// Style-match the originals; pull the underline to the left side of the box and ensure it fills to the right side.
 			margin-left: -1 * $padding;

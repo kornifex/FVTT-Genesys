@@ -93,7 +93,7 @@ async function resetStoryPoints() {
 	overflow: hidden;
 	border: 1px solid colors.$gold;
 	border-radius: 0.5em;
-	box-shadow: 0 0 6px rgb(0 0 0 / 50%);
+	box-shadow: 0 0 6px colors.alpha(colors.$shadow, 0.5);
 
 	// The element VueSheet mounts the component in, which lays the pools out side by side.
 	> .vue-app {
@@ -124,7 +124,7 @@ async function resetStoryPoints() {
 		color: colors.$paper;
 
 		header {
-			color: colors.$gold;
+			color: colors.$text-gold;
 		}
 	}
 
@@ -143,7 +143,7 @@ async function resetStoryPoints() {
 		@include headings.font;
 		font-size: 1.1em;
 		line-height: 1;
-		color: colors.$blue;
+		color: colors.$text-blue;
 
 		.action-button {
 			font-size: 0.75em;

@@ -40,7 +40,7 @@ defineProps<{
 	&::before {
 		z-index: 0;
 		content: '';
-		background: white;
+		background: colors.$field;
 		top: 1px;
 		left: 1px;
 		height: calc(100% - 2px);
@@ -82,7 +82,7 @@ defineProps<{
 		height: calc(100% - 4px);
 		width: calc(100% - 4px);
 		clip-path: polygon(0% calc(100% - 2em), 100% calc(100% - 2em), 100% 100%, 0% 100%);
-		color: white;
+		color: colors.$text-on-dark;
 		@include headings.font;
 		text-transform: uppercase;
 

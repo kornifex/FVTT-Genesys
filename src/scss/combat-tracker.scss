@@ -16,8 +16,8 @@
 	.initiative-skill {
 		display: inline-flex;
 		align-items: center;
-		color: black;
-		background: #aaa;
+		color: colors.$ink;
+		background: colors.$paper;
 		border: 1px solid colors.$blue;
 		border-radius: 4px;
 		padding: 2px;

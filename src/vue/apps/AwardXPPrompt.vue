@@ -42,6 +42,7 @@ usePromptAnswer<AwardData>(() => ({ amount: amount.value, reason: reason.value }
 
 <style lang="scss" scoped>
 @use '@scss/mixins/headings.scss';
+@use '@scss/vars/colors.scss';
 
 .award-xp-prompt {
 	display: flex;
@@ -77,7 +78,7 @@ usePromptAnswer<AwardData>(() => ({ amount: amount.value, reason: reason.value }
 		flex-direction: row;
 		flex-wrap: nowrap;
 		align-items: center;
-		border-bottom: 1px dashed black;
+		border-bottom: 1px dashed colors.$ink;
 		gap: 0.5em;
 	}
 

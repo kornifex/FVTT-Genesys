@@ -19,7 +19,7 @@
 
 		// Make it look pretty!
 		@include headings.font;
-		color: white;
+		color: colors.$text-on-dark;
 
 		// Create a decorative border effect to reuse on the tabs.
 		$decoration-color: colors.$gold;

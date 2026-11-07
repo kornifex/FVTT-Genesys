@@ -31,6 +31,18 @@ $defaults: (
 	'die-challenge': #761213,
 	'die-boost': #72cddc,
 	'die-setback': #1e1e1e,
+
+	// The names below name a role rather than the color they started from: text keeps 4.5:1 against the background its
+	// role names, in every Style. The text colors derive from the published ones, so that they follow an override.
+	'ink': #000,
+	'ink-muted': color-mix(in srgb, var(--genesys-blue-gray), black 15%),
+	'text-blue': var(--genesys-blue),
+	'text-gold': var(--genesys-gold),
+	'text-on-dark': #fff,
+	'text-alert': color-mix(in srgb, var(--genesys-alert), white 50%),
+	'field': #fff,
+	'shadow': #000,
+	'die-outline': #000,
 );
 
 // Styles the GM can choose in the world settings, each overriding some colors of the Palette. The Palette keeps its
@@ -44,6 +56,9 @@ $styles: (
 		'gold': #9f9080,
 		'initiative-slot-pc': var(--genesys-blue),
 		'initiative-slot-npc': var(--genesys-red),
+		// Its blue is too light for text on paper, and its gold too dark for text on its dark blue.
+		'text-blue': color-mix(in srgb, var(--genesys-blue), black 20%),
+		'text-gold': color-mix(in srgb, var(--genesys-gold), white 45%),
 	),
 );
 
@@ -76,6 +91,25 @@ $die-proficiency: var(--genesys-die-proficiency);
 $die-challenge: var(--genesys-die-challenge);
 $die-boost: var(--genesys-die-boost);
 $die-setback: var(--genesys-die-setback);
+
+// Text, rules and borders drawn in black on paper and in white boxes.
+$ink: var(--genesys-ink);
+// Secondary text on paper.
+$ink-muted: var(--genesys-ink-muted);
+// Blue text on paper.
+$text-blue: var(--genesys-text-blue);
+// Gold text on dark blue.
+$text-gold: var(--genesys-text-gold);
+// Text on blue, dark blue, red, and the Dice Prompt's preview.
+$text-on-dark: var(--genesys-text-on-dark);
+// A warning's text on dark blue.
+$text-alert: var(--genesys-text-alert);
+// The white boxes and fields of the sheets.
+$field: var(--genesys-field);
+// Shadows, and what darkens or dims what it lies over.
+$shadow: var(--genesys-shadow);
+// The outline of the dice's and symbols' glyphs.
+$die-outline: var(--genesys-die-outline);
 
 // Same as `transparentize`, but also works with the colors above since they reference CSS custom properties.
 @function alpha($color, $opacity) {

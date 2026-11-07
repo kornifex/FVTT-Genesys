@@ -202,7 +202,7 @@ function resetDrags() {
 
 		background: colors.$dark-blue;
 		height: 100%;
-		color: white;
+		color: colors.$text-on-dark;
 
 		padding-right: 0.5em;
 		border-radius: 0.5rem;
@@ -212,7 +212,7 @@ function resetDrags() {
 		}
 
 		&.over-capacity {
-			color: colors.$alert;
+			color: colors.$text-alert;
 		}
 	}
 

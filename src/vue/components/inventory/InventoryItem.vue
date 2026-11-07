@@ -395,7 +395,6 @@ function openMenu(event: MouseEvent) {
 </template>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use '@scss/vars/colors.scss';
 @use '@scss/mixins/headings.scss';
 
@@ -441,16 +440,16 @@ function openMenu(event: MouseEvent) {
 		}
 
 		&.dropped {
-			background: color.adjust(#333, $alpha: -0.9);
-			border: 1px solid color.adjust(#333, $alpha: -0.85);
+			background: colors.alpha(colors.$shadow, 0.1);
+			border: 1px solid colors.alpha(colors.$shadow, 0.15);
 
 			& > :not(.actions) {
 				opacity: 65%;
 			}
 
 			&:hover {
-				background: color.adjust(#333, $alpha: -0.75);
-				border: 1px solid color.adjust(#333, $alpha: -0.5);
+				background: colors.alpha(colors.$shadow, 0.25);
+				border: 1px solid colors.alpha(colors.$shadow, 0.5);
 			}
 		}
 
@@ -466,8 +465,8 @@ function openMenu(event: MouseEvent) {
 		&.drag-dim {
 			position: relative;
 
-			background: color.adjust(#333, $alpha: -0.85);
-			border: 1px solid color.adjust(#333, $alpha: -0.7);
+			background: colors.alpha(colors.$shadow, 0.15);
+			border: 1px solid colors.alpha(colors.$shadow, 0.3);
 
 			opacity: 65%;
 		}
@@ -490,7 +489,7 @@ function openMenu(event: MouseEvent) {
 
 		.quantity,
 		.weight {
-			color: colors.$blue;
+			color: colors.$text-blue;
 		}
 	}
 
