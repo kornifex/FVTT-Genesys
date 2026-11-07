@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useId } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Localized from '@/vue/components/Localized.vue';
@@ -8,6 +9,8 @@ const { system } = useSheetDocument<GenesysActor<'vehicle'>>();
 
 // The illustration is named for what it is: it shows whatever image the user picked.
 const illustrationName = game.i18n.localize('Genesys.Labels.Illustration');
+
+const fieldId = useId();
 </script>
 
 <template>
@@ -28,36 +31,46 @@ const illustrationName = game.i18n.localize('Genesys.Labels.Illustration');
 			<h3><Localized label="Genesys.Labels.Information" /></h3>
 
 			<div class="details">
-				<label><Localized label="Genesys.Labels.Complement" /></label>
-				<input type="text" name="system.complement" :value="system.complement" />
+				<label :for="`${fieldId}-complement`"><Localized label="Genesys.Labels.Complement" /></label>
+				<input :id="`${fieldId}-complement`" type="text" name="system.complement" :value="system.complement" />
 				<div class="underline" />
 
-				<label><Localized label="Genesys.Labels.Consumables" /></label>
-				<input type="text" name="system.consumables" :value="system.consumables" />
+				<label :for="`${fieldId}-consumables`"><Localized label="Genesys.Labels.Consumables" /></label>
+				<input :id="`${fieldId}-consumables`" type="text" name="system.consumables" :value="system.consumables" />
 				<div class="underline" />
 
 				<div class="double-details">
-					<label><Localized label="Genesys.Labels.Price" /></label>
-					<input type="number" name="system.price" :value="system.price" />
+					<label :for="`${fieldId}-price`"><Localized label="Genesys.Labels.Price" /></label>
+					<input :id="`${fieldId}-price`" type="number" name="system.price" :value="system.price" />
 
-					<label><Localized label="Genesys.Labels.Rarity" /></label>
-					<input type="number" name="system.rarity" :value="system.rarity" />
+					<label :for="`${fieldId}-rarity`"><Localized label="Genesys.Labels.Rarity" /></label>
+					<input :id="`${fieldId}-rarity`" type="number" name="system.rarity" :value="system.rarity" />
 				</div>
 
 				<div class="split-underline"><span /><span /></div>
 
 				<div class="double-details">
-					<label><Localized label="Genesys.Labels.PassengerCapacity" /></label>
-					<input type="number" name="system.passengers.threshold" :value="system.passengers.threshold" />
+					<label :for="`${fieldId}-passengers`"><Localized label="Genesys.Labels.PassengerCapacity" /></label>
+					<input
+						:id="`${fieldId}-passengers`"
+						type="number"
+						name="system.passengers.threshold"
+						:value="system.passengers.threshold"
+					/>
 
-					<label><Localized label="Genesys.Labels.EncumbranceCapacity" /></label>
-					<input type="number" name="system.encumbrance.threshold" :value="system.encumbrance.threshold" />
+					<label :for="`${fieldId}-encumbrance`"><Localized label="Genesys.Labels.EncumbranceCapacity" /></label>
+					<input
+						:id="`${fieldId}-encumbrance`"
+						type="number"
+						name="system.encumbrance.threshold"
+						:value="system.encumbrance.threshold"
+					/>
 				</div>
 
 				<div class="split-underline"><span /><span /></div>
 
-				<label><Localized label="Genesys.Labels.Source" /></label>
-				<input type="text" name="system.source" :value="system.source" />
+				<label :for="`${fieldId}-source`"><Localized label="Genesys.Labels.Source" /></label>
+				<input :id="`${fieldId}-source`" type="text" name="system.source" :value="system.source" />
 			</div>
 		</section>
 	</section>

@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import { CloneActorPromptContext } from '@/app/CloneActorPrompt';
+import { ref, useId } from 'vue';
+import type { CloneActorPromptContext, Instantiation, InstantiationMethod } from '@/app/CloneActorPrompt';
 import { useSheetContext } from '@/vue/SheetContext';
+import { usePromptAnswer } from '@/vue/usePrompt';
 import Localized from '@/vue/components/Localized.vue';
-import { cloneActor } from '@/operations/CloneActor';
-
-type InstantiationMethod = 'Original' | 'Clone';
+import PromptFooter from '@/vue/components/PromptFooter.vue';
 
 const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
 	Original: 'Genesys.CloneActorPrompt.OriginalMethod.Description',
@@ -15,37 +14,36 @@ const METHOD_DESCRIPTIONS: Record<InstantiationMethod, string> = {
 const context = useSheetContext<CloneActorPromptContext>();
 const actorName = ref(context.value.targetActor.name);
 const instantiationMethod = ref<InstantiationMethod>('Original');
+const methodId = useId();
+const nameId = useId();
 
-async function submitSelection(event: Event) {
-	event.preventDefault();
-	const targetActor = context.value.targetActor;
-
-	context.value.answer(instantiationMethod.value === 'Clone' ? await cloneActor(targetActor, actorName.value) : targetActor);
-}
+// The prompt answers with the choice; its caller makes the clone.
+usePromptAnswer<Instantiation>(() => ({ method: instantiationMethod.value, name: actorName.value }));
 </script>
 
 <template>
 	<div class="genesys clone-actor-prompt">
-		<div class="instantiation-method">
+		<fieldset class="instantiation-method">
+			<legend><Localized label="Genesys.CloneActorPrompt.Method" /></legend>
 			<div class="instantiation-method-choice">
-				<input type="radio" id="clone-actor-prompt-method-original" value="Original" v-model="instantiationMethod" />
-				<label for="clone-actor-prompt-method-original"><Localized label="Genesys.CloneActorPrompt.OriginalMethod.Label" /></label>
+				<input :id="`${methodId}-original`" type="radio" value="Original" v-model="instantiationMethod" />
+				<label :for="`${methodId}-original`"><Localized label="Genesys.CloneActorPrompt.OriginalMethod.Label" /></label>
 			</div>
 
 			<div class="instantiation-method-choice">
-				<input type="radio" id="clone-actor-prompt-method-clone" value="Clone" v-model="instantiationMethod" />
-				<label for="clone-actor-prompt-method-clone"><Localized label="Genesys.CloneActorPrompt.CloneMethod.Label" /></label>
+				<input :id="`${methodId}-clone`" type="radio" value="Clone" v-model="instantiationMethod" />
+				<label :for="`${methodId}-clone`"><Localized label="Genesys.CloneActorPrompt.CloneMethod.Label" /></label>
 			</div>
-		</div>
+		</fieldset>
 		<div class="instantiation-description">
 			<Localized :label="METHOD_DESCRIPTIONS[instantiationMethod]" />
 		</div>
 		<div :class="{ 'clone-name': true, hidden: instantiationMethod !== 'Clone' }">
-			<label><Localized label="Genesys.CloneActorPrompt.CloneMethod.ActorNameLabel" /></label>
-			<input type="text" v-model="actorName" />
+			<label :for="nameId"><Localized label="Genesys.CloneActorPrompt.CloneMethod.ActorNameLabel" /></label>
+			<input :id="nameId" type="text" v-model="actorName" />
 		</div>
 
-		<button class="submit-button" @click="submitSelection"><Localized label="Genesys.Labels.Select" /></button>
+		<PromptFooter class="submit-button" label="Genesys.Labels.Select" />
 	</div>
 </template>
 
@@ -59,8 +57,14 @@ async function submitSelection(event: Event) {
 </style>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/hidden.scss';
+
 .clone-actor-prompt {
 	.instantiation-method {
+		// A fieldset groups the choices for a screen reader, which its legend names; they show as they did without it.
+		margin: 0;
+		border: none;
+		min-width: 0;
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.3em;
@@ -68,6 +72,10 @@ async function submitSelection(event: Event) {
 		padding: 0.3em;
 		font-family: 'Roboto Serif', serif;
 		font-size: 1.15em;
+
+		legend {
+			@include hidden.visually-hidden;
+		}
 
 		.instantiation-method-choice {
 			input {
@@ -104,10 +112,8 @@ async function submitSelection(event: Event) {
 		}
 	}
 
-	.submit-button {
-		float: right;
+	.prompt-footer {
 		margin-top: 1rem;
-		width: 50%;
 	}
 }
 </style>

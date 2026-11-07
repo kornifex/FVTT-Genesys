@@ -529,7 +529,8 @@ function installCharacterHelpers() {
 
 		async award(name, amount, reason) {
 			click(sheet(name).querySelector('.xp-journal .columns button'), 'XP Award button');
-			const app = await findApp('app-award-xp-prompt', '.award-xp-prompt > button');
+			// Its first button is the Add button, in the prompt's footer or, before #581, on its own.
+			const app = await findApp('app-award-xp-prompt', '.award-xp-prompt button');
 			const fill = (selector: string, value: string) => {
 				const field = app.element.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
 				if (!field) throw new Error(`No ${selector}`);
@@ -539,7 +540,7 @@ function installCharacterHelpers() {
 			fill('.award-xp-prompt .amount input', String(amount));
 			fill('.award-xp-prompt .reason textarea', reason);
 			await settle();
-			click(app.element.querySelector('.award-xp-prompt > button'), 'Add button');
+			click(app.element.querySelector('.award-xp-prompt button'), 'Add button');
 		},
 
 		async careerPromptOpen() {

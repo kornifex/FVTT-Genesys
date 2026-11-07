@@ -21,6 +21,11 @@ function deleteQuality(index: number) {
 	return updateQualities(withoutIndex(system.value.qualities, index));
 }
 
+// The name of a quality's rating field, which shows no label of its own: "Pierce Rating".
+function qualityRatingLabel(quality: string) {
+	return game.i18n.format('Genesys.Labels.QualityRating', { quality });
+}
+
 function updateQualityRating(index: number, event: Event) {
 	const rating = parseInt((event.target as HTMLInputElement).value, 10);
 	return updateQualities(withQualityRating(system.value.qualities, index, rating));
@@ -37,13 +42,17 @@ function updateQualityRating(index: number, event: Event) {
 
 				<EquipmentRows :system="system" />
 
-				<DataRow label="Genesys.Labels.Qualities">
+				<DataRow label="Genesys.Labels.Qualities" group>
 					<div>
 						<div v-for="(quality, index) in system.qualities" :key="index" class="data-rated">
 							<div>{{ quality.name }}</div>
 							<div>
 								<span v-if="quality.isRated"
-									><input type="text" :value="quality.rating" @blur="updateQualityRating(index, $event)"
+									><input
+										type="text"
+										:value="quality.rating"
+										:aria-label="qualityRatingLabel(quality.name)"
+										@blur="updateQualityRating(index, $event)"
 								/></span>
 							</div>
 							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveQuality" edits @click="deleteQuality(index)" />

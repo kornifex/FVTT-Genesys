@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -102,6 +102,38 @@ type AccessibilityHelpers = {
 	rollRowTooltip(row: string): Promise<string>;
 	/** The Roller's Brawn, and the XP they have left. */
 	rollerBrawn(): { brawn: number; xp: number };
+	/**
+	 * Readies a keyboard step on a prompt (§#581): focuses the button of a sheet that opens it, for Enter to press, and
+	 * gives true; or, for a prompt a drop opens, readies what the drop needs (a character without a Career for the Career
+	 * skills) and gives false.
+	 */
+	readyPromptOpener(prompt: string): Promise<boolean>;
+	/** Opens a prompt a drop opens. */
+	dropForPrompt(prompt: string): Promise<void>;
+	/** Waits until a prompt shows its content. */
+	promptShown(prompt: string): Promise<void>;
+	/** Waits until no window of a prompt is open, for 3 s at most. */
+	promptClosed(prompt: string): Promise<void>;
+	/**
+	 * Where the focus is, and whether the prompt is open: in the prompt, the control's kind (`select skill`, `input radio`,
+	 * `button select-skill`); `opener` on the button that opened it; null elsewhere.
+	 */
+	promptFocus(prompt: string): { open: boolean; focused: string | null };
+	/** What answering a prompt changes, read before and after a step. */
+	promptOutcome(prompt: string): unknown;
+	/** The crew member prompt's rows: which one's radio is checked, which shows as selected, and their check marks. */
+	crewChoice(): { checked: number[]; selected: number[]; marks: number[] };
+	/** The name of the control with the focus. */
+	focusedName(): string | null;
+	/** The Dice Prompt's pool: its Boost dice, and its Difficulty's label. */
+	dicePromptPool(): { boost: number; difficulty: string };
+	/** How many actors bear the Minion's name: the Minion, and the clones a clone prompt made of it under that name. */
+	minionCopies(): number;
+	/**
+	 * Gives back the Ship's roles and the Hero's journal as they were before the prompt steps answered, and deletes the
+	 * Minion's clones.
+	 */
+	undoPromptAnswers(): Promise<void>;
 };
 
 /** The control of a row a keyboard step of #578 focuses. */
@@ -344,7 +376,7 @@ function installAccessibilityHelpers() {
 		},
 		awardXP: {
 			cssClass: 'app-award-xp-prompt',
-			ready: (root) => !!root.querySelector('.award-xp-prompt > button'),
+			ready: (root) => !!root.querySelector('.award-xp-prompt button'),
 			async open() {
 				await window.e2e.showTab('Hero', 'journal');
 				find(await sheet('Hero'), '.xp-journal .columns button').click();
@@ -427,6 +459,27 @@ function installAccessibilityHelpers() {
 		| undefined;
 	// The Story Points and the pause the tracker's step found, to give back.
 	let spendFound: { points: { player: number; gm: number }; paused: boolean } | undefined;
+	// §#581: the button of a sheet that opens each prompt a button opens, on its tab.
+	const PROMPT_OPENERS: Record<string, { sheet: string; tab: string; selector: string }> = {
+		dice: { sheet: 'Hero', tab: 'skills', selector: '.tab[data-tab="skills"] button.skill-name' },
+		awardXP: { sheet: 'Hero', tab: 'journal', selector: '.xp-journal .columns button' },
+		crewMember: { sheet: 'Ship', tab: 'combat', selector: '.tab-combat .weapon .name button:not(.description-toggle)' },
+	};
+	// The opener the last prompt step focused, and the data the prompt steps' answers change, as they found it.
+	let promptOpener: HTMLElement | undefined;
+	let promptFound: { roles: unknown; entries: unknown } | undefined;
+	const shownPrompt = (prompt: string) =>
+		apps(PROMPTS[prompt].cssClass).find((app: { rendered: boolean }) => app.rendered) as { element: HTMLElement } | undefined;
+	// The kind of a control, as a step names it: an input by its type, a select by its name, a button by its first class.
+	const controlKind = (control: Element) => {
+		const detail = {
+			input: control.getAttribute('type'),
+			select: control.getAttribute('name'),
+			button: control.classList[0] ?? null,
+		}[control.localName];
+		return detail ? `${control.localName} ${detail}` : control.localName;
+	};
+
 	// The controls Tab reaches in a window's content, in their order on the page: none of the hidden tabs and folds, nor the
 	// inactive tabs of a tab list, which the arrow keys reach.
 	const tabbable = (root: Element) =>
@@ -1040,6 +1093,115 @@ function installAccessibilityHelpers() {
 			const roller = actor('Roller');
 			return { brawn: roller.system._source.characteristics.brawn, xp: roller.system.availableXP };
 		},
+
+		async readyPromptOpener(prompt) {
+			promptFound ??= {
+				roles: foundry.utils.deepClone(actor('Ship')._source.system.roles),
+				entries: foundry.utils.deepClone(actor('Hero')._source.system.experienceJournal.entries),
+			};
+			const opener = PROMPT_OPENERS[prompt];
+			promptOpener = undefined;
+			if (!opener) {
+				// A character without a Career, whose drop asks for its Free Ranks.
+				if (prompt === 'careerSkill') {
+					await game.actors.getName('E2E Recruit')?.delete();
+					await Actor.create({ name: 'E2E Recruit', type: 'character' });
+				}
+				// The Minion leaves the Role a previous answer put it in: a Crew it is in offers no clone.
+				if (prompt === 'cloneActor') await actor('Ship').update({ 'system.roles': promptFound.roles });
+				await settle();
+				return false;
+			}
+			await window.e2e.showTab(opener.sheet, opener.tab);
+			promptOpener = find(await sheet(opener.sheet), opener.selector);
+			promptOpener.focus();
+			return true;
+		},
+
+		async dropForPrompt(prompt: string) {
+			if (prompt === 'careerSkill') drop(await sheet('Recruit'), { type: 'Item', uuid: documentNamed('career').uuid });
+			else await PROMPTS[prompt].open();
+		},
+
+		async promptShown(prompt: string) {
+			await waitFor(`the content of the ${prompt} prompt`, () => {
+				const root = shownPrompt(prompt)?.element;
+				return root && PROMPTS[prompt].ready(root);
+			});
+			await settle();
+		},
+
+		async promptClosed(prompt: string) {
+			// A prompt that a key leaves open fails the step's expectation rather than stopping the scenario.
+			for (let waited = 0; waited < 3000 && apps(PROMPTS[prompt].cssClass).length > 0; waited += 100) await window.e2e.sleep(100);
+			await settle();
+		},
+
+		promptFocus(prompt: string) {
+			const open = !!shownPrompt(prompt);
+			const active = document.activeElement;
+			if (active && active === promptOpener) return { open, focused: 'opener' };
+			const inPrompt = active?.closest(`.${PROMPTS[prompt].cssClass}`);
+			return { open, focused: active && inPrompt ? controlKind(active) : null };
+		},
+
+		promptOutcome(prompt: string) {
+			switch (prompt) {
+				case 'dice':
+					return game.messages.size;
+				case 'awardXP':
+					return actor('Hero').system.experienceJournal.entries.length;
+				case 'careerSkill':
+					return actor('Recruit')
+						.items.filter((item: { type: string }) => item.type === 'skill')
+						.reduce((ranks: number, skill: { system: { rank: number } }) => ranks + skill.system.rank, 0);
+				case 'cloneActor':
+					return actor('Ship').system.roles[0].members.length;
+				default:
+					// The crew member's choice opens a Dice Prompt for them.
+					return apps('app-dice-prompt').map((app: { actor?: { name: string } }) => window.e2e.unprefixed(app.actor?.name ?? ''));
+			}
+		},
+
+		crewChoice() {
+			const rows = [...document.querySelectorAll('.app-select-crew-member-prompt .member-skill-option')];
+			const where = (test: (row: Element) => boolean) => rows.flatMap((row, index) => (test(row) ? [index] : []));
+			return {
+				checked: where((row) => !!row.querySelector<HTMLInputElement>('input[type="radio"]')?.checked),
+				selected: where((row) => row.classList.contains('selected-option')),
+				marks: where((row) => !!row.querySelector('.fa-check-circle')),
+			};
+		},
+
+		focusedName() {
+			const active = document.activeElement as HTMLElement | null;
+			return active ? active.getAttribute('aria-label') ?? text(active) : null;
+		},
+
+		dicePromptPool() {
+			const root = shownPrompt('dice')?.element;
+			if (!root) throw new Error('No Dice Prompt');
+			return {
+				boost: root.querySelectorAll('.preview .positive button[aria-label="Remove 1 Boost die"]').length,
+				difficulty: text(find(root, '.pool-modifications-difficulty > span')),
+			};
+		},
+
+		minionCopies: () => game.actors.filter((doc: { name: string }) => doc.name === 'E2E Minion').length,
+
+		async undoPromptAnswers() {
+			await game.actors.getName('E2E Recruit')?.delete();
+			const clones = game.actors.filter(
+				(doc: { name: string; id: string }) => doc.name === 'E2E Minion' && doc.id !== actor('Minion').id,
+			);
+			if (clones.length) await Actor.deleteDocuments(clones.map((clone: { id: string }) => clone.id));
+			if (promptFound) {
+				await actor('Ship').update({ 'system.roles': promptFound.roles });
+				await actor('Hero').update({ 'system.experienceJournal.entries': promptFound.entries });
+				promptFound = undefined;
+			}
+			await settle();
+		},
 	};
 
 	window.accessibilityE2E = helpers;
@@ -1295,6 +1457,197 @@ async function headings(e2e: ScenarioContext) {
 	);
 }
 
+/**
+ * §#581: each prompt from the keyboard alone. It opens with the focus in its first field (the first control a prompt
+ * without a field has); Escape there closes it without an answer and Enter answers it; the focus then goes back to the
+ * button that opened it. A pool is built and rolled in the Dice Prompt with Tab, Enter and Space, and a crew member is
+ * chosen with the arrow keys.
+ */
+async function promptKeys(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const press = (key: string) => gm.page.keyboard.press(key);
+	const focus = (prompt: string) => gm.evaluate((prompt) => window.accessibilityE2E.promptFocus(prompt), prompt);
+	const outcome = (prompt: string) => gm.evaluate((prompt) => window.accessibilityE2E.promptOutcome(prompt), prompt);
+	const closed = (prompt: string) => gm.evaluate((prompt) => window.accessibilityE2E.promptClosed(prompt), prompt);
+	const focusedName = () => gm.evaluate(() => window.accessibilityE2E.focusedName());
+	const closeAll = () => gm.evaluate(() => window.accessibilityE2E.closeAll());
+	// Readies the opening of a prompt, then opens it as its user does from the keyboard, with Enter on the button that
+	// opens it (true), or with the drop that does.
+	const ready = (prompt: string) => gm.evaluate((prompt) => window.accessibilityE2E.readyPromptOpener(prompt), prompt);
+	const trigger = async (prompt: string, byButton: boolean) => {
+		if (byButton) await press('Enter');
+		else await gm.evaluate((prompt) => window.accessibilityE2E.dropForPrompt(prompt), prompt);
+		await gm.evaluate((prompt) => window.accessibilityE2E.promptShown(prompt), prompt);
+	};
+	// Presses a key until the focus is on the control a test finds, 40 times at most; whether it got there.
+	const pressUntil = async (key: string, reached: () => Promise<boolean>) => {
+		for (let presses = 0; presses < 40; presses++) {
+			if (await reached()) return true;
+			await press(key);
+		}
+		return reached();
+	};
+	const changed = (before: unknown, after: unknown) => JSON.stringify(before) !== JSON.stringify(after);
+
+	// Each prompt, the control its focus starts on, and the keys that answer it once it is open.
+	const answering: { prompt: string; code: string; first: string; keys: string; answer: () => Promise<void> }[] = [
+		{ prompt: 'dice', code: '1', first: 'select skill', keys: 'Enter in its first field', answer: () => press('Enter') },
+		{
+			prompt: 'awardXP',
+			code: '2',
+			first: 'input number',
+			keys: 'an amount typed, then Enter',
+			answer: async () => {
+				await gm.page.keyboard.type('5');
+				await press('Enter');
+			},
+		},
+		{
+			prompt: 'careerSkill',
+			code: '3',
+			first: 'button select-skill',
+			keys: 'Space on as many skills as it grants Free Ranks, Tab to Done, then Enter',
+			answer: async () => {
+				const ranks = await gm.evaluate(() => CONFIG.genesys.settings.freeCareerSkillRanks as number);
+				for (let pick = 0; pick < ranks; pick++) {
+					await press('Space');
+					await press('Tab');
+				}
+				await pressUntil('Tab', async () => (await focus('careerSkill')).focused === 'button prompt-submit');
+				await press('Enter');
+			},
+		},
+		{ prompt: 'cloneActor', code: '4', first: 'input radio', keys: 'Enter on its first choice', answer: () => press('Enter') },
+		{
+			prompt: 'crewMember',
+			code: '5',
+			first: 'input radio',
+			keys: 'Enter after the arrow keys chose a crew member',
+			answer: () => press('Enter'),
+		},
+	];
+
+	try {
+		for (const { prompt, code, first, keys, answer } of answering) {
+			let byButton = false;
+			let opened: unknown = null;
+			let before: unknown = null;
+			await e2e.step(`#581 E${code} ${prompt} prompt opened from the keyboard, then Escape pressed in its first field`, async () => {
+				byButton = await ready(prompt);
+				before = await outcome(prompt);
+				await trigger(prompt, byButton);
+				opened = await focus(prompt);
+				await press('Escape');
+				await closed(prompt);
+			});
+			e2e.expect(
+				`#581 E${code} the ${prompt} prompt opens with the focus on its first control, and Escape there closes it without an answer${byButton ? ', the focus back on the button that opened it' : ''}`,
+				{ opened, after: await focus(prompt), answered: changed(before, await outcome(prompt)) },
+				{ opened: { open: true, focused: first }, after: { open: false, focused: byButton ? 'opener' : null }, answered: false },
+			);
+			await closeAll();
+
+			let crewChoice: unknown = null;
+			await e2e.step(`#581 A${code} ${prompt} prompt opened from the keyboard, then answered with ${keys}`, async () => {
+				byButton = await ready(prompt);
+				before = await outcome(prompt);
+				await trigger(prompt, byButton);
+				if (prompt === 'crewMember') {
+					await press('ArrowDown');
+					crewChoice = await gm.evaluate(() => window.accessibilityE2E.crewChoice());
+				}
+				await answer();
+				await closed(prompt);
+			});
+			// The crew member's choice opens a Dice Prompt for them, which keeps the focus.
+			const focusAfter = prompt === 'crewMember' ? null : byButton ? 'opener' : null;
+			e2e.expect(
+				`#581 A${code} ${keys} answers the ${prompt} prompt and closes it${focusAfter ? ', the focus back on the button that opened it' : ''}`,
+				{ after: await focus(prompt), answered: changed(before, await outcome(prompt)) },
+				{ after: { open: false, focused: focusAfter }, answered: true },
+			);
+			if (prompt === 'crewMember') {
+				e2e.expect(
+					'#581 C1 ArrowDown in the crew member prompt checks the second member, which shows a check mark and the tint',
+					crewChoice,
+					{ checked: [1], selected: [1], marks: [1] },
+				);
+				e2e.expect('#581 C1 Enter rolls for the member the arrow keys chose', await outcome(prompt), ['Loader']);
+
+				let diceOpened: unknown = null;
+				await e2e.step("#581 C2 Escape pressed in the Dice Prompt the crew member's choice opened", async () => {
+					// A crew prompt left unanswered opens no Dice Prompt: the step's expectation fails rather than the scenario.
+					await gm.evaluate(async () => {
+						const shown = () => window.e2e.apps('app-dice-prompt').some((app: { rendered: boolean }) => app.rendered);
+						for (let waited = 0; waited < 3000 && !shown(); waited += 100) await window.e2e.sleep(100);
+						if (shown()) await window.accessibilityE2E.promptShown('dice');
+					});
+					diceOpened = await focus('dice');
+					await press('Escape');
+					await closed('dice');
+				});
+				e2e.expect(
+					"#581 C2 the Dice Prompt a crew member's choice opens takes the focus, and Escape there gives it back to the button that opened the crew member prompt",
+					{ opened: diceOpened, after: await focus('dice') },
+					{ opened: { open: true, focused: 'select skill' }, after: { open: false, focused: 'opener' } },
+				);
+			}
+			await closeAll();
+		}
+
+		let copies: number[] = [];
+		await e2e.step(
+			'#581 A6 cloneActor prompt opened by a drop, Clone chosen with an arrow key, then Select double-clicked',
+			async () => {
+				await ready('cloneActor');
+				const minions = () => gm.evaluate(() => window.accessibilityE2E.minionCopies());
+				copies = [await minions()];
+				await trigger('cloneActor', false);
+				await press('ArrowRight');
+				// The primary button, which keeps this class on both builds.
+				await gm.page.dblclick('.app-clone-actor-prompt .submit-button');
+				await closed('cloneActor');
+				await gm.evaluate(() => window.e2e.settle());
+				copies.push(await minions());
+			},
+		);
+		e2e.expect("#581 A6 a double click on the clone prompt's Select makes one clone", copies[1] - copies[0], 1);
+
+		let built: unknown = null;
+		let messages = 0;
+		await e2e.step(
+			'#581 D1 Dice Prompt opened from the keyboard: a Boost die added, Hard chosen, then rolled, with Tab, Shift+Tab and Enter',
+			async () => {
+				messages = (await outcome('dice')) as number;
+				await trigger('dice', await ready('dice'));
+				const pool = () => gm.evaluate(() => window.accessibilityE2E.dicePromptPool());
+				const found = await pool();
+				const boost = await pressUntil('Shift+Tab', async () => (await focusedName()) === 'Add 1 Boost die');
+				await press('Enter');
+				const hard = await pressUntil('Tab', async () => (await focusedName()) === 'Hard');
+				await press('Enter');
+				const roll = await pressUntil('Tab', async () => (await focus('dice')).focused === 'button prompt-submit');
+				const shown = await pool();
+				built = { reached: { boost, hard, roll }, boostAdded: shown.boost - found.boost, difficulty: shown.difficulty };
+				await press('Enter');
+				await closed('dice');
+			},
+		);
+		e2e.expect(
+			'#581 D1 a pool is built and rolled in the Dice Prompt from the keyboard alone: a die of the dice box, the Difficulty, the roll',
+			{ built, rolled: ((await outcome('dice')) as number) - messages, after: await focus('dice') },
+			{
+				built: { reached: { boost: true, hard: true, roll: true }, boostAdded: 1, difficulty: 'Difficulty: Hard' },
+				rolled: 1,
+				after: { open: false, focused: 'opener' },
+			},
+		);
+	} finally {
+		await closeAll();
+		await gm.evaluate(() => window.accessibilityE2E.undoPromptAnswers());
+	}
+}
+
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installAccessibilityHelpers);
@@ -1303,6 +1656,13 @@ export async function run(e2e: ScenarioContext) {
 
 	// The checks of the running part that found a button without a name (#574), which every action has since.
 	let unnamedButtons: string[] = [];
+	// The violations of the running part's checks of a field without a label (#581) and of a target under 24 px, by check.
+	let unlabelledFields: Record<string, string[]> = {};
+	let smallTargets: Record<string, string[]> = {};
+	const violated = (findings: Record<string, unknown>, rules: string[]) =>
+		Object.keys(findings).filter(
+			(finding) => rules.some((rule) => finding.startsWith(`${rule} (`)) && !finding.endsWith('(needs review)'),
+		);
 	// Checks an element in each Style, and logs what each check finds.
 	const check = async (label: string, selector: string) => {
 		for (const style of STYLES) {
@@ -1311,6 +1671,10 @@ export async function run(e2e: ScenarioContext) {
 			const findings = await gm.axe(selector, style.rules);
 			e2e.log(checked, findings);
 			if (Object.keys(findings).some((rule) => rule.startsWith('button-name '))) unnamedButtons.push(checked);
+			const unlabelled = violated(findings, ['label', 'select-name']);
+			if (unlabelled.length) unlabelledFields[checked] = unlabelled;
+			const small = violated(findings, ['target-size']);
+			if (small.length) smallTargets[checked] = small;
 		}
 	};
 	const expectNamedButtons = (name: string) => {
@@ -1329,6 +1693,14 @@ export async function run(e2e: ScenarioContext) {
 				tabListViolations.push(`${name} in ${style.name}: ${rule}`);
 			}
 		}
+	};
+	const expectLabelledFields = (name: string) => {
+		e2e.expect(name, unlabelledFields, {});
+		unlabelledFields = {};
+	};
+	const expectTargetSizes = (name: string) => {
+		e2e.expect(name, smallTargets, {});
+		smallTargets = {};
 	};
 
 	// Each window is checked in a step of its own, which logs the errors its rendering threw after its findings.
@@ -1352,6 +1724,9 @@ export async function run(e2e: ScenarioContext) {
 			}
 			expectNamedButtons('#574 A1 no tab of any sheet type has a button without a name');
 			e2e.expect("#575 A1 no sheet type's tab list violates an accessibility rule", tabListViolations, []);
+			expectLabelledFields('#581 L1 no tab of any sheet type has a field or a select without a label');
+			// The sheets' small targets go to #577 and #579, which rewrite their buttons.
+			smallTargets = {};
 		});
 
 		await e2e.part('prompts', async () => {
@@ -1363,6 +1738,8 @@ export async function run(e2e: ScenarioContext) {
 				});
 			}
 			expectNamedButtons('#574 A2 no prompt has a button without a name');
+			expectLabelledFields('#581 L2 no prompt has a field or a select without a label');
+			expectTargetSizes('#581 L3 no prompt has a target under 24 px, the Difficulty dice included');
 		});
 
 		// §#576: an open actions menu, which its sheet's check never finds open.
@@ -1382,7 +1759,6 @@ export async function run(e2e: ScenarioContext) {
 				[],
 			);
 		});
-
 		await e2e.part('storyPointTracker', async () => {
 			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
 			expectNamedButtons('#574 A3 the Story Point tracker has no button without a name');
@@ -1530,6 +1906,8 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('headings', () => headings(e2e));
 
 		await e2e.part('rollLinks', () => rollLinks(e2e));
+		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
+		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
 	}

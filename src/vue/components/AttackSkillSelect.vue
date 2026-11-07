@@ -2,6 +2,7 @@
 import { GenesysItem } from '@/item/GenesysItem';
 import { skillNamesMatch } from '@/data/Skills';
 import { profileUpdate } from '@/item/WeaponProfiles';
+import { vLocalize } from '@/vue/directives';
 
 const props = defineProps<{
 	weapon: GenesysItem<'weapon'>;
@@ -25,7 +26,13 @@ async function chooseAttackSkill(event: Event) {
 <template>
 	<!-- Unnamed, so the sheet's form doesn't submit it as actor data. A click on it mustn't reach the attack link around
 	 it on the adversary sheet. -->
-	<select v-if="choices.length > 1" class="attack-skill" @change="chooseAttackSkill" @click.stop>
+	<select
+		v-if="choices.length > 1"
+		class="attack-skill"
+		v-localize:aria-label="'Genesys.Labels.Skill'"
+		@change="chooseAttackSkill"
+		@click.stop
+	>
 		<option v-for="name in choices" :key="name" :value="name" :selected="skillNamesMatch(name, attackSkill)">
 			{{ name }}
 		</option>

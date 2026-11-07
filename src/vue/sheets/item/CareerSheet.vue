@@ -45,7 +45,7 @@ async function removeSkill(index: number) {
 			<section class="data-grid">
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 
-				<DataRow label="Genesys.Career.Skills">
+				<DataRow label="Genesys.Career.Skills" group>
 					<div v-for="(skill, index) in system.careerSkills" :key="skill.name" class="career-skill">
 						<img :src="skill.img" :alt="skill.name" />
 						<span class="name">{{ skill.name }}</span>

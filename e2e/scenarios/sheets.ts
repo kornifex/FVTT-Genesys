@@ -131,6 +131,13 @@ type SheetsHelpers = {
 	closePrompts(cssClass: string): Promise<void>;
 	/** Opens a prompt through its class's static method, closes it, and tells when its promise resolved. */
 	promptResolution(): Promise<{ resolved: boolean; value: unknown; elementStillShown: boolean }>;
+	/**
+	 * Closes the award XP prompts, then opens one through its class's static method, so that its answer writes nothing,
+	 * and records the answer.
+	 */
+	openDetachedAwardXP(): Promise<void>;
+	/** The detached award XP prompt's answer, null while it has none, and how many award XP prompts are open. */
+	detachedAwardXP(): { answer: unknown; open: number };
 	/** Clicks an element of a sheet: the n-th match (from 1) of a selector, or the one whose text holds a name. */
 	click(name: string, selector: string, which?: number | string): Promise<void>;
 	/** Drags an element of a sheet, found as {@link click} finds it, and drops it on another. */
@@ -344,6 +351,8 @@ function installSheetsHelpers() {
 				app.rendered && (app.hasFrame ?? true) && app.id !== 'story-point-tracker',
 		);
 	const promptsOf = (cssClass: string) => apps(cssClass).filter((app: { rendered: boolean }) => app.rendered);
+	// The answer of the award XP prompt opened apart from a journal, 'none' when it closed without one.
+	let detachedAnswer: unknown = null;
 	const notifications = () =>
 		[...document.querySelectorAll('#notifications .notification')].map((element) => text(element)).filter(Boolean);
 
@@ -764,6 +773,21 @@ function installSheetsHelpers() {
 			await Promise.race([promise, sleep(2000)]);
 			return resolution;
 		},
+
+		async openDetachedAwardXP() {
+			const shown = await waitFor('award XP prompt', () => promptsOf('app-award-xp-prompt')[0]);
+			const AwardXPPrompt = shown.constructor;
+			await helpers.closePrompts('app-award-xp-prompt');
+			detachedAnswer = null;
+			void AwardXPPrompt.promptForXPAward().then((value: unknown) => (detachedAnswer = value ?? 'none'));
+			await waitFor('the award XP prompt', () => {
+				const app = promptsOf('app-award-xp-prompt')[0];
+				return app && htmlOf(app)?.querySelector('.amount input');
+			});
+			await settle();
+		},
+
+		detachedAwardXP: () => ({ answer: detachedAnswer, open: promptsOf('app-award-xp-prompt').length }),
 
 		async click(name, selector, which = 1) {
 			find(sheetElement(name), selector, which).click();
@@ -2003,18 +2027,22 @@ export async function run(e2e: ScenarioContext) {
 		);
 		await gm.evaluate(() => window.sheetsE2E.closePrompts('app-dice-prompt'));
 
-		// Enter in a prompt: no native form submission, which would reload the page.
+		// Enter in a prompt answers it (§#581), with no native form submission, which would reload the page. The prompt is
+		// opened apart from the journal, so that its answer of 0 XP writes no entry.
+		await gm.evaluate(() => window.sheetsE2E.openDetachedAwardXP());
 		await gm.evaluate(() => {
 			(window as unknown as { e2eMarker: boolean }).e2eMarker = true;
 		});
 		await gm.page.focus('.app-award-xp-prompt .amount input');
 		await e2e.step('#95 GM presses Enter in the award XP prompt', () => gm.page.keyboard.press('Enter'));
 		e2e.expect(
-			'#95 A5 Enter in a prompt submits no native form',
-			await gm.evaluate(() => (window as unknown as { e2eMarker?: boolean }).e2eMarker ?? false),
-			true,
+			'#95 A5 Enter in a prompt submits no native form, and answers the prompt with what it shows',
+			{
+				nativeSubmit: !(await gm.evaluate(() => (window as unknown as { e2eMarker?: boolean }).e2eMarker ?? false)),
+				...(await gm.evaluate(() => window.sheetsE2E.detachedAwardXP())),
+			},
+			{ nativeSubmit: false, answer: { amount: 0, reason: '' }, open: 0 },
 		);
-		e2e.log('award XP prompts open after Enter', await gm.evaluate(() => window.sheetsE2E.prompts('app-award-xp-prompt').length));
 		await gm.evaluate(() => window.sheetsE2E.click('Hero', '.xp-journal .columns button'));
 		e2e.expect('#95 A6 a prompt resolves when it starts closing', await gm.evaluate(() => window.sheetsE2E.promptResolution()), {
 			resolved: true,

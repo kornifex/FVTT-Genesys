@@ -1,9 +1,9 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysItem } from '@/item/GenesysItem';
 import VueDicePrompt from '@/vue/apps/DicePrompt.vue';
-import { VueSheet } from '@/vue/VueSheet';
+import { VuePrompt } from '@/vue/VuePrompt';
 import { Characteristic } from '@/data/Characteristics';
-import type { CheckRoll } from '@/dice/CheckRoll';
+import { type CheckRoll, rollCheck } from '@/dice/CheckRoll';
 import { diceRollerTarget } from '@/dice/DiceRoller';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 
@@ -17,16 +17,16 @@ export const RollType = {
 } as const;
 
 /**
- * A check the Dice Prompt rolls, and what its roll type needs on top of the dice pool: the weapon of an attack and the
- * Weapon Profile it is made with, the promise of an initiative, settled when the check is rolled or the prompt closed.
+ * A check the Dice Prompt is answered for, and what its roll type needs on top of the dice pool: the weapon of an
+ * attack and the Weapon Profile it is made with.
  */
 export type DicePromptRoll =
 	| { type: typeof RollType.Skill }
 	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'>; profile: AttackProfile }
-	| { type: typeof RollType.Initiative; resolve: (checkRoll: CheckRoll) => void; reject: () => void };
+	| { type: typeof RollType.Initiative };
 
 /**
- * What the Dice Prompt shows and rolls.
+ * What the Dice Prompt shows.
  */
 export type DicePromptContext = {
 	actor?: GenesysActor;
@@ -34,7 +34,6 @@ export type DicePromptContext = {
 	roll: DicePromptRoll;
 	difficulty: string;
 	characteristic?: Characteristic;
-	app: DicePrompt;
 };
 
 /**
@@ -57,9 +56,10 @@ export type DicePromptOptions = {
 };
 
 /**
- * Dice pool prompt.
+ * Dice pool prompt: it answers with the check and the dice pool the user built, undefined when they close it without
+ * rolling.
  */
-export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2) {
+export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 	override get vueComponent() {
 		return VueDicePrompt;
 	}
@@ -71,11 +71,17 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 	};
 
 	/**
-	 * Open a Dice Prompt for an actor's check with a skill, or a bare one without an actor.
+	 * Open a Dice Prompt for an actor's check with a skill, or a bare one without an actor, and roll the check it answers
+	 * with.
 	 */
 	static async promptForRoll(actor: GenesysActor | undefined, skillName: string, options: DicePromptOptions = {}) {
 		const app = new DicePrompt(actor, skillName, options);
-		await app.render(true);
+		const checkRoll = await app.prompt();
+		if (!checkRoll) {
+			return;
+		}
+
+		await rollCheck(checkRoll, app.roll.type === RollType.Attack ? app.roll.profile : undefined);
 	}
 
 	/**
@@ -86,15 +92,11 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 	}
 
 	/**
-	 * Open a Dice Prompt for an actor's initiative, and wait for the check rolled. Rejects when the prompt is closed
+	 * Open a Dice Prompt for an actor's initiative, and wait for the check to roll. Undefined when the prompt is closed
 	 * without a roll.
 	 */
 	static async promptForInitiative(actor: GenesysActor | undefined, skillName: string, options: Omit<DicePromptOptions, 'roll'> = {}) {
-		return new Promise<CheckRoll>((resolve, reject) => {
-			const app = new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative, resolve, reject } });
-
-			void app.render(true);
-		});
+		return new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative } }).prompt();
 	}
 
 	actor?: GenesysActor;
@@ -113,14 +115,6 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 		this.characteristic = characteristic;
 	}
 
-	protected override async _preClose(options: object) {
-		if (this.roll.type === RollType.Initiative) {
-			this.roll.reject();
-		}
-
-		await super._preClose(options);
-	}
-
 	override async getVueContext(): Promise<DicePromptContext> {
 		return {
 			actor: this.actor,
@@ -128,7 +122,6 @@ export class DicePrompt extends VueSheet(foundry.applications.api.ApplicationV2)
 			roll: this.roll,
 			difficulty: this.difficulty,
 			characteristic: this.characteristic,
-			app: this,
 		};
 	}
 }

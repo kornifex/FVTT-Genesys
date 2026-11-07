@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useId } from 'vue';
 import { ENTRY_LABELS, Entry as JournalEntry, EntryType as JournalEntryType } from '@/actor/data/character/ExperienceJournal';
 import { advance, awardXP } from '@/actor/data/character/Advancement';
 import { undoJournalEntry } from '@/operations/JournalUndo';
@@ -13,6 +14,18 @@ import XPContainer from '@/vue/components/character/XPContainer.vue';
 import Motivations from '@/vue/components/Motivations.vue';
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
+
+// The character's details, in the order the description shows them.
+const DETAILS = [
+	{ field: 'gender', label: 'Genesys.Labels.Pronouns' },
+	{ field: 'age', label: 'Genesys.Labels.Age' },
+	{ field: 'height', label: 'Genesys.Labels.Height' },
+	{ field: 'build', label: 'Genesys.Labels.Build' },
+	{ field: 'hair', label: 'Genesys.Labels.Hair' },
+	{ field: 'eyes', label: 'Genesys.Labels.Eyes' },
+] as const;
+
+const detailsId = useId();
 
 // The illustration is named for what it is: it shows whatever image the user picked.
 const illustrationName = game.i18n.localize('Genesys.Labels.CharacterIllustration');
@@ -61,39 +74,20 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 				<h3><Localized label="Genesys.Labels.CharacterDescription" /></h3>
 
 				<div class="desc-box">
-					<label><Localized label="Genesys.Labels.Pronouns" /></label>
-					<input type="text" name="system.details.gender" :value="system.details.gender" />
+					<template v-for="{ field, label } in DETAILS" :key="field">
+						<label :for="`${detailsId}-${field}`"><Localized :label="label" /></label>
+						<input :id="`${detailsId}-${field}`" type="text" :name="`system.details.${field}`" :value="system.details[field]" />
 
-					<div class="underline" />
-
-					<label><Localized label="Genesys.Labels.Age" /></label>
-					<input type="text" name="system.details.age" :value="system.details.age" />
-
-					<div class="underline" />
-
-					<label><Localized label="Genesys.Labels.Height" /></label>
-					<input type="text" name="system.details.height" :value="system.details.height" />
-
-					<div class="underline" />
-
-					<label><Localized label="Genesys.Labels.Build" /></label>
-					<input type="text" name="system.details.build" :value="system.details.build" />
-
-					<div class="underline" />
-
-					<label><Localized label="Genesys.Labels.Hair" /></label>
-					<input type="text" name="system.details.hair" :value="system.details.hair" />
-
-					<div class="underline" />
-
-					<label><Localized label="Genesys.Labels.Eyes" /></label>
-					<input type="text" name="system.details.eyes" :value="system.details.eyes" />
-
-					<div class="underline" />
+						<div class="underline" />
+					</template>
 
 					<div class="notable-features">
-						<label><Localized label="Genesys.Labels.NotableFeatures" /></label>
-						<textarea name="system.details.notableFeatures" :value="system.details.notableFeatures" />
+						<label :for="`${detailsId}-notableFeatures`"><Localized label="Genesys.Labels.NotableFeatures" /></label>
+						<textarea
+							:id="`${detailsId}-notableFeatures`"
+							name="system.details.notableFeatures"
+							:value="system.details.notableFeatures"
+						/>
 					</div>
 				</div>
 			</div>

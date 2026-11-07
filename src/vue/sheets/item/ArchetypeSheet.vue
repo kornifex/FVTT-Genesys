@@ -71,8 +71,9 @@ async function deleteGrantedItem(index: number) {
 
 		<template v-slot:data>
 			<section class="data-grid">
-				<DataRow v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :label="label">
+				<DataRow v-for="{ characteristic, label } in CHARACTERISTICS" :key="characteristic" :label="label" v-slot="{ id }">
 					<input
+						:id="id"
 						type="number"
 						:name="`system.characteristics.${characteristic}`"
 						:value="system.characteristics[characteristic]"
@@ -97,7 +98,7 @@ async function deleteGrantedItem(index: number) {
 
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 
-				<DataRow label="Genesys.Archetype.GrantedItems">
+				<DataRow label="Genesys.Archetype.GrantedItems" group>
 					<div v-for="(item, index) in system.grantedItems" :key="item.name" class="data">
 						<img :src="item.img" :alt="item.name" />
 						<span class="name">{{ item.name }}</span>

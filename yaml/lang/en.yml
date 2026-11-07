@@ -266,6 +266,7 @@ Genesys:
         A clone of the dropped actor will be created and a reference to it will be saved.
         Additionally, the cloned actor will appear on the 'Actors' directory as a new entry with the name specified below.
       ActorNameLabel: New Name
+    Method: Save the dropped actor as
 
   # Experience Journal Labels
   XPJournal:
@@ -599,6 +600,7 @@ Genesys:
     XPJournal: XP Journal
     Tier: Tier
     Activation: Activation
+    ActivationDetail: Activation Detail
     Rank: Rank
     Ranked: Ranked
     EffectsScaleWithRank: Effects scale with rank
@@ -610,6 +612,7 @@ Genesys:
     SpecialAbilities: Special Abilities
     TierCount: Tier {tier}
     Add: Add
+    Cancel: Cancel
     Encumbrance: Encumbrance
     Price: Price
     Rarity: Rarity
@@ -626,6 +629,7 @@ Genesys:
     FreeRankDown: Rank Down (Free)
     IsRated: Is Rated?
     Qualities: Qualities
+    QualityRating: '{quality} Rating' # e.g. Pierce Rating, the name of a quality's rating field
     Severity: Severity
     Attacks: Attacks
     Armor: Armor

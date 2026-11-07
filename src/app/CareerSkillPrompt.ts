@@ -8,7 +8,6 @@ import { VuePrompt } from '@/vue/VuePrompt';
  */
 export type CareerSkillPromptContext = {
 	skills: Stored<GenesysItem<'skill'>>[];
-	answer: (skillIDs: string[]) => void;
 };
 
 /**
@@ -41,9 +40,6 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	}
 
 	override async getVueContext(): Promise<CareerSkillPromptContext> {
-		return {
-			answer: (skillIDs) => this.answer(skillIDs),
-			skills: this.#skills,
-		};
+		return { skills: this.#skills };
 	}
 }
