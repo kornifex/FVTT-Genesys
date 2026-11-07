@@ -374,26 +374,20 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    FoundryVersions: Run on Foundry v13 and v14; a world that stays on Foundry v12 keeps the 0.4.x versions
-    WeaponProfiles: >-
-      Give a weapon extra profiles (an axe wielded or thrown), each with its own skill, damage and range, and attack with
-      each from its own row of the Combat tab
-    Silhouette: >-
-      Give characters and adversaries a silhouette: a targeted attack is easier against a target 2 or more silhouettes larger,
-      and harder against one 2 or more smaller
-    Difficulty: Pick the check's difficulty in the Dice Prompt by clicking one of five dice
-    PoolModificationSources: >-
-      Open the talent, equipment or effect behind a Pool Modification from its name in the Dice Prompt, which stays open
-    ChatDiceButton: Open the Dice Prompt from a button beside the chat's message modes, for the selected token's actor
-    SkillSheet: >-
-      Open a skill's sheet, to read its description, from its icon on the character and adversary sheets; its name still
-      rolls it
-    StoryPointSpend: Record a Story Point a player spends once, even with several GMs or assistants connected
-    StoryPointTracker: >-
-      Show the Story Point tracker as one pill at the top of the column beside the sidebar, where it no longer pushes the
-      chat input up
-    InventoryMenu: >-
-      Open an inventory row's menu with a right-click, and place an item dropped on a row before or after it
+    RowMenu: >-
+      Find a row's actions in its ⋮ menu, putting an item in a Container or a crew member in a Role among them; every
+      deletion asks first
+    Keyboard: Use the sheets, their menus and the prompts from the keyboard, with a visible focus ring
+    RollFromName: Roll a row's check from its name and open its sheet from its icon, on every sheet
+    Counter: >-
+      Change wounds, strain and Story Points with one compact stepper; wounds stop at twice the wound threshold everywhere
+    ActingGmQueries: >-
+      Tell the player when an action the GM's client carries out fails, such as claiming an Initiative Slot with no GM
+      connected
+    PilotDefensiveDriving: Add the Pilot's Defensive Driving to the vehicle's defense, still capped at 4
+    ChatMode: Send a check's message in the chat's mode (blind, self) on Foundry v14 too
+    Contrast: >-
+      Read every text at 4.5:1 in both Styles; an effect turned off and an Initiative Slot's side say so in words
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
