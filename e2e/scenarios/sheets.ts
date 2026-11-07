@@ -203,7 +203,7 @@ type SheetsHelpers = {
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
 	/** The rows of a sheet's Effects tab, with the icons of their buttons, then of their ⋮ menu's entries (#577). */
-	effectButtons(name: string): Promise<EffectRow[]>;
+	effectButtons(name: string): Promise<Omit<EffectRow, 'toggle'>[]>;
 	/** Clicks the Add button of a section of a sheet's Effects tab, from 1. */
 	addEffect(name: string, section: number): Promise<void>;
 	effectsData(name: string): { name: string; disabled: boolean; rounds: number | null }[];
@@ -1093,7 +1093,7 @@ function installSheetsHelpers() {
 		},
 
 		async effectButtons(name) {
-			const rows: EffectRow[] = [];
+			const rows: Omit<EffectRow, 'toggle'>[] = [];
 			for (const row of effectRows(sheetElement(name))) {
 				// The row's own buttons, then the entries of its ⋮ menu, where Edit and Delete went in #577.
 				const buttons = [...row.element.querySelectorAll('.buttons i')].map((icon) => icon.classList[1]);
