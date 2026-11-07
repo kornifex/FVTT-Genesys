@@ -87,8 +87,8 @@ describe('ActionButton', () => {
 		const plain = mountButton({ icon: 'fas fa-trash', label: 'Genesys.Labels.Delete' });
 		const closed = mountButton({ icon: 'fas fa-chevron-right', label: 'Genesys.Tooltips.Details', expanded: false });
 		const open = mountButton({ icon: 'fas fa-chevron-down', label: 'Genesys.Tooltips.Details', expanded: true });
-		const on = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.Toggle', pressed: true });
-		const off = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.Toggle', pressed: false });
+		const on = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.TurnOff', pressed: true });
+		const off = mountButton({ icon: 'fas fa-power-off', label: 'Genesys.ActiveEffects.TurnOff', pressed: false });
 
 		expect(plain.attributes('aria-expanded')).toBeUndefined();
 		expect(plain.attributes('aria-pressed')).toBeUndefined();

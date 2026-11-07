@@ -121,7 +121,7 @@ const TABS = [
 			width: 100%;
 			@include headings.font;
 			font-size: 2rem;
-			color: colors.$blue;
+			color: colors.$text-blue;
 			height: 2rem;
 
 			&,

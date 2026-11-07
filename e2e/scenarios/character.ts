@@ -603,7 +603,11 @@ function installCharacterHelpers() {
 			const names = options.map((option) => text(option.querySelector('.member-name')));
 			const option = options.find((candidate) => text(candidate.querySelector('.member-name')) === `E2E ${member}`);
 			click(option, `crew member ${member}`);
-			await waitFor(`crew member ${member} picked in the prompt`, () => option?.classList.contains('selected-option'));
+			// The choice reads in its checked radio and its check mark, not in the row's tint alone (#583).
+			await waitFor(
+				`crew member ${member} picked in the prompt`,
+				() => option?.querySelector<HTMLInputElement>('input[type="radio"]')?.checked && option.querySelector('.fa-check-circle'),
+			);
 			click(app.element.querySelector('.submit-button'), 'Select button');
 			return names;
 		},

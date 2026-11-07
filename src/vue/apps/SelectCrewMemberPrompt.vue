@@ -57,7 +57,6 @@ usePromptAnswer<ActorCrewMemberSkill | undefined>(() => context.value.memberSkil
 </style>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use '@scss/mixins/hidden.scss';
 @use '@scss/vars/colors.scss';
 
@@ -112,8 +111,8 @@ usePromptAnswer<ActorCrewMemberSkill | undefined>(() => context.value.memberSkil
 
 		.skill-rank {
 			font-family: 'Roboto', sans-serif;
-			background: color.adjust(white, $alpha: -0.5);
-			border: 1px dashed black;
+			background: colors.alpha(colors.$field, 0.5);
+			border: 1px dashed colors.$ink;
 			border-radius: 0.75rem;
 			text-align: center;
 			margin: 0.1em;

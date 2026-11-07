@@ -143,8 +143,8 @@ function drop(event: DragEvent, memberUnder?: string) {
 		display: grid;
 		grid-template-columns: auto 1fr auto;
 		grid-template-rows: repeat(3, auto 1px) 1fr;
-		border: 1px solid black;
-		background: white;
+		border: 1px solid colors.$ink;
+		background: colors.$field;
 		align-items: center;
 		column-gap: 0.5em;
 		height: 100%;
@@ -210,7 +210,7 @@ function drop(event: DragEvent, memberUnder?: string) {
 			grid-column: 1 / span all;
 			width: 92%;
 			height: 100%;
-			background: black;
+			background: colors.$ink;
 		}
 
 		.role-members {

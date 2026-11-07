@@ -100,7 +100,7 @@ const fieldId = useId();
 		min-height: 100px;
 
 		&[src=''] {
-			background: green;
+			background: colors.alpha(colors.$gold, 0.5);
 		}
 	}
 
@@ -118,8 +118,8 @@ const fieldId = useId();
 			max-height: 20rem;
 
 			.editor {
-				background: white;
-				border: 1px solid black;
+				background: colors.$field;
+				border: 1px solid colors.$ink;
 			}
 		}
 
@@ -137,8 +137,8 @@ const fieldId = useId();
 			display: grid;
 			grid-template-columns: auto 1fr auto 1fr;
 			grid-template-rows: repeat(4, auto 1px) auto 1fr;
-			border: 1px solid black;
-			background: white;
+			border: 1px solid colors.$ink;
+			background: colors.$field;
 			align-items: center;
 			column-gap: 0.5em;
 
@@ -163,7 +163,7 @@ const fieldId = useId();
 				grid-column: 1 / span all;
 				width: 92%;
 				height: 100%;
-				background: black;
+				background: colors.$ink;
 			}
 
 			.split-underline {
@@ -174,7 +174,7 @@ const fieldId = useId();
 
 				& > span {
 					grid-column: auto / span 1;
-					background: black;
+					background: colors.$ink;
 				}
 			}
 

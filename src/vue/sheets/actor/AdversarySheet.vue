@@ -377,7 +377,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					padding-top: 0.25rem;
 					padding-right: 1.5rem;
 					margin-bottom: 0.5rem;
-					border-top: 1px dashed black;
+					border-top: 1px dashed colors.$ink;
 
 					&:empty {
 						border-top: none;
@@ -454,7 +454,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			width: 100%;
 			@include headings.font;
 			font-size: 2rem;
-			color: colors.$blue;
+			color: colors.$text-blue;
 			height: 2rem;
 
 			&,
@@ -473,7 +473,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			gap: 0.5em;
 			align-items: baseline;
 			@include headings.font;
-			color: colors.$blue;
+			color: colors.$text-blue;
 
 			input {
 				width: 3em;
@@ -596,7 +596,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		// DataRow renders the Source row's label and input, so the row is reached with :deep(): the mixin's rules on them
 		// then carry no scope attribute.
 		:deep(.data-row) {
-			border-top: 1px dashed black;
+			border-top: 1px dashed colors.$ink;
 			margin-top: 1rem;
 			@include data-row.grid;
 		}

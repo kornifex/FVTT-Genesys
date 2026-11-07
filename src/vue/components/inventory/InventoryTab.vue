@@ -155,7 +155,6 @@ function resetDrags() {
 </template>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use '@scss/mixins/headings.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/vars/colors.scss';
@@ -189,7 +188,7 @@ function resetDrags() {
 			background: colors.$dark-blue;
 			padding-left: 0.5em;
 			height: 100%;
-			color: white;
+			color: colors.$text-on-dark;
 		}
 
 		.currency-row {
@@ -216,12 +215,12 @@ function resetDrags() {
 
 		@include reset.input;
 		input {
-			background: color.adjust(white, $alpha: -0.8);
+			background: colors.alpha(colors.$field, 0.2);
 			padding: 3px;
 			text-align: right;
 			width: 100px;
 			font-size: 1.1em;
-			color: white;
+			color: colors.$text-on-dark;
 		}
 	}
 
@@ -238,7 +237,7 @@ function resetDrags() {
 		}
 
 		&.encumbered {
-			color: colors.$alert;
+			color: colors.$text-alert;
 		}
 	}
 }

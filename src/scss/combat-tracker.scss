@@ -16,14 +16,21 @@
 	.initiative-skill {
 		display: inline-flex;
 		align-items: center;
-		color: black;
-		background: #aaa;
+		color: colors.$ink;
+		background: colors.$paper;
 		border: 1px solid colors.$blue;
 		border-radius: 4px;
 		padding: 2px;
 		font-size: 0.8em;
 		margin-right: 2px;
 		text-shadow: none;
+	}
+
+	// A claimed slot's side, before its controls.
+	.slot-side {
+		flex: none;
+		font-size: 0.8em;
+		margin-right: 4px;
 	}
 
 	.slot-pc {

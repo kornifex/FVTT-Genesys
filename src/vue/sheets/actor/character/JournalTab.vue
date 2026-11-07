@@ -174,7 +174,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		min-height: 100px;
 
 		&[src=''] {
-			background: green;
+			background: colors.alpha(colors.$gold, 0.5);
 		}
 	}
 
@@ -196,8 +196,8 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 			display: grid;
 			grid-template-columns: auto 1fr;
 			grid-template-rows: repeat(6, auto 1px) 1fr;
-			border: 1px solid black;
-			background: white;
+			border: 1px solid colors.$ink;
+			background: colors.$field;
 			align-items: center;
 			column-gap: 0.5em;
 
@@ -219,7 +219,7 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 				grid-column: 1 / span all;
 				width: 80%;
 				height: 100%;
-				background: black;
+				background: colors.$ink;
 			}
 
 			.notable-features {
@@ -250,8 +250,8 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		min-height: 100px;
 
 		.editor {
-			background: white;
-			border: 1px solid black;
+			background: colors.$field;
+			border: 1px solid colors.$ink;
 		}
 	}
 
@@ -273,8 +273,8 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		overflow-y: scroll;
 		min-height: 1em;
 		max-height: 250px;
-		border: 1px solid black;
-		background: white;
+		border: 1px solid colors.$ink;
+		background: colors.$field;
 	}
 
 	.columns,

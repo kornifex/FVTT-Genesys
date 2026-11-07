@@ -129,6 +129,20 @@ describe('Palette', () => {
 		});
 	});
 
+	it('declares the colors that name a role', () => {
+		expect(declarations(DEFAULTS)).toMatchObject({
+			'--genesys-ink': '#000',
+			'--genesys-ink-muted': 'color-mix(in srgb, var(--genesys-blue-gray), black 15%)',
+			'--genesys-text-blue': 'var(--genesys-blue)',
+			'--genesys-text-gold': 'var(--genesys-gold)',
+			'--genesys-text-on-dark': '#fff',
+			'--genesys-text-alert': 'color-mix(in srgb, var(--genesys-alert), white 50%)',
+			'--genesys-field': '#fff',
+			'--genesys-shadow': '#000',
+			'--genesys-die-outline': '#000',
+		});
+	});
+
 	it('lets a Style override its default colors', () => {
 		expect(css.indexOf(`${TERRINOTH} {`)).toBeGreaterThan(css.indexOf(`${DEFAULTS} {`));
 	});
@@ -158,4 +172,75 @@ describe('Realms of Terrinoth Style', () => {
 			'--genesys-initiative-slot-npc': 'var(--genesys-red)',
 		});
 	});
+
+	it('derives its text blue and text gold from its own blue and gold', () => {
+		expect(declarations(TERRINOTH)).toMatchObject({
+			'--genesys-text-blue': 'color-mix(in srgb, var(--genesys-blue), black 20%)',
+			'--genesys-text-gold': 'color-mix(in srgb, var(--genesys-gold), white 45%)',
+		});
+	});
+});
+
+/**
+ * A Palette color as a browser computes it in a Style: a hex color, another color of the Palette, or a `color-mix()` of
+ * one with black or white, whose percentage is black's or white's share.
+ */
+function resolve(name: string, style: Record<string, string>): Rgb {
+	const value = style[`--genesys-${name}`];
+	expect(value, name).toBeDefined();
+
+	const reference = /^var\(--genesys-([a-z-]+)\)$/.exec(value);
+	if (reference) {
+		return resolve(reference[1], style);
+	}
+
+	const mix = /^color-mix\(in srgb, var\(--genesys-([a-z-]+)\), (black|white) ([\d.]+)%\)$/.exec(value);
+	if (mix) {
+		const [, base, other, percent] = mix;
+		const share = Number(percent) / 100;
+		const target = other === 'white' ? 255 : 0;
+		return resolve(base, style).map((channel) => channel * (1 - share) + target * share) as Rgb;
+	}
+
+	const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value);
+	expect(hex, `${name}: ${value}`).not.toBeNull();
+	const digits = hex![1].length === 3 ? [...hex![1]].map((digit) => digit + digit).join('') : hex![1];
+	return rgb(`#${digits}`);
+}
+
+/**
+ * The contrast ratio of two colors, as WCAG 2.2 defines it.
+ */
+function contrast(a: Rgb, b: Rgb): number {
+	const luminance = (color: Rgb) => {
+		const [red, green, blue] = color.map((channel) => {
+			const value = channel / 255;
+			return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+		});
+		return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+	};
+	const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+// Each color for text, and the backgrounds it is drawn on.
+const TEXT_ON = {
+	ink: ['paper', 'paper-pattern', 'field'],
+	'ink-muted': ['paper', 'paper-pattern', 'field'],
+	'text-blue': ['paper', 'paper-pattern', 'field'],
+	'text-gold': ['dark-blue'],
+	'text-on-dark': ['blue', 'dark-blue', 'red', 'blue-shade'],
+	'text-alert': ['dark-blue'],
+} satisfies Record<string, string[]>;
+
+describe.each([
+	['Genesys', () => declarations(DEFAULTS)],
+	['Realms of Terrinoth', () => ({ ...declarations(DEFAULTS), ...declarations(TERRINOTH) })],
+])('Text in the %s Style', (_, style) => {
+	it.each(Object.entries(TEXT_ON).flatMap(([text, backgrounds]) => backgrounds.map((background) => [text, background])))(
+		'draws %s on %s at 4.5:1 or more',
+		(text, background) => {
+			expect(contrast(resolve(text, style()), resolve(background, style()))).toBeGreaterThanOrEqual(4.5);
+		},
+	);
 });

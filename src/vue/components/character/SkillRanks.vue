@@ -38,8 +38,8 @@ const glyphs = computed(() => DIE_GLYPHS.Proficiency.repeat(proficiencyDice.valu
 		display: block;
 		height: 12px;
 		width: 20px;
-		background: white;
-		border: 1px solid black;
+		background: colors.$field;
+		border: 1px solid colors.$ink;
 		border-top-left-radius: 4px;
 		border-bottom-left-radius: 4px;
 		margin-left: -6px;

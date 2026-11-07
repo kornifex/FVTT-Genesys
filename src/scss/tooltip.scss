@@ -3,7 +3,7 @@
 
 #tooltip.genesys {
 	@include backgrounds.crossboxes;
-	color: black;
+	color: colors.$ink;
 	padding-left: 0.5em;
 	padding-right: 0.5em;
 	text-align: left !important;

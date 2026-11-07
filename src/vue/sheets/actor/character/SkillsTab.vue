@@ -161,7 +161,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 </template>
 
 <style lang="scss" scoped>
-@use 'sass:color';
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
@@ -265,7 +264,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	}
 
 	.body {
-		border: 1px solid black;
+		border: 1px solid colors.$ink;
 
 		&:empty {
 			border-style: dashed;
@@ -277,7 +276,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	// The row is a ContextMenu's root, and the skill's cells are a SkillRow's roots, which take no scope attribute from the
 	// tab: :deep() reaches them.
 	.row {
-		border-bottom: 1px dashed black;
+		border-bottom: 1px dashed colors.$ink;
 
 		// The open menu keeps its own padding.
 		& > :deep(:where(:not(.context-menu))) {
@@ -311,8 +310,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		}
 
 		& > :deep(.skill-rank) {
-			background: color.adjust(white, $alpha: -0.5);
-			border: 1px dashed black;
+			background: colors.alpha(colors.$field, 0.5);
+			border: 1px dashed colors.$ink;
 			border-radius: 0.75rem;
 			text-align: center;
 			margin: 0.1em 0.1em 0.1em 0.2em;
