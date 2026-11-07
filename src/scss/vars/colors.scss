@@ -40,6 +40,8 @@ $defaults: (
 	'text-gold': var(--genesys-gold),
 	'text-on-dark': #fff,
 	'text-alert': color-mix(in srgb, var(--genesys-alert), white 50%),
+	// Icons keep 3:1 against what they lie on, rather than text's 4.5:1.
+	'icon-gold': color-mix(in srgb, var(--genesys-gold), black 35%),
 	'field': #fff,
 	'shadow': #000,
 	'die-outline': #000,
@@ -104,6 +106,8 @@ $text-gold: var(--genesys-text-gold);
 $text-on-dark: var(--genesys-text-on-dark);
 // A warning's text on dark blue.
 $text-alert: var(--genesys-text-alert);
+// A gold icon on paper, such as a super-characteristic's star in a chat roll.
+$icon-gold: var(--genesys-icon-gold);
 // The white boxes and fields of the sheets.
 $field: var(--genesys-field);
 // Shadows, and what darkens or dims what it lies over.

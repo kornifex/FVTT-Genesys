@@ -512,9 +512,10 @@ function openMenu(event: MouseEvent) {
 			border: 1px solid colors.alpha(colors.$blue, 0.5);
 		}
 
+		// Ink, which keeps 4.5:1 on the row's blue tint, hovered or not, in both Styles: blue text didn't.
 		.quantity,
 		.weight {
-			color: colors.$text-blue;
+			color: colors.$ink;
 		}
 	}
 

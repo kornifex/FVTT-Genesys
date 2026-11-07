@@ -137,6 +137,7 @@ describe('Palette', () => {
 			'--genesys-text-gold': 'var(--genesys-gold)',
 			'--genesys-text-on-dark': '#fff',
 			'--genesys-text-alert': 'color-mix(in srgb, var(--genesys-alert), white 50%)',
+			'--genesys-icon-gold': 'color-mix(in srgb, var(--genesys-gold), black 35%)',
 			'--genesys-field': '#fff',
 			'--genesys-shadow': '#000',
 			'--genesys-die-outline': '#000',
@@ -233,6 +234,25 @@ const TEXT_ON = {
 	'text-alert': ['dark-blue'],
 } satisfies Record<string, string[]>;
 
+// Each color for icons, and the backgrounds it is drawn on.
+const ICON_ON = {
+	'icon-gold': ['paper', 'paper-pattern'],
+} satisfies Record<string, string[]>;
+
+// Text drawn on a translucent tint of the Palette: the tint, its opacity, and what it lies over.
+const TEXT_ON_TINT = [
+	// A Container's contents row, at rest and hovered, shows its quantity and weight in ink.
+	{ text: 'ink', tint: 'blue', opacity: 0.2, over: 'paper-pattern' },
+	{ text: 'ink', tint: 'blue', opacity: 0.4, over: 'paper-pattern' },
+];
+
+/**
+ * A translucent color over another, as the browser composites them.
+ */
+function composite(color: Rgb, opacity: number, background: Rgb): Rgb {
+	return color.map((channel, index) => channel * opacity + background[index] * (1 - opacity)) as Rgb;
+}
+
 describe.each([
 	['Genesys', () => declarations(DEFAULTS)],
 	['Realms of Terrinoth', () => ({ ...declarations(DEFAULTS), ...declarations(TERRINOTH) })],
@@ -241,6 +261,18 @@ describe.each([
 		'draws %s on %s at 4.5:1 or more',
 		(text, background) => {
 			expect(contrast(resolve(text, style()), resolve(background, style()))).toBeGreaterThanOrEqual(4.5);
+		},
+	);
+
+	it.each(TEXT_ON_TINT)('draws $text on $tint at $opacity over $over at 4.5:1 or more', ({ text, tint, opacity, over }) => {
+		const background = composite(resolve(tint, style()), opacity, resolve(over, style()));
+		expect(contrast(resolve(text, style()), background)).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it.each(Object.entries(ICON_ON).flatMap(([icon, backgrounds]) => backgrounds.map((background) => [icon, background])))(
+		'draws the %s icons on %s at 3:1 or more',
+		(icon, background) => {
+			expect(contrast(resolve(icon, style()), resolve(background, style()))).toBeGreaterThanOrEqual(3);
 		},
 	);
 });
