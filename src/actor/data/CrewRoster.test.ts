@@ -401,10 +401,10 @@ describe('crewSkillsBySkill', () => {
 		];
 
 		expect(crewSkillsBySkill(crew, rolled, compendium, 'en')).toEqual([
-			{ skillName: 'Astrogation', skillImage: 'Astrogation.svg', members: [] },
-			{ skillName: 'athletics', skillImage: 'athletics.svg', members: [] },
-			{ skillName: 'Gunnery', skillImage: 'Gunnery.svg', members: [rolled[1], rolled[2]] },
-			{ skillName: 'Piloting', skillImage: 'Piloting.svg', members: [rolled[0]] },
+			{ skillName: 'Astrogation', skillImage: 'Astrogation.svg', skill: compendium[0], members: [] },
+			{ skillName: 'athletics', skillImage: 'athletics.svg', skill: compendium[1], members: [] },
+			{ skillName: 'Gunnery', skillImage: 'Gunnery.svg', skill: compendium[2], members: [rolled[1], rolled[2]] },
+			{ skillName: 'Piloting', skillImage: 'Piloting.svg', skill: compendium[3], members: [rolled[0]] },
 		]);
 	});
 
@@ -417,17 +417,17 @@ describe('crewSkillsBySkill', () => {
 		];
 
 		expect(crewSkillsBySkill({ passengers: [], roles: [pilot, gunner] }, [], compendium, 'en')).toEqual([
-			{ skillName: 'Gunnery', skillImage: 'gunnery.svg', members: [] },
-			{ skillName: 'Piloting', skillImage: 'piloting.svg', members: [] },
+			{ skillName: 'Gunnery', skillImage: 'gunnery.svg', skill: compendium[0], members: [] },
+			{ skillName: 'Piloting', skillImage: 'piloting.svg', skill: compendium[1], members: [] },
 		]);
 	});
 
-	it('lists a Role skill missing from the Skills Compendium once a member rolls it, with the image of their skill', () => {
+	it('lists a Role skill missing from the Skills Compendium once a member rolls it, with the image and the sheet of their skill', () => {
 		const navigator: Role = { id: 'navigator', name: 'Navigator', skills: ['Astrogation', 'Sensors'], members: ['N'], pilot: false };
 		const astrogation = { member: 'N', role: navigator, skillName: 'Astrogation', skill: { name: 'astrogation', img: 'stars.svg' } };
 
-		expect(crewSkillsBySkill({ passengers: [], roles: [navigator] }, [astrogation], [], 'en')).toEqual([
-			{ skillName: 'Astrogation', skillImage: 'stars.svg', members: [astrogation] },
+		expect(crewSkillsBySkill({ passengers: [], roles: [navigator] }, [astrogation], [] as (typeof astrogation.skill)[], 'en')).toEqual([
+			{ skillName: 'Astrogation', skillImage: 'stars.svg', skill: astrogation.skill, members: [astrogation] },
 		]);
 	});
 });

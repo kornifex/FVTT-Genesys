@@ -88,6 +88,13 @@ Genesys:
     ShowDescription: Mostrar la descripción
     HideDescription: Ocultar la descripción
     OpenSkill: Abrir la hoja de la habilidad
+    OpenItem: Abrir la hoja del objeto
+    OpenActor: Abrir la hoja del actor
+    RollSkill: Tirar {skill}
+    RollAttack: Atacar con {weapon}
+    RollHealing: Tirar {skill} para curar {injury}
+    RollRepair: Tirar {skill} para reparar {hit}
+    RollCharacteristic: Tirar {characteristic}
 
   # Dice Rolls
   Rolls:

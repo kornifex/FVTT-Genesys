@@ -29,7 +29,7 @@ const props = withDefaults(
 
 		/**
 		 * The button's name and tooltip, already in the user's language, in `label`'s place: for words the code puts
-		 * together, such as a Pool Modification's.
+		 * together, such as a Pool Modification's. A button that shows text takes them as its tooltip alone.
 		 */
 		localizedLabel?: string;
 
@@ -63,7 +63,10 @@ const name = computed(() => {
 	}
 	return props.localizedLabel ?? (props.label ? game.i18n.localize(props.label) : undefined);
 });
-const tooltip = computed(() => (showsText.value ? props.label : ''));
+const tooltip = computed(() => (showsText.value ? (props.localizedLabel === undefined ? props.label : undefined) : ''));
+// Words the code puts together, such as an item's name, show as text: `data-tooltip` would render them as HTML, and
+// "Blaster <Mk II>" would lose its brackets.
+const tooltipText = computed(() => (showsText.value ? props.localizedLabel : undefined));
 
 // Glyphs inside the button would show their own words as a tooltip over the button's, when the pointer is on them.
 provideNamedButton(computed(() => name.value !== undefined));
@@ -87,6 +90,7 @@ function releasePointerFocus(event: MouseEvent) {
 		class="action-button"
 		:aria-label="name"
 		:data-tooltip="tooltip"
+		:data-tooltip-text="tooltipText"
 		:aria-expanded="expanded"
 		:aria-pressed="pressed"
 		@click="releasePointerFocus"

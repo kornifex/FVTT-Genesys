@@ -88,6 +88,13 @@ Genesys:
     ShowDescription: Afficher la description
     HideDescription: Masquer la description
     OpenSkill: Ouvrir la fiche de la compétence
+    OpenItem: Ouvrir la fiche de l'objet
+    OpenActor: Ouvrir la fiche de l'acteur
+    RollSkill: Lancer {skill}
+    RollAttack: Attaquer avec {weapon}
+    RollHealing: Lancer {skill} pour soigner {injury}
+    RollRepair: Lancer {skill} pour réparer {hit}
+    RollCharacteristic: Lancer {characteristic}
 
   # Dice Rolls
   Rolls:
@@ -667,7 +674,6 @@ Genesys:
     Select: Sélection
     PerformCheck: Faire le test
     GroupBy: Regrouper
-    Attack: Attaque
     Item: Objet
     Items: Objets
     CloseContainer: Fermer le conteneur
@@ -676,6 +682,7 @@ Genesys:
     Actions: Actions
     BuyTalentRank: Acheter un rang du talent
     BuySkillRank: Acheter un rang
+    RaiseCharacteristic: Augmenter la caractéristique
     DeleteRole: Supprimer le rôle
     RemoveSkill: Retirer la compétence
     RemoveQuality: Retirer l'attribut

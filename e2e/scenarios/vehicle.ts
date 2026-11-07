@@ -73,6 +73,11 @@ type VehicleHelpers = {
 	/** The vehicles updated with a change to their Crew since the last call. */
 	takeCrewUpdates(): string[];
 	skillsTab(vehicle: string): Promise<SkillsTab>;
+	/**
+	 * The pictures of the Skills tab grouped by crew member (#578), by member: whether the member's and each of their
+	 * skills' open a sheet (`button`) or only show (`image`).
+	 */
+	skillIcons(vehicle: string): Promise<Record<string, { member: string; skills: string[] }>>;
 	/** The Skills tab of the n-th vehicle token of a scene from the left, from 1, opening its sheet if needed. */
 	tokenSkillsTab(args: { scene: string; n: number }): Promise<SkillsTab>;
 	groupBy(args: { vehicle: string; mode: 'member' | 'skill' }): Promise<void>;
@@ -194,7 +199,7 @@ function installVehicleHelpers() {
 				name: text(section.querySelector('.skill-details-name')),
 				members: [...section.querySelectorAll('.skill-content-details')].map(
 					(row) =>
-						`${unprefixed(text(row.querySelector('.skill-content-details-charName')))} ${text(row.querySelector(':scope > div'))} ${text(row.querySelector('.skill-content-details-skillRank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
+						`${unprefixed(text(row.querySelector('.skill-name')))} ${text(row.querySelector(':scope > .role'))} ${text(row.querySelector('.skill-rank'))} ${ranks(row.querySelector('.skill-ranks'))}`,
 				),
 			})),
 		};
@@ -366,6 +371,20 @@ function installVehicleHelpers() {
 
 		async skillsTab(vehicle) {
 			return readSkillsTab(await sheet(vehicle));
+		},
+
+		async skillIcons(vehicle) {
+			const root = await sheet(vehicle);
+			const kind = (element: Element | null) => (element?.matches('button') ? 'button' : element ? 'image' : 'none');
+			return Object.fromEntries(
+				[...root.querySelectorAll('.tab-skills .members-container > section')].map((section) => [
+					unprefixed(text(section.querySelector('.member-name'))),
+					{
+						member: kind(section.querySelector('.member-image')),
+						skills: [...section.querySelectorAll('.member-skill')].map((row) => kind(row.querySelector('.skill-icon'))),
+					},
+				]),
+			);
 		},
 
 		async tokenSkillsTab(token) {
@@ -1260,7 +1279,7 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 	);
 	await step(
 		'#127 K6 the character buys a rank of Piloting with XP',
-		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.rank-display button|1'] }),
+		() => vehicleE2E('click', { actor: 'Hal', target: [...halSkill, '.skill-rank button|1'] }),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PP'] },
 			{ name: 'Ivy', skills: ['E2E Astrogation (Int) 2 PP', 'Piloting (Ag) 1 PAA'] },
@@ -1275,7 +1294,8 @@ async function skillsTabFollowsCrew(e2e: ScenarioContext) {
 		() =>
 			vehicleE2E('click', {
 				actor: 'Hal',
-				target: ['.characteristics-row .characteristic-field|2', '.characteristic-label button|1'],
+				// The ↑ beside the label, which rolls (#578).
+				target: ['.characteristics-row .characteristic-field|2', '.characteristic-label .raise|1'],
 			}),
 		[
 			{ name: 'Hal', skills: ['E2E Astrogation (Int) 1 PA', 'Piloting (Ag) 2 PPA'] },
@@ -1392,7 +1412,8 @@ async function crewRolls(e2e: ScenarioContext) {
 	const skillMember = (skill: string, member: string): Target => [
 		`.tab-skills .skills-container > section|~${skill}`,
 		`.skill-content-details|~E2E ${member}`,
-		':scope > .skill-content-details-roll|1',
+		// The member's name rolls for the vehicle (#578).
+		':scope > .skill-name|1',
 	];
 	const weapon = (name: string): Target => [`.tab-combat .weapon|~E2E ${name}`, '.name button|1'];
 
@@ -1464,7 +1485,8 @@ async function crewRolls(e2e: ScenarioContext) {
 	await vehicleE2E('closePrompts');
 
 	await e2e.step('#133 a Critical Hit repaired', () =>
-		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.severity button|1'] }),
+		// Its name repairs it (#578).
+		vehicleE2E('click', { actor: 'Ship', target: ['.tab-combat .critical-hit|~DDD', '.name .roll-link|1'] }),
 	);
 	e2e.expect('#133 A8 a repair one crew member can roll opens the Dice Prompt at once', await vehicleE2E('prompts'), {
 		...noPrompts,
@@ -1525,6 +1547,18 @@ async function crewRolls(e2e: ScenarioContext) {
 			await playerE2E('selectCrewMember', 'Ace');
 		}),
 		{ prompts: noPrompts, notifications: cannotSelect },
+	);
+	// §#578: a picture opens a sheet the player may see, and only shows one they may not, which Foundry would refuse with
+	// an error. Ace rolls gunnery unranked, as the Skills Compendium defines it, whose sheet every player sees.
+	e2e.expect(
+		"#578 F1 player, Skills tab by crew member: the pictures of an owned member, of their skills and of the Skills Compendium's open their sheets, the others' only show",
+		await playerE2E('skillIcons', 'Ship'),
+		{
+			Ace: { member: 'image', skills: ['button', 'image'] },
+			Gun: { member: 'button', skills: ['button'] },
+			Mob: { member: 'image', skills: ['image'] },
+			Wrench: { member: 'image', skills: ['image'] },
+		},
 	);
 	await player.leave();
 

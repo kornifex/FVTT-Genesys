@@ -16,6 +16,7 @@ import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import { DicePrompt } from '@/app/DicePrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import RollLink from '@/vue/components/RollLink.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { attackSkillChoices, skillToRoll } from '@/data/Skills';
 import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
@@ -81,10 +82,21 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 				</div>
 
 				<div v-for="{ key, weapon, profile, name } in weaponRows" :key="key" class="weapon">
-					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
+					<ActionButton
+						class="item-icon"
+						:image="weapon.img ?? undefined"
+						label="Genesys.Tooltips.OpenItem"
+						@click="openSheet(weapon)"
+					/>
 					<div class="name">
-						<ActionButton v-if="profile.skills.length > 0" @click="attackWith(actor, weapon, profile)">{{ name }}</ActionButton>
-						<span v-else>{{ name }}</span>
+						<RollLink
+							v-if="profile.skills.length > 0"
+							label="Genesys.Tooltips.RollAttack"
+							:label-data="{ weapon: name }"
+							@roll="attackWith(actor, weapon, profile)"
+							>{{ name }}</RollLink
+						>
+						<ActionButton v-else @click="openSheet(weapon)">{{ name }}</ActionButton>
 						<DescriptionToggle
 							:description="weapon.system.description"
 							:open="openWeapons.isOpen(key)"
@@ -127,7 +139,12 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 				</div>
 
 				<div v-for="armor in armors" :key="armor.id" class="armor">
-					<img :src="armor.img ?? undefined" :alt="armor.name" />
+					<ActionButton
+						class="item-icon"
+						:image="armor.img ?? undefined"
+						label="Genesys.Tooltips.OpenItem"
+						@click="openSheet(armor)"
+					/>
 					<div class="name">
 						<ActionButton @click="openSheet(armor)">{{ armor.name }}</ActionButton>
 						<DescriptionToggle
