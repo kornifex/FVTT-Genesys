@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); and the headings each tab of each sheet type starts its sections with (#584). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu), with a keyboard step per sheet type; the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); and each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -80,7 +80,35 @@ type AccessibilityHelpers = {
 	 * with its rows of column labels, and whether a member's name takes its heading's colour.
 	 */
 	vehicleSkills(name: string): Promise<{ byMember: string[]; nameInHeadingColour: boolean; bySkill: string[]; bySkillColumns: string[] }>;
+	/**
+	 * Creates the actors whose rows roll (#578): a character in Character Creation with XP to spend, a rival, a Minion
+	 * Group and a vehicle whose crew is the character, each with a skill, a weapon or a Critical Injury to roll.
+	 */
+	setUpRollRows(): Promise<void>;
+	/** Deletes the actors {@link setUpRollRows} created. */
+	deleteRollRows(): Promise<void>;
+	/**
+	 * Readies a keyboard step on a row that rolls (#578), by its key in `ROLL_ROWS`: renders its sheet on its tab, focuses
+	 * the row's name, its icon, or the ↑ beside a characteristic, and gives what the control shows: whether it has focus,
+	 * the die before a name, the tooltip of a name and the name of an icon.
+	 */
+	readyRollRow(row: string, control: RollRowControl): Promise<{ focused: boolean; die?: boolean; tooltip?: string; label?: string }>;
+	/**
+	 * What the control readied last opened once the page settles, then closes it: the Dice Prompt's check, and the sheets
+	 * of the documents opened, by name.
+	 */
+	rollRowOutcome(): Promise<{ dicePrompt: RolledCheck | null; opened: string[] }>;
+	/** Hovers the name of a row that rolls, by its key in `ROLL_ROWS`, and gives the tooltip Foundry shows. */
+	rollRowTooltip(row: string): Promise<string>;
+	/** The Roller's Brawn, and the XP they have left. */
+	rollerBrawn(): { brawn: number; xp: number };
 };
+
+/** The control of a row a keyboard step of #578 focuses. */
+type RollRowControl = 'name' | 'icon' | 'raise';
+
+/** A check a Dice Prompt opened for: the actor rolling it, its skill or characteristic, and its kind of roll. */
+type RolledCheck = { actor: string | null; check: string | null; type: string };
 
 /** The selector a step marks the button it clicks with the mouse with. */
 const POINTER_TARGET = '[data-e2e-pointer]';
@@ -107,6 +135,146 @@ const TAB_STEPS: { sheet: string; code: string; tabs: string[] }[] = [
 	{ sheet: 'Rival', code: 'T2', tabs: ['stats', 'miscellaneous', 'effects'] },
 	{ sheet: 'Ship', code: 'T3', tabs: ['skills', 'combat', 'inventory'] },
 	{ sheet: 'weapon', code: 'T4', tabs: ['description', 'data', 'effects'] },
+];
+
+/**
+ * The rows whose name rolls (#578), by their key in the page's targets: the step's number, where the row is, the tooltip
+ * its name shows, the check its name opens, and the document whose sheet its icon opens, for a row that shows one, with
+ * the icon's name when it opens no item's sheet. A weapon the character only carries is the exception: its name opens
+ * its sheet.
+ */
+const ROLL_ROWS: {
+	key: string;
+	code: number;
+	row: string;
+	tooltip: string;
+	check: RolledCheck | null;
+	opens?: string;
+	iconLabel?: string;
+	/** Whether the row is a heading, whose icon alone the steps press. */
+	heading?: boolean;
+}[] = [
+	{
+		key: 'skill',
+		code: 1,
+		row: "a skill on a character's Skills tab",
+		tooltip: 'Roll E2E Brawl',
+		check: { actor: 'E2E Roller', check: 'E2E Brawl', type: 'skill' },
+		opens: 'E2E Brawl',
+		iconLabel: "Open the skill's sheet",
+	},
+	{
+		key: 'characteristic',
+		code: 2,
+		row: "a character's Brawn, which XP could raise",
+		tooltip: 'Roll Brawn',
+		check: { actor: 'E2E Roller', check: 'brawn', type: 'skill' },
+	},
+	{
+		key: 'profile',
+		code: 3,
+		row: "a Weapon Profile on a character's Combat tab",
+		tooltip: 'Attack with E2E Blade',
+		check: { actor: 'E2E Roller', check: 'E2E Brawl', type: 'attack' },
+		opens: 'E2E Blade',
+	},
+	{
+		key: 'injury',
+		code: 4,
+		row: "a character's Critical Injury",
+		tooltip: 'Roll Resilience to heal E2E Gash',
+		check: { actor: 'E2E Roller', check: 'Resilience', type: 'skill' },
+		opens: 'E2E Gash',
+	},
+	{
+		key: 'inventory',
+		code: 5,
+		row: "an Equipped weapon on a character's Inventory tab",
+		tooltip: 'Attack with E2E Blade',
+		check: { actor: 'E2E Roller', check: 'E2E Brawl', type: 'attack' },
+		opens: 'E2E Blade',
+	},
+	{ key: 'carried', code: 6, row: 'a Carried weapon on the Inventory tab', tooltip: '', check: null, opens: 'E2E Spare' },
+	{
+		key: 'rivalSkill',
+		code: 7,
+		row: "a rival's skill",
+		tooltip: 'Roll E2E Brawl',
+		check: { actor: 'E2E Roller Rival', check: 'E2E Brawl', type: 'skill' },
+		opens: 'E2E Brawl',
+		iconLabel: "Open the skill's sheet",
+	},
+	{
+		key: 'minionSkill',
+		code: 8,
+		row: "a Minion Group's skill",
+		tooltip: 'Roll E2E Brawl',
+		check: { actor: 'E2E Roller Minion', check: 'E2E Brawl', type: 'skill' },
+		opens: 'E2E Brawl',
+		iconLabel: "Open the skill's sheet",
+	},
+	{
+		key: 'rivalWeapon',
+		code: 9,
+		row: "a rival's weapon",
+		tooltip: 'Attack with E2E Blade',
+		check: { actor: 'E2E Roller Rival', check: 'E2E Brawl', type: 'attack' },
+	},
+	{
+		key: 'memberSkill',
+		code: 10,
+		row: "a crew member's skill on a vehicle's Skills tab, by crew member",
+		tooltip: 'Roll E2E Gunnery',
+		check: { actor: 'E2E Roller', check: 'E2E Gunnery', type: 'skill' },
+		opens: 'E2E Gunnery',
+		iconLabel: "Open the skill's sheet",
+	},
+	{
+		key: 'crewSkill',
+		code: 11,
+		row: "a crew member on a vehicle's Skills tab, by skill",
+		tooltip: 'Roll E2E Gunnery',
+		check: { actor: 'E2E Roller', check: 'E2E Gunnery', type: 'skill' },
+		opens: 'E2E Roller',
+		iconLabel: "Open the actor's sheet",
+	},
+	{
+		key: 'vehicleWeapon',
+		code: 12,
+		row: "a weapon on a vehicle's Combat tab",
+		tooltip: 'Attack with E2E Harpoon',
+		check: { actor: 'E2E Roller', check: 'E2E Gunnery', type: 'attack' },
+		opens: 'E2E Harpoon',
+	},
+	{
+		key: 'hit',
+		code: 13,
+		row: "a vehicle's Critical Hit",
+		tooltip: 'Roll Mechanics to repair E2E Breach',
+		check: { actor: 'E2E Roller', check: 'Mechanics', type: 'skill' },
+		opens: 'E2E Breach',
+	},
+	// The headings of a vehicle's Skills tab: their names open a sheet, or name a skill.
+	{
+		key: 'memberHeading',
+		code: 14,
+		row: "a crew member's heading on a vehicle's Skills tab, by crew member",
+		heading: true,
+		tooltip: '',
+		check: null,
+		opens: 'E2E Roller',
+		iconLabel: "Open the actor's sheet",
+	},
+	{
+		key: 'skillHeading',
+		code: 15,
+		row: "a skill's heading on a vehicle's Skills tab, by skill",
+		heading: true,
+		tooltip: '',
+		check: null,
+		opens: 'E2E Gunnery',
+		iconLabel: "Open the skill's sheet",
+	},
 ];
 
 declare global {
@@ -171,7 +339,7 @@ function installAccessibilityHelpers() {
 			ready: (root) => !!root.querySelector('.roll-button') && !root.querySelector('.chance-to-succeed .fa-spinner'),
 			async open() {
 				await window.e2e.showTab('Hero', 'skills');
-				find(await sheet('Hero'), '.tab[data-tab="skills"] button.name').click();
+				find(await sheet('Hero'), '.tab[data-tab="skills"] button.skill-name').click();
 			},
 		},
 		awardXP: {
@@ -327,6 +495,140 @@ function installAccessibilityHelpers() {
 	const TRANSITION_GROUP_CLASSES = ['inv', 'mems', 'crew-trans'].flatMap((name) =>
 		['move', 'enter-active', 'leave-active'].map((state) => `${name}-${state}`),
 	);
+
+	// The rows that roll (#578), by their key in `ROLL_ROWS`: the actor whose sheet shows the row, its tab, the row, and
+	// in it the name that rolls, the icon that opens a sheet, and the ↑ that raises a characteristic.
+	const rowWith = (root: Element, selector: string, name: string) =>
+		[...root.querySelectorAll(selector)].find((row) => row.textContent?.includes(name));
+	type RollRowTarget = {
+		sheet: string;
+		tab: string;
+		row: (root: Element) => Element | undefined;
+		name: string;
+		icon?: string;
+		raise?: string;
+		/** Whether the vehicle's skills show grouped by skill, rather than by crew member. */
+		bySkill?: boolean;
+	};
+	const ROLL_ROW_TARGETS: Record<string, RollRowTarget> = {
+		skill: {
+			sheet: 'Roller',
+			tab: 'skills',
+			row: (root) => rowWith(root, '.tab-skills .skill.row', 'E2E Brawl'),
+			name: '.skill-name',
+			icon: '.skill-icon',
+		},
+		characteristic: {
+			sheet: 'Roller',
+			tab: 'skills',
+			// Brawn comes first.
+			row: (root) => root.querySelector('.tab-skills .characteristic-field') ?? undefined,
+			name: '.characteristic-label .roll-link',
+			raise: '.characteristic-label .raise',
+		},
+		profile: {
+			sheet: 'Roller',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.tab-combat .weapon:not(.columns)', 'E2E Blade'),
+			name: '.name .roll-link',
+			icon: '.item-icon',
+		},
+		injury: {
+			sheet: 'Roller',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.critical-injuries .injury:not(.columns)', 'E2E Gash'),
+			name: '.name .roll-link',
+			icon: '.item-icon',
+		},
+		inventory: {
+			sheet: 'Roller',
+			tab: 'inventory',
+			row: (root) => rowWith(root, '.inventory-item', 'E2E Blade'),
+			name: '.name button',
+			// The button in the picture's wrapper, which the row's drag starts on.
+			icon: '.item-icon button',
+		},
+		carried: {
+			sheet: 'Roller',
+			tab: 'inventory',
+			row: (root) => rowWith(root, '.inventory-item', 'E2E Spare'),
+			name: '.name button',
+			icon: '.item-icon button',
+		},
+		blaster: {
+			sheet: 'Roller',
+			tab: 'inventory',
+			row: (root) => rowWith(root, '.inventory-item', 'E2E Blaster'),
+			name: '.name button',
+		},
+		memberHeading: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			row: (root) => rowWith(root, '.members-container > section', 'E2E Roller'),
+			name: '.member-name',
+			icon: '.member-image',
+		},
+		skillHeading: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			bySkill: true,
+			row: (root) => rowWith(root, '.skills-container > section', 'E2E Gunnery'),
+			name: '.skill-details-name',
+			icon: '.skill-details-image',
+		},
+		rivalSkill: {
+			sheet: 'Roller Rival',
+			tab: 'stats',
+			row: (root) => rowWith(root, '.adversary-items .skill', 'E2E Brawl'),
+			name: '.skill-name',
+			icon: '.skill-icon',
+		},
+		minionSkill: {
+			sheet: 'Roller Minion',
+			tab: 'stats',
+			row: (root) => rowWith(root, '.adversary-items .skill', 'E2E Brawl'),
+			name: '.skill-name',
+			icon: '.skill-icon',
+		},
+		rivalWeapon: {
+			sheet: 'Roller Rival',
+			tab: 'stats',
+			row: (root) => rowWith(root, '.adversary-items .weapon', 'E2E Blade'),
+			name: '.weapon-attack',
+		},
+		memberSkill: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			row: (root) => rowWith(root, '.member-skill', 'E2E Gunnery'),
+			name: '.skill-name',
+			icon: '.skill-icon',
+		},
+		crewSkill: {
+			sheet: 'Roller Ship',
+			tab: 'skills',
+			bySkill: true,
+			row: (root) => rowWith(root, '.skill-content-details', 'E2E Roller'),
+			name: '.skill-name',
+			icon: '.skill-icon',
+		},
+		vehicleWeapon: {
+			sheet: 'Roller Ship',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.tab-combat .weapon:not(.columns)', 'E2E Harpoon'),
+			name: '.name .roll-link',
+			icon: '.item-icon',
+		},
+		hit: {
+			sheet: 'Roller Ship',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.critical-hits .critical-hit:not(.columns)', 'E2E Breach'),
+			name: '.name .roll-link',
+			icon: '.item-icon',
+		},
+	};
+	const ROLL_ACTORS = ['Roller Ship', 'Roller Minion', 'Roller Rival', 'Roller'];
+	// The windows open before the control readied last was pressed.
+	let windowsBefore = new Set<unknown>();
 
 	const helpers: AccessibilityHelpers = {
 		async setUp() {
@@ -618,9 +920,210 @@ function installAccessibilityHelpers() {
 			await helpers.closeAll();
 			return result;
 		},
+
+		async setUpRollRows() {
+			await helpers.deleteRollRows();
+			const brawl = { name: 'E2E Brawl', type: 'skill', system: { category: 'combat', characteristic: 'brawn', rank: 1 } };
+			const blade = { name: 'E2E Blade', type: 'weapon', system: { skills: ['E2E Brawl'], baseDamage: 3, state: 'equipped' } };
+			await Actor.createDocuments([
+				{
+					name: 'E2E Roller',
+					type: 'character',
+					// XP in Character Creation, so that a raise of Brawn is affordable.
+					system: { characteristics: { brawn: 2 }, experienceJournal: { entries: [{ amount: 100, type: 'Starting' }] } },
+					items: [
+						brawl,
+						{ name: 'E2E Gunnery', type: 'skill', system: { category: 'combat', characteristic: 'agility', rank: 1 } },
+						blade,
+						{ name: 'E2E Spare', type: 'weapon', system: { skills: ['E2E Brawl'], baseDamage: 2, state: 'carried' } },
+						// A name HTML would cut short.
+						{
+							name: 'E2E Blaster <Mk II>',
+							type: 'weapon',
+							system: { skills: ['E2E Brawl'], baseDamage: 5, state: 'equipped' },
+						},
+						{ name: 'E2E Gash', type: 'injury', system: { severity: 'average' } },
+					],
+				},
+				{ name: 'E2E Roller Rival', type: 'rival', items: [brawl, blade] },
+				{ name: 'E2E Roller Minion', type: 'minion', items: [brawl], prototypeToken: { actorLink: false } },
+			]);
+			await Actor.create({
+				name: 'E2E Roller Ship',
+				type: 'vehicle',
+				items: [
+					{ name: 'E2E Harpoon', type: 'vehicleWeapon', system: { skills: ['E2E Gunnery'], baseDamage: 4, state: 'equipped' } },
+					{ name: 'E2E Breach', type: 'injury', system: { severity: 'hard' } },
+				],
+				system: {
+					roles: [
+						{
+							id: foundry.utils.randomID(),
+							name: 'Crew',
+							skills: ['E2E Gunnery', 'Mechanics'],
+							members: [actor('Roller').uuid],
+						},
+					],
+				},
+			});
+			await settle();
+		},
+
+		async deleteRollRows() {
+			const ids = ROLL_ACTORS.flatMap((name) => game.actors.getName(`E2E ${name}`)?.id ?? []);
+			if (ids.length) await Actor.deleteDocuments(ids);
+			await settle();
+		},
+
+		async readyRollRow(key, control) {
+			const target = ROLL_ROW_TARGETS[key];
+			// Only the row's sheet stays open, so that a sheet the control opens shows as opened: the Roller's, from the
+			// vehicle's crew.
+			for (const app of [...foundry.applications.instances.values()]) {
+				if (app.rendered && app.document && app.document !== actor(target.sheet)) await app.close();
+			}
+			await window.e2e.showTab(target.sheet, target.tab);
+			const root = await render(actor(target.sheet).sheet);
+			const grouping = root.querySelector<HTMLSelectElement>('.tab-skills .grouping-mode select');
+			const groupedBy = target.bySkill ? 'skill' : 'member';
+			if (target.tab === 'skills' && grouping && grouping.value !== groupedBy) {
+				grouping.value = groupedBy;
+				grouping.dispatchEvent(new Event('change'));
+			}
+			const row = await waitFor(`the ${key} row`, () => target.row(root));
+			const selector = { name: target.name, icon: target.icon, raise: target.raise }[control];
+			if (!selector) throw new Error(`The ${key} row has no ${control}`);
+			const element = find(row, selector);
+			windowsBefore = new Set(foundry.applications.instances.values());
+			element.focus();
+			const focused = document.activeElement === element;
+			return control === 'name'
+				? {
+						focused,
+						die: !!element.querySelector(':scope > i.fa-dice-d20[aria-hidden="true"]'),
+						tooltip: element.dataset.tooltipText ?? '',
+					}
+				: { focused, label: element.getAttribute('aria-label') ?? '' };
+		},
+
+		async rollRowOutcome() {
+			await settle();
+			const opened = [...foundry.applications.instances.values()].filter(
+				(app: { rendered: boolean }) => app.rendered && !windowsBefore.has(app),
+			);
+			const prompt = opened.find((app: { options: { classes: string[] } }) => app.options.classes.includes('app-dice-prompt'));
+			const dicePrompt = prompt
+				? { actor: prompt.actor?.name ?? null, check: prompt.skillName || prompt.characteristic || null, type: prompt.roll.type }
+				: null;
+			const sheets = opened.flatMap((app: { document?: { name: string } }) => (app.document ? [app.document.name] : []));
+			for (const app of opened) await app.close();
+			await settle();
+			return { dicePrompt, opened: sheets };
+		},
+
+		async rollRowTooltip(key) {
+			const target = ROLL_ROW_TARGETS[key];
+			await window.e2e.showTab(target.sheet, target.tab);
+			const root = await render(actor(target.sheet).sheet);
+			const row = await waitFor(`the ${key} row`, () => target.row(root));
+			const element = find(row, target.name);
+			// Hovering the element, as TooltipManager listens for it, shows its tooltip after a delay.
+			const manager = (game as { tooltip: { element: Element | null; tooltip: HTMLElement; deactivate(): void } }).tooltip;
+			element.dispatchEvent(new PointerEvent('pointerenter'));
+			await waitFor('the tooltip', () => manager.element === element);
+			const shown = manager.tooltip.textContent ?? '';
+			manager.deactivate();
+			return shown;
+		},
+
+		rollerBrawn() {
+			const roller = actor('Roller');
+			return { brawn: roller.system._source.characteristics.brawn, xp: roller.system.availableXP };
+		},
 	};
 
 	window.accessibilityE2E = helpers;
+}
+
+/**
+ * §#578: on each row that rolls, the name rolls the check from the keyboard, with a die before it and a tooltip naming
+ * the check, and the icon opens the sheet; a characteristic's label rolls while a raise is affordable, which the ↑ beside
+ * it makes.
+ */
+async function rollLinks(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	await e2e.step('#578 actors whose rows roll set up', () => gm.evaluate(() => window.accessibilityE2E.setUpRollRows()));
+	// Focuses a row's control, presses Enter, and gives what the control showed and what it opened.
+	const press = async (key: string, control: RollRowControl) => {
+		const shown = await gm.evaluate((args) => window.accessibilityE2E.readyRollRow(args.key, args.control), { key, control });
+		await gm.page.keyboard.press('Enter');
+		return { ...shown, ...(await gm.evaluate(() => window.accessibilityE2E.rollRowOutcome())) };
+	};
+	try {
+		for (const { key, code, row, tooltip, check, opens, iconLabel, heading } of ROLL_ROWS) {
+			let pressed: unknown;
+			// A heading's icon alone is under test.
+			if (!heading) {
+				await e2e.step(`#578 A${code} ${row}: its name focused, then Enter`, async () => {
+					pressed = await press(key, 'name');
+				});
+				if (check) {
+					e2e.expect(
+						`#578 A${code} the name of ${row} shows a die and the tooltip "${tooltip}", and Enter on it opens the Dice Prompt of its check`,
+						pressed,
+						{ focused: true, die: true, tooltip, dicePrompt: check, opened: [] },
+					);
+				} else {
+					e2e.expect(`#578 A${code} the name of ${row} shows no die, and Enter on it opens its sheet`, pressed, {
+						focused: true,
+						die: false,
+						tooltip: '',
+						dicePrompt: null,
+						opened: [opens],
+					});
+				}
+			}
+			if (!opens) continue;
+			await e2e.step(`#578 B${code} ${row}: its icon focused, then Enter`, async () => {
+				pressed = await press(key, 'icon');
+			});
+			const label = iconLabel ?? "Open the item's sheet";
+			e2e.expect(`#578 B${code} the icon of ${row} is named "${label}", and Enter on it opens the sheet of ${opens}`, pressed, {
+				focused: true,
+				label,
+				dicePrompt: null,
+				opened: [opens],
+			});
+		}
+
+		let shownTooltip: unknown;
+		await e2e.step('#578 E1 the name of the Equipped "E2E Blaster <Mk II>" hovered on the Inventory tab', async () => {
+			shownTooltip = await gm.evaluate(() => window.accessibilityE2E.rollRowTooltip('blaster'));
+		});
+		e2e.expect(
+			"#578 E1 a name's tooltip shows the item's name as text, brackets included, as Foundry renders `data-tooltip-text`",
+			shownTooltip,
+			'Attack with E2E Blaster <Mk II>',
+		);
+
+		let before: unknown;
+		let raised: unknown;
+		await e2e.step('#578 C1 the ↑ beside Brawn focused, then Enter', async () => {
+			before = await gm.evaluate(() => window.accessibilityE2E.rollerBrawn());
+			raised = await press('characteristic', 'raise');
+		});
+		e2e.expect(
+			'#578 C1 a characteristic\'s ↑ is named "Raise the characteristic", and Enter on it raises the characteristic for its XP, opening nothing',
+			{ before, pressed: raised, after: await gm.evaluate(() => window.accessibilityE2E.rollerBrawn()) },
+			{
+				before: { brawn: 2, xp: 100 },
+				pressed: { focused: true, label: 'Raise the characteristic', dicePrompt: null, opened: [] },
+				after: { brawn: 3, xp: 70 },
+			},
+		);
+	} finally {
+		await gm.evaluate(() => window.accessibilityE2E.deleteRollRows());
+	}
 }
 
 /**
@@ -1025,6 +1528,8 @@ export async function run(e2e: ScenarioContext) {
 		});
 
 		await e2e.part('headings', () => headings(e2e));
+
+		await e2e.part('rollLinks', () => rollLinks(e2e));
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
 	}

@@ -3,16 +3,12 @@ import { computed, toRef } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import type { AdversaryType } from '@/actor/data/AdversaryDataModel';
-import { GenesysItem } from '@/item/GenesysItem';
-import { DicePrompt } from '@/app/DicePrompt';
-import { freeRank } from '@/data/Skills';
-import { deleteItem, openSheet } from '@/operations/ItemActions';
-import ActionButton from '@/vue/components/ActionButton.vue';
+import { deleteItem, freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 import Localized from '@/vue/components/Localized.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import ContextMenu from '@/vue/components/ContextMenu.vue';
 import MenuItem from '@/vue/components/MenuItem.vue';
-import SkillRanks from '@/vue/components/character/SkillRanks.vue';
+import SkillRow from '@/vue/components/SkillRow.vue';
 
 const props = defineProps<{
 	label: string;
@@ -26,16 +22,6 @@ const props = defineProps<{
 const { document: actor, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 const characteristics = toRef(() => actor.value.system.characteristics);
 const skills = computed(() => actor.value.skills);
-
-async function rollSkill(skill: GenesysItem<'skill'>) {
-	await DicePrompt.promptForRoll(actor.value, skill.name);
-}
-
-async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
-	await skill.update({
-		system: { rank: freeRank(skill.system.rank, step) },
-	});
-}
 </script>
 
 <template>
@@ -56,26 +42,50 @@ async function freeSkillRank(skill: GenesysItem<'skill'>, step: 1 | -1) {
 				<MenuItem v-if="editable" icon="fas fa-trash" label="Genesys.Labels.Delete" @click="deleteItem(skill)" />
 			</template>
 
-			<ActionButton class="skill-icon" :image="skill.img ?? undefined" label="Genesys.Tooltips.OpenSkill" @click="openSheet(skill)" />
-			<ActionButton class="skill-roll" @click="rollSkill(skill)">
-				<span>{{ skill.name }}{{ props.groupRank === undefined ? ` ${skill.system.rank}` : null }}</span>
-				<SkillRanks
-					:skill-value="props.groupRank ?? skill.system.rank"
-					:characteristic-value="characteristics[skill.system.characteristic]"
-				/>
-			</ActionButton>
+			<SkillRow
+				:name="skill.name"
+				:skill="skill.name"
+				:image="skill.img"
+				:rank="props.groupRank === undefined ? skill.system.rank : undefined"
+				:skill-value="props.groupRank ?? skill.system.rank"
+				:characteristic-value="characteristics[skill.system.characteristic]"
+				@open="openSheet(skill)"
+				@roll="rollSkill(actor, skill)"
+			/>
 		</ContextMenu>
 	</div>
 </template>
 
 <style lang="scss" scoped>
-// The icon opens the skill's sheet, to read its description; the name rolls it. It stands as tall as the line, before
-// the name: Foundry lays images out as blocks, which would put it above.
-.skill-icon {
-	display: inline-block;
-	width: 1.5em;
-	height: 1.5em;
-	margin-right: 0.25em;
-	vertical-align: middle;
+// A skill's cells sit on one line of the comma-separated list, the icon as tall as the line, before the name: Foundry
+// lays images out as blocks, which would put it above. They are a SkillRow's roots, which :deep() reaches.
+.skill {
+	display: inline-flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 0.25em;
+
+	& > :deep(.skill-icon) {
+		display: inline-block;
+		width: 1.5em;
+		height: 1.5em;
+		vertical-align: middle;
+	}
+
+	& > :deep(.skill-ranks) {
+		margin-left: 0.25em;
+	}
+
+	&::after {
+		display: block;
+		content: ',';
+		margin-right: 0.25em;
+		margin-left: -0.15em;
+	}
+
+	&:last-of-type::after {
+		display: none;
+	}
 }
 </style>

@@ -1,7 +1,7 @@
 /**
- * @file The actions the sheets offer on an item: attack with it, open its sheet, delete it, remove a character's
- * Archetype or Career, step its quantity, damage or an adversary talent's rank, and send it to chat. Each that deletes
- * the item asks the user first.
+ * @file The actions the sheets offer on an item: roll a skill, attack with a weapon, open its sheet, delete it, remove a
+ * character's Archetype or Career, give or take a skill's Free Rank, step its quantity, damage or an adversary talent's
+ * rank, and send it to chat. Each that deletes the item asks the user first.
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
@@ -11,7 +11,7 @@ import { careerSkillUpdates } from '@/actor/data/character/Career';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { type EquipmentStep, equipmentStep, quantityChange, StepDirection, SteppedValue } from '@/actor/data/Inventory';
 import { DicePrompt, RollType } from '@/app/DicePrompt';
-import { attackSkillName } from '@/data/Skills';
+import { attackSkillName, freeRank } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
 import type { GenesysItem } from '@/item/GenesysItem';
@@ -26,6 +26,23 @@ import { notify } from '@/notifications';
  */
 export function attackSkill(actor: GenesysActor, profile: Pick<WeaponProfileData, 'skills' | 'attackSkill'>) {
 	return attackSkillName(actor.skills, profile);
+}
+
+/**
+ * Open the dice prompt of a check of one of an actor's skills.
+ */
+export async function rollSkill(actor: GenesysActor, skill: Pick<GenesysItem<'skill'>, 'name'>) {
+	await DicePrompt.promptForRoll(actor, skill.name);
+}
+
+/**
+ * Give a skill a Free Rank, or take one from it: no XP is spent, nothing goes into the Experience Journal, and the rank
+ * never goes below 0.
+ */
+export async function freeSkillRank(skill: Pick<GenesysItem<'skill'>, 'system' | 'update'>, step: 1 | -1) {
+	await skill.update({
+		system: { rank: freeRank(skill.system.rank, step) },
+	});
 }
 
 /**
@@ -50,6 +67,15 @@ export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, 
 	await rollForCrew(crewForSkills(vehicle.system.crew, weapon.system.skills), {
 		roll: { type: RollType.Attack, weapon, profile: vehicleAttackProfile(weapon) },
 	});
+}
+
+/**
+ * Whether the user may open a document's sheet, at least as Limited: an owned item follows its actor's ownership. A
+ * crew member's skills show on a vehicle's sheet to users who can't see the member, and Foundry refuses their sheets
+ * with an error.
+ */
+export function canOpenSheet(document: GenesysItem | GenesysActor) {
+	return document.testUserPermission(game.user, 'LIMITED');
 }
 
 /**

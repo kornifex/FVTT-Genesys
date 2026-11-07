@@ -1562,7 +1562,9 @@ function installSheetsHelpers() {
 			};
 			const drawn = (node: Node): string => {
 				if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-				if (!(node instanceof Element) || getComputedStyle(node).display === 'none') return '';
+				// An icon hidden from screen readers draws a glyph of its font, no text: a rolling name's die (#578).
+				if (!(node instanceof Element) || getComputedStyle(node).display === 'none' || node.matches('[aria-hidden="true"]'))
+					return '';
 				return `${pseudo(node, '::before')}${[...node.childNodes].map(drawn).join('')}${pseudo(node, '::after')}`;
 			};
 			return drawn(find(sheetElement(name), selector, which))
@@ -2460,7 +2462,7 @@ export async function run(e2e: ScenarioContext) {
 				const sheets = window.sheetsE2E;
 				await sheets.open('Bearer');
 				await sheets.clickTab('Bearer', 'skills');
-				await sheets.click('Bearer', '.tab-skills button.name', 'Athletics');
+				await sheets.click('Bearer', '.tab-skills button.skill-name', 'Athletics');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');
 				await ui.chat.processMessage('/gendr');
 				await sheets.clickPrompt('app-dice-prompt', '.roll-button');

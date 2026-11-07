@@ -58,8 +58,8 @@ type CharacterHelpers = {
 	 * update, which a refused Career never makes; the skills it offered.
 	 */
 	pickFreeRanks(picks: string[]): Promise<string[]>;
-	/** Clicks the severity of a Critical Injury or Hit. */
-	clickSeverity(actor: string, name: string): void;
+	/** Clicks the name of a Critical Injury or Hit, which heals or repairs it. */
+	rollInjury(actor: string, name: string): void;
 	/** Clicks the trash icon of a Critical Injury or Hit. */
 	trashInjury(actor: string, name: string): void;
 	crewPrompt(member: string): Promise<string[]>;
@@ -247,14 +247,14 @@ function installCharacterHelpers() {
 		[...sheet(name).querySelectorAll('.characteristic-field')][ORDER.indexOf(characteristic)];
 	const skillRow = (name: string, skill: string) =>
 		[...sheet(name).querySelectorAll('.tab-skills .skill.row')].find(
-			(row) => text(row.querySelector('.name span')).replace(/ \([^()]*\)$/, '') === skill,
+			(row) => text(row.querySelector('.skill-name span')).replace(/ \([^()]*\)$/, '') === skill,
 		);
-	// A skill's row of the Skills tab, or its entry among an adversary's skills, which reads its rank after its name.
+	// A skill's row of the Skills tab, or its entry among an adversary's skills.
 	const skillContainer = (name: string, target: SkillTarget) =>
 		'skill' in target
 			? skillRow(name, target.skill)
 			: [...sheet(name).querySelectorAll('.adversary-items .skill')].find(
-					(skill) => text(skill.querySelector('.skill-roll span')).replace(/ \d+$/, '') === target.adversarySkill,
+					(skill) => text(skill.querySelector('.skill-name span')) === target.adversarySkill,
 				);
 	const injuryRow = (name: string, injury: string) =>
 		[...sheet(name).querySelectorAll('.critical-injuries .injury, .critical-hits .critical-hit')].find(
@@ -488,13 +488,13 @@ function installCharacterHelpers() {
 		},
 
 		raise(name, characteristic) {
-			const arrow = characteristicField(name, characteristic)?.querySelector('.characteristic-label button:has(.fa-arrow-circle-up)');
+			const arrow = characteristicField(name, characteristic)?.querySelector('.characteristic-label .raise');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
 
 		buySkill(name, skill) {
-			const arrow = skillRow(name, skill)?.querySelector('.rank-display button');
+			const arrow = skillRow(name, skill)?.querySelector('.skill-rank button');
 			(arrow as HTMLElement | null)?.click();
 			return !!arrow;
 		},
@@ -574,8 +574,8 @@ function installCharacterHelpers() {
 			return offered;
 		},
 
-		clickSeverity(name, injury) {
-			click(injuryRow(name, injury)?.querySelector('.severity button'), `severity of ${injury}`);
+		rollInjury(name, injury) {
+			click(injuryRow(name, injury)?.querySelector('.name .roll-link'), `name of ${injury}`);
 		},
 
 		trashInjury(name, injury) {
@@ -661,7 +661,7 @@ function installCharacterHelpers() {
 				base: actor(name).system._source.characteristics[characteristic],
 				shown: actor(name).system.characteristics[characteristic],
 				sheet: text(field?.querySelector('.value')),
-				canRaise: !!field?.querySelector('.characteristic-label button:has(.fa-arrow-circle-up)'),
+				canRaise: !!field?.querySelector('.characteristic-label .raise'),
 			};
 		},
 
@@ -682,8 +682,8 @@ function installCharacterHelpers() {
 							? {
 									rank: skill.system.rank,
 									career: skill.system.career,
-									star: !!row?.querySelector('.name .fa-star'),
-									canBuy: !!row?.querySelector('.rank-display button'),
+									star: !!row?.querySelector('.skill-name .career-skill'),
+									canBuy: !!row?.querySelector('.skill-rank button'),
 								}
 							: null,
 					];
@@ -830,7 +830,10 @@ function installCharacterHelpers() {
 		},
 
 		adversarySkills(name) {
-			return [...sheet(name).querySelectorAll('.adversary-items .skill .skill-roll span')].map(text);
+			// Each skill's name, then its rank where it has one of its own.
+			return [...sheet(name).querySelectorAll('.adversary-items .skill')].map((skill) =>
+				[text(skill.querySelector('.skill-name span')), text(skill.querySelector('.skill-rank'))].filter(Boolean).join(' '),
+			);
 		},
 
 		skillIcon(name, target) {
@@ -843,9 +846,7 @@ function installCharacterHelpers() {
 		async clickSkill(name, target, part) {
 			const container = skillContainer(name, target);
 			if (!container) throw new Error(`No skill ${JSON.stringify(target)} on the sheet of E2E ${name}`);
-			const element = container.querySelector<HTMLElement>(
-				part === 'icon' ? '.skill-icon' : 'skill' in target ? '.name' : ':scope > .skill-roll',
-			);
+			const element = container.querySelector<HTMLElement>(part === 'icon' ? '.skill-icon' : '.skill-name');
 			element?.click();
 			await settle();
 			const skill = 'skill' in target ? target.skill : target.adversarySkill;
@@ -905,7 +906,7 @@ function installCharacterHelpers() {
 			// CSS columns lay the categories out, so the document keeps them in list order.
 			const categories = [...sheet(name).querySelectorAll('.tab-skills .skill-category')];
 			const names = (category: Element) =>
-				[...category.querySelectorAll('.skill.row .name span')].map((span) => text(span).replace(/ \([^()]*\)$/, ''));
+				[...category.querySelectorAll('.skill.row .skill-name span')].map((span) => text(span).replace(/ \([^()]*\)$/, ''));
 			const social = categories.find(
 				(category) => text(category.querySelector('.columns h3')) === game.i18n.localize('Genesys.Labels.SocialSkills'),
 			);
@@ -2415,7 +2416,8 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 			const root = window.e2e.htmlOf(window.e2e.actor('Ranks').sheet)!;
 			for (const row of root.querySelectorAll<HTMLElement>('.tab-skills .skill.row')) {
 				const ranks = row.querySelector<HTMLElement>('.skill-ranks');
-				if (ranks && /^(Charm|Lore) /.test(window.e2e.text(row.querySelector('.name span')))) ranks.dataset.e2e = 'glyph-ranks';
+				if (ranks && /^(Charm|Lore) /.test(window.e2e.text(row.querySelector('.skill-name span'))))
+					ranks.dataset.e2e = 'glyph-ranks';
 			}
 		}, undefined),
 	);
@@ -2725,7 +2727,7 @@ async function talentsTab(e2e: ScenarioContext, page: Evaluate) {
 	await page((name) => window.characterE2E.close(name), L);
 }
 
-/** §#126: the severity cells of Critical Injuries and Critical Hits, and the check they open. */
+/** §#126: the severity cells of Critical Injuries and Critical Hits, and the check their names open (#578). */
 async function injuries(e2e: ScenarioContext, page: Evaluate) {
 	const severities = ['-', 'easy', 'average', 'hard', 'daunting', 'formidable'];
 	const injuries = severities.map((severity) => ({ name: `E2E ${severity}`, type: 'injury', system: { severity } }));
@@ -2763,16 +2765,16 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 		await page((name) => window.characterE2E.severities(name), 'Wreck'),
 		cells,
 	);
-	// §#582: in words, as an image's name to a screen reader and as its tooltip, on the Combat tab shown; the image names
-	// the button rolling the healing check, which has no label of its own.
-	await page(async () => {
+	// §#582: in words, as an image's name to a screen reader and as its tooltip, on the Combat tab shown. §#578: the
+	// severity is text, and the name rolls the healing check.
+	const severityButtons = await page(async () => {
 		await window.e2e.showTab('Wounded', 'combat');
 		const root = window.e2e.htmlOf(window.e2e.actor('Wounded').sheet)!;
-		for (const button of root.querySelectorAll<HTMLElement>('.critical-injuries .injury .severity button')) {
-			button.dataset.e2e = 'severity-button';
-			button.querySelector<HTMLElement>(':scope > span')!.dataset.e2e = 'glyph-severity';
-		}
+		const cells = [...root.querySelectorAll<HTMLElement>('.critical-injuries .injury:not(.columns) .severity')];
+		for (const cell of cells) cell.querySelector<HTMLElement>(':scope > span')!.dataset.e2e = 'glyph-severity';
+		return cells.filter((cell) => cell.querySelector('button')).length;
 	}, undefined);
+	e2e.expect("#578 D1 a Critical Injury's severity is text, in no button: it no longer rolls", severityButtons, 0);
 	const byLength = (names: GlyphName[]) => names.sort((left, right) => left.text.length - right.text.length);
 	e2e.expect(
 		"#582 A8 a Critical Injury's severity reads as its difficulty dice in words, in its tooltip too, and none as nothing",
@@ -2786,14 +2788,9 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 			['DDDDD', '5 Difficulty dice', true],
 		],
 	);
-	e2e.expect(
-		"#582 A8 a Critical Injury's severity button is named by its dice in words",
-		byLength(await e2e.gm.glyphNames('[data-e2e="severity-button"]')).map(({ name }) => name),
-		[null, '1 Difficulty die', '2 Difficulty dice', '3 Difficulty dice', '4 Difficulty dice', '5 Difficulty dice'],
-	);
 	let prompt: unknown;
 	await e2e.step('#126 L2 the Formidable Critical Injury clicked', async () => {
-		await page(() => window.characterE2E.clickSeverity('Wounded', 'formidable'), undefined);
+		await page(() => window.characterE2E.rollInjury('Wounded', 'formidable'), undefined);
 		prompt = await page(() => window.characterE2E.dicePrompt(), undefined);
 	});
 	e2e.expect('#126 L2 a Formidable Critical Injury opens the healing check with five difficulty dice', prompt, {
@@ -2804,7 +2801,7 @@ async function injuries(e2e: ScenarioContext, page: Evaluate) {
 	});
 	let members: string[] = [];
 	await e2e.step('#126 L3 the Formidable Critical Hit clicked, and the repairer chosen', async () => {
-		await page(() => window.characterE2E.clickSeverity('Wreck', 'formidable'), undefined);
+		await page(() => window.characterE2E.rollInjury('Wreck', 'formidable'), undefined);
 		members = await page(() => window.characterE2E.crewPrompt('Mechanic'), undefined);
 		prompt = await page(() => window.characterE2E.dicePrompt(), undefined);
 	});
@@ -3015,9 +3012,10 @@ async function combatRowDescriptions(e2e: ScenarioContext, page: Evaluate) {
 
 	await e2e.step('#393 B2 the name of the Critical Injury clicked', () => clickName({ injury: 'Bruise' }));
 	e2e.expect(
-		"#393 B2 the Critical Injury's name opens its sheet, and leaves its description closed",
+		// §#578: the name heals the injury.
+		"#393 B2 the Critical Injury's name opens the Dice Prompt of its healing check, and leaves its description closed",
 		{ box: await closed({ injury: 'Bruise' }), ...(await closeOpened('Bruise')) },
-		{ box: CLOSED_DESCRIPTION, sheet: true, dicePrompt: false },
+		{ box: CLOSED_DESCRIPTION, sheet: false, dicePrompt: true },
 	);
 
 	let prompt: unknown;

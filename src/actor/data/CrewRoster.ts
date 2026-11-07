@@ -273,12 +273,13 @@ type ShownSkill = {
  * The Crew's skills by skill, sorted by name in the given locale: each skill its Roles list, once whatever its case,
  * with its image and the rolled skills of the members who roll it, in their order. A skill is named as the Skills
  * Compendium names it, otherwise as first listed. One missing from the Skills Compendium is listed once a member rolls
- * it, with the image of the first one's skill.
+ * it, with the image of the first one's skill. Each comes with the skill whose sheet its heading opens: the Skills
+ * Compendium's, otherwise the first member's.
  */
-export function crewSkillsBySkill<C extends CrewSkill & { skill: ShownSkill }>(
+export function crewSkillsBySkill<S extends ShownSkill, C extends CrewSkill & { skill: S }>(
 	crew: Crew,
 	rolledSkills: C[],
-	compendiumSkills: ShownSkill[],
+	compendiumSkills: S[],
 	locale: string,
 ) {
 	return distinctSkills(crew.roles.flatMap((role) => role.skills))
@@ -286,8 +287,9 @@ export function crewSkillsBySkill<C extends CrewSkill & { skill: ShownSkill }>(
 		.flatMap((skillName) => {
 			const members = rolledSkills.filter((rolled) => skillNamesMatch(rolled.skillName, skillName));
 			const defined = compendiumSkills.find((skill) => skillNamesMatch(skill.name, skillName));
+			const skill = defined ?? members[0]?.skill;
 			const skillImage = defined?.img ?? members[0]?.skill.img;
-			return skillImage ? [{ skillName: defined?.name ?? skillName, skillImage, members }] : [];
+			return skill && skillImage ? [{ skillName: defined?.name ?? skillName, skillImage, skill, members }] : [];
 		});
 }
 

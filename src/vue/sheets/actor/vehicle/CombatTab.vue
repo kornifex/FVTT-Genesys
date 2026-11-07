@@ -14,12 +14,13 @@ import Enriched from '@/vue/components/Enriched.vue';
 import DescriptionToggle from '@/vue/components/DescriptionToggle.vue';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import QualityList from '@/vue/components/QualityList.vue';
+import RollLink from '@/vue/components/RollLink.vue';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { useOpenRows } from '@/vue/useOpenRows';
 
 import { rollForCrew } from '@/operations/CrewRoll';
-import { attackWithVehicleWeapon } from '@/operations/ItemActions';
+import { attackWithVehicleWeapon, openSheet } from '@/operations/ItemActions';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { firingArcLabels } from '@/item/Weapons';
 
@@ -49,10 +50,20 @@ async function repairHit(criticalHit: GenesysItem<'injury'>) {
 				</div>
 
 				<div v-for="weapon in weapons" :key="weapon.id" class="weapon">
-					<img :src="weapon.img ?? undefined" :alt="weapon.name" />
+					<ActionButton
+						class="item-icon"
+						:image="weapon.img ?? undefined"
+						label="Genesys.Tooltips.OpenItem"
+						@click="openSheet(weapon)"
+					/>
 
 					<div class="name">
-						<ActionButton @click="attackWithVehicleWeapon(actor, weapon)">{{ weapon.name }}</ActionButton>
+						<RollLink
+							label="Genesys.Tooltips.RollAttack"
+							:label-data="{ weapon: weapon.name }"
+							@roll="attackWithVehicleWeapon(actor, weapon)"
+							>{{ weapon.name }}</RollLink
+						>
 						<DescriptionToggle
 							:description="weapon.system.description"
 							:open="openWeapons.isOpen(weapon.id)"

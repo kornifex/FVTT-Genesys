@@ -88,6 +88,13 @@ Genesys:
     ShowDescription: Show the description
     HideDescription: Hide the description
     OpenSkill: Open the skill's sheet
+    OpenItem: Open the item's sheet
+    OpenActor: Open the actor's sheet
+    RollSkill: Roll {skill}
+    RollAttack: Attack with {weapon}
+    RollHealing: Roll {skill} to heal {injury}
+    RollRepair: Roll {skill} to repair {hit}
+    RollCharacteristic: Roll {characteristic}
 
   # Dice Rolls
   Rolls:
@@ -662,7 +669,6 @@ Genesys:
     Select: Select
     PerformCheck: Perform Check
     GroupBy: Group By
-    Attack: Attack
     Item: Item
     Items: Items
     CloseContainer: Close Container
@@ -671,6 +677,7 @@ Genesys:
     Actions: Actions
     BuyTalentRank: Buy a rank of the talent
     BuySkillRank: Buy a rank
+    RaiseCharacteristic: Raise the characteristic
     DeleteRole: Delete the role
     RemoveSkill: Remove the skill
     RemoveQuality: Remove the Quality
