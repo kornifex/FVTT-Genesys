@@ -68,5 +68,9 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 - PRs are squash-merged, so the PR title becomes the commit on `main`. Titles follow Conventional Commits, `type(scope)!: imperative summary`, with the types and scopes listed in `.github/workflows/pr-title.yml`: `fix(combat): keep the turn on its slot when an Extra Slot is added`.
 - `!` and a `BREAKING CHANGE:` paragraph mark what breaks a macro, a module or world data.
 - The PR body starts with `Closes #n`, then **Summary**, **Evidence** and **Merge Danger** (Door: one-way or two-way; Blast Radius).
+- Issues and PRs are assigned to whoever works on them: `--assignee @me` on `gh issue create` and `gh pr create`, `gh issue edit <n> --add-assignee @me` on an issue picked up. A PR gets the milestone of the release it ships in, like its issue (`--milestone 0.6.0` on `main`).
+- Before pushing, run every step of `.github/workflows/ci.yml` locally, not only the tests: `pnpm lint`, `knip`, `i18n`, `format:check`, `typecheck`, `test` and `build`.
+- To bring a PR branch up to date, merge `origin/main` into it and push, rather than rebasing and force-pushing: the squash merge leaves the merge commits out of `main` anyway.
+- Once a PR is merged, check that its issue is closed: `Closes #n` sometimes leaves it open. Close it with `gh issue close <n> -R kornifex/FVTT-Genesys -c "Done in #<pr>."`.
 - Commits and PRs end with their own content: no attribution trailers.
 - Code, comments, docs, commits and PRs are written in English.
