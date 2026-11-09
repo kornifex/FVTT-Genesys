@@ -1,5 +1,7 @@
 # Publish the fork under the existing `genesys` id
 
+Superseded by ADR 0008, from the release that changes the id. Until then, this decision governs every release.
+
 The original Genesys system (Mezryss/FVTT-Genesys) is no longer maintained. Its maintainer, Assembling Kings, said in [Mezryss#263](https://github.com/Mezryss/FVTT-Genesys/issues/263#issuecomment-5642736832) that they will likely not update it anymore, and are working on a rewrite from scratch under a different id (`ak-genesys`). So this fork becomes the published version. We keep the package id `genesys` and distribute through the fork's GitHub releases, installed by manifest URL. We do not register a new id on the Foundry package registry, where `genesys` belongs to the original author.
 
 The id is the namespace of every world setting (`genesys.*`), document flag and socket channel, and each world records it as its system. A new id would force a risky migration of every existing world, ours included, in exchange for registry visibility.
