@@ -489,7 +489,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
 		justify-content: center;
-		gap: 3em;
+		// Each box reaches 1em past its column on each side: 2.5em leaves half an em between two boxes, and the row fits
+		// the sheet's default width.
+		gap: 2.5em;
 		align-items: center;
 		padding-bottom: 0.25rem;
 
