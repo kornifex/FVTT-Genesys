@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -105,6 +105,20 @@ type AccessibilityHelpers = {
 	setUpRowMenus(): Promise<void>;
 	/** Deletes the actors {@link setUpRowMenus} created, and gives back the rule as it was. */
 	deleteRowMenus(): Promise<void>;
+	/**
+	 * Creates an actor of each type whose counters all show their − and + (#622): its wounds, strain or hull trauma at 1,
+	 * and, for the character and the vehicle, an item of quantity 2 with Minor damage, and for the character a Container
+	 * holding another; and gives each Story Point pool a point, for the GM's + to show on its count.
+	 */
+	setUpCounters(): Promise<void>;
+	/** Deletes the actors {@link setUpCounters} created, and gives back the Story Points as they were. */
+	deleteCounters(): Promise<void>;
+	/**
+	 * Renders an actor's sheet on its Inventory tab with its Containers open, or reads the Story Point tracker for
+	 * `tracker`; shows the − and + of each counter there by focusing it, and gives each, by its row's name, its counter's
+	 * name and its sign, as `whole`, or as the points of it where something else shows: `hidden at left, center`.
+	 */
+	counterSteps(name: string): Promise<Record<string, string>>;
 	/**
 	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
 	 * holds it, and focuses the ⋮. Whether it took the focus, and its name: null for a row without one.
@@ -380,6 +394,44 @@ const ROW_MENUS: { key: string; code: number; row: string; entries: string[] }[]
 		entries: ['Move to passengers', '---', 'Edit', 'Remove from Crew'],
 	},
 	{ key: 'hit', code: 21, row: "a vehicle's Critical Hit", entries: ['Edit', 'Delete'] },
+];
+
+/**
+ * §#622: the counters of each actor type's sheet and of the Story Point tracker, by the name `counterSteps` reads them
+ * under, each with a − and a + but the tracker's, whose pools have a + alone.
+ */
+const COUNTER_STEPS: { code: number; name: string; what: string; steps: string[] }[] = [
+	{
+		code: 1,
+		name: 'Tally Hero',
+		what: "a character's wounds and strain, an inventory row, a Container and its contents",
+		steps: [
+			'Current Wounds',
+			'Current Strain',
+			'E2E Tally Rope: Quantity',
+			'E2E Tally Rope: Damage',
+			'E2E Tally Pack: Damage',
+			'E2E Tally Flint: Quantity',
+			'E2E Tally Flint: Damage',
+		].flatMap((counter) => [`${counter} −`, `${counter} +`]),
+	},
+	{ code: 2, name: 'Tally Minion', what: "an independent Minion Group's wounds", steps: ['Current Wounds −', 'Current Wounds +'] },
+	{ code: 3, name: 'Tally Rival', what: "a rival's wounds", steps: ['Current Wounds −', 'Current Wounds +'] },
+	{
+		code: 4,
+		name: 'Tally Nemesis',
+		what: "a nemesis's wounds and strain",
+		steps: ['Current Wounds −', 'Current Wounds +', 'Current Strain −', 'Current Strain +'],
+	},
+	{
+		code: 5,
+		name: 'Tally Ship',
+		what: "a vehicle's hull trauma and system strain, and an inventory row",
+		steps: ['Current Hull Trauma', 'Current System Strain', 'E2E Tally Crate: Quantity', 'E2E Tally Crate: Damage'].flatMap(
+			(counter) => [`${counter} −`, `${counter} +`],
+		),
+	},
+	{ code: 6, name: 'tracker', what: "the Story Point tracker's pools", steps: ['GM pool +', 'Players pool +'] },
 ];
 
 declare global {
@@ -817,6 +869,36 @@ function installAccessibilityHelpers() {
 	let rowMenuTrigger: HTMLElement | undefined;
 	let superCharacteristicsFound: unknown;
 	const menuContainerOf = (row: Element) => (row.matches('.menu-container') ? row : row.querySelector(':scope > .menu-container'));
+	const COUNTER_ACTORS = ['Tally Hero', 'Tally Minion', 'Tally Rival', 'Tally Nemesis', 'Tally Ship'];
+	// The Story Points the counter steps found.
+	let counterPointsFound: { gm: number; player: number } | undefined;
+	// The points of an element where something else shows: its centre, and the middle of each edge, 1 px in, which a round
+	// button covers too. A point that hits another element is one an ancestor's clip, or a neighbour above it, hides.
+	const hiddenPoints = (element: HTMLElement) => {
+		element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		const box = element.getBoundingClientRect();
+		const x = (box.left + box.right) / 2;
+		const y = (box.top + box.bottom) / 2;
+		const points: Record<string, [number, number]> = {
+			center: [x, y],
+			left: [box.left + 1, y],
+			right: [box.right - 1, y],
+			top: [x, box.top + 1],
+			bottom: [x, box.bottom - 1],
+		};
+		return Object.entries(points).flatMap(([point, [px, py]]) => {
+			const hit = document.elementFromPoint(px, py);
+			return element.contains(hit) ? [] : [{ point, hit }];
+		});
+	};
+	// `whole`, or the points hidden and what shows at the first: `hidden at left, center under div.value`.
+	const shownWhole = (element: HTMLElement) => {
+		const hidden = hiddenPoints(element);
+		if (!hidden.length) return 'whole';
+		const { hit } = hidden[0];
+		const above = hit ? [hit.tagName.toLowerCase(), ...hit.classList].join('.') : 'nothing';
+		return `hidden at ${hidden.map(({ point }) => point).join(', ')} under ${above}`;
+	};
 	// The windows open before the control readied last was pressed.
 	let windowsBefore = new Set<unknown>();
 
@@ -1286,6 +1368,90 @@ function installAccessibilityHelpers() {
 			await settle();
 		},
 
+		async setUpCounters() {
+			await helpers.deleteCounters();
+			// A fresh world's permanent migration notifications would cover the top of a sheet, and the − and + there.
+			ui.notifications.clear();
+			counterPointsFound = game.settings.get('genesys', 'storyPoints');
+			await game.settings.set('genesys', 'storyPoints', { gm: 1, player: 1 });
+			// A quantity of 2 and Minor damage, which each step up or down (a Container has no quantity).
+			const item = (name: string, type = 'gear', system: object = {}) => ({
+				name: `E2E Tally ${name}`,
+				type,
+				system: { state: 'carried', quantity: 2, damage: 'minor', ...system },
+			});
+			await Actor.createDocuments([
+				{
+					name: 'E2E Tally Hero',
+					type: 'character',
+					system: { wounds: { value: 1, max: 12 }, strain: { value: 1, max: 10 } },
+					items: [item('Rope'), item('Pack', 'container')],
+				},
+				// An independent Minion Group shows its wounds as its tokens do, on a counter.
+				{
+					name: 'E2E Tally Minion',
+					type: 'minion',
+					system: { groupSize: 3, wounds: { value: 1, threshold: 5 } },
+					flags: { genesys: { independentMinion: true } },
+				},
+				{ name: 'E2E Tally Rival', type: 'rival', system: { wounds: { value: 1, max: 10 } } },
+				{ name: 'E2E Tally Nemesis', type: 'nemesis', system: { wounds: { value: 1, max: 12 }, strain: { value: 1, max: 10 } } },
+				{
+					name: 'E2E Tally Ship',
+					type: 'vehicle',
+					system: { hullTrauma: { value: 1, max: 10 }, systemStrain: { value: 1, max: 10 } },
+					items: [item('Crate')],
+				},
+			]);
+			const hero = actor('Tally Hero');
+			await hero.createEmbeddedDocuments('Item', [item('Flint', 'gear', { container: hero.items.getName('E2E Tally Pack').id })]);
+			await settle();
+		},
+
+		async deleteCounters() {
+			await helpers.closeAll();
+			const ids = COUNTER_ACTORS.flatMap((name) => game.actors.getName(`E2E ${name}`)?.id ?? []);
+			if (ids.length) await Actor.deleteDocuments(ids);
+			if (counterPointsFound) await game.settings.set('genesys', 'storyPoints', counterPointsFound);
+			counterPointsFound = undefined;
+			await settle();
+		},
+
+		async counterSteps(name) {
+			const steps: Record<string, string> = {};
+			if (name === 'tracker') {
+				// The GM's + shows on a pool's count, which the focus reaches when the pool has a point to spend.
+				for (const pool of document.querySelectorAll<HTMLElement>('#story-point-tracker .pool')) {
+					find(pool, 'button.points').focus();
+					steps[`${pool.classList.contains('gm') ? 'GM' : 'Players'} pool +`] = shownWhole(find(pool, '.add'));
+				}
+				(document.activeElement as HTMLElement | null)?.blur();
+				return steps;
+			}
+			const { selector, tabs } = await helpers.openSheet(name);
+			const root = find(document, tabs.includes('inventory') ? await helpers.showTab(selector, 'inventory') : selector);
+			for (const toggle of root.querySelectorAll<HTMLElement>(
+				'.inventory-item > .details > .description-toggle[aria-expanded="false"]',
+			)) {
+				toggle.click();
+			}
+			await settle();
+			// The combat stats sit above the tabs: the Inventory tab's panel doesn't hold them.
+			for (const counter of find(document, selector).querySelectorAll<HTMLElement>('.counter.interactive')) {
+				if (!counter.checkVisibility()) continue;
+				const value = find(counter, '[role="spinbutton"]');
+				const row = counter.closest('.inventory-item')?.querySelector('.name');
+				value.focus();
+				for (const step of counter.querySelectorAll<HTMLElement>(':scope > .step')) {
+					const sign = step.classList.contains('decrease') ? '−' : '+';
+					steps[`${row ? `${text(row)}: ` : ''}${value.getAttribute('aria-label')} ${sign}`] = shownWhole(step);
+				}
+				value.blur();
+			}
+			await helpers.closeAll();
+			return steps;
+		},
+
 		async readyRowMenu(key) {
 			const target = ROW_MENU_TARGETS[key];
 			// Only the row's sheet stays open, so that its ⋮ is the one the keys reach.
@@ -1564,6 +1730,36 @@ async function rowActions(e2e: ScenarioContext) {
 		}
 	} finally {
 		await gm.evaluate(() => window.accessibilityE2E.deleteRowMenus());
+	}
+}
+
+/**
+ * §#622: each counter's − and +, which show over its neighbours while the counter has the focus or the pointer, show
+ * whole in both Styles: no ancestor clips them, and no neighbour covers them.
+ */
+async function counterSteps(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	await e2e.step('#622 actors whose counters show their − and + set up', () =>
+		gm.evaluate(() => window.accessibilityE2E.setUpCounters()),
+	);
+	try {
+		for (const { code, name, what, steps } of COUNTER_STEPS) {
+			const byStyle: Record<string, Record<string, string>> = {};
+			await e2e.step(`#622 W${code} ${what}: each counter focused, in each Style`, async () => {
+				for (const style of STYLES) {
+					await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
+					byStyle[style.name] = await gm.evaluate((name) => window.accessibilityE2E.counterSteps(name), name);
+				}
+			});
+			const whole = Object.fromEntries(steps.map((step) => [step, 'whole']));
+			e2e.expect(
+				`#622 W${code} the − and + of ${what} show whole in both Styles`,
+				byStyle,
+				Object.fromEntries(STYLES.map((style) => [style.name, whole])),
+			);
+		}
+	} finally {
+		await gm.evaluate(() => window.accessibilityE2E.deleteCounters());
 	}
 }
 
@@ -2196,6 +2392,8 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('rollLinks', () => rollLinks(e2e));
 
 		await e2e.part('rowActions', () => rowActions(e2e));
+
+		await e2e.part('counterSteps', () => counterSteps(e2e));
 		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
 		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {

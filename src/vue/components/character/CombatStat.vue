@@ -200,17 +200,18 @@ function validateInput(event: Event) {
 			@include headings.font;
 			font-size: 1.75em;
 			text-align: center;
+			clip-path: var(--cut);
 
 			&:first-child {
 				grid-column: 1 / span 1;
-				clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 1rem 100%, 0% calc(100% - 1rem));
+				--cut: polygon(0% 0%, 100% 0%, 100% 100%, 1rem 100%, 0% calc(100% - 1rem));
 				padding-left: 1em;
 			}
 
 			&:last-child {
 				left: 0;
 				grid-column: 3 / span 1;
-				clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 1rem), calc(100% - 1rem) 100%, 0% 100%);
+				--cut: polygon(0% 0%, 100% 0%, 100% calc(100% - 1rem), calc(100% - 1rem) 100%, 0% 100%);
 				padding-right: 1em;
 			}
 
@@ -218,8 +219,26 @@ function validateInput(event: Event) {
 				padding-left: 0;
 				padding-right: 0;
 				grid-column: 1 / span 3;
-				clip-path: $clip-path;
+				--cut: #{$clip-path};
 				width: calc(100% - 1px);
+			}
+		}
+
+		// A counter's cell cuts its corner on a layer under the counter: a clip-path on the cell would clip the counter's
+		// − and +, which reach past it over the value beside it (#622). axe-core can't read a background drawn on a
+		// pseudo-element, so the other values keep theirs on themselves. The box's own cut corners lie below the − and +.
+		.value:has(> .counter) {
+			isolation: isolate;
+			background: none;
+			clip-path: none;
+
+			&::before {
+				content: '';
+				position: absolute;
+				inset: 0;
+				z-index: -1;
+				background: colors.$field;
+				clip-path: var(--cut);
 			}
 		}
 	}
