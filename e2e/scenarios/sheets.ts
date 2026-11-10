@@ -2132,15 +2132,20 @@ export async function run(e2e: ScenarioContext) {
 		});
 		await e2e.step('#650 A2 the character spends all their XP', async () => {
 			rows.spent = await gm.evaluate(async () => {
-				await game.actors.getName('E2E Observed').update({ 'system.experienceJournal.entries': [{ amount: 0, type: 'Starting' }] });
-				await window.e2e.waitFor('the ↑ gone', () => window.sheetsE2E.characteristicRow('Observed').raises === 0);
-				return window.sheetsE2E.characteristicRow('Observed');
-			});
-			await gm.evaluate(async () => {
-				await game.actors
-					.getName('E2E Observed')
-					.update({ 'system.experienceJournal.entries': [{ amount: 100, type: 'Starting' }] });
-				await window.sheetsE2E.close('Observed');
+				const observed = game.actors.getName('E2E Observed');
+				try {
+					await observed.update({ 'system.experienceJournal.entries': [{ amount: 0, type: 'Starting' }] });
+					// On v13 the sheet is briefly not rendered while the update renders it again.
+					await window.e2e.waitFor(
+						'the ↑ gone',
+						() => observed.sheet.rendered && window.sheetsE2E.characteristicRow('Observed').raises === 0,
+					);
+					return window.sheetsE2E.characteristicRow('Observed');
+				} finally {
+					// The XP the scenario's setup gave, which other parts rely on.
+					await observed.update({ 'system.experienceJournal.entries': [{ amount: 100, type: 'Starting' }] });
+					await window.sheetsE2E.close('Observed');
+				}
 			});
 			await player.evaluate(() => window.sheetsE2E.close('Observed'));
 		});
