@@ -254,6 +254,19 @@ describe('ContextMenu', () => {
 			expect(placed(menu)).toEqual({ left: '300px', top: '220px' });
 		});
 
+		it('opens for a row that shows nothing, on a tab not shown, and stays open as the page scrolls', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([] as unknown as DOMRectList);
+
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+			document.dispatchEvent(new Event('scroll'));
+			await nextTick();
+
+			expect(isOpen(menu)).toBe(true);
+			expect(focused(menu)).toBe('localized Equip');
+		});
+
 		it("listens to its own document's clicks, which a window detached from the main one has", async () => {
 			const detached = document.implementation.createHTMLDocument();
 			const host = detached.body.appendChild(detached.createElement('div'));

@@ -107,10 +107,7 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 		// The menu shows in the top layer, over every element of the page, whatever stacking context its row paints in: a
 		// z-index would only win within the row's category, and lose to an ↑ or a category painted after it (#643).
 		menu.value.showPopover();
-		if (!place(menu.value, container.value, pointer)) {
-			hideMenu();
-			return;
-		}
+		place(menu.value, container.value, pointer);
 
 		// From the pointer too, as the pattern has it: the focus in the menu keeps Escape from Foundry's keybindings, and a
 		// click on an entry or elsewhere leaves no focus behind. The menu is placed where it shows: nothing scrolls to it.
@@ -122,13 +119,10 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 /**
  * Places the menu in the viewport: its top-left corner under the pointer, or at its container, inside the viewport. The
  * top layer takes no transform from the sheet's window, which may be scaled: the menu takes the window's scale itself.
- * False when its container shows nothing to place it at.
+ * A row that shows nothing, on a tab that isn't shown, still opens its menu, at its container's empty box.
  */
 function place(menuElement: HTMLElement, containerElement: HTMLElement, pointer: Point | undefined) {
-	const box = shownBox(containerElement);
-	if (!box) {
-		return false;
-	}
+	const box = shownBox(containerElement) ?? containerElement.getBoundingClientRect();
 
 	// Measured on the window, whose width is large enough for the rounding of its laid-out width to tell no scale.
 	const scaled = containerElement.closest<HTMLElement>('.application, .app') ?? containerElement;
@@ -140,7 +134,6 @@ function place(menuElement: HTMLElement, containerElement: HTMLElement, pointer:
 	offset = { x: corner.x - box.left, y: corner.y - box.top };
 	moveTo(menuElement, corner);
 	menuElement.style.transform = scale === 1 ? '' : `scale(${scale})`;
-	return true;
 }
 
 /**
@@ -211,7 +204,8 @@ function closeContextMenu(event: MouseEvent) {
 
 // The menu is placed in the viewport: as its sheet scrolls, it follows its row, and closes once the row leaves what the
 // sheet shows, the focus going back to the opener when it opened from the keyboard, where it stays. Scrolling elsewhere
-// in the page, such as the chat log on a new message, leaves it where it is.
+// in the page, such as the chat log on a new message, leaves it where it is, as it does the menu of a row that shows
+// nothing.
 function followContainer(event: Event) {
 	const scrolled = event.target as Node | null;
 	if (!scrolled || !menu.value || !container.value || !offset || !scrolled.contains(container.value)) {
@@ -219,8 +213,12 @@ function followContainer(event: Event) {
 	}
 
 	const box = shownBox(container.value);
+	if (!box) {
+		return;
+	}
+
 	const visible = visibleArea(menu.value);
-	if (!box || box.bottom <= visible.top || box.top >= visible.bottom) {
+	if (box.bottom <= visible.top || box.top >= visible.bottom) {
 		if (fromKeyboard) {
 			closeToOpener({ preventScroll: true });
 		} else {
