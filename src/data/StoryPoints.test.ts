@@ -48,22 +48,22 @@ describe('serialStoryPointWrites', () => {
 		};
 		return { read: () => stored, write, writes, stored: () => stored };
 	}
-	const add = (pool: StoryPointPool) => (storyPoints: StoryPointData) =>
-		storyPointsAfterSetting(storyPoints, pool, storyPoints[pool] + 1);
+	const type = (pool: StoryPointPool, count: number) => (storyPoints: StoryPointData) =>
+		storyPointsAfterSetting(storyPoints, pool, count);
 	const spend = (pool: StoryPointPool) => (storyPoints: StoryPointData) => storyPointsAfterSpending(storyPoints, pool);
 
-	it('counts changes made together, each from the pools the previous one wrote: a spend then a +, two +', async () => {
+	it('counts changes made together, each from the pools the previous one wrote: two spends, then a typed count', async () => {
 		const pools = storedPools({ player: 2, gm: 1 });
 		const writeChange = serialStoryPointWrites(pools.read, pools.write);
 
 		// Not awaited one by one: a second click before the first write has landed.
-		const results = await Promise.all([writeChange(spend('gm')), writeChange(add('gm')), writeChange(add('gm'))]);
+		const results = await Promise.all([writeChange(spend('gm')), writeChange(spend('player')), writeChange(type('gm', 4))]);
 
 		expect(results).toEqual([true, true, true]);
 		expect(pools.writes).toEqual([
 			{ player: 3, gm: 0 },
-			{ player: 3, gm: 1 },
-			{ player: 3, gm: 2 },
+			{ player: 2, gm: 1 },
+			{ player: 2, gm: 4 },
 		]);
 	});
 
@@ -88,11 +88,11 @@ describe('serialStoryPointWrites', () => {
 			await pools.write(storyPoints);
 		});
 
-		const failed = writeChange(add('gm'));
-		const next = writeChange(add('gm'));
+		const failed = writeChange(spend('gm'));
+		const next = writeChange(spend('gm'));
 
 		await expect(failed).rejects.toThrow('refused');
 		await expect(next).resolves.toBe(true);
-		expect(pools.stored()).toEqual({ player: 1, gm: 2 });
+		expect(pools.stored()).toEqual({ player: 2, gm: 0 });
 	});
 });

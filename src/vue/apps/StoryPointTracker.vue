@@ -48,10 +48,6 @@ async function spend(pool: StoryPointPool) {
 	await StoryPointTracker.spendStoryPoint(pool);
 }
 
-async function add(pool: StoryPointPool) {
-	await StoryPointTracker.addStoryPoint(pool);
-}
-
 /**
  * Opens the GM's input for a pool's count, on a right-click or the context menu key on the pool.
  */
@@ -119,7 +115,8 @@ async function resetStoryPoints() {
 				@click="resetStoryPoints"
 			/>
 		</header>
-		<!-- Only the GM adds a point or types a count (StoryPointTracker.resetStoryPoints refuses a player's write). -->
+		<!-- Only the GM types a count, which is how a point is added to a pool without spending one from the other
+		(StoryPointTracker.setStoryPointPool refuses a player's write). -->
 		<span class="count" @contextmenu="editCount(pool.id, $event)">
 			<input
 				v-if="editing === pool.id"
@@ -141,13 +138,6 @@ async function resetStoryPoints() {
 				>{{ context[pool.id] }}</ActionButton
 			>
 			<span v-else class="points">{{ context[pool.id] }}</span>
-			<ActionButton
-				v-if="isGM && editing !== pool.id"
-				class="add"
-				icon="fas fa-plus"
-				label="Genesys.StoryPoints.Add"
-				@click="add(pool.id)"
-			/>
 		</span>
 	</div>
 </template>
@@ -224,7 +214,6 @@ async function resetStoryPoints() {
 	}
 
 	.count {
-		position: relative;
 		display: inline-flex;
 		align-items: center;
 	}
@@ -247,31 +236,6 @@ async function resetStoryPoints() {
 		border: none;
 		border-bottom: 1px solid currentColor;
 		border-radius: 0;
-	}
-
-	// The GM's + sits beside the count without moving it, and shows while the pointer is on the count or the focus is in
-	// it, as a counter's does.
-	.add {
-		position: absolute;
-		top: 50%;
-		left: 100%;
-		display: none;
-		align-items: center;
-		justify-content: center;
-		width: 1.25em;
-		height: 1.25em;
-		margin-left: 0.15em;
-		font-size: 0.8em;
-		line-height: 1;
-		background: colors.$paper;
-		color: colors.$dark-blue;
-		border: 1px solid colors.$gold;
-		border-radius: 50%;
-		transform: translateY(-50%);
-	}
-
-	.count:is(:hover, :focus-within) .add {
-		display: inline-flex;
 	}
 }
 </style>

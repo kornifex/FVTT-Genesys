@@ -124,15 +124,6 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	}
 
 	/**
-	 * Add a point to one pool, as the GM's + does: the other pool keeps its points. Only a GM may.
-	 */
-	static async addStoryPoint(pool: StoryPointPool) {
-		if (game.user.isGM) {
-			await StoryPointTracker.#write((storyPoints) => storyPointsAfterSetting(storyPoints, pool, storyPoints[pool] + 1));
-		}
-	}
-
-	/**
 	 * Set one pool to a count the GM typed, leaving the other as it is when the write runs. Only a GM may.
 	 */
 	static async setStoryPointPool(pool: StoryPointPool, count: number) {
@@ -141,8 +132,8 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 	}
 
-	// The GM's changes of the pools that reach this client together (a double click, a spend then a +, two players'
-	// spends) are written one after the other, each from the pools the previous one wrote, so that none is lost and no
+	// The GM's changes of the pools that reach this client together (a double click, a spend then a typed count, two
+	// players' spends) are written one after the other, each from the pools the previous one wrote, so that none is lost and no
 	// point is spent twice. A player's spend reaches the GM later than the player clicked: it reads the pools then too.
 	static #write = serialStoryPointWrites(
 		() => game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS),

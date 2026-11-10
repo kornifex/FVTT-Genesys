@@ -61,7 +61,7 @@ type ToggleIcon = { display: string; visible: boolean; x: number; y: number };
  * The look of a heading: its size against its parent's, its margins in rem, its weight, line height, colour, shadow and
  * bottom rule.
  */
-type StoryPointPoolState = { shown: string; spend: { name: string | null; tooltip: string | null } | null; add: string | null };
+type StoryPointPoolState = { shown: string; spend: { name: string | null; tooltip: string | null } | null; beside: string[] };
 
 type HeadingStyle = { size: number; margin: string; weight: string; lineHeight: string; color: string; shadow: string; border: string };
 
@@ -166,7 +166,7 @@ type SheetsHelpers = {
 	clickStoryPointsTogether(selectors: string[]): Promise<void>;
 	/** Right-clicks a Story Point pool's count, then closes with Escape the input it opens; returns whether one opened. */
 	rightClickStoryPoints(pool: 'gm' | 'player'): Promise<boolean>;
-	/** What each pool offers this user: its count, the button it is when it spends, and the GM's +. */
+	/** What each pool offers this user: its count, the button it is when it spends, and the names of the buttons beside it. */
 	storyPointPools(): Record<'gm' | 'player', StoryPointPoolState>;
 	/** Focuses a pool's count, for the keyboard. */
 	focusStoryPoints(pool: 'gm' | 'player'): Promise<void>;
@@ -921,12 +921,14 @@ function installSheetsHelpers() {
 			const tracker = htmlOf(foundry.applications.instances.get('story-point-tracker'))!;
 			const pool = (id: string) => {
 				const count = tracker.querySelector<HTMLElement>(`.${id} .points`)!;
-				const add = tracker.querySelector<HTMLElement>(`.${id} button.add`);
 				return {
 					shown: text(count),
 					// The count is a button where the user may spend from the pool, named by the pool and its count.
 					spend: count.matches('button') ? { name: count.ariaLabel, tooltip: count.dataset.tooltip ?? null } : null,
-					add: add?.ariaLabel ?? null,
+					// The GM's + that stood there until 0.6.0-rc.1, or any other.
+					beside: [...tracker.querySelectorAll<HTMLElement>(`.${id} .count button:not(.points)`)].map(
+						(button) => button.ariaLabel ?? '',
+					),
 				};
 			};
 			return { gm: pool('gm'), player: pool('player') };
@@ -2905,8 +2907,9 @@ export async function run(e2e: ScenarioContext) {
 		recordCompatibilityWarnings(gm);
 		await storyPointSpends(e2e, player);
 
-		// §#619: a click on a pool's count spends one of its points, for anyone who may spend from it, as before 0.6.0; the
-		// GM's + adds a point to that pool alone (§#580), and the GM's right-click opens the count for typing.
+		// §#619: a click on a pool's count spends one of its points, for anyone who may spend from it, as before 0.6.0, and
+		// nothing stands beside it: the GM's + of §#580 went after the table's test of 0.6.0-rc.1. The GM's right-click
+		// opens the count for typing, which is how a point is added.
 		await gm.evaluate(() => window.sheetsE2E.setStoryPoints({ gm: 2, player: 2 }));
 		await player.evaluate(async () => {
 			await foundry.applications.instances.get('story-point-tracker')?.render(true);
@@ -2914,19 +2917,19 @@ export async function run(e2e: ScenarioContext) {
 		});
 		const spend = (pool: string) => ({ name: `${pool}: 2`, tooltip: 'Genesys.StoryPoints.Spend' });
 		e2e.expect(
-			"#619 A1 GM: each pool's count is a button named by its pool and count that spends a point, with a + that adds one",
+			"#619 A1 GM: each pool's count is a button named by its pool and count that spends a point, with no + beside it",
 			await gm.evaluate(() => window.sheetsE2E.storyPointPools()),
 			{
-				gm: { shown: '2', spend: spend('GM Story Points'), add: 'Add a Story Point' },
-				player: { shown: '2', spend: spend('Player Story Points'), add: 'Add a Story Point' },
+				gm: { shown: '2', spend: spend('GM Story Points'), beside: [] },
+				player: { shown: '2', spend: spend('Player Story Points'), beside: [] },
 			},
 		);
 		e2e.expect(
 			"#619 A2 player: the players' count is a button that spends a point, the GM pool shows its count alone, and neither has a +",
 			await player.evaluate(() => window.sheetsE2E.storyPointPools()),
 			{
-				gm: { shown: '2', spend: null, add: null },
-				player: { shown: '2', spend: spend('Player Story Points'), add: null },
+				gm: { shown: '2', spend: null, beside: [] },
+				player: { shown: '2', spend: spend('Player Story Points'), beside: [] },
 			},
 		);
 		await player.evaluate(() => window.sheetsE2E.storyPointLog());
@@ -2942,28 +2945,27 @@ export async function run(e2e: ScenarioContext) {
 			},
 			{ pools: { gm: 3, player: 1 }, writes: [gm.user], messages: [`${e2e.playerUser}: ${playerPoolMessage}`] },
 		);
-		let afterAdd = {};
 		let opened = {};
-		await e2e.step("#619 A4 GM clicks the GM pool's +, then right-clicks the players' count; the player right-clicks it", async () => {
-			await gm.evaluate(() => window.sheetsE2E.clickStoryPoints('.gm button.add'));
-			afterAdd = await gm.evaluate(() => window.sheetsE2E.storyPoints());
+		await e2e.step("#619 A4 GM right-clicks the players' count; the player right-clicks it", async () => {
 			opened = {
 				gm: await gm.evaluate(() => window.sheetsE2E.rightClickStoryPoints('player')),
 				player: await player.evaluate(() => window.sheetsE2E.rightClickStoryPoints('player')),
 			};
 		});
 		e2e.expect(
-			"#619 A4 GM: a pool's + adds a point to that pool alone, and a right-click opens the count for typing, spending nothing; a player's opens nothing",
-			{ afterAdd, opened, afterRightClick: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
-			{ afterAdd: { gm: 4, player: 1 }, opened: { gm: true, player: false }, afterRightClick: { gm: 4, player: 1 } },
+			"#619 A4 GM: a right-click opens the count for typing, spending nothing; a player's opens nothing",
+			{ opened, afterRightClick: await gm.evaluate(() => window.sheetsE2E.storyPoints()) },
+			{ opened: { gm: true, player: false }, afterRightClick: { gm: 3, player: 1 } },
 		);
-		await e2e.step("#580 C5 GM clicks the GM pool's count, then its + twice, before the tracker renders again", () =>
-			gm.evaluate(() => window.sheetsE2E.clickStoryPointsTogether(['.gm button.points', '.gm button.add', '.gm button.add'])),
+		await e2e.step("#580 C5 GM clicks the GM pool's count twice, then the players' count, before the tracker renders again", () =>
+			gm.evaluate(() =>
+				window.sheetsE2E.clickStoryPointsTogether(['.gm button.points', '.gm button.points', '.player button.points']),
+			),
 		);
 		e2e.expect(
-			'#580 C5 GM: a spend and two points added before the tracker renders all count, each from the pools the previous one wrote',
+			'#580 C5 GM: three spends before the tracker renders all count, each from the pools the previous one wrote',
 			await gm.evaluate(() => window.sheetsE2E.storyPoints()),
-			{ gm: 5, player: 2 },
+			{ gm: 2, player: 2 },
 		);
 
 		// §#343: a context menu left open on a sheet that closes.

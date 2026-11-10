@@ -380,7 +380,7 @@ Genesys:
     Keyboard: Use the sheets, their menus and the prompts from the keyboard, with a visible focus ring
     RollFromName: Roll a row's check from its name and open its sheet from its icon, on every sheet
     Counter: >-
-      Change wounds, strain and Story Points with one compact stepper; wounds stop at twice the wound threshold everywhere
+      Change wounds and strain with one compact stepper; wounds stop at twice the wound threshold everywhere
     ActingGmQueries: >-
       Tell the player when an action the GM's client carries out fails, such as claiming an Initiative Slot with no GM
       connected
@@ -403,7 +403,6 @@ Genesys:
     GMShort: GM
     Reset: Reset Story Points
     Spend: Spend a Story Point
-    Add: Add a Story Point
     # The name of a pool's count, which spends one of its points on a click: "GM Story Points: 4".
     PoolCount: '{pool}: {count}'
     ChatMessageGmPool: Spending a GM Story Point!

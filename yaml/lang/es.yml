@@ -379,8 +379,8 @@ Genesys:
     Keyboard: Las hojas, sus menús y las ventanas de diálogo se usan con el teclado, con un contorno de foco visible
     RollFromName: El nombre de una fila lanza su tirada y su icono abre su hoja, en todas las hojas
     Counter: >-
-      Las heridas, la tensión y los Puntos de Historia se cambian con un mismo contador compacto; las heridas se detienen
-      en todas partes en el doble del umbral
+      Las heridas y la tensión se cambian con un mismo contador compacto; las heridas se detienen en todas partes en el
+      doble del umbral
     ActingGmQueries: >-
       El jugador recibe un aviso cuando falla una acción que ejecuta el cliente del DJ, como reclamar un turno de iniciativa
       sin ningún DJ conectado
@@ -404,7 +404,6 @@ Genesys:
     GMShort: DJ
     Reset: Reiniciar puntos de Historia
     Spend: Gastar un punto de Historia
-    Add: Añadir un punto de Historia
     PoolCount: '{pool}: {count}'
     ChatMessageGmPool: ¡Punto de Historia gastado!
     ChatMessagePlayerPool: ¡Punto de Historia gastado!

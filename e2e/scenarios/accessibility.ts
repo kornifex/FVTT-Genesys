@@ -108,17 +108,17 @@ type AccessibilityHelpers = {
 	/**
 	 * Creates an actor of each type whose counters all show their − and + (#622): its wounds, strain or hull trauma at 1,
 	 * and, for the character and the vehicle, an item of quantity 2 with Minor damage, and for the character a Container
-	 * holding another; and gives each Story Point pool a point, for the GM's + to show on its count.
+	 * holding another.
 	 */
 	setUpCounters(): Promise<void>;
-	/** Deletes the actors {@link setUpCounters} created, and gives back the Story Points as they were. */
+	/** Deletes the actors {@link setUpCounters} created. */
 	deleteCounters(): Promise<void>;
 	/**
-	 * Renders an actor's sheet on its Inventory tab with its Containers open, or reads the Story Point tracker for
-	 * `tracker`; shows the − and + of each counter there by focusing it, and gives each, by its row's name, its counter's
-	 * name and its sign, as `whole`, or as the points of it where something else shows: `hidden at left, center`.
+	 * Renders an actor's sheet on its Inventory tab with its Containers open; shows the − and + of each counter there by
+	 * focusing it, and gives each, by its row's name, its counter's name and its sign, as `whole`, or as the points of it
+	 * where something else shows: `hidden at left, center`.
 	 */
-	counterSteps(name: string): Promise<Record<string, string>>;
+	counterSteps(actor: string): Promise<Record<string, string>>;
 	/**
 	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
 	 * holds it, and focuses the ⋮. Whether it took the focus, and its name: null for a row without one.
@@ -397,8 +397,7 @@ const ROW_MENUS: { key: string; code: number; row: string; entries: string[] }[]
 ];
 
 /**
- * §#622: the counters of each actor type's sheet and of the Story Point tracker, by the name `counterSteps` reads them
- * under, each with a − and a + but the tracker's, whose pools have a + alone.
+ * §#622: the counters of each actor type's sheet, by the name `counterSteps` reads them under, each with a − and a +.
  */
 const COUNTER_STEPS: { code: number; name: string; what: string; steps: string[] }[] = [
 	{
@@ -431,7 +430,6 @@ const COUNTER_STEPS: { code: number; name: string; what: string; steps: string[]
 			(counter) => [`${counter} −`, `${counter} +`],
 		),
 	},
-	{ code: 6, name: 'tracker', what: "the Story Point tracker's pools", steps: ['GM pool +', 'Players pool +'] },
 ];
 
 declare global {
@@ -870,8 +868,6 @@ function installAccessibilityHelpers() {
 	let superCharacteristicsFound: unknown;
 	const menuContainerOf = (row: Element) => (row.matches('.menu-container') ? row : row.querySelector(':scope > .menu-container'));
 	const COUNTER_ACTORS = ['Tally Hero', 'Tally Minion', 'Tally Rival', 'Tally Nemesis', 'Tally Ship'];
-	// The Story Points the counter steps found.
-	let counterPointsFound: { gm: number; player: number } | undefined;
 	// The points of an element where something else shows: its centre, and the middle of each edge, 1 px in, which a round
 	// button covers too. A point that hits another element is one an ancestor's clip, or a neighbour above it, hides.
 	const hiddenPoints = (element: HTMLElement) => {
@@ -1372,8 +1368,6 @@ function installAccessibilityHelpers() {
 			await helpers.deleteCounters();
 			// A fresh world's permanent migration notifications would cover the top of a sheet, and the − and + there.
 			ui.notifications.clear();
-			counterPointsFound = game.settings.get('genesys', 'storyPoints');
-			await game.settings.set('genesys', 'storyPoints', { gm: 1, player: 1 });
 			// A quantity of 2 and Minor damage, which each step up or down (a Container has no quantity).
 			const item = (name: string, type = 'gear', system: object = {}) => ({
 				name: `E2E Tally ${name}`,
@@ -1412,22 +1406,11 @@ function installAccessibilityHelpers() {
 			await helpers.closeAll();
 			const ids = COUNTER_ACTORS.flatMap((name) => game.actors.getName(`E2E ${name}`)?.id ?? []);
 			if (ids.length) await Actor.deleteDocuments(ids);
-			if (counterPointsFound) await game.settings.set('genesys', 'storyPoints', counterPointsFound);
-			counterPointsFound = undefined;
 			await settle();
 		},
 
 		async counterSteps(name) {
 			const steps: Record<string, string> = {};
-			if (name === 'tracker') {
-				// The GM's + shows on a pool's count, which the focus reaches when the pool has a point to spend.
-				for (const pool of document.querySelectorAll<HTMLElement>('#story-point-tracker .pool')) {
-					find(pool, 'button.points').focus();
-					steps[`${pool.classList.contains('gm') ? 'GM' : 'Players'} pool +`] = shownWhole(find(pool, '.add'));
-				}
-				(document.activeElement as HTMLElement | null)?.blur();
-				return steps;
-			}
 			const { selector, tabs } = await helpers.openSheet(name);
 			const root = find(document, tabs.includes('inventory') ? await helpers.showTab(selector, 'inventory') : selector);
 			for (const toggle of root.querySelectorAll<HTMLElement>(
