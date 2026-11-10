@@ -50,8 +50,6 @@ Genesys:
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
     SkillForRepairingVehicleHitsHint: Nom de la compétence utilisée pour récupérer des dommages critiques.
-    UseMagicalGirlSymbols: Utilise le symbole Magical Girls pour MilkMyth (Utilisateur seulement)
-    UseMagicalGirlSymbolsHint: "Remplacer le jeu de symboles Genesys par le jeu de symboles Magical Girls de MilkMyth. Cela n'affectera pas les autres utilisateurs."
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
@@ -132,7 +130,6 @@ Genesys:
   # Dice So Nice strings
   DiceCat:
     Normal: Dés Genesys
-    MagicalGirl: Magical Girl par MilkMyth
     Custom: Dés Genesys (customisable)
   DiceColors:
     Boost: Dé de fortune

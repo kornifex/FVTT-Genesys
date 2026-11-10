@@ -116,7 +116,6 @@ declare global {
 			'Roboto Mono': Font.FamilyDefinition;
 			'Roboto Serif': Font.FamilyDefinition;
 			'Genesys Symbols': Font.FamilyDefinition;
-			'Magical Girl Symbols': Font.FamilyDefinition;
 		}
 
 		// The queries the Acting GM answers, which `src/queries` registers.

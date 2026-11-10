@@ -2685,7 +2685,6 @@ export async function run(e2e: ScenarioContext) {
 			talentTierVersions: true,
 			style: 'terrinoth',
 			storyPoints: { gm: 2, player: 5 },
-			useMagicalGirlSymbols: true,
 			dicePoolCollapseModificationsDetails: true,
 			dicePoolAutoApplyModifications: true,
 			dicePoolChanceToSucceedByPermutation: true,
@@ -2728,6 +2727,23 @@ export async function run(e2e: ScenarioContext) {
 			],
 		);
 		await gm.evaluate((values) => window.e2e.setSettings(values), settingsBefore);
+
+		// §#617: 0.6.0 no longer registers the Magical Girl symbols' client setting, which a browser may still hold.
+		const errorsBefore = gm.errors.length;
+		await e2e.step('#617 GM reloads with the Magical Girl symbols turned on in their browser by 0.5.0', async () => {
+			await gm.evaluate(() => localStorage.setItem('genesys.useMagicalGirlSymbols', 'true'));
+			await gm.reload();
+		});
+		await gm.evaluate(installSheetsHelpers);
+		e2e.expect(
+			'#617 A1 a browser that turned the Magical Girl symbols on loads the world without error, and the setting is gone',
+			{
+				errors: gm.errors.slice(errorsBefore),
+				registered: await gm.evaluate(() => game.settings.settings.has('genesys.useMagicalGirlSymbols')),
+			},
+			{ errors: [], registered: false },
+		);
+		await gm.evaluate(() => localStorage.removeItem('genesys.useMagicalGirlSymbols'));
 	});
 
 	// The Assistant GM joins in the first part that needs it, so that a part run alone without it doesn't wait for it.

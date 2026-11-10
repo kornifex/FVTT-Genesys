@@ -55,7 +55,7 @@ const symbolsEnricher: Enricher = {
 	pattern: /@sym(bols?)?\[(?<symbols>[asthfd123]+)]/gim,
 	enricher: async (match) => {
 		const container = document.createElement('span');
-		container.className = `font-genesys-symbols inline-glyphs nolig ${CONFIG.genesys.settings.useMagicalGirlSymbols ? 'mg' : ''}`;
+		container.className = 'font-genesys-symbols inline-glyphs nolig';
 		const symbols = match.groups?.['symbols']?.toLowerCase() ?? '';
 		container.innerText = symbols;
 		// The label leaves out the digits, which stand for no die or symbol.
