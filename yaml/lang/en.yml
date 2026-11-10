@@ -371,20 +371,15 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    RowMenu: >-
-      Find a row's actions in its ⋮ menu, putting an item in a Container or a crew member in a Role among them; every
-      deletion asks first
-    Keyboard: Use the sheets, their menus and the prompts from the keyboard, with a visible focus ring
-    RollFromName: Roll a row's check from its name and open its sheet from its icon, on every sheet
-    Counter: >-
-      Change wounds and strain with one compact stepper; wounds stop at twice the wound threshold everywhere
-    ActingGmQueries: >-
-      Tell the player when an action the GM's client carries out fails, such as claiming an Initiative Slot with no GM
-      connected
-    PilotDefensiveDriving: Add the Pilot's Defensive Driving to the vehicle's defense, still capped at 4
-    ChatMode: Send a check's message in the chat's mode (blind, self) on Foundry v14 too
-    Contrast: >-
-      Read every text at 4.5:1 in both Styles; an effect turned off and an Initiative Slot's side say so in words
+    MagicalGirl: >-
+      The Magical Girl symbols and dice are gone; a player who rolled them with Dice So Nice rolls its standard dice
+    ItemSheetSize: Open an item sheet at 560×440 rather than at its description's height
+    SpendStoryPoint: >-
+      Spend a Story Point with a click on its pool's count again; the GM types a pool's count with a right-click
+    SkillNames: Fit long skill names; the ↑ that buys a rank sits on the rank's corner
+    CharacteristicBoxes: Fit each characteristic's box to its label, all the boxes of a row at one width
+    CombatStatCounter: Show a counter's − and + whole beside a wound or strain threshold
+    TalentBars: Show the Talents tab's Active, Passive and activation groups as bars again
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

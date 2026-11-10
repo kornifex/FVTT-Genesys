@@ -370,22 +370,16 @@ Genesys:
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
-    RowMenu: >-
-      Las acciones de una fila están en su menú ⋮, entre ellas guardar un objeto en un contenedor o asignar un miembro de
-      la tripulación a un rol; toda eliminación pide confirmación
-    Keyboard: Las hojas, sus menús y las ventanas de diálogo se usan con el teclado, con un contorno de foco visible
-    RollFromName: El nombre de una fila lanza su tirada y su icono abre su hoja, en todas las hojas
-    Counter: >-
-      Las heridas y la tensión se cambian con un mismo contador compacto; las heridas se detienen en todas partes en el
-      doble del umbral
-    ActingGmQueries: >-
-      El jugador recibe un aviso cuando falla una acción que ejecuta el cliente del DJ, como reclamar un turno de iniciativa
-      sin ningún DJ conectado
-    PilotDefensiveDriving: La Conducción defensiva del piloto se suma a la defensa del vehículo, con un máximo de 4
-    ChatMode: El mensaje de una tirada sigue el modo del chat (a ciegas, privado) también en Foundry v14
-    Contrast: >-
-      Todos los textos alcanzan un contraste de 4.5:1 en los dos Estilos; un efecto desactivado y el bando de un turno de
-      iniciativa lo dicen con palabras
+    MagicalGirl: >-
+      Los símbolos y los dados Magical Girl ya no se incluyen; un jugador que los tiraba con Dice So Nice tira sus dados
+      estándar
+    ItemSheetSize: La hoja de un objeto se abre en 560×440 en lugar de a la altura de su descripción
+    SpendStoryPoint: >-
+      Un clic en el total de una reserva vuelve a gastar un punto de Historia; el DJ escribe el total con un clic derecho
+    SkillNames: Los nombres de habilidad largos caben; la ↑ que compra un rango se sitúa en la esquina del rango
+    CharacteristicBoxes: La casilla de una característica se ajusta a su nombre, todas las casillas de una fila al mismo ancho
+    CombatStatCounter: Los − y + de un contador se ven enteros junto a un umbral de heridas o de tensión
+    TalentBars: Los grupos Activo, Pasivo y de activación de la pestaña Talentos vuelven a ser barras
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
