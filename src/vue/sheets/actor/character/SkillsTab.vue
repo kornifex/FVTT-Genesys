@@ -105,12 +105,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		</div>
 
 		<div class="skills-row">
-			<div
-				v-for="(skillCategory, index) in skillCategories"
-				:key="skillCategory.category"
-				class="skill-category"
-				:style="{ zIndex: skillCategories.length - index }"
-			>
+			<div v-for="skillCategory in skillCategories" :key="skillCategory.category" class="skill-category">
 				<div class="columns">
 					<h3><Localized :label="SKILL_CATEGORY_HEADINGS[skillCategory.category]" /></h3>
 
@@ -221,8 +216,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 	.skill-category {
 		container: skill-category / inline-size;
-		// An inline-block can't be split, so the open context menu of its last skill hangs below it. As a block, Chromium
-		// would carry that menu into the next column and rebalance the columns while it is open.
+		// An inline-block can't be split: a category stays whole in its column.
 		display: inline-block;
 		vertical-align: top;
 		width: 100%;
@@ -230,9 +224,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		white-space: nowrap;
 		background: colors.alpha(colors.$light-blue, 0.2);
 		padding: 8px;
-		// The template gives each category a z-index that falls with its position, so the open context menu of a category's
-		// last skill hangs over the categories after it instead of under them.
-		position: relative;
 	}
 
 	.columns,
