@@ -78,6 +78,40 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
+	it('hides its − and + from a screen reader while they are hidden, and shows them under the pointer or with the focus in its value', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		const hidden = () => counter.findAll('button.step').map((button) => button.attributes('aria-hidden') ?? 'shown');
+		const input = counter.get('input');
+
+		const atRest = hidden();
+		await counter.get('button.increase').trigger('pointerover');
+		const pointerOnPlus = hidden();
+		await counter.trigger('pointerleave');
+		const pointerLeft = hidden();
+		await input.trigger('pointerover');
+		const pointerOnValue = hidden();
+		await counter.trigger('pointerleave');
+		await input.trigger('focusin');
+		const focused = hidden();
+		// The focus moving within the counter keeps them shown.
+		await input.trigger('focusout', { relatedTarget: counter.get('button.decrease').element });
+		const focusWithin = hidden();
+		await input.trigger('focusout', { relatedTarget: null });
+		const blurred = hidden();
+
+		expect({ atRest, pointerOnPlus, pointerLeft, pointerOnValue, focused, focusWithin, blurred }).toEqual({
+			atRest: ['true', 'true'],
+			pointerOnPlus: ['shown', 'shown'],
+			pointerLeft: ['true', 'true'],
+			pointerOnValue: ['shown', 'shown'],
+			focused: ['shown', 'shown'],
+			focusWithin: ['shown', 'shown'],
+			blurred: ['true', 'true'],
+		});
+		expect(counter.classes('revealed')).toBe(false);
+		counter.unmount();
+	});
+
 	it('shows no − at 0 and no + at its cap, and their keys step nothing there', async () => {
 		const empty = mountCounter({ value: 0, label: 'Genesys.Counter.CurrentWounds', max: 24 });
 		const full = mountCounter({ value: 24, label: 'Genesys.Counter.CurrentWounds', max: 24 });

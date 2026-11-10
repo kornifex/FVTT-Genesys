@@ -80,6 +80,19 @@ const showsIncrease = computed(() => increases.value && steppedValue(props.value
 const name = computed(() => game.i18n.localize(props.label));
 const shownValue = computed(() => (props.valueLabel ? game.i18n.localize(props.valueLabel) : String(props.value)));
 
+// The − and + show while the pointer is on the counter, them included, or the focus is in it; hidden, they are hidden
+// from a screen reader too. One state drives both, so that a − or + never shows to the eye alone, as one the focus in
+// the value shows would. The pointer leaves through `pointerleave`, which a move between the counter's own parts doesn't
+// fire; the focus leaves when it goes out of the counter.
+const pointerIn = ref(false);
+const focusIn = ref(false);
+const revealed = computed(() => pointerIn.value || focusIn.value);
+
+function focusout(event: FocusEvent) {
+	const counter = event.currentTarget as HTMLElement;
+	focusIn.value = event.relatedTarget instanceof Node && counter.contains(event.relatedTarget);
+}
+
 // The text being typed, until Enter or a blur writes it and Escape drops it: a render meanwhile keeps it.
 const draft = ref<string>();
 
@@ -162,13 +175,23 @@ function contextmenu(event: MouseEvent) {
 	<span v-if="!interactive" class="counter" :data-tooltip="label"
 		>{{ shownValue }}<template v-if="$slots.default">{{ ' ' }}<slot /></template
 	></span>
-	<span v-else class="counter interactive" @contextmenu="contextmenu">
+	<span
+		v-else
+		class="counter interactive"
+		:class="{ revealed }"
+		@contextmenu="contextmenu"
+		@pointerover="pointerIn = true"
+		@pointerleave="pointerIn = false"
+		@focusin="focusIn = true"
+		@focusout="focusout"
+	>
 		<ActionButton
 			v-if="showsDecrease"
 			class="step decrease"
 			icon="fas fa-minus"
 			label="Genesys.Counter.Decrease"
 			tabindex="-1"
+			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
 			@click="step(-1)"
 		/>
@@ -213,6 +236,7 @@ function contextmenu(event: MouseEvent) {
 			icon="fas fa-plus"
 			label="Genesys.Counter.Increase"
 			tabindex="-1"
+			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
 			@click="step(1)"
 		/>
@@ -249,10 +273,10 @@ input.value {
 	line-height: inherit;
 }
 
-// The − and + sit over the counter's neighbours, on each side, without moving them, and show while the pointer is on
-// the counter or the focus is in it. Hidden, they keep their place and take the pointer: a pointer that goes straight to
-// where one shows, from any side, is on the counter, which shows it (#645). Hidden without room, with `display: none`,
-// they showed only to a pointer that came through the value. A neighbour under one keeps the rest of its area.
+// The − and + sit over the counter's neighbours, on each side, without moving them, and show while the counter is
+// revealed (see `revealed`). Hidden, they keep their place and take the pointer: a pointer that goes straight to where
+// one shows, from any side, is on the counter, which shows it (#645). Hidden without room, with `display: none`, they
+// showed only to a pointer that came through the value. A neighbour under one keeps the rest of its area.
 .step {
 	position: absolute;
 	top: 50%;
@@ -280,7 +304,7 @@ input.value {
 	}
 }
 
-.counter:is(:hover, :focus-within) .step {
+.counter.revealed .step {
 	opacity: 1;
 }
 </style>

@@ -136,10 +136,13 @@ type AccessibilityHelpers = {
 	 */
 	counterStepPoints(step: string, field?: string): CounterStepPoints;
 	/**
-	 * Whether a − or + of the sheet readied last shows at a point and takes the pointer there, `shown`; else `hidden`, or
-	 * `under <element>` for what takes the pointer there.
+	 * Whether a − or + of the sheet readied last shows at a point, to a screen reader too, and takes the pointer there,
+	 * `shown`; else `hidden` (from a screen reader too), `under <element>` for what takes the pointer there, or where the
+	 * eye and a screen reader disagree, `hidden, but read` or `shown, but not read`.
 	 */
 	counterStepState(step: string, point: Point): string;
+	/** Focuses the value of the counter of a − or + of the sheet readied last, or takes the focus out of it. */
+	focusCounter(step: string, focus: boolean): void;
 	/** The current wounds, the wound threshold of an actor, and the name of the field that has the focus. */
 	woundsOf(actor: string): { wounds: number; threshold: number; focused: string | null };
 	/**
@@ -1503,10 +1506,19 @@ function installAccessibilityHelpers() {
 
 		counterStepState(key, { x, y }) {
 			const { step } = counterStep(key);
-			if (!step.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return 'hidden';
+			// A screen reader reads it unless it has no box or is `aria-hidden`.
+			const read = step.checkVisibility() && step.getAttribute('aria-hidden') !== 'true';
+			if (!step.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return read ? 'hidden, but read' : 'hidden';
+			if (!read) return 'shown, but not read';
 			const hit = document.elementFromPoint(x, y);
 			if (step.contains(hit)) return 'shown';
 			return `under ${hit ? [hit.tagName.toLowerCase(), ...hit.classList].join('.') : 'nothing'}`;
+		},
+
+		focusCounter(key, focus) {
+			const { value } = counterStep(key);
+			if (focus) value.focus();
+			else value.blur();
 		},
 
 		woundsOf(name) {
@@ -1832,8 +1844,9 @@ async function counterSteps(e2e: ScenarioContext) {
 
 /**
  * §#648: each counter's − and + show where the pointer goes, straight from outside the counter and back, with the mouse
- * of the browser, whose hit testing finds what takes the pointer (#645); a right-click on the + takes nothing off; and
- * the field a − reaches over keeps a click beside it.
+ * of the browser, whose hit testing finds what takes the pointer (#645), and while the focus is in its value; hidden,
+ * they are hidden from a screen reader too; a right-click on the + takes nothing off; and the field a − reaches over
+ * keeps a click beside it.
  */
 async function counterPointer(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -1847,9 +1860,9 @@ async function counterPointer(e2e: ScenarioContext) {
 		gm.evaluate((args) => window.accessibilityE2E.counterStepState(args.step, args.point), { step, point });
 	try {
 		for (const { code, name, what, steps } of COUNTER_STEPS) {
-			const states: Record<string, { away: string; over: string; back: string }> = {};
+			const states: Record<string, Record<string, string>> = {};
 			await e2e.step(
-				`#648 H${code} ${what}: the pointer moved from the sheet's title onto each − and +, away, and back`,
+				`#648 H${code} ${what}: the pointer moved from the sheet's title onto each − and +, away, and back, then its value focused and blurred`,
 				async () => {
 					for (const step of await gm.evaluate((name) => window.accessibilityE2E.readyCounterPointer(name), name)) {
 						const at = await points(step);
@@ -1859,7 +1872,14 @@ async function counterPointer(e2e: ScenarioContext) {
 						const over = await state(step, at.step);
 						await mouse.move(at.away.x, at.away.y);
 						await mouse.move(at.step.x, at.step.y);
-						states[step] = { away, over, back: await state(step, at.step) };
+						const back = await state(step, at.step);
+						await mouse.move(at.away.x, at.away.y);
+						const focus = (focus: boolean) =>
+							gm.evaluate((args) => window.accessibilityE2E.focusCounter(args.step, args.focus), { step, focus });
+						await focus(true);
+						const focused = await state(step, at.step);
+						await focus(false);
+						states[step] = { away, over, back, focused, blurred: await state(step, at.step) };
 					}
 					await gm.evaluate(() => window.accessibilityE2E.closeAll());
 				},
@@ -1867,7 +1887,9 @@ async function counterPointer(e2e: ScenarioContext) {
 			e2e.expect(
 				`#648 H${code} each − and + of ${what} shows where the pointer goes, from outside its counter and back`,
 				states,
-				Object.fromEntries(steps.map((step) => [step, { away: 'hidden', over: 'shown', back: 'shown' }])),
+				Object.fromEntries(
+					steps.map((step) => [step, { away: 'hidden', over: 'shown', back: 'shown', focused: 'shown', blurred: 'hidden' }]),
+				),
 			);
 		}
 
