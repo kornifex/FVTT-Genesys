@@ -3442,8 +3442,8 @@ async function skillIcons(e2e: ScenarioContext, page: Evaluate) {
 	e2e.expect(
 		"#576 R2 on a sheet the player can't edit, an adversary's weapon menu keeps the entries that read, without Delete",
 		await playerPage((name) => window.characterE2E.menu(name, { adversaryWeapon: 'Sword' }), 'Sage'),
-		// Its own entries first, then Send to chat and Edit, as every row's menu has them since #577.
-		['Perform Check', 'Send to chat', 'Edit'],
+		// Send to chat and Edit, as every row's menu has them since #577; its name attacks, with no Perform Check (#638).
+		['Send to chat', 'Edit'],
 	);
 	// §#574: the skill's name, a button Foundry disables with the rest of a read-only sheet's form, which the sheet enables.
 	await e2e.step("#574 R3 the skill's name clicked on each sheet in the player's page", async () => {

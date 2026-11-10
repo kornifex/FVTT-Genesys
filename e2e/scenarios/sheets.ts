@@ -1640,7 +1640,7 @@ function installSheetsHelpers() {
 			};
 			const drawn = (node: Node): string => {
 				if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-				// An icon hidden from screen readers draws a glyph of its font, no text: a rolling name's die (#578).
+				// An icon hidden from screen readers draws a glyph of its font, no text.
 				if (!(node instanceof Element) || getComputedStyle(node).display === 'none' || node.matches('[aria-hidden="true"]'))
 					return '';
 				return `${pseudo(node, '::before')}${[...node.childNodes].map(drawn).join('')}${pseudo(node, '::after')}`;
@@ -1961,7 +1961,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 	});
 
-	// §#621: a characteristic's box is as wide as its label with its die and ↑, and the boxes of a row as wide as the
+	// §#621: a characteristic's box is as wide as its label and ↑, and the boxes of a row as wide as the
 	// widest, which the sheet's default width holds.
 	await part('characteristicBoxes', async () => {
 		let boxes = {};
@@ -1979,7 +1979,7 @@ export async function run(e2e: ScenarioContext) {
 						measured[name] = {
 							fields: fields.length,
 							widths: new Set(fields.map((field) => field.offsetWidth)).size,
-							// The name and its die within the column, and the ↑ within the box drawn past it, to a pixel's rounding.
+							// The name within the column, and the ↑ within the box drawn past it, to a pixel's rounding.
 							labelsFit: fields.every((field) => {
 								const within = (inner: Element | null, outer: Element) => {
 									if (!inner) return true;
@@ -2003,7 +2003,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		const fit = (fields: number, raise: boolean) => ({ fields, widths: 1, labelsFit: true, rowFits: true, raise });
 		e2e.expect(
-			"#621 A1 every characteristic's box holds its label, die and ↑, the boxes of a row are one width, and the row fits the sheet",
+			"#621 A1 every characteristic's box holds its label and ↑, the boxes of a row are one width, and the row fits the sheet",
 			boxes,
 			{ Observed: fit(6, true), Nemesis: fit(6, false), archetype: fit(6, false), Vehicle: fit(3, false) },
 		);

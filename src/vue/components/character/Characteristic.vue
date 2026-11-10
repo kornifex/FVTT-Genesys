@@ -137,7 +137,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 	$row-size: 1.5rem;
 
 	display: grid;
-	// As wide as its label with its die, and never narrower than its value (#621): the label's width is the column's
+	// As wide as its label, and never narrower than its value (#621): the label's width is the column's
 	// least, which the row can't squeeze. The row it sits in gives every characteristic the width of the widest, through
 	// columns of 1fr.
 	grid-template-columns: minmax(max-content, 1fr);
@@ -274,13 +274,6 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		align-items: center;
 		justify-content: center;
 		gap: 0.25em;
-
-		.roll-link {
-			display: flex;
-			flex-wrap: nowrap;
-			align-items: center;
-			gap: 0.25em;
-		}
 
 		// The ↑ sits in the box's margin, past the column's right edge, rather than beside the name: it takes none of the
 		// width the boxes of a row share (#621).

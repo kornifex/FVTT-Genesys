@@ -85,7 +85,14 @@ async function clickEntry(wrapper: Wrapper, label: string) {
 }
 
 const equip = (run = vi.fn()): RowAction => ({ icon: 'fas fa-hand-fist', label: 'Genesys.Equipment.Dropdown.Equip', run });
-const attack = (run = vi.fn()): RowAction => ({ icon: 'fas fa-dice-d20', label: 'Genesys.Labels.PerformCheck', edits: false, run });
+// An action that edits nothing, such as a roll.
+const attack = (run = vi.fn()): RowAction => ({
+	icon: 'fas fa-dice-d20',
+	label: 'Genesys.Tooltips.RollAttack',
+	labelData: { weapon: 'Sword' },
+	edits: false,
+	run,
+});
 
 describe('RowActions', () => {
 	it("lists the row's own actions, a separator, then Send to chat, Edit and Delete", async () => {
@@ -93,7 +100,7 @@ describe('RowActions', () => {
 
 		expect(await openEntries(wrapper)).toEqual([
 			'Genesys.Equipment.Dropdown.Equip',
-			'Genesys.Labels.PerformCheck',
+			'Genesys.Tooltips.RollAttack Sword',
 			'---',
 			'Genesys.Labels.SendToChat',
 			'Genesys.Labels.Edit',
@@ -157,7 +164,7 @@ describe('RowActions', () => {
 		);
 
 		expect(await openEntries(wrapper)).toEqual([
-			'Genesys.Labels.PerformCheck',
+			'Genesys.Tooltips.RollAttack Sword',
 			'---',
 			'Genesys.Labels.SendToChat',
 			'Genesys.Labels.Edit',

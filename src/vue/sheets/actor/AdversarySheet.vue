@@ -31,7 +31,7 @@ import { attackSkillChoices } from '@/data/Skills';
 import { talentRankChange } from '@/actor/data/AdversaryItems';
 import { attackSkill, attackWith, openSheet, stepTalentRank } from '@/operations/ItemActions';
 import type { StepDirection } from '@/actor/data/Inventory';
-import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
+import { profileRowName, weaponProfiles } from '@/item/WeaponProfiles';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
@@ -95,21 +95,6 @@ function talentActions(talent: Stored<GenesysItem<'talent'>>): RowAction[] {
 		{ icon: 'fas fa-circle-up', label: 'Genesys.Labels.RankUp', run: step(1) },
 		{ icon: 'fas fa-circle-down', label: 'Genesys.Labels.RankDown', run: step(-1) },
 	];
-}
-
-// A weapon's own action: the attack of the row's Weapon Profile, as its name rolls it, which edits nothing and stays
-// on a sheet the user can't edit.
-function weaponActions(weapon: Stored<GenesysItem<'weapon'>>, profile: WeaponProfile, skill: string | undefined): RowAction[] {
-	return skill
-		? [
-				{
-					icon: 'fas fa-dice-d20',
-					label: 'Genesys.Labels.PerformCheck',
-					edits: false,
-					run: () => attackWith(actor.value, weapon, profile),
-				},
-			]
-		: [];
 }
 
 // An adversary has no Character Creation, so it can mark and unmark super-characteristics at any time.
@@ -235,7 +220,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 								:key="`${item.id}-${profile.index}`"
 								class="weapon"
 								:document="item"
-								:actions="weaponActions(item, profile, skill)"
 								:focus-key="`${item.uuid}-${profile.index}`"
 								orientation="right"
 							>
