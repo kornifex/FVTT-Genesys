@@ -4752,11 +4752,66 @@ async function sheetHeights(e2e: ScenarioContext) {
 		}, twoLines);
 	});
 	e2e.log('#514 A3 a talent of two lines', brief);
+	// Since #624, an item sheet opens no lower than 440px: the talent's height is #624 A1's.
 	e2e.expect(
-		'#514 A3 a talent of two lines opens lower than the former 300px, no lower than its 200px minimum, its description shown whole',
-		brief && { lower: brief.height < 300, aboveMinimum: brief.height >= 200, scrolls: brief.scrolls, lastShown: brief.lastShown },
-		{ lower: true, aboveMinimum: true, scrolls: false, lastShown: true },
+		'#514 A3 a talent of two lines opens no lower than its 200px minimum, its description shown whole',
+		brief && { aboveMinimum: brief.height >= 200, scrolls: brief.scrolls, lastShown: brief.lastShown },
+		{ aboveMinimum: true, scrolls: false, lastShown: true },
 	);
+
+	// §#624: an item sheet opens at 560×440 when its content is lower, so that the tab shown next, as a talent's Effects,
+	// fits too; Archetype and Career keep their own width. The window can still be resized lower by hand.
+	let opened: { width: number; height: number; effectsScroll: boolean; lastCategoryShown: boolean } | undefined;
+	await e2e.step('#624 A1 GM opens the sheet of the talent of two lines, then shows its Effects tab', async () => {
+		opened = await gm.evaluate(async () => {
+			await window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p');
+			await window.sheetsE2E.clickTab('talent', 'effects');
+			await window.e2e.settle();
+			const element = window.e2e.htmlOf(game.items.getName('E2E talent').sheet)!;
+			const content = element.querySelector<HTMLElement>('.window-content')!;
+			const categories = content.querySelectorAll('.tab[data-tab="effects"] .effects-category');
+			const last = categories[categories.length - 1].getBoundingClientRect();
+			const shown = content.getBoundingClientRect();
+			const box = element.getBoundingClientRect();
+			// The steps after open the talent on its description.
+			await window.sheetsE2E.clickTab('talent', 'description');
+			return {
+				width: Math.round(box.width),
+				height: Math.round(box.height),
+				effectsScroll: content.scrollHeight - content.clientHeight > 1,
+				lastCategoryShown: last.top >= shown.top - 0.5 && last.bottom <= shown.bottom + 0.5,
+			};
+		});
+	});
+	e2e.log('#624 A1 the talent of two lines', opened);
+	e2e.expect('#624 A1 a talent of two lines opens at 560×440, and its Effects tab shows its three categories without scrolling', opened, {
+		width: 560,
+		height: 440,
+		effectsScroll: false,
+		lastCategoryShown: true,
+	});
+
+	let widths: Record<string, number> = {};
+	await e2e.step("#624 A2 GM opens the archetype's and the career's sheets", async () => {
+		widths = await gm.evaluate(async () => {
+			const width = async (name: string) => {
+				await window.sheetHeightsE2E.reopen(name, '.vue-app');
+				return Math.round(window.e2e.htmlOf(game.items.getName(`E2E ${name}`).sheet)!.getBoundingClientRect().width);
+			};
+			return { archetype: await width('archetype'), career: await width('career') };
+		});
+	});
+	e2e.expect("#624 A2 the archetype's and the career's sheets keep their own width", widths, { archetype: 720, career: 500 });
+
+	let lowered: number | undefined;
+	await e2e.step("#624 A3 GM resizes the talent's sheet to 300px by hand", async () => {
+		lowered = await gm.evaluate(async () => {
+			await window.sheetHeightsE2E.reopen('talent', '.tab[data-tab="description"] prose-mirror p');
+			game.items.getName('E2E talent').sheet.setPosition({ height: 300 });
+			return window.sheetHeightsE2E.height('talent');
+		});
+	});
+	e2e.expect("#624 A3 an item sheet's 440px opening height doesn't keep it from being resized lower by hand", lowered, 300);
 
 	let long: WindowFit | undefined;
 	await e2e.step('#514 A4 GM gives the talent a description of twelve paragraphs, and opens its sheet', async () => {
