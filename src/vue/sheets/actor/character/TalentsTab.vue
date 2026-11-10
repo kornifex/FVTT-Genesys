@@ -59,7 +59,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 		<div class="block">
 			<h3><Localized label="Genesys.Labels.SpecialAbilities" /></h3>
 			<div v-if="abilityItems.length > 0" class="talents-container">
-				<h4 v-if="abilities.active.length + abilities.activeByDetail.length > 0">
+				<h4 v-if="abilities.active.length + abilities.activeByDetail.length > 0" class="bar">
 					<Localized label="Genesys.Labels.Active" />
 				</h4>
 				<Talent
@@ -70,7 +70,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 				/>
 
 				<template v-for="group in abilities.activeByDetail" :key="group.detail">
-					<h5>{{ group.detail }}</h5>
+					<h5 class="bar">{{ group.detail }}</h5>
 					<Talent
 						v-for="ability in group.talents"
 						:key="ability.id"
@@ -79,7 +79,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					/>
 				</template>
 
-				<h4 v-if="abilities.passive.length > 0"><Localized label="Genesys.Labels.Passive" /></h4>
+				<h4 v-if="abilities.passive.length > 0" class="bar"><Localized label="Genesys.Labels.Passive" /></h4>
 				<Talent
 					v-for="ability in abilities.passive"
 					:key="ability.id"
@@ -91,7 +91,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 
 			<h3><Localized label="Genesys.Labels.Talents" /></h3>
 			<div v-if="talentItems.length > 0" class="talents-container">
-				<h4 v-if="talents.active.length + talents.activeByDetail.length > 0">
+				<h4 v-if="talents.active.length + talents.activeByDetail.length > 0" class="bar">
 					<Localized label="Genesys.Labels.Active" />
 				</h4>
 				<Talent
@@ -103,7 +103,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 				/>
 
 				<template v-for="group in talents.activeByDetail" :key="group.detail">
-					<h5>{{ group.detail }}</h5>
+					<h5 class="bar">{{ group.detail }}</h5>
 					<Talent
 						v-for="talent in group.talents"
 						:key="talent.id"
@@ -113,7 +113,7 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 					/>
 				</template>
 
-				<h4 v-if="talents.passive.length > 0"><Localized label="Genesys.Labels.Passive" /></h4>
+				<h4 v-if="talents.passive.length > 0" class="bar"><Localized label="Genesys.Labels.Passive" /></h4>
 				<Talent
 					v-for="talent in talents.passive"
 					:key="talent.id"
@@ -162,7 +162,24 @@ async function upgradeTalent(talent: Stored<GenesysItem<'talent'>>) {
 	// The talents of a section, its groups' headings among them, in a frame.
 	.talents-container {
 		border: 1px solid colors.$blue;
-		padding: 0 0.25em;
+
+		// The groups' headings are bars across the frame, which the table scans the tab by (#623): an activation's on the
+		// blue, an activation detail's on a lighter one. White text keeps 4.5:1 on the blue in every Style, but not on the
+		// lighter bar, which takes the ink. The lighter bar is opaque, so that its contrast doesn't hang on what lies under it.
+		.bar {
+			padding: 1px 0.25em 0;
+
+			&:is(h4) {
+				background: colors.$blue;
+				color: colors.$text-on-dark;
+			}
+
+			&:is(h5) {
+				border-top: 1px solid colors.$blue;
+				background: color-mix(in srgb, colors.$blue 50%, colors.$paper);
+				color: colors.$ink;
+			}
+		}
 	}
 
 	.pyramid {
