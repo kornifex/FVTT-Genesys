@@ -112,7 +112,7 @@ function resetDrags() {
 <template>
 	<section class="tab-inventory" @drop.capture="resetDrags" @dragenter="dragEnter" @dragleave="dragLeave">
 		<template v-for="part in layout" :key="part">
-			<div v-if="part === 'summary'" class="encumbrance-currency-row">
+			<div v-if="part === 'summary'" :class="['encumbrance-currency-row', { 'at-bottom': !summaryOnTop }]">
 				<div class="currency-row">
 					<label :for="currencyId"><i class="fas fa-coins" aria-hidden="true"></i> {{ CURRENCY_LABEL }}:</label>
 					<input :id="currencyId" type="text" name="system.currency" :value="system.currency" />
@@ -182,6 +182,12 @@ function resetDrags() {
 		display: grid;
 		align-items: center;
 		grid-template-columns: 1fr auto auto;
+
+		// Below the sections, the row takes the room they leave, so that it sits at the bottom of the tab, which fills the
+		// sheet. Once they fill it, there is no room left: the row follows them and scrolls with them (#625).
+		&.at-bottom {
+			margin-top: auto;
+		}
 
 		.currency-row,
 		.encumbrance-row {
