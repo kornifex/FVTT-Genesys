@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-/** @file Tests for a row's name that rolls its check: its name, its die, its tooltip and its roll. */
+/** @file Tests for a row's name that rolls its check: its name, its tooltip and its roll. */
 
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,12 +34,11 @@ describe('RollLink', () => {
 		link.unmount();
 	});
 
-	it('shows a die before the name, hidden from screen readers', () => {
+	it('shows the name alone, with no die (#638)', () => {
 		const link = mountLink();
 
-		expect(link.get('i').classes()).toContain('fa-dice-d20');
-		expect(link.get('i').attributes('aria-hidden')).toBe('true');
-		// No space before the name: the die keeps apart by a margin.
+		expect(link.find('i').exists()).toBe(false);
+		expect(link.html()).not.toContain('fa-dice-d20');
 		expect((link.element as HTMLElement).textContent).toBe('E2E Sword');
 		link.unmount();
 	});

@@ -655,7 +655,6 @@ Genesys:
     PilotRoleHint: Its first member is the Pilot, whose Piloted Vehicle Defense raises the vehicle's defense.
     FiringArc: Firing Arc
     Select: Select
-    PerformCheck: Perform Check
     GroupBy: Group By
     Item: Item
     Items: Items

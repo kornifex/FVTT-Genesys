@@ -41,11 +41,11 @@ describe('ActionButton', () => {
 
 	it('is named by its label when it shows an image or a drawing, which name nothing', () => {
 		const image = mountButton({ image: 'skill.webp', label: 'Genesys.Tooltips.OpenSkill' });
-		const drawing = mountButton({ label: 'Genesys.Labels.PerformCheck' }, { icon: '<span class="ranks"></span>' });
+		const drawing = mountButton({ label: 'Genesys.Labels.BuySkillRank' }, { icon: '<span class="ranks"></span>' });
 
 		expect(image.attributes('aria-label')).toBe('localized Genesys.Tooltips.OpenSkill');
 		expect(image.get('img').attributes('alt')).toBe('');
-		expect(drawing.attributes('aria-label')).toBe('localized Genesys.Labels.PerformCheck');
+		expect(drawing.attributes('aria-label')).toBe('localized Genesys.Labels.BuySkillRank');
 		expect(drawing.find('.ranks').exists()).toBe(true);
 	});
 

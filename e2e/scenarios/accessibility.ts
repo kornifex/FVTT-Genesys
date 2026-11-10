@@ -90,7 +90,7 @@ type AccessibilityHelpers = {
 	/**
 	 * Readies a keyboard step on a row that rolls (#578), by its key in `ROLL_ROWS`: renders its sheet on its tab, focuses
 	 * the row's name, its icon, or the ↑ beside a characteristic, and gives what the control shows: whether it has focus,
-	 * the die before a name, the tooltip of a name and the name of an icon.
+	 * whether a name holds a die (none does since #638), the tooltip of a name and the name of an icon.
 	 */
 	readyRollRow(row: string, control: RollRowControl): Promise<{ focused: boolean; die?: boolean; tooltip?: string; label?: string }>;
 	/**
@@ -376,7 +376,8 @@ const ROW_MENUS: { key: string; code: number; row: string; entries: string[] }[]
 	},
 	{ key: 'rivalTalent', code: 12, row: "a rival's talent", entries: CHAT_TAIL },
 	{ key: 'rivalAbility', code: 13, row: "a rival's ability", entries: CHAT_TAIL },
-	{ key: 'rivalWeapon', code: 14, row: "a rival's weapon", entries: ['Perform Check', '---', ...CHAT_TAIL] },
+	// §#638: its name attacks, so its menu has no Perform Check.
+	{ key: 'rivalWeapon', code: 14, row: "a rival's weapon", entries: CHAT_TAIL },
 	{ key: 'rivalGear', code: 15, row: "a rival's gear", entries: CHAT_TAIL },
 	{ key: 'rivalInjury', code: 16, row: "a rival's Critical Injury", entries: ['Edit', 'Delete'] },
 	{ key: 'characteristic', code: 17, row: "a rival's Brawn, under the optional rule", entries: ['Mark As Super-Characteristic'] },
@@ -1268,7 +1269,7 @@ function installAccessibilityHelpers() {
 			return control === 'name'
 				? {
 						focused,
-						die: !!element.querySelector(':scope > i.fa-dice-d20[aria-hidden="true"]'),
+						die: !!element.querySelector('.fa-dice-d20'),
 						tooltip: element.dataset.tooltipText ?? '',
 					}
 				: { focused, label: element.getAttribute('aria-label') ?? '' };
@@ -1627,9 +1628,10 @@ async function rollLinks(e2e: ScenarioContext) {
 				});
 				if (check) {
 					e2e.expect(
-						`#578 A${code} the name of ${row} shows a die and the tooltip "${tooltip}", and Enter on it opens the Dice Prompt of its check`,
+						// §#638: the name shows no die, which crowded every list.
+						`#578 A${code} the name of ${row} shows no die and the tooltip "${tooltip}", and Enter on it opens the Dice Prompt of its check`,
 						pressed,
-						{ focused: true, die: true, tooltip, dicePrompt: check, opened: [] },
+						{ focused: true, die: false, tooltip, dicePrompt: check, opened: [] },
 					);
 				} else {
 					e2e.expect(`#578 A${code} the name of ${row} shows no die, and Enter on it opens its sheet`, pressed, {

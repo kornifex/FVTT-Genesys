@@ -59,7 +59,7 @@ describe('Glyphs', () => {
 
 	it("gives no words inside a button its label names, whose name and tooltip they'd repeat or cover", () => {
 		const keyed = mount(ActionButton, {
-			props: { label: 'Genesys.Labels.PerformCheck' },
+			props: { label: 'Genesys.Labels.BuySkillRank' },
 			slots: { icon: () => h(Glyphs, { glyphs: 'PA' }) },
 		});
 		const worded = mount(ActionButton, {
@@ -67,7 +67,7 @@ describe('Glyphs', () => {
 			slots: { icon: () => h(Glyphs, { modifications: ['^'] }) },
 		});
 
-		expect(keyed.attributes('aria-label')).toBe('Perform Check');
+		expect(keyed.attributes('aria-label')).toBe('Buy a rank');
 		expect(keyed.get('span').attributes()).toEqual({});
 		expect(worded.attributes('aria-label')).toBe('Upgrade 1 Ability die');
 		expect(worded.get('span').attributes()).toEqual({});

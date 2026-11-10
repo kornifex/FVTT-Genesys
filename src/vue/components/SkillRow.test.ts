@@ -47,11 +47,10 @@ describe('SkillRow', () => {
 		expect(row.get('.skill-name').attributes('aria-label')).toBeUndefined();
 	});
 
-	it('shows a die before its name, hidden from screen readers, and a tooltip naming the check', () => {
+	it('shows its name with no die, and a tooltip naming the check', () => {
 		const name = mountRow(athletics).get('.skill-name');
 
-		expect(name.get('i').classes()).toContain('fa-dice-d20');
-		expect(name.get('i').attributes('aria-hidden')).toBe('true');
+		expect(name.find('.fa-dice-d20').exists()).toBe(false);
 		expect(name.attributes('data-tooltip-text')).toBe('Genesys.Tooltips.RollSkill Athletics');
 	});
 

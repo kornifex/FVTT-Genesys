@@ -1882,9 +1882,9 @@ export async function run(e2e: ScenarioContext) {
 			{
 				click: { prompts: 0, notifications: [] },
 				sheet: true,
-				// The row's own entries first, then a separator, as every row's menu has them since #577.
+				// The knife's name attacks, so its menu has no check either since #638.
 				twig: ['Send to chat', 'Edit', 'Delete'],
-				knife: ['Perform Check', '', 'Send to chat', 'Edit', 'Delete'],
+				knife: ['Send to chat', 'Edit', 'Delete'],
 			},
 		);
 
