@@ -1744,17 +1744,17 @@ async function counterSteps(e2e: ScenarioContext) {
 	);
 	try {
 		for (const { code, name, what, steps } of COUNTER_STEPS) {
-			const read: Record<string, Record<string, string>> = {};
+			const byStyle: Record<string, Record<string, string>> = {};
 			await e2e.step(`#622 W${code} ${what}: each counter focused, in each Style`, async () => {
 				for (const style of STYLES) {
 					await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
-					read[style.name] = await gm.evaluate((name) => window.accessibilityE2E.counterSteps(name), name);
+					byStyle[style.name] = await gm.evaluate((name) => window.accessibilityE2E.counterSteps(name), name);
 				}
 			});
 			const whole = Object.fromEntries(steps.map((step) => [step, 'whole']));
 			e2e.expect(
 				`#622 W${code} the − and + of ${what} show whole in both Styles`,
-				read,
+				byStyle,
 				Object.fromEntries(STYLES.map((style) => [style.name, whole])),
 			);
 		}
