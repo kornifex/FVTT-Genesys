@@ -24,7 +24,7 @@ import {
 	SteppedValue,
 } from '@/actor/data/Inventory';
 import { receiveInventoryDrop, receiveInventoryEvent } from '@/operations/InventoryDrop';
-import { attackSkill, attackWith, openSheet, setEquipmentQuantity, stepEquipment } from '@/operations/ItemActions';
+import { attackSkill, openSheet, setEquipmentQuantity, stepEquipment } from '@/operations/ItemActions';
 import { useDragHover } from '@/vue/useDragHover';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import type { RowAction } from '@/vue/components/RowAction';
@@ -36,7 +36,6 @@ import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import RowActions from '@/vue/components/RowActions.vue';
-import RollLink from '@/vue/components/RollLink.vue';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import { firingArcLabels } from '@/item/Weapons';
 import { weaponProfiles } from '@/item/WeaponProfiles';
@@ -123,7 +122,7 @@ function weaponData() {
 	return system.value as WeaponDataModel | VehicleWeaponDataModel;
 }
 
-// The profile a weapon's row shows, and attacks with: a character's weapon's main Weapon Profile, or a vehicle weapon's
+// The profile a weapon's row shows: a character's weapon's main Weapon Profile, or a vehicle weapon's
 // single one, its own fields.
 function weaponProfile() {
 	const weapon = weaponData();
@@ -141,14 +140,9 @@ const dimForDrag = computed(() => props.dragging && props.item.type !== 'contain
 const displayContainerContents = ref(false);
 const containedItems = computed(() => containerContents(itemsOfType(actor.value, EQUIPMENT_TYPES), props.item.id));
 
-// The Attack Skill of a character's weapon's main profile, which offers an attack when it has one.
+// The Attack Skill of a character's weapon's main profile, which its row's details read.
 function skillForWeapon() {
 	return attackSkill(actor.value, weaponProfiles((item.value as GenesysItem<'weapon'>).system)[0]);
-}
-
-// Whether the row's name attacks: a character's weapon attacks while it is Equipped, with an Attack Skill.
-function attacks() {
-	return item.value.type === 'weapon' && system.value.state === EquipmentState.Equipped && !!skillForWeapon();
 }
 
 // The Equipment State moves the row's menu offers.
@@ -299,8 +293,9 @@ function openMenu(event: MouseEvent) {
 		@drop="drop"
 		@contextmenu="openMenu"
 	>
-		<!-- The icon opens the item's sheet; the name attacks with an equipped weapon, and opens the sheet otherwise. The row's
-		drag starts on the icon's wrapper too, since Firefox starts none from a button: the dragstart reaches the row. -->
+		<!-- The icon and the name open the item's sheet: an inventory row never rolls, a weapon attacks from the Combat tab
+		(#641). The row's drag starts on the icon's wrapper too, since Firefox starts none from a button: the dragstart
+		reaches the row. -->
 		<span class="item-icon" draggable="true"
 			><ActionButton :image="item.img ?? undefined" label="Genesys.Tooltips.OpenItem" @click="openSheet(item)"
 		/></span>
@@ -349,14 +344,7 @@ function openMenu(event: MouseEvent) {
 		</DescriptionFold>
 		<div v-else class="details" @dragenter="containerDrag.enter" @dragleave="containerDrag.leave">
 			<span class="name">
-				<RollLink
-					v-if="attacks()"
-					label="Genesys.Tooltips.RollAttack"
-					:label-data="{ weapon: item.name }"
-					@roll="attackWith(actor, item as GenesysItem<'weapon'>)"
-					>{{ item.name }}</RollLink
-				>
-				<ActionButton v-else @click="openSheet(item)">{{ item.name }}</ActionButton>
+				<ActionButton @click="openSheet(item)">{{ item.name }}</ActionButton>
 			</span>
 
 			<div :data-item-type="item.type">
