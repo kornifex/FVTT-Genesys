@@ -409,6 +409,7 @@ Genesys:
     Reset: Réinitialise les points Narratifs
     Spend: Dépenser un point Narratif
     Add: Ajouter un point Narratif
+    PoolCount: '{pool} : {count}'
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !
 

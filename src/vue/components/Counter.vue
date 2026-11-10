@@ -42,25 +42,11 @@ const props = withDefaults(
 		canDecrease?: boolean;
 		canIncrease?: boolean;
 		canType?: boolean;
-
-		/**
-		 * Whether a number typed below 0 writes nothing, rather than 0, as for the Story Point pools (#263).
-		 */
-		refusesNegative?: boolean;
-
-		/**
-		 * The localization keys of the − and + buttons' names.
-		 */
-		decreaseLabel?: string;
-		increaseLabel?: string;
 	}>(),
 	{
 		canDecrease: true,
 		canIncrease: true,
 		canType: true,
-		refusesNegative: false,
-		decreaseLabel: 'Genesys.Counter.Decrease',
-		increaseLabel: 'Genesys.Counter.Increase',
 	},
 );
 
@@ -98,7 +84,7 @@ const shownValue = computed(() => (props.valueLabel ? game.i18n.localize(props.v
 const draft = ref<string>();
 
 function typed(text: string) {
-	return typedValue(text, { max: props.max, refuseNegative: props.refusesNegative });
+	return typedValue(text, { max: props.max });
 }
 
 function step(direction: 1 | -1) {
@@ -178,7 +164,7 @@ function contextmenu(event: MouseEvent) {
 			v-if="showsDecrease"
 			class="step decrease"
 			icon="fas fa-minus"
-			:label="decreaseLabel"
+			label="Genesys.Counter.Decrease"
 			tabindex="-1"
 			@mousedown.prevent
 			@click="step(-1)"
@@ -222,7 +208,7 @@ function contextmenu(event: MouseEvent) {
 			v-if="showsIncrease"
 			class="step increase"
 			icon="fas fa-plus"
-			:label="increaseLabel"
+			label="Genesys.Counter.Increase"
 			tabindex="-1"
 			@mousedown.prevent
 			@click="step(1)"

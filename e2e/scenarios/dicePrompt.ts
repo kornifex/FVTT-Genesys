@@ -1168,19 +1168,17 @@ function installDicePromptHelpers() {
 			const trackers = [...document.querySelectorAll('#story-point-tracker .pool')];
 			return {
 				setting: game.settings.get('genesys', 'storyPoints'),
-				shown: trackers.map((tracker) => window.e2e.counterValue(tracker.querySelector('.points'))),
-				// A pool's counter shows a − where the user may spend one of its points (§#580).
-				spendable: trackers.map((tracker) => !!tracker.querySelector('.points button.decrease')),
+				shown: trackers.map((tracker) => window.e2e.text(tracker.querySelector('.points'))),
+				// A pool's count is a button where the user may spend one of its points (§#619).
+				spendable: trackers.map((tracker) => !!tracker.querySelector('button.points')),
 			};
 		},
 
 		async clickStoryPoints(which) {
 			const trackers = [...document.querySelectorAll('#story-point-tracker .pool')];
 			const pool = which === 'reset' ? undefined : trackers[which === 'gm' ? 0 : 1];
-			// The pool's −, or its count where it shows none: a click there spends nothing.
-			const target = pool
-				? pool.querySelector('.points button.decrease') ?? pool.querySelector('.points')
-				: trackers[0].querySelector('header button');
+			// The pool's count, a button where the user may spend from it, else its text, where a click spends nothing.
+			const target = pool ? pool.querySelector('.points') : trackers[0].querySelector('header button');
 			const before = JSON.stringify(game.settings.get('genesys', 'storyPoints'));
 			(target as HTMLElement).click();
 			// A player's point is spent by the GM's client, then every tracker renders again: wait for the pools to change,

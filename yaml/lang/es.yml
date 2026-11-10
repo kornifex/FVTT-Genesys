@@ -403,7 +403,9 @@ Genesys:
     PlayerShort: PJ
     GMShort: DJ
     Reset: Reiniciar puntos de Historia
+    Spend: Gastar un punto de Historia
     Add: Añadir un punto de Historia
+    PoolCount: '{pool}: {count}'
     ChatMessageGmPool: ¡Punto de Historia gastado!
     ChatMessagePlayerPool: ¡Punto de Historia gastado!
 
