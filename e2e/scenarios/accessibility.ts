@@ -1871,6 +1871,29 @@ async function counterPointer(e2e: ScenarioContext) {
 			);
 		}
 
+		let typed: unknown;
+		// Before R1, whose right-click on the + takes the wounds down to 0 on a build before #645, where no − shows.
+		await e2e.step("#648 T1 a rival's wound threshold clicked beside the − of its wounds, then 11 typed and Tab pressed", async () => {
+			await gm.evaluate(() => window.accessibilityE2E.readyCounterPointer('Tally Rival'));
+			const at = await points('Current Wounds −', 'system.wounds.max');
+			// The − shows first, as it does when the pointer reaches the threshold from the counter.
+			await mouse.move(at.step.x, at.step.y);
+			await mouse.click(at.beside!.x, at.beside!.y);
+			const clicked = await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'));
+			await keyboard.press('Control+A');
+			await keyboard.type('11');
+			await keyboard.press('Tab');
+			await e2e.settle();
+			typed = {
+				focused: clicked.focused,
+				threshold: (await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'))).threshold,
+			};
+		});
+		e2e.expect("#648 T1 the wound threshold a rival's − reaches over takes a click beside the −, and the value typed", typed, {
+			focused: 'system.wounds.max',
+			threshold: 11,
+		});
+
 		// Through the value, the way a pointer showed the − and + before #645 too, so that the right-click on the + is
 		// tested on both builds.
 		let clicks: Record<string, number> = {};
@@ -1905,27 +1928,6 @@ async function counterPointer(e2e: ScenarioContext) {
 				'− right-clicked': 1,
 			},
 		);
-
-		let typed: unknown;
-		await e2e.step("#648 T1 a rival's wound threshold clicked beside the − of its wounds, then 11 typed and Tab pressed", async () => {
-			const at = await points('Current Wounds −', 'system.wounds.max');
-			// The − shows first, as it does when the pointer reaches the threshold from the counter.
-			await mouse.move(at.step.x, at.step.y);
-			await mouse.click(at.beside!.x, at.beside!.y);
-			const clicked = await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'));
-			await keyboard.press('Control+A');
-			await keyboard.type('11');
-			await keyboard.press('Tab');
-			await e2e.settle();
-			typed = {
-				focused: clicked.focused,
-				threshold: (await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'))).threshold,
-			};
-		});
-		e2e.expect("#648 T1 the wound threshold a rival's − reaches over takes a click beside the −, and the value typed", typed, {
-			focused: 'system.wounds.max',
-			threshold: 11,
-		});
 	} finally {
 		await gm.evaluate(() => window.accessibilityE2E.deleteCounters());
 	}
