@@ -6,6 +6,7 @@ import pluginVue from '@vitejs/plugin-vue';
 import path from 'path';
 import process from 'process';
 
+import { notices } from './build/notices.ts';
 import { packs } from './build/packs.ts';
 import { yamlData } from './build/yamlData.ts';
 
@@ -65,7 +66,7 @@ export default defineConfig({
 		// routes under a prefix.
 		renderBuiltUrl: (_, { hostType }) => (hostType === 'js' ? { relative: true } : undefined),
 	},
-	plugins: [pluginVue(), yamlData('yaml'), packs('packs')],
+	plugins: [pluginVue(), yamlData('yaml'), packs('packs'), notices(['LICENSE', 'NOTICE.md'])],
 	test: {
 		setupFiles: ['src/testSetup.ts'],
 		// An agent's worktree under .claude/worktrees is a copy of the repo, whose tests would run against this one.

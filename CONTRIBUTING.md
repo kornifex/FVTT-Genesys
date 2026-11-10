@@ -75,7 +75,7 @@ pnpm build
 
 ## Rules for every contribution
 - Only use FontAwesome Free icons. Foundry also displays FontAwesome Pro ones, but its license doesn't cover third-party systems: see [FontAwesome](README.md#fontawesome) in the README.
-- If you adapt code from another source, add its license to the [Further Licenses](README.md#further-licenses) section of the README, with a license file next to the code where it applies.
+- If you adapt code from another source or add a font, list it in [NOTICE.md](NOTICE.md) with its copyright and its license, and ship the license file next to it, in `public/` for what the release zip carries.
 - Unless its license says otherwise, a contribution falls under the project's [MIT License](LICENSE).
 - AI-assisted contributions are accepted, as long as you say so in the pull request, and you have reviewed and tested the changes yourself.
 - Contributors who act in a bad faith, hateful, or otherwise harmful manner will be blocked from making future contributions. This includes notable behavior outside this system and its community.

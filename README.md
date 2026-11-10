@@ -74,7 +74,7 @@ Bug reports and feature requests are welcome in the [issue tracker](https://gith
 Code for this system is licensed under the [MIT License](https://mit-license.org/), see [LICENSE](LICENSE).
 
 ### Further Licenses
-Some components of this project are used under alternative licensing terms. Each of these components will be accompanied by its own nearby LICENSE file, and is noted below:
+The fonts and the Vue runtime that the system ships come under their own licenses. [NOTICE.md](NOTICE.md) lists each of them with its copyright and its license file; the release zip carries it next to `LICENSE`.
 
 #### FontAwesome
 > **License:** [Font Awesome Free License](https://fontawesome.com/license/free)
@@ -84,23 +84,6 @@ Some components of this project are used under alternative licensing terms. Each
 > This means:
 > 1) Contributions must only use FontAwesome Free icons, even though Foundry also displays Pro ones.
 > 2) If you fork this project and want to use FontAwesome Pro icons, you are responsible for purchasing an appropriate license.
-
-#### Fonts: Bebas Neue, Roboto Serif, Roboto Slab, Roboto Mono
-> **License:** [Open Font License](public/assets/fonts/OFL.txt)
-
-#### Font: Roboto
-> **License:** [Apache 2.0](public/assets/fonts/Roboto/LICENSE.txt)
-
-#### Font: Roboto Condensed
-> **License:** [Apache 2.0](public/assets/fonts/Roboto_Condensed/LICENSE.txt)
-
-#### Font: Genesys Glyphs & Dice
-> **License:** [MIT](public/assets/fonts/FFG-Genesys-Glyphs-and-Dice/LICENSE)
->
-> https://github.com/themensch/FFG-Genesys-Glyphs-and-Dice
-
-#### Vue 3
-> **License:** [MIT](https://github.com/vuejs/core/blob/main/LICENSE)
 
 ## Copyright Disclaimer
 This project, and its maintainers, are unaffiliated with EDGE Studios and Fantasy Flight Games. This is an unofficial, third-party system implementation built freely as a hobby project. Additionally, this project is unrelated to Genesys Foundry, EDGE Studios/Fantasy Flight's community content program for the Genesys RPG.
