@@ -1961,56 +1961,162 @@ export async function run(e2e: ScenarioContext) {
 		);
 	});
 
-	// §#621: a characteristic's box is as wide as its label and ↑, and the boxes of a row as wide as the
-	// widest, which the sheet's default width holds.
+	// §#650: each characteristic's box is fitted to its own name and ↑ (#644), its ↑ beside the name, in English and in
+	// French and in both Styles, and the sheet's default width holds the row (#621).
 	await part('characteristicBoxes', async () => {
 		let boxes = {};
 		await e2e.step(
-			'#621 A1 GM opens, at their default width, a character who can raise a characteristic, a nemesis, an archetype and a vehicle',
+			'#650 A1 GM opens, at their default width, a character who can raise a characteristic, a nemesis, an archetype and a vehicle, in English and in French, in each Style',
 			async () => {
 				boxes = await gm.evaluate(async () => {
+					const language = game.i18n.lang;
+					const style = document.documentElement.dataset.genesysStyle;
 					const measured: Record<string, unknown> = {};
-					for (const name of ['Observed', 'Nemesis', 'archetype', 'Vehicle']) {
-						await window.sheetsE2E.open(name);
-						const document = game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`);
-						const root = window.e2e.htmlOf(document.sheet)!;
-						const fields = [...root.querySelectorAll<HTMLElement>('.characteristic-field')];
-						const row = fields[0]?.parentElement;
-						measured[name] = {
-							fields: fields.length,
-							widths: new Set(fields.map((field) => field.offsetWidth)).size,
-							// The name within the column, and the ↑ within the box drawn past it, to a pixel's rounding.
-							labelsFit: fields.every((field) => {
-								const within = (inner: Element | null, outer: Element) => {
-									if (!inner) return true;
-									const [a, b] = [inner.getBoundingClientRect(), outer.getBoundingClientRect()];
-									return a.left >= b.left - 1 && a.right <= b.right + 1;
-								};
-								const label = field.querySelector('.characteristic-label')!;
-								return (
-									within(label.firstElementChild, field) &&
-									within(label.querySelector('.raise'), field.querySelector('.box')!)
-								);
-							}),
-							rowFits: !!row && row.getBoundingClientRect().right <= root.getBoundingClientRect().right,
-							raise: fields.some((field) => field.querySelector('.raise')),
-						};
-						await window.sheetsE2E.close(name);
+					try {
+						for (const lang of ['en', 'fr']) {
+							await game.i18n.setLanguage(lang);
+							for (const key of ['genesys', 'terrinoth']) {
+								document.documentElement.dataset.genesysStyle = key;
+								for (const name of ['Observed', 'Nemesis', 'archetype', 'Vehicle']) {
+									await window.sheetsE2E.open(name);
+									await document.fonts.ready;
+									const sheet = game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`);
+									const root = window.e2e.htmlOf(sheet.sheet)!;
+									const fields = [...root.querySelectorAll<HTMLElement>('.characteristic-field')];
+									const row = fields[0]?.parentElement;
+									const rect = (element: Element) => element.getBoundingClientRect();
+									// Each box to a pixel's rounding.
+									const boxes = fields.map((field) => {
+										const label = field.querySelector<HTMLElement>('.characteristic-label')!;
+										const [name, raise] = [label.firstElementChild!, label.querySelector('.raise')];
+										const [box, value, named] = [
+											rect(field.querySelector('.box')!),
+											rect(field.querySelector('.value')!),
+											rect(name),
+										];
+										// The label's own width, which the grid stretches to its column's.
+										label.style.width = 'max-content';
+										const labelWidth = rect(label).width;
+										label.style.width = '';
+										const within = (inner: DOMRect) =>
+											inner.left >= box.left - 1 &&
+											inner.right <= box.right + 1 &&
+											inner.top >= box.top - 1 &&
+											inner.bottom <= box.bottom + 1;
+										const raised = raise && rect(raise);
+										return {
+											name: name.textContent.trim(),
+											width: field.offsetWidth,
+											fitted:
+												field.offsetWidth > 0 &&
+												Math.abs(field.offsetWidth - Math.max(labelWidth, value.width)) <= 1,
+											nameCentred: Math.abs(named.left + named.width / 2 - (value.left + value.width / 2)) <= 1,
+											nameInBox: within(named),
+											// Inside the box, on the name's line, at most a quarter of an em past its end.
+											raiseBeside:
+												!raised ||
+												(within(raised) &&
+													raised.left >= named.right - 1 &&
+													raised.left <= named.right + 5 &&
+													raised.top + raised.height / 2 > named.top &&
+													raised.top + raised.height / 2 < named.bottom),
+											raise: !!raise,
+											nameWidth: named.width,
+										};
+									});
+									measured[`${name} ${lang} ${key}`] = {
+										fields: boxes.length,
+										fitted: boxes.every((box) => box.fitted),
+										namesCentred: boxes.every((box) => box.nameCentred && box.nameInBox),
+										raisesBeside: boxes.every((box) => box.raiseBeside),
+										raises: boxes.filter((box) => box.raise).length,
+										// Each box's width, by its name: not all one, and a longer name never in a narrower box.
+										widths: boxes.map((box) => `${box.name} ${box.width}`).join(', '),
+										widthsDiffer: new Set(boxes.map((box) => box.width)).size > 1,
+										longerNameNoNarrower: boxes.every((a) =>
+											boxes.every((b) => a.nameWidth <= b.nameWidth + 1 || a.width >= b.width),
+										),
+										rowFits: !!row && rect(row).right <= rect(root).right && rect(row).left >= rect(root).left,
+									};
+									await window.sheetsE2E.close(name);
+								}
+							}
+						}
+					} finally {
+						await game.i18n.setLanguage(language);
+						if (style === undefined) delete document.documentElement.dataset.genesysStyle;
+						else document.documentElement.dataset.genesysStyle = style;
 					}
 					return measured;
 				});
 			},
 		);
-		const fit = (fields: number, raise: boolean) => ({ fields, widths: 1, labelsFit: true, rowFits: true, raise });
+		// The widths in pixels, which the fonts set, are logged rather than asserted.
+		const measured = boxes as Record<string, { widths: string }>;
+		e2e.log('#650 widths', Object.fromEntries(Object.entries(measured).map(([sheet, { widths }]) => [sheet, widths])));
+		const fit = (fields: number, raises: number) => ({
+			fields,
+			fitted: true,
+			namesCentred: true,
+			raisesBeside: true,
+			raises,
+			widthsDiffer: true,
+			longerNameNoNarrower: true,
+			rowFits: true,
+		});
 		e2e.expect(
-			"#621 A1 every characteristic's box holds its label and ↑, the boxes of a row are one width, and the row fits the sheet",
-			boxes,
-			{ Observed: fit(6, true), Nemesis: fit(6, false), archetype: fit(6, false), Vehicle: fit(3, false) },
+			"#650 A1 each characteristic's box is fitted to its own name and ↑, its ↑ inside the box beside the name, its name centred under its value, boxes of different names of different widths, and the row fits the sheet",
+			Object.fromEntries(Object.entries(measured).map(([sheet, { widths: _widths, ...shape }]) => [sheet, shape])),
+			Object.fromEntries(
+				['en', 'fr'].flatMap((lang) =>
+					['genesys', 'terrinoth'].flatMap((key) => [
+						[`Observed ${lang} ${key}`, fit(6, 6)],
+						[`Nemesis ${lang} ${key}`, fit(6, 0)],
+						[`archetype ${lang} ${key}`, fit(6, 0)],
+						[`Vehicle ${lang} ${key}`, fit(3, 0)],
+					]),
+				),
+			),
 		);
 	});
 
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look.
+	// TEMP #644: screenshots for a look at the boxes, removed before the PR.
+	await part('screenshots644', async () => {
+		const shots =
+			'/tmp/claude-1000/-home-julien-Developer-kornifex-FVTT-Genesys/7bf5d222-f272-4014-a6d0-1414208ef6c0/scratchpad/644/shots';
+		await gm.evaluate(async () => {
+			await window.e2e.setSettings({ useSuperCharacteristics: true });
+			await game.actors.getName('E2E Nemesis').update({ 'system.superCharacteristics': ['brawn', 'presence'] });
+		});
+		for (const lang of ['en', 'fr']) {
+			for (const key of ['genesys', 'terrinoth']) {
+				for (const name of ['Observed', 'Nemesis', 'archetype', 'Vehicle']) {
+					const id = await gm.evaluate(
+						async ({ name, lang, key }) => {
+							await game.i18n.setLanguage(lang);
+							document.documentElement.dataset.genesysStyle = key;
+							await window.sheetsE2E.open(name);
+							await document.fonts.ready;
+							const sheet = game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`);
+							return window.e2e.htmlOf(sheet.sheet)!.id;
+						},
+						{ name, lang, key },
+					);
+					await gm.page.locator(`#${id}`).screenshot({ path: `${shots}/${name}-${lang}-${key}.png` });
+					await gm.evaluate((name) => window.sheetsE2E.close(name), name);
+				}
+			}
+		}
+		await gm.evaluate(async () => {
+			await game.i18n.setLanguage('en');
+			document.documentElement.dataset.genesysStyle = 'genesys';
+			await window.e2e.setSettings({ useSuperCharacteristics: false });
+			await game.actors.getName('E2E Nemesis').update({ 'system.superCharacteristics': [] });
+		});
+	});
+
 	await part('headings', async () => {
 		let headings: Record<string, HeadingStyle> | undefined;
 		await e2e.step('#346 GM opens a skill whose description holds headings', async () => {
