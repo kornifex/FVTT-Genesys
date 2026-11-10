@@ -137,7 +137,9 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 	$row-size: 1.5rem;
 
 	display: grid;
-	grid-template-columns: $row-size * 2;
+	// As wide as its label with its die and ↑, and never narrower than its value (#621). The row it sits in gives every
+	// characteristic the width of the widest, through columns of 1fr.
+	grid-template-columns: minmax($row-size * 2, 1fr);
 	grid-template-rows: repeat(2, $row-size) auto;
 	justify-content: center;
 	align-items: center;
@@ -149,6 +151,9 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 
 	.value {
 		grid-row: 1 / span 2;
+		justify-self: center;
+		// The star of a super-characteristic sits on the value's corner.
+		position: relative;
 		border: 2px solid colors.$blue;
 		border-radius: 50%;
 		width: $row-size * 2;
@@ -236,13 +241,12 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		white-space: nowrap;
 
 		// The menu's ⋮, its own, which :deep() reaches, sits beside the value's top, over the sheet's background, across
-		// from the star of a super-characteristic.
+		// from the star of a super-characteristic: its right edge 1.25em past the value's, which the field centres.
 		:deep(.menu-trigger) {
-			grid-row: 1 / span 1;
-			grid-column: 1 / span 1;
-			justify-self: end;
-			align-self: start;
-			margin-right: -1.25em;
+			position: absolute;
+			top: 0;
+			left: calc(50% + #{$row-size} + 1.25em);
+			transform: translateX(-100%);
 			z-index: 2;
 		}
 	}

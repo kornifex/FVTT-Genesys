@@ -205,8 +205,10 @@ section.overview {
 
 	.characteristics-row {
 		position: relative;
-		display: flex;
-		flex-wrap: nowrap;
+		// One column per characteristic, each as wide as the widest (#621).
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
 		justify-content: center;
 		gap: 3em;
 		align-items: center;
