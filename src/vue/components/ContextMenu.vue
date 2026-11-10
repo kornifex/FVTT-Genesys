@@ -41,6 +41,10 @@ const showMenu = ref(false);
 const container = useTemplateRef<HTMLElement>('container');
 const menu = useTemplateRef<HTMLElement>('menu');
 
+// Where the open menu's top-left corner sits from its container's, in the viewport's pixels: it keeps that place as the
+// sheet scrolls.
+let offset: Point | undefined;
+
 // The control the focus goes back to once the menu closes from the keyboard: its ⋮ button, or the control that had the
 // focus when it opened from a row without one.
 let opener: HTMLElement | undefined;
@@ -86,7 +90,7 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 		listened = ownerDocument;
 		listened.addEventListener('click', closeContextMenu, { capture: true });
 		listened.addEventListener('contextmenu', closeContextMenu, { capture: true });
-		listened.addEventListener('scroll', closeOnScroll, { capture: true });
+		listened.addEventListener('scroll', followContainer, { capture: true });
 	}
 
 	void nextTick(() => {
@@ -117,9 +121,14 @@ function place(menuElement: HTMLElement, containerElement: HTMLElement, pointer:
 	const visible = visibleArea(menuElement);
 	const corner = pointer ? menuAtPointer(pointer, size, visible) : menuAtContainer(box, size, visible, props.position, props.orientation);
 
+	offset = { x: corner.x - box.left, y: corner.y - box.top };
+	moveTo(menuElement, corner);
+	menuElement.style.transform = scale === 1 ? '' : `scale(${scale})`;
+}
+
+function moveTo(menuElement: HTMLElement, corner: Point) {
 	menuElement.style.left = `${corner.x}px`;
 	menuElement.style.top = `${corner.y}px`;
-	menuElement.style.transform = scale === 1 ? '' : `scale(${scale})`;
 }
 
 function hideMenu() {
@@ -166,19 +175,28 @@ function closeContextMenu(event: MouseEvent) {
 	}
 }
 
-// The menu stays where it was placed in the viewport: once the sheet scrolls under it, it would show by another row, or
-// over the sheet's border. Scrolling elsewhere in the page, such as the chat log on a new message, leaves it open.
-function closeOnScroll(event: Event) {
+// The menu is placed in the viewport: as its sheet scrolls, it follows its row, and closes once the row leaves what the
+// sheet shows. Scrolling elsewhere in the page, such as the chat log on a new message, leaves it where it is.
+function followContainer(event: Event) {
 	const scrolled = event.target as Node | null;
-	if (scrolled && container.value && scrolled.contains(container.value)) {
-		hideMenu();
+	if (!scrolled || !menu.value || !container.value || !offset || !scrolled.contains(container.value)) {
+		return;
 	}
+
+	const box = container.value.getBoundingClientRect();
+	const visible = visibleArea(menu.value);
+	if (box.bottom <= visible.top || box.top >= visible.bottom) {
+		hideMenu();
+		return;
+	}
+
+	moveTo(menu.value, { x: box.left + offset.x, y: box.top + offset.y });
 }
 
 function removeDocumentListeners() {
 	listened?.removeEventListener('click', closeContextMenu, { capture: true });
 	listened?.removeEventListener('contextmenu', closeContextMenu, { capture: true });
-	listened?.removeEventListener('scroll', closeOnScroll, { capture: true });
+	listened?.removeEventListener('scroll', followContainer, { capture: true });
 	listened = undefined;
 }
 

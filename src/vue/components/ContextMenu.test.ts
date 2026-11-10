@@ -207,17 +207,29 @@ describe('ContextMenu', () => {
 			expect(showPopover.mock.contexts).toEqual([shown]);
 		});
 
-		it('closes once its sheet scrolls under it, and stays open while something else scrolls', async () => {
+		it('follows its row as its sheet scrolls, stays put while something else scrolls, and closes once the row is gone from view', async () => {
+			// happy-dom lays nothing out: the viewport and the row get a size, and nothing clips them.
+			vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
+			vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
+			vi.spyOn(window, 'getComputedStyle').mockReturnValue({ overflow: 'visible' } as CSSStyleDeclaration);
 			const sheet = document.body.appendChild(document.createElement('div'));
 			const elsewhere = document.body.appendChild(document.createElement('div'));
 			const { menu } = mountMenu({ trigger: true }, sheet);
+			const row = vi
+				.spyOn(menu.element as HTMLElement, 'getBoundingClientRect')
+				.mockReturnValue(DOMRect.fromRect({ x: 30, y: 40, width: 200, height: 20 }));
 			trigger(menu).dispatchEvent(pointerClick());
 			await nextTick();
+			expect(placed(menu)).toEqual({ left: '30px', top: '60px' });
 
+			// The sheet scrolls by 25 pixels.
+			row.mockReturnValue(DOMRect.fromRect({ x: 30, y: 15, width: 200, height: 20 }));
 			elsewhere.dispatchEvent(new Event('scroll'));
-			await nextTick();
-			expect(isOpen(menu)).toBe(true);
+			expect(placed(menu)).toEqual({ left: '30px', top: '60px' });
+			sheet.dispatchEvent(new Event('scroll'));
+			expect(placed(menu)).toEqual({ left: '30px', top: '35px' });
 
+			row.mockReturnValue(DOMRect.fromRect({ x: 30, y: -40, width: 200, height: 20 }));
 			sheet.dispatchEvent(new Event('scroll'));
 			await nextTick();
 			expect(isOpen(menu)).toBe(false);
