@@ -7,6 +7,7 @@ import { canMarkSuperCharacteristics, toggleSuperCharacteristic } from '@/actor/
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
 import Localized from '@/vue/components/Localized.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import SkillRow from '@/vue/components/SkillRow.vue';
@@ -88,12 +89,13 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 <template>
 	<section class="tab-skills">
-		<div class="characteristics-row">
+		<CharacteristicsRow>
 			<Characteristic
 				v-for="{ characteristic, label } in CHARACTERISTICS"
 				:key="characteristic"
 				:label="label"
 				:value="system.characteristics[characteristic]"
+				raisable
 				:can-upgrade="canPurchaseCharacteristic(characteristic)"
 				@upgrade="purchaseCharacteristic(characteristic)"
 				can-roll-characteristic-check
@@ -102,7 +104,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				:can-mark-super="canMarkSuper"
 				@toggle-super="toggleSuper(characteristic)"
 			/>
-		</div>
+		</CharacteristicsRow>
 
 		<div class="skills-row">
 			<div v-for="skillCategory in skillCategories" :key="skillCategory.category" class="skill-category">
@@ -170,35 +172,9 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	}
 }
 
+// Centred on the tab.
 .characteristics-row {
-	position: relative;
-	// One column per characteristic, each as wide as the widest (#621).
-	display: grid;
-	grid-auto-flow: column;
-	grid-auto-columns: 1fr;
-	justify-content: center;
-	gap: 3em;
-	align-items: center;
-	padding-bottom: 0.25rem;
 	grid-column: 2 / span 1;
-
-	&::after {
-		display: block;
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -1.5rem;
-		width: calc(100% + 3rem);
-		height: 100%;
-		background: colors.$gold;
-		border-radius: 4rem;
-
-		clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
-	}
-
-	.characteristic-field {
-		z-index: 2;
-	}
 }
 
 .skills-row {

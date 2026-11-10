@@ -4,6 +4,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import SheetTabs from '@/vue/components/SheetTabs.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
 
 import SkillsTab from '@/vue/sheets/actor/vehicle/SkillsTab.vue';
 import CombatTab from '@/vue/sheets/actor/vehicle/CombatTab.vue';
@@ -37,7 +38,8 @@ const TABS = [
 
 		<section class="stats-section">
 			<div class="stats-row">
-				<div class="characteristics">
+				<!-- The row's band runs behind the combat stats too. -->
+				<CharacteristicsRow :band="false">
 					<Characteristic label="Genesys.Labels.Silhouette" :value="system.silhouette" name="system.silhouette" can-edit />
 					<Characteristic label="Genesys.Labels.Speed" :value="system.speed" name="system.speed" can-edit />
 					<Characteristic
@@ -46,7 +48,7 @@ const TABS = [
 						name="system.handling"
 						can-edit
 					/>
-				</div>
+				</CharacteristicsRow>
 
 				<div class="stats-column">
 					<!-- The total counts the Pilot's Piloted Vehicle Defense, which the vehicle's own defense doesn't. -->
@@ -170,15 +172,8 @@ const TABS = [
 				clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
 			}
 
-			// One column per characteristic, each as wide as the widest (#621), spaced as the row spaces them from the stats.
-			.characteristics {
-				display: grid;
-				grid-auto-flow: column;
-				grid-auto-columns: 1fr;
-				gap: 3em;
-			}
-
-			.characteristic-field {
+			// Over the row's band, which comes after them.
+			.characteristics-row {
 				z-index: 1;
 			}
 

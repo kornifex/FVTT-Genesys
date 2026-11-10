@@ -21,6 +21,12 @@ const props = withDefaults(
 		canUpgrade?: boolean;
 
 		/**
+		 * Does its sheet raise characteristics with XP, as a character's does? The box then keeps the ↑'s room beside the
+		 * name whether a raise is affordable or not, and whoever views it (#644).
+		 */
+		raisable?: boolean;
+
+		/**
 		 * Can the field be directly edited?
 		 */
 		canEdit?: boolean;
@@ -52,6 +58,7 @@ const props = withDefaults(
 	}>(),
 	{
 		canUpgrade: false,
+		raisable: false,
 		canEdit: false,
 		canRollCharacteristicCheck: false,
 		canMarkSuper: false,
@@ -115,11 +122,17 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 					edits
 					@click="emit('upgrade')"
 				/>
+
+				<!-- The ↑'s room, kept while it doesn't show: the box doesn't widen, nor the row move, as XP is spent or
+				     earned, nor between the user who may raise and one who observes. Neither focused nor read. -->
+				<span v-else-if="raisable" class="raise-room" aria-hidden="true">
+					<i class="fas fa-arrow-circle-up"></i>
+				</span>
 			</span>
 		</ContextMenu>
 
 		<div class="value">
-			<i v-if="allowSuperCharacteristics && isSuper" class="fas fa-star super-star"></i>
+			<i v-if="allowSuperCharacteristics && isSuper" class="fas fa-star super-star" aria-hidden="true"></i>
 
 			<!-- Named by the characteristic: its label above may be a button, which a label can't name a field with. -->
 			<input v-if="canEdit" type="text" data-dtype="Number" :name="name" :value="value" v-localize:aria-label="label" />
@@ -135,11 +148,12 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 
 .characteristic-field {
 	$row-size: 1.5rem;
+	// The value's ring, which the star of a super-characteristic is centred on.
+	$value-border: 2px;
 
 	display: grid;
-	// As wide as its label, and never narrower than its value (#621): the label's width is the column's
-	// least, which the row can't squeeze. The row it sits in gives every characteristic the width of the widest, through
-	// columns of 1fr.
+	// As wide as its label, name and ↑, and never narrower than its value (#621): the label's width is the column's least,
+	// which the row can't squeeze. Each box of a row has its own width (#644).
 	grid-template-columns: minmax(max-content, 1fr);
 	min-width: $row-size * 2;
 	grid-template-rows: repeat(2, $row-size) auto;
@@ -156,7 +170,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		justify-self: center;
 		// The star of a super-characteristic sits on the value's corner.
 		position: relative;
-		border: 2px solid colors.$blue;
+		border: $value-border solid colors.$blue;
 		border-radius: 50%;
 		width: $row-size * 2;
 		height: $row-size * 2;
@@ -176,7 +190,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		}
 
 		&:focus-within {
-			border: 2px solid colors.$gold;
+			border: $value-border solid colors.$gold;
 		}
 	}
 
@@ -228,14 +242,25 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		}
 	}
 
+	// The star of a super-characteristic sits on the value's corner (#644): centred on the middle of its border, at the
+	// top left. That point lies 1 − 1/√2 of the circle's radius in from its box's corner on each axis: the radius runs
+	// to the middle of the border, past the padding box the percentages measure. A blue outline keeps it apart from the
+	// value's white. Decorative: the ⋮ menu's entry says whether the characteristic is superior.
 	.super-star {
+		$to-corner: calc(50% - (50% + #{$value-border * 0.5}) * 0.7071);
+
 		position: absolute;
 		padding: 0;
-		font-size: 1.5em;
-		top: 0;
-		left: 0;
+		font-size: 0.55em;
+		line-height: 1;
+		top: $to-corner;
+		left: $to-corner;
+		transform: translate(-50%, -50%);
 		color: colors.$gold;
-		z-index: -1;
+		filter: drop-shadow(0 0 1px colors.$blue);
+		// Over the value's field, which a click on it still reaches.
+		z-index: 4;
+		pointer-events: none;
 	}
 
 	.super-char {
@@ -262,29 +287,33 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;
-		// Its ↑ is placed from its edges.
 		position: relative;
 		z-index: 1;
 		margin-top: 2px;
 		margin-bottom: 2px;
 
-		// The name, which rolls, centred under the value.
-		display: flex;
-		flex-wrap: nowrap;
+		// The name, which rolls, centred under the value, and its ↑ right beside it (#644). The first column, as wide as
+		// the ↑'s, keeps the name centred; the box, fitted to the label, holds both.
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		justify-content: center;
-		gap: 0.25em;
 
-		// The ↑ sits in the box's margin, past the column's right edge, rather than beside the name: it takes none of the
-		// width the boxes of a row share (#621).
-		.raise {
-			position: absolute;
-			top: 50%;
-			left: calc(100% + 0.15em);
-			// Within the 1em the box reaches past the column, as the skills' ↑ badge is sized (#620).
+		& > :first-child {
+			grid-column: 2;
+		}
+
+		.raise,
+		.raise-room {
+			grid-column: 3;
+			justify-self: start;
+			margin-left: 0.25em;
+			// As the skills' ↑ badge is sized (#620).
 			font-size: 0.75em;
 			line-height: 1;
-			transform: translateY(-50%);
+		}
+
+		.raise-room {
+			visibility: hidden;
 		}
 	}
 }

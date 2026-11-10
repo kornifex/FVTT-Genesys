@@ -4,6 +4,7 @@ import type { Stored } from '@/data/Stored';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -134,7 +135,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					</div>
 
 					<div class="characteristics-container">
-						<div class="characteristics-row">
+						<CharacteristicsRow>
 							<Characteristic
 								v-for="{ characteristic, label } in CHARACTERISTICS"
 								:key="characteristic"
@@ -148,7 +149,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 								can-mark-super
 								@toggle-super="toggleSuper(characteristic)"
 							/>
-						</div>
+						</CharacteristicsRow>
 					</div>
 
 					<div class="stats-row">
@@ -463,38 +464,6 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 		.characteristics-row {
 			grid-column: 2 / span 1;
-		}
-	}
-
-	.characteristics-row {
-		position: relative;
-		// One column per characteristic, each as wide as the widest (#621).
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		justify-content: center;
-		// Each box reaches 1em past its column on each side: 2.5em leaves half an em between two boxes, and the row fits
-		// the sheet's default width.
-		gap: 2.5em;
-		align-items: center;
-		padding-bottom: 0.25rem;
-
-		&::after {
-			display: block;
-			content: '';
-			position: absolute;
-			top: 0;
-			left: -1.5rem;
-			width: calc(100% + 3rem);
-			height: 100%;
-			background: colors.$gold;
-			border-radius: 4rem;
-
-			clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
-		}
-
-		.characteristic-field {
-			z-index: 1;
 		}
 	}
 

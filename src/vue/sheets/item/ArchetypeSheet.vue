@@ -12,6 +12,7 @@ import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
+import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
 
 const { document: item, system, editable } = useSheetDocument<GenesysItem<'archetype'>>();
 
@@ -35,14 +36,14 @@ async function deleteGrantedItem(index: number) {
 					<h3><Localized label="Genesys.Archetype.Abilities" /></h3>
 
 					<div class="characteristics-container">
-						<div class="characteristics-row">
+						<CharacteristicsRow>
 							<Characteristic
 								v-for="{ characteristic, label } in CHARACTERISTICS"
 								:key="characteristic"
 								:label="label"
 								:value="system.characteristics[characteristic]"
 							/>
-						</div>
+						</CharacteristicsRow>
 					</div>
 
 					<ul>
@@ -204,34 +205,7 @@ section.overview {
 	margin-right: 2em;
 
 	.characteristics-row {
-		position: relative;
-		// One column per characteristic, each as wide as the widest (#621).
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		justify-content: center;
-		gap: 3em;
-		align-items: center;
-		padding-bottom: 0.25rem;
 		grid-column: 2 / span 1;
-
-		&::after {
-			display: block;
-			content: '';
-			position: absolute;
-			top: 0;
-			left: -1.5rem;
-			width: calc(100% + 3rem);
-			height: 100%;
-			background: colors.$gold;
-			border-radius: 4rem;
-
-			clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
-		}
-
-		.characteristic-field {
-			z-index: 1;
-		}
 	}
 }
 </style>
