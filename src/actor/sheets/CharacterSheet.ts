@@ -7,6 +7,11 @@ import { receiveCharacterDrop } from '@/operations/CharacterDrop';
  * Actor sheet used for Player Characters
  */
 export class CharacterSheet extends GenesysActorSheet<'character'> {
+	// Wide enough for two columns of the Skills tab, at 340px each (#620).
+	static override DEFAULT_OPTIONS = {
+		position: { width: 780 },
+	};
+
 	override get vueComponent() {
 		return VueCharacterSheet;
 	}

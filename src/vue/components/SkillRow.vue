@@ -105,7 +105,29 @@ const emit = defineEmits<{
 	<slot name="after-name" />
 
 	<!-- prettier-ignore -->
-	<span v-if="rank !== undefined" class="skill-rank">{{ rank }}<template v-if="canBuyRank">{{ ' ' }}<ActionButton icon="fas fa-arrow-circle-up" label="Genesys.Labels.BuySkillRank" edits @click="emit('buyRank')" /></template></span>
+	<span v-if="rank !== undefined" class="skill-rank">{{ rank }}<ActionButton v-if="canBuyRank" class="buy-rank" icon="fas fa-arrow-circle-up" label="Genesys.Labels.BuySkillRank" edits @click="emit('buyRank')" /></span>
 
 	<SkillRanks :skill-value="skillValue" :characteristic-value="characteristicValue" />
 </template>
+
+<style lang="scss" scoped>
+@use '@scss/vars/colors.scss';
+
+// The ↑ sits on the rank's top-right corner rather than beside the number: the rank keeps one width whether a rank can
+// be bought or not, so the column lines up and the name keeps its room (#620).
+.skill-rank {
+	position: relative;
+}
+
+.buy-rank {
+	position: absolute;
+	top: -0.3em;
+	right: -0.45em;
+	z-index: 1;
+	display: inline-flex;
+	font-size: 0.75em;
+	line-height: 1;
+	background: colors.$field;
+	border-radius: 50%;
+}
+</style>
