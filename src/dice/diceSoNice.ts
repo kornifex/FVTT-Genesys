@@ -7,7 +7,7 @@ import * as log from '@/log';
 
 /**
  * How Dice So Nice draws a die: the localization key of its colorset's name, its colour, the colour of its symbols and
- * of their outline, and the scale of its symbols in the standard font and in the Magical Girl one.
+ * of their outline, and the scale of its symbols.
  */
 type DieLook = {
 	die: DieName;
@@ -16,21 +16,13 @@ type DieLook = {
 	foreground?: string;
 	outline?: string;
 	fontScale: number;
-	magicalFontScale: number;
 };
 
 const DICE: DieLook[] = [
-	{ die: 'Boost', label: 'Genesys.DiceColors.Boost', color: '#72cddc', fontScale: 1.5, magicalFontScale: 1.5 },
-	{ die: 'Ability', label: 'Genesys.DiceColors.Ability', color: '#41ad49', fontScale: 0.8, magicalFontScale: 0.7 },
-	{ die: 'Proficiency', label: 'Genesys.DiceColors.Proficiency', color: '#ffe800', fontScale: 1.2, magicalFontScale: 1.0 },
-	{
-		die: 'Setback',
-		label: 'Genesys.DiceColors.Setback',
-		color: '#000000',
-		foreground: '#ffffff',
-		fontScale: 1.25,
-		magicalFontScale: 1.5,
-	},
+	{ die: 'Boost', label: 'Genesys.DiceColors.Boost', color: '#72cddc', fontScale: 1.5 },
+	{ die: 'Ability', label: 'Genesys.DiceColors.Ability', color: '#41ad49', fontScale: 0.8 },
+	{ die: 'Proficiency', label: 'Genesys.DiceColors.Proficiency', color: '#ffe800', fontScale: 1.2 },
+	{ die: 'Setback', label: 'Genesys.DiceColors.Setback', color: '#000000', foreground: '#ffffff', fontScale: 1.25 },
 	{
 		die: 'Difficulty',
 		label: 'Genesys.DiceColors.Difficulty',
@@ -38,7 +30,6 @@ const DICE: DieLook[] = [
 		foreground: '#ffffff',
 		outline: '#000000',
 		fontScale: 0.8,
-		magicalFontScale: 0.8,
 	},
 	{
 		die: 'Challenge',
@@ -47,12 +38,10 @@ const DICE: DieLook[] = [
 		foreground: '#ffffff',
 		outline: '#000000',
 		fontScale: 1.2,
-		magicalFontScale: 1.0,
 	},
 ];
 
 const FONT_SCALE = Object.fromEntries(DICE.map(({ die, fontScale }) => [DieTypes[die].FORMULA, fontScale]));
-const MAGICAL_FONT_SCALE = Object.fromEntries(DICE.map(({ die, magicalFontScale }) => [DieTypes[die].FORMULA, magicalFontScale]));
 
 function standardColorset({ die, label, color, foreground, outline }: DieLook): ColorSet {
 	return {
@@ -65,18 +54,6 @@ function standardColorset({ die, label, color, foreground, outline }: DieLook): 
 		edge: color,
 		font: 'Genesys Symbols',
 		fontScale: FONT_SCALE,
-	};
-}
-
-function magicalColorset(look: DieLook): ColorSet {
-	return {
-		...standardColorset(look),
-		name: `genesys-mg-${look.die.toLowerCase()}`,
-		category: 'Genesys.DiceCat.MagicalGirl',
-		// The Magical Girl symbols are outlined in the die's colour unless the die gives another.
-		outline: look.outline ?? look.color,
-		font: 'Magical Girl Symbols',
-		fontScale: MAGICAL_FONT_SCALE,
 	};
 }
 
@@ -95,7 +72,6 @@ function customColorset({ die, label }: DieLook): ColorSet {
  */
 const SYSTEMS: { system: string; colorset: (look: DieLook) => ColorSet }[] = [
 	{ system: 'genesys', colorset: standardColorset },
-	{ system: 'genesys-mg', colorset: magicalColorset },
 	{ system: 'standard', colorset: customColorset },
 ];
 
@@ -103,7 +79,6 @@ function registerDice(dice3d: Dice3d) {
 	log.info('Dice So Nice! Detected, initializing dice...');
 
 	dice3d.addSystem({ id: 'genesys', name: 'Genesys.System.Name' }, 'preferred');
-	dice3d.addSystem({ id: 'genesys-mg', name: 'Genesys.DiceCat.MagicalGirl' }, 'default');
 
 	for (const { system, colorset } of SYSTEMS) {
 		for (const look of DICE) {

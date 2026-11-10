@@ -39,7 +39,6 @@ describe('SETTINGS', () => {
 			'world.ignoreTalentPyramid',
 			'world.talentTierVersions',
 			'world.style',
-			'client.useMagicalGirlSymbols',
 			'client.dicePoolCollapseModificationsDetails',
 			'client.dicePoolAutoApplyModifications',
 			'client.dicePoolChanceToSucceedByPermutation',
@@ -51,7 +50,7 @@ describe('SETTINGS', () => {
 		const reloaded = settingEntries().flatMap(([key, entry]) =>
 			entry.requiresReload ? [`${key}${entry.readLive ? ' (live)' : ''}`] : [],
 		);
-		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'useMagicalGirlSymbols', 'dicePoolChanceToSucceedByPermutation']);
+		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'dicePoolChanceToSucceedByPermutation']);
 	});
 
 	it('gives each field of CONFIG.genesys.settings to one setting', () => {
@@ -75,7 +74,6 @@ describe('the DataField of each setting', () => {
 			ignoreTalentPyramid: 'boolean',
 			talentTierVersions: 'boolean',
 			style: 'string',
-			useMagicalGirlSymbols: 'boolean',
 			dicePoolCollapseModificationsDetails: 'boolean',
 			dicePoolAutoApplyModifications: 'boolean',
 			dicePoolChanceToSucceedByPermutation: 'boolean',
@@ -169,7 +167,6 @@ describe('configDefaults', () => {
 			useSuperCharacteristics: false,
 			ignoreTalentPyramid: false,
 			talentTierVersions: false,
-			useMagicalGirlSymbols: false,
 			startWithCollapsedPoolModifications: false,
 			autoApplyPoolModifications: false,
 			showChanceToSucceedFromPermutations: false,

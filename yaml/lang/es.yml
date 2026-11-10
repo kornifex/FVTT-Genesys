@@ -50,8 +50,6 @@ Genesys:
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
     SkillForRepairingVehicleHitsHint: Nombre de la habilidad utilizada al recuperarse de Daños críticos.
-    UseMagicalGirlSymbols: Utiliza los símbolos de Magical Girl de MilkMyth (sólo para este usuario)
-    UseMagicalGirlSymbolsHint: Cambia el juego de símbolos Genesys por el juego de símbolos Magical Girls de MilkMyth. Esto no afectará a otros usuarios.
     DicePoolCollapseModifications: Colapsar la sección de modificaciones de la reserva
     DicePoolCollapseModificationsHint: Si está activada, la sección "modificaciones de la reserva" de la ventana de dados se colapsará durante la renderización inicial.
     DicePoolAutoApplyModifications: Aplicar automáticamente modificaciones en la reserva
@@ -132,7 +130,6 @@ Genesys:
   # Dice So Nice strings
   DiceCat:
     Normal: Dados Genesys
-    MagicalGirl: Magical Girl de MilkMyth
     Custom: Dados Genesys (Personalizable)
   DiceColors:
     Boost: Dado de Beneficio

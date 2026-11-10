@@ -226,17 +226,6 @@ export const SETTINGS = {
 		onSetup: true,
 	}),
 
-	/** Whether to use the Magical Girl symbols where possible in the system. */
-	useMagicalGirlSymbols: setting({
-		scope: 'client',
-		type: switchField,
-		default: false,
-		name: 'Genesys.Settings.UseMagicalGirlSymbols',
-		hint: 'Genesys.Settings.UseMagicalGirlSymbolsHint',
-		requiresReload: true,
-		field: { name: 'useMagicalGirlSymbols' },
-	}),
-
 	/** Whether to collapse the 'Pool Modifications' section when a dice prompt renders. */
 	dicePoolCollapseModificationsDetails: setting({
 		scope: 'client',

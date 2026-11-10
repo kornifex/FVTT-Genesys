@@ -87,10 +87,4 @@ export function register() {
 		editor: true,
 		fonts: [buildDefinition('GenesysSymbols-Regular-Ligatures.woff2', 'normal', '400')],
 	};
-
-	// Genesys Symbols - Magical Girl Variant
-	CONFIG.fontDefinitions['Magical Girl Symbols'] = {
-		editor: true,
-		fonts: [buildDefinition('GenesysSymbols-MagicalGirl-Regular-Ligatures.woff2', 'normal', '400')],
-	};
 }
