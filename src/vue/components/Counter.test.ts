@@ -112,6 +112,40 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
+	it('shows its − and + to a mouse or a hovering pen, not to a finger or a pen that lands, whose tap on a hidden one presses nothing', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		const increase = counter.get('button.increase');
+		const over = async (pointerType: string, buttons: number) => {
+			increase.element.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType, buttons }));
+			await counter.vm.$nextTick();
+			const shown = increase.attributes('aria-hidden') === undefined;
+			await counter.trigger('pointerleave');
+			return shown;
+		};
+		const tap = async (pointerType: string) => {
+			increase.element.dispatchEvent(new PointerEvent('click', { bubbles: true, cancelable: true, pointerType }));
+			await counter.vm.$nextTick();
+		};
+
+		const shown = {
+			mouse: await over('mouse', 0),
+			hoveringPen: await over('pen', 0),
+			landingPen: await over('pen', 1),
+			finger: await over('touch', 1),
+		};
+		await tap('touch');
+		await tap('pen');
+		const tappedHidden = counter.emitted('step');
+		// A tap on the value focuses it, which shows them: a tap on the + then adds one.
+		await counter.get('input').trigger('focusin');
+		await tap('touch');
+
+		expect(shown).toEqual({ mouse: true, hoveringPen: true, landingPen: false, finger: false });
+		expect(tappedHidden).toBeUndefined();
+		expect(counter.emitted('step')).toEqual([[1]]);
+		counter.unmount();
+	});
+
 	it('shows no − at 0 and no + at its cap, and their keys step nothing there', async () => {
 		const empty = mountCounter({ value: 0, label: 'Genesys.Counter.CurrentWounds', max: 24 });
 		const full = mountCounter({ value: 24, label: 'Genesys.Counter.CurrentWounds', max: 24 });
@@ -146,7 +180,7 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
-	it('takes one off on a right-click on its value or its −, and nothing on its +, none of which opens a menu around it', () => {
+	it('takes one off on a right-click on its value or its −, which opens no menu around it, and leaves one on its + to the row', () => {
 		// The row the counter sits in opens its menu on a right-click that reaches it.
 		const rowMenu = vi.fn();
 		document.body.addEventListener('contextmenu', rowMenu);
@@ -157,8 +191,8 @@ describe('Counter', () => {
 		parts.forEach((part, i) => counter.get(part).element.dispatchEvent(events[i]));
 
 		expect(counter.emitted('step')).toEqual([[-1], [-1]]);
-		expect(events.map((event) => event.defaultPrevented)).toEqual([true, true, true]);
-		expect(rowMenu).not.toHaveBeenCalled();
+		expect(events.map((event) => event.defaultPrevented)).toEqual([true, true, false]);
+		expect(rowMenu.mock.calls.map(([event]) => event)).toEqual([events[2]]);
 		document.body.removeEventListener('contextmenu', rowMenu);
 		counter.unmount();
 	});

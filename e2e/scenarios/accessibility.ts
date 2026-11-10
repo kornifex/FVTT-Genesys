@@ -145,6 +145,8 @@ type AccessibilityHelpers = {
 	focusCounter(step: string, focus: boolean): void;
 	/** The current wounds, the wound threshold of an actor, and the name of the field that has the focus. */
 	woundsOf(actor: string): { wounds: number; threshold: number; focused: string | null };
+	/** An actor's item's quantity, and whether its row on the sheet readied last shows its menu open. */
+	inventoryRow(actor: string, item: string): { quantity: number; menu: boolean };
 	/**
 	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
 	 * holds it, and focuses the ⋮. Whether it took the focus, and its name: null for a row without one.
@@ -1521,6 +1523,14 @@ function installAccessibilityHelpers() {
 			else value.blur();
 		},
 
+		inventoryRow(owner, name) {
+			const row = [...find(document, counterSheet!).querySelectorAll('.inventory-item')].find(
+				(row) => text(row.querySelector('.name')) === name,
+			);
+			if (!row) throw new Error(`No inventory row ${name}`);
+			return { quantity: actor(owner).items.getName(name).system.quantity, menu: !!row.querySelector('[role="menu"]') };
+		},
+
 		woundsOf(name) {
 			const { system } = actor(name);
 			return {
@@ -1845,8 +1855,9 @@ async function counterSteps(e2e: ScenarioContext) {
 /**
  * §#648: each counter's − and + show where the pointer goes, straight from outside the counter and back, with the mouse
  * of the browser, whose hit testing finds what takes the pointer (#645), and while the focus is in its value; hidden,
- * they are hidden from a screen reader too; a right-click on the + takes nothing off; and the field a − reaches over
- * keeps a click beside it.
+ * they are hidden from a screen reader too, also once the − went away from under the pointer; a right-click on the +
+ * takes nothing off, and opens the menu of the row the counter sits in; and the field a − reaches over keeps a click
+ * beside it.
  */
 async function counterPointer(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -1948,6 +1959,49 @@ async function counterPointer(e2e: ScenarioContext) {
 				'+ clicked': 2,
 				'+ right-clicked': 2,
 				'− right-clicked': 1,
+			},
+		);
+
+		// The row a counter sits in opens its menu on a right-click anywhere but on the counter's value and −.
+		let row: unknown;
+		await e2e.step("#648 R2 the + of an inventory row's quantity right-clicked with the mouse", async () => {
+			await gm.evaluate(() => window.accessibilityE2E.readyCounterPointer('Tally Hero'));
+			const at = await points('E2E Tally Rope: Quantity +');
+			await mouse.move(at.value.x, at.value.y);
+			await mouse.move(at.step.x, at.step.y);
+			await mouse.click(at.step.x, at.step.y, { button: 'right' });
+			await e2e.settle();
+			row = await gm.evaluate(() => window.accessibilityE2E.inventoryRow('Tally Hero', 'E2E Tally Rope'));
+			await keyboard.press('Escape');
+			await gm.evaluate(() => window.accessibilityE2E.closeAll());
+		});
+		e2e.expect("#648 R2 a right-click on the + of an inventory row's quantity takes nothing off, and opens the row's menu", row, {
+			quantity: 2,
+			menu: true,
+		});
+
+		// The − goes once the value can't go lower, from under the pointer: the pointer leaving after it still hides the +.
+		let left: unknown;
+		await e2e.step("#648 L1 the − of a nemesis's wounds clicked down to 0 with the mouse, then the pointer moved away", async () => {
+			await gm.evaluate(() => window.accessibilityE2E.readyCounterPointer('Tally Nemesis'));
+			const minus = await points('Current Wounds −');
+			const plus = await points('Current Wounds +');
+			await mouse.move(minus.value.x, minus.value.y);
+			await mouse.move(minus.step.x, minus.step.y);
+			await mouse.click(minus.step.x, minus.step.y);
+			await e2e.settle();
+			await mouse.move(minus.away.x, minus.away.y);
+			left = {
+				wounds: (await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Nemesis'))).wounds,
+				'+': await state('Current Wounds +', plus.step),
+			};
+		});
+		e2e.expect(
+			"#648 L1 once a nemesis's wounds are down to 0 and the pointer has left, the + is hidden, from a screen reader too",
+			left,
+			{
+				wounds: 0,
+				'+': 'hidden',
 			},
 		);
 	} finally {

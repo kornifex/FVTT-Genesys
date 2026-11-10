@@ -7,10 +7,11 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 
 /**
  * A value that counts up from 0, such as wounds, a quantity or Story Points: the value alone, a spin button the keyboard
- * steps with its arrows, with − and + buttons that show on hover and focus. A right-click takes one off, but on the +,
- * and a value typed into it goes through the counter's parsing. On a sheet the user can't edit, and where none of its
- * changes is allowed, it shows the value alone. The − and + take no focus on a press, which stays in the value being
- * typed (and out of a button, where Foundry would skip its keybindings).
+ * steps with its arrows, with − and + buttons that show on hover and focus. A right-click on the value or the − takes
+ * one off; one on the + is left to the row the counter sits in, which opens its menu. A value typed into it goes through
+ * the counter's parsing. On a sheet the user can't edit, and where none of its changes is allowed, it shows the value
+ * alone. The − and + take no focus on a press, which stays in the value being typed (and out of a button, where
+ * Foundry would skip its keybindings).
  */
 const props = withDefaults(
 	defineProps<{
@@ -88,6 +89,26 @@ const pointerIn = ref(false);
 const focusIn = ref(false);
 const revealed = computed(() => pointerIn.value || focusIn.value);
 
+// A pointer that hovers shows the − and +: a mouse, or a pen above the screen. A finger, or a pen that lands without
+// hovering first, comes over the counter pressed: showing them then would let one tap show a − and press it, and a tap
+// at the edge of a wound threshold would take a wound off. A tap on the value shows them, through its focus.
+function pointerover(event: PointerEvent) {
+	if (event.pointerType === 'touch' || (event.pointerType === 'pen' && event.buttons !== 0)) {
+		return;
+	}
+	pointerIn.value = true;
+}
+
+// A tap on a hidden − or +, where a device that also has a mouse lets it through (see the styles), presses nothing. A
+// mouse has shown it on its way there, and a click from code (`element.click()`) names no pointer.
+function press(event: MouseEvent, direction: 1 | -1) {
+	const tapped = event instanceof PointerEvent && (event.pointerType === 'touch' || event.pointerType === 'pen');
+	if (tapped && !revealed.value) {
+		return;
+	}
+	step(direction);
+}
+
 function focusout(event: FocusEvent) {
 	const counter = event.currentTarget as HTMLElement;
 	focusIn.value = event.relatedTarget instanceof Node && counter.contains(event.relatedTarget);
@@ -156,18 +177,17 @@ function commit() {
 	}
 }
 
-// A right-click on the counter takes one off, rather than opening the menu of the row it sits in; on its +, it takes
-// nothing off (#645), and opens that menu no more. The context menu key or Shift+F10 opens that menu, as from any
-// control of the row.
+// A right-click on the value or the − takes one off, rather than opening the menu of the row the counter sits in. One on
+// the + takes nothing off (#645) and opens that menu, as a right-click anywhere else on the row does. The context menu
+// key or Shift+F10 opens that menu, as from any control of the row.
 function contextmenu(event: MouseEvent) {
-	if (isKeyboardContextMenu(event)) {
+	const onIncrease = event.target instanceof Element && !!event.target.closest('.step.increase');
+	if (onIncrease || isKeyboardContextMenu(event)) {
 		return;
 	}
 	event.preventDefault();
 	event.stopPropagation();
-	if (!(event.target instanceof Element && event.target.closest('.step.increase'))) {
-		step(-1);
-	}
+	step(-1);
 }
 </script>
 
@@ -180,7 +200,7 @@ function contextmenu(event: MouseEvent) {
 		class="counter interactive"
 		:class="{ revealed }"
 		@contextmenu="contextmenu"
-		@pointerover="pointerIn = true"
+		@pointerover="pointerover"
 		@pointerleave="pointerIn = false"
 		@focusin="focusIn = true"
 		@focusout="focusout"
@@ -193,7 +213,7 @@ function contextmenu(event: MouseEvent) {
 			tabindex="-1"
 			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
-			@click="step(-1)"
+			@click="press($event, -1)"
 		/>
 		<input
 			v-if="types"
@@ -238,7 +258,7 @@ function contextmenu(event: MouseEvent) {
 			tabindex="-1"
 			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
-			@click="step(1)"
+			@click="press($event, 1)"
 		/>
 	</span>
 </template>
@@ -274,9 +294,9 @@ input.value {
 }
 
 // The − and + sit over the counter's neighbours, on each side, without moving them, and show while the counter is
-// revealed (see `revealed`). Hidden, they keep their place and take the pointer: a pointer that goes straight to where
-// one shows, from any side, is on the counter, which shows it (#645). Hidden without room, with `display: none`, they
-// showed only to a pointer that came through the value. A neighbour under one keeps the rest of its area.
+// revealed (see `revealed`). Hidden, they stay where they show and take the pointer, so that a pointer going straight
+// there, from any side, is on the counter, which shows them (#645). What they cover of a neighbour is their own small
+// circle: the neighbour keeps the rest of its area.
 .step {
 	position: absolute;
 	top: 50%;
@@ -306,5 +326,13 @@ input.value {
 
 .counter.revealed .step {
 	opacity: 1;
+}
+
+// Without hover, a pointer can't reveal them: hidden, they let a tap through to the neighbour under them. A tap on the
+// value shows them.
+@media (hover: none) {
+	.counter:not(.revealed) .step {
+		pointer-events: none;
+	}
 }
 </style>
