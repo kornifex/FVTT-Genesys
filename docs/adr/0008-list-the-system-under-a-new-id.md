@@ -1,5 +1,7 @@
 # List the system in the Foundry package registry under a new id
 
+Deferred on 2026-11-10 (#611): we don't submit the system for now, and ADR 0002 governs every release. This decision stays the plan if we pick the listing up again.
+
 Supersedes ADR 0002. The registry listing for `genesys` belongs to Assembling Kings, who won't hand it over; it still offers 0.2.18, for Foundry 12–13, so a table on Foundry v14 that searches the registry finds no Genesys system it can play. We list this system under a new package id, so other tables can find and install it from Foundry. Foundry ties little to the id: the world's system, the compendium pack ids, the `systems/<id>/` paths, the flag scopes `getFlag` and `setFlag` accept, and where Configure Settings files our settings. The rest of our data (`CONFIG.genesys`, flag data, i18n keys, effect keys, CSS classes) can keep `genesys` as its namespace, so moving a world costs a hand edit of its `world.json` and a copy of its settings, not a rewrite of its documents.
 
 Listing is conditional: before any world is migrated, Foundry staff confirm in `#dev-support` that they accept a fork of a listed system under the title we choose. If they refuse, ADR 0002 stands and the id stays `genesys`: the switch to the registry's `genesys` is not worth a migration of every world on its own, since it only happens if a version under `genesys` runs on the host's Foundry build and is above ours. Locking the system covers that case until we decide again.
