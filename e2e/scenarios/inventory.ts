@@ -75,6 +75,20 @@ type MenuKeys = {
 type ContentsBox = { rows: string[]; height: number | string; scrollbar: boolean; lastInside: boolean; visibility: string };
 
 /**
+ * The currency and encumbrance row of an Inventory tab as laid out (#625): whether the row lies above the item sections,
+ * below them or among them; whether it touches the top or the bottom of the tab, inside its padding, and the sections,
+ * within 2px; whether the tab ends where the window's scrolled content ends; and whether the window scrolls.
+ */
+type SummaryRowBox = {
+	placement: 'above' | 'below' | 'among';
+	atTabTop: boolean;
+	atTabBottom: boolean;
+	nextToSections: boolean;
+	tabFillsWindow: boolean;
+	scrolls: boolean;
+};
+
+/**
  * The helpers name an actor of the setup by its name without `E2E `, or `token:<name>` for the actor of an unlinked token.
  */
 type InventoryHelpers = {
@@ -191,6 +205,8 @@ type InventoryHelpers = {
 	containerToggle(actor: string, container: string): Promise<FoldToggle | null>;
 	/** A Container's contents as laid out, or null while the row renders none. */
 	contentsBox(actor: string, container: string): Promise<ContentsBox | null>;
+	/** Shows an actor's Inventory tab and reads its currency and encumbrance row as laid out. */
+	summaryRow(actor: string): Promise<SummaryRowBox>;
 	effects(actor: string): { onActor: number; applied: string[]; suppressed: string[] };
 	/** An item's effects, which live on the item. */
 	itemEffects(actor: string, item: string): string[];
@@ -593,11 +609,13 @@ function installInventoryHelpers() {
 					'Stepper',
 					'Placer',
 					'Hoarder',
+					'Lister',
 				].map(character),
 				{ name: full('Vehicle'), type: 'vehicle' },
 				{ name: full('Hauler'), type: 'vehicle' },
 				{ name: full('Barge'), type: 'vehicle' },
 				{ name: full('Rover'), type: 'vehicle' },
+				{ name: full('Freighter'), type: 'vehicle' },
 				{ name: full('Rival'), type: 'rival' },
 				{ name: full('Minion'), type: 'minion' },
 				{ name: full('Brute'), type: 'rival', system: { characteristics: { brawn: 3 } } },
@@ -1303,6 +1321,43 @@ function installInventoryHelpers() {
 				// Half a pixel of slack, for a box whose edges fall between two pixels.
 				lastInside: !!last && last.getBoundingClientRect().bottom <= box.bottom + 0.5,
 				visibility: last ? getComputedStyle(last).visibility : 'none',
+			};
+		},
+
+		async summaryRow(ref) {
+			await window.e2e.showTab(ref, 'inventory');
+			await settle();
+			const app = actor(ref).sheet;
+			const root = app.element as HTMLElement;
+			const tab = root.querySelector<HTMLElement>('.tab[data-tab="inventory"] .tab-inventory')!;
+			const row = tab.querySelector(':scope > .encumbrance-currency-row')!;
+			const box = row.getBoundingClientRect();
+			const tabBox = tab.getBoundingClientRect();
+			const tabStyle = getComputedStyle(tab);
+			const inner = { top: tabBox.top + parseFloat(tabStyle.paddingTop), bottom: tabBox.bottom - parseFloat(tabStyle.paddingBottom) };
+			// The item sections: their headings, rows and sort slots.
+			const parts = [...tab.children].filter((child) => child !== row).map((child) => child.getBoundingClientRect());
+			const sectionsTop = Math.min(...parts.map((part) => part.top));
+			const sectionsBottom = Math.max(...parts.map((part) => part.bottom));
+			// The window scrolls its content, and its padding past the content's end.
+			const scroller = root.querySelector<HTMLElement>('.window-content')!;
+			const contentEnd =
+				scroller.getBoundingClientRect().top +
+				scroller.clientTop -
+				scroller.scrollTop +
+				scroller.scrollHeight -
+				parseFloat(getComputedStyle(scroller).paddingBottom);
+			const near = (a: number, b: number) => Math.abs(a - b) <= 2;
+			let placement: SummaryRowBox['placement'] = 'among';
+			if (box.bottom <= sectionsTop + 0.5) placement = 'above';
+			else if (box.top >= sectionsBottom - 0.5) placement = 'below';
+			return {
+				placement,
+				atTabTop: near(box.top, inner.top),
+				atTabBottom: near(box.bottom, inner.bottom),
+				nextToSections: near(box.top, sectionsBottom) || near(box.bottom, sectionsTop),
+				tabFillsWindow: near(tabBox.bottom, contentEnd),
+				scrolls: scroller.scrollHeight > scroller.clientHeight + 1,
 			};
 		},
 
@@ -2484,8 +2539,70 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('usedState', () => usedState(e2e));
 	await e2e.part('containerFold', () => containerFold(e2e));
 	await e2e.part('menuKeyboard', () => menuKeyboard(e2e));
+	await e2e.part('summaryRow', () => summaryRow(e2e));
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
+}
+
+/**
+ * §#646: below the item sections, a character's currency and encumbrance row sits at the bottom of the Inventory tab
+ * while the sections leave room, and right after them once they fill it; above them, as on a vehicle's sheet, it stays
+ * at the top. The sheets keep the size they open at: their default width, and the height of the tab they open on, taller
+ * than the Inventory tab of one item.
+ */
+async function summaryRow(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const summary = (actor: string) => gm.evaluate((ref) => window.inventoryE2E.summaryRow(ref), actor);
+	const MANY = Array.from({ length: 24 }, (_, index) => `Trinket ${index + 1}`);
+
+	await e2e.step("#646 A1 Lister's Inventory tab, which lists one item", () =>
+		gm.evaluate(() => window.inventoryE2E.createItems('Lister', [{ name: 'Lamp', type: 'gear', system: { state: 'carried' } }])),
+	);
+	e2e.expect(
+		'#646 A1 the row sits at the bottom of the tab, which fills the sheet as it opened, apart from the sections above it',
+		await summary('Lister'),
+		{
+			placement: 'below',
+			atTabTop: false,
+			atTabBottom: true,
+			nextToSections: false,
+			tabFillsWindow: true,
+			scrolls: false,
+		},
+	);
+
+	await e2e.step('#646 A2 Lister given 24 more items, which fill the tab', () =>
+		gm.evaluate(
+			(names) =>
+				window.inventoryE2E.createItems(
+					'Lister',
+					names.map((name) => ({ name, type: 'gear', system: { state: 'carried' } })),
+				),
+			MANY,
+		),
+	);
+	e2e.expect('#646 A2 the row comes right after the last section, at the end of the tab, which scrolls', await summary('Lister'), {
+		placement: 'below',
+		atTabTop: false,
+		atTabBottom: true,
+		nextToSections: true,
+		tabFillsWindow: true,
+		scrolls: true,
+	});
+
+	await e2e.step("#646 A3 Freighter's Inventory tab, which lists its currency and encumbrance row above the sections", () =>
+		gm.evaluate(() => window.inventoryE2E.createItems('Freighter', [{ name: 'Crate', type: 'gear', system: { state: 'carried' } }])),
+	);
+	e2e.expect('#646 A3 the row stays at the top of the tab, right before the sections', await summary('Freighter'), {
+		placement: 'above',
+		atTabTop: true,
+		atTabBottom: false,
+		nextToSections: true,
+		tabFillsWindow: true,
+		scrolls: false,
+	});
+
+	await gm.evaluate(() => window.e2e.closeSetUp());
 }
 
 /**
