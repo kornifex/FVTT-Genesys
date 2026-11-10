@@ -192,7 +192,8 @@ describe('Counter', () => {
 
 		expect(counter.emitted('step')).toEqual([[-1], [-1]]);
 		expect(events.map((event) => event.defaultPrevented)).toEqual([true, true, false]);
-		expect(rowMenu.mock.calls.map(([event]) => event)).toEqual([events[2]]);
+		expect(rowMenu).toHaveBeenCalledOnce();
+		expect(rowMenu).toHaveBeenCalledWith(events[2]);
 		document.body.removeEventListener('contextmenu', rowMenu);
 		counter.unmount();
 	});
