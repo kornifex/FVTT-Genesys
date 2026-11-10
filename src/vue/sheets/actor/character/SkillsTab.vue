@@ -209,7 +209,8 @@ async function toggleSuper(characteristic: CharacteristicType) {
 	width: 100%;
 	padding-left: 0.5em;
 	padding-right: 0.5em;
-	columns: 300px;
+	// Wide enough for a long name beside its die, career star, rank, dice and ⋮ (#620); the sheet opens at two columns.
+	columns: 340px;
 	column-gap: 8px;
 	// Each category is one line of the row: a column may start or end with a single one.
 	orphans: 1;

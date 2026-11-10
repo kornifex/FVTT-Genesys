@@ -2479,6 +2479,40 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 	);
 	await page((name) => window.characterE2E.close(name), 'Ranks');
 
+	// §#620: at the sheet's default width, every skill name fits beside its die, star, rank, dice and ⋮, and the rank
+	// keeps one width whether a rank can be bought: its ↑ is a badge on its corner.
+	let fit = {};
+	await e2e.step('#620 A1 a character with XP to spend opens at its default width on the Skills tab', async () => {
+		fit = await page(async () => {
+			await Actor.create({
+				name: 'E2E Wide',
+				type: 'character',
+				system: { experienceJournal: { entries: [{ amount: 200, type: 'Starting', data: {} }] } },
+			});
+			await window.characterE2E.open('Wide');
+			await window.e2e.showTab('Wide', 'skills');
+			const sheet = window.e2e.actor('Wide').sheet;
+			const root = window.e2e.htmlOf(sheet)!;
+			const names = [...root.querySelectorAll<HTMLElement>('.tab-skills .skill-name')];
+			const ranks = [...root.querySelectorAll<HTMLElement>('.tab-skills .skill-rank')];
+			return {
+				width: sheet.position.width,
+				columns: new Set(
+					[...root.querySelectorAll<HTMLElement>('.tab-skills .skill-category')].map((category) => category.offsetLeft),
+				).size,
+				cut: names.filter((name) => name.scrollWidth > name.clientWidth).map((name) => window.e2e.text(name)),
+				rankWidths: new Set(ranks.map((rank) => rank.offsetWidth)).size,
+				buyable: ranks.filter((rank) => rank.querySelector('button.buy-rank')).length === ranks.length,
+			};
+		}, undefined);
+	});
+	e2e.expect(
+		'#620 A1 at its default width the sheet shows two columns of skills, none of whose names is cut off, and every rank has one width with its ↑',
+		fit,
+		{ width: 780, columns: 2, cut: [], rankWidths: 1, buyable: true },
+	);
+	await page((name) => window.characterE2E.close(name), 'Wide');
+
 	await e2e.step('#114 J2 Rank Up twice then Rank Down three times on a rival skill', async () => {
 		await page(
 			(name) =>
