@@ -95,6 +95,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				:key="characteristic"
 				:label="label"
 				:value="system.characteristics[characteristic]"
+				raisable
 				:can-upgrade="canPurchaseCharacteristic(characteristic)"
 				@upgrade="purchaseCharacteristic(characteristic)"
 				can-roll-characteristic-check

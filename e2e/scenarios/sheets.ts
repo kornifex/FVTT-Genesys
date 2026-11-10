@@ -72,6 +72,11 @@ type SheetsHelpers = {
 	/** Renders the sheet of an actor, a world item, or an owned item (`Actor/Item`), and returns its window's state. */
 	open(name: string): Promise<{ appV2: boolean; title: string; headerTitle: string }>;
 	close(name: string): Promise<void>;
+	/**
+	 * The characteristic boxes of a rendered sheet, as laid out: each box's width, the row's edges relative to the
+	 * sheet's, and how many ↑ show and how many rooms for one are kept (#644).
+	 */
+	characteristicRow(name: string): { widths: number[]; edges: number[]; raises: number; rooms: number };
 	/** Minimizes an open sheet then maximizes it, and reads its window's size at each stage, with its header's height. */
 	minimizeAndMaximize(name: string): Promise<{ open: Size; minimized: Size; headerHeight: number; maximized: Size }>;
 	/** Asks an open sheet for a size below any minimum, and reads the size its window takes. */
@@ -514,6 +519,18 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			if (app.rendered) await app.close();
 			await settle();
+		},
+
+		characteristicRow(name) {
+			const element = sheetElement(name);
+			const fields = [...element.querySelectorAll<HTMLElement>('.characteristic-field')];
+			const [sheet, row] = [element.getBoundingClientRect(), fields[0].parentElement!.getBoundingClientRect()];
+			return {
+				widths: fields.map((field) => field.offsetWidth),
+				edges: [Math.round(row.left - sheet.left), Math.round(row.right - sheet.left)],
+				raises: element.querySelectorAll('.characteristic-label .raise').length,
+				rooms: element.querySelectorAll('.characteristic-label .raise-room').length,
+			};
 		},
 
 		async minimizeAndMaximize(name) {
@@ -1985,6 +2002,26 @@ export async function run(e2e: ScenarioContext) {
 									const fields = [...root.querySelectorAll<HTMLElement>('.characteristic-field')];
 									const row = fields[0]?.parentElement;
 									const rect = (element: Element) => element.getBoundingClientRect();
+									// What the row draws, within the sheet's content box: its first and last boxes, which reach
+									// 1em past it, and its band, 1.5rem past it on each side.
+									const rowFits = (root: HTMLElement, row: HTMLElement) => {
+										const content = root.querySelector('.window-content')!;
+										const style = getComputedStyle(content);
+										const [left, right] = [
+											rect(content).left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
+											rect(content).right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight),
+										];
+										const boxes = [...row.querySelectorAll('.box')];
+										const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+										const band = row.classList.contains('band') ? 1.5 * rem : 0;
+										return (
+											boxes.length > 0 &&
+											rect(boxes[0]).left >= left - 1 &&
+											rect(boxes.at(-1)!).right <= right + 1 &&
+											rect(row).left - band >= left - 1 &&
+											rect(row).right + band <= right + 1
+										);
+									};
 									// Each box to a pixel's rounding.
 									const boxes = fields.map((field) => {
 										const label = field.querySelector<HTMLElement>('.characteristic-label')!;
@@ -2036,7 +2073,7 @@ export async function run(e2e: ScenarioContext) {
 										longerNameNoNarrower: boxes.every((a) =>
 											boxes.every((b) => a.nameWidth <= b.nameWidth + 1 || a.width >= b.width),
 										),
-										rowFits: !!row && rect(row).right <= rect(root).right && rect(row).left >= rect(root).left,
+										rowFits: rowFits(root, row!),
 									};
 									await window.sheetsE2E.close(name);
 								}
@@ -2077,6 +2114,51 @@ export async function run(e2e: ScenarioContext) {
 					]),
 				),
 			),
+		);
+
+		// A character's boxes keep their ↑'s room whether a raise shows or not: they don't widen, nor the row move, as XP
+		// runs out, nor between the GM, who may raise, and a player who observes.
+		type Row = ReturnType<SheetsHelpers['characteristicRow']>;
+		const rows: Record<string, Row> = {};
+		await e2e.step('#650 A2 GM and the observing player open the character who can raise every characteristic', async () => {
+			rows.gm = await gm.evaluate(async () => {
+				await window.sheetsE2E.open('Observed');
+				return window.sheetsE2E.characteristicRow('Observed');
+			});
+			rows.observer = await player.evaluate(async () => {
+				await window.sheetsE2E.open('Observed');
+				return window.sheetsE2E.characteristicRow('Observed');
+			});
+		});
+		await e2e.step('#650 A2 the character spends all their XP', async () => {
+			rows.spent = await gm.evaluate(async () => {
+				await game.actors.getName('E2E Observed').update({ 'system.experienceJournal.entries': [{ amount: 0, type: 'Starting' }] });
+				await window.e2e.waitFor('the ↑ gone', () => window.sheetsE2E.characteristicRow('Observed').raises === 0);
+				return window.sheetsE2E.characteristicRow('Observed');
+			});
+			await gm.evaluate(async () => {
+				await game.actors
+					.getName('E2E Observed')
+					.update({ 'system.experienceJournal.entries': [{ amount: 100, type: 'Starting' }] });
+				await window.sheetsE2E.close('Observed');
+			});
+			await player.evaluate(() => window.sheetsE2E.close('Observed'));
+		});
+		e2e.log('#650 A2 rows', rows);
+		const shape = ({ gm, observer, spent }: Record<string, Row>) => ({
+			shown: { gm: [gm.raises, gm.rooms], observer: [observer.raises, observer.rooms], spent: [spent.raises, spent.rooms] },
+			sameWidths: [observer, spent].map((row) => row.widths.join() === gm.widths.join()),
+			sameEdges: [observer, spent].map((row) => row.edges.join() === gm.edges.join()),
+		});
+		e2e.expect(
+			"#650 A2 a character's boxes keep their width and the row its place, whether the ↑ shows (the GM, with XP), not to an observer, or not once the XP is spent: each box keeps the ↑'s room",
+			shape(rows),
+			{
+				// [↑ shown, rooms kept]
+				shown: { gm: [6, 0], observer: [0, 6], spent: [0, 6] },
+				sameWidths: [true, true],
+				sameEdges: [true, true],
+			},
 		);
 	});
 

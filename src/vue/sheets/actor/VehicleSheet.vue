@@ -172,6 +172,11 @@ const TABS = [
 				clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
 			}
 
+			// Over the row's band, which comes after them.
+			.characteristics-row {
+				z-index: 1;
+			}
+
 			.stats-column {
 				display: grid;
 				grid-template-columns: 1fr 1fr;

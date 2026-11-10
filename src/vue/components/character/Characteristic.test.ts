@@ -69,6 +69,29 @@ describe('Characteristic', () => {
 		expect([...label.element.children].map((child) => child.className)).toEqual(['action-button roll-link', 'action-button raise']);
 	});
 
+	it("keeps its ↑'s room on a sheet that raises characteristics, unread and out of reach, while the ↑ doesn't show", () => {
+		const unaffordable = mountCharacteristic({ ...brawn, raisable: true });
+		const observed = mountCharacteristic({ ...brawn, raisable: true, canUpgrade: true }, { editable: false });
+
+		for (const characteristic of [unaffordable, observed]) {
+			const room = characteristic.get('.characteristic-label > .raise-room');
+			expect(room.attributes('aria-hidden')).toBe('true');
+			expect(room.find('button, [tabindex]').exists()).toBe(false);
+			expect(characteristic.find('.raise').exists()).toBe(false);
+		}
+	});
+
+	it('shows its ↑ in place of its room once a raise is affordable', () => {
+		const characteristic = mountCharacteristic({ ...brawn, raisable: true, canUpgrade: true });
+
+		expect(characteristic.find('.raise').exists()).toBe(true);
+		expect(characteristic.find('.raise-room').exists()).toBe(false);
+	});
+
+	it('keeps no room for an ↑ on a sheet that never raises characteristics', () => {
+		expect(mountCharacteristic(brawn).find('.raise-room').exists()).toBe(false);
+	});
+
 	it("marks a super-characteristic with a star on its value, where the world's setting allows them", () => {
 		expect(
 			mountCharacteristic({ ...brawn, isSuper: true })
@@ -77,11 +100,9 @@ describe('Characteristic', () => {
 		).toBe(false);
 
 		vi.stubGlobal('CONFIG', { genesys: { settings: { useSuperCharacteristics: true } } });
-		expect(
-			mountCharacteristic({ ...brawn, isSuper: true })
-				.find('.value > .super-star')
-				.exists(),
-		).toBe(true);
+		// Decorative: the ⋮ menu's entry says whether the characteristic is superior.
+		const star = mountCharacteristic({ ...brawn, isSuper: true }).get('.value > .super-star');
+		expect(star.attributes('aria-hidden')).toBe('true');
 		expect(mountCharacteristic(brawn).find('.super-star').exists()).toBe(false);
 	});
 

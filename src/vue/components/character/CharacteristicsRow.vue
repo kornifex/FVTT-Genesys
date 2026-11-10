@@ -30,15 +30,14 @@ withDefaults(
 	// Each box fitted to its own name, rather than all at the width of the widest (#644): a short name doesn't look lost
 	// in a box sized for « Intelligence ».
 	grid-auto-columns: max-content;
-	justify-content: center;
 	// Each box reaches 1em past its column on each side, which leaves 1em between two boxes.
 	gap: 3em;
 	align-items: center;
 
-	// Above the rows that follow on its sheet, such as the skills, so that a box's open ⋮ menu covers them; and a stacking
-	// context of its own, so that the band stays behind its boxes.
+	// A stacking context of its own, so that the band, at -1 in it, stays behind the boxes yet over the sheet's
+	// background. The band is placed from the row's edges.
 	position: relative;
-	z-index: 2;
+	isolation: isolate;
 
 	// The band shows below the boxes too.
 	&.band {
