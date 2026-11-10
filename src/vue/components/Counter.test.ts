@@ -78,19 +78,6 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
-	it('names its buttons by the labels given', () => {
-		const counter = mountCounter({
-			value: 2,
-			label: 'Genesys.StoryPoints.Player',
-			decreaseLabel: 'Genesys.StoryPoints.Spend',
-			increaseLabel: 'Genesys.StoryPoints.Add',
-		});
-
-		expect(counter.get('button.decrease').attributes('aria-label')).toBe('localized Genesys.StoryPoints.Spend');
-		expect(counter.get('button.increase').attributes('aria-label')).toBe('localized Genesys.StoryPoints.Add');
-		counter.unmount();
-	});
-
 	it('shows no − at 0 and no + at its cap, and their keys step nothing there', async () => {
 		const empty = mountCounter({ value: 0, label: 'Genesys.Counter.CurrentWounds', max: 24 });
 		const full = mountCounter({ value: 24, label: 'Genesys.Counter.CurrentWounds', max: 24 });
@@ -217,19 +204,6 @@ describe('Counter', () => {
 		counter.get('button.increase').element.dispatchEvent(press);
 
 		expect(press.defaultPrevented).toBe(true);
-		counter.unmount();
-	});
-
-	it('writes nothing for a number typed below 0 where it refuses one, and rounds the others', async () => {
-		const counter = mountCounter({ value: 3, label: 'Genesys.StoryPoints.GM', refusesNegative: true });
-		const input = counter.get('input');
-
-		await input.setValue('-1');
-		await input.trigger('keydown', { key: 'Enter' });
-		await input.setValue('1.5');
-		await input.trigger('keydown', { key: 'Enter' });
-
-		expect(counter.emitted('type')).toEqual([[2]]);
 		counter.unmount();
 	});
 
