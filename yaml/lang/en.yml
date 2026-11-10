@@ -371,15 +371,13 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    MagicalGirl: >-
-      The Magical Girl symbols and dice are gone; a player who rolled them with Dice So Nice rolls its standard dice
-    ItemSheetSize: Open an item sheet at 560×440 rather than at its description's height
-    SpendStoryPoint: >-
-      Spend a Story Point with a click on its pool's count again; the GM types a pool's count with a right-click
-    SkillNames: Fit long skill names; the ↑ that buys a rank sits on the rank's corner
-    CharacteristicBoxes: Fit each characteristic's box to its label, all the boxes of a row at one width
-    CombatStatCounter: Show a counter's − and + whole beside a wound or strain threshold
-    TalentBars: Show the Talents tab's Active, Passive and activation groups as bars again
+    NoRollDie: Show no die before a name that rolls
+    AttackFromCombatTab: A character's weapon attacks from the Combat tab only, no longer from the inventory
+    InventorySummary: Keep the currency and encumbrance row at the bottom of the Inventory tab
+    RowMenus: Show an open row menu over everything in its sheet
+    CounterButtons: >-
+      Show a counter's − and + wherever the pointer reaches them; a right-click on the + takes nothing off
+    CharacteristicBoxes: Fit each characteristic's box to its own name, with its ↑ beside it
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

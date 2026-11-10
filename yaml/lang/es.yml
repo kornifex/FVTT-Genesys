@@ -370,16 +370,13 @@ Genesys:
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
-    MagicalGirl: >-
-      Los símbolos y los dados Magical Girl ya no se incluyen; un jugador que los tiraba con Dice So Nice tira sus dados
-      estándar
-    ItemSheetSize: La hoja de un objeto se abre en 560×440 en lugar de a la altura de su descripción
-    SpendStoryPoint: >-
-      Un clic en el total de una reserva vuelve a gastar un punto de Historia; el DJ escribe el total con un clic derecho
-    SkillNames: Los nombres de habilidad largos caben; la ↑ que compra un rango se sitúa en la esquina del rango
-    CharacteristicBoxes: La casilla de una característica se ajusta a su nombre, todas las casillas de una fila al mismo ancho
-    CombatStatCounter: Los − y + de un contador se ven enteros junto a un umbral de heridas o de tensión
-    TalentBars: Los grupos Activo, Pasivo y de activación de la pestaña Talentos vuelven a ser barras
+    NoRollDie: Un nombre que tira dados ya no lleva un dado delante
+    AttackFromCombatTab: El arma de un personaje ataca solo desde la pestaña Combate, ya no desde el inventario
+    InventorySummary: La fila de dinero e impedimento queda al pie de la pestaña Inventario
+    RowMenus: El menú abierto de una fila se muestra por encima de todo lo demás en su hoja
+    CounterButtons: >-
+      Los − y + de un contador se muestran donde llega el puntero; un clic derecho en el + ya no resta nada
+    CharacteristicBoxes: La casilla de una característica se ajusta a su propio nombre, con su ↑ al lado
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

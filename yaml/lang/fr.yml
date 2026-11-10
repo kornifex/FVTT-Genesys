@@ -374,16 +374,13 @@ Genesys:
     Fix: CORRECTIF
     Feature: NOUVEAUTÉ
     Styling: STYLE
-    MagicalGirl: >-
-      Les symboles et les dés Magical Girl ne sont plus fournis ; un joueur qui les lançait avec Dice So Nice lance ses dés
-      standard
-    ItemSheetSize: La fiche d'un objet s'ouvre en 560×440 plutôt qu'à la hauteur de sa description
-    SpendStoryPoint: >-
-      Un clic sur le total d'une réserve dépense de nouveau un point Narratif ; le MJ saisit le total d'un clic droit
-    SkillNames: Les noms de compétence longs tiennent ; le ↑ qui achète un rang se place au coin du rang
-    CharacteristicBoxes: La case d'une caractéristique s'ajuste à son nom, toutes les cases d'une ligne à la même largeur
-    CombatStatCounter: Les − et + d'un compteur s'affichent en entier à côté d'un seuil de blessures ou de stress
-    TalentBars: Les groupes Actif, Passif et d'activation de l'onglet Talents redeviennent des bandeaux
+    NoRollDie: Un nom qui lance des dés n'a plus de dé devant lui
+    AttackFromCombatTab: L'arme d'un personnage attaque depuis l'onglet Combat seulement, plus depuis l'inventaire
+    InventorySummary: La ligne de monnaie et d'encombrement reste en bas de l'onglet Inventaire
+    RowMenus: Le menu ouvert d'une ligne s'affiche par-dessus tout le reste de la fiche
+    CounterButtons: >-
+      Les − et + d'un compteur s'affichent dès que le pointeur les atteint ; un clic droit sur le + n'enlève plus rien
+    CharacteristicBoxes: La case d'une caractéristique s'ajuste à son propre nom, son ↑ à côté
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
