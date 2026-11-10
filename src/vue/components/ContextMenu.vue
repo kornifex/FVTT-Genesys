@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { handOffFocus, leaveFocus, takeFocus } from '@/vue/components/menuFocus';
-import { menuAtContainer, menuAtPointer } from '@/vue/components/menuPlacement';
+import { boxAround, menuAtContainer, menuAtPointer, type Point, windowScale } from '@/vue/components/menuPlacement';
 import { isKeyboardClick, isKeyboardContextMenu } from '@/vue/inputSource';
 import ActionButton from '@/vue/components/ActionButton.vue';
 
@@ -45,6 +45,9 @@ const menu = useTemplateRef<HTMLElement>('menu');
 // sheet scrolls.
 let offset: Point | undefined;
 
+// Whether the open menu was opened from the keyboard, whose focus goes back to its opener however the menu closes.
+let fromKeyboard = false;
+
 // The control the focus goes back to once the menu closes from the keyboard: its ⋮ button, or the control that had the
 // focus when it opened from a row without one.
 let opener: HTMLElement | undefined;
@@ -54,8 +57,6 @@ let opener: HTMLElement | undefined;
 let listened: Document | undefined;
 
 type Focus = 'first' | 'last';
-
-type Point = { x: number; y: number };
 
 // Names the menu after its ⋮.
 const triggerId = useId();
@@ -83,6 +84,11 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 	const ownerDocument = container.value.ownerDocument;
 	const focused = ownerDocument.activeElement as HTMLElement | null;
 	opener = triggerButton() ?? (focused && focused !== ownerDocument.body && !menu.value?.contains(focused) ? focused : undefined);
+	fromKeyboard =
+		!pointer &&
+		(event.type === 'keydown' ||
+			(event.type === 'click' && isKeyboardClick(event as MouseEvent)) ||
+			(event.type === 'contextmenu' && isKeyboardContextMenu(event as MouseEvent)));
 
 	showMenu.value = true;
 
@@ -101,7 +107,10 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 		// The menu shows in the top layer, over every element of the page, whatever stacking context its row paints in: a
 		// z-index would only win within the row's category, and lose to an ↑ or a category painted after it (#643).
 		menu.value.showPopover();
-		place(menu.value, container.value, pointer);
+		if (!place(menu.value, container.value, pointer)) {
+			hideMenu();
+			return;
+		}
 
 		// From the pointer too, as the pattern has it: the focus in the menu keeps Escape from Foundry's keybindings, and a
 		// click on an entry or elsewhere leaves no focus behind. The menu is placed where it shows: nothing scrolls to it.
@@ -111,19 +120,44 @@ function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) 
 }
 
 /**
- * Places the menu in the viewport: its top-left corner under the pointer, or at its container. The top layer takes no
- * transform from the sheet's window, which may be scaled: the menu takes the window's scale itself.
+ * Places the menu in the viewport: its top-left corner under the pointer, or at its container, inside the viewport. The
+ * top layer takes no transform from the sheet's window, which may be scaled: the menu takes the window's scale itself.
+ * False when its container shows nothing to place it at.
  */
 function place(menuElement: HTMLElement, containerElement: HTMLElement, pointer: Point | undefined) {
-	const box = containerElement.getBoundingClientRect();
-	const scale = containerElement.offsetWidth ? box.width / containerElement.offsetWidth : 1;
+	const box = shownBox(containerElement);
+	if (!box) {
+		return false;
+	}
+
+	// Measured on the window, whose width is large enough for the rounding of its laid-out width to tell no scale.
+	const scaled = containerElement.closest<HTMLElement>('.application, .app') ?? containerElement;
+	const scale = windowScale(scaled.getBoundingClientRect().width, scaled.offsetWidth);
 	const size = { width: menuElement.offsetWidth * scale, height: menuElement.offsetHeight * scale };
-	const visible = visibleArea(menuElement);
-	const corner = pointer ? menuAtPointer(pointer, size, visible) : menuAtContainer(box, size, visible, props.position, props.orientation);
+	const room = { visible: visibleArea(menuElement), viewport: viewportOf(menuElement) };
+	const corner = pointer ? menuAtPointer(pointer, size, room) : menuAtContainer(box, size, room, props.position, props.orientation);
 
 	offset = { x: corner.x - box.left, y: corner.y - box.top };
 	moveTo(menuElement, corner);
 	menuElement.style.transform = scale === 1 ? '' : `scale(${scale})`;
+	return true;
+}
+
+/**
+ * The box an element shows in the viewport: its own, or, for an element laid out as `display: contents`, which has
+ * none, the box around its children's, such as a characteristic's label and ⋮. None when nothing of it shows.
+ */
+function shownBox(element: Element): ReturnType<typeof boxAround> {
+	if (element.getClientRects().length > 0) {
+		return element.getBoundingClientRect();
+	}
+
+	return boxAround(
+		[...element.children].flatMap((child) => {
+			const box = child === menu.value ? undefined : shownBox(child);
+			return box ? [box] : [];
+		}),
+	);
 }
 
 function moveTo(menuElement: HTMLElement, corner: Point) {
@@ -139,10 +173,10 @@ function hideMenu() {
 /**
  * Closes the menu and gives the focus back to its opener, after a close from the keyboard.
  */
-function closeToOpener() {
+function closeToOpener(options?: FocusOptions) {
 	hideMenu();
 	if (opener?.isConnected) {
-		opener.focus();
+		opener.focus(options);
 	}
 }
 
@@ -176,17 +210,22 @@ function closeContextMenu(event: MouseEvent) {
 }
 
 // The menu is placed in the viewport: as its sheet scrolls, it follows its row, and closes once the row leaves what the
-// sheet shows. Scrolling elsewhere in the page, such as the chat log on a new message, leaves it where it is.
+// sheet shows, the focus going back to the opener when it opened from the keyboard, where it stays. Scrolling elsewhere
+// in the page, such as the chat log on a new message, leaves it where it is.
 function followContainer(event: Event) {
 	const scrolled = event.target as Node | null;
 	if (!scrolled || !menu.value || !container.value || !offset || !scrolled.contains(container.value)) {
 		return;
 	}
 
-	const box = container.value.getBoundingClientRect();
+	const box = shownBox(container.value);
 	const visible = visibleArea(menu.value);
-	if (box.bottom <= visible.top || box.top >= visible.bottom) {
-		hideMenu();
+	if (!box || box.bottom <= visible.top || box.top >= visible.bottom) {
+		if (fromKeyboard) {
+			closeToOpener({ preventScroll: true });
+		} else {
+			hideMenu();
+		}
 		return;
 	}
 
@@ -282,14 +321,21 @@ function onMenuKeydown(event: KeyboardEvent) {
 	}
 }
 
-// The part of the viewport an element shows in: each ancestor that clips its overflow, such as the sheet's scrolling tab
-// and its window, cuts it down.
+// The viewport of the element's own window: a window detached from the main one on v14 has its own.
+function viewportOf(element: HTMLElement) {
+	const { documentElement } = element.ownerDocument;
+	return { left: 0, top: 0, right: documentElement.clientWidth, bottom: documentElement.clientHeight };
+}
+
+// The part of the viewport an element's sheet shows it in: each ancestor that scrolls, such as the sheet's tab, cuts it
+// down. One that only hides its overflow, such as a Container's content row (`.mini`, 2em high), shows its rows whole:
+// the menu, in the top layer, isn't cut by it, and flips within what the sheet shows.
 function visibleArea(element: HTMLElement) {
-	const { documentElement, defaultView } = element.ownerDocument;
-	const view = defaultView ?? window;
-	const area = { left: 0, top: 0, right: documentElement.clientWidth, bottom: documentElement.clientHeight };
+	const view = element.ownerDocument.defaultView ?? window;
+	const area = viewportOf(element);
 	for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-		if (view.getComputedStyle(ancestor).overflow === 'visible') {
+		const { overflowX, overflowY } = view.getComputedStyle(ancestor);
+		if (![overflowX, overflowY].some((overflow) => overflow === 'auto' || overflow === 'scroll')) {
 			continue;
 		}
 

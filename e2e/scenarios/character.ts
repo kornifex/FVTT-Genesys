@@ -2644,6 +2644,55 @@ async function skillMenus(e2e: ScenarioContext, page: Evaluate) {
 		{ direction: true, covers: ['dice', 'rank ↑'], over: [] },
 	);
 	await page((name) => window.characterE2E.close(name), S);
+
+	// A characteristic's menu hangs from a container laid out as `display: contents`, which has no box of its own.
+	const C = 'Superior';
+	let superMenu = {};
+	await e2e.step("#647 A3 Super-Characteristics on, a character in Character Creation opens Brawn's menu from its ⋮", async () => {
+		await page(async (name) => {
+			await window.e2e.setSettings({ useSuperCharacteristics: true });
+			await window.characterE2E.create(name);
+			await window.characterE2E.open(name);
+			await window.characterE2E.applyArchetype(name, 'Small Archetype');
+			await window.e2e.showTab(name, 'skills');
+		}, C);
+		superMenu = await page(async (name) => {
+			const { actor, htmlOf, settle, text, waitFor } = window.e2e;
+			const root = htmlOf(actor(name).sheet)!;
+			const field = root.querySelector<HTMLElement>('.tab-skills .characteristic-field')!;
+			const container = field.querySelector<HTMLElement>('.menu-container')!;
+			container.querySelector<HTMLElement>(':scope > .menu-trigger')!.click();
+			const menu = await waitFor("Brawn's menu", () => container.querySelector<HTMLElement>(':scope > [role="menu"]'));
+			await settle();
+
+			const box = menu.getBoundingClientRect();
+			const around = field.getBoundingClientRect();
+			const over = [0.05, 0.25, 0.5, 0.75, 0.95]
+				.flatMap((x) =>
+					[0.1, 0.3, 0.5, 0.7, 0.9].map((y) => document.elementFromPoint(box.left + box.width * x, box.top + box.height * y)),
+				)
+				.filter((element) => !menu.contains(element))
+				.map((element) => (element ? [element.tagName.toLowerCase(), ...element.classList].join('.') : 'nothing'));
+			const entries = [...menu.querySelectorAll('.menu-label')].map((label) => text(label));
+			document.body.click();
+			await waitFor("Brawn's menu to close", () => !menu.isConnected);
+			return {
+				entries,
+				// Across the characteristic's box, its top edge between the box's top and just under its bottom.
+				nextToIt: box.right > around.left && box.left < around.right && box.top >= around.top && box.top <= around.bottom + 4,
+				over: [...new Set(over)],
+			};
+		}, C);
+	});
+	e2e.expect("#647 A3 a characteristic's menu opened from its ⋮ shows next to its characteristic, with nothing over it", superMenu, {
+		entries: [await page(() => game.i18n.localize('Genesys.Labels.MarkSuperCharacteristic'), undefined)],
+		nextToIt: true,
+		over: [],
+	});
+	await page(async (name) => {
+		await window.characterE2E.close(name);
+		await window.e2e.setSettings({ useSuperCharacteristics: false });
+	}, C);
 }
 
 /** §#110: the Talent Pyramid summary under Ignore Talent Pyramid. */

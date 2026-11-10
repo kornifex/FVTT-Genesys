@@ -13,6 +13,9 @@ type Props = InstanceType<typeof ContextMenu>['$props'];
 beforeEach(() => {
 	// Foundry localizes a key into its text: here, the key marked as localized.
 	vi.stubGlobal('game', { i18n: { localize: (key: string) => `localized ${key}` } });
+	// happy-dom lays nothing out: the viewport, which a menu stays inside, gets a size.
+	vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
+	vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
 });
 
 // A menu left open keeps its listeners on the document, which would take the next test's first click.
@@ -208,10 +211,6 @@ describe('ContextMenu', () => {
 		});
 
 		it('follows its row as its sheet scrolls, stays put while something else scrolls, and closes once the row is gone from view', async () => {
-			// happy-dom lays nothing out: the viewport and the row get a size, and nothing clips them.
-			vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
-			vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
-			vi.spyOn(window, 'getComputedStyle').mockReturnValue({ overflow: 'visible' } as CSSStyleDeclaration);
 			const sheet = document.body.appendChild(document.createElement('div'));
 			const elsewhere = document.body.appendChild(document.createElement('div'));
 			const { menu } = mountMenu({ trigger: true }, sheet);
@@ -235,6 +234,24 @@ describe('ContextMenu', () => {
 			expect(isOpen(menu)).toBe(false);
 			sheet.remove();
 			elsewhere.remove();
+		});
+
+		it('opens at the box around its content when its container has none of its own, as one laid out as display: contents', async () => {
+			const { menu } = mountMenu({ trigger: true });
+			const container = menu.element as HTMLElement;
+			vi.spyOn(container, 'getClientRects').mockReturnValue([] as unknown as DOMRectList);
+			const at = (element: Element, box: DOMRect) => {
+				vi.spyOn(element, 'getClientRects').mockReturnValue([box] as unknown as DOMRectList);
+				vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(box);
+			};
+			at(menu.get('.row').element, DOMRect.fromRect({ x: 300, y: 200, width: 80, height: 20 }));
+			at(trigger(menu), DOMRect.fromRect({ x: 390, y: 180, width: 15, height: 15 }));
+
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+
+			// Below the row and its ⋮, its left edge on the row's.
+			expect(placed(menu)).toEqual({ left: '300px', top: '220px' });
 		});
 
 		it("listens to its own document's clicks, which a window detached from the main one has", async () => {
@@ -360,6 +377,25 @@ describe('ContextMenu', () => {
 			expect(focused(menu)).toBe('trigger');
 		});
 
+		it('gives the focus back to its ⋮ once its row scrolls out of view', async () => {
+			const sheet = document.body.appendChild(document.createElement('div'));
+			const { menu } = mountMenu({ trigger: true }, sheet);
+			const row = vi
+				.spyOn(menu.element as HTMLElement, 'getBoundingClientRect')
+				.mockReturnValue(DOMRect.fromRect({ x: 30, y: 40, width: 200, height: 20 }));
+			trigger(menu).dispatchEvent(keyboardClick());
+			await nextTick();
+			expect(focused(menu)).toBe('localized Equip');
+
+			row.mockReturnValue(DOMRect.fromRect({ x: 30, y: -40, width: 200, height: 20 }));
+			sheet.dispatchEvent(new Event('scroll'));
+			await nextTick();
+
+			expect(isOpen(menu)).toBe(false);
+			expect(focused(menu)).toBe('trigger');
+			sheet.remove();
+		});
+
 		it('closes on Tab, which goes on from its ⋮', async () => {
 			const { menu } = mountMenu({ trigger: true });
 			trigger(menu).dispatchEvent(keyboardClick());
@@ -375,10 +411,6 @@ describe('ContextMenu', () => {
 		});
 
 		it('opens at its ⋮ on Shift+F10 or the context menu key, which give no pointer position', async () => {
-			// happy-dom lays nothing out: the viewport and the menu's container get a size, and nothing clips them.
-			vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
-			vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
-			vi.spyOn(window, 'getComputedStyle').mockReturnValue({ overflow: 'visible' } as CSSStyleDeclaration);
 			for (const event of keyboardContextMenus()) {
 				const { menu } = mountMenu({ trigger: true });
 				vi.spyOn(menu.element as HTMLElement, 'getBoundingClientRect').mockReturnValue(
