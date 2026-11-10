@@ -132,7 +132,12 @@ type InventoryHelpers = {
 	/** Focuses the spin button of a row's quantity or damage counter, its text selected when it can be typed into. */
 	focusCounter(actor: string, item: string, kind: 'quantity' | 'damage'): Promise<void>;
 	counter(actor: string, item: string, kind: 'quantity' | 'damage'): Promise<CounterState | null>;
-	/** Attacks with a weapon from its inventory row, which opens the dice prompt. */
+	/**
+	 * Clicks the name of an item's inventory row, reads whether it was a roll link and what it opened, the item's sheet or a
+	 * dice prompt, and closes what it opened.
+	 */
+	clickRowName(actor: string, item: string): Promise<{ rollLink: boolean; sheet: boolean; prompt: boolean }>;
+	/** Attacks with a weapon from its row in the Combat tab, which opens the dice prompt. */
 	attack(actor: string, item: string): Promise<void>;
 	/** Rolls the open dice prompt. */
 	rollPrompt(): Promise<void>;
@@ -1145,9 +1150,32 @@ function installInventoryHelpers() {
 			await settle();
 		},
 
+		async clickRowName(ref, name) {
+			const row = await rowOf(ref, name);
+			const app = item(ref, name).sheet;
+			const prompts = () => window.e2e.apps('app-dice-prompt');
+			// A step before may have left the sheet open: the name must be what opens it.
+			if (app.rendered) {
+				await app.close();
+				await settle();
+			}
+			row.querySelector<HTMLElement>('.name button')!.click();
+			await waitFor(`what the name of ${name} opens`, () => app.rendered || prompts().length > 0);
+			await settle();
+			const opened = { rollLink: !!row.querySelector('.name .roll-link'), sheet: app.rendered, prompt: prompts().length > 0 };
+			if (app.rendered) await app.close();
+			for (const prompt of prompts()) await prompt.close();
+			await settle();
+			return opened;
+		},
+
 		async attack(ref, name) {
-			// An Equipped weapon's name attacks (#578).
-			(await rowOf(ref, name)).querySelector<HTMLElement>('.name .roll-link')!.click();
+			// A weapon attacks from its name in the Combat tab alone (#641), which every tab of the sheet renders.
+			const weapon = [...(await sheet(ref)).querySelectorAll('.tab[data-tab="combat"] .weapons .weapon .name .roll-link')].find(
+				(link) => text(link) === full(name),
+			);
+			if (!weapon) throw new Error(`No attack with ${name} in the Combat tab`);
+			(weapon as HTMLElement).click();
 			// The prompt shows a spinner while it counts its chance to succeed, which may roll dice, and builds its pool from
 			// the actor once open: the attack's dice are fixed after both.
 			await waitFor('the dice prompt', () => {
@@ -2375,6 +2403,11 @@ export async function run(e2e: ScenarioContext) {
 			'#134 M2 a weapon whose damage was emptied is sent to chat with a damage of 0',
 			await page.evaluate(() => window.inventoryE2E.lastMessage(['span.damage'])),
 			['0 + Br'],
+		);
+		e2e.expect(
+			'#641 M3 an equipped weapon with an Attack Skill offers no attack in the inventory: its name opens its sheet',
+			await page.evaluate(() => window.inventoryE2E.clickRowName('Smith', 'Club')),
+			{ rollLink: false, sheet: true, prompt: false },
 		);
 		await e2e.step('#134 M3 an attack with the Club, every die on its fourth face', async () => {
 			await page.evaluate(() => window.inventoryE2E.attack('Smith', 'Club'));

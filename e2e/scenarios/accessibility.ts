@@ -203,8 +203,8 @@ const TAB_STEPS: { sheet: string; code: string; tabs: string[] }[] = [
 /**
  * The rows whose name rolls (#578), by their key in the page's targets: the step's number, where the row is, the tooltip
  * its name shows, the check its name opens, and the document whose sheet its icon opens, for a row that shows one, with
- * the icon's name when it opens no item's sheet. A weapon the character only carries is the exception: its name opens
- * its sheet.
+ * the icon's name when it opens no item's sheet. An inventory row is the exception, Equipped or not: its name opens its
+ * sheet, as a weapon attacks from the Combat tab alone (#641).
  */
 const ROLL_ROWS: {
 	key: string;
@@ -249,14 +249,7 @@ const ROLL_ROWS: {
 		check: { actor: 'E2E Roller', check: 'Resilience', type: 'skill' },
 		opens: 'E2E Gash',
 	},
-	{
-		key: 'inventory',
-		code: 5,
-		row: "an Equipped weapon on a character's Inventory tab",
-		tooltip: 'Attack with E2E Blade',
-		check: { actor: 'E2E Roller', check: 'E2E Brawl', type: 'attack' },
-		opens: 'E2E Blade',
-	},
+	{ key: 'inventory', code: 5, row: "an Equipped weapon on a character's Inventory tab", tooltip: '', check: null, opens: 'E2E Blade' },
 	{ key: 'carried', code: 6, row: 'a Carried weapon on the Inventory tab', tooltip: '', check: null, opens: 'E2E Spare' },
 	{
 		key: 'rivalSkill',
@@ -735,9 +728,9 @@ function installAccessibilityHelpers() {
 		},
 		blaster: {
 			sheet: 'Roller',
-			tab: 'inventory',
-			row: (root) => rowWith(root, '.inventory-item', 'E2E Blaster'),
-			name: '.name button',
+			tab: 'combat',
+			row: (root) => rowWith(root, '.tab-combat .weapon:not(.columns)', 'E2E Blaster'),
+			name: '.name .roll-link',
 		},
 		memberHeading: {
 			sheet: 'Roller Ship',
@@ -1657,7 +1650,7 @@ async function rollLinks(e2e: ScenarioContext) {
 		}
 
 		let shownTooltip: unknown;
-		await e2e.step('#578 E1 the name of the Equipped "E2E Blaster <Mk II>" hovered on the Inventory tab', async () => {
+		await e2e.step('#578 E1 the name of the Equipped "E2E Blaster <Mk II>" hovered on the Combat tab', async () => {
 			shownTooltip = await gm.evaluate(() => window.accessibilityE2E.rollRowTooltip('blaster'));
 		});
 		e2e.expect(

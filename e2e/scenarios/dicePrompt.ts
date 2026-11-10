@@ -1757,14 +1757,15 @@ export async function run(e2e: ScenarioContext) {
 			],
 		);
 		e2e.expect(
-			"#49 D2 the Inventory tab shows each weapon's Attack Skill, and no attack for a weapon without skill",
+			// §#641: a weapon attacks from the Combat tab alone.
+			"#49 D2 the Inventory tab shows each weapon's Attack Skill, and offers no attack",
 			await inventoryWeapons(),
 			[
-				{ name: 'E2E Spear', attack: true, skill: 'Melee' },
-				{ name: 'E2E Pistol', attack: true, skill: 'Ranged (light)' },
+				{ name: 'E2E Spear', attack: false, skill: 'Melee' },
+				{ name: 'E2E Pistol', attack: false, skill: 'Ranged (light)' },
 				{ name: 'E2E Stick', attack: false, skill: '-' },
-				{ name: 'E2E Blaster', attack: true, skill: 'Piloting (Space)' },
-				{ name: 'E2E Club', attack: true, skill: 'Melee' },
+				{ name: 'E2E Blaster', attack: false, skill: 'Piloting (Space)' },
+				{ name: 'E2E Club', attack: false, skill: 'Melee' },
 			],
 		);
 		await gm.evaluate(() =>
