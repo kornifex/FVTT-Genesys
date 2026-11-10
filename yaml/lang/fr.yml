@@ -374,21 +374,16 @@ Genesys:
     Fix: CORRECTIF
     Feature: NOUVEAUTÉ
     Styling: STYLE
-    RowMenu: >-
-      Les actions d'une ligne sont dans son menu ⋮, dont ranger un objet dans un conteneur ou affecter un membre d'équipage
-      à un rôle ; toute suppression demande confirmation
-    Keyboard: Les fiches, leurs menus et les fenêtres de saisie s'utilisent au clavier, avec un contour de focus visible
-    RollFromName: Le nom d'une ligne lance son test et son icône ouvre sa fiche, sur toutes les fiches
-    Counter: >-
-      Blessures et stress se changent avec un même compteur compact ; les blessures s'arrêtent partout au double du seuil
-    ActingGmQueries: >-
-      Le joueur est prévenu quand une action que le client du MJ exécute échoue, comme réclamer un emplacement d'initiative
-      sans MJ connecté
-    PilotDefensiveDriving: La Conduite défensive du pilote s'ajoute à la défense du véhicule, toujours plafonnée à 4
-    ChatMode: Le message d'un test suit le mode du chat (aveugle, privé) sur Foundry v14 aussi
-    Contrast: >-
-      Tous les textes atteignent un contraste de 4.5:1 dans les deux Styles ; un effet désactivé et le camp d'un
-      emplacement d'initiative le disent en toutes lettres
+    MagicalGirl: >-
+      Les symboles et les dés Magical Girl ne sont plus fournis ; un joueur qui les lançait avec Dice So Nice lance ses dés
+      standard
+    ItemSheetSize: La fiche d'un objet s'ouvre en 560×440 plutôt qu'à la hauteur de sa description
+    SpendStoryPoint: >-
+      Un clic sur le total d'une réserve dépense de nouveau un point Narratif ; le MJ saisit le total d'un clic droit
+    SkillNames: Les noms de compétence longs tiennent ; le ↑ qui achète un rang se place au coin du rang
+    CharacteristicBoxes: La case d'une caractéristique s'ajuste à son nom, toutes les cases d'une ligne à la même largeur
+    CombatStatCounter: Les − et + d'un compteur s'affichent en entier à côté d'un seuil de blessures ou de stress
+    TalentBars: Les groupes Actif, Passif et d'activation de l'onglet Talents redeviennent des bandeaux
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
