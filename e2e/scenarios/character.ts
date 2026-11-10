@@ -1094,6 +1094,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('careerSkillsOnCreation', () => careerSkillsOnCreation(e2e, page));
 		await e2e.part('superCharacteristics', () => superCharacteristics(e2e, page, notifications));
 		await e2e.part('skillsTab', () => skillsTab(e2e, page));
+		await e2e.part('skillMenus', () => skillMenus(e2e, page));
 		await e2e.part('talentPyramidSummary', () => talentPyramidSummary(e2e, page));
 		await e2e.part('talentRanks', () => talentRanks(e2e, page));
 		// v13 has no token changes. The part is met on every version, so that `--part` finds it on both.
@@ -2533,6 +2534,93 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 		0,
 	);
 	await page((name) => window.characterE2E.close(name), 'Ranked Rival');
+}
+
+/** §#SECTION: a skill's open menu shows over every row of the Skills tab, opened down from its ⋮ or up at the pointer. */
+async function skillMenus(e2e: ScenarioContext, page: Evaluate) {
+	const S = 'Stacked';
+	await e2e.step('#SECTION A1 a character with XP to spend and characteristics of 2, its sheet open on the Skills tab', () =>
+		page(async (name) => {
+			await Actor.create({
+				name: `E2E ${name}`,
+				type: 'character',
+				system: {
+					characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 },
+					experienceJournal: { entries: [{ amount: 200, type: 'Starting', data: {} }] },
+				},
+			});
+			await window.characterE2E.open(name);
+			await window.e2e.showTab(name, 'skills');
+		}, S),
+	);
+
+	// Opens a skill's menu, then reads what shows on top at points spread over the menu's box, and, once it is closed, what
+	// the menu covered there: rows with their ↑ and their dice.
+	const menuOver = (opening: 'down' | 'up') =>
+		page(
+			async ({ name, opening }) => {
+				const { actor, htmlOf, settle, waitFor } = window.e2e;
+				const root = htmlOf(actor(name).sheet)!;
+				const rows = [...root.querySelectorAll<HTMLElement>('.tab-skills .skill.row')];
+				const content = root.querySelector('.window-content')!.getBoundingClientRect();
+				// Down: the first skill, from its ⋮. Up: at the pointer, on the last skill of the first column that shows whole,
+				// with no room below it for the menu.
+				const firstColumn = rows.filter((row) => row.getBoundingClientRect().left === rows[0].getBoundingClientRect().left);
+				const row =
+					opening === 'down'
+						? rows[0]
+						: firstColumn.filter((row) => row.getBoundingClientRect().bottom < content.bottom - 2).at(-1)!;
+				const rowBox = row.getBoundingClientRect();
+				const pointer = { x: row.querySelector('.skill-name')!.getBoundingClientRect().right - 20, y: rowBox.bottom - 2 };
+				if (opening === 'down') row.querySelector<HTMLElement>(':scope > .menu-trigger')!.click();
+				else
+					row.querySelector('.skill-name')!.dispatchEvent(
+						new MouseEvent('contextmenu', {
+							bubbles: true,
+							cancelable: true,
+							button: 2,
+							clientX: pointer.x,
+							clientY: pointer.y,
+						}),
+					);
+				const menu = await waitFor('the skill menu', () => row.querySelector<HTMLElement>(':scope > [role="menu"]'));
+				await settle();
+
+				const box = menu.getBoundingClientRect();
+				const points = [0.1, 0.5, 0.9].flatMap((x) =>
+					[0.05, 0.25, 0.5, 0.75, 0.95].map((y) => ({ x: box.left + box.width * x, y: box.top + box.height * y })),
+				);
+				const named = (element: Element | null) => {
+					if (!element) return 'nothing';
+					if (element.closest('.buy-rank')) return 'rank ↑';
+					if (element.closest('.skill-ranks')) return 'dice';
+					return [element.tagName.toLowerCase(), ...element.classList].join('.');
+				};
+				const over = points.map(({ x, y }) => document.elementFromPoint(x, y)).filter((element) => !menu.contains(element));
+
+				document.body.click();
+				await waitFor('the skill menu to close', () => !menu.isConnected);
+				const under = points.map(({ x, y }) => named(document.elementFromPoint(x, y)));
+				return {
+					direction: opening === 'down' ? box.top >= rowBox.bottom - 1 : box.bottom <= pointer.y + 1,
+					covers: ['dice', 'rank ↑'].filter((part) => under.includes(part)),
+					over: [...new Set(over.map(named))],
+				};
+			},
+			{ name: S, opening },
+		);
+
+	e2e.expect(
+		"#SECTION A1 a skill's menu opened from its ⋮ shows below it, over the ↑ and the dice of the rows below, nothing over it",
+		await menuOver('down'),
+		{ direction: true, covers: ['dice', 'rank ↑'], over: [] },
+	);
+	e2e.expect(
+		"#SECTION A2 a skill's menu opened at the pointer with no room below shows above it, over the ↑ and the dice of the rows above, nothing over it",
+		await menuOver('up'),
+		{ direction: true, covers: ['dice', 'rank ↑'], over: [] },
+	);
+	await page((name) => window.characterE2E.close(name), S);
 }
 
 /** §#110: the Talent Pyramid summary under Ignore Talent Pyramid. */
