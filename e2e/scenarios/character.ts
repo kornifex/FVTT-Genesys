@@ -2536,10 +2536,10 @@ async function skillsTab(e2e: ScenarioContext, page: Evaluate) {
 	await page((name) => window.characterE2E.close(name), 'Ranked Rival');
 }
 
-/** §#SECTION: a skill's open menu shows over every row of the Skills tab, opened down from its ⋮ or up at the pointer. */
+/** §#647: a skill's open menu shows over every row of the Skills tab, opened down from its ⋮ or up at the pointer. */
 async function skillMenus(e2e: ScenarioContext, page: Evaluate) {
 	const S = 'Stacked';
-	await e2e.step('#SECTION A1 a character with XP to spend and characteristics of 2, its sheet open on the Skills tab', () =>
+	await e2e.step('#647 a character with XP to spend and characteristics of 2, its sheet open on the Skills tab', () =>
 		page(async (name) => {
 			await Actor.create({
 				name: `E2E ${name}`,
@@ -2610,14 +2610,22 @@ async function skillMenus(e2e: ScenarioContext, page: Evaluate) {
 			{ name: S, opening },
 		);
 
+	let down = {};
+	await e2e.step("#647 A1 the first skill's menu opened from its ⋮", async () => {
+		down = await menuOver('down');
+	});
 	e2e.expect(
-		"#SECTION A1 a skill's menu opened from its ⋮ shows below it, over the ↑ and the dice of the rows below, nothing over it",
-		await menuOver('down'),
+		"#647 A1 a skill's menu opened from its ⋮ shows below it, over the ↑ and the dice of the rows below, nothing over it",
+		down,
 		{ direction: true, covers: ['dice', 'rank ↑'], over: [] },
 	);
+	let up = {};
+	await e2e.step("#647 A2 the menu of the first column's last whole skill opened at the pointer, on its bottom edge", async () => {
+		up = await menuOver('up');
+	});
 	e2e.expect(
-		"#SECTION A2 a skill's menu opened at the pointer with no room below shows above it, over the ↑ and the dice of the rows above, nothing over it",
-		await menuOver('up'),
+		"#647 A2 a skill's menu opened at the pointer with no room below shows above it, over the ↑ and the dice of the rows above, nothing over it",
+		up,
 		{ direction: true, covers: ['dice', 'rank ↑'], over: [] },
 	);
 	await page((name) => window.characterE2E.close(name), S);
