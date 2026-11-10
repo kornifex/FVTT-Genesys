@@ -7,10 +7,10 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 
 /**
  * A value that counts up from 0, such as wounds, a quantity or Story Points: the value alone, a spin button the keyboard
- * steps with its arrows, with − and + buttons that show on hover and focus. A right-click takes one off, and a value
- * typed into it goes through the counter's parsing. On a sheet the user can't edit, and where none of its changes is
- * allowed, it shows the value alone. The − and + take no focus on a press, which stays in the value being typed (and
- * out of a button, where Foundry would skip its keybindings).
+ * steps with its arrows, with − and + buttons that show on hover and focus. A right-click takes one off, but on the +,
+ * and a value typed into it goes through the counter's parsing. On a sheet the user can't edit, and where none of its
+ * changes is allowed, it shows the value alone. The − and + take no focus on a press, which stays in the value being
+ * typed (and out of a button, where Foundry would skip its keybindings).
  */
 const props = withDefaults(
 	defineProps<{
@@ -143,15 +143,18 @@ function commit() {
 	}
 }
 
-// A right-click on the counter takes one off, rather than opening the menu of the row it sits in. The context menu key
-// or Shift+F10 opens that menu, as from any control of the row.
+// A right-click on the counter takes one off, rather than opening the menu of the row it sits in; on its +, it takes
+// nothing off (#645), and opens that menu no more. The context menu key or Shift+F10 opens that menu, as from any
+// control of the row.
 function contextmenu(event: MouseEvent) {
 	if (isKeyboardContextMenu(event)) {
 		return;
 	}
 	event.preventDefault();
 	event.stopPropagation();
-	step(-1);
+	if (!(event.target instanceof Element && event.target.closest('.step.increase'))) {
+		step(-1);
+	}
 }
 </script>
 
@@ -247,12 +250,15 @@ input.value {
 }
 
 // The − and + sit over the counter's neighbours, on each side, without moving them, and show while the pointer is on
-// the counter or the focus is in it.
+// the counter or the focus is in it. Hidden, they keep their place and take the pointer: a pointer that goes straight to
+// where one shows, from any side, is on the counter, which shows it (#645). Hidden without room, with `display: none`,
+// they showed only to a pointer that came through the value. A neighbour under one keeps the rest of its area.
 .step {
 	position: absolute;
 	top: 50%;
 	z-index: 1;
-	display: none;
+	display: inline-flex;
+	opacity: 0;
 	align-items: center;
 	justify-content: center;
 	width: 1.25em;
@@ -275,6 +281,6 @@ input.value {
 }
 
 .counter:is(:hover, :focus-within) .step {
-	display: inline-flex;
+	opacity: 1;
 }
 </style>

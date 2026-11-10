@@ -112,19 +112,34 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
-	it('takes one off on a right-click, which opens no menu around it', async () => {
+	it('takes one off on a right-click on its value or its −, and nothing on its +, none of which opens a menu around it', () => {
 		// The row the counter sits in opens its menu on a right-click that reaches it.
 		const rowMenu = vi.fn();
 		document.body.addEventListener('contextmenu', rowMenu);
 		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
-		const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+		const parts = ['[role="spinbutton"]', 'button.decrease', 'button.increase'];
+		const events = parts.map(() => new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
-		counter.get('[role="spinbutton"]').element.dispatchEvent(event);
+		parts.forEach((part, i) => counter.get(part).element.dispatchEvent(events[i]));
 
-		expect(counter.emitted('step')).toEqual([[-1]]);
-		expect(event.defaultPrevented).toBe(true);
+		expect(counter.emitted('step')).toEqual([[-1], [-1]]);
+		expect(events.map((event) => event.defaultPrevented)).toEqual([true, true, true]);
 		expect(rowMenu).not.toHaveBeenCalled();
 		document.body.removeEventListener('contextmenu', rowMenu);
+		counter.unmount();
+	});
+
+	it('keeps the text being typed through a right-click on its +, and steps from it on one on its −', async () => {
+		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		const input = counter.get('input');
+
+		await input.setValue('7');
+		await counter.get('button.increase').trigger('contextmenu');
+		await counter.get('button.decrease').trigger('contextmenu');
+
+		// The + leaves the text typed alone; the − then steps from it.
+		expect(counter.emitted('type')).toEqual([[6]]);
+		expect(counter.emitted('step')).toBeUndefined();
 		counter.unmount();
 	});
 
