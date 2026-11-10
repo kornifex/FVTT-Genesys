@@ -1,4 +1,9 @@
+Bebas Neue (BebasNeue-Regular.ttf):
 Copyright © 2010 by Dharma Type.
+Copyright 2019 The Bebas Neue Project Authors (https://github.com/dharmatype/Bebas-Neue)
+
+Roboto Serif (RobotoSerif-*.ttf):
+Copyright 2020 The Roboto Serif Project Authors (https://github.com/googlefonts/RobotoSerif)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
