@@ -9,6 +9,11 @@ import { isFoundryV13 } from '@/foundryGeneration';
 import '@/item/GenesysItemSheet.scss';
 
 /**
+ * The height an item sheet opens at when its content is lower (#624).
+ */
+const OPENING_HEIGHT = 440;
+
+/**
  * The item a drop carries by its uuid, of the type the receiver expects; undefined when it carries no item.
  */
 export async function itemFromDrop<SubType extends Item.SubType = Item.SubType>(data: DragTransferData) {
@@ -45,9 +50,18 @@ export class GenesysItemSheet<SubType extends Item.SubType = Item.SubType> exten
 ) {
 	static override DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 		classes: ['genesys', 'sheet', 'item'],
-		// The window opens at its content's height; a height in pixels keeps it there (VueDocumentSheet).
-		position: { width: 480, height: 300 },
+		// The window opens at its content's height, no lower than `openingHeightFloor`; a height in pixels keeps it there
+		// (VueDocumentSheet). Archetype and Career set their own width.
+		position: { width: 560, height: OPENING_HEIGHT },
 	};
+
+	/**
+	 * An item sheet opens on its description, often a few lines: opened that low, the taller tabs a user switches to next,
+	 * as a talent's three categories of Effects, scrolled (#624).
+	 */
+	protected override get openingHeightFloor() {
+		return OPENING_HEIGHT;
+	}
 
 	/**
 	 * An item sheet opens no taller than 75% of the viewport, like a journal at its fixed height: a long description
