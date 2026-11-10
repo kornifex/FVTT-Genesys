@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.6.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.1...v0.6.0-rc.2) (2026-11-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* the `genesys.useMagicalGirlSymbols` setting, the "Magical Girl Symbols" font and the `genesys-mg` Dice So Nice system are removed. A macro reading the setting throws; Dice So Nice falls back to its standard dice for a player who had picked the Magical Girl ones.
+
+### Features
+
+* remove the Magical Girl symbols ([#634](https://github.com/kornifex/FVTT-Genesys/issues/634)) ([763764b](https://github.com/kornifex/FVTT-Genesys/commit/763764b5491003c71cc29a830de39d7d6425e052))
+* **ui:** open item sheets at 560×440 ([#633](https://github.com/kornifex/FVTT-Genesys/issues/633)) ([586d7b8](https://github.com/kornifex/FVTT-Genesys/commit/586d7b83f31e56767ca693c73c002a104549622a))
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.6.0-rc.2's changes in the welcome message ([#635](https://github.com/kornifex/FVTT-Genesys/issues/635)) ([ade35b0](https://github.com/kornifex/FVTT-Genesys/commit/ade35b03a75360b9bb5e6ed88b999068af75d273))
+* **ui:** drop the GM's + beside a Story Point pool's count ([#629](https://github.com/kornifex/FVTT-Genesys/issues/629)) ([#631](https://github.com/kornifex/FVTT-Genesys/issues/631)) ([31d93b5](https://github.com/kornifex/FVTT-Genesys/commit/31d93b5ec4ec1333fbce1462705c9ecd77d2de87))
+* **ui:** fit each characteristic's box to its label, all at one width ([#621](https://github.com/kornifex/FVTT-Genesys/issues/621)) ([#628](https://github.com/kornifex/FVTT-Genesys/issues/628)) ([ae8e143](https://github.com/kornifex/FVTT-Genesys/commit/ae8e143dad295a7a706ce315dae454453658c40f))
+* **ui:** fit long skill names, and keep the rank's ↑ off the name's room ([#620](https://github.com/kornifex/FVTT-Genesys/issues/620)) ([#627](https://github.com/kornifex/FVTT-Genesys/issues/627)) ([0834634](https://github.com/kornifex/FVTT-Genesys/commit/08346345b773d7254bb44c7c5267bd7e36a32c2f))
+* **ui:** show a counter's − and + whole over a combat stat's cut corner ([#622](https://github.com/kornifex/FVTT-Genesys/issues/622)) ([#630](https://github.com/kornifex/FVTT-Genesys/issues/630)) ([51c44cb](https://github.com/kornifex/FVTT-Genesys/commit/51c44cbb14eb13bdf31cf30e76aca8a9d929640d))
+* **ui:** show the Talents tab's Active, Passive and activation groups as bars again ([#623](https://github.com/kornifex/FVTT-Genesys/issues/623)) ([#632](https://github.com/kornifex/FVTT-Genesys/issues/632)) ([a21949d](https://github.com/kornifex/FVTT-Genesys/commit/a21949d677902741ffc70b234971aa42d754a3c3))
+* **ui:** spend a Story Point with a click on its pool's count again ([#619](https://github.com/kornifex/FVTT-Genesys/issues/619)) ([#626](https://github.com/kornifex/FVTT-Genesys/issues/626)) ([80ee1bd](https://github.com/kornifex/FVTT-Genesys/commit/80ee1bd96262c4cf460a56830d9c008cba539fdd))
+
+
+### Documentation
+
+* list the system in the Foundry registry under a new id ([#612](https://github.com/kornifex/FVTT-Genesys/issues/612)) ([9ef647c](https://github.com/kornifex/FVTT-Genesys/commit/9ef647c6cd7f732e94a77630212a36292b0389e3))
+* write the PR workflow rules into the agents' code style guide ([#600](https://github.com/kornifex/FVTT-Genesys/issues/600)) ([42a9cfc](https://github.com/kornifex/FVTT-Genesys/commit/42a9cfcded5d52d0612b0884827aed10682a6910))
+
+
+### Continuous Integration
+
+* set the next release to 0.6.0-rc.2 ([#614](https://github.com/kornifex/FVTT-Genesys/issues/614)) ([bc25bb8](https://github.com/kornifex/FVTT-Genesys/commit/bc25bb892871d6bb3d691f41f3182d11a4cd9a45))
+
 ## [0.6.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.5.0...v0.6.0-rc.1) (2026-11-07)
 
 
