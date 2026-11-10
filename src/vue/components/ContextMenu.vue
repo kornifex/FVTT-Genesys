@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useId, useTemplateRef } from 'vue';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
 import { handOffFocus, leaveFocus, takeFocus } from '@/vue/components/menuFocus';
-import { menuAtPointer } from '@/vue/components/menuPlacement';
+import { menuAtContainer, menuAtPointer } from '@/vue/components/menuPlacement';
 import { isKeyboardClick, isKeyboardContextMenu } from '@/vue/inputSource';
 import ActionButton from '@/vue/components/ActionButton.vue';
 
@@ -41,9 +41,6 @@ const showMenu = ref(false);
 const container = useTemplateRef<HTMLElement>('container');
 const menu = useTemplateRef<HTMLElement>('menu');
 
-// How far a menu opened at the pointer is moved from its place by the container, in the sheet's own pixels.
-const shift = ref<{ x: number; y: number }>();
-
 // The control the focus goes back to once the menu closes from the keyboard: its ⋮ button, or the control that had the
 // focus when it opened from a row without one.
 let opener: HTMLElement | undefined;
@@ -53,6 +50,8 @@ let opener: HTMLElement | undefined;
 let listened: Document | undefined;
 
 type Focus = 'first' | 'last';
+
+type Point = { x: number; y: number };
 
 // Names the menu after its ⋮.
 const triggerId = useId();
@@ -65,7 +64,10 @@ function entries() {
 	return [...(menu.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
 }
 
-function showContextMenu(event: Event, focus: Focus = 'first', options: { preventScroll?: boolean } = {}) {
+/**
+ * Opens the menu, under the pointer when it is given, at its container otherwise, on its first or its last entry.
+ */
+function showContextMenu(event: Event, focus: Focus = 'first', pointer?: Point) {
 	if (props.disableMenu || !container.value) {
 		return;
 	}
@@ -79,20 +81,45 @@ function showContextMenu(event: Event, focus: Focus = 'first', options: { preven
 	opener = triggerButton() ?? (focused && focused !== ownerDocument.body && !menu.value?.contains(focused) ? focused : undefined);
 
 	showMenu.value = true;
-	shift.value = undefined;
 
 	if (!listened) {
 		listened = ownerDocument;
 		listened.addEventListener('click', closeContextMenu, { capture: true });
 		listened.addEventListener('contextmenu', closeContextMenu, { capture: true });
+		listened.addEventListener('scroll', closeOnScroll, { capture: true });
 	}
 
-	// From the pointer too, as the pattern has it: the focus in the menu keeps Escape from Foundry's keybindings, and a
-	// click on an entry or elsewhere leaves no focus behind.
 	void nextTick(() => {
+		if (!menu.value || !container.value) {
+			return;
+		}
+
+		// The menu shows in the top layer, over every element of the page, whatever stacking context its row paints in: a
+		// z-index would only win within the row's category, and lose to an ↑ or a category painted after it (#643).
+		menu.value.showPopover();
+		place(menu.value, container.value, pointer);
+
+		// From the pointer too, as the pattern has it: the focus in the menu keeps Escape from Foundry's keybindings, and a
+		// click on an entry or elsewhere leaves no focus behind. The menu is placed where it shows: nothing scrolls to it.
 		const shown = entries();
-		(focus === 'first' ? shown[0] : shown.at(-1))?.focus({ preventScroll: options.preventScroll });
+		(focus === 'first' ? shown[0] : shown.at(-1))?.focus({ preventScroll: true });
 	});
+}
+
+/**
+ * Places the menu in the viewport: its top-left corner under the pointer, or at its container. The top layer takes no
+ * transform from the sheet's window, which may be scaled: the menu takes the window's scale itself.
+ */
+function place(menuElement: HTMLElement, containerElement: HTMLElement, pointer: Point | undefined) {
+	const box = containerElement.getBoundingClientRect();
+	const scale = containerElement.offsetWidth ? box.width / containerElement.offsetWidth : 1;
+	const size = { width: menuElement.offsetWidth * scale, height: menuElement.offsetHeight * scale };
+	const visible = visibleArea(menuElement);
+	const corner = pointer ? menuAtPointer(pointer, size, visible) : menuAtContainer(box, size, visible, props.position, props.orientation);
+
+	menuElement.style.left = `${corner.x}px`;
+	menuElement.style.top = `${corner.y}px`;
+	menuElement.style.transform = scale === 1 ? '' : `scale(${scale})`;
 }
 
 function hideMenu() {
@@ -139,9 +166,19 @@ function closeContextMenu(event: MouseEvent) {
 	}
 }
 
+// The menu stays where it was placed in the viewport: once the sheet scrolls under it, it would show by another row, or
+// over the sheet's border. Scrolling elsewhere in the page, such as the chat log on a new message, leaves it open.
+function closeOnScroll(event: Event) {
+	const scrolled = event.target as Node | null;
+	if (scrolled && container.value && scrolled.contains(container.value)) {
+		hideMenu();
+	}
+}
+
 function removeDocumentListeners() {
 	listened?.removeEventListener('click', closeContextMenu, { capture: true });
 	listened?.removeEventListener('contextmenu', closeContextMenu, { capture: true });
+	listened?.removeEventListener('scroll', closeOnScroll, { capture: true });
 	listened = undefined;
 }
 
@@ -174,23 +211,7 @@ function openAtPointer(event: MouseEvent) {
 		return;
 	}
 
-	showContextMenu(event, 'first', { preventScroll: true });
-	if (!showMenu.value) {
-		return;
-	}
-
-	// The menu is laid out by its container first, then moved: the move keeps the size the container gives it.
-	void nextTick(() => {
-		if (!menu.value) {
-			return;
-		}
-
-		const placed = menu.value.getBoundingClientRect();
-		const corner = menuAtPointer({ x: event.clientX, y: event.clientY }, placed, visibleArea(menu.value));
-		// A sheet's window may be scaled, while the move is in the sheet's own pixels.
-		const scale = placed.width / menu.value.offsetWidth || 1;
-		shift.value = { x: (corner.x - placed.left) / scale, y: (corner.y - placed.top) / scale };
-	});
+	showContextMenu(event, 'first', { x: event.clientX, y: event.clientY });
 }
 
 // A menu with a ⋮ opens under the pointer, like the one its row opens through its handle; one without opens at its
@@ -205,7 +226,7 @@ function onContextMenu(event: MouseEvent) {
 
 // An open menu closes on a click on its ⋮ before the button gets it.
 function onTriggerClick(event: MouseEvent) {
-	showContextMenu(event, 'first', { preventScroll: !isKeyboardClick(event) });
+	showContextMenu(event);
 }
 
 function onTriggerKeydown(event: KeyboardEvent) {
@@ -273,12 +294,8 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 			v-if="showMenu"
 			ref="menu"
 			role="menu"
-			:style="shift && { transform: `translate(${shift.x}px, ${shift.y}px)` }"
-			:class="{
-				'context-menu': true,
-				[props.orientation]: true,
-				[props.position]: true,
-			}"
+			popover="manual"
+			class="context-menu"
 			:aria-labelledby="trigger ? triggerId : undefined"
 			@keydown="onMenuKeydown"
 		>
@@ -313,29 +330,20 @@ defineExpose({ open: openAtPointer } satisfies ContextMenuHandle);
 	flex-direction: column;
 	flex-wrap: nowrap;
 	gap: 0.25em;
-	position: absolute;
 	min-width: 100px;
 	@include backgrounds.crossboxes;
 	border: 1px solid colors.$gold;
 	border-radius: 0.5em;
 	padding: 0.25em;
-	z-index: 1;
 
-	&.above {
-		bottom: 100%;
-	}
-
-	&.below {
-		top: 100%;
-	}
-
-	&.right {
-		left: 0;
-	}
-
-	&.left {
-		right: 0;
-	}
+	// A popover, placed in the viewport by its script, which sets its left and top: not centred, as the browser's style
+	// has it, nor in the browser's colours. The scale the script gives it grows from its placed corner.
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	overflow: visible;
+	color: inherit;
+	transform-origin: top left;
 
 	// The menu's items and separators come from the slot.
 	:slotted(hr) {

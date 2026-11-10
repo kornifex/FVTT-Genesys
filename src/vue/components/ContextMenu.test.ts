@@ -18,6 +18,11 @@ beforeEach(() => {
 // A menu left open keeps its listeners on the document, which would take the next test's first click.
 enableAutoUnmount(afterEach);
 
+// The layout a test gives happy-dom stays in that test.
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
 /**
  * Mounts a menu around a row holding a button, with three entries, a separator between the first and the others: each
  * entry's action records its label in `ran`.
@@ -38,6 +43,11 @@ function mountMenu(props: Props = {}, attachTo: Element = document.body) {
 }
 
 const isOpen = (menu: ReturnType<typeof mountMenu>['menu']) => menu.find('[role="menu"]').exists();
+/** Where the open menu's top-left corner is placed in the viewport. */
+const placed = (menu: ReturnType<typeof mountMenu>['menu']) => {
+	const { left, top } = menu.get<HTMLElement>('[role="menu"]').element.style;
+	return { left, top };
+};
 const trigger = (menu: ReturnType<typeof mountMenu>['menu']) => menu.get<HTMLButtonElement>('button.menu-trigger').element;
 const entries = (menu: ReturnType<typeof mountMenu>['menu']) =>
 	menu.findAll<HTMLButtonElement>('[role="menuitem"]').map((entry) => entry.element);
@@ -180,10 +190,39 @@ describe('ContextMenu', () => {
 
 			(menu.vm as unknown as ContextMenuHandle).open(new MouseEvent('contextmenu', { clientX: 10, clientY: 20 }));
 			await nextTick();
-			await nextTick();
 
 			expect(isOpen(menu)).toBe(true);
-			expect(menu.get('[role="menu"]').attributes('style')).toContain('translate');
+			expect(placed(menu)).toEqual({ left: '10px', top: '20px' });
+		});
+
+		it('shows in the top layer, as a popover, where nothing of its sheet paints over it', async () => {
+			const showPopover = vi.spyOn(HTMLElement.prototype, 'showPopover');
+			const { menu } = mountMenu({ trigger: true });
+
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
+
+			const shown = menu.get('[role="menu"]').element;
+			expect(shown.getAttribute('popover')).toBe('manual');
+			expect(showPopover.mock.contexts).toEqual([shown]);
+		});
+
+		it('closes once its sheet scrolls under it, and stays open while something else scrolls', async () => {
+			const sheet = document.body.appendChild(document.createElement('div'));
+			const elsewhere = document.body.appendChild(document.createElement('div'));
+			const { menu } = mountMenu({ trigger: true }, sheet);
+			trigger(menu).dispatchEvent(pointerClick());
+			await nextTick();
+
+			elsewhere.dispatchEvent(new Event('scroll'));
+			await nextTick();
+			expect(isOpen(menu)).toBe(true);
+
+			sheet.dispatchEvent(new Event('scroll'));
+			await nextTick();
+			expect(isOpen(menu)).toBe(false);
+			sheet.remove();
+			elsewhere.remove();
 		});
 
 		it("listens to its own document's clicks, which a window detached from the main one has", async () => {
@@ -324,17 +363,23 @@ describe('ContextMenu', () => {
 		});
 
 		it('opens at its ⋮ on Shift+F10 or the context menu key, which give no pointer position', async () => {
+			// happy-dom lays nothing out: the viewport and the menu's container get a size, and nothing clips them.
+			vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
+			vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
+			vi.spyOn(window, 'getComputedStyle').mockReturnValue({ overflow: 'visible' } as CSSStyleDeclaration);
 			for (const event of keyboardContextMenus()) {
 				const { menu } = mountMenu({ trigger: true });
+				vi.spyOn(menu.element as HTMLElement, 'getBoundingClientRect').mockReturnValue(
+					DOMRect.fromRect({ x: 30, y: 40, width: 200, height: 20 }),
+				);
 				trigger(menu).focus();
 
 				trigger(menu).dispatchEvent(event);
 				await nextTick();
-				await nextTick();
 
 				expect(focused(menu)).toBe('localized Equip');
-				// Laid out by its container, under its ⋮, rather than moved.
-				expect(menu.get('[role="menu"]').attributes('style')).toBeUndefined();
+				// Under its container, its left edge on the container's, rather than at the event's position.
+				expect(placed(menu)).toEqual({ left: '30px', top: '60px' });
 				menu.unmount();
 			}
 		});
@@ -353,9 +398,8 @@ describe('ContextMenu', () => {
 				}),
 			);
 			await nextTick();
-			await nextTick();
 
-			expect(menu.get('[role="menu"]').attributes('style')).toContain('translate');
+			expect(placed(menu)).toEqual({ left: '10px', top: '20px' });
 		});
 
 		it('opens on Shift+F10 on a control of a row without a ⋮, and gives the focus back to it on Escape', async () => {
