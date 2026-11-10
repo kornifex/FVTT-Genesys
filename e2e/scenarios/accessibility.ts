@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584), and the Talents tab's bars (#623); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -2388,6 +2388,34 @@ export async function run(e2e: ScenarioContext) {
 		});
 
 		await e2e.part('headings', () => headings(e2e));
+
+		// The Talents tab's groups are bars again (#623), on a character with a talent in each group, whose details the
+		// sheets' check doesn't see: the Hero's talents are all passive.
+		await e2e.part('talentBars', async () => {
+			let bars: string[] = [];
+			await e2e.step('#623 B1 the Talents tab of a character with talents in each group shown, in each Style', async () => {
+				const { selector } = await gm.evaluate(() => window.accessibilityE2E.openSheet('Talented'));
+				const panel = await gm.evaluate((selector) => window.accessibilityE2E.showTab(selector, 'talents'), selector);
+				bars = await gm.evaluate(
+					(panel) =>
+						[...document.querySelectorAll(`${panel} :is(h4, h5)`)].map(
+							(heading) =>
+								`${heading.tagName.toLowerCase()} ${heading.textContent?.trim()}: ${getComputedStyle(heading).backgroundColor === 'rgba(0, 0, 0, 0)' ? 'text' : 'bar'}`,
+						),
+					panel,
+				);
+				await check('Talented sheet, talents tab', panel);
+				await gm.evaluate(() => window.accessibilityE2E.closeAll());
+			});
+			e2e.expect('#623 B1 the Talents tab shows each activation and each activation detail as a bar', bars, [
+				'h4 Active: bar',
+				'h5 maneuver: bar',
+				'h4 Active: bar',
+				'h5 out of turn: bar',
+				'h4 Passive: bar',
+			]);
+			expectContrasts("#623 B2 the Talents tab's bars keep their text at 4.5:1, in either Style");
+		});
 
 		await e2e.part('rollLinks', () => rollLinks(e2e));
 
