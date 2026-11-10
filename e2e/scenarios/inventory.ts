@@ -1154,6 +1154,11 @@ function installInventoryHelpers() {
 			const row = await rowOf(ref, name);
 			const app = item(ref, name).sheet;
 			const prompts = () => window.e2e.apps('app-dice-prompt');
+			// A step before may have left the sheet open: the name must be what opens it.
+			if (app.rendered) {
+				await app.close();
+				await settle();
+			}
 			row.querySelector<HTMLElement>('.name button')!.click();
 			await waitFor(`what the name of ${name} opens`, () => app.rendered || prompts().length > 0);
 			await settle();
