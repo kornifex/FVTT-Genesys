@@ -383,8 +383,7 @@ Genesys:
     Keyboard: Les fiches, leurs menus et les fenêtres de saisie s'utilisent au clavier, avec un contour de focus visible
     RollFromName: Le nom d'une ligne lance son test et son icône ouvre sa fiche, sur toutes les fiches
     Counter: >-
-      Blessures, stress et points de Destin se changent avec un même compteur compact ; les blessures s'arrêtent partout au
-      double du seuil
+      Blessures et stress se changent avec un même compteur compact ; les blessures s'arrêtent partout au double du seuil
     ActingGmQueries: >-
       Le joueur est prévenu quand une action que le client du MJ exécute échoue, comme réclamer un emplacement d'initiative
       sans MJ connecté
@@ -408,7 +407,6 @@ Genesys:
     GMShort: Fatalité
     Reset: Réinitialise les points Narratifs
     Spend: Dépenser un point Narratif
-    Add: Ajouter un point Narratif
     PoolCount: '{pool} : {count}'
     ChatMessageGmPool: Dépense un point de Fatalité !
     ChatMessagePlayerPool: Dépense un point de Destin !

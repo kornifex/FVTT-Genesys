@@ -50,8 +50,8 @@ export type StoryPointChange = (storyPoints: StoryPointData) => StoryPointData |
 
 /**
  * Returns the function through which a client writes the pools: one change at a time, each reading the pools the
- * previous one wrote, so that changes that reach the client together all count (a double click on +, a spend then a +,
- * two players' spends). It resolves to whether the change wrote anything.
+ * previous one wrote, so that changes that reach the client together all count (a double click on a count, a spend then
+ * a typed count, two players' spends). It resolves to whether the change wrote anything.
  */
 export function serialStoryPointWrites(read: () => StoryPointData, write: (storyPoints: StoryPointData) => Promise<unknown>) {
 	let queue: Promise<unknown> = Promise.resolve();
