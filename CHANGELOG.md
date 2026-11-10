@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.2...v0.6.0-rc.3) (2026-11-10)
+
+
+### Features
+
+* **ui:** attack only from the Combat tab, not from the inventory ([#642](https://github.com/kornifex/FVTT-Genesys/issues/642)) ([402bf3d](https://github.com/kornifex/FVTT-Genesys/commit/402bf3d444fad2ef25012bf8495ae1637053bc80))
+* **ui:** keep the currency and encumbrance row at the bottom of the Inventory tab ([#646](https://github.com/kornifex/FVTT-Genesys/issues/646)) ([2adbbbe](https://github.com/kornifex/FVTT-Genesys/commit/2adbbbe4954d44b220021bc5da79f30dda52b35b))
+* **ui:** show no die on a name that rolls ([#640](https://github.com/kornifex/FVTT-Genesys/issues/640)) ([12faa1f](https://github.com/kornifex/FVTT-Genesys/commit/12faa1fe3a276323dded9d98b47e5ff94a71c4ed))
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.6.0-rc.3's changes in the welcome message ([#652](https://github.com/kornifex/FVTT-Genesys/issues/652)) ([2bef5d5](https://github.com/kornifex/FVTT-Genesys/commit/2bef5d5e424bc2d8e69bf767a5ea5fe39a0d9b31))
+* ship the licence and the font notices in the release zip ([#649](https://github.com/kornifex/FVTT-Genesys/issues/649)) ([a0ab89f](https://github.com/kornifex/FVTT-Genesys/commit/a0ab89f0d6bb5514fbc3154cd8f631a13408eaaf))
+* **ui:** fit each characteristic's box to its own name, with its ↑ beside it ([#650](https://github.com/kornifex/FVTT-Genesys/issues/650)) ([aabfd32](https://github.com/kornifex/FVTT-Genesys/commit/aabfd326533ae183451387460ed214825fd5758a))
+* **ui:** show a counter's − and + where the pointer goes, and take nothing off on a right-click on its + ([#648](https://github.com/kornifex/FVTT-Genesys/issues/648)) ([da73b86](https://github.com/kornifex/FVTT-Genesys/commit/da73b8693222d2dc3aaed5b49ac3b9a1a69f0c94))
+* **ui:** show an open row menu over everything in its sheet ([#647](https://github.com/kornifex/FVTT-Genesys/issues/647)) ([9520544](https://github.com/kornifex/FVTT-Genesys/commit/9520544f02a767c7ef4b25fbdc0a7d1da44a9228))
+
+
+### Documentation
+
+* defer listing the system in the Foundry registry ([#639](https://github.com/kornifex/FVTT-Genesys/issues/639)) ([2dae5bb](https://github.com/kornifex/FVTT-Genesys/commit/2dae5bbde0e4cc5e049e22be9803789321d80a96))
+
+
+### Continuous Integration
+
+* set the next release to 0.6.0 ([#636](https://github.com/kornifex/FVTT-Genesys/issues/636)) ([948d3c3](https://github.com/kornifex/FVTT-Genesys/commit/948d3c390a899f00d07fb7ae5a15df801ba86d58))
+* set the next release to 0.6.0-rc.3 ([#651](https://github.com/kornifex/FVTT-Genesys/issues/651)) ([c2f8966](https://github.com/kornifex/FVTT-Genesys/commit/c2f896650060a27ad7d82ffa3e02986211be67e5))
+
 ## [0.6.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.1...v0.6.0-rc.2) (2026-11-10)
 
 
