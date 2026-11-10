@@ -1959,6 +1959,54 @@ export async function run(e2e: ScenarioContext) {
 		);
 	});
 
+	// §#621: a characteristic's box is as wide as its label with its die and ↑, and the boxes of a row as wide as the
+	// widest, which the sheet's default width holds.
+	await part('characteristicBoxes', async () => {
+		let boxes = {};
+		await e2e.step(
+			'#621 A1 GM opens, at their default width, a character who can raise a characteristic, a nemesis, an archetype and a vehicle',
+			async () => {
+				boxes = await gm.evaluate(async () => {
+					const measured: Record<string, unknown> = {};
+					for (const name of ['Observed', 'Nemesis', 'archetype', 'Vehicle']) {
+						await window.sheetsE2E.open(name);
+						const document = game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`);
+						const root = window.e2e.htmlOf(document.sheet)!;
+						const fields = [...root.querySelectorAll<HTMLElement>('.characteristic-field')];
+						const row = fields[0]?.parentElement;
+						measured[name] = {
+							fields: fields.length,
+							widths: new Set(fields.map((field) => field.offsetWidth)).size,
+							// The name and its die within the column, and the ↑ within the box drawn past it, to a pixel's rounding.
+							labelsFit: fields.every((field) => {
+								const within = (inner: Element | null, outer: Element) => {
+									if (!inner) return true;
+									const [a, b] = [inner.getBoundingClientRect(), outer.getBoundingClientRect()];
+									return a.left >= b.left - 1 && a.right <= b.right + 1;
+								};
+								const label = field.querySelector('.characteristic-label')!;
+								return (
+									within(label.firstElementChild, field) &&
+									within(label.querySelector('.raise'), field.querySelector('.box')!)
+								);
+							}),
+							rowFits: !!row && row.getBoundingClientRect().right <= root.getBoundingClientRect().right,
+							raise: fields.some((field) => field.querySelector('.raise')),
+						};
+						await window.sheetsE2E.close(name);
+					}
+					return measured;
+				});
+			},
+		);
+		const fit = (fields: number, raise: boolean) => ({ fields, widths: 1, labelsFit: true, rowFits: true, raise });
+		e2e.expect(
+			"#621 A1 every characteristic's box holds its label, die and ↑, the boxes of a row are one width, and the row fits the sheet",
+			boxes,
+			{ Observed: fit(6, true), Nemesis: fit(6, false), archetype: fit(6, false), Vehicle: fit(3, false) },
+		);
+	});
+
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look.
 	await part('headings', async () => {

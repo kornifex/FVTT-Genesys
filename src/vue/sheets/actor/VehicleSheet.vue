@@ -37,9 +37,16 @@ const TABS = [
 
 		<section class="stats-section">
 			<div class="stats-row">
-				<Characteristic label="Genesys.Labels.Silhouette" :value="system.silhouette" name="system.silhouette" can-edit />
-				<Characteristic label="Genesys.Labels.Speed" :value="system.speed" name="system.speed" can-edit />
-				<Characteristic label="Genesys.Labels.Handling" :value="system.handling.signedString()" name="system.handling" can-edit />
+				<div class="characteristics">
+					<Characteristic label="Genesys.Labels.Silhouette" :value="system.silhouette" name="system.silhouette" can-edit />
+					<Characteristic label="Genesys.Labels.Speed" :value="system.speed" name="system.speed" can-edit />
+					<Characteristic
+						label="Genesys.Labels.Handling"
+						:value="system.handling.signedString()"
+						name="system.handling"
+						can-edit
+					/>
+				</div>
 
 				<div class="stats-column">
 					<!-- The total counts the Pilot's Piloted Vehicle Defense, which the vehicle's own defense doesn't. -->
@@ -161,6 +168,14 @@ const TABS = [
 				border-radius: 4rem;
 
 				clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
+			}
+
+			// One column per characteristic, each as wide as the widest (#621), spaced as the row spaces them from the stats.
+			.characteristics {
+				display: grid;
+				grid-auto-flow: column;
+				grid-auto-columns: 1fr;
+				gap: 3em;
 			}
 
 			.characteristic-field {

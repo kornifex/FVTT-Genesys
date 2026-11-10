@@ -137,7 +137,11 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 	$row-size: 1.5rem;
 
 	display: grid;
-	grid-template-columns: $row-size * 2;
+	// As wide as its label with its die, and never narrower than its value (#621): the label's width is the column's
+	// least, which the row can't squeeze. The row it sits in gives every characteristic the width of the widest, through
+	// columns of 1fr.
+	grid-template-columns: minmax(max-content, 1fr);
+	min-width: $row-size * 2;
 	grid-template-rows: repeat(2, $row-size) auto;
 	justify-content: center;
 	align-items: center;
@@ -149,6 +153,9 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 
 	.value {
 		grid-row: 1 / span 2;
+		justify-self: center;
+		// The star of a super-characteristic sits on the value's corner.
+		position: relative;
 		border: 2px solid colors.$blue;
 		border-radius: 50%;
 		width: $row-size * 2;
@@ -236,30 +243,32 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		white-space: nowrap;
 
 		// The menu's ⋮, its own, which :deep() reaches, sits beside the value's top, over the sheet's background, across
-		// from the star of a super-characteristic.
+		// from the star of a super-characteristic: its right edge 1.25em past the value's, which the field centres.
 		:deep(.menu-trigger) {
-			grid-row: 1 / span 1;
-			grid-column: 1 / span 1;
-			justify-self: end;
-			align-self: start;
-			margin-right: -1.25em;
+			position: absolute;
+			top: 0;
+			left: calc(50% + #{$row-size} + 1.25em);
+			transform: translateX(-100%);
 			z-index: 2;
 		}
 	}
 
+	// It fills its column, without a percentage width: its text sets the column's least width, so the box never gets
+	// narrower than its label where the row runs short of room.
 	.characteristic-label {
-		width: 100%;
 		grid-row: 3 / span 1;
 		grid-column: 1 / span 1;
 		color: colors.$text-on-dark;
 		@include headings.font;
 		text-transform: uppercase;
 		text-align: center;
+		// Its ↑ is placed from its edges.
+		position: relative;
 		z-index: 1;
 		margin-top: 2px;
 		margin-bottom: 2px;
 
-		// The name, which rolls, and the ↑ that raises the characteristic beside it, centred under the value.
+		// The name, which rolls, centred under the value.
 		display: flex;
 		flex-wrap: nowrap;
 		align-items: center;
@@ -271,6 +280,18 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 			flex-wrap: nowrap;
 			align-items: center;
 			gap: 0.25em;
+		}
+
+		// The ↑ sits in the box's margin, past the column's right edge, rather than beside the name: it takes none of the
+		// width the boxes of a row share (#621).
+		.raise {
+			position: absolute;
+			top: 50%;
+			left: calc(100% + 0.15em);
+			// Within the 1em the box reaches past the column, as the skills' ↑ badge is sized (#620).
+			font-size: 0.75em;
+			line-height: 1;
+			transform: translateY(-50%);
 		}
 	}
 }

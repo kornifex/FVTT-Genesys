@@ -14,8 +14,9 @@ import { receiveInventoryDrop } from '@/operations/InventoryDrop';
  * Actor sheet shared by the adversaries: minions, rivals and nemeses.
  */
 export class AdversarySheet extends GenesysActorSheet<AdversaryType> {
+	// Wide enough for the six characteristics in one row, each as wide as the longest label with its die (#621).
 	static override DEFAULT_OPTIONS = {
-		position: { width: 480 },
+		position: { width: 640 },
 	};
 
 	override get initialTab() {
