@@ -63,6 +63,28 @@ describe('Characteristic', () => {
 		).toBe(false);
 	});
 
+	it('puts its ↑ in its label right after the name, so that it sits beside the name in the box fitted to the label', () => {
+		const label = mountCharacteristic({ ...brawn, canUpgrade: true }).get('.characteristic-label');
+
+		expect([...label.element.children].map((child) => child.className)).toEqual(['action-button roll-link', 'action-button raise']);
+	});
+
+	it("marks a super-characteristic with a star on its value, where the world's setting allows them", () => {
+		expect(
+			mountCharacteristic({ ...brawn, isSuper: true })
+				.find('.super-star')
+				.exists(),
+		).toBe(false);
+
+		vi.stubGlobal('CONFIG', { genesys: { settings: { useSuperCharacteristics: true } } });
+		expect(
+			mountCharacteristic({ ...brawn, isSuper: true })
+				.find('.value > .super-star')
+				.exists(),
+		).toBe(true);
+		expect(mountCharacteristic(brawn).find('.super-star').exists()).toBe(false);
+	});
+
 	it('shows its label as text where it rolls nothing, as on an Archetype', () => {
 		const characteristic = mountCharacteristic({ ...brawn, canRollCharacteristicCheck: false });
 
