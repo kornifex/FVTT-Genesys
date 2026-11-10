@@ -2082,41 +2082,6 @@ export async function run(e2e: ScenarioContext) {
 
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look.
-	// TEMP #644: screenshots for a look at the boxes, removed before the PR.
-	await part('screenshots644', async () => {
-		const shots =
-			'/tmp/claude-1000/-home-julien-Developer-kornifex-FVTT-Genesys/7bf5d222-f272-4014-a6d0-1414208ef6c0/scratchpad/644/shots';
-		await gm.evaluate(async () => {
-			await window.e2e.setSettings({ useSuperCharacteristics: true });
-			await game.actors.getName('E2E Nemesis').update({ 'system.superCharacteristics': ['brawn', 'presence'] });
-		});
-		for (const lang of ['en', 'fr']) {
-			for (const key of ['genesys', 'terrinoth']) {
-				for (const name of ['Observed', 'Nemesis', 'archetype', 'Vehicle']) {
-					const id = await gm.evaluate(
-						async ({ name, lang, key }) => {
-							await game.i18n.setLanguage(lang);
-							document.documentElement.dataset.genesysStyle = key;
-							await window.sheetsE2E.open(name);
-							await document.fonts.ready;
-							const sheet = game.actors.getName(`E2E ${name}`) ?? game.items.getName(`E2E ${name}`);
-							return window.e2e.htmlOf(sheet.sheet)!.id;
-						},
-						{ name, lang, key },
-					);
-					await gm.page.locator(`#${id}`).screenshot({ path: `${shots}/${name}-${lang}-${key}.png` });
-					await gm.evaluate((name) => window.sheetsE2E.close(name), name);
-				}
-			}
-		}
-		await gm.evaluate(async () => {
-			await game.i18n.setLanguage('en');
-			document.documentElement.dataset.genesysStyle = 'genesys';
-			await window.e2e.setSettings({ useSuperCharacteristics: false });
-			await game.actors.getName('E2E Nemesis').update({ 'system.superCharacteristics': [] });
-		});
-	});
-
 	await part('headings', async () => {
 		let headings: Record<string, HeadingStyle> | undefined;
 		await e2e.step('#346 GM opens a skill whose description holds headings', async () => {
