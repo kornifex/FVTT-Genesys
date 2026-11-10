@@ -75,13 +75,11 @@ type MenuKeys = {
 type ContentsBox = { rows: string[]; height: number | string; scrollbar: boolean; lastInside: boolean; visibility: string };
 
 /**
- * The currency and encumbrance row of an Inventory tab as laid out (#625): the sheet's size; whether the row lies above
- * the item sections, below them or among them; whether it touches the top or the bottom of the tab, inside its padding,
- * and the sections, within 2px; whether the tab ends where the window's scrolled content ends; and whether the window
- * scrolls.
+ * The currency and encumbrance row of an Inventory tab as laid out (#625): whether the row lies above the item sections,
+ * below them or among them; whether it touches the top or the bottom of the tab, inside its padding, and the sections,
+ * within 2px; whether the tab ends where the window's scrolled content ends; and whether the window scrolls.
  */
 type SummaryRowBox = {
-	size: string;
 	placement: 'above' | 'below' | 'among';
 	atTabTop: boolean;
 	atTabBottom: boolean;
@@ -1354,7 +1352,6 @@ function installInventoryHelpers() {
 			if (box.bottom <= sectionsTop + 0.5) placement = 'above';
 			else if (box.top >= sectionsBottom - 0.5) placement = 'below';
 			return {
-				size: `${app.position.width}x${app.position.height}`,
 				placement,
 				atTabTop: near(box.top, inner.top),
 				atTabBottom: near(box.bottom, inner.bottom),
@@ -2550,7 +2547,8 @@ export async function run(e2e: ScenarioContext) {
 /**
  * §#646: below the item sections, a character's currency and encumbrance row sits at the bottom of the Inventory tab
  * while the sections leave room, and right after them once they fill it; above them, as on a vehicle's sheet, it stays
- * at the top. The sheets keep their default size.
+ * at the top. The sheets keep the size they open at: their default width, and the height of the tab they open on, taller
+ * than the Inventory tab of one item.
  */
 async function summaryRow(e2e: ScenarioContext) {
 	const { gm } = e2e;
@@ -2561,10 +2559,9 @@ async function summaryRow(e2e: ScenarioContext) {
 		gm.evaluate(() => window.inventoryE2E.createItems('Lister', [{ name: 'Lamp', type: 'gear', system: { state: 'carried' } }])),
 	);
 	e2e.expect(
-		'#646 A1 the row sits at the bottom of the tab, which fills the sheet at its default size, apart from the sections above it',
+		'#646 A1 the row sits at the bottom of the tab, which fills the sheet as it opened, apart from the sections above it',
 		await summary('Lister'),
 		{
-			size: '780x640',
 			placement: 'below',
 			atTabTop: false,
 			atTabBottom: true,
@@ -2585,7 +2582,6 @@ async function summaryRow(e2e: ScenarioContext) {
 		),
 	);
 	e2e.expect('#646 A2 the row comes right after the last section, at the end of the tab, which scrolls', await summary('Lister'), {
-		size: '780x640',
 		placement: 'below',
 		atTabTop: false,
 		atTabBottom: true,
@@ -2598,7 +2594,6 @@ async function summaryRow(e2e: ScenarioContext) {
 		gm.evaluate(() => window.inventoryE2E.createItems('Freighter', [{ name: 'Crate', type: 'gear', system: { state: 'carried' } }])),
 	);
 	e2e.expect('#646 A3 the row stays at the top of the tab, right before the sections', await summary('Freighter'), {
-		size: '720x640',
 		placement: 'above',
 		atTabTop: true,
 		atTabBottom: false,
