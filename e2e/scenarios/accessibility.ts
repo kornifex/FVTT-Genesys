@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584), and the Talents tab's bars (#623); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584), and the Talents tab's bars (#623); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622), and shown where the mouse goes, a right-click on the + taking nothing off (#645). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -10,6 +10,11 @@ const STYLES: Style[] = [
 	{ key: 'genesys', name: 'Genesys', checks: 'WCAG 2.2 AA' },
 	{ key: 'terrinoth', name: 'Realms of Terrinoth', checks: 'colours', rules: ['color-contrast', 'link-in-text-block'] },
 ];
+
+/** A point of the page, in the viewport's pixels, as the mouse of Playwright takes it. */
+type Point = { x: number; y: number };
+/** Where {@link AccessibilityHelpers.counterStepPoints} finds a − or + of a counter, and the points around it. */
+type CounterStepPoints = { step: Point; value: Point; away: Point; beside?: Point };
 
 type AccessibilityHelpers = {
 	/** Deletes what the previous run left, then creates an actor of each type, a world item of each type, and a crew. */
@@ -119,6 +124,24 @@ type AccessibilityHelpers = {
 	 * where something else shows: `hidden at left, center`.
 	 */
 	counterSteps(actor: string): Promise<Record<string, string>>;
+	/**
+	 * Renders an actor's sheet as {@link counterSteps} does, with nothing focused, for the pointer steps of #645, and gives
+	 * the name of each − and + of its counters, as `counterSteps` names them.
+	 */
+	readyCounterPointer(actor: string): Promise<string[]>;
+	/**
+	 * Where a − or + of the sheet readied last shows, by its name, measured while its counter has the focus (where it
+	 * shows no room, as before #645, it shows only then): its centre, its value's centre, and a point away from the
+	 * counter, the centre of the sheet's title. With the name of a field, also a point of that field beside the − or +.
+	 */
+	counterStepPoints(step: string, field?: string): CounterStepPoints;
+	/**
+	 * Whether a − or + of the sheet readied last shows at a point and takes the pointer there, `shown`; else `hidden`, or
+	 * `under <element>` for what takes the pointer there.
+	 */
+	counterStepState(step: string, point: Point): string;
+	/** The current wounds, the wound threshold of an actor, and the name of the field that has the focus. */
+	woundsOf(actor: string): { wounds: number; threshold: number; focused: string | null };
 	/**
 	 * Readies a keyboard step on a row's ⋮ (#577), by its key in `ROW_MENUS`: renders its sheet on its tab, opens what
 	 * holds it, and focuses the ⋮. Whether it took the focus, and its name: null for a row without one.
@@ -881,6 +904,40 @@ function installAccessibilityHelpers() {
 			return element.contains(hit) ? [] : [{ point, hit }];
 		});
 	};
+	// Renders an actor's sheet for the counter steps, on its Inventory tab with its Containers open, and gives its selector.
+	const openCounters = async (name: string) => {
+		const { selector, tabs } = await helpers.openSheet(name);
+		const root = find(document, tabs.includes('inventory') ? await helpers.showTab(selector, 'inventory') : selector);
+		for (const toggle of root.querySelectorAll<HTMLElement>(
+			'.inventory-item > .details > .description-toggle[aria-expanded="false"]',
+		)) {
+			toggle.click();
+		}
+		await settle();
+		return selector;
+	};
+	// Each − and + of the counters a sheet shows, with its counter's value, by its row's name, its counter's name and its
+	// sign: `E2E Tally Rope: Quantity +`. The combat stats sit above the tabs: the Inventory tab's panel doesn't hold them.
+	const counterStepsOf = (selector: string) => {
+		const steps = new Map<string, { value: HTMLElement; step: HTMLElement }>();
+		for (const counter of find(document, selector).querySelectorAll<HTMLElement>('.counter.interactive')) {
+			if (!counter.checkVisibility()) continue;
+			const value = find(counter, '[role="spinbutton"]');
+			const row = counter.closest('.inventory-item')?.querySelector('.name');
+			for (const step of counter.querySelectorAll<HTMLElement>(':scope > .step')) {
+				const sign = step.classList.contains('decrease') ? '−' : '+';
+				steps.set(`${row ? `${text(row)}: ` : ''}${value.getAttribute('aria-label')} ${sign}`, { value, step });
+			}
+		}
+		return steps;
+	};
+	// The sheet the pointer steps of #645 readied last, and a − or + of it by its name, found again after each render.
+	let counterSheet: string | undefined;
+	const counterStep = (key: string) => {
+		const found = counterSheet && counterStepsOf(counterSheet).get(key);
+		if (!found) throw new Error(`No counter step ${key}`);
+		return found;
+	};
 	// `whole`, or the points hidden and what shows at the first: `hidden at left, center under div.value`.
 	const shownWhole = (element: HTMLElement) => {
 		const hidden = hiddenPoints(element);
@@ -1405,28 +1462,60 @@ function installAccessibilityHelpers() {
 
 		async counterSteps(name) {
 			const steps: Record<string, string> = {};
-			const { selector, tabs } = await helpers.openSheet(name);
-			const root = find(document, tabs.includes('inventory') ? await helpers.showTab(selector, 'inventory') : selector);
-			for (const toggle of root.querySelectorAll<HTMLElement>(
-				'.inventory-item > .details > .description-toggle[aria-expanded="false"]',
-			)) {
-				toggle.click();
-			}
-			await settle();
-			// The combat stats sit above the tabs: the Inventory tab's panel doesn't hold them.
-			for (const counter of find(document, selector).querySelectorAll<HTMLElement>('.counter.interactive')) {
-				if (!counter.checkVisibility()) continue;
-				const value = find(counter, '[role="spinbutton"]');
-				const row = counter.closest('.inventory-item')?.querySelector('.name');
+			for (const [key, { value, step }] of counterStepsOf(await openCounters(name))) {
 				value.focus();
-				for (const step of counter.querySelectorAll<HTMLElement>(':scope > .step')) {
-					const sign = step.classList.contains('decrease') ? '−' : '+';
-					steps[`${row ? `${text(row)}: ` : ''}${value.getAttribute('aria-label')} ${sign}`] = shownWhole(step);
-				}
+				steps[key] = shownWhole(step);
 				value.blur();
 			}
 			await helpers.closeAll();
 			return steps;
+		},
+
+		async readyCounterPointer(name) {
+			counterSheet = await openCounters(name);
+			(document.activeElement as HTMLElement | null)?.blur();
+			return [...counterStepsOf(counterSheet).keys()];
+		},
+
+		counterStepPoints(key, field) {
+			const { value, step } = counterStep(key);
+			const centre = (box: DOMRect) => ({ x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 });
+			value.focus();
+			step.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+			const box = step.getBoundingClientRect();
+			value.blur();
+			const points: CounterStepPoints = {
+				step: centre(box),
+				value: centre(value.getBoundingClientRect()),
+				away: centre(find(document, `${counterSheet} .window-header`).getBoundingClientRect()),
+			};
+			if (field) {
+				// A point of the field 4 px out of the − or +, on the side it reaches over, kept within the field.
+				const fieldBox = find(document, `${counterSheet} [name="${field}"]`).getBoundingClientRect();
+				const x = step.classList.contains('decrease') ? box.left - 4 : box.right + 4;
+				points.beside = {
+					x: Math.min(Math.max(x, fieldBox.left + 2), fieldBox.right - 2),
+					y: Math.min(Math.max(points.step.y, fieldBox.top + 2), fieldBox.bottom - 2),
+				};
+			}
+			return points;
+		},
+
+		counterStepState(key, { x, y }) {
+			const { step } = counterStep(key);
+			if (!step.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return 'hidden';
+			const hit = document.elementFromPoint(x, y);
+			if (step.contains(hit)) return 'shown';
+			return `under ${hit ? [hit.tagName.toLowerCase(), ...hit.classList].join('.') : 'nothing'}`;
+		},
+
+		woundsOf(name) {
+			const { system } = actor(name);
+			return {
+				wounds: system.wounds.value,
+				threshold: system.wounds.max,
+				focused: document.activeElement?.getAttribute('name') ?? null,
+			};
 		},
 
 		async readyRowMenu(key) {
@@ -1736,6 +1825,107 @@ async function counterSteps(e2e: ScenarioContext) {
 				Object.fromEntries(STYLES.map((style) => [style.name, whole])),
 			);
 		}
+	} finally {
+		await gm.evaluate(() => window.accessibilityE2E.deleteCounters());
+	}
+}
+
+/**
+ * §#648: each counter's − and + show where the pointer goes, straight from outside the counter and back, with the mouse
+ * of the browser, whose hit testing finds what takes the pointer (#645); a right-click on the + takes nothing off; and
+ * the field a − reaches over keeps a click beside it.
+ */
+async function counterPointer(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const { mouse, keyboard } = gm.page;
+	await e2e.step('#648 actors whose counters show their − and + set up for the pointer', () =>
+		gm.evaluate(() => window.accessibilityE2E.setUpCounters()),
+	);
+	const points = (step: string, field?: string) =>
+		gm.evaluate((args) => window.accessibilityE2E.counterStepPoints(args.step, args.field), { step, field });
+	const state = (step: string, point: Point) =>
+		gm.evaluate((args) => window.accessibilityE2E.counterStepState(args.step, args.point), { step, point });
+	try {
+		for (const { code, name, what, steps } of COUNTER_STEPS) {
+			const states: Record<string, { away: string; over: string; back: string }> = {};
+			await e2e.step(
+				`#648 H${code} ${what}: the pointer moved from the sheet's title onto each − and +, away, and back`,
+				async () => {
+					for (const step of await gm.evaluate((name) => window.accessibilityE2E.readyCounterPointer(name), name)) {
+						const at = await points(step);
+						await mouse.move(at.away.x, at.away.y);
+						const away = await state(step, at.step);
+						await mouse.move(at.step.x, at.step.y);
+						const over = await state(step, at.step);
+						await mouse.move(at.away.x, at.away.y);
+						await mouse.move(at.step.x, at.step.y);
+						states[step] = { away, over, back: await state(step, at.step) };
+					}
+					await gm.evaluate(() => window.accessibilityE2E.closeAll());
+				},
+			);
+			e2e.expect(
+				`#648 H${code} each − and + of ${what} shows where the pointer goes, from outside its counter and back`,
+				states,
+				Object.fromEntries(steps.map((step) => [step, { away: 'hidden', over: 'shown', back: 'shown' }])),
+			);
+		}
+
+		// Through the value, the way a pointer showed the − and + before #645 too, so that the right-click on the + is
+		// tested on both builds.
+		let clicks: Record<string, number> = {};
+		await e2e.step(
+			"#648 R1 the + of a rival's wounds clicked, then right-clicked, and its − right-clicked, with the mouse",
+			async () => {
+				await gm.evaluate(() => window.accessibilityE2E.readyCounterPointer('Tally Rival'));
+				const wounds = async () => (await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'))).wounds;
+				const press = async (step: string, button: 'left' | 'right') => {
+					const at = await points(step);
+					await mouse.move(at.value.x, at.value.y);
+					await mouse.move(at.step.x, at.step.y);
+					await mouse.click(at.step.x, at.step.y, { button });
+					await e2e.settle();
+					return wounds();
+				};
+				clicks = {
+					before: await wounds(),
+					'+ clicked': await press('Current Wounds +', 'left'),
+					'+ right-clicked': await press('Current Wounds +', 'right'),
+					'− right-clicked': await press('Current Wounds −', 'right'),
+				};
+			},
+		);
+		e2e.expect(
+			"#648 R1 a click on the + of a rival's wounds adds one, a right-click on it takes nothing off, and one on the − takes one off",
+			clicks,
+			{
+				before: 1,
+				'+ clicked': 2,
+				'+ right-clicked': 2,
+				'− right-clicked': 1,
+			},
+		);
+
+		let typed: unknown;
+		await e2e.step("#648 T1 a rival's wound threshold clicked beside the − of its wounds, then 11 typed and Tab pressed", async () => {
+			const at = await points('Current Wounds −', 'system.wounds.max');
+			// The − shows first, as it does when the pointer reaches the threshold from the counter.
+			await mouse.move(at.step.x, at.step.y);
+			await mouse.click(at.beside!.x, at.beside!.y);
+			const clicked = await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'));
+			await keyboard.press('Control+A');
+			await keyboard.type('11');
+			await keyboard.press('Tab');
+			await e2e.settle();
+			typed = {
+				focused: clicked.focused,
+				threshold: (await gm.evaluate(() => window.accessibilityE2E.woundsOf('Tally Rival'))).threshold,
+			};
+		});
+		e2e.expect("#648 T1 the wound threshold a rival's − reaches over takes a click beside the −, and the value typed", typed, {
+			focused: 'system.wounds.max',
+			threshold: 11,
+		});
 	} finally {
 		await gm.evaluate(() => window.accessibilityE2E.deleteCounters());
 	}
@@ -2400,6 +2590,9 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('rowActions', () => rowActions(e2e));
 
 		await e2e.part('counterSteps', () => counterSteps(e2e));
+
+		await e2e.part('counterPointer', () => counterPointer(e2e));
+
 		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
 		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {
