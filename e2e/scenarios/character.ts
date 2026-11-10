@@ -2587,23 +2587,38 @@ async function skillMenus(e2e: ScenarioContext, page: Evaluate) {
 				await settle();
 
 				const box = menu.getBoundingClientRect();
-				const points = [0.1, 0.5, 0.9].flatMap((x) =>
-					[0.05, 0.25, 0.5, 0.75, 0.95].map((y) => ({ x: box.left + box.width * x, y: box.top + box.height * y })),
+				// A grid over the menu, and the middle of each part of an ↑ or a die it covers.
+				const grid = [0.05, 0.25, 0.5, 0.75, 0.95].flatMap((x) =>
+					[0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95].map((y) => ({
+						x: box.left + box.width * x,
+						y: box.top + box.height * y,
+					})),
 				);
+				const covered = [...root.querySelectorAll('.tab-skills .buy-rank, .tab-skills .skill-ranks .rank')].flatMap((element) => {
+					const part = element.getBoundingClientRect();
+					const left = Math.max(part.left, box.left);
+					const right = Math.min(part.right, box.right);
+					const top = Math.max(part.top, box.top);
+					const bottom = Math.min(part.bottom, box.bottom);
+					return right - left > 1 && bottom - top > 1
+						? [{ kind: element.matches('.buy-rank') ? 'rank ↑' : 'dice', x: (left + right) / 2, y: (top + bottom) / 2 }]
+						: [];
+				});
 				const named = (element: Element | null) => {
 					if (!element) return 'nothing';
 					if (element.closest('.buy-rank')) return 'rank ↑';
 					if (element.closest('.skill-ranks')) return 'dice';
 					return [element.tagName.toLowerCase(), ...element.classList].join('.');
 				};
-				const over = points.map(({ x, y }) => document.elementFromPoint(x, y)).filter((element) => !menu.contains(element));
+				const over = [...grid, ...covered]
+					.map(({ x, y }) => document.elementFromPoint(x, y))
+					.filter((element) => !menu.contains(element));
 
 				document.body.click();
 				await waitFor('the skill menu to close', () => !menu.isConnected);
-				const under = points.map(({ x, y }) => named(document.elementFromPoint(x, y)));
 				return {
 					direction: opening === 'down' ? box.top >= rowBox.bottom - 1 : box.bottom <= pointer.y + 1,
-					covers: ['dice', 'rank ↑'].filter((part) => under.includes(part)),
+					covers: ['dice', 'rank ↑'].filter((kind) => covered.some((part) => part.kind === kind)),
 					over: [...new Set(over.map(named))],
 				};
 			},
