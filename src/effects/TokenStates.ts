@@ -1,19 +1,23 @@
 /**
- * @file Token States: the states the token's status menu puts on an actor, as Active Effects that last a number of rounds (CRB p. 114).
+ * @file Token States: the states the token's status menu puts on an actor, as Active Effects: the Status Effects, which last a number of rounds (CRB p. 114), and cover and prone, which last until removed (CRB p. 99–100).
  */
 
 import { DieTypes } from '@/dice/DieTypes';
 import { encodeKey } from '@/effects/PoolModifications';
 
 /**
- * A change a Token State makes, as an Active Effect stores it. A Pool Modification takes Foundry's custom type, which
- * keeps Foundry from applying it.
+ * A change a Token State or a maneuver makes, as an Active Effect stores it. A Pool Modification takes Foundry's custom
+ * type, which keeps Foundry from applying it; a defense raised takes the add type.
  */
-type TokenStateChange = {
+export type StateChange = {
 	key: string;
 	value: string;
-	type: 'custom';
+	type: 'custom' | 'add';
 };
+
+// The actors that take cover or drop prone: characters and adversaries, not vehicles, whose single defense has no
+// ranged rating to raise.
+const CHARACTER_TYPES = ['character', 'minion', 'rival', 'nemesis'] as const;
 
 /**
  * A state the token's status menu offers, which Foundry calls a status effect.
@@ -24,7 +28,9 @@ export type TokenState = {
 	/** The localization key of its name. */
 	name: string;
 	img: string;
-	changes: TokenStateChange[];
+	changes: StateChange[];
+	/** The actor types whose token's status menu offers the state; every type when left undefined. */
+	actorTypes?: readonly string[];
 	/**
 	 * The localization key of what the state keeps its actor from doing, which the Dice Prompt reminds the roller of. A
 	 * state whose changes modify the dice needs none: the prompt lists them.
@@ -65,6 +71,28 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		changes: [],
 		reminder: 'Genesys.TokenStates.Staggered.Reminder',
 		lapses: true,
+	},
+	// A character in cover gains ranged defense 1, which they keep while they stay in cover (CRB p. 99).
+	{
+		id: 'cover',
+		name: 'Genesys.TokenStates.Cover.Name',
+		img: 'icons/svg/barrel.svg',
+		changes: [{ key: 'system.defense.ranged', value: '1', type: 'add' }],
+		actorTypes: CHARACTER_TYPES,
+		lapses: false,
+	},
+	// A prone character adds a Setback to the ranged attacks against them, a Boost to the melee ones (CRB p. 100, 108). It
+	// takes Foundry's own prone status's place, keeping its id and icon, until they stand up.
+	{
+		id: 'prone',
+		name: 'Genesys.TokenStates.Prone.Name',
+		img: 'icons/svg/falling.svg',
+		changes: [
+			{ key: encodeKey({ kind: 'ranged', source: 'target', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' },
+			{ key: encodeKey({ kind: 'melee', source: 'target', subject: '' }), value: DieTypes.Boost.GLYPH, type: 'custom' },
+		],
+		actorTypes: CHARACTER_TYPES,
+		lapses: false,
 	},
 ];
 

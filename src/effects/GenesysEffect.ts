@@ -35,6 +35,14 @@ const FLAG_LAST_COUNTED = 'lastCounted';
 const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys.TokenStates.RoundsLeft.other' };
 
 /**
+ * Where an effect keeps its changes, in its data and in the effect sheet's form.
+ */
+export function changesPath() {
+	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
+	return isFoundryV13() ? 'changes' : 'system.changes';
+}
+
+/**
  * A duration in rounds, as the version of Foundry stores it.
  */
 export function durationInRounds(rounds: number) {

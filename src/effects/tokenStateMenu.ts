@@ -1,31 +1,46 @@
 /**
- * @file The Token States in the token's status menu: their registration as Foundry status effects, and their application for a number of rounds.
+ * @file The Token States in the token's status menu: their registration as Foundry status effects, their changes as Foundry stores them, and their application for a number of rounds.
  */
 
 import { isFoundryV13 } from '@/foundryGeneration';
 import { durationInRounds, lapsingFor } from '@/effects/GenesysEffect';
 import { enteredRounds } from '@/effects/LapsingEffects';
-import { TOKEN_STATES, type TokenState, tokenState } from '@/effects/TokenStates';
-
-type ChangeType = TokenState['changes'][number]['type'];
+import { type StateChange, TOKEN_STATES, type TokenState, tokenState } from '@/effects/TokenStates';
 
 // v13: the mode of each type of change.
-const V13_MODES = { custom: 'CUSTOM' } as const satisfies Record<ChangeType, string>;
+const V13_MODES = { custom: 'CUSTOM', add: 'ADD' } as const satisfies Record<StateChange['type'], string>;
 
 /**
- * Adds the Token States to Foundry's status effects, after Foundry's own. A Lapsing state lasts one round by default.
+ * A change of a Token State or a maneuver, as the version of Foundry stores it.
+ */
+export function foundryChange({ key, value, type }: StateChange) {
+	// v13: a change has a numeric mode, which v14 replaced with a type, and logs a deprecation warning for.
+	return { key, value, ...(isFoundryV13() ? { mode: CONST.ACTIVE_EFFECT_MODES[V13_MODES[type]] } : { type }) };
+}
+
+/**
+ * Adds the Token States to Foundry's status effects, after Foundry's own, in place of Foundry's own state of the same id:
+ * the effects of that state the actors already hold remain that state, which the menu turns off. A Lapsing state lasts
+ * one round by default.
  */
 export function registerTokenStates() {
-	// v13: a change has a numeric mode, which v14 replaced with a type, and logs a deprecation warning for.
-	const changeType = (type: ChangeType) => (isFoundryV13() ? { mode: CONST.ACTIVE_EFFECT_MODES[V13_MODES[type]] } : { type });
 	for (const state of TOKEN_STATES) {
-		CONFIG.statusEffects.push({
+		const status = {
 			id: state.id,
 			name: state.name,
 			img: state.img,
-			changes: state.changes.map(({ key, value, type }) => ({ key, value, ...changeType(type) })),
+			changes: state.changes.map(foundryChange),
+			...(state.actorTypes && { hud: { actorTypes: [...state.actorTypes] } }),
 			...(state.lapses && lapsingFor(1)),
-		} as CONFIG.StatusEffect);
+		} as CONFIG.StatusEffect;
+
+		// v14's status effects replace the one at an index by its id too.
+		const index = CONFIG.statusEffects.findIndex(({ id }) => id === state.id);
+		if (index >= 0) {
+			CONFIG.statusEffects[index] = status;
+		} else {
+			CONFIG.statusEffects.push(status);
+		}
 	}
 }
 

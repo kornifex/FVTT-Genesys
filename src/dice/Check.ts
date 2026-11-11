@@ -184,7 +184,8 @@ export function resolveCheck<S extends CheckSkill>(
 	const poolModifications = poolModificationsForCheck(actor, target, {
 		characteristic,
 		skillName: rolledSkill?.skill.name,
-		attackRange: request.attackRange,
+		// Only an attack is a combat check, which the changes of combat checks and of melee or ranged attacks apply to.
+		attackRange: purpose.kind === 'attack' ? request.attackRange : undefined,
 		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
 		weapon: purpose.kind === 'attack' ? request.weapon : undefined,
 	});

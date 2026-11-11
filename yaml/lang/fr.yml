@@ -220,6 +220,10 @@ Genesys:
           Check: Tous les tests
           Characteristic: Utilise la caractéristique
           Skill: Utilise la compétence
+          # The scopes of combat checks and attacks (CRB p. 98–100, 108)
+          CombatCheck: Test de combat
+          MeleeAttack: Attaque de mêlée
+          RangedAttack: Attaque à distance
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
@@ -236,6 +240,21 @@ Genesys:
     RoundsLeft:
       one: '{rounds} round'
       other: '{rounds} rounds'
+    # Cover and prone (CRB p. 99–100)
+    Cover:
+      Name: À couvert
+    Prone:
+      Name: À terre
+
+  # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
+  Maneuvers:
+    Title: Manœuvres
+    Aim:
+      Name: Viser
+      Hint: Un dé de fortune au prochain test de combat, deux après deux manœuvres Viser d'affilée.
+    GuardedStance:
+      Name: Position défensive
+      Hint: Un dé d'infortune aux tests de combat et défense de mêlée 1, jusqu'à la fin du prochain tour.
 
   # Dice Prompt Labels
   DicePrompt:
@@ -335,6 +354,7 @@ Genesys:
     NoGMForStoryPoint: Un MJ doit être connecté pour dépenser un Point Narratif.
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     NoGMForClaim: Un MJ doit être connecté pour réclamer un slot d'initiative.
+    NoGMForUsedUpEffects: Un MJ doit être connecté pour retirer la visée que l'attaque de {name} a consommée.
     NotOwnerOfCombatant: Vous n'êtes pas propriétaire de ce combattant.
     ActingGMTimedOut: Le MJ n'a pas répondu à temps. Vérifiez si l'action a eu lieu avant de réessayer.
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.

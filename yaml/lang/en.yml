@@ -220,6 +220,10 @@ Genesys:
           Check: Any Check
           Characteristic: Uses Characteristic
           Skill: Uses Skill
+          # The scopes of combat checks and attacks (CRB p. 98–100, 108)
+          CombatCheck: Combat Check
+          MeleeAttack: Melee Attack
+          RangedAttack: Ranged Attack
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
@@ -236,6 +240,21 @@ Genesys:
     RoundsLeft:
       one: '{rounds} round'
       other: '{rounds} rounds'
+    # Cover and prone (CRB p. 99–100)
+    Cover:
+      Name: In Cover
+    Prone:
+      Name: Prone
+
+  # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
+  Maneuvers:
+    Title: Maneuvers
+    Aim:
+      Name: Aim
+      Hint: A Boost on the next combat check, two after two Aim maneuvers in a row.
+    GuardedStance:
+      Name: Guarded Stance
+      Hint: A Setback on combat checks and melee defense 1, until the end of the next turn.
 
   # Dice Prompt Labels
   DicePrompt:
@@ -336,6 +355,7 @@ Genesys:
     NoGMForStoryPoint: A GM must be online to spend a Story Point.
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     NoGMForClaim: A GM must be online to claim an initiative slot.
+    NoGMForUsedUpEffects: A GM must be online to remove the Aim {name}'s attack used up.
     NotOwnerOfCombatant: You don't own this combatant.
     ActingGMTimedOut: The GM didn't answer in time. Check whether it went through before trying again.
     CannotSelectActor: You do not have sufficient permission to select this Actor.
