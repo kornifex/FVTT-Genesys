@@ -592,8 +592,8 @@ export class GenesysCombat extends Combat {
 	 * Takes a round off the Lapsing Effects of the actor whose turn ended, such as its Token States, and removes those whose
 	 * rounds have run out: a state lasts until the end of its actor's turn (CRB p. 114). The actor is the combatant that
 	 * Claimed the turn's Initiative Slot, which Foundry's turn events don't know of: they name the slot's origin. Only the
-	 * actor's first turn of the round counts, so the round's other turns the actor takes, from an Extra Slot or a second
-	 * Claim, are read too. Foundry calls this on the Acting GM alone, for each turn that ends, skipped ones included, and
+	 * actor's first turn of the round counts, so the places of all the round's turns the actor takes, from an Extra Slot
+	 * or a second Claim, are passed along to tell whether this one is the first. Foundry calls this on the Acting GM alone, for each turn that ends, skipped ones included, and
 	 * never for a turn gone back to.
 	 */
 	protected override async _onEndTurn(combatant: Combatant.Stored, context: Combat.TurnEventContext) {

@@ -14,7 +14,7 @@ export type CombatTurn = {
 
 /**
  * What the end of a turn of its actor reads of a Lapsing Effect: its rounds left, the turn it was applied during, when
- * it was applied in a combat, and the last turn whose end took a round off.
+ * it was applied in a combat, and the last turn whose end took a round off, of which only the combat and the round count.
  */
 type LapsingEffect = {
 	rounds: number;
@@ -34,7 +34,8 @@ type Lapse = { kind: 'shorten'; rounds: number } | { kind: 'remove' };
  * count either when:
  * - the effect was applied during that same turn: a state lasting one round lasts until the end of its actor's next
  *   turn (CRB p. 114), and the turn it was suffered during isn't their next. An effect applied after the actor's first
- *   turn of a round, during it or between their slots, thus counts from their first turn of the next round;
+ *   turn of a round, during it or between their slots, thus counts from their first turn of the next round. Nor does a
+ *   turn of an earlier round, which the GM went back to;
  * - a round was counted already in that round or a later one, once the GM has gone back in the combat and ends a turn
  *   again.
  */
@@ -47,7 +48,10 @@ export function lapseAtTurnEnd(
 		return undefined;
 	}
 
-	if (appliedDuring?.combat === ended.combat && appliedDuring.round === ended.round && appliedDuring.slot === ended.slot) {
+	if (
+		appliedDuring?.combat === ended.combat &&
+		(ended.round < appliedDuring.round || (appliedDuring.round === ended.round && appliedDuring.slot === ended.slot))
+	) {
 		return undefined;
 	}
 

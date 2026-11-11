@@ -99,6 +99,15 @@ describe('lapseAtTurnEnd', () => {
 		expect(lifetime(1, turn(1, 'extra'), [turn(1, 'extra'), turn(2, 'actor')], WITH_EXTRA_SLOT)).toEqual([1, 'removed']);
 	});
 
+	it("counts a round once, when the GM goes back to the actor's first turn after their Extra Slot", () => {
+		const ends = [turn(1, 'actor'), turn(1, 'extra'), turn(1, 'actor'), turn(1, 'extra'), turn(2, 'actor')];
+		expect(lifetime(3, turn(1, 'attacker'), ends, WITH_EXTRA_SLOT)).toEqual([2, 2, 2, 2, 1]);
+	});
+
+	it('counts no end of a turn of a round before the one the state was applied in, which the GM went back to', () => {
+		expect(lifetime(2, turn(2, 'ally'), [turn(1, 'actor'), turn(3, 'actor')], WITH_EXTRA_SLOT)).toEqual([2, 1]);
+	});
+
 	it("counts the actor's first turn of a round, whichever slot it is", () => {
 		// The actor took only the ally's slot this round, as a PC Claiming another slot of their side.
 		expect(lapseAtTurnEnd({ rounds: 2 }, turn(1, 'ally'), [PLACES.ally])).toEqual({ kind: 'shorten', rounds: 1 });
