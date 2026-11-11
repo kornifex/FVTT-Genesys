@@ -12,6 +12,7 @@ This fork keeps the existing system going for tables with ongoing campaigns: sup
 Since release 0.2.19 of the original system, this fork has:
 
 - moved the sheets to Foundry's ApplicationV2 and added support for Foundry v13 and v14;
+- made every sheet usable from the keyboard and with a screen reader, with text at WCAG contrast in both Styles, a ⋮ menu of actions on every row, and compact counters;
 - added Weapon Profiles, a choice of Attack Skill for each weapon, and Silhouettes that change a targeted attack's difficulty;
 - let the roller set a check's Difficulty in the Dice Prompt, roll skills they lack as Unranked Skill Checks, and roll check links from journals, chat messages and item sheets;
 - fixed initiative, so Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots;
