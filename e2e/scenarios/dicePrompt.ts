@@ -3783,7 +3783,7 @@ export async function run(e2e: ScenarioContext) {
 			{ rows: stateRows(cleared), reminders: await reminders() },
 			{ rows: [], reminders: [] },
 		);
-		await e2e.step('S end');
+		await e2e.step('token states end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
