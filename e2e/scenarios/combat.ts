@@ -852,8 +852,10 @@ export async function run(e2e: ScenarioContext) {
 			const token = window.e2e.token('Boss');
 			token.control({ releaseOthers: true });
 			await canvas.hud.token.bind(token);
-			return [...canvas.hud.token.element.querySelectorAll('.effect-control[data-status-id]')]
-				.filter((icon: HTMLElement) => ids.includes(icon.dataset.statusId!))
+			// v14's menu sorts the states by name, v13's keeps their order: by id, in the order given.
+			return ids
+				.map((id: string) => canvas.hud.token.element.querySelector(`.effect-control[data-status-id="${id}"]`))
+				.filter((icon: HTMLElement | null) => icon !== null)
 				.map((icon: HTMLElement) => ({
 					id: icon.dataset.statusId,
 					title: icon.dataset.tooltipText,

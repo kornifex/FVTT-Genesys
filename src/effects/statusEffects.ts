@@ -93,10 +93,13 @@ async function askRounds(state: TokenState): Promise<number | undefined> {
 	const group = document.createElement('div');
 	group.className = 'form-group';
 	group.append(label, fields);
+	// Foundry's dialog takes its content's children, and refuses an element with attributes.
+	const content = document.createElement('div');
+	content.append(group);
 
 	const config: foundry.applications.api.DialogV2.PromptConfig = {
 		window: { title: state.name },
-		content: group,
+		content,
 		ok: {
 			label: 'Genesys.TokenStates.Apply',
 			callback: (_event, button) => {
