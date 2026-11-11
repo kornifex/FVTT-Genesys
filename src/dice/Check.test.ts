@@ -38,12 +38,20 @@ function actor(
 		groupSkillRank = undefined as number | undefined,
 		totalDefense = { melee: 0, ranged: 0 },
 		silhouette = 1,
+		currentEncumbrance = { value: 0, threshold: 8 },
 	} = {},
 ): CheckActor {
 	return {
 		type,
 		skills,
-		system: { characteristics, superCharacteristics: new Set(superCharacteristics), groupSkillRank, totalDefense, silhouette },
+		system: {
+			characteristics,
+			superCharacteristics: new Set(superCharacteristics),
+			groupSkillRank,
+			totalDefense,
+			silhouette,
+			currentEncumbrance,
+		},
 		allApplicableEffects: () => effects,
 	};
 }
@@ -256,6 +264,32 @@ describe('resolveCheck', () => {
 		expect(resolveCheck(gunner, request, rules).poolModifications).toEqual([
 			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
 		]);
+	});
+
+	it('hinders the Agility check an encumbered character picks for a skill when skills are uncoupled from characteristics (CRB p. 85, 205)', () => {
+		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], { currentEncumbrance: { value: 9, threshold: 8 } });
+		const encumbrance = { key: 'self.encumbrance', source: 'self', from: { encumbrance: { value: 9, threshold: 8 } }, mods: ['S'] };
+
+		expect(resolveCheck(hero, { skillName: 'Cool', characteristic: Characteristic.Agility }, uncoupled).poolModifications).toEqual([
+			encumbrance,
+		]);
+		expect(resolveCheck(hero, { skillName: 'Cool', characteristic: Characteristic.Agility }, rules).poolModifications).toEqual([]);
+	});
+
+	it("hinders an attack with the weapon's damage, and no other check (CRB p. 89)", () => {
+		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)]);
+		const sword = { name: 'Sword', uuid: 'Item.sword', system: { damage: 'moderate' } } as const;
+		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
+
+		expect(resolveCheck(hero, { purpose: attack, skillName: 'Melee', weapon: sword }, rules).poolModifications).toEqual([
+			{
+				key: 'self.itemDamage',
+				source: 'self',
+				from: { itemDamage: { name: 'Sword', uuid: 'Item.sword', damage: 'moderate' } },
+				mods: ['D'],
+			},
+		]);
+		expect(resolveCheck(hero, { skillName: 'Melee', weapon: sword }, rules).poolModifications).toEqual([]);
 	});
 });
 

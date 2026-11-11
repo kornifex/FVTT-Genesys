@@ -8,6 +8,7 @@ import { Skill, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import {
+	DamageableItem,
 	ExternalPoolModification,
 	matchOrigin,
 	PoolModificationActor,
@@ -112,6 +113,11 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	attacker?: SilhouettedActor;
 
 	/**
+	 * The weapon of an attack, whose damage hinders it. Ignored for any other check.
+	 */
+	weapon?: DamageableItem;
+
+	/**
 	 * Whether the Proficiency dice explode, for a dice pool rolled without an actor.
 	 */
 	usesSuperCharacteristic?: boolean;
@@ -180,6 +186,7 @@ export function resolveCheck<S extends CheckSkill>(
 		skillName: rolledSkill?.skill.name,
 		attackRange: request.attackRange,
 		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
+		weapon: purpose.kind === 'attack' ? request.weapon : undefined,
 	});
 
 	return {
@@ -237,6 +244,9 @@ function poolModificationKey({ source, from }: ExternalPoolModification) {
 		effect: (_name, uuid) => `${source}.effect.${uuid}`,
 		defense: (defense) => `${source}.defense.${defense}`,
 		silhouette: () => `${source}.silhouette`,
+		encumbrance: () => `${source}.encumbrance`,
+		// A check is made with one weapon at most.
+		itemDamage: () => `${source}.itemDamage`,
 	});
 }
 

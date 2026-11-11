@@ -22,6 +22,7 @@ import {
 	subjectFieldForKey,
 	toEditedChange,
 } from '@/effects/PoolModifications';
+import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
 type Change = { key: string; value: string };
 
@@ -380,6 +381,84 @@ describe('poolModificationsForCheck', () => {
 
 			expect(poolModificationsForCheck(self, sized('rival', 3), {})).toEqual([]);
 			expect(poolModificationsForCheck(self, undefined, { attacker: self })).toEqual([]);
+		});
+	});
+
+	describe("a character's encumbrance over their threshold (CRB p. 85)", () => {
+		const encumbered = (value: number, threshold: number, type = 'character'): PoolModificationActor => ({
+			type,
+			system: { currentEncumbrance: { value, threshold } },
+			allApplicableEffects: () => [],
+		});
+
+		it('adds one Setback per point over the threshold to Agility and Brawn checks', () => {
+			for (const characteristic of [Characteristic.Agility, Characteristic.Brawn]) {
+				expect(poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic, skillName: 'Athletics' })).toEqual([
+					{ source: 'self', from: { encumbrance: { value: 8, threshold: 6 } }, mods: ['S', 'S'] },
+				]);
+			}
+		});
+
+		it('changes nothing for the checks of the other characteristics, or without one', () => {
+			for (const characteristic of [
+				Characteristic.Intellect,
+				Characteristic.Cunning,
+				Characteristic.Willpower,
+				Characteristic.Presence,
+			]) {
+				expect(poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic })).toEqual([]);
+			}
+			expect(poolModificationsForCheck(encumbered(8, 6), undefined, {})).toEqual([]);
+		});
+
+		it('changes nothing at the threshold or under it', () => {
+			for (const value of [5, 6]) {
+				expect(poolModificationsForCheck(encumbered(value, 6), undefined, { characteristic: Characteristic.Brawn })).toEqual([]);
+			}
+		});
+
+		it('only hinders a character, the only actor with a threshold', () => {
+			for (const type of ['minion', 'rival', 'nemesis', 'vehicle']) {
+				expect(poolModificationsForCheck(encumbered(8, 6, type), undefined, { characteristic: Characteristic.Agility })).toEqual(
+					[],
+				);
+			}
+		});
+
+		it("lists the encumbrance after the character's own effects, before the target's", () => {
+			const self: PoolModificationActor = {
+				...encumbered(7, 6),
+				allApplicableEffects: () => [effect([{ key: 'genesys.pool.check.self.', value: 'B' }], { name: 'Own' })],
+			};
+			const target = actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }], { name: 'Target' })]);
+
+			expect(poolModificationsForCheck(self, target, { characteristic: Characteristic.Agility }).map(({ from }) => from)).toEqual([
+				{ effect: 'Own', uuid: 'ActiveEffect.Own' },
+				{ encumbrance: { value: 7, threshold: 6 } },
+				{ effect: 'Target', uuid: 'ActiveEffect.Target' },
+			]);
+		});
+	});
+
+	describe('the damage of the weapon an attack is made with (CRB p. 89, Table I.5-4)', () => {
+		const weapon = (damage: EquipmentDamageState) => ({ name: 'Pistol', uuid: 'Item.pistol', system: { damage } });
+		const self = actor('character', []);
+
+		it('adds a Setback at minor damage', () => {
+			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('minor') })).toEqual([
+				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'minor' } }, mods: ['S'] },
+			]);
+		});
+
+		it('adds one Difficulty die at moderate damage', () => {
+			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('moderate') })).toEqual([
+				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'moderate' } }, mods: ['D'] },
+			]);
+		});
+
+		it('changes nothing for an undamaged weapon, or a check made without one', () => {
+			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('undamaged') })).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, {})).toEqual([]);
 		});
 	});
 

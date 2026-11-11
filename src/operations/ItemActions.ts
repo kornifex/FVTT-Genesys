@@ -10,7 +10,7 @@ import * as Archetype from '@/actor/data/character/Archetype';
 import { careerSkillUpdates } from '@/actor/data/character/Career';
 import { crewForSkills } from '@/actor/data/CrewRoster';
 import { type EquipmentStep, equipmentStep, quantityChange, StepDirection, SteppedValue } from '@/actor/data/Inventory';
-import { DicePrompt, RollType } from '@/app/DicePrompt';
+import { DicePrompt, refuseUnusableWeapon, RollType } from '@/app/DicePrompt';
 import { attackSkillName, freeRank } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { postChatCard } from '@/item/ChatCards';
@@ -70,6 +70,11 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapo
  * that has it. A vehicle weapon has a single Weapon Profile.
  */
 export async function attackWithVehicleWeapon(vehicle: GenesysActor<'vehicle'>, weapon: GenesysItem<'vehicleWeapon'>) {
+	// Refused before a crew member is picked, rather than once picked.
+	if (refuseUnusableWeapon(weapon)) {
+		return;
+	}
+
 	await rollForCrew(crewForSkills(vehicle.system.crew, weapon.system.skills), {
 		roll: { type: RollType.Attack, weapon, profile: vehicleAttackProfile(weapon) },
 	});

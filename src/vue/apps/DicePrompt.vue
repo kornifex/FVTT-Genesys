@@ -8,6 +8,7 @@ import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@
 import { DEFENSE_LABELS } from '@/data/Actors';
 import { type CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
+import { EQUIPMENT_DAMAGE_LABELS } from '@/item/data/EquipmentDamage';
 import { useSheetContext } from '@/vue/SheetContext';
 import { usePromptAnswer } from '@/vue/usePrompt';
 import ActionButton from '@/vue/components/ActionButton.vue';
@@ -156,6 +157,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			target: target?.actor ?? undefined,
 			attackRange: attack?.profile.range,
 			attacker: vehicleAttacker(attack?.weapon),
+			weapon: attack?.weapon,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),
@@ -216,18 +218,27 @@ function poolModificationName({ from }: CheckPoolModification) {
 				target: String(target),
 				attacker: String(attacker),
 			}),
+		encumbrance: ({ value, threshold }) =>
+			game.i18n.format('Genesys.DicePrompt.PoolModifications.Encumbrance', { value: String(value), threshold: String(threshold) }),
+		itemDamage: ({ name, damage }) =>
+			game.i18n.format('Genesys.DicePrompt.PoolModifications.ItemDamage', {
+				item: name,
+				damage: game.i18n.localize(EQUIPMENT_DAMAGE_LABELS[damage]),
+			}),
 	});
 }
 
 /**
  * The link to the document the roller opens to read a Pool Modification's conditions: the item its effect comes from, or
- * the effect when it comes from none. None when the user may not see that document, as a player on a target's item.
+ * the effect when it comes from none, or the damaged weapon. None when the user may not see that document, as a player on a target's item.
  */
 function sourceLink({ from }: CheckPoolModification): SourceLink | undefined {
 	const uuid = matchOrigin(from, {
 		effect: (_name, uuid, item) => item?.uuid ?? uuid,
 		defense: () => undefined,
 		silhouette: () => undefined,
+		encumbrance: () => undefined,
+		itemDamage: ({ uuid }) => uuid ?? undefined,
 	});
 	const document = sourceDocument(uuid);
 	if (!uuid || !document?.testUserPermission(game.user, 'OBSERVER')) {

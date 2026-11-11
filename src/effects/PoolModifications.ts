@@ -1,7 +1,8 @@
 /**
- * @file Pool Modifications that come from effects: how their changes are keyed, which ones apply to a check, and how talent ranks scale them.
+ * @file Pool Modifications that come from outside the dice prompt: from effects (how their changes are keyed, which ones apply to a check, and how talent ranks scale them), the target's defense and silhouette, the roller's encumbrance and the damage of the weapon they attack with.
  */
 
+import { type Encumbrance, isEncumbered } from '@/actor/data/Encumbrance';
 import { Characteristic } from '@/data/Characteristics';
 import { Defense } from '@/data/Actors';
 import { DieTypes } from '@/dice/DieTypes';
@@ -9,6 +10,7 @@ import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
+import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, or checks of a skill.
@@ -77,6 +79,20 @@ export type CheckForPoolModifications = {
 	 * Left undefined for any other check.
 	 */
 	attacker?: SilhouettedActor;
+
+	/**
+	 * The weapon an attack is made with, whose damage hinders it. Left undefined for any other check.
+	 */
+	weapon?: DamageableItem;
+};
+
+/**
+ * What this module needs of an item whose damage hinders the checks made with it.
+ */
+export type DamageableItem = {
+	name: string;
+	uuid: string | null;
+	system: { damage: EquipmentDamageState };
 };
 
 /**
@@ -92,15 +108,28 @@ export type SilhouettedActor = {
 type Silhouettes = { target: number; attacker: number };
 
 /**
- * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, or the silhouette
- * difference between the target and its attacker. An effect is named for the roller, and told apart by its uuid: effects
- * often share a name, as the sheets name a new effect after its item. An effect that comes from an item, such as a
- * talent or a piece of equipment, carries that item, which the roller opens to read the effect's conditions.
+ * The damage of an item that hinders the checks made with it; major damage forbids them.
+ */
+type HinderingDamage = Extract<EquipmentDamageState, 'minor' | 'moderate'>;
+
+/**
+ * A damaged item, by its name and its uuid, with its damage.
+ */
+type DamagedItem = { name: string; uuid: string | null; damage: HinderingDamage };
+
+/**
+ * What a Pool Modification from outside the dice prompt comes from: an effect, the target's defense, the silhouette
+ * difference between the target and its attacker, the roller's encumbrance, or the damage of the weapon they attack
+ * with. An effect is named for the roller, and told apart by its uuid: effects often share a name, as the sheets name a
+ * new effect after its item. An effect that comes from an item, such as a talent or a piece of equipment, carries that
+ * item, which the roller opens to read the effect's conditions, as they open a damaged weapon.
  */
 type PoolModificationOrigin =
 	| { effect: string; uuid: string; item?: EffectItem }
 	| { defense: keyof Defense }
-	| { silhouette: Silhouettes };
+	| { silhouette: Silhouettes }
+	| { encumbrance: Encumbrance }
+	| { itemDamage: DamagedItem };
 
 /**
  * The item an effect comes from, by its name and its uuid.
@@ -109,7 +138,8 @@ type EffectItem = { name: string; uuid: string };
 
 /**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
- * target's defense, or from the silhouette difference between the attacker and the target.
+ * target's defense, from the silhouette difference between the attacker and the target, from the actor's encumbrance,
+ * or from the damage of the weapon they attack with.
  */
 export type ExternalPoolModification = {
 	source: PoolModificationSource;
@@ -126,13 +156,23 @@ export function matchOrigin<T>(
 		effect(name: string, uuid: string, item: EffectItem | undefined): T;
 		defense(defense: keyof Defense): T;
 		silhouette(silhouettes: Silhouettes): T;
+		encumbrance(encumbrance: Encumbrance): T;
+		itemDamage(item: DamagedItem): T;
 	},
 ): T {
 	if ('effect' in from) {
 		return cases.effect(from.effect, from.uuid, from.item);
 	}
 
-	return 'defense' in from ? cases.defense(from.defense) : cases.silhouette(from.silhouette);
+	if ('defense' in from) {
+		return cases.defense(from.defense);
+	}
+
+	if ('silhouette' in from) {
+		return cases.silhouette(from.silhouette);
+	}
+
+	return 'encumbrance' in from ? cases.encumbrance(from.encumbrance) : cases.itemDamage(from.itemDamage);
 }
 
 // The actor types whose effects, defense and silhouette modify the checks that target them. A vehicle's defense works as a
@@ -221,8 +261,8 @@ export function scaledChangeValue(item: SourceItem | undefined, { key, value }: 
 }
 
 /**
- * The Pool Modifications that the effects of the actor and of their target, the target's defense and, for an attack,
- * the silhouette difference with the target bring to a check.
+ * The Pool Modifications that the effects of the actor and of their target, the actor's encumbrance, the target's
+ * defense and, for an attack, the damage of the weapon and the silhouette difference with the target bring to a check.
  */
 export function poolModificationsForCheck(
 	actor: PoolModificationActor | undefined,
@@ -235,7 +275,11 @@ export function poolModificationsForCheck(
 		return modifications;
 	}
 
-	modifications.push(...effectModifications(actor, 'self', check));
+	modifications.push(
+		...effectModifications(actor, 'self', check),
+		...encumbranceModifications(actor, check),
+		...itemDamageModifications(check.weapon),
+	);
 
 	if (target && TARGET_TYPES.includes(target.type)) {
 		modifications.push(...effectModifications(target, 'target', check));
@@ -260,6 +304,49 @@ export function poolModificationsForCheck(
 	}
 
 	return modifications;
+}
+
+// A character over their encumbrance threshold adds one Setback per point over it to their Agility and Brawn checks,
+// whichever skill they roll with it (CRB p. 85). Only characters have a threshold.
+function encumbranceModifications(actor: PoolModificationActor, { characteristic }: CheckForPoolModifications): ExternalPoolModification[] {
+	if (actor.type !== 'character' || (characteristic !== 'agility' && characteristic !== 'brawn')) {
+		return [];
+	}
+
+	const encumbrance = (actor.system as { currentEncumbrance?: Encumbrance }).currentEncumbrance;
+	if (!encumbrance || !isEncumbered(encumbrance)) {
+		return [];
+	}
+
+	return [
+		{
+			source: 'self',
+			from: { encumbrance },
+			mods: Array<string>(encumbrance.value - encumbrance.threshold).fill(DieTypes.Setback.GLYPH),
+		},
+	];
+}
+
+// The checks made with a damaged item get a Setback at minor damage, and one more Difficulty die at moderate damage
+// (CRB p. 89, Table I.5-4). Major damage makes the item unusable, which the attack refuses before any check.
+const DAMAGE_MODIFICATIONS: Record<HinderingDamage, string> = {
+	minor: DieTypes.Setback.GLYPH,
+	moderate: DIE_GLYPHS.Difficulty,
+};
+
+function itemDamageModifications(weapon: DamageableItem | undefined): ExternalPoolModification[] {
+	const damage = weapon?.system.damage;
+	if (!weapon || (damage !== 'minor' && damage !== 'moderate')) {
+		return [];
+	}
+
+	return [
+		{
+			source: 'self',
+			from: { itemDamage: { name: weapon.name, uuid: weapon.uuid, damage } },
+			mods: [DAMAGE_MODIFICATIONS[damage]],
+		},
+	];
 }
 
 // An attack against a target two or more silhouettes larger is one difficulty easier, and one difficulty harder against
