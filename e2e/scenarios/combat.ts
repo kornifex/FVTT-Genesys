@@ -1029,41 +1029,45 @@ export async function run(e2e: ScenarioContext) {
 			return previous;
 		});
 		let header: unknown;
-		await e2e.step("#684 T4 the player clicks the button of the offer's message", async () => {
-			header = await player.evaluate(async () => {
-				const actor = window.e2e.actor('Hero');
-				const message = game.messages
-					.filter(
-						(candidate: { getFlag(scope: string, key: string): { target?: string } | undefined }) =>
-							candidate.getFlag('genesys', 'criticalInjury')?.target === actor.uuid,
-					)
-					.at(-1);
-				// The message as the chat log renders it, which v13's headless window collapses.
-				const html = await message.renderHTML();
-				document.body.append(html);
-				html.querySelector('button.roll-critical-injury').click();
-				const prompt = await window.e2e.waitFor(
-					'the Critical Injury dialog',
-					() => window.e2e.apps('app-critical-injury-prompt')[0],
-				);
-				const root = await window.e2e.waitFor('its header', () => {
-					const element = window.e2e.htmlOf(prompt);
-					return element?.querySelector('header > div') ? element : undefined;
+		try {
+			await e2e.step("#684 T4 the player clicks the button of the offer's message", async () => {
+				header = await player.evaluate(async () => {
+					const actor = window.e2e.actor('Hero');
+					const message = game.messages
+						.filter(
+							(candidate: { getFlag(scope: string, key: string): { target?: string } | undefined }) =>
+								candidate.getFlag('genesys', 'criticalInjury')?.target === actor.uuid,
+						)
+						.at(-1);
+					// The message as the chat log renders it, which v13's headless window collapses.
+					const html = await message.renderHTML();
+					document.body.append(html);
+					html.querySelector('button.roll-critical-injury').click();
+					const prompt = await window.e2e.waitFor(
+						'the Critical Injury dialog',
+						() => window.e2e.apps('app-critical-injury-prompt')[0],
+					);
+					const root = await window.e2e.waitFor('its header', () => {
+						const element = window.e2e.htmlOf(prompt);
+						return element?.querySelector('header > div') ? element : undefined;
+					});
+					const shown = [...root.querySelectorAll('header > div')].map(window.e2e.text);
+					await prompt.close();
+					html.remove();
+					return shown;
 				});
-				const shown = [...root.querySelectorAll('header > div')].map(window.e2e.text);
-				await prompt.close();
-				html.remove();
-				return shown;
 			});
-		});
+		} finally {
+			// The world is shared with the other scenarios: its table goes back whatever happened.
+			await gm.evaluate(async (previous) => {
+				await game.settings.set('genesys', 'criticalInjuryTable', previous);
+				for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
+			}, previousTable);
+		}
 		e2e.expect("#684 T4 the button opens the dialog of Hero's Critical Injury, with no attack", header, [
 			'Critical Injury for E2E Hero',
 			'Table: E2E Threshold Crits',
 		]);
-		await gm.evaluate(async (previous) => {
-			await game.settings.set('genesys', 'criticalInjuryTable', previous);
-			for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
-		}, previousTable);
 
 		await e2e.step("#684 T5 the player heals Hero's wounds back to their threshold", () => setBar(player, 'Hero', 'wounds', 10));
 		e2e.expect('#684 T5 healed to the threshold, Hero is no longer incapacitated', await standing(gm, 'Hero'), {
@@ -1080,6 +1084,7 @@ export async function run(e2e: ScenarioContext) {
 			offer,
 		});
 		await setBar(player, 'Hero', 'strain', 0);
+		await e2e.settle();
 
 		await e2e.step("#684 T7 the GM raises Boss's wounds past their threshold, 8, from its unlinked token's bar", () =>
 			setBar(gm, 'Boss', 'wounds', 9),

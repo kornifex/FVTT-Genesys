@@ -15,12 +15,14 @@ const OFFER_TEMPLATE = 'systems/genesys/templates/chat/critical-injury-offer.hbs
 export type RecordedStandings = Record<string, ThresholdStanding>;
 
 /**
- * The status id of each Threshold State: the system's Incapacitated, and Foundry's Defeated, which the combat tracker
- * reads to mark the actor's combatant defeated.
+ * The status of each Threshold State, as Foundry's toggle takes it: the system's Incapacitated Token State, and Foundry's
+ * Defeated, which the combat tracker reads to mark the actor's combatant defeated, with the overlay the tracker gives it.
  */
-function statusId(state: ThresholdState): string {
-	return state === 'defeated' ? CONFIG.specialStatusEffects.DEFEATED : 'incapacitated';
-}
+const STATUSES: Record<ThresholdState, () => { id: string; overlay: boolean }> = {
+	incapacitated: () => ({ id: 'incapacitated', overlay: false }),
+	// Read when used: a module may change Foundry's Defeated status.
+	defeated: () => ({ id: CONFIG.specialStatusEffects.DEFEATED, overlay: true }),
+};
 
 /**
  * Keep the actor's standing before an update in the update's options, which reach its `_onUpdate` once the update is
@@ -42,9 +44,11 @@ export async function syncThresholdStates(actor: Stored<GenesysActor>, options: 
 	}
 
 	const { apply, remove, criticalInjury } = thresholdStateChanges(before, thresholdStanding(actor));
-	// Foundry's own toggle, with the overlay the combat tracker gives Defeated.
-	for (const state of remove) await actor.toggleStatusEffect(statusId(state), { active: false });
-	for (const state of apply) await actor.toggleStatusEffect(statusId(state), { active: true, overlay: state === 'defeated' });
+	for (const state of remove) await actor.toggleStatusEffect(STATUSES[state]().id, { active: false });
+	for (const state of apply) {
+		const { id, overlay } = STATUSES[state]();
+		await actor.toggleStatusEffect(id, { active: true, overlay });
+	}
 
 	if (criticalInjury) {
 		await offerCriticalInjury(actor);
