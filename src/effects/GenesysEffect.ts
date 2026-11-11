@@ -6,6 +6,7 @@ import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { hasTimeLeft, isExpired } from '@/effects/EffectExpiry';
 import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } from '@/effects/EffectExpiry.v13';
 import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
+import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -103,16 +104,18 @@ export class GenesysEffect extends ActiveEffect {
 			return this.duration.label;
 		}
 
-		const key = game.i18n.pluralRules.select(rounds) === 'one' ? ROUNDS_LEFT.one : ROUNDS_LEFT.other;
-		return game.i18n.format(key, { rounds: String(rounds) });
+		// v13: Localization has no plural rules of its own, which the localizer of the glyphs makes up for.
+		const i18n = worldGlyphLocalizer();
+		const key = i18n.pluralRules.select(rounds) === 'one' ? ROUNDS_LEFT.one : ROUNDS_LEFT.other;
+		return i18n.format(key, { rounds: String(rounds) });
 	}
 
 	/**
 	 * Records the turn a Lapsing Effect is applied during, in its actor's combat, whose end doesn't count.
 	 */
 	protected override async _preCreate(data: ActiveEffect.CreateData, options: ActiveEffect.Database.PreCreateOptions, user: User.Stored) {
-		// The actor is in the world, or the synthetic actor of a token in a scene, when it gets an effect.
-		const actor = this.actor as Actor.Stored | null;
+		// v13: an effect has no `actor`. A state lives on its actor, in the world or the synthetic actor of a token in a scene.
+		const actor = this.parent?.documentName === 'Actor' ? (this.parent as Actor.Stored) : undefined;
 		if (this.getFlag('genesys', FLAG_LAPSES) === true && actor) {
 			// The combat the user views first: the actor may be in another, which the user doesn't view.
 			const combat = [game.combat, ...game.combats].find(

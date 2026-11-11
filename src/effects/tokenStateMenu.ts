@@ -86,7 +86,8 @@ async function askRounds(state: TokenState): Promise<number | undefined> {
 	const input = document.createElement('input');
 	input.type = 'number';
 	input.name = 'rounds';
-	input.value = '1';
+	// The attribute, not the value: Foundry's dialog renders the content from its HTML.
+	input.defaultValue = '1';
 	input.min = '1';
 	input.step = '1';
 	input.autofocus = true;
