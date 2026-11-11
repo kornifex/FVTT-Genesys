@@ -31,15 +31,17 @@
 		{{#> attackQualities}}
 		{{/attackQualities}}
 
-		{{!-- What a check that heals heals its patient of, and the button that heals them, which src/dice/recoveryCard.ts shows only to the GM and the patient's owners. --}}
+		{{!-- What a check that heals heals its patient of, and the button that heals them, which src/dice/recoveryCard.ts shows only to the GM and the patient's owners. A check that heals no wound, as the end of an encounter's, shows the strain alone. --}}
 		{{#if recovery}}
-			<label>{{localize 'Genesys.Recovery.CardLabel' patient=recovery.patientName}}</label>
+			<label>{{localize recovery.label patient=recovery.patientName}}</label>
 			<div class="summary-table recovery">
-				<span class="symbol" aria-hidden="true"><i class="fas fa-heart-pulse"></i></span>
-				<span class="label">{{localize 'Genesys.Recovery.Wounds'}}</span>
-				<span class="count">{{recovery.wounds}}</span>
+				{{#if recovery.healsWounds}}
+					<span class="symbol" aria-hidden="true"><i class="fas fa-heart-pulse"></i></span>
+					<span class="label">{{localize 'Genesys.Recovery.Wounds'}}</span>
+					<span class="count">{{recovery.wounds}}</span>
 
-				<div class="separator"></div>
+					<div class="separator"></div>
+				{{/if}}
 
 				<span class="symbol" aria-hidden="true"><i class="fas fa-face-tired"></i></span>
 				<span class="label">{{localize 'Genesys.Recovery.Strain'}}</span>

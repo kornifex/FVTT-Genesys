@@ -10,7 +10,7 @@ import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 import { CharacteristicsContainer } from '@/data/Characteristics';
-import { heals, type Recovery, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
+import { heals, type Recovery, recoveryCard, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
 const ATTACK_TEMPLATE = 'systems/genesys/templates/chat/rolls/attack.hbs';
@@ -84,11 +84,17 @@ export async function checkMessageData(
 }
 
 /**
- * What a recovery's card shows: its patient's name, what it heals, and whether it offers to apply it.
+ * What a recovery's card shows: its label and patient's name, what it heals, and whether it offers to apply it.
  */
 function recoveryCardData(recovery: Recovery) {
 	const patient = fromUuidSync(recovery.patient) as { name: string } | null;
-	return { patientName: patient?.name ?? '', wounds: recovery.wounds, strain: recovery.strain, applicable: heals(recovery) };
+	return {
+		...recoveryCard(recovery.rule),
+		patientName: patient?.name ?? '',
+		wounds: recovery.wounds,
+		strain: recovery.strain,
+		applicable: heals(recovery),
+	};
 }
 
 /**
