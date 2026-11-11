@@ -260,9 +260,10 @@ export function registerCombatantEffects() {
 
 /**
  * Takes a round off each Lapsing Effect of an actor, at the end of one of its turns, and removes those whose rounds have
- * run out. Only the actor's own effects lapse: the Token States live on it. Only a GM may write them.
+ * run out, given the places of the round's turns the actor takes. Only the actor's own effects lapse: the Token States
+ * live on it. Only a GM may write them.
  */
-export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: CombatTurn) {
+export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: CombatTurn, actorTurns: number[]) {
 	const shortened: { _id: string; duration: ReturnType<typeof durationInRounds>; flags: { genesys: { lastCounted: CombatTurn } } }[] = [];
 	const removed: string[] = [];
 	for (const effect of actor.effects as Iterable<GenesysEffect>) {
@@ -278,9 +279,10 @@ export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: 
 				lastCounted: effect.getFlag('genesys', FLAG_LAST_COUNTED),
 			},
 			ended,
+			actorTurns,
 		);
 		if (lapse?.kind === 'shorten') {
-			// The turn counted, so that it doesn't count again once the GM goes back in the combat and ends it again.
+			// The round counted, so that it doesn't count again once the GM goes back in the combat and ends a turn again.
 			shortened.push({
 				_id: effect.id!,
 				duration: durationInRounds(lapse.rounds),

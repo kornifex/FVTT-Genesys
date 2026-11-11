@@ -65,7 +65,7 @@ The state an actor gets while their wounds or strain exceed their threshold, not
 _Avoid_: Condition, knocked out
 
 **Lapsing Effect**:
-A temporary Active Effect whose duration in rounds counts its actor's turns: the end of each turn of its actor takes a round off, but the turn it was applied during, and it is removed at the end of the turn that takes its last round, so that one round lasts until the end of the actor's next turn. The actor's turn is the Initiative Slot its combatant Claimed, or for an NPC its own unclaimed slot; an unclaimed PC slot is nobody's turn. A turn the GM goes back to and ends again doesn't count twice. Out of combat, no turn ends, and it stays until removed. Unlike an Expired Effect, it is deleted, not suspended, and Foundry's own count of rounds never applies to it.
+A temporary Active Effect whose duration in rounds counts its actor's turns: the end of its actor's first turn of each round takes a round off, but the turn it was applied during, and it is removed at the end of the turn that takes its last round, so that one round lasts until the end of the actor's next turn. An actor with an Extra Slot, or two Claims in a round, loses one round per round, as any other actor; an effect applied after the actor's first turn of a round counts from their first turn of the next. The actor's turn is the Initiative Slot its combatant Claimed, or for an NPC its own unclaimed slot; an unclaimed PC slot is nobody's turn. A turn the GM goes back to and ends again doesn't count twice. Out of combat, no turn ends, and it stays until removed. Unlike an Expired Effect, it is deleted, not suspended, and Foundry's own count of rounds never applies to it.
 _Avoid_: Timed state, countdown effect
 
 **Expired Effect**:

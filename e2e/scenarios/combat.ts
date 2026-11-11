@@ -811,8 +811,8 @@ export async function run(e2e: ScenarioContext) {
 
 	/**
 	 * §#682: the Immobilized, Disoriented and Staggered states in the token's status menu, applied for a number of rounds,
-	 * and removed at the end of the turn of their actor that takes their last round (CRB p. 114). The Dice Prompt's side of
-	 * them sits in `dicePrompt.ts`, part `tokenStateDice`.
+	 * and removed at the end of the turn of their actor that takes their last round (CRB p. 114), one round per round
+	 * whatever the actor's Extra Slots. The Dice Prompt's side of them sits in `dicePrompt.ts`, part `tokenStateDice`.
 	 */
 	async function tokenStates() {
 		const STATES = ['immobilized', 'disoriented', 'staggered'];
@@ -924,6 +924,30 @@ export async function run(e2e: ScenarioContext) {
 		});
 		e2e.expect('#682 S8 out of combat, Immobilized stays until removed', await states(), [state('immobilized', 1)]);
 		await gm.evaluate(() => window.e2e.token('Boss').actor.toggleStatusEffect('immobilized', { active: false }));
+
+		// Boss's own slot, then Hero's, then Boss's Extra Slot: Boss takes two turns a round, and loses one round in each.
+		await setUp({ Hero: 2, Boss: 3 }, { extraSlots: [{ name: 'Boss', initiative: 1 }], turnOn: 'Hero:-1' });
+		await e2e.step("#682 S9 GM puts Disoriented on Boss for 2 rounds, on Hero's turn, after Boss's own slot", () =>
+			apply('disoriented', 2),
+		);
+		await e2e.step("#682 S9 GM ends Hero's turn, then Boss's Extra Slot, starting round 2", async () => {
+			await nextTurn();
+			await nextTurn();
+		});
+		e2e.expect(
+			"#682 S9 Disoriented, applied after Boss's first turn of round 1, keeps its 2 rounds past Boss's Extra Slot",
+			await states(),
+			[state('disoriented', 2)],
+		);
+		await e2e.step("#682 S10 GM ends Boss's own slot in round 2", nextTurn);
+		e2e.expect("#682 S10 Boss's first turn of round 2 takes a round off", await states(), [state('disoriented', 1)]);
+		await e2e.step("#682 S11 GM ends Hero's turn, then Boss's Extra Slot, starting round 3", async () => {
+			await nextTurn();
+			await nextTurn();
+		});
+		e2e.expect("#682 S11 Boss's Extra Slot takes no second round off in round 2", await states(), [state('disoriented', 1)]);
+		await e2e.step("#682 S12 GM ends Boss's own slot in round 3", nextTurn);
+		e2e.expect('#682 S12 Disoriented is gone after 2 rounds of Boss, not 2 of its turns', await states(), []);
 	}
 
 	/**
