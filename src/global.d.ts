@@ -79,7 +79,7 @@ declare module 'fvtt-types/configuration' {
 
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
-		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn } };
+		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
 	}
 
 	interface SettingConfig extends TableSettings {

@@ -25,6 +25,11 @@ const FLAG_LAPSES = 'lapses';
  */
 const FLAG_APPLIED_DURING = 'appliedDuring';
 
+/**
+ * The flag that holds the last turn whose end took a round off a Lapsing Effect.
+ */
+const FLAG_LAST_COUNTED = 'lastCounted';
+
 // The rounds left of a Lapsing Effect, by plural category.
 const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys.TokenStates.RoundsLeft.other' };
 
@@ -34,6 +39,14 @@ const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys
 export function durationInRounds(rounds: number) {
 	// v13: a duration holds its rounds; from v14 on, a value and its units.
 	return isFoundryV13() ? { rounds } : { value: rounds, units: 'rounds' as const };
+}
+
+/**
+ * The data that makes an effect a Lapsing Effect lasting a number of rounds: its duration and its flag. Any effect
+ * created with it lapses, as the Token States do.
+ */
+export function lapsingFor(rounds: number) {
+	return { duration: durationInRounds(rounds), flags: { genesys: { [FLAG_LAPSES]: true } } };
 }
 
 /**
@@ -95,14 +108,23 @@ export class GenesysEffect extends ActiveEffect {
 	}
 
 	/**
-	 * Records the turn a Lapsing Effect is applied during, whose end doesn't count.
+	 * Records the turn a Lapsing Effect is applied during, in its actor's combat, whose end doesn't count.
 	 */
 	protected override async _preCreate(data: ActiveEffect.CreateData, options: ActiveEffect.Database.PreCreateOptions, user: User.Stored) {
-		const combat = game.combat;
-		if (this.getFlag('genesys', FLAG_LAPSES) === true && combat?.started) {
-			const slot = combat.currentSlotId;
-			if (slot) {
-				this.updateSource({ flags: { genesys: { [FLAG_APPLIED_DURING]: { combat: combat.id!, round: combat.round, slot } } } });
+		// The actor is in the world, or the synthetic actor of a token in a scene, when it gets an effect.
+		const actor = this.actor as Actor.Stored | null;
+		if (this.getFlag('genesys', FLAG_LAPSES) === true && actor) {
+			// The combat the user views first: the actor may be in another, which the user doesn't view.
+			const combat = [game.combat, ...game.combats].find(
+				(candidate) => candidate?.started && candidate.getCombatantsByActor(actor).length > 0,
+			);
+			const slot = combat?.currentSlotId;
+			if (combat && slot) {
+				this.updateSource({
+					flags: {
+						genesys: { [FLAG_APPLIED_DURING]: { combat: combat.id!, round: combat.round, turn: combat.turn ?? 0, slot } },
+					},
+				});
 			}
 		}
 
@@ -238,7 +260,7 @@ export function registerCombatantEffects() {
  * run out. Only the actor's own effects lapse: the Token States live on it. Only a GM may write them.
  */
 export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: CombatTurn) {
-	const shortened: { _id: string; duration: ReturnType<typeof durationInRounds> }[] = [];
+	const shortened: { _id: string; duration: ReturnType<typeof durationInRounds>; flags: { genesys: { lastCounted: CombatTurn } } }[] = [];
 	const removed: string[] = [];
 	for (const effect of actor.effects as Iterable<GenesysEffect>) {
 		const rounds = effect.lapsingRounds;
@@ -246,9 +268,21 @@ export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: 
 			continue;
 		}
 
-		const lapse = lapseAtTurnEnd({ rounds, appliedDuring: effect.getFlag('genesys', FLAG_APPLIED_DURING) }, ended);
+		const lapse = lapseAtTurnEnd(
+			{
+				rounds,
+				appliedDuring: effect.getFlag('genesys', FLAG_APPLIED_DURING),
+				lastCounted: effect.getFlag('genesys', FLAG_LAST_COUNTED),
+			},
+			ended,
+		);
 		if (lapse?.kind === 'shorten') {
-			shortened.push({ _id: effect.id!, duration: durationInRounds(lapse.rounds) });
+			// The turn counted, so that it doesn't count again once the GM goes back in the combat and ends it again.
+			shortened.push({
+				_id: effect.id!,
+				duration: durationInRounds(lapse.rounds),
+				flags: { genesys: { [FLAG_LAST_COUNTED]: ended } },
+			});
 		} else if (lapse?.kind === 'remove') {
 			removed.push(effect.id!);
 		}

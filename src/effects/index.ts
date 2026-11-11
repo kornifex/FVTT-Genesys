@@ -1,7 +1,7 @@
 import { GenesysEffect, registerCombatantEffects } from '@/effects/GenesysEffect';
 import { isFoundryV13 } from '@/foundryGeneration';
 import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
-import { registerTokenStates } from '@/effects/statusEffects';
+import { registerTokenStates } from '@/effects/tokenStateMenu';
 
 /**
  * Register the Active Effect document and its sheet in place of Foundry's own.

@@ -8,7 +8,7 @@ import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 import { removeDeletedFromCrews } from '@/operations/CrewDeletion';
 import * as log from '@/log';
-import { applyLapsingState, lapsingStateApplied, type ToggleStatusEffectOptions } from '@/effects/statusEffects';
+import { applyLapsingState, lapsingStateApplied, type ToggleStatusEffectOptions } from '@/effects/tokenStateMenu';
 
 /**
  * An actor of the system, typed by its subtype: its `system` is the DataModel registered for that type.

@@ -1,23 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { type CombatTurn, enteredRounds, lapseAtTurnEnd } from '@/effects/LapsingEffects';
 
-const turn = (round: number, slot: string, combat = 'combat'): CombatTurn => ({ combat, round, slot });
+// The attacker's slot comes first in a round, the actor's second.
+const PLACES: Record<string, number> = { attacker: 0, actor: 1 };
+const turn = (round: number, slot: string, combat = 'combat'): CombatTurn => ({ combat, round, turn: PLACES[slot], slot });
 
 /**
- * The turn ends at which a state applied during a turn is removed, ending the turns given in order: a state's rounds
- * left after each.
+ * The rounds left of a state applied during a turn after each end of its actor's turns, given in order, as the Acting
+ * GM writes them: the rounds, and the last turn counted.
  */
 function lifetime(rounds: number, appliedDuring: CombatTurn | null, endedTurns: CombatTurn[]) {
 	const ends: (number | 'removed')[] = [];
 	let left: number | undefined = rounds;
+	let lastCounted: CombatTurn | null = null;
 	for (const ended of endedTurns) {
 		if (left === undefined) break;
-		const lapse = lapseAtTurnEnd({ rounds: left, appliedDuring }, ended);
+		const lapse = lapseAtTurnEnd({ rounds: left, appliedDuring, lastCounted }, ended);
 		if (lapse?.kind === 'remove') {
 			left = undefined;
 			ends.push('removed');
 		} else {
-			left = lapse?.rounds ?? left;
+			if (lapse) {
+				left = lapse.rounds;
+				lastCounted = ended;
+			}
 			ends.push(left);
 		}
 	}
@@ -53,6 +59,14 @@ describe('lapseAtTurnEnd', () => {
 
 	it('counts every end of a turn of its actor for a state applied out of combat', () => {
 		expect(lifetime(2, null, [turn(1, 'actor'), turn(2, 'actor')])).toEqual([1, 'removed']);
+	});
+
+	it('counts the end of a turn once, when the GM goes back to it and ends it again', () => {
+		expect(lifetime(3, turn(1, 'attacker'), [turn(1, 'actor'), turn(1, 'actor'), turn(2, 'actor')])).toEqual([2, 2, 1]);
+	});
+
+	it('counts no end of an earlier turn, which the GM went back to', () => {
+		expect(lifetime(3, turn(1, 'attacker'), [turn(2, 'actor'), turn(1, 'actor'), turn(3, 'actor')])).toEqual([2, 2, 1]);
 	});
 
 	it("removes a state left with no round, as one a GM set to 0, at the next end of its actor's turns", () => {

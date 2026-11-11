@@ -901,7 +901,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step("#682 S3 GM ends Hero's turn", nextTurn);
 		e2e.expect("#682 S3 Staggered still holds during Boss's next turn", await states(), [state('staggered', 1)]);
 
-		await e2e.step("#682 S4 GM puts Disoriented on Boss for 1 round, on Boss's own turn", () => apply('disoriented', 1));
+		await e2e.step("#682 GM puts Disoriented on Boss for 1 round, on Boss's own turn", () => apply('disoriented', 1));
 		await e2e.step("#682 S5 GM ends Boss's turn, starting round 2", nextTurn);
 		e2e.expect(
 			"#682 S5 Staggered is gone once Boss's next turn ends; Disoriented, applied during that turn, still holds, 1 round left",

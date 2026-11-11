@@ -30,6 +30,7 @@ import {
 	slotsToRoll,
 	slotView,
 	StoredExtraSlot,
+	turnTakerId,
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 import { slotsForRound, TurnOrderChanges, turnNumbers, turnOfSlotAfter, TurnOrderState } from '@/combat/TurnOrder';
@@ -589,13 +590,14 @@ export class GenesysCombat extends Combat {
 		await super._onEndTurn(combatant, context);
 
 		const slot = this.slotsForRound(context.round)[context.turn];
-		const actor = slot && this.slotCombatant(slot)?.actor;
+		const takerId = slot && turnTakerId(slot);
+		const actor = takerId ? this.combatants.get(takerId)?.actor : undefined;
 		if (!actor) {
 			return;
 		}
 
 		try {
-			await lapseEffectsAtTurnEnd(actor, { combat: this.#storedId, round: context.round, slot: slot.id });
+			await lapseEffectsAtTurnEnd(actor, { combat: this.#storedId, round: context.round, turn: context.turn, slot: slot.id });
 		} catch (error) {
 			// Foundry awaits the turn events one after the other: a failed write must not stop those after it.
 			log.error('Counting down the Lapsing Effects failed', error);
