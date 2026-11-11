@@ -3814,7 +3814,8 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#686 H1 with no target, Heal offers the scene's and the players' characters; healing Bo, past half his wound threshold, opens Medicine at Average",
 			{ patients, actor: other.actor, skill: other.skill, pool: other.pool },
-			{ patients: [], actor: 'Cy', skill: 'Medicine (Int)', pool: 'AA|DD' },
+			// Hero and Mark have a token on the scene; Bo, Cy and Seeker are the player's.
+			{ patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Seeker'], actor: 'Cy', skill: 'Medicine (Int)', pool: 'AA|DD' },
 		);
 
 		// Ability dice on two Successes, then a Success and an Advantage; Difficulty dice on blank faces.
@@ -3825,11 +3826,17 @@ export async function run(e2e: ScenarioContext) {
 			{ face: 1, faces: 8 },
 		]);
 		const rolled = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+		const { labels } = await player.evaluate(() => window.dicePromptE2E.lastCard());
 		const shown = { gm: await recoveryButton(gm, rolled.id), player: await recoveryButton(player, rolled.id) };
 		e2e.expect(
 			"#686 H2 Bo's card shows a wound healed per Success and a strain per Advantage, and Apply to the GM and Bo's owner",
-			{ results: rolled.results, summaries: rolled.summaries, shown },
-			{ results: '', summaries: [], shown: { gm: true, player: true } },
+			{ results: rolled.results, labels, summaries: rolled.summaries, shown },
+			{
+				results: 's s s a',
+				labels: ['Roll Results', 'Summary', 'Heals E2E Bo', 'Dice'],
+				summaries: ['s Successes 3 a Advantage 1', 'Wounds 3 Strain 1'],
+				shown: { gm: true, player: true },
+			},
 		);
 		await e2e.step("#686 H3 Bo's owner applies the card", () => recoveryButton(player, rolled.id, true));
 		e2e.expect("#686 H3 Apply lowers Bo's wounds and strain by the result", await health('Bo'), { wounds: 5, strain: 2 });

@@ -18,7 +18,10 @@ function patientOf(recovery: Recovery) {
  * Heal a patient by a recovery: their wounds and strain go down by what it heals, never below zero.
  */
 async function applyRecovery(patient: GenesysActor, recovery: Recovery) {
-	await patient.update({ system: healedPools(patient.system as Patient, recovery) });
+	const { wounds, strain } = healedPools(patient.system as Patient, recovery);
+	await patient.update({
+		system: { wounds: { value: wounds }, ...(strain !== undefined && { strain: { value: strain } }) },
+	});
 }
 
 /**
