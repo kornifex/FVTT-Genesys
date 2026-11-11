@@ -4099,7 +4099,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 
 		await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
-		await e2e.step('C end');
+		await e2e.step('Critical Injuries end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
