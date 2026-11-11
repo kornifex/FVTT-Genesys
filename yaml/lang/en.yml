@@ -371,10 +371,21 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    CounterRightClick: A right-click on a counter opens its row's menu and takes nothing off
-    CounterButtons: >-
-      Centre a counter's − and + in their circle, and the sub-labels of wounds, strain and defense under their values
-    CharacteristicBoxes: Fit the characteristic boxes closer to their names
+    Counters: >-
+      Every counter is one compact stepper, its − and + showing under the pointer: quantity, damage, wounds, strain, hull
+      trauma, system strain
+    RowMenu: >-
+      Every row has a ⋮ menu of its actions, also opened by a right-click on the row, and every deletion asks for confirmation
+    NameRolls: A row's name rolls its check, and its icon opens its sheet
+    CombatTabAttack: A weapon attacks from the Combat tab, no longer from the inventory
+    Keyboard: >-
+      Every sheet works from the keyboard and with a screen reader: named buttons, a visible focus ring, labelled fields, and
+      dice symbols read in words
+    Contrast: Text is easier to read in both Styles, and no meaning rests on color alone
+    ActingGmFailure: When an action the GM carries out for a player fails, the player is told why
+    MagicalGirl: The Magical Girl symbols, font and dice are removed
+    DefensiveDriving: A vehicle's defense adds its Pilot's Defensive Driving, still capped at 4
+    InventoryFooter: The currency and encumbrance row sits at the bottom of the Inventory tab
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

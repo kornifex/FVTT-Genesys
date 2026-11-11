@@ -374,11 +374,22 @@ Genesys:
     Fix: CORRECTIF
     Feature: NOUVEAUTÉ
     Styling: STYLE
-    CounterRightClick: Un clic droit sur un compteur ouvre le menu de sa ligne et n'enlève plus rien
-    CounterButtons: >-
-      Les − et + d'un compteur sont centrés dans leur cercle, et les sous-libellés des blessures, du stress et de la
-      défense sous leurs valeurs
-    CharacteristicBoxes: Les cases des caractéristiques serrent leur nom de plus près
+    Counters: >-
+      Chaque compteur se règle d'un − et d'un + compacts, qui apparaissent sous le pointeur : quantité, dégâts, blessures,
+      stress, dégâts de la coque, stress mécanique
+    RowMenu: >-
+      Chaque ligne a un menu ⋮ de ses actions, qu'ouvre aussi un clic droit sur la ligne, et chaque suppression demande
+      confirmation
+    NameRolls: Le nom d'une ligne lance son test, et son icône ouvre sa fiche
+    CombatTabAttack: Une arme attaque depuis l'onglet Combat, et non plus depuis l'inventaire
+    Keyboard: >-
+      Chaque fiche s'utilise au clavier et avec un lecteur d'écran : des boutons nommés, un contour de focus visible, des
+      champs étiquetés, et les symboles des dés lus en toutes lettres
+    Contrast: Le texte se lit mieux dans les deux styles, et aucune information ne repose sur la couleur seule
+    ActingGmFailure: Quand une action que le MJ effectue pour un joueur échoue, le joueur apprend pourquoi
+    MagicalGirl: Les symboles, la police et les dés Magical Girl sont supprimés
+    DefensiveDriving: La défense d'un véhicule ajoute le talent Conduite défensive de son pilote, toujours plafonnée à 4
+    InventoryFooter: La ligne de la monnaie et de l'encombrement se place en bas de l'onglet Inventaire
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
