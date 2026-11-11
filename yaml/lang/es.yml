@@ -221,6 +221,22 @@ Genesys:
           Characteristic: Utiliza característica
           Skill: Utiliza habilidad
 
+  # Token States: the states of the token's status menu (CRB p. 114)
+  TokenStates:
+    Immobilized:
+      Name: Inmovilizado
+      Reminder: 'Inmovilizado: no puede realizar maniobras.'
+    Disoriented:
+      Name: Desorientado
+    Staggered:
+      Name: Aturdido
+      Reminder: 'Aturdido: no puede realizar acciones.'
+    Rounds: Asaltos
+    Apply: Aplicar
+    RoundsLeft:
+      one: '{rounds} asalto'
+      other: '{rounds} asaltos'
+
   # Dice Prompt Labels
   DicePrompt:
     Title: Reserva de dados

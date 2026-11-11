@@ -221,6 +221,22 @@ Genesys:
           Characteristic: Uses Characteristic
           Skill: Uses Skill
 
+  # Token States: the states of the token's status menu (CRB p. 114)
+  TokenStates:
+    Immobilized:
+      Name: Immobilized
+      Reminder: "Immobilized: can't perform maneuvers."
+    Disoriented:
+      Name: Disoriented
+    Staggered:
+      Name: Staggered
+      Reminder: "Staggered: can't perform actions."
+    Rounds: Rounds
+    Apply: Apply
+    RoundsLeft:
+      one: '{rounds} round'
+      other: '{rounds} rounds'
+
   # Dice Prompt Labels
   DicePrompt:
     Title: Dice Pool

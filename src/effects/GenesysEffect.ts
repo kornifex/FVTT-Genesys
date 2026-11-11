@@ -5,6 +5,7 @@ import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { hasTimeLeft, isExpired } from '@/effects/EffectExpiry';
 import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } from '@/effects/EffectExpiry.v13';
+import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -12,6 +13,28 @@ import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } f
  * expired on v13 stays expired once the world runs v14.
  */
 export const FLAG_EXPIRED = 'expired';
+
+/**
+ * The flag that makes an effect a Lapsing Effect: its duration in rounds counts its actor's turns, and it is removed
+ * once they have run out, rather than expired. The Token States carry it.
+ */
+const FLAG_LAPSES = 'lapses';
+
+/**
+ * The flag that holds the turn a Lapsing Effect was applied during, in a combat, whose end doesn't count.
+ */
+const FLAG_APPLIED_DURING = 'appliedDuring';
+
+// The rounds left of a Lapsing Effect, by plural category.
+const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys.TokenStates.RoundsLeft.other' };
+
+/**
+ * A duration in rounds, as the version of Foundry stores it.
+ */
+export function durationInRounds(rounds: number) {
+	// v13: a duration holds its rounds; from v14 on, a value and its units.
+	return isFoundryV13() ? { rounds } : { value: rounds, units: 'rounds' as const };
+}
 
 /**
  * An Active Effect, which the Equipment State of its item suppresses, and whose changes the rank of its talent scales.
@@ -32,6 +55,58 @@ export class GenesysEffect extends ActiveEffect {
 		// v14 reads the stored `expired`: its prepared duration may be a copy counted as time-based, once the combat is
 		// deleted in a world whose rounds last some seconds, which sets `expired` back to false.
 		return isExpired({ flag: this.getFlag('genesys', FLAG_EXPIRED), durationExpired: this._source.duration.expired });
+	}
+
+	/**
+	 * The rounds left of a Lapsing Effect, or undefined when the effect doesn't lapse: it lacks the flag, or its duration
+	 * isn't in rounds.
+	 */
+	get lapsingRounds(): number | undefined {
+		if (this.getFlag('genesys', FLAG_LAPSES) !== true) {
+			return undefined;
+		}
+
+		// v13: a duration holds its rounds; from v14 on, a value and its units.
+		const duration = this._source.duration as { rounds?: number | null; value?: number | null; units?: string };
+		const rounds = isFoundryV13() ? duration.rounds : duration.units === 'rounds' ? duration.value : undefined;
+		return typeof rounds === 'number' ? rounds : undefined;
+	}
+
+	/**
+	 * Foundry v14's Active Effect registry expires the temporary effects it tracks: a Lapsing Effect counts its rounds
+	 * itself, in its actor's turns, and is removed rather than expired. v13 has no registry.
+	 */
+	override get isExpiryTrackable() {
+		return super.isExpiryTrackable && this.lapsingRounds === undefined;
+	}
+
+	/**
+	 * The duration the Effects tab shows: the rounds left of a Lapsing Effect, which Foundry would count from the round it
+	 * started, as it counts any other duration.
+	 */
+	get durationLabel(): string {
+		const rounds = this.lapsingRounds;
+		if (rounds === undefined) {
+			return this.duration.label;
+		}
+
+		const key = game.i18n.pluralRules.select(rounds) === 'one' ? ROUNDS_LEFT.one : ROUNDS_LEFT.other;
+		return game.i18n.format(key, { rounds: String(rounds) });
+	}
+
+	/**
+	 * Records the turn a Lapsing Effect is applied during, whose end doesn't count.
+	 */
+	protected override async _preCreate(data: ActiveEffect.CreateData, options: ActiveEffect.Database.PreCreateOptions, user: User.Stored) {
+		const combat = game.combat;
+		if (this.getFlag('genesys', FLAG_LAPSES) === true && combat?.started) {
+			const slot = combat.currentSlotId;
+			if (slot) {
+				this.updateSource({ flags: { genesys: { [FLAG_APPLIED_DURING]: { combat: combat.id!, round: combat.round, slot } } } });
+			}
+		}
+
+		return super._preCreate(data, options, user);
 	}
 
 	protected override async _preUpdate(
@@ -155,5 +230,34 @@ export function registerCombatantEffects() {
 				foundry.documents.ActiveEffect.registry.addFromParent(actor);
 			}
 		}
+	}
+}
+
+/**
+ * Takes a round off each Lapsing Effect of an actor, at the end of one of its turns, and removes those whose rounds have
+ * run out. Only the actor's own effects lapse: the Token States live on it. Only a GM may write them.
+ */
+export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: CombatTurn) {
+	const shortened: { _id: string; duration: ReturnType<typeof durationInRounds> }[] = [];
+	const removed: string[] = [];
+	for (const effect of actor.effects as Iterable<GenesysEffect>) {
+		const rounds = effect.lapsingRounds;
+		if (rounds === undefined) {
+			continue;
+		}
+
+		const lapse = lapseAtTurnEnd({ rounds, appliedDuring: effect.getFlag('genesys', FLAG_APPLIED_DURING) }, ended);
+		if (lapse?.kind === 'shorten') {
+			shortened.push({ _id: effect.id!, duration: durationInRounds(lapse.rounds) });
+		} else if (lapse?.kind === 'remove') {
+			removed.push(effect.id!);
+		}
+	}
+
+	if (shortened.length > 0) {
+		await actor.updateEmbeddedDocuments('ActiveEffect', shortened);
+	}
+	if (removed.length > 0) {
+		await actor.deleteEmbeddedDocuments('ActiveEffect', removed);
 	}
 }

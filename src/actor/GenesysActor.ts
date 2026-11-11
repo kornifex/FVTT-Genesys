@@ -8,6 +8,7 @@ import type { ActorChanges, ActorSource } from '@/migrations/ActorMigration';
 import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 import { removeDeletedFromCrews } from '@/operations/CrewDeletion';
 import * as log from '@/log';
+import { applyLapsingState, lapsingStateApplied, type ToggleStatusEffectOptions } from '@/effects/statusEffects';
 
 /**
  * An actor of the system, typed by its subtype: its `system` is the DataModel registered for that type.
@@ -65,6 +66,20 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 			const keptEffects = this.toObject().effects.filter((effect) => effect._id === null || !deletedEffects.includes(effect._id));
 			this.updateSource({ effects: keptEffects }, { recursive: false });
 		}
+	}
+
+	/**
+	 * Toggle a status effect, as the token's status menu does. A Lapsing Token State is applied for the rounds given, or
+	 * those the user is asked for, and lasts until the end of its actor's turn when they have run out (CRB p. 114).
+	 * @inheritDoc
+	 */
+	override async toggleStatusEffect(statusId: string, options: ToggleStatusEffectOptions = {}) {
+		const state = lapsingStateApplied(this, statusId, options);
+		if (!state) {
+			return super.toggleStatusEffect(statusId, options);
+		}
+
+		return applyLapsingState(this, state, options);
 	}
 
 	/**
