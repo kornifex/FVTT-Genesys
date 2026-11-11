@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.4...v0.6.0) (2026-11-11)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.6.0's changes since 0.5.0 in the welcome message ([#661](https://github.com/kornifex/FVTT-Genesys/issues/661)) ([7b31557](https://github.com/kornifex/FVTT-Genesys/commit/7b31557c73cf8f18ec4c581b4461c13e14f1db5f))
+
+
+### Continuous Integration
+
+* set the next release to 0.6.0 ([#659](https://github.com/kornifex/FVTT-Genesys/issues/659)) ([ec2e67c](https://github.com/kornifex/FVTT-Genesys/commit/ec2e67ce44558f4bb5c56d263206aebd23706b2c))
+
 ## [0.6.0-rc.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.3...v0.6.0-rc.4) (2026-11-11)
 
 
