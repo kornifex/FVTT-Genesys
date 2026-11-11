@@ -238,6 +238,8 @@ Genesys:
       EffectOfItem: '{effect} ({item})'
       OpenSource: Abrir {name}
       SilhouetteDifference: Silueta ({target} contra {attacker})
+      Encumbrance: Impedimento ({value} contra {threshold})
+      ItemDamage: '{item} ({damage})'
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
     ChanceToSucceedBySimulationDisclaimer: La probabilidad mostrada es una aproximación que utiliza el método Monte Carlo.
@@ -310,6 +312,7 @@ Genesys:
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.
     TooManySuperCharacteristics: Un actor no puede tener más de dos supercaracterísticas. Desmarca una primero.
+    UnusableWeapon: '{name} no puede atacar: tiene {damage}.'
 
   # Dialogs Prompts
   Dialogs:

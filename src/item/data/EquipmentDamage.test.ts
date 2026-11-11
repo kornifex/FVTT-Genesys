@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { damageLevel, damageStep } from '@/item/data/EquipmentDamage';
+import { damageLevel, damageStep, isUnusable } from '@/item/data/EquipmentDamage';
 
 describe('damageLevel', () => {
 	it('counts the steps from undamaged', () => {
@@ -35,5 +35,14 @@ describe('damageStep', () => {
 	it('leaves an unknown damage as it is', () => {
 		expect(damageStep('scratched' as 'minor', 1)).toBeUndefined();
 		expect(damageStep('scratched' as 'minor', -1)).toBeUndefined();
+	});
+});
+
+describe('isUnusable', () => {
+	it('makes an item with major damage unusable, and no lesser damage (CRB p. 89, Table I.5-4)', () => {
+		expect(isUnusable('major')).toBe(true);
+		expect(isUnusable('moderate')).toBe(false);
+		expect(isUnusable('minor')).toBe(false);
+		expect(isUnusable('undamaged')).toBe(false);
 	});
 });

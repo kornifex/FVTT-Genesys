@@ -238,6 +238,8 @@ Genesys:
       EffectOfItem: '{effect} ({item})'
       OpenSource: Open {name}
       SilhouetteDifference: Silhouette ({target} vs {attacker})
+      Encumbrance: Encumbrance ({value} vs {threshold})
+      ItemDamage: '{item} ({damage})' # e.g. Pistol (Minor Damage)
     ChanceToSucceed: 'Chance to Succeed:'
     ChanceToSucceedByPermutationDisclaimer: The displayed probability is exact unless the dice pool includes a super-characteristic.
     ChanceToSucceedBySimulationDisclaimer: The displayed probability is an approximation that uses the Monte Carlo method.
@@ -312,6 +314,7 @@ Genesys:
     CannotSelectActor: You do not have sufficient permission to select this Actor.
     NoRoleMembersWithAppropriateSkills: There are no role members that have the appropriate skills to perform this action.
     TooManySuperCharacteristics: An actor can't have more than two super-characteristics. Unmark one first.
+    UnusableWeapon: "{name} can't attack: it has {damage}." # e.g. Pistol can't attack: it has Major Damage.
 
   # Dialogs Prompts
   Dialogs:

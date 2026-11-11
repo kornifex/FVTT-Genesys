@@ -6,6 +6,7 @@ import { Characteristic } from '@/data/Characteristics';
 import { type CheckRoll, rollCheck } from '@/dice/CheckRoll';
 import { diceRollerTarget } from '@/dice/DiceRoller';
 import type { AttackProfile } from '@/item/WeaponProfiles';
+import { EQUIPMENT_DAMAGE_LABELS, isUnusable } from '@/item/data/EquipmentDamage';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -75,9 +76,14 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 	 * with.
 	 */
 	static async promptForRoll(actor: GenesysActor | undefined, skillName: string, options: DicePromptOptions = {}) {
+		// The weapon can take major damage while the prompt is open: the attack is refused as it opens and as it rolls.
+		if (options.roll?.type === RollType.Attack && refuseUnusableWeapon(options.roll.weapon)) {
+			return;
+		}
+
 		const app = new DicePrompt(actor, skillName, options);
 		const checkRoll = await app.prompt();
-		if (!checkRoll) {
+		if (!checkRoll || (app.roll.type === RollType.Attack && refuseUnusableWeapon(app.roll.weapon))) {
 			return;
 		}
 
@@ -124,6 +130,24 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 			characteristic: this.characteristic,
 		};
 	}
+}
+
+/**
+ * Whether an attack with a weapon is refused, as its major damage makes it unusable (CRB p. 89): the user is told which
+ * weapon, and why.
+ */
+export function refuseUnusableWeapon(weapon: Pick<GenesysItem<'weapon' | 'vehicleWeapon'>, 'name' | 'system'>) {
+	if (!isUnusable(weapon.system.damage)) {
+		return false;
+	}
+
+	ui.notifications.warn(
+		game.i18n.format('Genesys.Notifications.UnusableWeapon', {
+			name: weapon.name,
+			damage: game.i18n.localize(EQUIPMENT_DAMAGE_LABELS[weapon.system.damage]),
+		}),
+	);
+	return true;
 }
 
 /**

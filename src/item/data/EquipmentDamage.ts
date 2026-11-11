@@ -33,6 +33,13 @@ export function damageLevel(damage: EquipmentDamageState): number {
 }
 
 /**
+ * Whether an item's damage makes it unusable: major damage does (CRB p. 89, Table I.5-4).
+ */
+export function isUnusable(damage: EquipmentDamageState) {
+	return damage === EquipmentDamageState.Major;
+}
+
+/**
  * The damage an item has one step up or down from its damage: destroyed past major damage, and undefined below
  * undamaged or from a damage this module doesn't know.
  */
