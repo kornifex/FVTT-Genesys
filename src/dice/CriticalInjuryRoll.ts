@@ -3,7 +3,7 @@
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
  */
-export type CriticalAttackResults = {
+type CriticalAttackResults = {
 	succeeded: boolean;
 	netAdvantage: number;
 	triumphs: number;
@@ -44,21 +44,33 @@ export type CriticalInjuryFlag = {
 };
 
 /**
+ * What each extra trigger, each existing injury and each point of Vicious adds to the roll (CRB pp. 89, 103, 114).
+ */
+const STEP = 10;
+
+/**
  * The bonus of the triggers an attacker spends on one Critical Injury: +10 for each past the first (CRB p. 103).
  */
 export function extraTriggersBonus(spent: number): number {
-	return 10 * Math.max(spent - 1, 0);
+	return STEP * Math.max(spent - 1, 0);
+}
+
+/**
+ * How many Critical Injuries an actor already has, among its items.
+ */
+function injuryCount(items: Iterable<{ type: string }>): number {
+	let count = 0;
+	for (const item of items) {
+		if (item.type === 'injury') count += 1;
+	}
+	return count;
 }
 
 /**
  * The bonus of the Critical Injuries an actor already has: +10 for each (CRB p. 114).
  */
 export function existingInjuriesBonus(items: Iterable<{ type: string }>): number {
-	let count = 0;
-	for (const item of items) {
-		if (item.type === 'injury') count += 1;
-	}
-	return 10 * count;
+	return STEP * injuryCount(items);
 }
 
 /**
@@ -89,7 +101,7 @@ export const CRITICAL_CHANGE_KEYS = {
 /**
  * Whose Critical Injury roll a change modifies: those its actor inflicts, or those it suffers.
  */
-export type CriticalChangeKind = keyof typeof CRITICAL_CHANGE_KEYS;
+type CriticalChangeKind = keyof typeof CRITICAL_CHANGE_KEYS;
 
 const CRITICAL_VALUE_PATTERN = /^\s*[+-]?\d+\s*$/;
 
@@ -234,7 +246,7 @@ export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, vi
 
 		const vicious = viciousRating(attack.weapon?.qualities ?? [], viciousNames);
 		if (vicious > 0) {
-			lines.push({ kind: 'vicious', count: vicious, value: 10 * vicious });
+			lines.push({ kind: 'vicious', count: vicious, value: STEP * vicious });
 		}
 
 		if (attack.attacker) {
@@ -243,8 +255,7 @@ export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, vi
 	}
 
 	if (actor) {
-		const bonus = existingInjuriesBonus(actor.items);
-		lines.push({ kind: 'injuries', count: bonus / 10, value: bonus });
+		lines.push({ kind: 'injuries', count: injuryCount(actor.items), value: existingInjuriesBonus(actor.items) });
 		lines.push(...effectLines('suffered', actor));
 	}
 

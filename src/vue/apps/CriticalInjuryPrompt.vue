@@ -26,6 +26,8 @@ const formula = computed(() => criticalInjuryFormula(modifier.value));
 // Spending another trigger sets the line of the extra triggers back to what the rules give for them.
 function onSpentChange() {
 	const triggers = Math.min(Math.max(Math.trunc(Number(spent.value)) || 1, 1), attack?.triggers ?? 1);
+	// A count typed out of range shows the count the line takes.
+	spent.value = triggers;
 	const line = lines.value.find(({ kind }) => kind === 'triggers');
 	if (line) {
 		line.value = extraTriggersBonus(triggers);

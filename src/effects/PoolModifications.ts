@@ -513,13 +513,13 @@ export function toEditedChange(change: StoredChange): EditedChange {
  * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
  */
 export function fromEditedChange(change: EditedChange, customMode: () => number): EditedChange {
+	const { char, skill, ...stored } = change;
+	// v13: a change has a numeric mode, which v14 replaced with a type.
+	const custom = () => ('type' in change ? { type: 'custom' } : { mode: customMode() });
+	const value = typeof change.value === 'string' ? change.value : '';
+
 	if (isCriticalChangeKey(change.key)) {
-		const { char: _char, skill: _skill, ...stored } = change;
-		return {
-			...stored,
-			...('type' in change ? { type: 'custom' } : { mode: customMode() }),
-			value: typeof change.value === 'string' && isCriticalChangeValue(change.value) ? change.value.trim() : '',
-		};
+		return { ...stored, ...custom(), value: isCriticalChangeValue(value) ? value.trim() : '' };
 	}
 
 	const baseKey = change.key.match(BASE_KEY_PATTERN);
@@ -527,12 +527,11 @@ export function fromEditedChange(change: EditedChange, customMode: () => number)
 		return change;
 	}
 
-	const { char, skill, ...stored } = change;
 	const kind = baseKey[1] as PoolModificationKind;
 	return {
 		...stored,
 		key: encodeKey({ kind, source: baseKey[2] as PoolModificationSource, subject: (kind === 'char' ? char : skill) ?? '' }),
-		...('type' in change ? { type: 'custom' } : { mode: customMode() }),
-		value: typeof change.value === 'string' && isPoolModificationValue(change.value) ? change.value : '',
+		...custom(),
+		value: isPoolModificationValue(value) ? value : '',
 	};
 }

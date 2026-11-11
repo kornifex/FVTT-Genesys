@@ -98,11 +98,14 @@ describe('the DataField of each setting', () => {
 
 	it("offers the world's Roll Tables by uuid for the Critical Injury table, which may be none", () => {
 		vi.stubGlobal('game', { tables: [{ uuid: 'RollTable.crits', name: 'Critical Injuries' }] });
-		const options = fieldOf('criticalInjuryTable').options as { required: boolean; blank: boolean; choices: () => object };
+		try {
+			const options = fieldOf('criticalInjuryTable').options as { required: boolean; blank: boolean; choices: () => object };
 
-		expect(options).toMatchObject({ required: true, blank: true });
-		expect(options.choices()).toEqual({ 'RollTable.crits': 'Critical Injuries' });
-		vi.stubGlobal('game', undefined);
+			expect(options).toMatchObject({ required: true, blank: true });
+			expect(options.choices()).toEqual({ 'RollTable.crits': 'Critical Injuries' });
+		} finally {
+			vi.stubGlobal('game', undefined);
+		}
 	});
 
 	it('requires a whole count, and refuses one below 0 with a localized error', () => {

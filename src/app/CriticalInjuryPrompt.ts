@@ -8,7 +8,7 @@ import { CRITICAL_INJURY_FLAG, criticalInjuryFormula, type CriticalInjuryRequest
 /**
  * What the dialog rolls a Critical Injury for: the actor who suffers it, and the attack that inflicts it, when known.
  */
-export type CriticalInjuryPromptRequest = CriticalInjuryRequest<GenesysActor>;
+type CriticalInjuryPromptRequest = CriticalInjuryRequest<GenesysActor>;
 
 /**
  * What the dialog shows: what it rolls for, the name of the table it draws from, and the names Vicious goes by, in
