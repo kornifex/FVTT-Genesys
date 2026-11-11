@@ -371,13 +371,10 @@ Genesys:
     Fix: FIX
     Feature: FEATURE
     Styling: STYLING
-    NoRollDie: Show no die before a name that rolls
-    AttackFromCombatTab: A character's weapon attacks from the Combat tab only, no longer from the inventory
-    InventorySummary: Keep the currency and encumbrance row at the bottom of the Inventory tab
-    RowMenus: Show an open row menu over everything in its sheet
+    CounterRightClick: A right-click on a counter opens its row's menu and takes nothing off
     CounterButtons: >-
-      Show a counter's − and + wherever the pointer reaches them; a right-click on the + takes nothing off
-    CharacteristicBoxes: Fit each characteristic's box to its own name, with its ↑ beside it
+      Centre a counter's − and + in their circle, and the sub-labels of wounds, strain and defense under their values
+    CharacteristicBoxes: Fit the characteristic boxes closer to their names
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

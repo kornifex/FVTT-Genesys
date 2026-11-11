@@ -370,13 +370,11 @@ Genesys:
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
-    NoRollDie: Un nombre que tira dados ya no lleva un dado delante
-    AttackFromCombatTab: El arma de un personaje ataca solo desde la pestaña Combate, ya no desde el inventario
-    InventorySummary: La fila de dinero e impedimento queda al pie de la pestaña Inventario
-    RowMenus: El menú abierto de una fila se muestra por encima de todo lo demás en su hoja
+    CounterRightClick: Un clic derecho en un contador abre el menú de su fila y ya no resta nada
     CounterButtons: >-
-      Los − y + de un contador se muestran donde llega el puntero; un clic derecho en el + ya no resta nada
-    CharacteristicBoxes: La casilla de una característica se ajusta a su propio nombre, con su ↑ al lado
+      Los − y + de un contador quedan centrados en su círculo, y las subetiquetas de heridas, tensión y defensa bajo sus
+      valores
+    CharacteristicBoxes: Las casillas de las características se ajustan más a sus nombres
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
