@@ -4,9 +4,8 @@
 
 import { isFoundryV13 } from '@/foundryGeneration';
 import type { CheckPurpose } from '@/dice/Check';
-import { changesPath, lapsingFor } from '@/effects/GenesysEffect';
+import { changesPath, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
 import { aimAfter, aimBoosts, effectsUsedUp, GUARDED_STANCE, MANEUVER_IDS, type ManeuverEffect } from '@/effects/Maneuvers';
-import { foundryChange } from '@/effects/tokenStateMenu';
 import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
 
 /**
@@ -54,19 +53,17 @@ function perform(actor: Actor.Implementation, maneuver: () => Promise<void>) {
  * on them with one (CRB p. 98).
  */
 export function aim(actor: Actor.Implementation) {
-	return perform(actor, () => aimNow(actor));
-}
+	return perform(actor, async () => {
+		const [current] = effectsWith(actor, MANEUVER_IDS.aim);
+		if (!current) {
+			await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimAfter(0)) as ActiveEffect.CreateData]);
+			return;
+		}
 
-async function aimNow(actor: Actor.Implementation) {
-	const [current] = effectsWith(actor, MANEUVER_IDS.aim);
-	if (!current) {
-		await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimAfter(0)) as ActiveEffect.CreateData]);
-		return;
-	}
-
-	// The effect's changes, which v14 keeps in its system, as v14 shims them.
-	const { changes } = current as unknown as { changes: { key?: string; value: unknown }[] };
-	await current.update({ [changesPath()]: aimAfter(aimBoosts(changes)).changes.map(foundryChange) });
+		// The effect's changes, which v14 keeps in its system, as v14 shims them.
+		const { changes } = current as unknown as { changes: { key?: string; value: unknown }[] };
+		await current.update({ [changesPath()]: aimAfter(aimBoosts(changes)).changes.map(foundryChange) });
+	});
 }
 
 /**
@@ -90,21 +87,25 @@ export function takeGuardedStance(actor: Actor.Implementation) {
  * can't write the actor, as a player observing it, asks the Acting GM to.
  */
 export async function useUpEffects(actor: Actor.Implementation, purpose: CheckPurpose) {
-	const usedUp = effectsUsedUp(purpose, effectsOf(actor));
-	if (usedUp.length === 0) {
+	if (!actor.isOwner) {
+		if (effectsUsedUp(purpose, actor.effects).length > 0) {
+			// A check is rolled by an actor of the world or of a scene, which has a uuid.
+			await askActingGm(QueryName.UseUpEffects, { actorUuid: actor.uuid!, purpose }, { name: actor.name });
+		}
 		return;
 	}
 
-	if (actor.isOwner) {
-		await actor.deleteEmbeddedDocuments('ActiveEffect', usedUp);
-	} else {
-		// A check is rolled by an actor of the world or of a scene, which has a uuid.
-		await askActingGm(QueryName.UseUpEffects, { actorUuid: actor.uuid!, purpose }, { name: actor.name });
-	}
+	await deleteUsedUp(actor, purpose);
 }
 
-function effectsOf(actor: Actor.Implementation) {
-	return actor.effects.map((effect) => ({ id: effect.id, statuses: effect.statuses }));
+/**
+ * Deletes the effects of an actor that a check uses up, for a user who may write them.
+ */
+async function deleteUsedUp(actor: Actor.Implementation, purpose: CheckPurpose) {
+	const usedUp = effectsUsedUp(purpose, actor.effects);
+	if (usedUp.length > 0) {
+		await actor.deleteEmbeddedDocuments('ActiveEffect', usedUp);
+	}
 }
 
 /**
@@ -118,9 +119,6 @@ export function registerUsedUpEffects() {
 			refuse('Genesys.Notifications.GenericError');
 		}
 
-		const usedUp = effectsUsedUp(purpose, effectsOf(actor));
-		if (usedUp.length > 0) {
-			await actor.deleteEmbeddedDocuments('ActiveEffect', usedUp);
-		}
+		await deleteUsedUp(actor, purpose);
 	});
 }

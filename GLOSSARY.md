@@ -56,8 +56,12 @@ _Avoid_: Crit, wound
 A state that hinders an actor during an encounter: Immobilized (no maneuvers), Staggered (no actions) or Disoriented (a Setback die on every check). It lasts for the duration its source gives, or until the end of the actor's next turn when none is given; suffering it again adds to its duration, never beyond the encounter.
 _Avoid_: Condition
 
+**Combat Check**:
+A check made to attack with a weapon, melee when the weapon's range is engaged and ranged otherwise, as the defense it meets. Pool Modifications can apply to an actor's combat checks only, or to the melee or the ranged attacks against them only. Aim, a maneuver of the character's Combat tab, brings a Boost to their next combat check, two after two Aim maneuvers, and that check uses it up once rolled; Guarded Stance brings a Setback to their combat checks and melee defense 1, as a Lapsing Effect of one round.
+_Avoid_: Attack roll, combat roll
+
 **Token State**:
-A state the system adds to the token's status menu, beside Foundry's own, which puts it on the actor as an Active Effect with the state's name, icon and changes: the three Status Effects so far. Disoriented carries its Setback as a Pool Modification of every check; Immobilized and Staggered change no dice, and the Dice Prompt reminds the roller of them. A Status Effect is a Lapsing Effect, applied for the rounds the user enters, one by default.
+A state the system adds to the token's status menu, beside Foundry's own, which puts it on the actor as an Active Effect with the state's name, icon and changes: the three Status Effects, In Cover and Prone. Disoriented carries its Setback as a Pool Modification of every check; Immobilized and Staggered change no dice, and the Dice Prompt reminds the roller of them. A Status Effect is a Lapsing Effect, applied for the rounds the user enters, one by default. In Cover raises the ranged defense by one, and Prone, which takes the place of Foundry's own prone state, brings a Setback to the ranged attacks against the actor and a Boost to the melee ones; both stay until removed, and only characters and adversaries have them.
 _Avoid_: Condition, status
 
 **Lapsing Effect**:
@@ -177,7 +181,7 @@ The rule that a character must have more talents at each tier than at the tier a
 ### Table
 
 **Acting GM**:
-The one connected GM who writes what a player's client may not, for the whole table: a player's Story Point spend, Claim or Extra Slot initiative. It is the connected Gamemaster, an Assistant GM only when no Gamemaster is connected, and the one of the lowest id among equals, as Foundry's `game.users.activeGM`.
+The one connected GM who writes what a player's client may not, for the whole table: a player's Story Point spend, Claim or Extra Slot initiative, or the Aim used up by an attack a player rolls for an actor they don't own. It is the connected Gamemaster, an Assistant GM only when no Gamemaster is connected, and the one of the lowest id among equals, as Foundry's `game.users.activeGM`.
 _Avoid_: Primary GM, GM hub, first GM
 
 **Story Point**:
