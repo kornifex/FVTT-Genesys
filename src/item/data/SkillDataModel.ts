@@ -4,6 +4,7 @@ import { SKILL_CATEGORIES, type SkillCategory } from '@/data/Skills';
 import { choiceField } from '@/data/schemaFields';
 import { itemsOfType } from '@/item/ItemTypes';
 import { createdSkillIsCareer } from '@/actor/data/character/Career';
+import { isPoolModificationValue } from '@/effects/PoolModifications';
 
 /**
  * The data of a skill.
@@ -23,6 +24,12 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	 * Whether the skill can be used for initiative.
 	 */
 	abstract initiative: boolean;
+
+	/**
+	 * The Pool Modification glyphs of the difficulty the Dice Prompt opens at for the skill, empty for the world's
+	 * Default Difficulty. Only the Skills Compendium's skill is read: an actor's copy keeps the field, ignored.
+	 */
+	abstract difficulty: string;
 
 	/**
 	 * (Owned Only) Whether the skill is a career skill for the character.
@@ -60,6 +67,12 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 			characteristic: choiceField(Object.values(Characteristic), Characteristic.Brawn),
 			category: choiceField(SKILL_CATEGORIES, 'general'),
 			initiative: new fields.BooleanField({ initial: false }),
+			difficulty: new fields.StringField({
+				initial: '',
+				validate: (value: unknown) => typeof value === 'string' && isPoolModificationValue(value),
+				// Foundry reports it after the field's path, among its own field errors, which it doesn't localize either.
+				validationError: 'must be dice pool modification glyphs',
+			}),
 			career: new fields.BooleanField({ initial: false }),
 			rank: new fields.NumberField({ integer: true, initial: 0 }),
 		};

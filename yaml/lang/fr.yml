@@ -80,6 +80,8 @@ Genesys:
   # Tooltips
   Tooltips:
     NoDescription: Aucune description disponible
+    SkillDifficulty: >-
+      La difficulté à laquelle la réserve de dés s'ouvre pour cette compétence, en symboles de modification de réserve (DD pour Moyen). Laissez vide pour la difficulté par défaut du monde. Seule la compétence du compendium des compétences compte.
     IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
     CycleInitiativeSkill: Cycle de la compétence d'initiative utilisée par le combattant.
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
@@ -640,6 +642,7 @@ Genesys:
     RemainingMembers: Membres restants
     SkillNotFound: Compétence non trouvée
     IsInitiative: Est une compétence d'initiative ?
+    SkillDifficulty: Difficulté par défaut
     Equipped: Equipé
     Carried: Porté
     Dropped: Stocké/abandonné

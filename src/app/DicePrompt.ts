@@ -7,6 +7,7 @@ import { type CheckRoll, rollCheck } from '@/dice/CheckRoll';
 import { diceRollerTarget } from '@/dice/DiceRoller';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 import { EQUIPMENT_DAMAGE_LABELS, isUnusable } from '@/item/data/EquipmentDamage';
+import { openingDifficulty } from '@/dice/Difficulty';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -46,7 +47,8 @@ export type DicePromptOptions = {
 	 */
 	roll?: DicePromptRoll;
 	/**
-	 * The difficulty's Pool Modification glyphs, the world's default difficulty when left out.
+	 * The difficulty's Pool Modification glyphs. When left out, the Skills Compendium skill's default difficulty, else
+	 * the world's.
 	 */
 	difficulty?: string;
 	/**
@@ -117,7 +119,8 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 		this.actor = actor;
 		this.skillName = skillName;
 		this.roll = roll ?? { type: RollType.Skill };
-		this.difficulty = difficulty ?? CONFIG.genesys.settings.defaultDifficulty;
+		// Set once: picking another skill in the prompt leaves the difficulty alone.
+		this.difficulty = openingDifficulty(difficulty, CONFIG.genesys.skills, skillName, CONFIG.genesys.settings.defaultDifficulty);
 		this.characteristic = characteristic;
 	}
 

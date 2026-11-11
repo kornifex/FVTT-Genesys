@@ -1,11 +1,12 @@
 /**
  * @file The Difficulty of a check: a level from Simple to Formidable, some of whose Difficulty dice may be upgraded
- * into Challenge dice, set before any Pool Modification (CRB p. 20).
+ * into Challenge dice, set before any Pool Modification (CRB p. 20), and the one the Dice Prompt opens at.
  */
 
 import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { type DicePool, parsePoolModifications } from '@/dice/DicePool';
 import { upgradeDie } from '@/dice/DieGrades';
+import { skillNamesMatch } from '@/data/Skills';
 
 /**
  * The localization keys of the difficulty levels' names, by their number of Difficulty dice (CRB p. 18, Table I.1–3).
@@ -40,6 +41,30 @@ export type ReceivedDifficulty = {
 	 */
 	manualChanges: string[];
 };
+
+/**
+ * What the Dice Prompt's opening difficulty needs of a skill of the Skills Compendium.
+ */
+export type SkillWithDifficulty = { name: string; system: { difficulty: string } };
+
+/**
+ * The difficulty the Dice Prompt opens at, as Pool Modification glyphs: the one its caller gives, even an empty one;
+ * else the default difficulty of the Skills Compendium's skill named as the rolled skill, when it has one; else the
+ * world's. An actor's own copy of the skill is never read, so a change in the compendium applies to every actor at once.
+ */
+export function openingDifficulty(
+	callerDifficulty: string | undefined,
+	compendiumSkills: SkillWithDifficulty[],
+	skillName: string | undefined,
+	worldDifficulty: string,
+) {
+	if (callerDifficulty !== undefined) {
+		return callerDifficulty;
+	}
+
+	const skill = skillName ? compendiumSkills.find((candidate) => skillNamesMatch(candidate.name, skillName)) : undefined;
+	return skill?.system.difficulty || worldDifficulty;
+}
 
 /**
  * Split the difficulty the Dice Prompt receives, as Pool Modification glyphs, into its Difficulty and the other Pool
