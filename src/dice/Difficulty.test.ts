@@ -4,7 +4,42 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { clickedLevel, difficultyGlyphs, difficultyRow, receivedDifficulty, withLevel } from '@/dice/Difficulty';
+import { clickedLevel, difficultyGlyphs, difficultyRow, openingDifficulty, receivedDifficulty, withLevel } from '@/dice/Difficulty';
+
+describe('openingDifficulty', () => {
+	const skill = (name: string, difficulty: string) => ({ name, system: { difficulty } });
+	const compendium = [skill('Melee (Light)', 'DD'), skill('Athletics', '')];
+	const WORLD = 'D';
+
+	it('opens a melee attack at Average when its skill is set to it in the Skills Compendium (CRB p. 102)', () => {
+		expect(openingDifficulty(undefined, compendium, 'Melee (Light)', WORLD)).toBe('DD');
+	});
+
+	it("matches the compendium's skill whatever the case of the rolled skill's name", () => {
+		expect(openingDifficulty(undefined, compendium, 'melee (light)', WORLD)).toBe('DD');
+	});
+
+	it("opens at the caller's difficulty over the skill's", () => {
+		expect(openingDifficulty('DDD', compendium, 'Melee (Light)', WORLD)).toBe('DDD');
+	});
+
+	it("opens at the caller's empty difficulty, as an initiative check's, over the skill's", () => {
+		expect(openingDifficulty('', compendium, 'Melee (Light)', WORLD)).toBe('');
+	});
+
+	it("falls back to the world's difficulty for a skill whose field is empty", () => {
+		expect(openingDifficulty(undefined, compendium, 'Athletics', WORLD)).toBe(WORLD);
+	});
+
+	it("falls back to the world's difficulty for a skill missing from the compendium", () => {
+		expect(openingDifficulty(undefined, compendium, 'Knitting', WORLD)).toBe(WORLD);
+	});
+
+	it("falls back to the world's difficulty for a Characteristic Check, which names no skill", () => {
+		expect(openingDifficulty(undefined, compendium, '', WORLD)).toBe(WORLD);
+		expect(openingDifficulty(undefined, compendium, undefined, WORLD)).toBe(WORLD);
+	});
+});
 
 describe('receivedDifficulty', () => {
 	it('reads Difficulty dice as the level, without upgrades', () => {

@@ -80,6 +80,8 @@ Genesys:
   # Tooltips
   Tooltips:
     NoDescription: No Description Available
+    SkillDifficulty: >-
+      The difficulty the Dice Pool opens at for this skill, as dice pool modification glyphs (DD for Average). Leave it empty for the world's Default Difficulty. Only the skill of the Skills Compendium counts.
     IsInitiative: Whether the skill is commonly used for Initiative or not. Setting this to true will make it appear as an option in the combat tracker for mass rolls.
     CycleInitiativeSkill: Cycle which initiative skill the combatant is using.
     AddExtraInitiativeSlot: Adds an extra initiative slot.
@@ -637,6 +639,7 @@ Genesys:
     RemainingMembers: Remaining Members
     SkillNotFound: Skill Not Found
     IsInitiative: Initiative Skill?
+    SkillDifficulty: Default Difficulty
     Equipped: Equipped
     Carried: Carried
     Dropped: Dropped

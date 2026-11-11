@@ -6,6 +6,7 @@ system:
   source: Core Rulebook, p.68
   characteristic: brawn
   category: combat
+  difficulty: DD
   career: false
   rank: 0
 effects: []

@@ -79,7 +79,7 @@ A characteristic marked as super, under the optional rule the world settings tur
 _Avoid_: Super stat
 
 **Difficulty**:
-The Difficulty and Challenge dice a check starts with, before any Pool Modification: a level from Simple (none) to Formidable (five Difficulty dice), some of whose dice may be upgraded into Challenge dice, for skilled opposition, an opposed check or a Story Point. Boost and Setback dice are not part of it. What asks for the check sets it (a check link, a Critical Injury's severity), or the world's default difficulty when nothing does, and the roller can change it in the Dice Prompt. Pool Modifications then apply to it: upgrades and downgrades of the difficulty act on it, and a die removed by hand is removed after them, so removing a die does not lower the difficulty.
+The Difficulty and Challenge dice a check starts with, before any Pool Modification: a level from Simple (none) to Formidable (five Difficulty dice), some of whose dice may be upgraded into Challenge dice, for skilled opposition, an opposed check or a Story Point. Boost and Setback dice are not part of it. What asks for the check sets it (a check link, a Critical Injury's severity); when nothing does, the default difficulty of the Skills Compendium's skill rolled (Average for the melee skills), else the world's default difficulty; and the roller can change it in the Dice Prompt. Pool Modifications then apply to it: upgrades and downgrades of the difficulty act on it, and a die removed by hand is removed after them, so removing a die does not lower the difficulty.
 _Avoid_: Base difficulty, difficulty modifier
 
 **Pool Modification**:

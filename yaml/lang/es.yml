@@ -80,6 +80,8 @@ Genesys:
   # Tooltips
   Tooltips:
     NoDescription: Descripción no disponible
+    SkillDifficulty: >-
+      La dificultad con la que se abre la reserva de dados para esta habilidad, en símbolos de modificación de reserva (DD para Medio). Déjalo vacío para la dificultad por defecto del mundo. Solo cuenta la habilidad del compendio de habilidades.
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.
     CycleInitiativeSkill: Cambia la habilidad de iniciativa que utiliza el combatiente.
     AddExtraInitiativeSlot: Añade un puesto de iniciativa adicional.
@@ -630,6 +632,7 @@ Genesys:
     RemainingMembers: Miembros restantes
     SkillNotFound: Habilidad no encontrada
     IsInitiative: ¿Habilidad de iniciativa?
+    SkillDifficulty: Dificultad por defecto
     Equipped: Equipado
     Carried: Transportado
     Dropped: En el suelo
