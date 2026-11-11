@@ -1,3 +1,4 @@
+import { DicePrompt } from '@/app/DicePrompt';
 import { StoryPointTracker } from '@/app/StoryPointTracker';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { register as registerStoryPoints } from '@/settings/storyPoints';
@@ -76,7 +77,10 @@ function registerWikiLinks() {
  */
 export function register() {
 	registerTable();
-	registerStoryPoints(NAMESPACE, () => StoryPointTracker.forceRender());
+	registerStoryPoints(NAMESPACE, () => {
+		StoryPointTracker.forceRender();
+		DicePrompt.renderOpen();
+	});
 	registerWikiLinks();
 
 	registerAlpha(NAMESPACE);

@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, shallowRef, useId } from 'vue';
 import type { Stored } from '@/data/Stored';
-import { DicePromptContext, RollType } from '@/app/DicePrompt';
+import { type DicePromptAnswer, DicePromptContext, RollType } from '@/app/DicePrompt';
 import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } from '@/dice/ChanceToSucceed';
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { DEFENSE_LABELS } from '@/data/Actors';
-import { type CheckRoll, rollPool } from '@/dice/CheckRoll';
+import { rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_DAMAGE_LABELS } from '@/item/data/EquipmentDamage';
 import { useSheetContext } from '@/vue/SheetContext';
@@ -47,10 +47,22 @@ import {
 	type Difficulty,
 	DIFFICULTY_LABELS,
 	difficultyGlyphs,
+	difficultyLabel,
 	difficultyRow,
+	IMPOSSIBLE,
 	receivedDifficulty,
 	withLevel,
 } from '@/dice/Difficulty';
+import {
+	canRollWithSpends,
+	type CheckSpend,
+	chosenSpends,
+	SPEND_GLYPHS,
+	type SpendContext,
+	spendGlyphs,
+	spendOptions,
+} from '@/dice/CheckStoryPoints';
+import type { StoryPointPool } from '@/data/StoryPoints';
 
 type AlsoNone<T> = T | undefined;
 
@@ -86,10 +98,35 @@ const currentDicePool = shallowRef<DicePool>({
 const check = shallowRef<Check<PromptSkill>>();
 // The roller sets the Difficulty before any Pool Modification; whatever else the received difficulty holds starts as
 // manual changes.
-const received = receivedDifficulty(context.value.difficulty);
+const received = receivedDifficulty(context.value.difficulty, context.value.impossible);
 const difficulty = ref<Difficulty>(received.difficulty);
 const manualChanges = ref<string[]>(received.manualChanges);
-const difficultyName = computed(() => game.i18n.localize(DIFFICULTY_LABELS[difficulty.value.level]));
+const difficultyName = computed(() => game.i18n.localize(difficultyLabel(difficulty.value.level)));
+const impossible = computed(() => difficulty.value.level === IMPOSSIBLE);
+
+// The Story Points the roller chose to spend on the check, each once; those the check no longer offers, as the point of
+// a task no longer Impossible, are left out of its spends.
+const chosen = ref<CheckSpend[]>([]);
+const spendContext = computed<SpendContext>(() => ({
+	isGM: game.user.isGM,
+	gmConnected: context.value.gmConnected,
+	storyPoints: context.value.storyPoints,
+	impossible: impossible.value,
+}));
+const spends = computed(() => chosenSpends(chosen.value, spendContext.value));
+const options = computed(() => spendOptions(chosen.value, spendContext.value));
+const canRoll = computed(() => canRollWithSpends(spends.value, impossible.value));
+
+// What each spend buys, and the short name of the pool it comes from.
+const SPEND_LABELS: Record<CheckSpend, string> = {
+	impossible: 'Genesys.DicePrompt.StoryPoints.Impossible',
+	upgradeAbility: 'Genesys.DicePrompt.StoryPoints.UpgradeAbility',
+	upgradeDifficulty: 'Genesys.DicePrompt.StoryPoints.UpgradeDifficulty',
+};
+const POOL_LABELS: Record<StoryPointPool, string> = {
+	player: 'Genesys.StoryPoints.PlayerShort',
+	gm: 'Genesys.StoryPoints.GMShort',
+};
 // What the prompt needs of the document a Pool Modification's row opens: the item its effect comes from, or the effect.
 type SourceDocument = {
 	name: string;
@@ -264,7 +301,8 @@ function buildDicePool() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
 	currentDicePool.value = checkDicePool(check.value!, {
 		difficulty: difficultyGlyphs(difficulty.value),
-		manualChanges: manualChanges.value,
+		// A Story Point's upgrade applies as the roller's own changes do.
+		manualChanges: [...manualChanges.value, ...spendGlyphs(spends.value)].sort(sortPoolModifications),
 		isEnabled: (modification) => enabledKeys.has(modification.key),
 	});
 
@@ -332,6 +370,12 @@ function onDifficultyDieClick(die: number) {
 	buildDicePool();
 }
 
+function onSpendChange(spend: CheckSpend, event: Event) {
+	const others = chosen.value.filter((other) => other !== spend);
+	chosen.value = (event.currentTarget as HTMLInputElement).checked ? [...others, spend] : others;
+	buildDicePool();
+}
+
 function addManualChange(glyph: string) {
 	manualChanges.value.push(glyph);
 	manualChanges.value.sort(sortPoolModifications);
@@ -359,11 +403,13 @@ function cancelName(glyph: string) {
 	return game.i18n.format('Genesys.DicePrompt.PoolModifications.Cancel', { modification: modificationName(glyph) });
 }
 
-// The prompt answers with the check and the pool built for it; its caller rolls them.
-usePromptAnswer<CheckRoll>(() => ({ check: check.value!, dicePool: currentDicePool.value }));
+// The prompt answers with the check, the pool built for it and the Story Points spent on it; it spends them, and its
+// caller rolls the check.
+usePromptAnswer<DicePromptAnswer>(() => ({ check: check.value!, dicePool: currentDicePool.value, spends: spends.value }));
 
 const superCharacteristicId = useId();
 const chanceId = useId();
+const spendId = useId();
 </script>
 
 <template>
@@ -455,6 +501,18 @@ const chanceId = useId();
 							>
 								{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
 							</button>
+							<!-- After the five dice, the level above Formidable, whose dice it rolls (CRB p. 18). -->
+							<button
+								type="button"
+								:name="`difficulty-${IMPOSSIBLE}`"
+								:class="['difficulty-impossible', { on: impossible }]"
+								:aria-pressed="impossible"
+								:data-tooltip="DIFFICULTY_LABELS[IMPOSSIBLE]"
+								v-localize:aria-label="DIFFICULTY_LABELS[IMPOSSIBLE]"
+								@click="onDifficultyDieClick(IMPOSSIBLE)"
+							>
+								<i class="fa-solid fa-skull" aria-hidden="true"></i>
+							</button>
 						</div>
 					</div>
 					<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
@@ -487,6 +545,33 @@ const chanceId = useId();
 			</template>
 		</DescriptionFold>
 
+		<!-- Out of the Pool Modifications' fold: an Impossible task's point, without which it can't be rolled, stays in sight. -->
+		<fieldset class="story-points">
+			<legend><Localized label="Genesys.DicePrompt.StoryPoints.Title" /></legend>
+			<div v-for="option in options" :key="option.spend" :class="['story-point-spend', option.spend]">
+				<input
+					:id="`${spendId}-${option.spend}`"
+					type="checkbox"
+					:name="`spend-${option.spend}`"
+					:checked="spends.includes(option.spend)"
+					:disabled="!!option.refusal"
+					:aria-describedby="option.refusal || option.spend === 'impossible' ? `${spendId}-${option.spend}-why` : undefined"
+					@change="onSpendChange(option.spend, $event)"
+				/>
+				<label :for="`${spendId}-${option.spend}`">
+					<Localized :label="SPEND_LABELS[option.spend]" />
+					<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads the
+					label as one. -->
+					<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>
+				</label>
+				<span v-if="SPEND_GLYPHS[option.spend]" class="glyph"><PoolModificationIcon :glyph="SPEND_GLYPHS[option.spend]!" /></span>
+				<span v-if="option.refusal" :id="`${spendId}-${option.spend}-why`" class="why"><Localized :label="option.refusal" /></span>
+				<span v-else-if="option.spend === 'impossible'" :id="`${spendId}-${option.spend}-why`" class="why">
+					<Localized label="Genesys.DicePrompt.StoryPoints.ImpossibleCost" />
+				</span>
+			</div>
+		</fieldset>
+
 		<div v-if="USE_CHANCE_TO_SUCCEED" class="chance-to-succeed">
 			<label :for="chanceId">
 				<i
@@ -507,7 +592,7 @@ const chanceId = useId();
 			</output>
 		</div>
 
-		<PromptFooter class="roll-button" label="Genesys.DicePrompt.Roll" />
+		<PromptFooter class="roll-button" label="Genesys.DicePrompt.Roll" :disabled="!canRoll" />
 	</div>
 </template>
 
@@ -753,8 +838,15 @@ $target-size: 24px;
 			top: -0.25em;
 		}
 
-		// Five dice in a row, as many lit as the level has Difficulty dice (§#469).
-		.pool-modifications-difficulty .difficulty-die {
+		// Five dice in a row, as many lit as the level has Difficulty dice (§#469), then the Impossible mark (§#671): six
+		// targets of 24 px side by side, with no margin between them, fill the column without wrapping onto a second line,
+		// where they would overlap the first.
+		.pool-modifications-difficulty > div {
+			white-space: nowrap;
+		}
+
+		.pool-modifications-difficulty .difficulty-die,
+		.pool-modifications-difficulty .difficulty-impossible {
 			// Foundry styles every button as a box; the die shows only its glyph, centred in a box of the smallest target
 			// size WCAG 2.2 asks for, 24 px.
 			display: inline-block;
@@ -766,7 +858,7 @@ $target-size: 24px;
 			// The negative margins keep the lowered die within the row's line, which takes the die's margin box: the
 			// focus outline still goes round the whole target. They take back the leading a line of 24 px adds to the
 			// glyph's, so the margin box is the glyph's own.
-			margin: calc(-0.25em - ($target-size - 1em) / 2) 0.2rem calc(-0.25em - ($target-size - 1em) / 2) 0;
+			margin: calc(-0.25em - ($target-size - 1em) / 2) 0;
 			padding: 0;
 			border: none;
 			border-radius: 0;
@@ -774,10 +866,23 @@ $target-size: 24px;
 			font-size: $difficulty-die-scale * 1em;
 			line-height: $target-size;
 			vertical-align: onto-capitals($difficulty-die-scale);
+			cursor: pointer;
+
+			// The focus ring's gap is a box shadow (VueSheet.scss), which a die keeps from the keyboard.
+			&:not(:focus-visible) {
+				box-shadow: none;
+			}
+
+			// Foundry outlines a focused button; a click on a die leaves none, the keyboard still shows it.
+			&:focus:not(:focus-visible) {
+				outline: none;
+			}
+		}
+
+		.pool-modifications-difficulty .difficulty-die {
 			font-family: 'Genesys Symbols', sans-serif;
 			-webkit-text-stroke: 0.5px colors.$die-outline;
 			text-stroke: 0.5px colors.$die-outline;
-			cursor: pointer;
 
 			&.difficulty-die-Difficulty {
 				color: colors.$die-difficulty;
@@ -795,15 +900,27 @@ $target-size: 24px;
 			&:hover {
 				text-shadow: 0 0 4px colors.$die-difficulty;
 			}
+		}
 
-			// The focus ring's gap is a box shadow (VueSheet.scss), which a die keeps from the keyboard.
-			&:not(:focus-visible) {
-				box-shadow: none;
+		// The mark of the level above Formidable, after its five dice: lit as a Challenge die once the task is Impossible.
+		.pool-modifications-difficulty .difficulty-impossible {
+			i {
+				position: static;
+				top: 0;
+				font-size: 0.7em;
+				line-height: inherit;
+				vertical-align: baseline;
+				color: colors.$die-difficulty;
+				opacity: 0.25;
 			}
 
-			// Foundry outlines a focused button; a click on a die leaves none, the keyboard still shows it.
-			&:focus:not(:focus-visible) {
-				outline: none;
+			&.on i {
+				color: colors.$die-challenge;
+				opacity: 1;
+			}
+
+			&:hover i {
+				text-shadow: 0 0 4px colors.$die-challenge;
 			}
 		}
 
@@ -844,9 +961,58 @@ $target-size: 24px;
 		}
 	}
 
+	// A row per spend: its checkbox, its label with the pool it comes from, the upgrade it adds, then why it is closed, under
+	// the label.
+	.story-points {
+		grid-column: 1 / span all;
+		grid-row: 6 / span 1;
+		margin: 0.5rem 0 0;
+		padding: 0;
+		border: none;
+		font-family: 'Roboto', sans-serif;
+
+		legend {
+			@include headings.font;
+			font-size: $title-font-size;
+			padding: 0;
+		}
+
+		.story-point-spend {
+			@include reset.input;
+			display: grid;
+			grid-template-columns: $checkbox-size 1fr auto;
+			column-gap: $row-column-gap;
+			align-items: center;
+			border-bottom: 1px dotted colors.$ink;
+			line-height: $row-line-height;
+			padding-block: $row-padding;
+
+			input {
+				--checkbox-size: #{$checkbox-size};
+				width: $checkbox-size;
+				height: $checkbox-size;
+				margin: 0;
+			}
+
+			.pool {
+				color: appv1.$text-secondary;
+			}
+
+			.glyph {
+				font-family: 'Genesys Symbols', sans-serif;
+			}
+
+			.why {
+				grid-column: 2 / span 2;
+				font-size: 0.9em;
+				color: appv1.$text-secondary;
+			}
+		}
+	}
+
 	.chance-to-succeed {
 		grid-column: 1 / span 2;
-		grid-row: 6 / span 1;
+		grid-row: 7 / span 1;
 		margin-top: 1rem;
 
 		label {
@@ -856,7 +1022,7 @@ $target-size: 24px;
 
 	.prompt-footer {
 		grid-column: 3 / span 1;
-		grid-row: 6 / span 1;
+		grid-row: 7 / span 1;
 		margin-top: 1rem;
 	}
 	//#endregion

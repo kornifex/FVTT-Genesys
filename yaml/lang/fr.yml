@@ -242,6 +242,14 @@ Genesys:
       SilhouetteDifference: Gabarit ({target} contre {attacker})
       Encumbrance: Encombrement ({value} contre {threshold})
       ItemDamage: '{item} ({damage})'
+    StoryPoints:
+      Title: Points narratifs
+      Impossible: Dépenser un point pour tenter la tâche impossible
+      UpgradeAbility: Dépenser un point pour améliorer l'aptitude
+      UpgradeDifficulty: Dépenser un point de Destin pour améliorer la difficulté
+      ImpossibleCost: Une tâche impossible ne peut pas être lancée sans lui.
+      EmptyPool: Cette réserve n'a plus de point à dépenser.
+      NoGM: Un MJ doit être connecté pour dépenser un point narratif.
     ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
     ChanceToSucceedBySimulationDisclaimer: La probabilité affichée est une approximation calculée à partir de la méthode de Monte Carlo.

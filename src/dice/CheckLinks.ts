@@ -2,7 +2,7 @@
  * @file Check links: the difficulty of a `@check` link, and which actor rolls its check wherever the link is rendered.
  */
 
-import { DIFFICULTY_LABELS, difficultyDieCounts, FORMIDABLE } from '@/dice/Difficulty';
+import { difficultyDieCounts, difficultyLabel, FORMIDABLE } from '@/dice/Difficulty';
 
 /**
  * The actors a `@check` link can roll for.
@@ -34,9 +34,6 @@ export function checkLinkActor<A>({ sheetActor, controlledActors, assignedCharac
 	return sheetActor ?? controlledActor ?? assignedCharacter;
 }
 
-// A level above Formidable is an Impossible task, which rolls as many dice as a Formidable one.
-const IMPOSSIBLE_LABEL = 'Genesys.Difficulty.Impossible';
-
 /**
  * The difficulty of a `@check` link.
  */
@@ -47,6 +44,10 @@ export type CheckLinkDifficulty = {
 	label: string;
 	challengeDice: number;
 	difficultyDice: number;
+	/**
+	 * Whether the task is Impossible: a level above Formidable, which rolls as many dice as a Formidable one.
+	 */
+	impossible: boolean;
 };
 
 /**
@@ -55,7 +56,8 @@ export type CheckLinkDifficulty = {
  */
 export function checkLinkDifficulty(level: number, upgrades: number): CheckLinkDifficulty {
 	return {
-		label: DIFFICULTY_LABELS[level] ?? IMPOSSIBLE_LABEL,
-		...difficultyDieCounts({ level: Math.min(level, FORMIDABLE), upgrades }),
+		label: difficultyLabel(level),
+		...difficultyDieCounts({ level, upgrades }),
+		impossible: level > FORMIDABLE,
 	};
 }

@@ -79,7 +79,7 @@ A characteristic marked as super, under the optional rule the world settings tur
 _Avoid_: Super stat
 
 **Difficulty**:
-The Difficulty and Challenge dice a check starts with, before any Pool Modification: a level from Simple (none) to Formidable (five Difficulty dice), some of whose dice may be upgraded into Challenge dice, for skilled opposition, an opposed check or a Story Point. Boost and Setback dice are not part of it. What asks for the check sets it (a check link, a Critical Injury's severity); when nothing does, the default difficulty of the Skills Compendium's skill rolled (Average for the melee skills), else the world's default difficulty; and the roller can change it in the Dice Prompt. Pool Modifications then apply to it: upgrades and downgrades of the difficulty act on it, and a die removed by hand is removed after them, so removing a die does not lower the difficulty.
+The Difficulty and Challenge dice a check starts with, before any Pool Modification: a level from Simple (none) to Formidable (five Difficulty dice), some of whose dice may be upgraded into Challenge dice, for skilled opposition, an opposed check or a Story Point. Above Formidable, an Impossible task rolls a Formidable one's dice, once the roller spends a Story Point to attempt it. Boost and Setback dice are not part of it. What asks for the check sets it (a check link, a Critical Injury's severity); when nothing does, the default difficulty of the Skills Compendium's skill rolled (Average for the melee skills), else the world's default difficulty; and the roller can change it in the Dice Prompt. Pool Modifications then apply to it: upgrades and downgrades of the difficulty act on it, and a die removed by hand is removed after them, so removing a die does not lower the difficulty.
 _Avoid_: Base difficulty, difficulty modifier
 
 **Pool Modification**:
@@ -173,7 +173,7 @@ The one connected GM who writes what a player's client may not, for the whole ta
 _Avoid_: Primary GM, GM hub, first GM
 
 **Story Point**:
-A point of one of the two pools the whole table shares: the Player pool (« Destin » in the French edition) and the GM pool (« Fatalité »). A session starts with one point per player in the Player pool and one in the GM pool, and a point spent from one pool goes to the other.
+A point of one of the two pools the whole table shares: the Player pool (« Destin » in the French edition) and the GM pool (« Fatalité »). A session starts with one point per player in the Player pool and one in the GM pool, and a point spent from one pool goes to the other. From the Dice Prompt, the roller spends one point of their own pool to upgrade the ability of a check once, and one to attempt an Impossible task; a GM also spends a player's point to upgrade the difficulty of an NPC's check against their character.
 _Avoid_: Destiny Point, narrative point
 
 ### Presentation

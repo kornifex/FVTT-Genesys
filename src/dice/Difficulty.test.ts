@@ -4,7 +4,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { clickedLevel, difficultyGlyphs, difficultyRow, openingDifficulty, receivedDifficulty, withLevel } from '@/dice/Difficulty';
+import {
+	clickedLevel,
+	difficultyGlyphs,
+	difficultyLabel,
+	difficultyRow,
+	openingDifficulty,
+	receivedDifficulty,
+	withLevel,
+} from '@/dice/Difficulty';
 
 describe('openingDifficulty', () => {
 	const skill = (name: string, difficulty: string) => ({ name, system: { difficulty } });
@@ -65,6 +73,11 @@ describe('receivedDifficulty', () => {
 	it('reads an empty difficulty as a Simple one', () => {
 		expect(receivedDifficulty('')).toEqual({ difficulty: { level: 0, upgrades: 0 }, manualChanges: [] });
 	});
+
+	it("reads an Impossible task's dice, a Formidable difficulty's, at the Impossible level (CRB p. 18)", () => {
+		expect(receivedDifficulty('DDDDD', true)).toEqual({ difficulty: { level: 6, upgrades: 0 }, manualChanges: [] });
+		expect(receivedDifficulty('CDDDDB', true)).toEqual({ difficulty: { level: 6, upgrades: 1 }, manualChanges: ['B'] });
+	});
 });
 
 describe('difficultyGlyphs', () => {
@@ -90,9 +103,24 @@ describe('withLevel', () => {
 		expect(withLevel({ level: 2, upgrades: 2 }, 0)).toEqual({ level: 0, upgrades: 0 });
 	});
 
-	it('keeps the level from Simple to Formidable', () => {
+	it('keeps the level from Simple to Impossible (CRB p. 18)', () => {
 		expect(withLevel({ level: 3, upgrades: 0 }, -1)).toEqual({ level: 0, upgrades: 0 });
-		expect(withLevel({ level: 3, upgrades: 0 }, 6)).toEqual({ level: 5, upgrades: 0 });
+		expect(withLevel({ level: 3, upgrades: 0 }, 6)).toEqual({ level: 6, upgrades: 0 });
+		expect(withLevel({ level: 3, upgrades: 0 }, 7)).toEqual({ level: 6, upgrades: 0 });
+	});
+
+	it('keeps no more upgrades than the five dice an Impossible task rolls (CRB p. 18)', () => {
+		expect(withLevel({ level: 5, upgrades: 5 }, 6)).toEqual({ level: 6, upgrades: 5 });
+		expect(withLevel({ level: 6, upgrades: 6 }, 6)).toEqual({ level: 6, upgrades: 5 });
+	});
+});
+
+describe('difficultyLabel', () => {
+	it('names each level, and every level above Formidable Impossible (CRB p. 18)', () => {
+		expect(difficultyLabel(0)).toBe('Genesys.Difficulty.Simple');
+		expect(difficultyLabel(5)).toBe('Genesys.Difficulty.Formidable');
+		expect(difficultyLabel(6)).toBe('Genesys.Difficulty.Impossible');
+		expect(difficultyLabel(9)).toBe('Genesys.Difficulty.Impossible');
 	});
 });
 
@@ -107,6 +135,12 @@ describe('clickedLevel', () => {
 		expect(clickedLevel(3, 3)).toBe(2);
 		expect(clickedLevel(1, 1)).toBe(0);
 	});
+
+	it('makes the task Impossible on a click on the mark after the dice, and Formidable on a second one (#671)', () => {
+		expect(clickedLevel(2, 6)).toBe(6);
+		expect(clickedLevel(6, 6)).toBe(5);
+		expect(clickedLevel(6, 3)).toBe(3);
+	});
 });
 
 describe('difficultyRow', () => {
@@ -118,5 +152,10 @@ describe('difficultyRow', () => {
 	it('shows the upgraded dice as Challenge dice, first (#469)', () => {
 		expect(difficultyRow({ level: 3, upgrades: 1 })).toEqual(['Challenge', 'Difficulty', 'Difficulty', 'Off', 'Off']);
 		expect(difficultyRow({ level: 5, upgrades: 5 })).toEqual(['Challenge', 'Challenge', 'Challenge', 'Challenge', 'Challenge']);
+	});
+
+	it("lights an Impossible task's five dice, as a Formidable one's (CRB p. 18)", () => {
+		expect(difficultyRow({ level: 6, upgrades: 1 })).toEqual(['Challenge', 'Difficulty', 'Difficulty', 'Difficulty', 'Difficulty']);
+		expect(difficultyGlyphs({ level: 6, upgrades: 0 })).toBe('DDDDD');
 	});
 });
