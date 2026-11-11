@@ -265,6 +265,15 @@ Genesys:
   CrewMemberPrompt:
     Title: Select Crew Member
 
+  # Recovery: the checks that heal a patient, and their cards
+  Recovery:
+    HealWithMedicine: Heal with Medicine
+    PatientPrompt: Select Patient
+    CardLabel: Heals {patient}
+    Wounds: Wounds
+    Strain: Strain
+    Apply: Apply
+
   # Clone Actor Prompt Labels
   CloneActorPrompt:
     Title: Drop Confirmation

@@ -30,6 +30,27 @@
 
 		{{#> attackQualities}}
 		{{/attackQualities}}
+
+		{{!-- What a check that heals heals its patient of, and the button that heals them, which src/dice/RecoveryCard.ts shows only to the GM and the patient's owners. --}}
+		{{#if recovery}}
+			<label>{{localize 'Genesys.Recovery.CardLabel' patient=recovery.patientName}}</label>
+			<div class="summary-table recovery">
+				<span class="symbol" aria-hidden="true"><i class="fas fa-heart-pulse"></i></span>
+				<span class="label">{{localize 'Genesys.Recovery.Wounds'}}</span>
+				<span class="count">{{recovery.wounds}}</span>
+
+				<div class="separator"></div>
+
+				<span class="symbol" aria-hidden="true"><i class="fas fa-face-tired"></i></span>
+				<span class="label">{{localize 'Genesys.Recovery.Strain'}}</span>
+				<span class="count">{{recovery.strain}}</span>
+
+				<div class="separator"></div>
+			</div>
+			{{#if recovery.applicable}}
+				<button type="button" class="apply-recovery"><i class="fas fa-kit-medical" aria-hidden="true"></i> {{localize 'Genesys.Recovery.Apply'}}</button>
+			{{/if}}
+		{{/if}}
 	</div>
 
 	{{!-- Dice --}}
