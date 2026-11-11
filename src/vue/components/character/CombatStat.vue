@@ -75,8 +75,12 @@ function validateInput(event: Event) {
 	<div class="combat-stat">
 		<div class="rounded-bg-outer">
 			<div :class="`rounded-bg ${secondary ? 'secondary' : ''}`">
-				<label v-if="primaryLabel"><Localized :label="primaryLabel" /></label>
-				<label v-if="secondary"><Localized :label="secondary.label" /></label>
+				<label v-if="primaryLabel"
+					><span><Localized :label="primaryLabel" /></span
+				></label>
+				<label v-if="secondary"
+					><span><Localized :label="secondary.label" /></span
+				></label>
 			</div>
 		</div>
 
@@ -135,6 +139,9 @@ function validateInput(event: Event) {
 	width: 100%;
 
 	$box-margin: 8px;
+	// The values' and the labels' sizes, unitless: a label's offset converts the values' padding to its own size.
+	$value-font-size: 1.75;
+	$label-font-size: 0.8;
 
 	& > * {
 		grid-column: 1 / span 1;
@@ -198,7 +205,7 @@ function validateInput(event: Event) {
 			padding-top: 1.25rem;
 			background: colors.$field;
 			@include headings.font;
-			font-size: 1.75em;
+			font-size: $value-font-size * 1em;
 			text-align: center;
 			clip-path: var(--cut);
 
@@ -261,24 +268,38 @@ function validateInput(event: Event) {
 			border-radius: 1.5em;
 
 			label {
-				display: block;
 				width: 100%;
 				position: relative;
 				z-index: 1;
 				color: colors.$text-on-dark;
 				@include headings.font;
 				text-transform: uppercase;
-				font-size: 0.8em;
+				font-size: $label-font-size * 1em;
 				grid-row: 2 / span 1;
 
+				// Each label is centred under its value (rc.3): its half of the band reaches past the value's cell by the
+				// box's margin, and the value is centred past a padding of 1em in its own size, on the side of the cut
+				// corner. The label skips both, in its own size, through a column that gives way first: a label too
+				// long for it, such as « Cuerpo a cuerpo », sits against the divider rather than wrapping under the value.
+				$value-inset: calc(#{$box-margin} + #{1em * $value-font-size / $label-font-size});
+
+				display: grid;
+				white-space: nowrap;
+
 				&:first-of-type {
-					text-align: right;
-					padding-right: calc(0.75em - 1px);
+					grid-template-columns: minmax(0, $value-inset) 1fr max-content 1fr;
+
+					span {
+						grid-column: 3;
+					}
 				}
 
 				&:last-of-type {
-					text-align: left;
-					padding-left: 0.75em;
+					grid-template-columns: 1fr max-content 1fr minmax(0, $value-inset);
+
+					span {
+						grid-column: 2;
+					}
 				}
 			}
 
