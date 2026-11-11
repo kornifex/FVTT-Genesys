@@ -560,6 +560,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('extraSlotOnAnotherCombat', extraSlotOnAnotherCombat);
 	await e2e.part('extraSlotsOrderedAtOnce', extraSlotsOrderedAtOnce);
 	await e2e.part('slotRollsKeepTurn', slotRollsKeepTurn);
+	await e2e.part('tokenStates', tokenStates);
 
 	/** §#85: the tracker's class name, which Foundry names its render hook after. */
 	async function trackerClass() {
@@ -805,6 +806,123 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect('#357 C2 with no GM online, the run-out effect was left unmarked, and still applies', await expiry(), applying);
 		await e2e.step("#357 C3 GM ends Boss's turn, starting round 2", nextTurn);
 		e2e.expect('#357 C3 the next turn change with a GM online marks the effect expired', await expiry(), expired);
+	}
+
+	/**
+	 * §#682: the Immobilized, Disoriented and Staggered states in the token's status menu, applied for a number of rounds,
+	 * and removed at the end of the turn of their actor that takes their last round (CRB p. 114). The Dice Prompt's side of
+	 * them sits in `dicePrompt.ts`, part `tokenStateDice`.
+	 */
+	async function tokenStates() {
+		const STATES = ['immobilized', 'disoriented', 'staggered'];
+		// Boss's Token States, as its actor holds them: whether each applies, and its rounds left.
+		const states = () =>
+			gm.evaluate(() => {
+				const actor = window.e2e.token('Boss').actor;
+				return actor.effects.contents
+					.filter((effect: { statuses: Set<string> }) => effect.statuses.size > 0)
+					.map((effect: { statuses: Set<string>; name: string; lapsingRounds?: number; isExpired: boolean }) => {
+						const [status] = effect.statuses;
+						return {
+							status,
+							name: effect.name,
+							rounds: effect.lapsingRounds ?? null,
+							expired: effect.isExpired,
+							applies: actor.statuses.has(status),
+						};
+					});
+			});
+		const state = (status: string, rounds: number) => ({
+			status,
+			name: status[0].toUpperCase() + status.slice(1),
+			rounds,
+			expired: false,
+			applies: true,
+		});
+		const nextTurn = () => gm.evaluate(() => game.combat.nextTurn());
+		const apply = (status: string, rounds: number) =>
+			gm.evaluate((args) => window.e2e.token('Boss').actor.toggleStatusEffect(args.status, { rounds: args.rounds }), {
+				status,
+				rounds,
+			});
+
+		// Hero's turn, then Boss's: a round has two turns.
+		await setUp({ Hero: 2, Boss: 1 }, { turnOn: 'Hero:-1' });
+		const menu = await gm.evaluate(async (ids) => {
+			const token = window.e2e.token('Boss');
+			token.control({ releaseOthers: true });
+			await canvas.hud.token.bind(token);
+			// v14's menu sorts the states by name, v13's keeps their order: by id, in the order given.
+			return ids
+				.map((id: string) => canvas.hud.token.element.querySelector(`.effect-control[data-status-id="${id}"]`))
+				.filter((icon: HTMLElement | null) => icon !== null)
+				.map((icon: HTMLElement) => ({
+					id: icon.dataset.statusId,
+					title: icon.dataset.tooltipText,
+					img: icon.getAttribute('src'),
+				}));
+		}, STATES);
+		e2e.expect("#682 S1 the token's status menu offers the three states, with the system's names and icons", menu, [
+			{ id: 'immobilized', title: 'Immobilized', img: 'icons/svg/anchor.svg' },
+			{ id: 'disoriented', title: 'Disoriented', img: 'icons/svg/stoned.svg' },
+			{ id: 'staggered', title: 'Staggered', img: 'icons/svg/statue.svg' },
+		]);
+
+		let asked: unknown;
+		await e2e.step(
+			"#682 S2 GM clicks Staggered in Boss's status menu on Hero's turn, and applies it for the 1 round offered",
+			async () => {
+				asked = await gm.evaluate(async () => {
+					canvas.hud.token.element.querySelector('.effect-control[data-status-id="staggered"]').click();
+					const dialog = await window.e2e.waitFor('the question of the rounds', () =>
+						[...foundry.applications.instances.values()].find((app: { element?: HTMLElement }) =>
+							app.element?.querySelector?.('input[name="rounds"]'),
+						),
+					);
+					const input = dialog.element.querySelector('input[name="rounds"]');
+					const question = {
+						title: dialog.title,
+						label: dialog.element.querySelector('label')?.textContent,
+						rounds: input.value,
+					};
+					dialog.element.querySelector('button[data-action="ok"]').click();
+					await window.e2e.waitFor('the state', () => window.e2e.token('Boss').actor.statuses.has('staggered'));
+					await canvas.hud.token.close();
+					return question;
+				});
+			},
+		);
+		e2e.expect(
+			'#682 S2 the menu asks for the rounds, 1 by default, and Staggered is put on Boss for 1 round',
+			{ asked, states: await states() },
+			{ asked: { title: 'Staggered', label: 'Rounds', rounds: '1' }, states: [state('staggered', 1)] },
+		);
+
+		await e2e.step("#682 S3 GM ends Hero's turn", nextTurn);
+		e2e.expect("#682 S3 Staggered still holds during Boss's next turn", await states(), [state('staggered', 1)]);
+
+		await e2e.step("#682 GM puts Disoriented on Boss for 1 round, on Boss's own turn", () => apply('disoriented', 1));
+		await e2e.step("#682 S5 GM ends Boss's turn, starting round 2", nextTurn);
+		e2e.expect(
+			"#682 S5 Staggered is gone once Boss's next turn ends; Disoriented, applied during that turn, still holds, 1 round left",
+			{ states: await states(), rows: await gm.evaluate(() => window.combatE2E.effectRows('Boss')) },
+			{
+				states: [state('disoriented', 1)],
+				rows: [{ section: 'temporary', name: 'Disoriented', duration: '1 round' }],
+			},
+		);
+
+		await e2e.step("#682 S6 GM ends Hero's turn in round 2", nextTurn);
+		e2e.expect("#682 S6 Disoriented still holds during Boss's turn", await states(), [state('disoriented', 1)]);
+		await e2e.step("#682 S7 GM ends Boss's turn, starting round 3", nextTurn);
+		e2e.expect("#682 S7 Disoriented is gone once Boss's next turn ends", await states(), []);
+
+		await e2e.step('#682 S8 GM puts Immobilized on Boss for 1 round, then deletes the combat', async () => {
+			await apply('immobilized', 1);
+			await gm.evaluate(() => game.combat.delete());
+		});
+		e2e.expect('#682 S8 out of combat, Immobilized stays until removed', await states(), [state('immobilized', 1)]);
+		await gm.evaluate(() => window.e2e.token('Boss').actor.toggleStatusEffect('immobilized', { active: false }));
 	}
 
 	/**

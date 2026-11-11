@@ -56,8 +56,16 @@ _Avoid_: Crit, wound
 A state that hinders an actor during an encounter: Immobilized (no maneuvers), Staggered (no actions) or Disoriented (a Setback die on every check). It lasts for the duration its source gives, or until the end of the actor's next turn when none is given; suffering it again adds to its duration, never beyond the encounter.
 _Avoid_: Condition
 
+**Token State**:
+A state the system adds to the token's status menu, beside Foundry's own, which puts it on the actor as an Active Effect with the state's name, icon and changes: the three Status Effects so far. Disoriented carries its Setback as a Pool Modification of every check; Immobilized and Staggered change no dice, and the Dice Prompt reminds the roller of them. A Status Effect is a Lapsing Effect, applied for the rounds the user enters, one by default.
+_Avoid_: Condition, status
+
+**Lapsing Effect**:
+A temporary Active Effect whose duration in rounds counts its actor's turns: the end of each turn of its actor takes a round off, but the turn it was applied during, and it is removed at the end of the turn that takes its last round, so that one round lasts until the end of the actor's next turn. The actor's turn is the Initiative Slot its combatant Claimed, or for an NPC its own unclaimed slot; an unclaimed PC slot is nobody's turn. A turn the GM goes back to and ends again doesn't count twice. Out of combat, no turn ends, and it stays until removed. Unlike an Expired Effect, it is deleted, not suspended, and Foundry's own count of rounds never applies to it.
+_Avoid_: Timed state, countdown effect
+
 **Expired Effect**:
-A temporary Active Effect whose duration in rounds or turns has run out. It stops applying but isn't deleted: it stays on its actor or item, suspended, until its duration is extended. Turning an effect off by hand is a different thing: an effect can be expired, turned off, both or neither.
+A temporary Active Effect whose duration in rounds or turns has run out. It stops applying but isn't deleted: it stays on its actor or item, suspended, until its duration is extended. Turning an effect off by hand is a different thing: an effect can be expired, turned off, both or neither. A Lapsing Effect never expires: it is removed instead.
 _Avoid_: Finished effect, ended effect
 
 ### Skills

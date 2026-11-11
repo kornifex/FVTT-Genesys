@@ -8,6 +8,7 @@ import * as log from '@/log';
 // v13: the Acting GM marks the Expired Effects, which Foundry v13 never expires.
 import { expireEffectsOfCombat } from '@/effects/GenesysEffect.v13';
 import type { CombatClock } from '@/effects/EffectExpiry.v13';
+import { lapseEffectsAtTurnEnd } from '@/effects/GenesysEffect';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
 import { askActingGm, handleQuery, isActingGm, QueryName, refuse } from '@/queries';
 import { isFoundryV13, keyDeletion } from '@/foundryGeneration';
@@ -29,6 +30,7 @@ import {
 	slotsToRoll,
 	slotView,
 	StoredExtraSlot,
+	turnTakerId,
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 import { slotsForRound, TurnOrderChanges, turnNumbers, turnOfSlotAfter, TurnOrderState } from '@/combat/TurnOrder';
@@ -576,6 +578,30 @@ export class GenesysCombat extends Combat {
 		this.previous ??= this.current;
 
 		return this.turns;
+	}
+
+	/**
+	 * Takes a round off the Lapsing Effects of the actor whose turn ended, such as its Token States, and removes those whose
+	 * rounds have run out: a state lasts until the end of its actor's turn (CRB p. 114). The actor is the combatant that
+	 * Claimed the turn's Initiative Slot, which Foundry's turn events don't know of: they name the slot's origin. Foundry
+	 * calls this on the Acting GM alone, for each turn that ends, skipped ones included, and never for a turn gone back to.
+	 */
+	protected override async _onEndTurn(combatant: Combatant.Stored, context: Combat.TurnEventContext) {
+		await super._onEndTurn(combatant, context);
+
+		const slot = this.slotsForRound(context.round)[context.turn];
+		const takerId = slot && turnTakerId(slot);
+		const actor = takerId ? this.combatants.get(takerId)?.actor : undefined;
+		if (!actor) {
+			return;
+		}
+
+		try {
+			await lapseEffectsAtTurnEnd(actor, { combat: this.#storedId, round: context.round, turn: context.turn, slot: slot.id });
+		} catch (error) {
+			// Foundry awaits the turn events one after the other: a failed write must not stop those after it.
+			log.error('Counting down the Lapsing Effects failed', error);
+		}
 	}
 
 	protected override async _manageTurnEvents() {
