@@ -37,29 +37,35 @@ describe('checkLinkDifficulty', () => {
 		[4, 'Genesys.Difficulty.Daunting'],
 		[5, 'Genesys.Difficulty.Formidable'],
 	])('adds %i Difficulty dice for a level named %s (CRB p. 16-18, Table I.1–3)', (level, label) => {
-		expect(checkLinkDifficulty(level, 0)).toEqual({ label, challengeDice: 0, difficultyDice: level });
+		expect(checkLinkDifficulty(level, 0)).toEqual({ label, challengeDice: 0, difficultyDice: level, impossible: false });
 	});
 
 	it('names an Impossible task above Formidable, which adds five Difficulty dice (CRB p. 18)', () => {
-		expect(checkLinkDifficulty(6, 0)).toEqual({ label: 'Genesys.Difficulty.Impossible', challengeDice: 0, difficultyDice: 5 });
-		expect(checkLinkDifficulty(9, 0)).toEqual({ label: 'Genesys.Difficulty.Impossible', challengeDice: 0, difficultyDice: 5 });
+		const impossible = { label: 'Genesys.Difficulty.Impossible', challengeDice: 0, difficultyDice: 5, impossible: true };
+		expect(checkLinkDifficulty(6, 0)).toEqual(impossible);
+		expect(checkLinkDifficulty(9, 0)).toEqual(impossible);
 	});
 
 	it('upgrades as many Difficulty dice into Challenge dice as it has upgrades (CRB p. 20, 22)', () => {
-		expect(checkLinkDifficulty(2, 1)).toEqual({ label: 'Genesys.Difficulty.Average', challengeDice: 1, difficultyDice: 1 });
-		expect(checkLinkDifficulty(3, 3)).toEqual({ label: 'Genesys.Difficulty.Hard', challengeDice: 3, difficultyDice: 0 });
+		expect(checkLinkDifficulty(2, 1)).toMatchObject({ label: 'Genesys.Difficulty.Average', challengeDice: 1, difficultyDice: 1 });
+		expect(checkLinkDifficulty(3, 3)).toMatchObject({ label: 'Genesys.Difficulty.Hard', challengeDice: 3, difficultyDice: 0 });
 	});
 
 	it('adds a Difficulty die for an upgrade with none left, which the next upgrade turns into a Challenge die (CRB p. 22)', () => {
-		expect(checkLinkDifficulty(2, 3)).toEqual({ label: 'Genesys.Difficulty.Average', challengeDice: 2, difficultyDice: 1 });
-		expect(checkLinkDifficulty(1, 3)).toEqual({ label: 'Genesys.Difficulty.Easy', challengeDice: 2, difficultyDice: 0 });
+		expect(checkLinkDifficulty(2, 3)).toMatchObject({ label: 'Genesys.Difficulty.Average', challengeDice: 2, difficultyDice: 1 });
+		expect(checkLinkDifficulty(1, 3)).toMatchObject({ label: 'Genesys.Difficulty.Easy', challengeDice: 2, difficultyDice: 0 });
 	});
 
 	it('adds a Difficulty die to a Simple check for its first upgrade, and keeps its name (CRB p. 22)', () => {
-		expect(checkLinkDifficulty(0, 1)).toEqual({ label: 'Genesys.Difficulty.Simple', challengeDice: 0, difficultyDice: 1 });
+		expect(checkLinkDifficulty(0, 1)).toMatchObject({ label: 'Genesys.Difficulty.Simple', challengeDice: 0, difficultyDice: 1 });
 	});
 
 	it('upgrades an Impossible task from five Difficulty dice (CRB p. 18, 22)', () => {
-		expect(checkLinkDifficulty(6, 6)).toEqual({ label: 'Genesys.Difficulty.Impossible', challengeDice: 5, difficultyDice: 1 });
+		expect(checkLinkDifficulty(6, 6)).toEqual({
+			label: 'Genesys.Difficulty.Impossible',
+			challengeDice: 5,
+			difficultyDice: 1,
+			impossible: true,
+		});
 	});
 });

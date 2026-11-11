@@ -103,7 +103,7 @@ const checkEnricher: Enricher = {
 			return null;
 		}
 
-		const { label, challengeDice, difficultyDice } = checkLinkDifficulty(
+		const { label, challengeDice, difficultyDice, impossible } = checkLinkDifficulty(
 			parseInt(match.groups?.['difficulty'] ?? '2', 10),
 			parseInt(match.groups?.['upgrades'] ?? '0', 10),
 		);
@@ -121,6 +121,8 @@ const checkEnricher: Enricher = {
 		);
 		anchor.dataset.skillCheck = skill;
 		anchor.dataset.difficulty = difficultyGlyphs;
+		// An Impossible task's dice are a Formidable one's: the link says which it is.
+		if (impossible) anchor.dataset.impossible = '';
 
 		return anchor;
 	},
@@ -191,5 +193,8 @@ async function onCheckLinkClick(event: MouseEvent) {
 		return;
 	}
 
-	await DicePrompt.promptForRoll(actor, link.dataset.skillCheck ?? '', { difficulty: link.dataset.difficulty });
+	await DicePrompt.promptForRoll(actor, link.dataset.skillCheck ?? '', {
+		difficulty: link.dataset.difficulty,
+		impossible: link.dataset.impossible !== undefined,
+	});
 }

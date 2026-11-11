@@ -84,8 +84,8 @@ export function VuePrompt<T>(fallback: T) {
 			if (!this.#resolve || this.#answering) return;
 			this.#answering = true;
 			try {
-				const value = await this.#readAnswer?.();
-				this.answer(value as T);
+				const value = (await this.#readAnswer?.()) as T;
+				if (await this.accept(value)) this.answer(value);
 			} finally {
 				this.#answering = false;
 			}
@@ -109,6 +109,14 @@ export function VuePrompt<T>(fallback: T) {
 			await this.render(true);
 
 			return answer;
+		}
+
+		/**
+		 * Whether the prompt answers with what its form gives, once submitted: a prompt that acts on its answer before it
+		 * closes, and fails to, refuses it and stays open, for the user to change it or cancel. Its failure is its to tell.
+		 */
+		protected async accept(_answer: T): Promise<boolean> {
+			return true;
 		}
 
 		/**

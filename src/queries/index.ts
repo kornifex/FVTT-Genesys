@@ -34,12 +34,13 @@ export function handleQuery<N extends QueryName>(name: N, handler: (data: QueryD
  * Asks the Acting GM to write an operation, and warns the player when it wasn't.
  *
  * @param format - What the warning of a refusal is formatted with.
+ * @returns Whether the Acting GM wrote it.
  */
 export async function askActingGm<N extends QueryName>(name: N, data: Omit<QueryData[N], 'userId'>, format?: Record<string, string>) {
 	// v13: the data names the user who asks, as Foundry v13 doesn't tell the handler.
 	const failure = await queryActingGm(game.users.activeGM ?? undefined, name, { ...data, userId: game.user.id } as QueryData[N]);
 	if (!failure) {
-		return;
+		return true;
 	}
 
 	if (failure.cause === 'failed') {
@@ -47,4 +48,5 @@ export async function askActingGm<N extends QueryName>(name: N, data: Omit<Query
 	}
 
 	ui.notifications.warn(game.i18n.format(failureNotification(failure, name), format));
+	return false;
 }

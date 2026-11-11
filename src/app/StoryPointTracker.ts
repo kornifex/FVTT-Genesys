@@ -9,6 +9,7 @@ import {
 	sessionStoryPoints,
 	SPEND_MESSAGES,
 	type StoryPointPool,
+	type StoryPointSpend,
 	storyPointsAfterSetting,
 	storyPointsAfterSpending,
 } from '@/data/StoryPoints';
@@ -101,26 +102,42 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	}
 
 	/**
-	 * Spends a Story Point for the current user. A GM writes the spend; a player's goes to the Acting GM, who writes it.
+	 * Spends a Story Point of a pool for the current user.
 	 */
 	static async spendStoryPoint(pool: StoryPointPool) {
+		await StoryPointTracker.spendStoryPoints({ [pool]: 1 });
+	}
+
+	/**
+	 * Spends Story Points together for the current user, as the spends of a check, and tells whether they were: all of
+	 * them, or none. A GM writes the spend; a player's, from the player pool only, goes to the Acting GM, who writes it.
+	 */
+	static async spendStoryPoints(spend: StoryPointSpend): Promise<boolean> {
 		if (!StoryPointTracker.instance) {
-			return;
+			return false;
 		}
 
-		if (!storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, pool)) {
+		if (!storyPointsAfterSpending(StoryPointTracker.instance.storyPoints, spend)) {
 			ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NotEnoughStoryPoints'));
-			return;
+			return false;
 		}
 
 		if (game.user.isGM) {
-			await StoryPointTracker.#spend(pool, game.user);
-		} else if (pool === 'player') {
-			// Only a GM may write the pools: with none connected, nothing is spent.
-			await askActingGm(QueryName.SpendStoryPoint, {});
-		} else {
-			ui.notifications.error(game.i18n.localize('Genesys.Notifications.GenericError'));
+			// Another spend may have emptied a pool since this client rendered it.
+			if (!(await StoryPointTracker.#spend(spend, game.user))) {
+				ui.notifications.warn(game.i18n.localize('Genesys.Notifications.NotEnoughStoryPoints'));
+				return false;
+			}
+			return true;
 		}
+
+		if (spend.gm) {
+			ui.notifications.error(game.i18n.localize('Genesys.Notifications.GenericError'));
+			return false;
+		}
+
+		// Only a GM may write the pools: with none connected, nothing is spent.
+		return askActingGm(QueryName.SpendStoryPoint, { count: spend.player });
 	}
 
 	/**
@@ -141,36 +158,43 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	);
 
 	/**
-	 * Writes a user's spend from a pool, then posts its chat message as that user, and tells whether there was a point to
-	 * spend. Only a GM may write the pools.
+	 * Writes a user's spend, then posts the chat message of each point spent as that user, and tells whether the pools held
+	 * the points to spend. Only a GM may write the pools.
 	 */
-	static async #spend(pool: StoryPointPool, user: User) {
-		if (!(await StoryPointTracker.#write((storyPoints) => storyPointsAfterSpending(storyPoints, pool)))) {
+	static async #spend(spend: StoryPointSpend, user: User) {
+		if (!(await StoryPointTracker.#write((storyPoints) => storyPointsAfterSpending(storyPoints, spend)))) {
 			return false;
 		}
 
-		const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
-			type: pool,
-			message: SPEND_MESSAGES[pool],
-		});
-		const message = {
-			author: user.id,
-			speaker: {
-				actor: user.character?.id,
-			},
-			content: chatTemplate,
-			style: CONST.CHAT_MESSAGE_STYLES.OOC,
-		};
-		await ChatMessage.create(message);
+		const pools = (['player', 'gm'] as const).flatMap((pool) => Array<StoryPointPool>(spend[pool] ?? 0).fill(pool));
+		for (const pool of pools) {
+			const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
+				type: pool,
+				message: SPEND_MESSAGES[pool],
+			});
+			const message = {
+				author: user.id,
+				speaker: {
+					actor: user.character?.id,
+				},
+				content: chatTemplate,
+				style: CONST.CHAT_MESSAGE_STYLES.OOC,
+			};
+			await ChatMessage.create(message);
+		}
 		return true;
 	}
 
 	/**
-	 * Writes a player's spend, as the Acting GM: the spend of the user who asked, from the player pool.
+	 * Writes a player's spend, as the Acting GM: the points the user who asked spends together from the player pool.
 	 */
-	static async spendForPlayer(player: User) {
+	static async spendForPlayer(player: User, count = 1) {
+		if (!Number.isInteger(count) || count < 1) {
+			refuse('Genesys.Notifications.GenericError');
+		}
+
 		// Another spend may have emptied the pool since the player's client checked it.
-		if (!(await StoryPointTracker.#spend('player', player))) {
+		if (!(await StoryPointTracker.#spend({ player: count }, player))) {
 			refuse('Genesys.Notifications.NotEnoughStoryPoints');
 		}
 	}
@@ -187,5 +211,5 @@ export function register() {
 	new StoryPointTracker();
 	StoryPointTracker.forceRender();
 
-	handleQuery(QueryName.SpendStoryPoint, (_data, querier) => StoryPointTracker.spendForPlayer(querier));
+	handleQuery(QueryName.SpendStoryPoint, (data, querier) => StoryPointTracker.spendForPlayer(querier, data.count));
 }

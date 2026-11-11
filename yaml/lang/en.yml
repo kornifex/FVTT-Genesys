@@ -242,6 +242,15 @@ Genesys:
       SilhouetteDifference: Silhouette ({target} vs {attacker})
       Encumbrance: Encumbrance ({value} vs {threshold})
       ItemDamage: '{item} ({damage})' # e.g. Pistol (Minor Damage)
+    # What a Story Point buys on the check, each followed by the short name of the pool it comes from.
+    StoryPoints:
+      Title: Story Points
+      Impossible: Spend a point to attempt the Impossible task
+      UpgradeAbility: Spend a point to upgrade the ability
+      UpgradeDifficulty: Spend a player's point to upgrade the difficulty
+      ImpossibleCost: An Impossible task can't be rolled without it.
+      EmptyPool: The pool has no point left to spend.
+      NoGM: A GM must be online to spend a Story Point.
     ChanceToSucceed: 'Chance to Succeed:'
     ChanceToSucceedByPermutationDisclaimer: The displayed probability is exact unless the dice pool includes a super-characteristic.
     ChanceToSucceedBySimulationDisclaimer: The displayed probability is an approximation that uses the Monte Carlo method.

@@ -98,6 +98,18 @@ type PoolModificationsLayout = {
 /**
  * The prompt's Difficulty and manual changes, as the user sees them.
  */
+/**
+ * The Story Point spends of the Dice Prompt (§#671), as the roller reads them.
+ */
+type PromptSpends = {
+	/** Each spend offered: its name, its label with its pool, its checkbox, and why it is closed or what it costs. */
+	spends: { spend: string; label: string; checked: boolean; disabled: boolean; why: string }[];
+	/** The Difficulty row's label: `Difficulty: Impossible`. */
+	difficulty: string;
+	pool: string;
+	canRoll: boolean;
+};
+
 type PromptDifficulty = {
 	/** The labels of the Pool Modifications' rows other than the effects'. */
 	rows: string[];
@@ -185,6 +197,15 @@ type DicePromptHelpers = {
 	promptRoll(): Promise<MessageSummary>;
 	/** Clicks the prompt's roll button, and gives whether a message was posted, for a roll that may be refused. */
 	promptRollTried(): Promise<{ posted: boolean }>;
+	/** The prompt's Story Point spends, its difficulty's label, its pool, and whether its roll button is enabled. */
+	promptSpends(): PromptSpends;
+	/** Clicks a Story Point spend's checkbox, by the spend's name. */
+	promptSpend(spend: string): Promise<PromptSpends>;
+	/**
+	 * Clicks the prompt's roll button, then waits for the check's message, which comes after those of the spends: the
+	 * check's message, null when none was posted, the Story Point messages posted, and the prompts left open.
+	 */
+	promptRollSpending(): Promise<{ rolled: MessageSummary | null; storyPointMessages: number; prompts: number }>;
 	lastMessage(): MessageSummary;
 	lastCard(): CardSummary;
 	/** Clicks the element at a path of a document's sheet, which it renders if needed. */
@@ -871,6 +892,49 @@ function installDicePromptHelpers() {
 			htmlOf(thePrompt())!.querySelector<HTMLElement>('.roll-button')!.click();
 			await settle();
 			return { posted: game.messages.contents.at(-1)?.id !== last };
+		},
+
+		promptSpends() {
+			const root = htmlOf(thePrompt())!;
+			return {
+				spends: [...root.querySelectorAll('.story-point-spend')].map((row) => {
+					const input = row.querySelector('input')!;
+					return {
+						spend: input.name.replace(/^spend-/, ''),
+						label: text(row.querySelector('label')),
+						checked: input.checked,
+						disabled: input.disabled,
+						why: text(row.querySelector('.why')),
+					};
+				}),
+				difficulty: text(root.querySelector('.pool-modifications-difficulty > span')),
+				pool: poolPreview(root),
+				canRoll: !root.querySelector<HTMLButtonElement>('.roll-button')!.disabled,
+			};
+		},
+
+		async promptSpend(spend) {
+			htmlOf(thePrompt())!.querySelector<HTMLInputElement>(`.story-point-spend input[name=spend-${spend}]`)!.click();
+			await settle();
+			return window.dicePromptE2E.promptSpends();
+		},
+
+		async promptRollSpending() {
+			const before = new Set(game.messages.contents.map((message: { id: string }) => message.id));
+			const posted = () => game.messages.contents.filter((message: { id: string }) => !before.has(message.id));
+			htmlOf(thePrompt())!.querySelector<HTMLElement>('.roll-button')!.click();
+			// A player's spend reaches the GM's client, which writes it and posts its messages, before the check rolls: wait
+			// for the check's message, or long enough to tell none comes.
+			const start = Date.now();
+			while (!posted().some((message: { rolls: unknown[] }) => message.rolls.length > 0) && Date.now() - start < 5000)
+				await sleep(100);
+			await settle();
+			const rolled = posted().find((message: { rolls: unknown[] }) => message.rolls.length > 0);
+			return {
+				rolled: rolled ? messageSummary(rolled) : null,
+				storyPointMessages: posted().filter((message: { content: string }) => message.content.includes('story-point')).length,
+				prompts: window.dicePromptE2E.openPrompts(),
+			};
 		},
 
 		lastMessage: () => messageSummary(game.messages.contents.at(-1)),
@@ -3038,12 +3102,12 @@ export async function run(e2e: ScenarioContext) {
 		const impossibleDifficulty = shown(await difficultyState());
 		await control(gm, []);
 		e2e.expect(
-			"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is a Formidable one",
+			"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
 			{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
 			{
 				injury: difficultyOf('Average', 'DD···'),
 				upgradedLink: difficultyOf('Hard', 'CDD··'),
-				impossible: { pool: '|CCCCC', difficulty: difficultyOf('Formidable', 'CCCCC') },
+				impossible: { pool: '|CCCCC', difficulty: difficultyOf('Impossible', 'CCCCC') },
 			},
 		);
 		e2e.expect(
@@ -3545,6 +3609,134 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 		await e2e.step('W end');
+	});
+
+	// X: Story Points spent from the Dice Prompt, by a player through the GM's client, and by the GM (§#671).
+	await part('storyPointSpends', async () => {
+		const found = await gm.evaluate(() => game.settings.get('genesys', 'storyPoints'));
+		const setPools = (pools: { player: number; gm: number }) =>
+			gm.evaluate((pools) => game.settings.set('genesys', 'storyPoints', pools), pools);
+		const pools = () => gm.evaluate(() => game.settings.get('genesys', 'storyPoints'));
+		const spends = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptSpends());
+		const spend = (client: Client, name: string) => client.evaluate((name) => window.dicePromptE2E.promptSpend(name), name);
+		const rollSpending = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptRollSpending());
+		const option = (spend: string, label: string, state: { checked?: boolean; disabled?: boolean; why?: string } = {}) => ({
+			spend,
+			label,
+			checked: state.checked ?? false,
+			disabled: state.disabled ?? false,
+			why: state.why ?? '',
+		});
+		const UPGRADE = 'Spend a point to upgrade the ability';
+		const EMPTY = 'The pool has no point left to spend.';
+		await update({ actor: 'Bo' }, { 'system.characteristics.brawn': 2 });
+		const message = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,2]</p><p>@check[Athletics,6]</p>'));
+		await control(player, ['Bo']);
+		await setPools({ player: 1, gm: 0 });
+
+		await linkPrompt(player, { message }, 'Athletics', 'DD');
+		const offered = await spends(player);
+		const ticked = await spend(player, 'upgradeAbility');
+		const rolled = await rollSpending(player);
+		e2e.expect(
+			"#671 X1 a player's check with the Story Point option on rolls one more Proficiency die, and moves a point to the GM pool",
+			{ offered, ticked, rolled: { formula: rolled.rolled?.formula, ...rolled, rolled: undefined }, pools: await pools() },
+			{
+				offered: {
+					spends: [option('upgradeAbility', `${UPGRADE} (Players)`)],
+					difficulty: 'Difficulty: Average',
+					pool: 'AA|DD',
+					canRoll: true,
+				},
+				ticked: {
+					spends: [option('upgradeAbility', `${UPGRADE} (Players)`, { checked: true })],
+					difficulty: 'Difficulty: Average',
+					pool: 'PA|DD',
+					canRoll: true,
+				},
+				rolled: { formula: '1dp + 1da + 2di', storyPointMessages: 1, prompts: 0, rolled: undefined },
+				pools: { player: 0, gm: 1 },
+			},
+		);
+
+		const emptyPlayer = await linkPrompt(player, { message }, 'Athletics', 'DD').then(() => spends(player));
+		await player.evaluate(() => window.dicePromptE2E.closePrompts());
+		await control(gm, ['Bo']);
+		const gmOffered = await linkPrompt(gm, { message }, 'Athletics', 'DD').then(() => spends(gm));
+		e2e.expect(
+			"#671 X2 a player's option is closed while the player pool is empty; a GM spends from the GM pool, and a player's point on the difficulty",
+			{ emptyPlayer: emptyPlayer.spends, gmOffered: gmOffered.spends },
+			{
+				emptyPlayer: [option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY })],
+				gmOffered: [
+					option('upgradeAbility', `${UPGRADE} (GM)`),
+					option('upgradeDifficulty', "Spend a player's point to upgrade the difficulty (Players)", {
+						disabled: true,
+						why: EMPTY,
+					}),
+				],
+			},
+		);
+
+		await setPools({ player: 1, gm: 1 });
+		await e2e.settle();
+		await spend(gm, 'upgradeAbility');
+		const gmTicked = await spend(gm, 'upgradeDifficulty');
+		const gmRolled = await rollSpending(gm);
+		await control(gm, []);
+		e2e.expect(
+			"#671 X3 a GM's point upgrades the ability and a player's the difficulty, each going to the other pool",
+			{ pool: gmTicked.pool, storyPointMessages: gmRolled.storyPointMessages, prompts: gmRolled.prompts, pools: await pools() },
+			{ pool: 'PA|CD', storyPointMessages: 2, prompts: 0, pools: { player: 1, gm: 1 } },
+		);
+
+		await setPools({ player: 1, gm: 0 });
+		await linkPrompt(player, { message }, 'Athletics', 'DDDDD');
+		const impossible = await spends(player);
+		const refused = await rollSpending(player);
+		const paid = await spend(player, 'impossible');
+		const impossibleRolled = await rollSpending(player);
+		e2e.expect(
+			"#671 X4 an Impossible task can't be rolled until the roller spends its point, which leaves none for the upgrade",
+			{
+				impossible,
+				refused: { rolled: refused.rolled, prompts: refused.prompts },
+				paid,
+				rolled: { formula: impossibleRolled.rolled?.formula, prompts: impossibleRolled.prompts },
+				pools: await pools(),
+			},
+			{
+				impossible: {
+					spends: [
+						option('impossible', 'Spend a point to attempt the Impossible task (Players)', {
+							why: "An Impossible task can't be rolled without it.",
+						}),
+						option('upgradeAbility', `${UPGRADE} (Players)`),
+					],
+					difficulty: 'Difficulty: Impossible',
+					pool: 'AA|DDDDD',
+					canRoll: false,
+				},
+				refused: { rolled: null, prompts: 1 },
+				paid: {
+					spends: [
+						option('impossible', 'Spend a point to attempt the Impossible task (Players)', {
+							checked: true,
+							why: "An Impossible task can't be rolled without it.",
+						}),
+						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY }),
+					],
+					difficulty: 'Difficulty: Impossible',
+					pool: 'AA|DDDDD',
+					canRoll: true,
+				},
+				rolled: { formula: '0dp + 2da + 5di', prompts: 0 },
+				pools: { player: 0, gm: 1 },
+			},
+		);
+		await control(player, []);
+		await setPools(found);
+		await e2e.step('X end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

@@ -8,6 +8,10 @@ import { diceRollerTarget } from '@/dice/DiceRoller';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 import { EQUIPMENT_DAMAGE_LABELS, isUnusable } from '@/item/data/EquipmentDamage';
 import { openingDifficulty } from '@/dice/Difficulty';
+import { type CheckSpend, spentPoints } from '@/dice/CheckStoryPoints';
+import { StoryPointTracker } from '@/app/StoryPointTracker';
+import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
+import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -35,8 +39,18 @@ export type DicePromptContext = {
 	skillName?: string;
 	roll: DicePromptRoll;
 	difficulty: string;
+	impossible: boolean;
 	characteristic?: Characteristic;
+	/** The pools the roller spends from, as the world stores them when the prompt renders. */
+	storyPoints: StoryPointData;
+	/** Whether a GM is connected, who writes a player's spend. */
+	gmConnected: boolean;
 };
+
+/**
+ * The Dice Prompt's answer: the check and its dice pool, and the Story Points the roller spends on it.
+ */
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[] };
 
 /**
  * What a Dice Prompt opens with, besides its actor and skill.
@@ -52,6 +66,10 @@ export type DicePromptOptions = {
 	 */
 	difficulty?: string;
 	/**
+	 * Whether the check is an Impossible task, whose difficulty's glyphs are a Formidable one's.
+	 */
+	impossible?: boolean;
+	/**
 	 * Characteristic rolled when no skill is selected: the characteristic of a Characteristic Check, or of a skill the
 	 * actor can't roll.
 	 */
@@ -59,10 +77,10 @@ export type DicePromptOptions = {
 };
 
 /**
- * Dice pool prompt: it answers with the check and the dice pool the user built, undefined when they close it without
- * rolling.
+ * Dice pool prompt: it answers with the check and the dice pool the user built, once the Story Points they chose are
+ * spent, undefined when they close it without rolling.
  */
-export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
+export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefined) {
 	override get vueComponent() {
 		return VueDicePrompt;
 	}
@@ -107,13 +125,23 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 		return new DicePrompt(actor, skillName, { ...options, roll: { type: RollType.Initiative } }).prompt();
 	}
 
+	/**
+	 * Render the open Dice Prompts again, for the Story Points they offer: once the pools or the connected GMs change.
+	 */
+	static renderOpen() {
+		for (const app of foundry.applications.instances.values()) {
+			if (app instanceof DicePrompt) void app.render();
+		}
+	}
+
 	actor?: GenesysActor;
 	skillName?: string;
 	roll: DicePromptRoll;
 	difficulty: string;
+	impossible: boolean;
 	characteristic?: Characteristic;
 
-	constructor(actor?: GenesysActor, skillName?: string, { roll, difficulty, characteristic }: DicePromptOptions = {}) {
+	constructor(actor?: GenesysActor, skillName?: string, { roll, difficulty, impossible, characteristic }: DicePromptOptions = {}) {
 		super();
 
 		this.actor = actor;
@@ -121,6 +149,7 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 		this.roll = roll ?? { type: RollType.Skill };
 		// Set once: picking another skill in the prompt leaves the difficulty alone.
 		this.difficulty = openingDifficulty(difficulty, CONFIG.genesys.skills, skillName, CONFIG.genesys.settings.defaultDifficulty);
+		this.impossible = impossible ?? false;
 		this.characteristic = characteristic;
 	}
 
@@ -130,8 +159,26 @@ export class DicePrompt extends VuePrompt<CheckRoll | undefined>(undefined) {
 			skillName: this.skillName,
 			roll: this.roll,
 			difficulty: this.difficulty,
+			impossible: this.impossible,
 			characteristic: this.characteristic,
+			storyPoints: game.settings.get(SETTINGS_NAMESPACE, KEY_STORY_POINTS),
+			gmConnected: !!game.users.activeGM,
 		};
+	}
+
+	/**
+	 * Spend the Story Points the roller chose before the check rolls, as they change its dice pool: the prompt stays open
+	 * when they can't be, as the pool emptied or the GM left since it rendered.
+	 */
+	protected override async accept(answer: DicePromptAnswer | undefined) {
+		const spent = spentPoints(answer?.spends ?? [], game.user.isGM);
+		// An attack whose weapon became unusable while the prompt was open is refused once it answers: nothing is spent on it.
+		const refusedAttack = this.roll.type === RollType.Attack && isUnusable(this.roll.weapon.system.damage);
+		if ((!spent.player && !spent.gm) || refusedAttack) {
+			return true;
+		}
+
+		return StoryPointTracker.spendStoryPoints(spent);
 	}
 }
 
@@ -173,6 +220,11 @@ function openDiceRoller() {
  * the chat controls.
  */
 export function register() {
+	// A GM's connection opens the players' spends, which only a GM writes, and their leaving closes them.
+	Hooks.on('userConnected', (user) => {
+		if (user.isGM) DicePrompt.renderOpen();
+	});
+
 	Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
 		if (/^\/gendr(?:oll)?/i.test(message)) {
 			openDiceRoller();

@@ -242,6 +242,14 @@ Genesys:
       SilhouetteDifference: Silueta ({target} contra {attacker})
       Encumbrance: Impedimento ({value} contra {threshold})
       ItemDamage: '{item} ({damage})'
+    StoryPoints:
+      Title: Puntos de Historia
+      Impossible: Gastar un punto para intentar la tarea imposible
+      UpgradeAbility: Gastar un punto para mejorar la capacidad
+      UpgradeDifficulty: Gastar un punto de los PJ para mejorar la dificultad
+      ImpossibleCost: Una tarea imposible no puede tirarse sin él.
+      EmptyPool: La reserva no tiene puntos que gastar.
+      NoGM: Un DJ debe estar conectado para gastar un Punto de Historia.
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
     ChanceToSucceedBySimulationDisclaimer: La probabilidad mostrada es una aproximación que utiliza el método Monte Carlo.
