@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0-rc.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.3...v0.6.0-rc.4) (2026-11-11)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.6.0-rc.4's changes in the welcome message ([#658](https://github.com/kornifex/FVTT-Genesys/issues/658)) ([9428496](https://github.com/kornifex/FVTT-Genesys/commit/9428496f8c5a0a04994de35d1b4bf7940f2e1eef))
+* **ui:** leave a counter's right-click to its row, centre its − and +, and fit the stat boxes closer ([#655](https://github.com/kornifex/FVTT-Genesys/issues/655)) ([0fbd66b](https://github.com/kornifex/FVTT-Genesys/commit/0fbd66ba0cf7637d6bfb591ad168da42ea74e8b9))
+
+
+### Continuous Integration
+
+* set the next release to 0.6.0-rc.4 ([#657](https://github.com/kornifex/FVTT-Genesys/issues/657)) ([b315fcb](https://github.com/kornifex/FVTT-Genesys/commit/b315fcb70c84c5c83c17c6428278c6da913aed1a))
+
 ## [0.6.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.2...v0.6.0-rc.3) (2026-11-10)
 
 
