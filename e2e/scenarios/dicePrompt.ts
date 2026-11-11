@@ -1553,6 +1553,10 @@ export async function run(e2e: ScenarioContext) {
 	const update = (doc: Doc, data: object) => gm.evaluate((args) => window.dicePromptE2E.update(args), { doc, data });
 	const target = (name: string | null) => gm.evaluate((name) => window.e2e.target(name), name);
 	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
+	// The Apply button of a check that heals, as a client sees it, and an actor's wounds and strain (§#686, §#687).
+	const recoveryButton = (client: Client, id: string, click = false) =>
+		client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
+	const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 	const ada = { actor: 'Ada' };
 	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.skill-name|${skill} (`);
 	const characteristicRoll = (index: number, doc: Doc = ada) =>
@@ -3805,9 +3809,6 @@ export async function run(e2e: ScenarioContext) {
 		const heal = (client: Client) => click(client, cy, '.tab-skills .skill .heal');
 		const patientPrompt = (client: Client, pick: string | null) =>
 			client.evaluate((pick) => window.dicePromptE2E.patientPrompt(pick), pick);
-		const recoveryButton = (client: Client, id: string, click = false) =>
-			client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
-		const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 		// Cy, the player's, rolls two Ability dice for Medicine. Bo, the player's, has suffered more than half his wound
 		// threshold; Mark, the GM's, more than his wound threshold; Cy, none.
 		await update(cy, { system: { characteristics: { intellect: 2 }, wounds: { value: 0, max: 10 } } });
@@ -3884,9 +3885,6 @@ export async function run(e2e: ScenarioContext) {
 	// (§#687, CRB pp. 116–117).
 	await part('recovery', async () => {
 		const cy = { actor: 'Cy' };
-		const recoveryButton = (client: Client, id: string, click = false) =>
-			client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
-		const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 		// Cy, the player's, rolls Cool on three Ability dice, Discipline on two.
 		await update(cy, {
 			system: { characteristics: { willpower: 2, presence: 3 }, wounds: { value: 4, max: 10 }, strain: { value: 5, max: 10 } },
@@ -3894,16 +3892,19 @@ export async function run(e2e: ScenarioContext) {
 
 		const encounter = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
 		const difficulty = await player.evaluate(() => window.dicePromptE2E.promptDifficulty().label);
+		const discipline = await player.evaluate((args) => window.dicePromptE2E.promptSelect(args), {
+			name: 'skill' as const,
+			option: 'Discipline',
+		});
 		e2e.expect(
-			'#687 R1 End of encounter opens a Simple check on the better of Discipline and Cool',
-			{ actor: encounter.actor, skill: encounter.skill, pool: encounter.pool, difficulty },
-			{ actor: 'Cy', skill: 'Cool (Pr)', pool: 'AAA|', difficulty: 'Difficulty: Simple' },
+			'#687 R1 End of encounter opens a Simple check on the better of Discipline and Cool, and the player can pick the other',
+			{ actor: encounter.actor, skill: encounter.skill, pool: encounter.pool, difficulty, other: discipline.pool },
+			{ actor: 'Cy', skill: 'Cool (Pr)', pool: 'AAA|', difficulty: 'Difficulty: Simple', other: 'AA|' },
 		);
 
-		// Ability dice on two Successes, a blank face, then a Success and an Advantage.
+		// Discipline's Ability dice on two Successes, then a Success and an Advantage.
 		await player.fixDice([
 			{ face: 4, faces: 8 },
-			{ face: 1, faces: 8 },
 			{ face: 7, faces: 8 },
 		]);
 		const rolled = await player.evaluate(() => window.dicePromptE2E.promptRoll());

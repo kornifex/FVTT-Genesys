@@ -113,9 +113,10 @@ export function healedPools(patient: Patient, healing: Healed): { wounds: number
 }
 
 /**
- * What a full night's rest heals a character of: all their strain, and one wound when they suffer any (CRB pp. 116–117).
+ * What a full night's rest heals a character of, without a check: all their strain, and one wound when they suffer any
+ * (CRB pp. 116–117).
  */
-export function nightsRest({ wounds, strain }: Required<Patient>): Healed {
+export function nightsRest({ wounds, strain }: { wounds: CombatPool; strain: CombatPool }): Healed {
 	return { wounds: Math.min(wounds.value, 1), strain: strain.value };
 }
 
@@ -123,27 +124,34 @@ export function nightsRest({ wounds, strain }: Required<Patient>): Healed {
  * The skills a character picks between for the check that recovers strain at the end of an encounter (CRB p. 117), the
  * first one winning a tie.
  */
-export const STRAIN_RECOVERY_SKILLS = ['Discipline', 'Cool'] as const;
+const STRAIN_RECOVERY_SKILLS = ['Discipline', 'Cool'] as const;
 
 /**
- * A skill a character may recover strain with: its name, the value of its characteristic, and the character's ranks.
+ * What a character rolls a skill with: the value of its characteristic, and their ranks in it.
  */
-type StrainRecoveryCandidate = { name: string; characteristic: number; rank: number };
+type SkillPool = { characteristic: number; rank: number };
 
 /**
  * The skill the check that recovers strain at the end of an encounter opens with, among those the character can roll: the
  * one of the larger dice pool, then of more Proficiency dice, Discipline on a tie or when they can roll neither. The
  * roller can still pick the other in the Dice Prompt.
+ *
+ * @param poolOf What the character rolls a skill with, by its name; undefined when they can't roll it.
  */
-export function strainRecoverySkill(candidates: StrainRecoveryCandidate[]): string {
+export function strainRecoverySkill(poolOf: (name: string) => SkillPool | undefined): string {
 	// A skill check rolls as many dice as the higher of the characteristic and the ranks, the lower of them upgraded.
-	const pool = ({ characteristic, rank }: StrainRecoveryCandidate) => [Math.max(characteristic, rank), Math.min(characteristic, rank)];
-	const ordered = STRAIN_RECOVERY_SKILLS.flatMap((name) => candidates.filter((candidate) => skillNamesMatch(candidate.name, name)));
-	let best = ordered[0];
-	for (const candidate of ordered.slice(1)) {
-		const [dice, proficiency] = pool(candidate);
-		const [bestDice, bestProficiency] = pool(best);
-		if (dice > bestDice || (dice === bestDice && proficiency > bestProficiency)) {
+	const dice = ({ characteristic, rank }: SkillPool) => ({
+		total: Math.max(characteristic, rank),
+		proficiency: Math.min(characteristic, rank),
+	});
+	let best: { name: string; total: number; proficiency: number } | undefined;
+	for (const name of STRAIN_RECOVERY_SKILLS) {
+		const pool = poolOf(name);
+		const candidate = pool && { name, ...dice(pool) };
+		if (
+			candidate &&
+			(!best || candidate.total > best.total || (candidate.total === best.total && candidate.proficiency > best.proficiency))
+		) {
 			best = candidate;
 		}
 	}

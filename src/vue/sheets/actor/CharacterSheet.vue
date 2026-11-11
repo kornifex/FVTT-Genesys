@@ -58,7 +58,7 @@ const TABS = [
 				}"
 			/>
 
-			<!-- What recovers the strain and wounds beside them: the end of an encounter's check, and a night's rest (#687). -->
+			<!-- Beside the strain and wounds they recover, so that the player sees the bars change as they click (#687). -->
 			<div class="recovery-actions">
 				<ActionButton
 					class="end-of-encounter"
@@ -124,7 +124,7 @@ const TABS = [
 		}
 	}
 
-	// The recovery actions stand in a narrow column between the strain and the defense.
+	// Stacked, the two icon buttons take a narrow column, which leaves the stat boxes their width on a narrow sheet.
 	.recovery-actions {
 		display: flex;
 		flex-direction: column;

@@ -1,4 +1,7 @@
-/** @file Tests for Recovery: the Medicine check's difficulty and what a recovery check heals. */
+/**
+ * @file Tests for Recovery: the Medicine check's difficulty, what a recovery check heals, a night's rest, and the skill
+ * the end of an encounter's check opens with.
+ */
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -100,24 +103,28 @@ describe('nightsRest', () => {
 });
 
 describe('strainRecoverySkill', () => {
-	const skill = (name: string, characteristic: number, rank: number) => ({ name, characteristic, rank });
+	// What the character rolls each skill with, as [characteristic, rank], by name.
+	const pools = (skills: Record<string, [number, number]>) => (name: string) => {
+		const pool = skills[name];
+		return pool && { characteristic: pool[0], rank: pool[1] };
+	};
 
 	it('picks the skill of the larger dice pool between Discipline and Cool (CRB p. 117)', () => {
-		expect(strainRecoverySkill([skill('Discipline', 2, 1), skill('Cool', 3, 1)])).toBe('Cool');
-		expect(strainRecoverySkill([skill('Discipline', 3, 0), skill('Cool', 2, 2)])).toBe('Discipline');
+		expect(strainRecoverySkill(pools({ Discipline: [2, 1], Cool: [3, 1] }))).toBe('Cool');
+		expect(strainRecoverySkill(pools({ Discipline: [3, 0], Cool: [2, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the pool with more Proficiency dice when both hold as many dice', () => {
-		expect(strainRecoverySkill([skill('Discipline', 3, 1), skill('Cool', 3, 2)])).toBe('Cool');
+		expect(strainRecoverySkill(pools({ Discipline: [3, 1], Cool: [3, 2] }))).toBe('Cool');
 	});
 
 	it('picks Discipline, as the rule names it first, when both pools are alike', () => {
-		expect(strainRecoverySkill([skill('Discipline', 2, 1), skill('Cool', 1, 2)])).toBe('Discipline');
+		expect(strainRecoverySkill(pools({ Discipline: [2, 1], Cool: [1, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the one the character can roll, and Discipline when they can roll neither', () => {
-		expect(strainRecoverySkill([skill('Cool', 1, 0)])).toBe('Cool');
-		expect(strainRecoverySkill([])).toBe('Discipline');
+		expect(strainRecoverySkill(pools({ Cool: [1, 0] }))).toBe('Cool');
+		expect(strainRecoverySkill(pools({}))).toBe('Discipline');
 	});
 });
 
@@ -141,6 +148,11 @@ describe('healedPools', () => {
 
 	it('never lowers wounds or strain below zero', () => {
 		expect(healedPools(patient, { wounds: 7, strain: 4 })).toEqual({ wounds: 0, strain: 0 });
+	});
+
+	it("never lowers the strain below zero when the end of an encounter's check recovers more than suffered (CRB p. 117)", () => {
+		const healed = recoveryOf({ patient: 'Actor.bo', rule: 'endOfEncounter' }, { netSuccess: 3, netAdvantage: 0 });
+		expect(healedPools({ wounds: { value: 2, max: 12 }, strain: { value: 1, max: 10 } }, healed)).toEqual({ wounds: 2, strain: 0 });
 	});
 
 	it('heals the wounds alone of a patient who suffers no strain, as a rival', () => {
