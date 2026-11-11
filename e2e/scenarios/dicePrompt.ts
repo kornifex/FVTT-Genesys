@@ -1450,7 +1450,7 @@ type CriticalMessage = {
 type CriticalInjuryHelpers = {
 	/**
 	 * Creates the Critical Injury items `E2E Nick`, `E2E Scar` and `E2E Maim`, the table `E2E Crits` drawing them on
-	 * 1–50, 51–100 and 101–200, shared with the players, and makes it the world's Critical Injury table; returns the
+	 * 1–50, 51–100 and 101–200, which the players aren't given, and makes it the world's Critical Injury table; returns the
 	 * table set before.
 	 */
 	setUp(): Promise<string>;
@@ -1525,7 +1525,6 @@ function installCriticalInjuryHelpers() {
 				formula: '1d100',
 				replacement: true,
 				displayRoll: true,
-				ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
 				results: items.map((item: { uuid: string; name: string }, index: number) => ({
 					type: 'document',
 					documentUuid: item.uuid,
@@ -3994,7 +3993,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			'#685 C1 an attack whose Advantage reaches its Critical rating twice, with a Triumph, triggers three Critical Injuries, which its card offers to roll',
 			{ results: attackMessage.results, card },
-			{ results: 't a a', card: { triggers: 'Critical Injury Triggers 3', button: true } },
+			{ results: 'a a t', card: { triggers: 'Critical Injury Triggers 3', button: true } },
 		);
 
 		const fromCard = await gm.evaluate(() => window.criticalInjuryE2E.openFromCard());
@@ -4084,7 +4083,7 @@ export async function run(e2e: ScenarioContext) {
 		const fromBo = await fromSheet(player, 'Bo');
 		const boRolled = await rollCritical(player, 60);
 		e2e.expect(
-			"#685 C7 a player rolls from their character's sheet on the table shared with them",
+			"#685 C7 a player rolls from their character's sheet, on a table the GM hasn't shared with them",
 			{ formula: fromBo.formula, rolled: boRolled },
 			{
 				formula: '1d100',
