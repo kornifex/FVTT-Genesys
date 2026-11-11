@@ -3860,7 +3860,7 @@ export async function run(e2e: ScenarioContext) {
 				cool: [],
 				aimed: [{ name: 'From Self: Aim', enabled: false, mods: 'B+' }],
 				pool: 'PPPB|DD',
-				formula: '3dp + 1db + 2di',
+				formula: '3dp + 0da + 2di + 1db',
 				effects: [],
 				next: [],
 			},

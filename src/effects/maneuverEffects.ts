@@ -31,11 +31,33 @@ function effectData(maneuver: ManeuverEffect) {
 	return data;
 }
 
+// The maneuver each actor performs, by its uuid, after which the next one waits.
+const performing = new Map<string, Promise<void>>();
+
+/**
+ * Performs a maneuver of an actor once the one this client performs already is written: a maneuver reads the effects
+ * the previous one writes, and a second click on Aim before the first is written would put another Aim on the actor.
+ */
+function perform(actor: Actor.Implementation, maneuver: () => Promise<void>) {
+	const key = actor.uuid ?? '';
+	const done = (performing.get(key) ?? Promise.resolve()).then(maneuver);
+	// A maneuver that failed doesn't stop the next one: its own caller gets the error.
+	performing.set(
+		key,
+		done.catch(() => undefined),
+	);
+	return done;
+}
+
 /**
  * The Aim maneuver: the character's Aim effect gets one more Boost, up to two after two Aim maneuvers in a row, or is put
  * on them with one (CRB p. 98).
  */
-export async function aim(actor: Actor.Implementation) {
+export function aim(actor: Actor.Implementation) {
+	return perform(actor, () => aimNow(actor));
+}
+
+async function aimNow(actor: Actor.Implementation) {
 	const [current] = effectsWith(actor, MANEUVER_IDS.aim);
 	if (!current) {
 		await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimAfter(0)) as ActiveEffect.CreateData]);
@@ -51,14 +73,16 @@ export async function aim(actor: Actor.Implementation) {
  * The Guarded Stance maneuver: the character's Guarded Stance effect, put on them until the end of their next turn, a
  * Lapsing Effect of one round (CRB p. 99). Taken again, it starts again from the current turn.
  */
-export async function takeGuardedStance(actor: Actor.Implementation) {
-	const current = effectsWith(actor, MANEUVER_IDS.guardedStance).map((effect) => effect.id);
-	if (current.length > 0) {
-		await actor.deleteEmbeddedDocuments('ActiveEffect', current);
-	}
+export function takeGuardedStance(actor: Actor.Implementation) {
+	return perform(actor, async () => {
+		const current = effectsWith(actor, MANEUVER_IDS.guardedStance).map((effect) => effect.id);
+		if (current.length > 0) {
+			await actor.deleteEmbeddedDocuments('ActiveEffect', current);
+		}
 
-	const data = foundry.utils.mergeObject(effectData(GUARDED_STANCE), lapsingFor(1));
-	await actor.createEmbeddedDocuments('ActiveEffect', [data as ActiveEffect.CreateData]);
+		const data = foundry.utils.mergeObject(effectData(GUARDED_STANCE), lapsingFor(1));
+		await actor.createEmbeddedDocuments('ActiveEffect', [data as ActiveEffect.CreateData]);
+	});
 }
 
 /**
