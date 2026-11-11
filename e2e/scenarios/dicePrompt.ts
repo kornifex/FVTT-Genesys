@@ -3867,7 +3867,7 @@ export async function run(e2e: ScenarioContext) {
 			{ patientPrompts, pool: targeted.pool, shown: markShown, health: await health('Mark') },
 			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 		);
-		await e2e.step('H end');
+		await e2e.step('medicineHeal end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
