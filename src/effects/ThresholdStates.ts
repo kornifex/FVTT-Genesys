@@ -69,7 +69,7 @@ export function thresholdStates(actor: ThresholdActor): ThresholdState[] {
  * What a change of an actor's wounds or strain does: the states it puts on the actor, those it takes off, and whether
  * it offers the actor's Critical Injury.
  */
-export type ThresholdStateChanges = { apply: ThresholdState[]; remove: ThresholdState[]; criticalInjury: boolean };
+type ThresholdStateChanges = { apply: ThresholdState[]; remove: ThresholdState[]; criticalInjury: boolean };
 
 /**
  * What a change of an actor's standing does. Only a state the standing gains or loses changes, so that a state the GM put
