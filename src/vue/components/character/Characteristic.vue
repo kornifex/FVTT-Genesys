@@ -200,8 +200,10 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		grid-row: 1 / span 3;
 		height: 100%;
 		background: colors.$blue;
-		margin-left: -1em;
-		width: calc(100% + 2em);
+		// It reaches a little past its column on each side, so that its clipped corners clear the label (rc.3: 1em made
+		// the boxes look large).
+		margin-left: -0.5em;
+		width: calc(100% + 1em);
 
 		$clip-path: polygon(
 			0% 100%,

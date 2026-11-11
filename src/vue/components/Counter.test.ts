@@ -180,58 +180,21 @@ describe('Counter', () => {
 		counter.unmount();
 	});
 
-	it('takes one off on a right-click on its value or its −, which opens no menu around it, and leaves one on its + to the row', () => {
+	it('takes nothing off on a right-click on its value, its − or its +, and leaves each to the row it sits in', async () => {
 		// The row the counter sits in opens its menu on a right-click that reaches it.
 		const rowMenu = vi.fn();
 		document.body.addEventListener('contextmenu', rowMenu);
 		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
+		await counter.get('input').setValue('7');
 		const parts = ['[role="spinbutton"]', 'button.decrease', 'button.increase'];
 		const events = parts.map(() => new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
 		parts.forEach((part, i) => counter.get(part).element.dispatchEvent(events[i]));
 
-		expect(counter.emitted('step')).toEqual([[-1], [-1]]);
-		expect(events.map((event) => event.defaultPrevented)).toEqual([true, true, false]);
-		expect(rowMenu).toHaveBeenCalledOnce();
-		expect(rowMenu).toHaveBeenCalledWith(events[2]);
-		document.body.removeEventListener('contextmenu', rowMenu);
-		counter.unmount();
-	});
-
-	it('keeps the text being typed through a right-click on its +, and steps from it on one on its −', async () => {
-		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
-		const input = counter.get('input');
-
-		await input.setValue('7');
-		await counter.get('button.increase').trigger('contextmenu');
-		await counter.get('button.decrease').trigger('contextmenu');
-
-		// The + leaves the text typed alone; the − then steps from it.
-		expect(counter.emitted('type')).toEqual([[6]]);
 		expect(counter.emitted('step')).toBeUndefined();
-		counter.unmount();
-	});
-
-	it('lets the context menu key and Shift+F10 through to the row it sits in, taking nothing off', () => {
-		const rowMenu = vi.fn();
-		document.body.addEventListener('contextmenu', rowMenu);
-		const counter = mountCounter({ value: 3, label: 'Genesys.Labels.Quantity' });
-		const spinButton = counter.get('[role="spinbutton"]').element;
-		const fromKeys = [
-			// Chromium's Shift+F10 and context menu key.
-			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: -1 }),
-			// A contextmenu with no pointer behind it.
-			new PointerEvent('contextmenu', { bubbles: true, cancelable: true, pointerType: '' }),
-		];
-		// Firefox names the keyboard as the event's input source.
-		const firefox = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
-		Object.defineProperty(firefox, 'mozInputSource', { value: 6 });
-
-		for (const event of [...fromKeys, firefox]) spinButton.dispatchEvent(event);
-
-		expect(counter.emitted('step')).toBeUndefined();
-		expect([...fromKeys, firefox].map((event) => event.defaultPrevented)).toEqual([false, false, false]);
-		expect(rowMenu).toHaveBeenCalledTimes(3);
+		expect(counter.emitted('type')).toBeUndefined();
+		expect(events.map((event) => event.defaultPrevented)).toEqual([false, false, false]);
+		expect(rowMenu.mock.calls).toEqual(events.map((event) => [event]));
 		document.body.removeEventListener('contextmenu', rowMenu);
 		counter.unmount();
 	});

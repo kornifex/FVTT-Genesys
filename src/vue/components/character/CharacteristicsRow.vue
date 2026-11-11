@@ -30,8 +30,8 @@ withDefaults(
 	// Each box fitted to its own name, rather than all at the width of the widest (#644): a short name doesn't look lost
 	// in a box sized for « Intelligence ».
 	grid-auto-columns: max-content;
-	// Each box reaches 1em past its column on each side, which leaves 1em between two boxes.
-	gap: 3em;
+	// Each box reaches 0.5em past its column on each side, which leaves 1em between two boxes.
+	gap: 2em;
 	align-items: center;
 
 	// A stacking context of its own, so that the band, at -1 in it, stays behind the boxes yet over the sheet's

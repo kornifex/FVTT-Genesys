@@ -1,15 +1,13 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { steppedValue, typedValue } from '@/data/CounterValue';
-import { isKeyboardContextMenu } from '@/vue/inputSource';
 import { useEditable } from '@/vue/SheetContext';
 import ActionButton from '@/vue/components/ActionButton.vue';
 
 /**
  * A value that counts up from 0, such as wounds, a quantity or Story Points: the value alone, a spin button the keyboard
- * steps with its arrows, with − and + buttons that show on hover and focus. A right-click on the value or the − takes
- * one off; one on the + is left to the row the counter sits in, which opens its menu. A value typed into it goes through
- * the counter's parsing. On a sheet the user can't edit, and where none of its changes is allowed, it shows the value
+ * steps with its arrows, with − and + buttons that show on hover and focus. A right-click on it changes nothing: it is
+ * left to the row the counter sits in, which opens its menu. A value typed into it goes through the counter's parsing. On a sheet the user can't edit, and where none of its changes is allowed, it shows the value
  * alone. The − and + take no focus on a press, which stays in the value being typed (and out of a button, where
  * Foundry would skip its keybindings).
  */
@@ -176,19 +174,6 @@ function commit() {
 		emit('type', value);
 	}
 }
-
-// A right-click on the value or the − takes one off, rather than opening the menu of the row the counter sits in. One on
-// the + takes nothing off (#645) and opens that menu, as a right-click anywhere else on the row does. The context menu
-// key or Shift+F10 opens that menu, as from any control of the row.
-function contextmenu(event: MouseEvent) {
-	const onIncrease = event.target instanceof Element && !!event.target.closest('.step.increase');
-	if (onIncrease || isKeyboardContextMenu(event)) {
-		return;
-	}
-	event.preventDefault();
-	event.stopPropagation();
-	step(-1);
-}
 </script>
 
 <template>
@@ -199,7 +184,6 @@ function contextmenu(event: MouseEvent) {
 		v-else
 		class="counter interactive"
 		:class="{ revealed }"
-		@contextmenu="contextmenu"
 		@pointerover="pointerover"
 		@pointerleave="pointerIn = false"
 		@focusin="focusIn = true"
@@ -208,13 +192,14 @@ function contextmenu(event: MouseEvent) {
 		<ActionButton
 			v-if="showsDecrease"
 			class="step decrease"
-			icon="fas fa-minus"
 			label="Genesys.Counter.Decrease"
 			tabindex="-1"
 			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
 			@click="press($event, -1)"
-		/>
+		>
+			<template #icon><span class="sign" aria-hidden="true"></span></template>
+		</ActionButton>
 		<input
 			v-if="types"
 			class="value"
@@ -253,13 +238,14 @@ function contextmenu(event: MouseEvent) {
 		<ActionButton
 			v-if="showsIncrease"
 			class="step increase"
-			icon="fas fa-plus"
 			label="Genesys.Counter.Increase"
 			tabindex="-1"
 			:aria-hidden="revealed ? undefined : 'true'"
 			@mousedown.prevent
 			@click="press($event, 1)"
-		/>
+		>
+			<template #icon><span class="sign" aria-hidden="true"></span></template>
+		</ActionButton>
 	</span>
 </template>
 
@@ -322,6 +308,33 @@ input.value {
 	&.increase {
 		left: 100%;
 	}
+}
+
+// The − and + are drawn, rather than Font Awesome's glyphs: those sit about a tenth of an em above the middle of the
+// line they fill, so they showed high in their circle. Two bars, centred by their box, sit in its middle in any font.
+.sign {
+	position: relative;
+	width: 0.8em;
+	height: 0.8em;
+
+	&::before,
+	&::after {
+		position: absolute;
+		inset: 0;
+		margin: auto;
+		background: currentColor;
+		border-radius: 0.0625em;
+	}
+
+	&::before {
+		content: '';
+		height: 0.125em;
+	}
+}
+
+.increase .sign::after {
+	content: '';
+	width: 0.125em;
 }
 
 .counter.revealed .step {

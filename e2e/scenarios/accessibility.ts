@@ -1927,8 +1927,8 @@ async function counterPointer(e2e: ScenarioContext) {
 			threshold: 11,
 		});
 
-		// Through the value, the way a pointer showed the − and + before #645 too, so that the right-click on the + is
-		// tested on both builds.
+		// Through the value, the way a pointer showed the − and + before #645 too, so that the right-clicks are tested on
+		// both builds.
 		let clicks: Record<string, number> = {};
 		await e2e.step(
 			"#648 R1 the + of a rival's wounds clicked, then right-clicked, and its − right-clicked, with the mouse",
@@ -1951,18 +1951,14 @@ async function counterPointer(e2e: ScenarioContext) {
 				};
 			},
 		);
-		e2e.expect(
-			"#648 R1 a click on the + of a rival's wounds adds one, a right-click on it takes nothing off, and one on the − takes one off",
-			clicks,
-			{
-				before: 1,
-				'+ clicked': 2,
-				'+ right-clicked': 2,
-				'− right-clicked': 1,
-			},
-		);
+		e2e.expect("#648 R1 a click on the + of a rival's wounds adds one, and a right-click on its + or its − takes nothing off", clicks, {
+			before: 1,
+			'+ clicked': 2,
+			'+ right-clicked': 2,
+			'− right-clicked': 2,
+		});
 
-		// The row a counter sits in opens its menu on a right-click anywhere but on the counter's value and −.
+		// The row a counter sits in opens its menu on a right-click anywhere on it, the counter included.
 		let row: unknown;
 		await e2e.step("#648 R2 the + of an inventory row's quantity right-clicked with the mouse", async () => {
 			await gm.evaluate(() => window.accessibilityE2E.readyCounterPointer('Tally Hero'));

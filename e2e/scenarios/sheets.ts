@@ -749,8 +749,11 @@ function installSheetsHelpers() {
 				editableTextareas: textareas.filter((textarea) => !textarea.disabled && !textarea.readOnly).length,
 				actions: actions.length,
 				enabledActions: actions.filter((action) => !action.disabled).length,
-				editActions: actions.filter((action) =>
-					action.querySelector(':scope > i:is(.fa-trash, .fa-plus, .fa-arrow-circle-up, .fa-toggle-on, .fa-toggle-off)'),
+				// A counter's − and + are drawn, without an icon.
+				editActions: actions.filter(
+					(action) =>
+						action.classList.contains('step') ||
+						action.querySelector(':scope > i:is(.fa-trash, .fa-plus, .fa-arrow-circle-up, .fa-toggle-on, .fa-toggle-off)'),
 				).length,
 			};
 		},

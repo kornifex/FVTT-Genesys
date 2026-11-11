@@ -1121,12 +1121,8 @@ function installInventoryHelpers() {
 
 		async stepToDeletion(ref, name, kind, answer) {
 			const counter = (await rowOf(ref, name)).querySelector<HTMLElement>(`:scope > .${kind}`)!;
-			// The quantity steps down on a right click, the damage up with its +.
-			if (kind === 'quantity') {
-				counter.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-			} else {
-				clickCounter(counter, 1);
-			}
+			// The quantity steps down with its −, the damage up with its +.
+			clickCounter(counter, kind === 'quantity' ? -1 : 1);
 			return window.e2e.answerConfirm(answer);
 		},
 
@@ -3025,17 +3021,19 @@ async function rowMenuAndDrops(e2e: ScenarioContext) {
 		looks().button,
 	);
 
+	// A right-click on a counter takes nothing off (#654): it opens the row's menu, as anywhere else on the row.
 	let quantityMenu: string[] | null = null;
 	await e2e.step("#358 A2 Placer's Twig, at a quantity of 3, right-clicked on its quantity", async () => {
 		quantityMenu = await rightClick('Placer', 'Twig', 'quantity');
 	});
+	const twigMenu = await entries('Placer', 'Twig');
 	e2e.expect(
-		"#358 A2 a right-click on a row's quantity steps it down, and opens no menu",
+		"#654 A2 a right-click on a row's quantity takes nothing off, and opens the menu of the row's … button",
 		{
 			menu: quantityMenu,
 			quantity: await gm.evaluate(() => game.actors.getName('E2E Placer').items.getName('E2E Twig').system.quantity),
 		},
-		{ menu: null, quantity: 2 },
+		{ menu: twigMenu, quantity: 3 },
 	);
 	const player = await e2e.player();
 	await player.evaluate(installInventoryHelpers);
