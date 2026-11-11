@@ -52,6 +52,10 @@ _Avoid_: Size, scale
 A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle.
 _Avoid_: Crit, wound
 
+**Recovery**:
+What a check that heals gives its **Patient**, the character, rival or nemesis it heals: the wounds and strain its results heal, by the rule it is rolled for, as a Medicine check heals a wound per Success and a strain per Advantage once it succeeds. Its chat card shows them, and its Apply button lowers the Patient's wounds and strain by them, never below zero, for the GM and the Patient's owners. How often a Patient may receive one is left to the table.
+_Avoid_: Heal payload, healing result
+
 **Status Effect**:
 A state that hinders an actor during an encounter: Immobilized (no maneuvers), Staggered (no actions) or Disoriented (a Setback die on every check). It lasts for the duration its source gives, or until the end of the actor's next turn when none is given; suffering it again adds to its duration, never beyond the encounter.
 _Avoid_: Condition
