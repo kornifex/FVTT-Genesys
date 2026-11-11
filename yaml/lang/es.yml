@@ -370,11 +370,22 @@ Genesys:
     Fix: CORRECCIÓN
     Feature: NOVEDAD
     Styling: ESTILO
-    CounterRightClick: Un clic derecho en un contador abre el menú de su fila y ya no resta nada
-    CounterButtons: >-
-      Los − y + de un contador quedan centrados en su círculo, y las subetiquetas de heridas, tensión y defensa bajo sus
-      valores
-    CharacteristicBoxes: Las casillas de las características se ajustan más a sus nombres
+    Counters: >-
+      Cada contador se ajusta con un − y un + compactos, que aparecen bajo el puntero: cantidad, daño, heridas, tensión,
+      daños en el casco, tensión de sistemas
+    RowMenu: >-
+      Cada fila tiene un menú ⋮ con sus acciones, que también abre un clic derecho en la fila, y cada eliminación pide
+      confirmación
+    NameRolls: El nombre de una fila tira su prueba, y su icono abre su hoja
+    CombatTabAttack: Un arma ataca desde la pestaña Combate, ya no desde el inventario
+    Keyboard: >-
+      Cada hoja se usa con el teclado y con un lector de pantalla: botones con nombre, un contorno de foco visible, campos
+      etiquetados y los símbolos de los dados leídos en palabras
+    Contrast: El texto se lee mejor en ambos estilos, y ninguna información depende solo del color
+    ActingGmFailure: Cuando falla una acción que el DJ realiza por un jugador, el jugador sabe por qué
+    MagicalGirl: Se eliminan los símbolos, la fuente y los dados Magical Girl
+    DefensiveDriving: La defensa de un vehículo suma el talento Conducción defensiva de su piloto, aún con un máximo de 4
+    InventoryFooter: La fila de la moneda y la carga se coloca al final de la pestaña Inventario
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
