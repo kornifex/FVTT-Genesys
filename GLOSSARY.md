@@ -57,8 +57,12 @@ A state that hinders an actor during an encounter: Immobilized (no maneuvers), S
 _Avoid_: Condition
 
 **Token State**:
-A state the system adds to the token's status menu, beside Foundry's own, which puts it on the actor as an Active Effect with the state's name, icon and changes: the three Status Effects so far. Disoriented carries its Setback as a Pool Modification of every check; Immobilized and Staggered change no dice, and the Dice Prompt reminds the roller of them. A Status Effect is a Lapsing Effect, applied for the rounds the user enters, one by default.
+A state the system adds to the token's status menu, beside Foundry's own, which puts it on the actor as an Active Effect with the state's name, icon and changes: the three Status Effects, and Incapacitated, a Threshold State. Disoriented carries its Setback as a Pool Modification of every check; Immobilized and Staggered change no dice, and the Dice Prompt reminds the roller of them. A Status Effect is a Lapsing Effect, applied for the rounds the user enters, one by default.
 _Avoid_: Condition, status
+
+**Threshold State**:
+The state an actor gets while their wounds or strain exceed their threshold, not when they reach it: Incapacitated, a Token State, for a character past either threshold and a nemesis past their strain threshold; Defeated, Foundry's own, which marks the combatant defeated, for a rival or nemesis past their wound threshold. The system sets or clears it when the actor's standing against a threshold changes, whoever changes the wounds or strain, and leaves alone a state the GM sets by hand while the standing stays; a character going past their wound threshold is also offered their Critical Injury in the chat. A threshold of 0 counts as none. A Minion Group has none: it loses its members instead.
+_Avoid_: Condition, knocked out
 
 **Lapsing Effect**:
 A temporary Active Effect whose duration in rounds counts its actor's turns: the end of each turn of its actor takes a round off, but the turn it was applied during, and it is removed at the end of the turn that takes its last round, so that one round lasts until the end of the actor's next turn. The actor's turn is the Initiative Slot its combatant Claimed, or for an NPC its own unclaimed slot; an unclaimed PC slot is nobody's turn. A turn the GM goes back to and ends again doesn't count twice. Out of combat, no turn ends, and it stays until removed. Unlike an Expired Effect, it is deleted, not suspended, and Foundry's own count of rounds never applies to it.

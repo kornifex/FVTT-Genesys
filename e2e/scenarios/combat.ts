@@ -561,6 +561,7 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('extraSlotsOrderedAtOnce', extraSlotsOrderedAtOnce);
 	await e2e.part('slotRollsKeepTurn', slotRollsKeepTurn);
 	await e2e.part('tokenStates', tokenStates);
+	await e2e.part('thresholdStates', thresholdStates);
 
 	/** §#85: the tracker's class name, which Foundry names its render hook after. */
 	async function trackerClass() {
@@ -923,6 +924,150 @@ export async function run(e2e: ScenarioContext) {
 		});
 		e2e.expect('#682 S8 out of combat, Immobilized stays until removed', await states(), [state('immobilized', 1)]);
 		await gm.evaluate(() => window.e2e.token('Boss').actor.toggleStatusEffect('immobilized', { active: false }));
+	}
+
+	/**
+	 * §#684: wounds or strain past their threshold mark the actor Incapacitated or Defeated, whoever changes them; a
+	 * character going past their wound threshold is offered their Critical Injury (CRB pp. 112–113, 133).
+	 */
+	async function thresholdStates() {
+		// Hero's or Boss's states and the offers of Hero's Critical Injury, as a client sees them.
+		const standing = (client: typeof gm, name: 'Hero' | 'Boss') =>
+			client.evaluate((name) => {
+				const actor = window.e2e.token(name).actor;
+				const combatant = game.combat.combatants.find((candidate: { name: string }) => candidate.name === name);
+				const row = document.querySelector(`#combat li.combatant[data-combatant-id="${combatant.id}"]`);
+				const offers = game.messages.filter(
+					(message: { getFlag(scope: string, key: string): { target?: string } | undefined }) =>
+						message.getFlag('genesys', 'criticalInjury')?.target === actor.uuid,
+				);
+				const content = document.createElement('div');
+				content.innerHTML = offers.at(-1)?.content ?? '';
+				return {
+					statuses: ['incapacitated', 'dead'].filter((status) => actor.statuses.has(status)),
+					defeated: { combatant: combatant.isDefeated, row: !!row?.classList.contains('defeated') },
+					offers: offers.length,
+					offer: offers.length
+						? {
+								text: content.querySelector('p')?.textContent ?? null,
+								button: content.querySelector('button')?.textContent?.trim() ?? null,
+							}
+						: null,
+				};
+			}, name);
+		// A change of a token's bar, as the token's HUD or a sheet's counter makes it.
+		const setBar = (client: typeof gm, name: 'Hero' | 'Boss', bar: 'wounds' | 'strain', value: number) =>
+			client.evaluate((args) => window.e2e.token(args.name).actor.modifyTokenAttribute(args.bar, args.value, false, true), {
+				name,
+				bar,
+				value,
+			});
+
+		await setUp({ Hero: 2, Boss: 1 }, { turnOn: 'Hero:-1' });
+		await gm.evaluate(async () => {
+			await window.e2e.token('Hero').actor.update({ 'system.wounds.max': 10, 'system.strain.max': 12 });
+			await window.e2e.token('Boss').actor.update({ 'system.wounds.max': 8 });
+		});
+
+		const clear = { statuses: [], defeated: { combatant: false, row: false }, offers: 0, offer: null };
+		await e2e.step("#684 T1 the player raises Hero's wounds to their threshold, 10", () => setBar(player, 'Hero', 'wounds', 10));
+		e2e.expect(
+			'#684 T1 at the threshold, Hero is neither incapacitated nor offered a Critical Injury',
+			await standing(gm, 'Hero'),
+			clear,
+		);
+
+		await e2e.step("#684 T2 the player raises Hero's wounds past their threshold, to 11", () => setBar(player, 'Hero', 'wounds', 11));
+		const offer = {
+			text: 'E2E Hero is past their wound threshold, incapacitated, and suffers a Critical Injury.',
+			button: 'Roll a Critical Injury',
+		};
+		e2e.expect(
+			'#684 T2 past the threshold, Hero is incapacitated, and the chat offers their Critical Injury, as both clients see it',
+			{ [gm.user]: await standing(gm, 'Hero'), [player.user]: await standing(player, 'Hero') },
+			bothClients({ statuses: ['incapacitated'], defeated: { combatant: false, row: false }, offers: 1, offer }),
+		);
+
+		await e2e.step("#684 T3 the GM raises Hero's wounds further, to 13", () => setBar(gm, 'Hero', 'wounds', 13));
+		e2e.expect('#684 T3 still past the threshold, Hero is offered no second Critical Injury', await standing(gm, 'Hero'), {
+			statuses: ['incapacitated'],
+			defeated: { combatant: false, row: false },
+			offers: 1,
+			offer,
+		});
+
+		// The world's Critical Injury table, which the dialog needs to open.
+		const previousTable = await gm.evaluate(async () => {
+			for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
+			const table = await CONFIG.RollTable.documentClass.create({ name: 'E2E Threshold Crits', formula: '1d100' });
+			const previous = game.settings.get('genesys', 'criticalInjuryTable');
+			await game.settings.set('genesys', 'criticalInjuryTable', table.uuid);
+			return previous;
+		});
+		let header: unknown;
+		await e2e.step("#684 T4 the player clicks the button of the offer's message", async () => {
+			header = await player.evaluate(async () => {
+				const actor = window.e2e.actor('Hero');
+				const message = game.messages
+					.filter(
+						(candidate: { getFlag(scope: string, key: string): { target?: string } | undefined }) =>
+							candidate.getFlag('genesys', 'criticalInjury')?.target === actor.uuid,
+					)
+					.at(-1);
+				// The message as the chat log renders it, which v13's headless window collapses.
+				const html = await message.renderHTML();
+				document.body.append(html);
+				html.querySelector('button.roll-critical-injury').click();
+				const prompt = await window.e2e.waitFor(
+					'the Critical Injury dialog',
+					() => window.e2e.apps('app-critical-injury-prompt')[0],
+				);
+				const root = await window.e2e.waitFor('its header', () => {
+					const element = window.e2e.htmlOf(prompt);
+					return element?.querySelector('header > div') ? element : undefined;
+				});
+				const shown = [...root.querySelectorAll('header > div')].map(window.e2e.text);
+				await prompt.close();
+				html.remove();
+				return shown;
+			});
+		});
+		e2e.expect("#684 T4 the button opens the dialog of Hero's Critical Injury, with no attack", header, [
+			'Critical Injury for E2E Hero',
+			'Table: E2E Threshold Crits',
+		]);
+		await gm.evaluate(async (previous) => {
+			await game.settings.set('genesys', 'criticalInjuryTable', previous);
+			for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
+		}, previousTable);
+
+		await e2e.step("#684 T5 the player heals Hero's wounds back to their threshold", () => setBar(player, 'Hero', 'wounds', 10));
+		e2e.expect('#684 T5 healed to the threshold, Hero is no longer incapacitated', await standing(gm, 'Hero'), {
+			...clear,
+			offers: 1,
+			offer,
+		});
+
+		await e2e.step("#684 T6 the player raises Hero's strain past their threshold, to 13", () => setBar(player, 'Hero', 'strain', 13));
+		e2e.expect('#684 T6 past the strain threshold, Hero is incapacitated, and offered no Critical Injury', await standing(gm, 'Hero'), {
+			statuses: ['incapacitated'],
+			defeated: { combatant: false, row: false },
+			offers: 1,
+			offer,
+		});
+		await setBar(player, 'Hero', 'strain', 0);
+
+		await e2e.step("#684 T7 the GM raises Boss's wounds past their threshold, 8, from its unlinked token's bar", () =>
+			setBar(gm, 'Boss', 'wounds', 9),
+		);
+		e2e.expect(
+			'#684 T7 Boss is defeated, which the combat tracker shows on both clients, and is offered no Critical Injury',
+			{ [gm.user]: await standing(gm, 'Boss'), [player.user]: await standing(player, 'Boss') },
+			bothClients({ statuses: ['dead'], defeated: { combatant: true, row: true }, offers: 0, offer: null }),
+		);
+
+		await e2e.step("#684 T8 the GM heals Boss's wounds to 2", () => setBar(gm, 'Boss', 'wounds', 2));
+		e2e.expect('#684 T8 healed, Boss is no longer defeated', await standing(gm, 'Boss'), clear);
 	}
 
 	/**

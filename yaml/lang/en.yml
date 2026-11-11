@@ -236,6 +236,13 @@ Genesys:
     RoundsLeft:
       one: '{rounds} round'
       other: '{rounds} rounds'
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Incapacitated
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} is past their wound threshold, incapacitated, and suffers a Critical Injury.'
 
   # Dice Prompt Labels
   DicePrompt:

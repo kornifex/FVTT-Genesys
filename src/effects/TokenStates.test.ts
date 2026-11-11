@@ -27,11 +27,12 @@ function characterWith(stateId: string): PoolModificationActor {
 }
 
 describe('TOKEN_STATES', () => {
-	it('offers Immobilized, Disoriented and Staggered, each with its own id, which lapse after their rounds (CRB p. 114)', () => {
+	it('offers Immobilized, Disoriented and Staggered, each with its own id, which lapse after their rounds (CRB p. 114), and Incapacitated, which lasts while the actor is past a threshold (CRB pp. 112–113)', () => {
 		expect(TOKEN_STATES.map(({ id, lapses }) => ({ id, lapses }))).toEqual([
 			{ id: 'immobilized', lapses: true },
 			{ id: 'disoriented', lapses: true },
 			{ id: 'staggered', lapses: true },
+			{ id: 'incapacitated', lapses: false },
 		]);
 	});
 

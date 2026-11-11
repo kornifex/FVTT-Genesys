@@ -236,6 +236,13 @@ Genesys:
     RoundsLeft:
       one: '{rounds} round'
       other: '{rounds} rounds'
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Neutralisé
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} dépasse son seuil de blessures, est neutralisé et subit une blessure critique.'
 
   # Dice Prompt Labels
   DicePrompt:

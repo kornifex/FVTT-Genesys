@@ -236,6 +236,13 @@ Genesys:
     RoundsLeft:
       one: '{rounds} asalto'
       other: '{rounds} asaltos'
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Incapacitado
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} supera su umbral de heridas, queda incapacitado y sufre una herida crítica.'
 
   # Dice Prompt Labels
   DicePrompt:
