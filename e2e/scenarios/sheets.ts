@@ -39,6 +39,12 @@ type CreateDialog = { position: Position; asked: Position; types: string[]; decl
 type Size = { width: number; height: number };
 
 /**
+ * A sheet's window as it closes: its height when open, the properties whose CSS transition its closing started, the
+ * height it keeps once those transitions end, and its computed min-height.
+ */
+type SheetClosing = { open: number; transitions: string[]; closed: number; minHeight: string };
+
+/**
  * The Data tab of a weapon's sheet at a window height: the window's height; the blank between the last row of each of
  * its blocks and the next block (each Weapon Profile's, then the Add Weapon Profile button's), beyond that block's top
  * margin; the height its blocks span; and the top of each row of the main profile, from the tab's top.
@@ -288,10 +294,10 @@ type SheetsHelpers = {
 	/** Waits for Foundry's tooltip to hide. */
 	tooltipHidden(): Promise<void>;
 	/**
-	 * Closes an open sheet while sampling its window's height at each frame: its height when open, the lowest it took
-	 * while closing, and the properties of its element whose CSS transition ran.
+	 * Closes an open sheet and catches its window as the closing starts: its height when open, the properties of its
+	 * element whose CSS transition then runs, the height it reaches once those transitions end, and its minimum height.
 	 */
-	closeAnimation(name: string): Promise<{ open: number; lowest: number; frames: number; transitions: string[] }>;
+	closeAnimation(name: string): Promise<SheetClosing>;
 	/**
 	 * The text of the element a selector finds in an open sheet, as the browser draws it: with the content of its
 	 * `::before` and `::after`, without what isn't displayed.
@@ -1633,23 +1639,30 @@ function installSheetsHelpers() {
 			const app = documentNamed(name).sheet;
 			const element = await render(app);
 			await settle();
-			const open = element.getBoundingClientRect().height;
-			const transitions = new Set<string>();
-			element.addEventListener('transitionrun', (event) => {
-				if (event.target === element) transitions.add(event.propertyName);
+			const open = Math.round(element.getBoundingClientRect().height);
+			// ApplicationV2 closes a window by setting its max-height to 0, then waits for the transition's end, or 1s. Reading
+			// its height at each frame of that transition missed the collapse on a loaded machine, where few frames land before
+			// the element leaves the DOM (#653). The observer runs in the microtask right after the style change, before any
+			// frame: it takes the transitions the change started, ends them, and reads the height the window collapses to.
+			let closing: Omit<SheetClosing, 'open'> = { transitions: [], closed: open, minHeight: '' };
+			const observer = new MutationObserver(() => {
+				if (element.style.maxHeight !== '0px') return;
+				observer.disconnect();
+				const transitions = element
+					.getAnimations()
+					.filter((animation): animation is CSSTransition => animation instanceof CSSTransition);
+				for (const transition of transitions) transition.finish();
+				closing = {
+					transitions: transitions.map((transition) => transition.transitionProperty).sort(),
+					closed: Math.round(element.getBoundingClientRect().height),
+					minHeight: getComputedStyle(element).minHeight,
+				};
 			});
-			let lowest = open;
-			let frames = 0;
-			const sample = () => {
-				if (!element.isConnected) return;
-				lowest = Math.min(lowest, element.getBoundingClientRect().height);
-				frames++;
-				requestAnimationFrame(sample);
-			};
-			requestAnimationFrame(sample);
+			observer.observe(element, { attributes: true, attributeFilter: ['style'] });
 			await app.close();
+			observer.disconnect();
 			await settle();
-			return { open: Math.round(open), lowest: Math.round(lowest), frames, transitions: [...transitions].sort() };
+			return { open, ...closing };
 		},
 
 		renderedText(name, selector, which = 1) {
@@ -1963,8 +1976,8 @@ export async function run(e2e: ScenarioContext) {
 		});
 
 		// §#315: ApplicationV2 closes a window by bringing its max-height to 0 through a transition, which a minimum height
-		// on the window would block. Its height is read at each frame while it closes.
-		const closings: Record<string, { open: number; lowest: number; frames: number; transitions: string[] }> = {};
+		// on the window would block. The transition is ended as soon as it starts, and the height it leaves is read.
+		const closings: Record<string, SheetClosing> = {};
 		await e2e.step('#315 GM closes a character, a rival, a gear and an archetype sheet', async () => {
 			for (const name of sizedSheets) closings[name] = await gm.evaluate((name) => window.sheetsE2E.closeAnimation(name), name);
 		});
@@ -1972,9 +1985,9 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			"#315 A1 a closing sheet collapses through its max-height's transition, to a tenth of its height or less",
 			Object.fromEntries(
-				Object.entries(closings).map(([name, { open, lowest, transitions }]) => [
+				Object.entries(closings).map(([name, { open, closed, transitions }]) => [
 					name,
-					{ transitions, collapsed: lowest <= open / 10 },
+					{ transitions, collapsed: closed <= open / 10 },
 				]),
 			),
 			Object.fromEntries(sizedSheets.map((name) => [name, { transitions: ['max-height'], collapsed: true }])),
