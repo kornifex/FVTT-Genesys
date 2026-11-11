@@ -1,0 +1,291 @@
+/** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
+
+/**
+ * What the number of times an attack triggers a Critical Injury depends on.
+ */
+export type CriticalAttackResults = {
+	succeeded: boolean;
+	netAdvantage: number;
+	triumphs: number;
+	/** The Critical rating of the Weapon Profile, 0 or less for none. */
+	critical: number;
+};
+
+/**
+ * How many times an attack can trigger a Critical Injury: once for each time its net Advantage reaches the Critical
+ * rating (CRB p. 102), and once for each Triumph, whatever the rating (CRB p. 103). Only a successful hit triggers one
+ * (CRB p. 102); the system checks no soak, which the GM judges.
+ */
+export function criticalTriggers({ succeeded, netAdvantage, triumphs, critical }: CriticalAttackResults): number {
+	if (!succeeded) {
+		return 0;
+	}
+
+	const fromAdvantage = critical > 0 ? Math.floor(Math.max(netAdvantage, 0) / critical) : 0;
+	return fromAdvantage + Math.max(triumphs, 0);
+}
+
+/**
+ * The flag of the `genesys` scope under which an attack's chat message keeps the Critical Injury it triggered.
+ */
+export const CRITICAL_INJURY_FLAG = 'criticalInjury';
+
+/**
+ * What an attack's chat message keeps for the Critical Injury it triggered, in its flags: how many times it triggered one,
+ * the uuids of the attacker and of the single target, if any, and the name and qualities of the Weapon Profile, as they
+ * were when the attack was rolled.
+ */
+export type CriticalInjuryFlag = {
+	/** How many times the attack triggered a Critical Injury, 1 or more. */
+	triggers: number;
+	attacker: string | null;
+	target: string | null;
+	weapon: { name: string; qualities: AttackQuality[] };
+};
+
+/**
+ * The bonus of the triggers an attacker spends on one Critical Injury: +10 for each past the first (CRB p. 103).
+ */
+export function extraTriggersBonus(spent: number): number {
+	return 10 * Math.max(spent - 1, 0);
+}
+
+/**
+ * The bonus of the Critical Injuries an actor already has: +10 for each (CRB p. 114).
+ */
+export function existingInjuriesBonus(items: Iterable<{ type: string }>): number {
+	let count = 0;
+	for (const item of items) {
+		if (item.type === 'injury') count += 1;
+	}
+	return 10 * count;
+}
+
+/**
+ * A weapon's quality, as an attack reads it.
+ */
+type AttackQuality = { name: string; isRated: boolean; rating: number };
+
+/**
+ * The Vicious rating of a weapon's qualities, 0 without Vicious (CRB p. 89): a quality is Vicious by its name, in any of
+ * the names given, whatever its case, until qualities are items the system recognises otherwise.
+ */
+export function viciousRating(qualities: readonly AttackQuality[], names: readonly string[]): number {
+	const viciousNames = new Set(names.map((name) => name.trim().toLowerCase()));
+	return qualities
+		.filter((quality) => viciousNames.has(quality.name.trim().toLowerCase()))
+		.reduce((rating, quality) => Math.max(rating, quality.rating), 0);
+}
+
+/**
+ * The keys of the effect changes to Critical Injury rolls: those the effect's actor inflicts on others, and those it
+ * suffers. Their value is a whole number, added to the roll.
+ */
+export const CRITICAL_CHANGE_KEYS = {
+	inflicted: 'genesys.critical.inflicted',
+	suffered: 'genesys.critical.suffered',
+} as const;
+
+/**
+ * Whose Critical Injury roll a change modifies: those its actor inflicts, or those it suffers.
+ */
+export type CriticalChangeKind = keyof typeof CRITICAL_CHANGE_KEYS;
+
+const CRITICAL_VALUE_PATTERN = /^\s*[+-]?\d+\s*$/;
+
+/**
+ * Whether a change modifies Critical Injury rolls.
+ */
+export function isCriticalChangeKey(key: string) {
+	return Object.values<string>(CRITICAL_CHANGE_KEYS).includes(key);
+}
+
+/**
+ * Whether a change's value is one a Critical Injury roll adds: a whole number, signed or not.
+ */
+export function isCriticalChangeValue(value: string) {
+	return CRITICAL_VALUE_PATTERN.test(value);
+}
+
+/**
+ * What this module needs of the item an effect comes from. A talent scales its effects with its rank when it says so.
+ */
+type CriticalSourceItem = {
+	name: string;
+	uuid: string | null;
+	type: string;
+	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+};
+
+/**
+ * What this module needs of an effect.
+ */
+export type CriticalEffect = {
+	name: string;
+	uuid: string;
+	isSuppressed: boolean;
+	// v14 lets a change hold a value of any type, a number among them.
+	changes: { key?: string; value: unknown }[];
+	originItem?: CriticalSourceItem;
+};
+
+/**
+ * What this module needs of an actor a Critical Injury is rolled for, or of the attacker who inflicts it.
+ */
+export type CriticalInjuryActor = {
+	items: Iterable<{ type: string }>;
+	allApplicableEffects(): Iterable<CriticalEffect>;
+};
+
+/**
+ * Where a talent's line of the modifier comes from: an effect, and the item it comes from.
+ */
+type CriticalBonusSource = { name: string; uuid: string; item?: { name: string; uuid: string } };
+
+/**
+ * What an effect adds to a Critical Injury roll.
+ */
+type CriticalEffectBonus = CriticalBonusSource & { value: number };
+
+function changeValue(value: unknown): number | undefined {
+	if (typeof value === 'number') {
+		return Number.isInteger(value) ? value : undefined;
+	}
+
+	return typeof value === 'string' && isCriticalChangeValue(value) ? parseInt(value, 10) : undefined;
+}
+
+/**
+ * What the effects of an actor add to the Critical Injury rolls it inflicts or suffers, effect by effect: such an effect
+ * comes from a talent such as Lethal Blows, or Durable for a negative value. A change counts once per rank of its talent
+ * when the talent scales with rank, as Pool Modifications do.
+ */
+export function criticalEffectBonuses(actor: CriticalInjuryActor, kind: CriticalChangeKind): CriticalEffectBonus[] {
+	const bonuses: CriticalEffectBonus[] = [];
+
+	for (const effect of actor.allApplicableEffects()) {
+		if (effect.isSuppressed) {
+			continue;
+		}
+
+		const values = effect.changes.flatMap(({ key, value }) => {
+			const parsed = key === CRITICAL_CHANGE_KEYS[kind] ? changeValue(value) : undefined;
+			return parsed === undefined ? [] : [parsed];
+		});
+		if (values.length === 0) {
+			continue;
+		}
+
+		const item = effect.originItem;
+		const ranks = item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		bonuses.push({
+			name: effect.name,
+			uuid: effect.uuid,
+			...(item?.uuid && { item: { name: item.name, uuid: item.uuid } }),
+			value: ranks * values.reduce((sum, value) => sum + value, 0),
+		});
+	}
+
+	return bonuses;
+}
+
+/**
+ * The attack a Critical Injury is rolled for: how many times it triggered one, the weapon it was made with, whose
+ * qualities may hold Vicious, and the attacker, whose effects modify the injuries they inflict.
+ */
+type CriticalInjuryAttack<A extends CriticalInjuryActor = CriticalInjuryActor> = {
+	triggers: number;
+	weapon?: { name: string; qualities: readonly AttackQuality[] };
+	attacker?: A;
+};
+
+/**
+ * What a Critical Injury is rolled for: the actor who suffers it, when known, and the attack that inflicts it, when it
+ * comes from one. A roll without an attack, as for wounds past the threshold, has no attack.
+ */
+export type CriticalInjuryRequest<A extends CriticalInjuryActor = CriticalInjuryActor> = {
+	actor?: A;
+	attack?: CriticalInjuryAttack<A>;
+};
+
+/**
+ * A line of a Critical Injury roll's modifier, which the roller can change in the dialog: the triggers spent past the
+ * first, the weapon's Vicious rating, the actor's existing injuries, a talent of the attacker or of the actor, and the
+ * roller's free modifier. `count` is what the value was computed from: the triggers spent, the Vicious rating, the
+ * injuries.
+ */
+export type CriticalInjuryLine =
+	| { kind: 'triggers' | 'vicious' | 'injuries'; count: number; value: number }
+	| { kind: CriticalChangeKind; source: CriticalBonusSource; value: number }
+	| { kind: 'free'; value: number };
+
+/**
+ * The lines a Critical Injury roll's modifier starts with. An attack starts with one trigger spent, which the roller
+ * raises up to the attack's triggers.
+ * @param viciousNames The names Vicious goes by: its English name and the world language's.
+ */
+export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, viciousNames: readonly string[]): CriticalInjuryLine[] {
+	const lines: CriticalInjuryLine[] = [];
+	const effectLines = (kind: CriticalChangeKind, of: CriticalInjuryActor) =>
+		criticalEffectBonuses(of, kind).map(({ value, ...source }): CriticalInjuryLine => ({ kind, source, value }));
+
+	if (attack) {
+		lines.push({ kind: 'triggers', count: 1, value: extraTriggersBonus(1) });
+
+		const vicious = viciousRating(attack.weapon?.qualities ?? [], viciousNames);
+		if (vicious > 0) {
+			lines.push({ kind: 'vicious', count: vicious, value: 10 * vicious });
+		}
+
+		if (attack.attacker) {
+			lines.push(...effectLines('inflicted', attack.attacker));
+		}
+	}
+
+	if (actor) {
+		const bonus = existingInjuriesBonus(actor.items);
+		lines.push({ kind: 'injuries', count: bonus / 10, value: bonus });
+		lines.push(...effectLines('suffered', actor));
+	}
+
+	lines.push({ kind: 'free', value: 0 });
+	return lines;
+}
+
+/**
+ * The modifier of a Critical Injury roll: the sum of its lines, a line emptied in the dialog counting as 0.
+ */
+export function criticalModifier(lines: readonly { value: number }[]): number {
+	return lines.reduce((sum, { value }) => sum + (Number.isFinite(value) ? Math.trunc(value) : 0), 0);
+}
+
+/**
+ * The formula of a Critical Injury roll: a d100 plus its modifier (CRB p. 114).
+ */
+export function criticalInjuryFormula(modifier: number): string {
+	if (modifier === 0) {
+		return '1d100';
+	}
+
+	return `1d100 ${modifier < 0 ? '-' : '+'} ${Math.abs(modifier)}`;
+}
+
+/**
+ * The results a Critical Injury roll's total draws from a table: those whose range holds it. A total above the table
+ * draws its last result, as the "151+" of Table I.6–10 reads (CRB p. 115), and a total below it, which a negative
+ * modifier gives, its first.
+ */
+export function criticalInjuryResults<R extends { range: readonly [number, number] | readonly number[] }>(
+	results: readonly R[],
+	total: number,
+): R[] {
+	if (results.length === 0) {
+		return [];
+	}
+
+	const lowest = Math.min(...results.map(({ range }) => range[0]));
+	const highest = Math.max(...results.map(({ range }) => range[1]));
+	const drawn = Math.min(Math.max(total, lowest), highest);
+
+	return results.filter(({ range }) => range[0] <= drawn && drawn <= range[1]);
+}

@@ -8,6 +8,7 @@ import { Defense } from '@/data/Actors';
 import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
+import { isCriticalChangeKey, isCriticalChangeValue } from '@/dice/CriticalInjuryRoll';
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
@@ -464,6 +465,11 @@ export function skillChoices(compendiumSkillNames: string[], changes: EditedChan
  * Which field of the effect sheets edits what a change applies to, given the key picked for it.
  */
 export function subjectFieldForKey(key: string) {
+	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls.
+	if (isCriticalChangeKey(key)) {
+		return 'check-selection';
+	}
+
 	switch (key.match(BASE_KEY_PATTERN)?.[1]) {
 		case 'check':
 			return 'check-selection';
@@ -500,12 +506,22 @@ export function toEditedChange(change: StoredChange): EditedChange {
 
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
- * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. Any other
- * change is returned as it is.
+ * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to
+ * Critical Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a
+ * whole number. Any other change is returned as it is.
  * @param customMode v13: Foundry's custom effect mode, read only for a change that has a mode, since v14 logs a
  * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
  */
 export function fromEditedChange(change: EditedChange, customMode: () => number): EditedChange {
+	if (isCriticalChangeKey(change.key)) {
+		const { char: _char, skill: _skill, ...stored } = change;
+		return {
+			...stored,
+			...('type' in change ? { type: 'custom' } : { mode: customMode() }),
+			value: typeof change.value === 'string' && isCriticalChangeValue(change.value) ? change.value.trim() : '',
+		};
+	}
+
 	const baseKey = change.key.match(BASE_KEY_PATTERN);
 	if (!baseKey) {
 		return change;

@@ -18,6 +18,7 @@ import { GenesysItem } from '@/item/GenesysItem';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import AttackSkillSelect from '@/vue/components/AttackSkillSelect.vue';
 import { DicePrompt } from '@/app/DicePrompt';
+import { CriticalInjuryPrompt } from '@/app/CriticalInjuryPrompt';
 import RowActions from '@/vue/components/RowActions.vue';
 import type { RowAction } from '@/vue/components/RowAction';
 import type { ContextMenuHandle } from '@/vue/components/ContextMenuHandle';
@@ -80,6 +81,11 @@ const TABS = [
 	{ id: 'miscellaneous', label: 'Genesys.Tabs.Miscellaneous' },
 	{ id: 'effects', label: 'Genesys.Tabs.Effects' },
 ];
+
+// The adversary suffers a Critical Injury outside an attack, or from one whose card the roller doesn't use.
+async function rollCriticalInjury() {
+	await CriticalInjuryPrompt.promptForActor(actor.value);
+}
 
 async function rollCharacteristicCheck(characteristic: CharacteristicType) {
 	await DicePrompt.promptForCharacteristicCheck(actor.value, characteristic);
@@ -280,7 +286,12 @@ async function toggleSuper(characteristic: CharacteristicType) {
 			<template #miscellaneous>
 				<section class="motivations">
 					<div class="adversary-items">
-						<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
+						<div class="heading-row">
+							<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
+							<ActionButton class="roll-critical-injury" icon="fas fa-dice-d20" @click="rollCriticalInjury"
+								><Localized label="Genesys.CriticalInjuryPrompt.Open"
+							/></ActionButton>
+						</div>
 						<div class="container">
 							<ListEmpty v-if="injuries.length === 0" />
 							<div v-for="injury in injuries" :key="injury.id" class="injury">
@@ -399,6 +410,14 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		// A row's ⋮ is its menu's own, which :deep() reaches: it follows the row's text on its line.
 		:deep(.menu-trigger) {
 			margin-left: 0.2em;
+		}
+
+		// The Critical Injuries' heading, with the button that rolls a new one at its end.
+		.heading-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5em;
 		}
 	}
 

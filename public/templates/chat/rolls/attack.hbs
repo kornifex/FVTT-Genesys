@@ -16,7 +16,20 @@
 			<span class="count">{{critical}}</span>
 
 			<div class="separator"></div>
+
+			{{!-- How many times the attack triggers a Critical Injury, which the roller rolls from the button below. --}}
+			{{#if criticalTriggers}}
+			<span class="symbol"><i class="fas fa-burst"></i></span>
+			<span class="label">{{localize 'Genesys.CriticalInjuryPrompt.CardTriggers'}}</span>
+			<span class="count">{{criticalTriggers}}</span>
+
+			<div class="separator"></div>
+			{{/if}}
 		</div>
+
+		{{#if criticalTriggers}}
+		<button type="button" class="roll-critical-injury"><i class="fas fa-dice-d20"></i> {{localize 'Genesys.CriticalInjuryPrompt.Open'}}</button>
+		{{/if}}
 	{{/if}}
 {{/inline}}
 
