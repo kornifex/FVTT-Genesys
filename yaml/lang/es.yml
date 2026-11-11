@@ -259,7 +259,6 @@ Genesys:
     Setting: Tabla de heridas críticas
     SettingHint: >-
       La tabla aleatoria del mundo en la que se tira una herida crítica: sus resultados son las heridas críticas del mundo, y sus rangos los del d100 (manual básico, p. 115).
-      Los jugadores necesitan ver la tabla para tirar en ella.
     NoTable: No se ha elegido ninguna tabla de heridas críticas. El DJ elige una en los ajustes del sistema.
     NoResult: La tabla de heridas críticas no tiene resultado para {total}.
     CardTriggers: Heridas críticas activadas

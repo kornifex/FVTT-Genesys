@@ -259,7 +259,6 @@ Genesys:
     Setting: Table des blessures critiques
     SettingHint: >-
       La table aléatoire, parmi celles du monde, sur laquelle une blessure critique est tirée : ses résultats sont les blessures critiques du monde, et ses intervalles ceux du d100 (livre de base, p. 115).
-      Les joueurs doivent voir la table pour y tirer.
     NoTable: "Aucune table des blessures critiques n'est choisie. Le MJ en choisit une dans les paramètres du système."
     NoResult: "La table des blessures critiques n'a pas de résultat pour {total}."
     CardTriggers: Blessures critiques déclenchées

@@ -261,7 +261,6 @@ Genesys:
     Setting: Critical Injury Table
     SettingHint: >-
       The Roll Table a Critical Injury is rolled on, among the world's: its results are the world's Critical Injury items, and its ranges those of the d100 (Core Rulebook, p.115).
-      Players need to see the table to roll on it.
     NoTable: No Critical Injury table is set. The GM picks one in the system settings.
     NoResult: The Critical Injury table has no result for {total}.
     CardTriggers: Critical Injury Triggers
