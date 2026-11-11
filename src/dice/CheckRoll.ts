@@ -49,7 +49,7 @@ export async function rollPool(dicePool: DicePool): Promise<PoolRoll> {
 /**
  * What a check is rolled for, besides its dice pool: the Weapon Profile of an attack, the recovery of a check that heals.
  */
-export type CheckRollOptions = {
+type CheckRollOptions = {
 	attack?: AttackProfile;
 	recovery?: RecoveryRequest;
 };
@@ -59,9 +59,13 @@ export type CheckRollOptions = {
  * an attack is rolled with. A check rolled for a recovery carries it in the message's flags, which its card's Apply
  * button reads.
  */
-export async function checkMessageData(check: Check, { roll, results }: PoolRoll, { attack, recovery: request }: CheckRollOptions = {}) {
+export async function checkMessageData(
+	check: Check,
+	{ roll, results }: PoolRoll,
+	{ attack, recovery: recoveryRequest }: CheckRollOptions = {},
+) {
 	const card = cardResults(results);
-	const recovery = request && recoveryOf(request, results);
+	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results);
 	const data = { description: checkDescription(check, game.i18n), results, card, recovery: recovery && recoveryCardData(recovery) };
 	const content = attack
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {

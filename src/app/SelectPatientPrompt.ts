@@ -6,7 +6,7 @@ import VueSelectPatientPrompt from '@/vue/apps/SelectPatientPrompt.vue';
 /**
  * A patient the prompt offers: their uuid, name and portrait.
  */
-export type PatientOption = { uuid: string; name: string; img: string | null };
+type PatientOption = { uuid: string; name: string; img: string | null };
 
 /**
  * What the patient prompt shows: the patients to pick from.

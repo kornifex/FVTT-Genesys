@@ -80,7 +80,7 @@ declare module 'fvtt-types/configuration' {
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
 		ActiveEffect: { genesys: { expired?: boolean } };
-		// The recovery of a check that heals, which its card's Apply button reads (`src/dice/RecoveryCard.ts`).
+		// The recovery of a check that heals, which its card's Apply button reads (`src/dice/recoveryCard.ts`).
 		ChatMessage: { genesys: { recovery?: Recovery } };
 	}
 

@@ -551,6 +551,15 @@ function installAccessibilityHelpers() {
 				find(await sheet('Ship'), '.tab-combat .weapon .name button:not(.description-toggle)').click();
 			},
 		},
+		patient: {
+			cssClass: 'app-select-patient-prompt',
+			ready: (root) => !!root.querySelector('.patient-option'),
+			async open() {
+				// The Hero heals with Medicine, targeting no one: the prompt asks for the patient (§#686).
+				await window.e2e.showTab('Hero', 'skills');
+				find(await sheet('Hero'), '.tab[data-tab="skills"] .skill .heal').click();
+			},
+		},
 	};
 
 	/**

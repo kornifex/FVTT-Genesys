@@ -42,6 +42,11 @@ export function register() {
 			return;
 		}
 
-		button.addEventListener('click', () => void applyRecovery(patient, recovery));
+		// A second click, as a double click, would heal the patient twice: the button is spent once clicked, until the
+		// card renders again.
+		button.addEventListener('click', () => {
+			button.disabled = true;
+			void applyRecovery(patient, recovery);
+		});
 	});
 }

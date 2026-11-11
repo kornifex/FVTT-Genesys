@@ -5,7 +5,7 @@ import { SetbackDie } from '@/dice/dice/SetbackDie';
 import { DifficultyDie } from '@/dice/dice/DifficultyDie';
 import { ChallengeDie } from '@/dice/dice/ChallengeDie';
 import { register as registerDiceSoNice } from '@/dice/diceSoNice';
-import { register as registerRecoveryCards } from '@/dice/RecoveryCard';
+import { register as registerRecoveryCards } from '@/dice/recoveryCard';
 import * as log from '@/log';
 
 /**
