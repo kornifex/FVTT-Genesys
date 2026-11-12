@@ -1580,21 +1580,22 @@ function installCriticalInjuryHelpers() {
 			const items = await Item.createDocuments(
 				['Nick', 'Scar', 'Maim'].map((name) => ({ name: `E2E ${name}`, type: 'injury', system: { severity: 'easy' } })),
 			);
-			const ranges = [
-				[1, 50],
-				[51, 100],
-				[101, 200],
-			];
+			// By name: v14 may return the created documents in another order than the one asked for.
+			const ranges: Record<string, [number, number]> = {
+				'E2E Nick': [1, 50],
+				'E2E Scar': [51, 100],
+				'E2E Maim': [101, 200],
+			};
 			const table = await CONFIG.RollTable.documentClass.create({
 				name: 'E2E Crits',
 				formula: '1d100',
 				replacement: true,
 				displayRoll: true,
-				results: items.map((item: { uuid: string; name: string }, index: number) => ({
+				results: items.map((item: { uuid: string; name: string }) => ({
 					type: 'document',
 					documentUuid: item.uuid,
 					name: item.name,
-					range: ranges[index],
+					range: ranges[item.name],
 					weight: 1,
 				})),
 			});
