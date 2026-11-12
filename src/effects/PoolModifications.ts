@@ -293,7 +293,9 @@ export function scaledChangeValue(
 		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
-	if (quality || item?.type === 'talent') {
+	// A quality of rank 1, rated or not, leaves its value as written: the rewrite below would cut a decimal or a formula to
+	// an integer.
+	if (quality ? qualityRank !== 1 : item?.type === 'talent') {
 		const rank = quality ? qualityRank : item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;

@@ -181,6 +181,13 @@ describe('scaledChangeValue', () => {
 		expect(scaledChangeValue(armor, { key: 'system.soak', value: '1' }, { isRated: false, rating: 3 })).toBe('1');
 	});
 
+	it('leaves the numeric change of a quality of rank 1, or unrated, as written (CRB pp. 86–89)', () => {
+		const weapon = { type: 'weapon', system: {} };
+		expect(scaledChangeValue(weapon, { key: 'system.soak', value: '0.5' }, { isRated: true, rating: 1 })).toBe('0.5');
+		expect(scaledChangeValue(weapon, { key: 'system.soak', value: '1d6' }, { isRated: false, rating: 3 })).toBe('1d6');
+		expect(scaledChangeValue(weapon, { key: 'system.soak', value: 0.5 }, { isRated: true, rating: 1 })).toBe(0.5);
+	});
+
 	it("doesn't scale a numeric change of another item, or a change that isn't a number", () => {
 		expect(scaledChangeValue({ type: 'gear', system: {} }, { key: 'system.soak', value: '1' })).toBe('1');
 		expect(scaledChangeValue(undefined, { key: 'system.soak', value: '1' })).toBe('1');
