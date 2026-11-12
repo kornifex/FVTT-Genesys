@@ -1,16 +1,36 @@
 # Code style
 
-How code, commits and pull requests are written in this repo. A rule a tool can check lives in that tool's config (tsconfig, ESLint, Prettier, CI) and is not repeated here: this file covers judgement.
+How code, commits and pull requests are written in this repo. A rule a tool can check lives in that tool's config (tsconfig, ESLint, Prettier, CI) and is not repeated here: this file covers judgement. The sources and the reasoning behind the general rules are in [`docs/research/code-style-state-of-the-art.md`](../research/code-style-state-of-the-art.md).
 
-When code you touch breaks a rule below, fix it in passing (scout rule) as long as the fix stays small next to the change. Sweeps over many files get their own PR.
+## The change
+
+- Build what the issue asks for. Options, settings, flags, compatibility shims and features nobody asked for stay out.
+- The diff stays inside the issue. When code you touch breaks a rule below, fix it in passing (scout rule) as long as the fix stays small, in a commit of its own. Sweeps over many files get their own PR.
+- Structural changes (renames, moves, extractions, tidying) and behaviour changes go in separate commits, so a review can read them apart; a structural part of more than a few lines gets its own PR, since the squash merge folds commits together.
+- When existing code breaks this file, write the new code to it and flag the old pattern in the PR, rather than copying it.
+- An agent shows the output of the checks (see Git and pull requests) before saying the work is done.
 
 ## Architecture
 
 - Domain logic lives in **deep modules**: pure functions over narrow types, unit-tested (`src/combat/InitiativeSlots.ts`, `src/dice/Check.ts`, `src/data/Skills.ts`). Foundry globals (`game`, `ui`, `canvas`, `CONFIG`) stay out of the logic; a module may expose one small function at its edge that reads them, like `worldCheckRules` in `Check.ts`.
 - Foundry classes (documents, DataModels, sheets, apps) are **thin adapters**: they read Foundry state, call a module, and write the result.
 - Vue components display state and delegate to modules.
+- **Split for depth, not for length**, with no line limit on functions or files. Extract a function or a module when it can be understood without reading its caller, and its caller without it. A helper called once that hides nothing stays inline. A function or a layer that only passes its arguments on is removed: every module hides something.
+- Inside a function, one level of abstraction, and names that state the intent.
 - Names use the vocabulary of `GLOSSARY.md`.
 - Supported Foundry versions are in ADR 0003. Code for a single version sits in a file suffixed with that version (`*.v13.*`) or behind a comment marked with it (`// v13:`), so it can be removed in one go.
+
+## Duplication
+
+- Search `src/` for an existing function before writing a new one.
+- Duplicated knowledge (one Genesys rule written twice) is the problem; similar-looking code is not. Extract a shared function at the third occurrence, not the second.
+- A shared function that needs a flag or a branch per caller is the wrong abstraction: inline it back into its callers.
+
+## Types and validation
+
+- **Parse at the boundary.** Data that comes from outside the code (socket and query payloads, world settings, imported JSON, document data before its DataModel) is parsed once where it enters, into a precise type; inner code receives that type and does not validate it again.
+- Make illegal states unrepresentable: a discriminated union rather than a type full of optional fields.
+- An `as` or a `!` carries a comment saying what the type system cannot see.
 
 ## TypeScript
 
@@ -31,7 +51,8 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 ## Comments
 
 - English, full sentences, explaining **why**: the Genesys rule, the Foundry constraint or bug, the difference between Foundry versions. The code says what.
-- Short JSDoc on a module's exports and on the public methods of Foundry classes.
+- Short JSDoc on a module's exports and on the public methods of Foundry classes: the **contract** (what it guarantees, what it does with invalid input), not a paraphrase of the body.
+- Clean code needs few comments. A comment that restates the code or narrates the change (« added », « now uses », « fixed ») is removed.
 - Removed code leaves the file; git keeps it.
 
 ## Vue and SCSS
@@ -49,12 +70,18 @@ When code you touch breaks a rule below, fix it in passing (scout rule) as long 
 
 ## Logs and errors
 
+- **Fail fast.** Catch an error only where the code can handle it. A silent fallback value (an empty list, a `0`, a default object standing in for a failure) is a bug. Unexpected errors travel up to Foundry's handler, which logs them.
+- **Expected failures are values.** A failure the rules expect (not enough Story Points, no valid target, a slot already taken) is returned as a `Result` or a union of error types, so the signature shows it and the caller must handle it. Exceptions are for bugs and Foundry failures.
 - Logs go through `src/log.ts`, which prefixes `Genesys |`.
 - An error the player must act on goes to `ui.notifications` with a localization key.
 - A `catch` logs the error, or its comment says why the error is expected.
 
 ## Testing a change
 
+- Test behaviour through a module's public interface. Mock only what lies outside the module (Foundry globals, sockets, the clock); the module's own collaborators run for real.
+- A bug fix starts with a test that fails on the bug.
+- A failing test is never weakened, skipped or deleted to make the suite pass. A test that is wrong is fixed, and the PR says why.
+- No coverage threshold: these rules decide what gets tested, a percentage would push toward testing details.
 - Module logic: unit tests.
 - Vue components: component tests through their props, events and DOM, mounted with `@vue/test-utils` in happy-dom: the test file starts with `// @vitest-environment happy-dom`, before its `@file` line (`src/vue/components/ContextMenu.test.ts`).
 - Behaviour that depends on Foundry (turns, sockets, rendering, sheets): add or extend its domain's scenario in `e2e/scenarios/` with `expect` steps, rather than a one-off scenario out of the repo. While iterating, run the part under change (`--part`) with the [e2e harness](../../e2e/README.md). Before opening the PR, run the domain's whole scenario once on each Foundry version `main` supports (ADR 0003), compared against `origin/main`, whose step log comes from the harness's cache once a run filled it, and put a before/after table in the PR's Evidence. `pnpm e2e:all` stays the release gate ([`releasing.md`](releasing.md)).
