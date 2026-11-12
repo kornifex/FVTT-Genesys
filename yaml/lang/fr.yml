@@ -242,7 +242,7 @@ Genesys:
       other: '{rounds} rounds'
     # Cover and prone (CRB p. 99–100)
     Cover:
-      Name: À couvert
+      Name: Abrité
     Prone:
       Name: À terre
     # Set and cleared by the Threshold States (CRB pp. 112–113)
@@ -256,7 +256,7 @@ Genesys:
       Name: Viser
       Hint: Un dé de fortune au prochain test de combat, deux après deux manœuvres Viser d'affilée.
     GuardedStance:
-      Name: Position défensive
+      Name: Posture défensive
       Hint: Un dé d'infortune aux tests de combat et défense de mêlée 1, jusqu'à la fin du prochain tour.
 
   # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
