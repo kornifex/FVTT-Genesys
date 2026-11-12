@@ -44,6 +44,7 @@ To work with live reload, start Foundry on its default port (30000), run `pnpm d
 [`docs/agents/code-style.md`](docs/agents/code-style.md) describes how code, commits and pull requests are written here. It is written for coding agents, but it applies to every contributor. In short:
 
 - Domain logic lives in pure, unit-tested modules; Foundry classes and Vue components stay thin and call them.
+- A pull request does what its issue asks, nothing more. Data from outside the code is checked once, where it enters; an error is handled where it can be, never hidden behind a default value.
 - Every user-visible string goes through a localization key in `yaml/lang/en.yml`. Add the French one too if you can; otherwise say so in the pull request.
 - Comments are in English, and explain why: the Genesys rule, or the Foundry constraint.
 - Code for a single Foundry version is marked with that version ([ADR 0003](docs/adr/0003-supported-foundry-versions.md)), so it can be removed in one go.
