@@ -245,6 +245,9 @@ Genesys:
       Name: A cubierto
     Prone:
       Name: Tumbado
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Incapacitado
 
   # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
   Maneuvers:
@@ -255,6 +258,10 @@ Genesys:
     GuardedStance:
       Name: Postura defensiva
       Hint: Un dado de Complicación en las tiradas de combate y defensa cuerpo a cuerpo 1, hasta el final del próximo turno.
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} supera su umbral de heridas, queda incapacitado y sufre una herida crítica.'
 
   # Dice Prompt Labels
   DicePrompt:

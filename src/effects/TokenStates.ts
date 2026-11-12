@@ -94,6 +94,15 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		actorTypes: CHARACTER_TYPES,
 		lapses: false,
 	},
+	// An incapacitated character is knocked out until their wounds or strain no longer exceed their threshold (CRB pp.
+	// 112–113): the Threshold States set and clear it, and it lasts no number of rounds.
+	{
+		id: 'incapacitated',
+		name: 'Genesys.TokenStates.Incapacitated.Name',
+		img: 'icons/svg/down.svg',
+		changes: [],
+		lapses: false,
+	},
 ];
 
 /**

@@ -9,6 +9,7 @@ import { migrateCreatedActor } from '@/migrations/CreatedActorMigration';
 import { removeDeletedFromCrews } from '@/operations/CrewDeletion';
 import * as log from '@/log';
 import { applyLapsingState, lapsingStateApplied, type ToggleStatusEffectOptions } from '@/effects/tokenStateMenu';
+import { recordStandingBefore, syncThresholdStates } from '@/effects/thresholdStateSync';
 
 /**
  * An actor of the system, typed by its subtype: its `system` is the DataModel registered for that type.
@@ -35,6 +36,36 @@ export class GenesysActor<SubType extends Actor.SubType = Actor.SubType> extends
 		}
 
 		return super._preCreate(data, options, user);
+	}
+
+	/**
+	 * Keep the actor's standing against its wound and strain thresholds before the update, for {@link _onUpdate}.
+	 * @inheritDoc
+	 */
+	protected override async _preUpdate(changes: Actor.UpdateData, options: Actor.Database.PreUpdateOptions, user: User.Stored) {
+		const allowed = await super._preUpdate(changes, options, user);
+		if (allowed !== false) {
+			// An actor only updates once stored.
+			recordStandingBefore(this as Stored<GenesysActor>, options);
+		}
+
+		return allowed;
+	}
+
+	/**
+	 * Set or clear the actor's Threshold States once its wounds or strain changed, however they changed. The user who made
+	 * the update does it, once: they own the actor, so they may change its effects and speak for it, GM online or not.
+	 * Foundry calls this for a token's actor too, unlinked or not.
+	 * @inheritDoc
+	 */
+	protected override _onUpdate(changed: Actor.UpdateData, options: Actor.Database.OnUpdateOptions, userId: string) {
+		super._onUpdate(changed, options, userId);
+
+		if (userId === game.user.id) {
+			syncThresholdStates(this as Stored<GenesysActor>, options).catch((error: unknown) =>
+				log.error('Updating the Threshold States failed', error),
+			);
+		}
 	}
 
 	/**

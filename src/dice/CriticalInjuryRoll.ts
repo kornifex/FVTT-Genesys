@@ -35,13 +35,25 @@ export const CRITICAL_INJURY_FLAG = 'criticalInjury';
  * the uuids of the attacker and of the single target, if any, and the name and qualities of the Weapon Profile, as they
  * were when the attack was rolled.
  */
-export type CriticalInjuryFlag = {
+type AttackCriticalInjuryFlag = {
 	/** How many times the attack triggered a Critical Injury, 1 or more. */
 	triggers: number;
 	attacker: string | null;
 	target: string | null;
 	weapon: { name: string; qualities: AttackQuality[] };
 };
+
+/**
+ * What a chat message offering the Critical Injury of a character gone past their wound threshold keeps in its flags: the
+ * uuid of the character, and no attack.
+ */
+type ThresholdCriticalInjuryFlag = { target: string };
+
+/**
+ * What a chat message that offers to roll a Critical Injury keeps for it, in its flags: an attack's, or a wound
+ * threshold's.
+ */
+export type CriticalInjuryFlag = AttackCriticalInjuryFlag | ThresholdCriticalInjuryFlag;
 
 /**
  * What each extra trigger, each existing injury and each point of Vicious adds to the roll (CRB pp. 89, 103, 114).

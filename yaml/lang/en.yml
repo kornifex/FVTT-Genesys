@@ -245,6 +245,9 @@ Genesys:
       Name: In Cover
     Prone:
       Name: Prone
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Incapacitated
 
   # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
   Maneuvers:
@@ -255,6 +258,10 @@ Genesys:
     GuardedStance:
       Name: Guarded Stance
       Hint: A Setback on combat checks and melee defense 1, until the end of the next turn.
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} is past their wound threshold, incapacitated, and suffers a Critical Injury.'
 
   # Dice Prompt Labels
   DicePrompt:

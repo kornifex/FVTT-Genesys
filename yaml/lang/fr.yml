@@ -245,6 +245,9 @@ Genesys:
       Name: À couvert
     Prone:
       Name: À terre
+    # Set and cleared by the Threshold States (CRB pp. 112–113)
+    Incapacitated:
+      Name: Neutralisé
 
   # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
   Maneuvers:
@@ -255,6 +258,10 @@ Genesys:
     GuardedStance:
       Name: Position défensive
       Hint: Un dé d'infortune aux tests de combat et défense de mêlée 1, jusqu'à la fin du prochain tour.
+
+  # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
+  ThresholdStates:
+    CriticalInjuryOffer: '{actor} dépasse son seuil de blessures, est neutralisé et subit une blessure critique.'
 
   # Dice Prompt Labels
   DicePrompt:
