@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 // validator a setting gives its field: Foundry's own rules (types, blanks, choices) are left to the e2e scenarios.
 vi.hoisted(() => {
 	class DataField {
-		constructor(readonly options: { validate?: (value: unknown) => boolean } = {}) {}
+		readonly options: { validate?: (value: unknown) => boolean };
+		constructor(options: { validate?: (value: unknown) => boolean } = {}) {
+			this.options = options;
+		}
 		validate(value: unknown) {
 			return this.options.validate?.(value) === false ? { invalidValue: value } : undefined;
 		}

@@ -184,7 +184,7 @@ export async function rollCheck({ check, dicePool }: CheckRoll, options: CheckRo
  */
 export function parseRollResults(roll: Roll<PoolRollData>): GenesysRollResults {
 	const faces = roll.dice.reduce((faces: Record<string, string[]>, die) => {
-		const genDie = <GenesysDie>die;
+		const genDie = die as GenesysDie;
 		if (faces[genDie.denomination] === undefined) {
 			faces[genDie.denomination] = die.results.map((r) => genDie.resultFace(r));
 		} else {

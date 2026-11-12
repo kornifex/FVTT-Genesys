@@ -7,15 +7,24 @@ vi.hoisted(() => {
 	const field = (kind: string) =>
 		class {
 			kind = kind;
-			constructor(readonly options: object = {}) {}
+			readonly options: object;
+			constructor(options: object = {}) {
+				this.options = options;
+			}
 		};
 	class SchemaField {
 		kind = 'schema';
-		constructor(readonly fields: object) {}
+		readonly fields: object;
+		constructor(fields: object) {
+			this.fields = fields;
+		}
 	}
 	class ArrayField {
 		kind = 'array';
-		constructor(readonly element: object) {}
+		readonly element: object;
+		constructor(element: object) {
+			this.element = element;
+		}
 	}
 	vi.stubGlobal('foundry', {
 		data: {
