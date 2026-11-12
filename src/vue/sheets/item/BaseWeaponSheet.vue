@@ -24,7 +24,8 @@ async function updateMainProfile(changes: Partial<WeaponProfileData>) {
 					<slot name="extra-data" />
 
 					<WeaponProfileFields :profile="system" named @change="updateMainProfile">
-						<EquipmentRows :system="system" />
+						<!-- A vehicle weapon has no Hard Points: a vehicle's own are a vehicle rule. -->
+						<EquipmentRows :system="system" :hard-points="item.type === 'weapon'" />
 					</WeaponProfileFields>
 				</section>
 

@@ -82,6 +82,8 @@ Genesys:
     NoDescription: Aucune description disponible
     SkillDifficulty: >-
       La difficulté à laquelle la réserve de dés s'ouvre pour cette compétence, en symboles de modification de réserve (DD pour Moyen). Laissez vide pour la difficulté par défaut du monde. Seule la compétence du compendium des compétences compte.
+    HardPoints: >-
+      La moitié de l'encombrement de base, arrondie au supérieur (livre de base, p. 206). Changez-la pour un objet qui fait exception ; videz le champ pour revenir à la valeur calculée.
     IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
     CycleInitiativeSkill: Cycle de la compétence d'initiative utilisée par le combattant.
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
@@ -709,6 +711,7 @@ Genesys:
     Add: Ajouter
     Cancel: Annuler
     Encumbrance: Encombrement
+    HardPoints: Points d'emplacement
     Price: Prix
     Rarity: Rareté
     Damage: Dégâts

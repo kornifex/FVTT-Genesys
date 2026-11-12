@@ -46,7 +46,7 @@ function updateQualityRating(index: number, event: Event) {
 
 				<DataRow label="Genesys.Labels.Soak" name="system.soak" :value="system.soak" type="number" />
 
-				<EquipmentRows :system="system" />
+				<EquipmentRows :system="system" hard-points />
 
 				<DataRow label="Genesys.Labels.Qualities" group>
 					<div>

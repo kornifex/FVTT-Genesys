@@ -1,6 +1,6 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { qualitiesField } from '@/data/schemaFields';
+import { hardPointsField, qualitiesField } from '@/data/schemaFields';
 
 /**
  * The data of an armor.
@@ -21,6 +21,12 @@ export abstract class ArmorDataModel extends EquipmentDataModel {
 	 */
 	abstract qualities: ContainedItemQuality[];
 
+	/**
+	 * The Hard Points the armor sets as an exception, `null` while it gets them from its encumbrance: read them with
+	 * `hardPoints`.
+	 */
+	abstract hardPoints: number | null;
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -29,6 +35,7 @@ export abstract class ArmorDataModel extends EquipmentDataModel {
 			defense: new fields.NumberField({ integer: true, initial: 0 }),
 			soak: new fields.NumberField({ integer: true, initial: 0 }),
 			qualities: qualitiesField(),
+			hardPoints: hardPointsField(),
 		};
 	}
 }

@@ -154,6 +154,10 @@ _Avoid_: Mode, stat line
 A rule that a weapon or an armor carries, such as Pierce, Disorient or Defensive, with a rating when it's rated. A passive quality always applies; an active one applies only when the attacker triggers it, usually by spending Advantage.
 _Avoid_: Trait, property
 
+**Hard Points**:
+How many attachments a weapon or an armor can hold: half its base encumbrance, rounded up, and none for an encumbrance of 0 or less (CRB p. 206). An item that is an exception sets its own number, which wins over the computed one. A vehicle weapon has none: a vehicle's own hard points are a vehicle rule.
+_Avoid_: Slots, mod slots
+
 ### Vehicles
 
 **Crew**:
