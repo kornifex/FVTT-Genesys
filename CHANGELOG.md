@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.7.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0...v0.7.0-rc.1) (2026-11-12)
+
+
+### Features
+
+* **actor:** recover strain after an encounter, and strain and a wound after a night's rest ([#693](https://github.com/kornifex/FVTT-Genesys/issues/693)) ([7fa6945](https://github.com/kornifex/FVTT-Genesys/commit/7fa6945a437b84167ef624d0ae4e9dd070d7970e))
+* **combat:** mark an actor incapacitated or defeated past their thresholds ([#692](https://github.com/kornifex/FVTT-Genesys/issues/692)) ([3c93df1](https://github.com/kornifex/FVTT-Genesys/commit/3c93df13a7038adf2a8fb6ea17c7592d4fd1e72e))
+* **dice:** apply encumbrance and weapon damage to the checks they hinder ([#678](https://github.com/kornifex/FVTT-Genesys/issues/678)) ([05c31ee](https://github.com/kornifex/FVTT-Genesys/commit/05c31ee7ff4dca9661f337b4834698f3d5d5f9f6))
+* **dice:** cast a spell from the Magic tab, with its additional effects picked in the Dice Prompt ([#709](https://github.com/kornifex/FVTT-Genesys/issues/709)) ([0d6732e](https://github.com/kornifex/FVTT-Genesys/commit/0d6732eeb725b7e8ad855429a01ce175237bf985))
+* **dice:** heal a patient with a Heal spell ([#711](https://github.com/kornifex/FVTT-Genesys/issues/711)) ([71f60fc](https://github.com/kornifex/FVTT-Genesys/commit/71f60fcc5c2c096fde7b1b9d12541827e3473d1e))
+* **dice:** heal a patient with a Medicine check ([#690](https://github.com/kornifex/FVTT-Genesys/issues/690)) ([59397ff](https://github.com/kornifex/FVTT-Genesys/commit/59397ff5702b2064707c4e6fa6f68935e162f791))
+* **dice:** make a magic attack with an attack spell ([#712](https://github.com/kornifex/FVTT-Genesys/issues/712)) ([02d7c73](https://github.com/kornifex/FVTT-Genesys/commit/02d7c73919e77c9695d7acdeb2756cff96c122f7))
+* **dice:** open the Dice Prompt at a skill's default difficulty ([#679](https://github.com/kornifex/FVTT-Genesys/issues/679)) ([12cec57](https://github.com/kornifex/FVTT-Genesys/commit/12cec57d6297d9de2af733b411d79d26dce5fe21))
+* **dice:** roll Critical Injuries on the world's table ([#689](https://github.com/kornifex/FVTT-Genesys/issues/689)) ([958bf44](https://github.com/kornifex/FVTT-Genesys/commit/958bf44a08cb088c609546abe796a66cfe7267ba))
+* **dice:** spend Story Points from the Dice Prompt ([#680](https://github.com/kornifex/FVTT-Genesys/issues/680)) ([028cb17](https://github.com/kornifex/FVTT-Genesys/commit/028cb1753f6f62c881c45af41ce2642609212a15))
+* **effects:** add a Setback to a prone character's own melee attacks ([#698](https://github.com/kornifex/FVTT-Genesys/issues/698)) ([dfcee4c](https://github.com/kornifex/FVTT-Genesys/commit/dfcee4cd4132ccc8a634f0d25520781a0ce4ad7d)), closes [#696](https://github.com/kornifex/FVTT-Genesys/issues/696)
+* **effects:** apply Aim, Guarded Stance, cover and prone to combat checks ([#691](https://github.com/kornifex/FVTT-Genesys/issues/691)) ([766365c](https://github.com/kornifex/FVTT-Genesys/commit/766365cb09a44cc422f7d4223468c28744f993e9))
+* **effects:** make a quality complete on its item, with Active Effects scaled by its rank ([#701](https://github.com/kornifex/FVTT-Genesys/issues/701)) ([3b6472f](https://github.com/kornifex/FVTT-Genesys/commit/3b6472f6144cb72e2becf6745c93cfc301fe650e)), closes [#694](https://github.com/kornifex/FVTT-Genesys/issues/694)
+* **effects:** put the Immobilized, Disoriented and Staggered states on tokens ([#688](https://github.com/kornifex/FVTT-Genesys/issues/688)) ([dcd8989](https://github.com/kornifex/FVTT-Genesys/commit/dcd89899ece0a2477d8c9d705df3eb1ec9b9932d))
+* **item:** install attachments on a weapon or an armor, with Active Effects that can change the item itself ([#703](https://github.com/kornifex/FVTT-Genesys/issues/703)) ([7ecbd32](https://github.com/kornifex/FVTT-Genesys/commit/7ecbd32eebeccb209441687b43e31614b116d9ee))
+* **item:** show a weapon's or an armor's hard points ([#699](https://github.com/kornifex/FVTT-Genesys/issues/699)) ([c86cdbe](https://github.com/kornifex/FVTT-Genesys/commit/c86cdbeffba04001861d63a08e60d535118ba11c)), closes [#695](https://github.com/kornifex/FVTT-Genesys/issues/695)
+* **item:** write spells and their additional effects, shown in a Magic tab ([#708](https://github.com/kornifex/FVTT-Genesys/issues/708)) ([afe41d3](https://github.com/kornifex/FVTT-Genesys/commit/afe41d3518315cf6452443edf66371c4d790d7de))
+
+
+### Bug Fixes
+
+* **i18n:** spell the French strategic range correctly ([#666](https://github.com/kornifex/FVTT-Genesys/issues/666)) ([db04e19](https://github.com/kornifex/FVTT-Genesys/commit/db04e1959d482fc854b80ff78c1fd42bc2492b2b))
+* **i18n:** summarize 0.7.0's changes since 0.6.0 in the welcome message ([#714](https://github.com/kornifex/FVTT-Genesys/issues/714)) ([de12213](https://github.com/kornifex/FVTT-Genesys/commit/de122139093dccb4fd8a066270442c180f2fe777))
+* **i18n:** use the French edition's names for guarded stance and cover ([#697](https://github.com/kornifex/FVTT-Genesys/issues/697)) ([afe0fb5](https://github.com/kornifex/FVTT-Genesys/commit/afe0fb5b21dc181d9dd1322ce480810464515499))
+* **item:** head an Additional Effect's attack section with an h3, and check spells have no Effects tab ([#710](https://github.com/kornifex/FVTT-Genesys/issues/710)) ([0d959eb](https://github.com/kornifex/FVTT-Genesys/commit/0d959ebfadc9e86c2d48d292544499d041982cbd))
+
+
+### Documentation
+
+* add 0.6.0's accessibility and row changes to the README's fork summary ([#663](https://github.com/kornifex/FVTT-Genesys/issues/663)) ([22ff3a5](https://github.com/kornifex/FVTT-Genesys/commit/22ff3a514d176a833b342c2e1fd78f6553aad3ae))
+
+
+### Continuous Integration
+
+* remove release-as now that 0.6.0 is out ([#664](https://github.com/kornifex/FVTT-Genesys/issues/664)) ([44c8438](https://github.com/kornifex/FVTT-Genesys/commit/44c8438a3692a65c9559b49514fbfe492d2b868a))
+* set the next release to 0.7.0-rc.1 ([#713](https://github.com/kornifex/FVTT-Genesys/issues/713)) ([3c7c315](https://github.com/kornifex/FVTT-Genesys/commit/3c7c31555c7cc38a401ef3a8deea902b99523739))
+
+
+### Tests
+
+* **dice:** give the Critical Injury table its ranges by name, not by creation order ([#700](https://github.com/kornifex/FVTT-Genesys/issues/700)) ([d483350](https://github.com/kornifex/FVTT-Genesys/commit/d483350c1bec2ce8716faffd220dbdfb34fc3b8b))
+* **ui:** make [#315](https://github.com/kornifex/FVTT-Genesys/issues/315) A1 independent of the frame rate ([#681](https://github.com/kornifex/FVTT-Genesys/issues/681)) ([8dd9254](https://github.com/kornifex/FVTT-Genesys/commit/8dd9254d5e91a91ae3008234882da6c94036e9e1))
+
 ## [0.6.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0-rc.4...v0.6.0) (2026-11-11)
 
 
