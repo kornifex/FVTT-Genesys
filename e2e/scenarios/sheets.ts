@@ -1928,6 +1928,7 @@ export async function run(e2e: ScenarioContext) {
 				ability: withSelects,
 				archetype: ['characteristic start', ...itemLooks],
 				armor: itemLooks,
+				attachment: itemLooks,
 				career: itemLooks,
 				consumable: itemLooks,
 				container: itemLooks,

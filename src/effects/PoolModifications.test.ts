@@ -45,9 +45,10 @@ function effect(
 		origin = null,
 		parent = null,
 		quality = undefined,
-	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown; quality?: string } = {},
+		attachment = undefined,
+	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown; quality?: string; attachment?: string } = {},
 ): PoolModificationEffect {
-	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes, flags: { genesys: { quality } } };
+	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes, flags: { genesys: { quality, attachment } } };
 }
 
 /**
@@ -683,6 +684,69 @@ describe('poolModificationsForCheck', () => {
 
 			expect(poolModificationsForCheck(actor('character', [...rifle.effects]), undefined, attackWith(rifle, 'medium'))).toEqual([
 				fromQuality('Auto-fire', 'Rifle', ['D'], true),
+			]);
+		});
+	});
+
+	describe("the effects of a weapon's or an armor's attachments (CRB pp. 206–209)", () => {
+		// A weapon or an armor holding one attachment, whose effects have the given changes, tagged with its id. A weapon
+		// has a second Weapon Profile.
+		function equipment(type: string, name: string, changes: Change[], { disabled = false } = {}) {
+			const item = {
+				documentName: 'Item',
+				type,
+				name,
+				uuid: `Item.${name}`,
+				system: { damage: 'undamaged' as const, qualities: [], extraProfiles: [{ qualities: [] }] },
+				effects: [] as PoolModificationEffect[],
+			};
+			item.effects = [effect(changes, { name: 'Scope', parent: item, isSuppressed: disabled, attachment: 'scope' })];
+			return item;
+		}
+
+		const fromAttachment = (item: string, mods: string[]) => ({
+			source: 'self',
+			from: { effect: 'Scope', uuid: 'ActiveEffect.Scope', item: { name: item, uuid: `Item.${item}` } },
+			mods,
+		});
+		const boost = [{ key: 'genesys.pool.combat.self.', value: 'B' }];
+		const attackWith = (weapon: ReturnType<typeof equipment>, attackQualities: { id: string }[] = []) => ({
+			characteristic: Characteristic.Agility,
+			skillName: 'Ranged',
+			attackRange: 'medium',
+			weapon,
+			attackQualities,
+		});
+
+		it("applies a weapon's attachment to the attacks made with the weapon, with any of its Weapon Profiles", () => {
+			const rifle = equipment('weapon', 'Rifle', boost);
+			const holder = actor('character', [...rifle.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, attackWith(rifle))).toEqual([fromAttachment('Rifle', ['B'])]);
+			expect(poolModificationsForCheck(holder, undefined, attackWith(rifle, rifle.system.extraProfiles[0].qualities))).toEqual([
+				fromAttachment('Rifle', ['B']),
+			]);
+		});
+
+		it("leaves a weapon's attachment out of an attack made with another weapon, and out of any check that is no attack", () => {
+			const rifle = equipment('weapon', 'Rifle', boost);
+			const holder = actor('character', [...rifle.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, attackWith(equipment('weapon', 'Pistol', [])))).toEqual([]);
+			expect(poolModificationsForCheck(holder, undefined, check)).toEqual([]);
+		});
+
+		it('leaves out a modification option until the table installs it, enabling its effect', () => {
+			const rifle = equipment('weapon', 'Rifle', boost, { disabled: true });
+
+			expect(poolModificationsForCheck(actor('character', [...rifle.effects]), undefined, attackWith(rifle))).toEqual([]);
+		});
+
+		it("applies an armor's attachment to every check its key names", () => {
+			const armor = equipment('armor', 'Coat', [{ key: 'genesys.pool.skill.self.Stealth', value: 'B' }]);
+
+			expect(poolModificationsForCheck(actor('character', [...armor.effects]), undefined, check)).toEqual([
+				fromAttachment('Coat', ['B']),
 			]);
 		});
 	});

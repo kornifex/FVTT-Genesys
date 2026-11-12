@@ -1,6 +1,7 @@
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { hardPointsField, qualitiesField } from '@/data/schemaFields';
+import { attachmentsField, hardPointsField, qualitiesField } from '@/data/schemaFields';
+import type { ContainedAttachment } from '@/item/data/Attachments';
 
 /**
  * The data of an armor.
@@ -27,6 +28,11 @@ export abstract class ArmorDataModel extends EquipmentDataModel {
 	 */
 	abstract hardPoints: number | null;
 
+	/**
+	 * The attachments installed on the armor.
+	 */
+	abstract attachments: ContainedAttachment[];
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -36,6 +42,7 @@ export abstract class ArmorDataModel extends EquipmentDataModel {
 			soak: new fields.NumberField({ integer: true, initial: 0 }),
 			qualities: qualitiesField(),
 			hardPoints: hardPointsField(),
+			attachments: attachmentsField(),
 		};
 	}
 }

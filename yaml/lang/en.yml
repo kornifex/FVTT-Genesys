@@ -17,6 +17,7 @@ TYPES:
 
     # Equipment Items
     armor: Armor
+    attachment: Attachment
     consumable: Consumable
     container: Container
     gear: Gear
@@ -713,6 +714,12 @@ Genesys:
     Cancel: Cancel
     Encumbrance: Encumbrance
     HardPoints: Hard Points
+    HardPointsRequired: Hard Points Required
+    HardPointsOver: '{taken} Hard Points taken, out of {total}!' # The warning of a weapon or an armor whose attachments take more Hard Points than it has
+    Attachments: Attachments
+    RemoveAttachment: Remove the Attachment
+    AttachmentDetails: '{attachment} Details' # e.g. Scope Details, the button that shows a weapon's or an armor's attachment in full
+    WithEffects: With Its Effects # The stats of a weapon or an armor once its effects (its attachments') change them
     Price: Price
     Rarity: Rarity
     Damage: Damage

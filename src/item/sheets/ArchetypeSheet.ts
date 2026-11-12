@@ -9,7 +9,7 @@ import '@/item/sheets/ArchetypeSheet.scss';
 /**
  * List of item types that are not allowed to be granted by an archetype.
  */
-const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality'];
+const BLOCK_GRANTED_ITEM_TYPES = ['archetype', 'career', 'quality', 'attachment'];
 
 /**
  * Item sheet used for Archetypes, which receives the items the Archetype grants.

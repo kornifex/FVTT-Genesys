@@ -142,6 +142,27 @@ export function hardPointsField() {
 }
 
 /**
+ * The Hard Points an attachment takes on the weapon or armor it is installed on: one by default (CRB p. 206).
+ */
+export function hardPointsRequiredField() {
+	return new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 1 });
+}
+
+/**
+ * The attachments a weapon or an armor holds, copied from the attachment items dropped on it.
+ */
+export function attachmentsField() {
+	return new foundry.data.fields.ArrayField(
+		new foundry.data.fields.SchemaField({
+			id: new foundry.data.fields.StringField({ initial: '' }),
+			name: new foundry.data.fields.StringField(),
+			description: new foundry.data.fields.HTMLField(),
+			hardPointsRequired: hardPointsRequiredField(),
+		}),
+	);
+}
+
+/**
  * The Advantage an active quality costs to trigger: two by default (CRB p. 86).
  */
 export function advantageCostField() {

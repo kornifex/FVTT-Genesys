@@ -4,6 +4,7 @@ import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { skillNamesMatch } from '@/data/Skills';
 import { qualityCopy, withQualityAdded } from '@/item/data/Qualities';
 import { copyQualityEffects } from '@/operations/QualityEffects';
+import { installAttachment } from '@/operations/AttachmentEffects';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { type ExtraWeaponProfile, profileUpdate, weaponProfile } from '@/item/WeaponProfiles';
@@ -15,7 +16,9 @@ import { type ExtraWeaponProfile, profileUpdate, weaponProfile } from '@/item/We
  */
 export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'> {
 	protected override async receiveItem(droppedItem: GenesysItem, event?: DragEvent): Promise<void> {
-		const system = this.item.system;
+		// The stored data, which an update of an extra profile copies whole: the prepared data holds the damage and Critical
+		// ratings the weapon's Item Changes add to every profile, which the update would store.
+		const system = this.item._source.system as WeaponDataModel | VehicleWeaponDataModel;
 		// A vehicle weapon has a single profile: its own fields.
 		const weapon = hasExtraProfiles(system) ? system : undefined;
 		// The profile read, the main one when the block's profile was deleted meanwhile.
@@ -49,6 +52,15 @@ export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'
 
 				return;
 			}
+
+			// An attachment changes the whole weapon, wherever it is dropped. A vehicle weapon takes none: a vehicle's own
+			// Hard Points are a vehicle rule.
+			case 'attachment':
+				if (this.item.type === 'weapon') {
+					await installAttachment(this.item as GenesysItem<'weapon'>, droppedItem);
+				}
+
+				return;
 		}
 	}
 }

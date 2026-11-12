@@ -5,6 +5,7 @@ import type { ItemDataModels, ItemType } from '@/item/ItemTypes';
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import { ContainerDataModel } from '@/item/data/ContainerDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
@@ -31,6 +32,7 @@ const DATA_MODELS: { [T in ItemType]: abstract new (...args: never[]) => ItemDat
 	ability: AbilityDataModel,
 	archetype: ArchetypeDataModel,
 	armor: ArmorDataModel,
+	attachment: AttachmentDataModel,
 	career: CareerDataModel,
 	consumable: EquipmentDataModel,
 	container: ContainerDataModel,
