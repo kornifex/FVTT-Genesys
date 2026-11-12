@@ -127,6 +127,15 @@ export function sideOf(hasPlayerOwner: boolean): InitiativeSide {
 }
 
 /**
+ * The id of the combatant whose turn an Initiative Slot of a started combat is: the one that Claimed it, else the origin
+ * of an NPC slot, which the GM may play without a Claim. An unclaimed PC slot is nobody's turn: any PC may Claim it, and
+ * its origin may take another slot of the round.
+ */
+export function turnTakerId(slot: InitiativeSlot): string | undefined {
+	return slot.claimantId ?? (slot.side === 'npc' ? slot.originId : undefined);
+}
+
+/**
  * Whether an Initiative Slot comes from an extra slot rather than being its combatant's own.
  */
 export function isExtraSlot(slot: InitiativeSlot) {

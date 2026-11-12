@@ -8,8 +8,8 @@ import { FLAG_EXPIRED, type GenesysEffect } from '@/effects/GenesysEffect';
 
 /**
  * Marks as expired the effects of a combat's combatants, their actors' and their items', whose duration in rounds or
- * turns has run out at the combat's current turn. Only a GM may write them all. v14's Active Effect registry expires
- * them itself.
+ * turns has run out at the combat's current turn, but the Lapsing Effects. Only a GM may write them all. v14's Active
+ * Effect registry expires them itself.
  */
 export async function expireEffectsOfCombat(combat: GenesysCombat) {
 	// By uuid: two combatants may share a linked actor.
@@ -22,7 +22,10 @@ export async function expireEffectsOfCombat(combat: GenesysCombat) {
 		}
 
 		for (const effect of [...actor.effects, ...[...actor.items].flatMap((item) => [...item.effects])]) {
-			effects.set(effect.uuid ?? effect.id, effect);
+			// A Lapsing Effect counts its rounds in its actor's turns, and is removed rather than expired.
+			if (effect.lapsingRounds === undefined) {
+				effects.set(effect.uuid ?? effect.id, effect);
+			}
 		}
 	}
 
