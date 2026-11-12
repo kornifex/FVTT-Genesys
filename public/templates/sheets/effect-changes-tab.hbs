@@ -23,7 +23,8 @@
 				</select>
 			</div>
 			<div class="mode">
-				<div class="check-selection initial-hide {{#if (isSubstringOf 'genesys.pool.check.' change.key)}}show-it{{/if}}">—</div>
+				{{!-- A Pool Modification of every check, and a change to Critical Injury rolls, have no subject and no mode. --}}
+				<div class="check-selection initial-hide {{#if (or (isSubstringOf 'genesys.pool.check.' change.key) (isSubstringOf 'genesys.critical.' change.key))}}show-it{{/if}}">—</div>
 				<select name="{{@root.changesPath}}.{{i}}.char" class="characteristic-selection initial-hide {{#if (isSubstringOf 'genesys.pool.char.' change.key)}}show-it{{/if}}">
 					{{selectOptions @root.characteristics selected=change.char valueAttr="characteristic" labelAttr="label" localize=true sort=true}}
 				</select>
@@ -32,11 +33,11 @@
 				</select>
 				{{!-- v13: a change has a numeric mode, which v14 replaced with a type and a phase. --}}
 				{{#if @root.v13}}
-				<select name="changes.{{i}}.mode" data-dtype="Number" class="effect-mode initial-hide {{#if (not (isSubstringOf 'genesys.pool.' change.key))}}show-it{{/if}}">
+				<select name="changes.{{i}}.mode" data-dtype="Number" class="effect-mode initial-hide {{#if (not (isSubstringOf 'genesys.' change.key))}}show-it{{/if}}">
 					{{selectOptions @root.modes selected=change.mode}}
 				</select>
 				{{else}}
-				<select name="system.changes.{{i}}.type" class="effect-mode initial-hide {{#if (not (isSubstringOf 'genesys.pool.' change.key))}}show-it{{/if}}">
+				<select name="system.changes.{{i}}.type" class="effect-mode initial-hide {{#if (not (isSubstringOf 'genesys.' change.key))}}show-it{{/if}}">
 					{{selectOptions @root.changeTypes selected=change.type}}
 				</select>
 				<input type="hidden" name="system.changes.{{i}}.phase" value="{{change.phase}}">
