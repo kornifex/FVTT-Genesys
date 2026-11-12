@@ -638,6 +638,20 @@ describe('editing changes in the effect sheets', () => {
 		}
 		expect(subjectFieldForKey('system.soak')).toBe('effect-mode');
 	});
+
+	it('shows no mode for a change to Critical Injury rolls, which applies to nothing else', () => {
+		expect(subjectFieldForKey('genesys.critical.inflicted')).toBe('check-selection');
+		expect(subjectFieldForKey('genesys.critical.suffered')).toBe('check-selection');
+	});
+
+	it('gives a change to Critical Injury rolls the custom mode, and empties its value unless it is a whole number', () => {
+		expect(fromEditedChange(editedChange('genesys.critical.inflicted', '10', { mode: 2 }), customMode)).toEqual(
+			editedChange('genesys.critical.inflicted', '10'),
+		);
+		expect(fromEditedChange(editedChange('genesys.critical.suffered', '-10'), customMode).value).toBe('-10');
+		expect(fromEditedChange(editedChange('genesys.critical.suffered', 'BB'), customMode).value).toBe('');
+		expect(toEditedChange(editedChange('genesys.critical.inflicted', '10'))).toEqual(editedChange('genesys.critical.inflicted', '10'));
+	});
 });
 
 /**
@@ -681,6 +695,12 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 			v14EditedChange('system.soak', '1', { type: 'add' }),
 		);
 		expect(toEditedChange(v14EditedChange('system.armor', null, { type: 'override' })).value).toBe('null');
+	});
+
+	it('gives a change to Critical Injury rolls the custom type', () => {
+		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', '10', { type: 'add' }), unreadMode)).toEqual(
+			v14EditedChange('genesys.critical.inflicted', '10'),
+		);
 	});
 
 	it('round-trips every kind of key, with the custom type', () => {

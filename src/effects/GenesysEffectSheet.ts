@@ -3,6 +3,7 @@ import type { DeepPartial } from 'fvtt-types/utils';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import { isFoundryV13 } from '@/foundryGeneration';
 import { changesPath } from '@/effects/GenesysEffect';
+import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import '@/effects/GenesysEffectSheet.scss';
 
 /**
@@ -107,6 +108,15 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				appliesTo: TARGET_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.RangedAttack',
 			},
+		],
+	},
+	{
+		// What the effect's actor adds to the Critical Injury rolls of the injuries it inflicts on its targets, and of those
+		// it suffers itself.
+		group: 'Genesys.CriticalInjuryPrompt.Effects.GroupLabel',
+		keys: [
+			{ key: CRITICAL_CHANGE_KEYS.inflicted, appliesTo: TARGET_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Inflicted' },
+			{ key: CRITICAL_CHANGE_KEYS.suffered, appliesTo: SELF_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Suffered' },
 		],
 	},
 ];

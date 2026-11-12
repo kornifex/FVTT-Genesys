@@ -289,6 +289,37 @@ Genesys:
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
     ChanceToSucceedBySimulationDisclaimer: La probabilité affichée est une approximation calculée à partir de la méthode de Monte Carlo.
 
+  # Rolling a Critical Injury on the world's table (#685).
+  CriticalInjuryPrompt:
+    Setting: Table des blessures critiques
+    SettingHint: >-
+      La table aléatoire, parmi celles du monde, sur laquelle une blessure critique est tirée : ses résultats sont les blessures critiques du monde, et ses intervalles ceux du d100 (livre de base, p. 115).
+    NoTable: "Aucune table des blessures critiques n'est choisie. Le MJ en choisit une dans les paramètres du système."
+    NoResult: "La table des blessures critiques n'a pas de résultat pour {total}."
+    CardTriggers: Blessures critiques déclenchées
+    Open: Tirer une blessure critique
+    Title: Tirer une blessure critique
+    For: Blessure critique de {actor}
+    Attack: 'Attaque : {weapon}'
+    Table: 'Table : {table}'
+    Spent: Déclenchements dépensés (sur {triggers})
+    Lines:
+      Triggers: Déclenchements supplémentaires (+10 chacun après le premier)
+      Vicious: Sanguinaire {rating}
+      Injuries: Blessures critiques déjà subies ({count})
+      Inflicted: '{source} (attaquant)'
+      Suffered: '{source}'
+      Free: Modificateur libre
+    Formula: 'Jet :'
+    Roll: Tirer
+    ViciousQuality: Sanguinaire
+    Message: Blessure critique
+    MessageFor: 'Blessure critique : {actor}'
+    Effects:
+      GroupLabel: Blessures critiques à modifier
+      Inflicted: Infligées aux autres
+      Suffered: Subies
+
   # Rewards Prompt Labels
   RewardsPrompt:
     Title: Récompense

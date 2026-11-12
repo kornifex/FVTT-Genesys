@@ -31,6 +31,7 @@ describe('SETTINGS', () => {
 			'world.defaultDifficulty',
 			'world.skillForInjuries',
 			'world.skillForRepairingVehicleHits',
+			'world.criticalInjuryTable',
 			'world.currency',
 			'world.careerSkillRanks',
 			'world.uncoupleSkills',
@@ -66,6 +67,7 @@ describe('the DataField of each setting', () => {
 			defaultDifficulty: 'string',
 			skillForInjuries: 'string',
 			skillForRepairingVehicleHits: 'string',
+			criticalInjuryTable: 'string',
 			currency: 'string',
 			careerSkillRanks: 'number',
 			uncoupleSkills: 'boolean',
@@ -91,6 +93,18 @@ describe('the DataField of each setting', () => {
 		] as const) {
 			expect(fieldOf(key).options).toMatchObject({ required: true });
 			expect(fieldOf(key).options).not.toHaveProperty('blank');
+		}
+	});
+
+	it("offers the world's Roll Tables by uuid for the Critical Injury table, which may be none", () => {
+		vi.stubGlobal('game', { tables: [{ uuid: 'RollTable.crits', name: 'Critical Injuries' }] });
+		try {
+			const options = fieldOf('criticalInjuryTable').options as { required: boolean; blank: boolean; choices: () => object };
+
+			expect(options).toMatchObject({ required: true, blank: true });
+			expect(options.choices()).toEqual({ 'RollTable.crits': 'Critical Injuries' });
+		} finally {
+			vi.stubGlobal('game', undefined);
 		}
 	});
 
@@ -160,6 +174,7 @@ describe('configDefaults', () => {
 			defaultDifficulty: 'DD',
 			skillForHealingInjury: 'Resilience',
 			skillForRepairingHit: 'Mechanics',
+			criticalInjuryTable: '',
 			currencyName: 'Money',
 			freeCareerSkillRanks: 4,
 			uncoupleSkillsFromCharacteristics: false,

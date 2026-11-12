@@ -290,6 +290,40 @@ Genesys:
     ChanceToSucceedByPermutationDisclaimer: The displayed probability is exact unless the dice pool includes a super-characteristic.
     ChanceToSucceedBySimulationDisclaimer: The displayed probability is an approximation that uses the Monte Carlo method.
 
+  # Rolling a Critical Injury on the world's table (#685): its setting, the attack card's button, the effect changes and
+  # the dialog.
+  CriticalInjuryPrompt:
+    Setting: Critical Injury Table
+    SettingHint: >-
+      The Roll Table a Critical Injury is rolled on, among the world's: its results are the world's Critical Injury items, and its ranges those of the d100 (Core Rulebook, p.115).
+    NoTable: No Critical Injury table is set. The GM picks one in the system settings.
+    NoResult: The Critical Injury table has no result for {total}.
+    CardTriggers: Critical Injury Triggers
+    Open: Roll a Critical Injury
+    Title: Roll a Critical Injury
+    For: Critical Injury for {actor}
+    Attack: 'Attack: {weapon}'
+    Table: 'Table: {table}'
+    Spent: Triggers spent (of {triggers})
+    Lines:
+      Triggers: Extra triggers (+10 each past the first)
+      Vicious: Vicious {rating}
+      Injuries: Critical Injuries already suffered ({count})
+      Inflicted: '{source} (attacker)'
+      Suffered: '{source}'
+      Free: Free modifier
+    Formula: 'Roll:'
+    Roll: Roll
+    # The name of the Vicious quality in the world's language, which a weapon's quality is recognised by, as by its
+    # English name.
+    ViciousQuality: Vicious
+    Message: Critical Injury
+    MessageFor: 'Critical Injury: {actor}'
+    Effects:
+      GroupLabel: Modify Critical Injuries
+      Inflicted: Inflicted on Others
+      Suffered: Suffered
+
   # Rewards Prompt Labels
   RewardsPrompt:
     Title: Rewards
