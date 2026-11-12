@@ -18,6 +18,9 @@ import type { RowAction } from '@/vue/components/RowAction';
 import { CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 import { freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
+import ActionButton from '@/vue/components/ActionButton.vue';
+import { isMedicine } from '@/actor/Recovery';
+import { healWithMedicine } from '@/operations/Healing';
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
@@ -136,7 +139,17 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							@open="openSheet(skill)"
 							@roll="rollSkill(actor, skill)"
 							@buy-rank="purchaseSkillRank(skill)"
-						/>
+						>
+							<!-- Medicine heals a patient's wounds at the difficulty of their state of health (#686). -->
+							<template v-if="isMedicine(skill.name)" #after-name>
+								<ActionButton
+									class="heal"
+									icon="fas fa-kit-medical"
+									label="Genesys.Recovery.HealWithMedicine"
+									@click="healWithMedicine(actor, skill.name)"
+								/>
+							</template>
+						</SkillRow>
 					</RowActions>
 				</div>
 			</div>
@@ -209,6 +222,11 @@ async function toggleSuper(characteristic: CharacteristicType) {
 		grid-template-columns: /* image */ 1.5rem /* name */ 1fr /* Rank Input */ auto /* Dice Preview */ 80px /* Actions */ 1.25em;
 		align-items: center;
 		gap: 0.25rem;
+	}
+
+	// Medicine's row holds the Heal button after the name, in a column of its own.
+	.body .row:has(> .heal) {
+		grid-template-columns: /* image */ 1.5rem /* name */ 1fr /* Heal */ auto /* Rank Input */ auto /* Dice Preview */ 80px /* Actions */ 1.25em;
 	}
 
 	// The category's heading, over the icon and name columns, then the label of the rank column.
