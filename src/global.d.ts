@@ -19,6 +19,7 @@ import type { GenesysCombatTracker } from '@/combat/GenesysCombatTracker';
 import type { GENESYS_CONFIG } from '@/config';
 import type { CriticalInjuryFlag } from '@/dice/CriticalInjuryRoll';
 import type { GenesysEffect } from '@/effects/GenesysEffect';
+import type { RecordedStandings } from '@/effects/thresholdStateSync';
 import type { CombatTurn } from '@/effects/LapsingEffects';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ItemDataModels } from '@/item/ItemTypes';
@@ -130,6 +131,13 @@ declare global {
 			'genesys.claimInitiativeSlot': QueryHandlers['genesys.claimInitiativeSlot'];
 			'genesys.writeExtraSlotInitiative': QueryHandlers['genesys.writeExtraSlotInitiative'];
 			'genesys.useUpEffects': QueryHandlers['genesys.useUpEffects'];
+		}
+	}
+
+	// The actors' standings before an update, which `src/effects/thresholdStateSync.ts` keeps in the update's options.
+	namespace Actor.Database {
+		interface UpdateOperation {
+			genesysStandings?: RecordedStandings;
 		}
 	}
 

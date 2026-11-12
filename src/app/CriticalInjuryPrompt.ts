@@ -131,9 +131,10 @@ function actorOf(uuid: string | null): GenesysActor | undefined {
 }
 
 /**
- * Open the dialog for the Critical Injury an attack's message triggered: for its target, when the roller targeted one.
+ * Open the dialog for the Critical Injury a message offers: the one an attack triggered, for its target when the roller
+ * targeted one, or the one of a character gone past their wound threshold, without an attack.
  */
-async function promptFromAttackMessage(event: MouseEvent) {
+async function promptFromMessage(event: MouseEvent) {
 	const button = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-message-id] button.roll-critical-injury');
 	const messageId = button?.closest<HTMLElement>('[data-message-id]')?.dataset.messageId;
 	const flag = messageId ? game.messages.get(messageId)?.getFlag('genesys', CRITICAL_INJURY_FLAG) : undefined;
@@ -143,14 +144,14 @@ async function promptFromAttackMessage(event: MouseEvent) {
 
 	await CriticalInjuryPrompt.promptForCriticalInjury({
 		actor: actorOf(flag.target),
-		attack: { triggers: flag.triggers, weapon: flag.weapon, attacker: actorOf(flag.attacker) },
+		...('weapon' in flag && { attack: { triggers: flag.triggers, weapon: flag.weapon, attacker: actorOf(flag.attacker) } }),
 	});
 }
 
 /**
- * Open the dialog from the button of an attack's card, wherever the card is rendered: in the chat log, or in a
- * notification or a popped-out message.
+ * Open the dialog from the button of a message offering a Critical Injury, wherever the message is rendered: in the chat
+ * log, or in a notification or a popped-out message.
  */
 export function register() {
-	document.addEventListener('click', (event) => void promptFromAttackMessage(event));
+	document.addEventListener('click', (event) => void promptFromMessage(event));
 }
