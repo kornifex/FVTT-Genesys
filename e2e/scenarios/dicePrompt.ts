@@ -258,6 +258,18 @@ type DicePromptHelpers = {
 	 */
 	showMessage(id: string): Promise<SidebarState>;
 	restoreSidebar(state: SidebarState): void;
+	/**
+	 * Waits for the patient prompt, and gives the patients it offers, without their `E2E ` prefix, leaving out the world's
+	 * other actors; then picks the one given and selects it, or closes the prompt.
+	 */
+	patientPrompt(pick: string | null): Promise<string[]>;
+	/**
+	 * Shows a message in the chat log, then gives whether its card shows the Apply button of a check that heals, and
+	 * clicks it when asked, waiting for the patient's update.
+	 */
+	recoveryButton(args: { id: string; click: boolean }): Promise<boolean>;
+	/** An actor's wounds and strain, `null` for strain when they suffer none. */
+	health(name: string): { wounds: number; strain: number | null };
 };
 
 /** Whether the sidebar is expanded, and its active tab. */
@@ -974,6 +986,44 @@ function installDicePromptHelpers() {
 			ui.sidebar.changeTab(tab, 'primary');
 			if (expanded) ui.sidebar.expand();
 			else ui.sidebar.collapse();
+		},
+
+		async patientPrompt(pick) {
+			const app = await waitFor('the patient prompt', () => {
+				const [open] = apps('app-select-patient-prompt');
+				return open && htmlOf(open)?.querySelector('.patient-option') ? open : undefined;
+			});
+			const root = htmlOf(app)!;
+			const options = [...root.querySelectorAll('.patient-option')];
+			const nameOf = (option: Element) => text(option.querySelector('.patient-name'));
+			const names = options.map(nameOf).filter((name) => isSetUp({ name }));
+			if (pick === null) {
+				await app.close();
+			} else {
+				const option = options.find((candidate) => nameOf(candidate) === `E2E ${pick}`);
+				if (!option) throw new Error(`No patient ${pick} in ${JSON.stringify(names)}`);
+				option.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
+				await waitFor(`${pick} picked`, () => option.querySelector('.fa-check-circle'));
+				root.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+			}
+			await waitFor('the patient prompt to close', () => !apps('app-select-patient-prompt').length);
+			return names.map(unprefixed);
+		},
+
+		async recoveryButton({ id, click }) {
+			const state = await window.dicePromptE2E.showMessage(id);
+			const button = document.querySelector<HTMLButtonElement>('[data-e2e="glyph-message"] button.apply-recovery');
+			if (button && click) {
+				button.click();
+				await settle();
+			}
+			window.dicePromptE2E.restoreSidebar(state);
+			return !!button;
+		},
+
+		health(name) {
+			const { wounds, strain } = actor(name).system as { wounds: { value: number }; strain?: { value: number } };
+			return { wounds: wounds.value, strain: strain?.value ?? null };
 		},
 
 		lastCard() {
@@ -4330,6 +4380,87 @@ export async function run(e2e: ScenarioContext) {
 			{ rows: [{ name: 'From Self: Aim', enabled: false, mods: 'B+' }], buttons: [], effects: [] },
 		);
 		await e2e.step('combat maneuvers end');
+	});
+
+	// H: the Heal action beside Medicine, a Medicine check for a patient at the difficulty of their state of health, whose
+	// card heals them by its results, for the GM and the patient's owners (§#686, CRB p. 116).
+	await part('medicineHeal', async () => {
+		const cy = { actor: 'Cy' };
+		const heal = (client: Client) => click(client, cy, '.tab-skills .skill .heal');
+		const patientPrompt = (client: Client, pick: string | null) =>
+			client.evaluate((pick) => window.dicePromptE2E.patientPrompt(pick), pick);
+		const recoveryButton = (client: Client, id: string, click = false) =>
+			client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
+		const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
+		// Cy, the player's, rolls two Ability dice for Medicine. Bo, the player's, has suffered more than half his wound
+		// threshold; Mark, the GM's, more than his wound threshold; Cy, none.
+		await update(cy, { system: { characteristics: { intellect: 2 }, wounds: { value: 0, max: 10 } } });
+		await update({ actor: 'Bo' }, { system: { wounds: { value: 8, max: 12 }, strain: { value: 3, max: 10 } } });
+		await update({ actor: 'Mark' }, { system: { wounds: { value: 13, max: 12 }, strain: { value: 0, max: 10 } } });
+		await player.evaluate(() => window.e2e.target(null));
+
+		let patients: string[] = [];
+		const other = await opened(player, async () => {
+			await heal(player)();
+			patients = await patientPrompt(player, 'Bo');
+		});
+		e2e.expect(
+			"#686 H1 with no target, Heal offers the scene's and the players' characters; healing Bo, past half his wound threshold, opens Medicine at Average",
+			{ patients, actor: other.actor, skill: other.skill, pool: other.pool },
+			// Hero and Mark have a token on the scene; Bo, Cy and Seeker are the player's.
+			{ patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Seeker'], actor: 'Cy', skill: 'Medicine (Int)', pool: 'AA|DD' },
+		);
+
+		// Ability dice on two Successes, then a Success and an Advantage; Difficulty dice on blank faces.
+		await player.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 7, faces: 8 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		const rolled = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+		const { labels } = await player.evaluate(() => window.dicePromptE2E.lastCard());
+		const shown = { gm: await recoveryButton(gm, rolled.id), player: await recoveryButton(player, rolled.id) };
+		e2e.expect(
+			"#686 H2 Bo's card shows a wound healed per Success and a strain per Advantage, and Apply to the GM and Bo's owner",
+			{ results: rolled.results, labels, summaries: rolled.summaries, shown },
+			{
+				results: 's s s a',
+				labels: ['Roll Results', 'Summary', 'Heals E2E Bo', 'Dice'],
+				summaries: ['s Successes 3 a Advantage 1', 'Wounds 3 Strain 1'],
+				shown: { gm: true, player: true },
+			},
+		);
+		await e2e.step("#686 H3 Bo's owner applies the card", () => recoveryButton(player, rolled.id, true));
+		e2e.expect("#686 H3 Apply lowers Bo's wounds and strain by the result", await health('Bo'), { wounds: 5, strain: 2 });
+
+		const self = await opened(player, async () => {
+			await heal(player)();
+			await patientPrompt(player, 'Cy');
+		});
+		e2e.expect('#686 H4 Cy healing themselves, at no wound, opens Medicine at Easy and two more', self.pool, 'AA|DDD');
+
+		await target('Mark');
+		const targeted = await opened(gm, heal(gm));
+		const patientPrompts = await gm.evaluate(() => window.e2e.apps('app-select-patient-prompt').length);
+		// Ability dice on two Successes each; Difficulty dice on blank faces.
+		await gm.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 4, faces: 8 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		const marked = await roll();
+		const markShown = { gm: await recoveryButton(gm, marked.id), player: await recoveryButton(player, marked.id) };
+		await recoveryButton(gm, marked.id, true);
+		await target(null);
+		e2e.expect(
+			"#686 H5 healing the GM's target Mark, past his wound threshold, asks for no patient and opens at Hard; Apply shows to the GM alone, and heals Mark",
+			{ patientPrompts, pool: targeted.pool, shown: markShown, health: await health('Mark') },
+			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
+		);
+		await e2e.step('medicineHeal end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

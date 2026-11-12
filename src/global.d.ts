@@ -9,6 +9,7 @@ import type { CharacterDataModel } from '@/actor/data/CharacterDataModel';
 import type { MinionDataModel } from '@/actor/data/MinionDataModel';
 import type { NemesisDataModel } from '@/actor/data/NemesisDataModel';
 import type { RivalDataModel } from '@/actor/data/RivalDataModel';
+import type { Recovery } from '@/actor/Recovery';
 import type { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import type { CombatantDataModel } from '@/combat/CombatantDataModel';
 import type { CombatDataModel } from '@/combat/CombatDataModel';
@@ -81,7 +82,9 @@ declare module 'fvtt-types/configuration' {
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
 		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
-		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag } };
+		// The Critical Injury an attack triggered, which its card's button reads, and the recovery of a check that heals,
+		// which its card's Apply button reads (`src/dice/recoveryCard.ts`).
+		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery } };
 	}
 
 	interface SettingConfig extends TableSettings {

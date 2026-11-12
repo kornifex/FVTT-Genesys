@@ -8,6 +8,7 @@ import { diceRollerTarget } from '@/dice/DiceRoller';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 import { EQUIPMENT_DAMAGE_LABELS, isUnusable } from '@/item/data/EquipmentDamage';
 import { openingDifficulty } from '@/dice/Difficulty';
+import type { RecoveryRequest } from '@/actor/Recovery';
 import { type CheckSpend, spentPoints } from '@/dice/CheckStoryPoints';
 import { StoryPointTracker } from '@/app/StoryPointTracker';
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
@@ -75,6 +76,11 @@ export type DicePromptOptions = {
 	 * actor can't roll.
 	 */
 	characteristic?: Characteristic;
+	/**
+	 * The recovery the check is rolled for, whatever skill the roller picks: its card offers to heal the patient by the
+	 * results.
+	 */
+	recovery?: RecoveryRequest;
 };
 
 /**
@@ -108,7 +114,10 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			return;
 		}
 
-		await rollCheck(checkRoll, app.roll.type === RollType.Attack ? app.roll.profile : undefined);
+		await rollCheck(checkRoll, {
+			attack: app.roll.type === RollType.Attack ? app.roll.profile : undefined,
+			recovery: app.recovery,
+		});
 		// Once rolled, the check uses up the effects it was the next check for, as an attack the roller's Aim.
 		if (actor) {
 			await useUpEffects(actor, checkRoll.check.purpose);
@@ -145,8 +154,13 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 	difficulty: string;
 	impossible: boolean;
 	characteristic?: Characteristic;
+	recovery?: RecoveryRequest;
 
-	constructor(actor?: GenesysActor, skillName?: string, { roll, difficulty, impossible, characteristic }: DicePromptOptions = {}) {
+	constructor(
+		actor?: GenesysActor,
+		skillName?: string,
+		{ roll, difficulty, impossible, characteristic, recovery }: DicePromptOptions = {},
+	) {
 		super();
 
 		this.actor = actor;
@@ -156,6 +170,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 		this.difficulty = openingDifficulty(difficulty, CONFIG.genesys.skills, skillName, CONFIG.genesys.settings.defaultDifficulty);
 		this.impossible = impossible ?? false;
 		this.characteristic = characteristic;
+		this.recovery = recovery;
 	}
 
 	override async getVueContext(): Promise<DicePromptContext> {
