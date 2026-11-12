@@ -3,7 +3,7 @@
  */
 
 import { DieTypes } from '@/dice/DieTypes';
-import type { CheckPurpose } from '@/dice/Check';
+import { type CheckPurpose, isCombatCheck } from '@/dice/Check';
 import { encodeKey } from '@/effects/PoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
 
@@ -74,7 +74,7 @@ export const MANEUVER_IDS = { aim: AIM_ID, guardedStance: GUARDED_STANCE.id } as
  * it got (CRB p. 98).
  */
 export function effectsUsedUp(purpose: CheckPurpose, effects: Iterable<{ id: string; statuses: ReadonlySet<string> }>): string[] {
-	if (purpose.kind !== 'attack') {
+	if (!isCombatCheck(purpose)) {
 		return [];
 	}
 

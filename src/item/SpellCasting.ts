@@ -1,16 +1,25 @@
 /**
  * @file Casting a spell (CRB pp. 210–215): the magic skill it is cast with, the Additional Effects the caster checks and
- * the difficulty they add, never beyond Formidable, the qualities they give, and the strain casting costs.
+ * the difficulty they add, never beyond Formidable, the qualities they give, the strain casting costs, and the profile
+ * of a magic attack.
  */
 
 import { ownedSkill, type Skill } from '@/data/Skills';
 import { FORMIDABLE } from '@/dice/Difficulty';
 import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
+import type { DamageCharacteristic, RangeBand } from '@/item/Weapons';
+import type { AttackProfile } from '@/item/WeaponProfiles';
 
 /**
  * The strain a caster suffers once the check is resolved, whether it succeeds or not (CRB p. 210).
  */
 const CASTING_STRAIN = 2;
+
+/**
+ * The range band of a magic attack's target, whose defense it meets: short, which the table may change with Range or
+ * Close Combat (CRB p. 215).
+ */
+export const MAGIC_ATTACK_RANGE = 'short' satisfies RangeBand;
 
 /**
  * The name of the magic skill a character casts a spell with: of the spell's skills, the one they have the most ranks
@@ -100,6 +109,42 @@ export function spellCast(
 			.filter((effect) => checked.includes(effect.id))
 			.map(({ name, qualities }) => ({ name, qualities: qualities.map((quality) => castQuality(quality, ranksIn)) })),
 		strain: CASTING_STRAIN,
+	};
+}
+
+/**
+ * The profile of a magic attack cast with Additional Effects checked (CRB p. 215): its damage adds the characteristic
+ * linked to the skill rolled, twice with Empowered, to the spell's base damage, an implement's bonus; it has no Critical
+ * rating, so only a Triumph inflicts a Critical Injury, unless an effect gives one, as Deadly does; its qualities are its
+ * effects', a rating counted from the caster's ranks in its skill.
+ */
+export function spellAttackProfile(
+	spell: { name: string; system: { baseDamage: number; additionalEffects: readonly ContainedAdditionalEffect[] } },
+	checked: readonly string[],
+	damageCharacteristic: DamageCharacteristic,
+	ranksIn: (skill: string) => number,
+): AttackProfile {
+	const effects = spell.system.additionalEffects.filter((effect) => checked.includes(effect.id));
+	// Of two effects that give a Critical rating, the lower one triggers more often.
+	const criticals = effects.flatMap((effect) => effect.critical ?? []);
+
+	return {
+		attackName: spell.name,
+		skills: [],
+		baseDamage: spell.system.baseDamage,
+		damageCharacteristic,
+		doublesDamageCharacteristic: effects.some((effect) => effect.doublesDamageCharacteristic),
+		critical: criticals.length > 0 ? Math.min(...criticals) : 0,
+		range: MAGIC_ATTACK_RANGE,
+		// The qualities an Additional Effect gives are copied without Active Effects (#704), so they have no id to tag any.
+		qualities: effects.flatMap((effect) =>
+			effect.qualities.map((quality) => ({
+				...castQuality(quality, ranksIn),
+				id: '',
+				activation: quality.activation,
+				advantageCost: quality.advantageCost,
+			})),
+		),
 	};
 }
 

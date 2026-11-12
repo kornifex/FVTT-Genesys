@@ -66,7 +66,7 @@ import {
 } from '@/dice/CheckStoryPoints';
 import type { StoryPointPool } from '@/data/StoryPoints';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
-import { canCheckEffect } from '@/item/SpellCasting';
+import { canCheckEffect, MAGIC_ATTACK_RANGE } from '@/item/SpellCasting';
 
 type AlsoNone<T> = T | undefined;
 
@@ -208,7 +208,8 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			...request,
 			purpose: checkPurpose(),
 			target: target?.actor ?? undefined,
-			attackRange: attack?.profile.range,
+			// A magic attack meets the defense of a target at short range (CRB p. 215).
+			attackRange: attack?.profile.range ?? (spell?.system.isAttack ? MAGIC_ATTACK_RANGE : undefined),
 			attacker: vehicleAttacker(attack?.weapon),
 			weapon: attack?.weapon,
 			attackQualities: attack?.profile.qualities,
@@ -250,7 +251,7 @@ function checkPurpose(): CheckPurpose {
 			return { kind: 'attack', weaponName: context.value.roll.profile.attackName };
 
 		case RollType.Spell:
-			return { kind: 'spell', spellName: context.value.roll.spell.name };
+			return { kind: 'spell', spellName: context.value.roll.spell.name, isAttack: context.value.roll.spell.system.isAttack };
 
 		case RollType.Initiative:
 			return { kind: 'initiative' };

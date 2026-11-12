@@ -190,11 +190,11 @@ export function resolveCheck<S extends CheckSkill>(
 	const poolModifications = poolModificationsForCheck(actor, target, {
 		characteristic,
 		skillName: rolledSkill?.skill.name,
-		// Only an attack is a combat check, which the changes of combat checks and of melee or ranged attacks apply to.
-		attackRange: purpose.kind === 'attack' ? request.attackRange : undefined,
-		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
-		weapon: purpose.kind === 'attack' ? request.weapon : undefined,
-		attackQualities: purpose.kind === 'attack' ? request.attackQualities : undefined,
+		// Only a combat check gets the changes of combat checks and of melee or ranged attacks.
+		attackRange: isCombatCheck(purpose) ? request.attackRange : undefined,
+		attacker: isCombatCheck(purpose) ? request.attacker ?? actor : undefined,
+		weapon: isCombatCheck(purpose) ? request.weapon : undefined,
+		attackQualities: isCombatCheck(purpose) ? request.attackQualities : undefined,
 	});
 
 	return {
@@ -315,13 +315,22 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 }
 
 /**
- * What a check is rolled for: a plain check, an attack with a weapon, the casting of a spell, or initiative.
+ * What a check is rolled for: a plain check, an attack with a weapon, the casting of a spell, a magic attack when the
+ * spell is an attack, or initiative.
  */
 export type CheckPurpose =
 	| { kind: 'check' }
 	| { kind: 'attack'; weaponName: string }
-	| { kind: 'spell'; spellName: string }
+	| { kind: 'spell'; spellName: string; isAttack: boolean }
 	| { kind: 'initiative' };
+
+/**
+ * Whether a check is a combat check, which meets the target's defense and gets the changes of combat checks: an attack
+ * with a weapon, or a magic attack (CRB pp. 101, 215).
+ */
+export function isCombatCheck(purpose: CheckPurpose) {
+	return purpose.kind === 'attack' || (purpose.kind === 'spell' && purpose.isAttack);
+}
 
 /**
  * The localization functions the chat description is written with.

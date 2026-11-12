@@ -74,7 +74,8 @@ export async function checkMessageData(
 		results,
 		card,
 		recovery: recovery && recoveryCardData(recovery),
-		spell: spell && (await spellCardData(spell)),
+		// A magic attack's card shows the qualities its effects give with the attack's, as a weapon's.
+		spell: spell && (await spellCardData(spell, !attack)),
 	};
 	const triggers = attack
 		? criticalTriggers({
@@ -139,12 +140,14 @@ function recoveryCardData(recovery: Recovery) {
 }
 
 /**
- * What a spell's card shows: its checked Additional Effects, their qualities' descriptions enriched, and the strain the
- * caster suffers.
+ * What a spell's card shows: its checked Additional Effects, with their qualities' descriptions enriched when it shows
+ * them, and the strain the caster suffers.
  */
-async function spellCardData({ effects, strain }: SpellCast) {
+async function spellCardData({ effects, strain }: SpellCast, showsQualities: boolean) {
 	return {
-		effects: await Promise.all(effects.map(async (effect) => ({ ...effect, qualities: await enrichedQualities(effect.qualities) }))),
+		effects: await Promise.all(
+			effects.map(async (effect) => ({ ...effect, qualities: showsQualities ? await enrichedQualities(effect.qualities) : [] })),
+		),
 		strain,
 	};
 }
@@ -155,11 +158,12 @@ async function spellCardData({ effects, strain }: SpellCast) {
 async function attackCardData(check: Check, profile: AttackProfile, results: GenesysRollResults, card: CardResults) {
 	// A vehicle has no characteristics to add to its weapons' damage.
 	const characteristics = (check.actor?.system as { characteristics?: CharacteristicsContainer } | undefined)?.characteristics;
-	const { baseDamage, characteristic } = damageFormula(profile);
+	const { baseDamage, characteristic, times } = damageFormula(profile);
+	const characteristicTerm = characteristic && `${times ? `${times}×` : ''}${game.i18n.localize(characteristic)}`;
 
 	return {
 		totalDamage: attackDamage(profile, characteristics, results.netSuccess),
-		damageFormula: characteristic && characteristics ? `${game.i18n.localize(characteristic)} + ${baseDamage}` : baseDamage.toString(),
+		damageFormula: characteristicTerm && characteristics ? `${characteristicTerm} + ${baseDamage}` : baseDamage.toString(),
 		critical: profile.critical,
 		qualities: await enrichedQualities(profile.qualities),
 		showAttackDetails: showsAttackDetails(card, CONFIG.genesys.settings.showAttackDetailsOnFailure),

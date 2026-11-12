@@ -90,8 +90,13 @@ describe('effectsUsedUp', () => {
 		expect(effectsUsedUp({ kind: 'attack', weaponName: 'Sword' }, effects)).toEqual(['aim']);
 	});
 
+	it("uses up the actor's Aim with a magic attack, a combat check (CRB pp. 98, 215)", () => {
+		expect(effectsUsedUp({ kind: 'spell', spellName: 'Fireball', isAttack: true }, effects)).toEqual(['aim']);
+	});
+
 	it('uses up nothing with a check that is no combat check', () => {
 		expect(effectsUsedUp({ kind: 'check' }, effects)).toEqual([]);
+		expect(effectsUsedUp({ kind: 'spell', spellName: 'Curse', isAttack: false }, effects)).toEqual([]);
 		expect(effectsUsedUp({ kind: 'initiative' }, effects)).toEqual([]);
 	});
 });

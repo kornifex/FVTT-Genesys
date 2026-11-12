@@ -5,9 +5,13 @@ import {
 	castingDifficulty,
 	castingSkillName,
 	initiallyCheckedEffects,
+	spellAttackProfile,
 	spellCast,
 } from '@/item/SpellCasting';
-import type { SpellQuality } from '@/item/data/Spells';
+import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
+import { Characteristic } from '@/data/Characteristics';
+import { criticalTriggers } from '@/dice/CriticalInjuryRoll';
+import { attackDamage } from '@/item/Weapons';
 
 const skill = (name: string, rank: number) => ({ name, system: { rank } });
 
@@ -120,5 +124,61 @@ describe('spellCast', () => {
 			isRated: true,
 			rating: 3,
 		});
+	});
+});
+
+describe('spellAttackProfile', () => {
+	const effect = (id: string, changes: Partial<ContainedAdditionalEffect> = {}): ContainedAdditionalEffect => ({
+		id,
+		name: id,
+		description: '',
+		difficulty: 1,
+		startsChecked: false,
+		qualities: [],
+		critical: null,
+		doublesDamageCharacteristic: false,
+		...changes,
+	});
+	const attackSpell = (baseDamage: number, ...additionalEffects: ContainedAdditionalEffect[]) => ({
+		name: 'Fireball',
+		system: { baseDamage, additionalEffects },
+	});
+	const characteristics = { brawn: 2, agility: 2, intellect: 3, cunning: 2, willpower: 2, presence: 2 };
+	const empowered = effect('empowered', { doublesDamageCharacteristic: true });
+	const deadly = effect('deadly', { critical: 2 });
+	const profile = (spell: ReturnType<typeof attackSpell>, checked: string[]) =>
+		spellAttackProfile(spell, checked, Characteristic.Intellect, () => 0);
+
+	it("deals the skill's characteristic plus one per uncanceled Success, at short range (CRB p. 215)", () => {
+		const fireball = profile(attackSpell(0), []);
+		expect(attackDamage(fireball, characteristics, 2)).toBe(5);
+		expect(fireball).toMatchObject({ attackName: 'Fireball', range: 'short', damageCharacteristic: 'intellect' });
+	});
+
+	it("adds an implement's damage bonus, and twice the characteristic with Empowered checked (CRB pp. 215, 219)", () => {
+		const spell = attackSpell(2, empowered);
+		// Intellect 3, doubled, plus a +2 implement and a Success left.
+		expect(attackDamage(profile(spell, ['empowered']), characteristics, 1)).toBe(9);
+		expect(attackDamage(profile(spell, []), characteristics, 1)).toBe(6);
+	});
+
+	it('has no Critical rating, so only a Triumph triggers a Critical Injury, unless Deadly gives it 2 (CRB p. 215)', () => {
+		const spell = attackSpell(0, deadly);
+		const triggers = (checked: string[], netAdvantage: number, triumphs: number) =>
+			criticalTriggers({ succeeded: true, netAdvantage, triumphs, critical: profile(spell, checked).critical });
+
+		expect(triggers([], 4, 0)).toBe(0);
+		expect(triggers([], 0, 1)).toBe(1);
+		expect(triggers(['deadly'], 4, 0)).toBe(2);
+	});
+
+	it("gives the checked effects' qualities, a rating counted from the caster's ranks in Knowledge (CRB p. 215)", () => {
+		const fire = effect('fire', { qualities: [quality('Burn', 'skillRanks')] });
+		const impact = effect('impact', { qualities: [quality('Knockdown', 'unrated')] });
+		const ranks: Record<string, number> = { Knowledge: 2 };
+
+		expect(
+			spellAttackProfile(attackSpell(0, fire, impact), ['fire'], Characteristic.Intellect, (name) => ranks[name] ?? 0).qualities,
+		).toEqual([{ id: '', name: 'Burn', description: '<p>Burn</p>', activation: 'active', advantageCost: 2, isRated: true, rating: 2 }]);
 	});
 });
