@@ -1,16 +1,28 @@
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
+import { orphanedQualityEffects } from '@/item/data/Qualities';
 
 /**
  * An item of the system, typed by its subtype: its `system` is the DataModel registered for that type.
  */
 export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends Item<SubType> {
 	/**
-	 * Keep a Container's contents in its Equipment State, whatever changed the state of either.
+	 * Keep a Container's contents in its Equipment State, whatever changed the state of either, and remove the effects of
+	 * a quality removed from a weapon or an armor.
 	 * @inheritDoc
 	 */
 	protected override _onUpdate(changed: Item.UpdateData, options: Item.Database.OnUpdateOptions, userId: string) {
 		super._onUpdate(changed, options, userId);
+
+		// Removing a weapon's or an armor's quality, whatever removed it (its trash icon, a rating of 0, a Weapon Profile
+		// deleted), removes its effects.
+		const changesQualities = ['system.qualities', 'system.extraProfiles'].some((key) => foundry.utils.hasProperty(changed, key));
+		if (userId === game.user.id && changesQualities) {
+			const orphaned = orphanedQualityEffects(this.effects, this.system);
+			if (orphaned.length > 0) {
+				void this.deleteEmbeddedDocuments('ActiveEffect', orphaned);
+			}
+		}
 
 		const changesPlace = ['system.state', 'system.container'].some((key) => foundry.utils.hasProperty(changed, key));
 		if (!this.actor || !this.id || userId !== game.user.id || !changesPlace) {

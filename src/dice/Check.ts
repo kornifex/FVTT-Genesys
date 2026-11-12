@@ -8,7 +8,7 @@ import { Skill, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import {
-	DamageableItem,
+	CheckForPoolModifications,
 	ExternalPoolModification,
 	matchOrigin,
 	PoolModificationActor,
@@ -113,9 +113,15 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	attacker?: SilhouettedActor;
 
 	/**
-	 * The weapon of an attack, whose damage hinders it. Ignored for any other check.
+	 * The weapon of an attack, whose damage hinders it, and whose qualities' effects change it. Ignored for any other
+	 * check.
 	 */
-	weapon?: DamageableItem;
+	weapon?: CheckForPoolModifications['weapon'];
+
+	/**
+	 * The qualities of the Weapon Profile an attack is made with, whose effects change it. Ignored for any other check.
+	 */
+	attackQualities?: CheckForPoolModifications['attackQualities'];
 
 	/**
 	 * Whether the Proficiency dice explode, for a dice pool rolled without an actor.
@@ -188,6 +194,7 @@ export function resolveCheck<S extends CheckSkill>(
 		attackRange: purpose.kind === 'attack' ? request.attackRange : undefined,
 		attacker: purpose.kind === 'attack' ? request.attacker ?? actor : undefined,
 		weapon: purpose.kind === 'attack' ? request.weapon : undefined,
+		attackQualities: purpose.kind === 'attack' ? request.attackQualities : undefined,
 	});
 
 	return {
@@ -261,15 +268,18 @@ export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | u
 
 /**
  * The Pool Modifications of a check resolved again, each turned on or off: one still listed keeps the state it had, a
- * new one is on when the world applies Pool Modifications automatically.
+ * new one is on when the world applies Pool Modifications automatically, unless it starts off, as an active quality's.
  */
-export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key'>>(
+export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff'>>(
 	previous: { key: string; enabled: boolean }[],
 	poolModifications: M[],
 	autoApply: boolean,
 ): (M & { enabled: boolean })[] {
 	const enabledByKey = new Map(previous.map((modification) => [modification.key, modification.enabled]));
-	return poolModifications.map((modification) => ({ ...modification, enabled: enabledByKey.get(modification.key) ?? autoApply }));
+	return poolModifications.map((modification) => ({
+		...modification,
+		enabled: enabledByKey.get(modification.key) ?? (autoApply && !modification.startsOff),
+	}));
 }
 
 /**

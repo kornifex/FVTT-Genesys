@@ -311,6 +311,41 @@ describe('resolveCheck', () => {
 		]);
 		expect(resolveCheck(hero, { skillName: 'Melee', weapon: sword }, rules).poolModifications).toEqual([]);
 	});
+
+	it('changes an attack with the effects of the qualities of the Weapon Profile it is made with, and no other check (CRB p. 86)', () => {
+		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)]);
+		const sword = {
+			documentName: 'Item',
+			type: 'weapon',
+			name: 'Sword',
+			uuid: 'Item.sword',
+			system: { damage: 'undamaged' as const, qualities: [{ id: 'acc', isRated: true, rating: 2 }] },
+			effects: [] as PoolModificationEffect[],
+		};
+		sword.effects = [
+			{
+				name: 'Accurate',
+				uuid: 'ActiveEffect.accurate',
+				isSuppressed: false,
+				origin: null,
+				parent: sword,
+				changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }],
+				flags: { genesys: { quality: 'acc' } },
+			},
+		];
+		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
+		const request = { skillName: 'Melee', attackRange: 'engaged', weapon: sword, attackQualities: [{ id: 'acc' }] };
+
+		expect(resolveCheck(hero, { ...request, purpose: attack }, rules).poolModifications).toEqual([
+			{
+				key: 'self.effect.ActiveEffect.accurate',
+				source: 'self',
+				from: { effect: 'Accurate', uuid: 'ActiveEffect.accurate', item: { name: 'Sword', uuid: 'Item.sword' } },
+				mods: ['B', 'B'],
+			},
+		]);
+		expect(resolveCheck(hero, request, rules).poolModifications).toEqual([]);
+	});
 });
 
 describe('vehicleAttacker', () => {
@@ -441,6 +476,22 @@ describe('carriedPoolModificationStates', () => {
 			{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
 			{ key: 'self.effect.ActiveEffect.Alert', enabled: false },
 		]);
+	});
+
+	it("starts an active quality's Pool Modification off though auto-apply is on, and keeps the roller's choice once they turn it on (CRB p. 86)", () => {
+		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', startsOff: true };
+		const accurate = { key: 'self.effect.ActiveEffect.Accurate' };
+		const states = (previous: { key: string; enabled: boolean }[]) =>
+			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, enabled }) => ({ key, enabled }));
+
+		expect(states([])).toEqual([
+			{ key: 'self.effect.ActiveEffect.AutoFire', enabled: false },
+			{ key: 'self.effect.ActiveEffect.Accurate', enabled: true },
+		]);
+		expect(states([{ key: 'self.effect.ActiveEffect.AutoFire', enabled: true }])[0]).toEqual({
+			key: 'self.effect.ActiveEffect.AutoFire',
+			enabled: true,
+		});
 	});
 
 	it("keeps the state of each Pool Modification apart, though another effect shares their effect's name (#445)", () => {

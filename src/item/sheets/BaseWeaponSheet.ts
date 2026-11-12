@@ -2,7 +2,8 @@ import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysItem } from '@/item/GenesysItem';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { skillNamesMatch } from '@/data/Skills';
-import { withQualityAdded } from '@/item/data/Qualities';
+import { qualityCopy, withQualityAdded } from '@/item/data/Qualities';
+import { copyQualityEffects } from '@/operations/QualityEffects';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { type ExtraWeaponProfile, profileUpdate, weaponProfile } from '@/item/WeaponProfiles';
@@ -36,14 +37,14 @@ export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'
 				return;
 
 			case 'quality': {
-				const quality = droppedItem.system as ItemQualityDataModel;
-				const qualities = withQualityAdded(profile.qualities, {
+				const copy = qualityCopy(foundry.utils.randomID(), {
 					name: droppedItem.name,
-					description: quality.description,
-					isRated: quality.isRated,
+					system: droppedItem.system as ItemQualityDataModel,
 				});
+				const qualities = withQualityAdded(profile.qualities, copy);
 				if (qualities) {
 					await this.item.update({ system: update({ qualities }) });
+					await copyQualityEffects(this.item, droppedItem, qualities, copy.id);
 				}
 
 				return;

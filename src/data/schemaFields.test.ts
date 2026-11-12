@@ -116,6 +116,20 @@ describe('qualitiesField', () => {
 			},
 		});
 	});
+
+	// Foundry fills the fields a stored copy lacks with their initial values: a copy stored with only its name,
+	// description, rating and whether it is rated keeps them, and reads as passive, costing 2 Advantage (CRB p. 86).
+	it('reads a copy stored before its id, activation and Advantage cost as passive, costing 2, without an id', () => {
+		expect(qualitiesField()).toMatchObject({
+			element: {
+				fields: {
+					id: { kind: 'string', options: { initial: '' } },
+					activation: { kind: 'string', options: { choices: ['passive', 'active'], initial: 'passive' } },
+					advantageCost: { kind: 'number', options: { integer: true, min: 0, initial: 2 } },
+				},
+			},
+		});
+	});
 });
 
 describe('activationField', () => {

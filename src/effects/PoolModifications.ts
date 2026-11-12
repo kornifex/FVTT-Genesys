@@ -1,5 +1,5 @@
 /**
- * @file Pool Modifications that come from outside the dice prompt: from effects (how their changes are keyed, which ones apply to a check, and how talent ranks scale them), the target's defense and silhouette, the roller's encumbrance and the damage of the weapon they attack with.
+ * @file Pool Modifications that come from outside the dice prompt: from effects (how their changes are keyed, which ones apply to a check, and how talent and quality ranks scale them), the target's defense and silhouette, the roller's encumbrance and the damage of the weapon they attack with.
  */
 
 import { type Encumbrance, isEncumbered } from '@/actor/data/Encumbrance';
@@ -12,6 +12,8 @@ import { isCriticalChangeKey, isCriticalChangeValue } from '@/dice/CriticalInjur
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
+import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { effectQuality, qualityIdOf } from '@/item/data/Qualities';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
@@ -65,6 +67,8 @@ export type PoolModificationEffect = {
 	parent: unknown;
 	// v14 lets a change hold a value of any type, which a Pool Modification never is.
 	changes: { key?: string; value: unknown }[];
+	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
+	flags?: object;
 };
 
 /**
@@ -95,9 +99,16 @@ export type CheckForPoolModifications = {
 	attacker?: SilhouettedActor;
 
 	/**
-	 * The weapon an attack is made with, whose damage hinders it. Left undefined for any other check.
+	 * The weapon an attack is made with, whose damage hinders it, and whose qualities' effects change it. Left undefined
+	 * for any other check.
 	 */
-	weapon?: DamageableItem;
+	weapon?: DamageableItem & { effects?: Iterable<PoolModificationEffect> };
+
+	/**
+	 * The qualities of the Weapon Profile an attack is made with, whose effects change it. Left undefined for any other
+	 * check.
+	 */
+	attackQualities?: readonly Pick<ContainedItemQuality, 'id'>[];
 };
 
 /**
@@ -159,6 +170,11 @@ export type ExternalPoolModification = {
 	source: PoolModificationSource;
 	from: PoolModificationOrigin;
 	mods: string[];
+	/**
+	 * Whether the Dice Prompt lists it off, whatever the world's setting: an active quality's, which the roller turns on
+	 * when they trigger it.
+	 */
+	startsOff?: boolean;
 };
 
 /**
@@ -250,17 +266,35 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  *   written before the option kept their behaviour.
  * - A numeric change counts once per rank of any talent.
  *
+ * The effect of a weapon's or an armor's quality, given that quality, counts both kinds once per rank of a rated quality
+ * (CRB pp. 86–89): Accurate 2, written as one Boost, gives two.
+ *
  * The value keeps its type: v13 stores every value as a string, v14 stores a number as one.
  */
-export function scaledChangeValue(item: SourceItem | undefined, change: { key: string; value: string }): string;
-export function scaledChangeValue(item: SourceItem | undefined, change: { key: string; value: unknown }): unknown;
-export function scaledChangeValue(item: SourceItem | undefined, { key, value }: { key: string; value: unknown }) {
+export function scaledChangeValue(
+	item: SourceItem | undefined,
+	change: { key: string; value: string },
+	quality?: Pick<ContainedItemQuality, 'isRated' | 'rating'>,
+): string;
+export function scaledChangeValue(
+	item: SourceItem | undefined,
+	change: { key: string; value: unknown },
+	quality?: Pick<ContainedItemQuality, 'isRated' | 'rating'>,
+): unknown;
+export function scaledChangeValue(
+	item: SourceItem | undefined,
+	{ key, value }: { key: string; value: unknown },
+	quality?: Pick<ContainedItemQuality, 'isRated' | 'rating'>,
+) {
+	const qualityRank = quality?.isRated ? quality.rating : 1;
+
 	if (decodeKey(key)) {
-		return typeof value === 'string' ? value.repeat(item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1) : value;
+		const rank = quality ? qualityRank : item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
-	if (item?.type === 'talent') {
-		const rank = item.system.rank!;
+	if (quality || item?.type === 'talent') {
+		const rank = quality ? qualityRank : item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;
 		}
@@ -290,13 +324,14 @@ export function poolModificationsForCheck(
 	}
 
 	modifications.push(
-		...effectModifications(actor, 'self', check),
+		...effectModifications(withoutWeaponQualityEffects(actor.allApplicableEffects()), 'self', check),
+		...effectModifications(weaponQualityEffects(check), 'self', check),
 		...encumbranceModifications(actor, check),
 		...itemDamageModifications(check.weapon),
 	);
 
 	if (target && TARGET_TYPES.includes(target.type)) {
-		modifications.push(...effectModifications(target, 'target', check));
+		modifications.push(...effectModifications(target.allApplicableEffects(), 'target', check));
 
 		// The target's defense against the range of an attack adds one Setback per point.
 		if (check.attackRange) {
@@ -399,8 +434,32 @@ function silhouetteOf({ system }: SilhouettedActor) {
 	return typeof silhouette === 'number' ? silhouette : undefined;
 }
 
+// The item types whose qualities' Pool Modifications change only the attacks made with the item.
+const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
+
+// Whether an effect is a weapon's quality's, whose own Pool Modifications change only the attacks made with that weapon,
+// rather than every check its keys name, as an armor's quality's do (#694).
+function isWeaponQualityEffect(effect: PoolModificationEffect) {
+	return qualityIdOf(effect) !== undefined && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '');
+}
+
+function* withoutWeaponQualityEffects(effects: Iterable<PoolModificationEffect>) {
+	for (const effect of effects) {
+		if (!isWeaponQualityEffect(effect)) {
+			yield effect;
+		}
+	}
+}
+
+// The effects of the qualities of the Weapon Profile an attack is made with, read from the weapon itself: a vehicle
+// weapon's never reach the crew member who fires it.
+function weaponQualityEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
+	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
+	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(qualityIdOf(effect) ?? ''));
+}
+
 function effectModifications(
-	actor: PoolModificationActor,
+	effects: Iterable<PoolModificationEffect>,
 	source: PoolModificationSource,
 	{ characteristic, skillName, attackRange }: CheckForPoolModifications,
 ) {
@@ -428,15 +487,16 @@ function effectModifications(
 
 	const modifications: ExternalPoolModification[] = [];
 
-	for (const effect of actor.allApplicableEffects()) {
+	for (const effect of effects) {
 		if (effect.isSuppressed) {
 			continue;
 		}
 
 		const item = sourceItem<SourceItem & { name: string; uuid: string | null }>(effect);
+		const quality = effectQuality(effect, item?.system);
 		const mods = effect.changes.flatMap(({ key = '', value }) =>
 			appliesToCheck(decodeKey(key)) && typeof value === 'string'
-				? parsePoolModifications(scaledChangeValue(item, { key, value }))
+				? parsePoolModifications(scaledChangeValue(item, { key, value }, quality))
 				: [],
 		);
 
@@ -445,6 +505,8 @@ function effectModifications(
 				source,
 				from: { effect: effect.name, uuid: effect.uuid, ...(item?.uuid && { item: { name: item.name, uuid: item.uuid } }) },
 				mods: mods.sort(sortPoolModifications),
+				// An active quality applies only once the roller triggers it, by spending Advantage (CRB p. 86).
+				...(quality?.activation === 'active' && { startsOff: true }),
 			});
 		}
 	}

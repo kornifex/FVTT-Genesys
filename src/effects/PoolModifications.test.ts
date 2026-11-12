@@ -44,9 +44,10 @@ function effect(
 		isSuppressed = false,
 		origin = null,
 		parent = null,
-	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown } = {},
+		quality = undefined,
+	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown; quality?: string } = {},
 ): PoolModificationEffect {
-	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes };
+	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes, flags: { genesys: { quality } } };
 }
 
 /**
@@ -164,6 +165,20 @@ describe('scaledChangeValue', () => {
 
 	it('multiplies a change whose value Foundry v14 stores as a number, keeping it a number', () => {
 		expect(scaledChangeValue(talent(3), { key: 'system.soak', value: 2 })).toBe(6);
+	});
+
+	it("counts a quality's Pool Modification and numeric change once per rank (CRB pp. 86–89): Accurate 2 as one Boost gives two", () => {
+		const weapon = { type: 'weapon', system: {} };
+		const accurate = { isRated: true, rating: 2 };
+		expect(scaledChangeValue(weapon, { key: 'genesys.pool.combat.self.', value: 'B' }, accurate)).toBe('BB');
+		expect(scaledChangeValue(weapon, { key: 'system.defense.melee', value: '1' }, { isRated: true, rating: 3 })).toBe('3');
+		expect(scaledChangeValue(weapon, { key: 'system.defense.melee', value: 1 }, { isRated: true, rating: 3 })).toBe(3);
+	});
+
+	it("counts the changes of a quality that isn't rated once, whatever rating it keeps", () => {
+		const armor = { type: 'armor', system: {} };
+		expect(scaledChangeValue(armor, { key: 'genesys.pool.check.self.', value: 'B' }, { isRated: false, rating: 3 })).toBe('B');
+		expect(scaledChangeValue(armor, { key: 'system.soak', value: '1' }, { isRated: false, rating: 3 })).toBe('1');
 	});
 
 	it("doesn't scale a numeric change of another item, or a change that isn't a number", () => {
@@ -520,6 +535,137 @@ describe('poolModificationsForCheck', () => {
 		it('changes nothing for an undamaged weapon, or a check made without one', () => {
 			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('undamaged') })).toEqual([]);
 			expect(poolModificationsForCheck(self, undefined, {})).toEqual([]);
+		});
+	});
+
+	describe("the effects of a weapon's or an armor's qualities (CRB pp. 86–89)", () => {
+		type QualitySpec = { id: string; name: string; rating: number; activation?: 'passive' | 'active' };
+		const copy = ({ id, name, rating, activation = 'passive' }: QualitySpec) => ({
+			id,
+			name,
+			description: '',
+			activation,
+			advantageCost: 2,
+			isRated: true,
+			rating,
+		});
+
+		// A weapon or an armor holding qualities, each with one effect of the given changes, tagged with its id, which may be
+		// suppressed as its Equipment State suppresses it. A weapon's extra profiles hold their own qualities.
+		function equipment(
+			type: string,
+			name: string,
+			qualities: (QualitySpec & { changes: Change[] })[],
+			{ extra = [] as (QualitySpec & { changes: Change[] })[], isSuppressed = false } = {},
+		) {
+			const item = {
+				documentName: 'Item',
+				type,
+				name,
+				uuid: `Item.${name}`,
+				system: { damage: 'undamaged' as const, qualities: qualities.map(copy), extraProfiles: [{ qualities: extra.map(copy) }] },
+				effects: [] as PoolModificationEffect[],
+			};
+			item.effects = [...qualities, ...extra].map(({ id, name: quality, changes }) =>
+				effect(changes, { name: quality, parent: item, isSuppressed, quality: id }),
+			);
+			return item;
+		}
+
+		const fromQuality = (name: string, weapon: string, mods: string[], startsOff = false) => ({
+			source: 'self',
+			from: { effect: name, uuid: `ActiveEffect.${name}`, item: { name: weapon, uuid: `Item.${weapon}` } },
+			mods,
+			...(startsOff && { startsOff }),
+		});
+
+		// Accurate 2 written in the quality as one Boost on combat checks.
+		const sword = equipment('weapon', 'Sword', [
+			{ id: 'acc', name: 'Accurate', rating: 2, changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }] },
+		]);
+		const pistol = equipment('weapon', 'Pistol', []);
+		const wielder = actor('character', [...sword.effects]);
+		const attackWith = (weapon: ReturnType<typeof equipment>, attackRange = 'engaged', attackQualities = weapon.system.qualities) => ({
+			characteristic: Characteristic.Brawn,
+			skillName: 'Melee',
+			attackRange,
+			weapon,
+			attackQualities,
+		});
+
+		it("counts a weapon's quality's Pool Modification once per rank on the attacks made with it", () => {
+			expect(poolModificationsForCheck(wielder, undefined, attackWith(sword))).toEqual([
+				fromQuality('Accurate', 'Sword', ['B', 'B']),
+			]);
+		});
+
+		it("leaves a weapon's quality out of an attack made with another weapon, and out of any check that is no attack", () => {
+			expect(poolModificationsForCheck(wielder, undefined, attackWith(pistol, 'medium'))).toEqual([]);
+			const anyCheck = equipment('weapon', 'Charm', [
+				{ id: 'luck', name: 'Lucky', rating: 1, changes: [{ key: 'genesys.pool.check.self.', value: 'B' }] },
+			]);
+			expect(poolModificationsForCheck(actor('character', [...anyCheck.effects]), undefined, check)).toEqual([]);
+		});
+
+		it("applies a weapon's quality only to the attacks made with the Weapon Profile that holds it", () => {
+			const dagger = equipment('weapon', 'Dagger', [], {
+				extra: [{ id: 'thr', name: 'Accurate', rating: 1, changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }] }],
+			});
+			const holder = actor('character', [...dagger.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, attackWith(dagger))).toEqual([]);
+			expect(
+				poolModificationsForCheck(holder, undefined, attackWith(dagger, 'short', dagger.system.extraProfiles[0].qualities)),
+			).toEqual([fromQuality('Accurate', 'Dagger', ['B'])]);
+		});
+
+		it("reads a vehicle weapon's qualities from the weapon, which the crew member who fires it doesn't hold", () => {
+			const cannon = equipment('vehicleWeapon', 'Cannon', [
+				{ id: 'inacc', name: 'Inaccurate', rating: 1, changes: [{ key: 'genesys.pool.combat.self.', value: 'S' }] },
+			]);
+
+			expect(poolModificationsForCheck(actor('character', []), undefined, attackWith(cannon, 'medium'))).toEqual([
+				fromQuality('Inaccurate', 'Cannon', ['S']),
+			]);
+		});
+
+		it("leaves out a weapon's quality while its Equipment State suppresses its effects", () => {
+			const carried = equipment(
+				'weapon',
+				'Sword',
+				[{ id: 'acc', name: 'Accurate', rating: 2, changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }] }],
+				{
+					isSuppressed: true,
+				},
+			);
+
+			expect(poolModificationsForCheck(actor('character', [...carried.effects]), undefined, attackWith(carried))).toEqual([]);
+		});
+
+		it("applies an armor's quality to every check its key names, once per rank", () => {
+			const armor = equipment('armor', 'Cloak', [
+				{ id: 'hush', name: 'Hushed', rating: 2, changes: [{ key: 'genesys.pool.skill.self.Stealth', value: 'B' }] },
+			]);
+
+			expect(poolModificationsForCheck(actor('character', [...armor.effects]), undefined, check)).toEqual([
+				fromQuality('Hushed', 'Cloak', ['B', 'B']),
+			]);
+		});
+
+		it('lists the Pool Modifications of an active quality to start off, as Auto-fire, which the roller turns on when firing on auto', () => {
+			const rifle = equipment('weapon', 'Rifle', [
+				{
+					id: 'auto',
+					name: 'Auto-fire',
+					rating: 1,
+					activation: 'active',
+					changes: [{ key: 'genesys.pool.combat.self.', value: 'D' }],
+				},
+			]);
+
+			expect(poolModificationsForCheck(actor('character', [...rifle.effects]), undefined, attackWith(rifle, 'medium'))).toEqual([
+				fromQuality('Auto-fire', 'Rifle', ['D'], true),
+			]);
 		});
 	});
 

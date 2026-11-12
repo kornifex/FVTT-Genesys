@@ -12,8 +12,17 @@ import {
 	deleteExtraProfileUpdate,
 } from '@/item/WeaponProfiles';
 
-const accurate = { name: 'Accurate', description: '', isRated: true, rating: 1 };
-const limitedAmmo = { name: 'Limited Ammo', description: '', isRated: true, rating: 1 };
+const quality = (id: string, name: string) => ({
+	id,
+	name,
+	description: '',
+	activation: 'passive' as const,
+	advantageCost: 2,
+	isRated: true,
+	rating: 1,
+});
+const accurate = quality('acc', 'Accurate');
+const limitedAmmo = quality('ammo', 'Limited Ammo');
 
 // The dagger of Realms of Terrinoth (pp. 92–96): a melee weapon that is also thrown.
 const dagger = () => ({

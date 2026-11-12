@@ -198,6 +198,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 			attackRange: attack?.profile.range,
 			attacker: vehicleAttacker(attack?.weapon),
 			weapon: attack?.weapon,
+			attackQualities: attack?.profile.qualities,
 			usesSuperCharacteristic: useSuperCharacteristic.value,
 		},
 		worldCheckRules(),

@@ -1,29 +1,56 @@
-/** @file Tests for the qualities of a weapon or an armor: adding a dropped one, raising and changing its rating, removing it. */
+/**
+ * @file Tests for the qualities of a weapon or an armor: adding a dropped one with its effects, raising and changing its
+ * rating, changing it, removing it with its effects.
+ */
 
 import { describe, expect, it } from 'vitest';
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { qualityLabel, withQualityAdded, withQualityRating } from '@/item/data/Qualities';
+import {
+	effectQuality,
+	itemQualities,
+	orphanedQualityEffects,
+	qualityCopy,
+	qualityEffectsData,
+	qualityIdOf,
+	qualityLabel,
+	withQualityAdded,
+	withQualityChanged,
+	withQualityRating,
+} from '@/item/data/Qualities';
 
 const quality = (name: string, rating = 1, isRated = true): ContainedItemQuality => ({
+	id: name.toLowerCase(),
 	name,
 	description: `<p>${name}.</p>`,
+	activation: 'passive',
+	advantageCost: 2,
 	isRated,
 	rating,
 });
 
+// A quality item dropped on a weapon or an armor, as the item copies it.
+const dropped = (name: string, isRated = true, description = `<p>${name}.</p>`): Omit<ContainedItemQuality, 'rating'> => ({
+	id: name.toLowerCase(),
+	name,
+	description,
+	activation: 'passive',
+	advantageCost: 2,
+	isRated,
+});
+
+// An effect tagged with the id of the quality it belongs to.
+const tagged = (id: string | null, quality: string) => ({ id, flags: { genesys: { quality } } });
+
 describe('withQualityAdded', () => {
 	it('adds a quality the item lacks at rating 1, after the ones it has', () => {
-		expect(withQualityAdded([quality('Pierce', 2)], { name: 'Vicious', description: '<p>Vicious.</p>', isRated: true })).toEqual([
-			quality('Pierce', 2),
-			quality('Vicious', 1),
-		]);
+		expect(withQualityAdded([quality('Pierce', 2)], dropped('Vicious'))).toEqual([quality('Pierce', 2), quality('Vicious', 1)]);
 	});
 
 	it('raises by 1 the rating of a rated quality the item has, whatever the case of its name, and leaves the given list as it is', () => {
 		const qualities = Object.freeze([quality('Pierce', 2), quality('Vicious', 1)].map((q) => Object.freeze(q)));
 
-		expect(withQualityAdded(qualities, { name: 'vicious', description: '<p>Other.</p>', isRated: true })).toEqual([
+		expect(withQualityAdded(qualities, { ...dropped('vicious', true, '<p>Other.</p>'), id: 'other' })).toEqual([
 			quality('Pierce', 2),
 			quality('Vicious', 2),
 		]);
@@ -31,7 +58,7 @@ describe('withQualityAdded', () => {
 	});
 
 	it('changes nothing when the item already has the quality and the quality is not rated', () => {
-		expect(withQualityAdded([quality('Accurate', 1, false)], { name: 'Accurate', description: '', isRated: false })).toBeUndefined();
+		expect(withQualityAdded([quality('Accurate', 1, false)], dropped('Accurate', false, ''))).toBeUndefined();
 	});
 });
 
@@ -55,6 +82,23 @@ describe('withQualityRating', () => {
 	});
 });
 
+describe('withQualityChanged', () => {
+	it('changes the quality at an index, and leaves the given list and its qualities as they are', () => {
+		const qualities = Object.freeze([quality('Auto-fire'), quality('Vicious')].map((q) => Object.freeze(q)));
+
+		expect(withQualityChanged(qualities, 0, { activation: 'active', advantageCost: 3 })).toEqual([
+			{ ...quality('Auto-fire'), activation: 'active', advantageCost: 3 },
+			quality('Vicious'),
+		]);
+		expect(qualities).toEqual([quality('Auto-fire'), quality('Vicious')]);
+	});
+
+	it('changes nothing given the values the quality has, or an index the list lacks', () => {
+		expect(withQualityChanged([quality('Vicious')], 0, { activation: 'passive', description: '<p>Vicious.</p>' })).toBeUndefined();
+		expect(withQualityChanged([quality('Vicious')], 1, { activation: 'active' })).toBeUndefined();
+	});
+});
+
 describe('qualityLabel', () => {
 	it('names a rated quality with its rating, as Vicious 2', () => {
 		expect(qualityLabel(quality('Vicious', 2))).toBe('Vicious 2');
@@ -62,5 +106,94 @@ describe('qualityLabel', () => {
 
 	it('names a quality that is not rated alone, whatever rating it keeps', () => {
 		expect(qualityLabel(quality('Accurate', 1, false))).toBe('Accurate');
+	});
+});
+
+describe('itemQualities', () => {
+	it("lists a weapon's main profile's qualities, then its extra profiles'", () => {
+		const system = { qualities: [quality('Accurate')], extraProfiles: [{ qualities: [quality('Limited Ammo')] }, { qualities: [] }] };
+
+		expect(itemQualities(system)).toEqual([quality('Accurate'), quality('Limited Ammo')]);
+	});
+
+	it("lists an armor's qualities, and none for an item that holds none", () => {
+		expect(itemQualities({ qualities: [quality('Defensive')] })).toEqual([quality('Defensive')]);
+		expect(itemQualities({ rank: 2 })).toEqual([]);
+	});
+});
+
+describe('qualityIdOf', () => {
+	it('reads the id of the quality an effect is tagged with, and none for an effect without the tag', () => {
+		expect(qualityIdOf(tagged('e1', 'accurate'))).toBe('accurate');
+		expect(qualityIdOf({ flags: { genesys: { quality: '' } } })).toBeUndefined();
+		expect(qualityIdOf({ flags: { genesys: {} } })).toBeUndefined();
+		expect(qualityIdOf({})).toBeUndefined();
+	});
+});
+
+describe('effectQuality', () => {
+	it("finds the quality of an item an effect is tagged with, in any of a weapon's profiles", () => {
+		const system = { qualities: [quality('Accurate')], extraProfiles: [{ qualities: [quality('Inaccurate', 2)] }] };
+
+		expect(effectQuality(tagged('e1', 'inaccurate'), system)).toEqual(quality('Inaccurate', 2));
+	});
+
+	it('finds none for an effect tagged with a quality the item lacks, an untagged effect, or an effect without item', () => {
+		const system = { qualities: [quality('Accurate')] };
+
+		expect(effectQuality(tagged('e1', 'gone'), system)).toBeUndefined();
+		expect(effectQuality({ flags: {} }, system)).toBeUndefined();
+		expect(effectQuality(tagged('e1', 'accurate'), undefined)).toBeUndefined();
+	});
+});
+
+describe('orphanedQualityEffects', () => {
+	it("lists the effects tagged with a quality the item no longer holds, and leaves the item's other effects", () => {
+		const system = { qualities: [quality('Accurate')], extraProfiles: [{ qualities: [quality('Defensive')] }] };
+		const effects = [
+			tagged('e1', 'accurate'),
+			tagged('e2', 'vicious'),
+			tagged('e3', 'defensive'),
+			{ id: 'e4', flags: {} },
+			tagged('e5', 'vicious'),
+		];
+
+		expect(orphanedQualityEffects(effects, system)).toEqual(['e2', 'e5']);
+	});
+});
+
+describe('qualityCopy', () => {
+	it('copies what a quality item holds, but its rating, under the id given', () => {
+		const item = {
+			name: 'Auto-fire',
+			system: { description: '<p>Fires.</p>', activation: 'active' as const, advantageCost: 2, isRated: false, source: 'CRB' },
+		};
+
+		expect(qualityCopy('q1', item)).toEqual({
+			id: 'q1',
+			name: 'Auto-fire',
+			description: '<p>Fires.</p>',
+			activation: 'active',
+			advantageCost: 2,
+			isRated: false,
+		});
+	});
+});
+
+describe('qualityEffectsData', () => {
+	it("copies a quality item's effects without their ids, tagged with the quality's id, keeping their other flags", () => {
+		const effects = [
+			{ _id: 'a', name: 'Accurate', changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }], flags: { core: { x: 1 } } },
+			{ _id: 'b', name: 'Other', flags: { genesys: { lapses: true } } },
+		];
+
+		expect(qualityEffectsData(effects, 'q1')).toEqual([
+			{
+				name: 'Accurate',
+				changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }],
+				flags: { core: { x: 1 }, genesys: { quality: 'q1' } },
+			},
+			{ name: 'Other', flags: { genesys: { lapses: true, quality: 'q1' } } },
+		]);
 	});
 });
