@@ -10,6 +10,7 @@ import type { RowAction } from '@/vue/components/RowAction';
 // The Dice Prompt and the crew member prompt are Foundry applications, which ItemActions opens: the menu never rolls.
 vi.mock('@/app/DicePrompt', () => ({ DicePrompt: {}, RollType: {} }));
 vi.mock('@/operations/CrewRoll', () => ({ rollForCrew: vi.fn() }));
+vi.mock('@/operations/Healing', () => ({ pickPatient: vi.fn() }));
 // A card is a chat message: the test records the cards posted.
 const { postChatCard } = vi.hoisted(() => ({ postChatCard: vi.fn() }));
 vi.mock('@/item/ChatCards', async (importOriginal) => ({ ...(await importOriginal<object>()), postChatCard }));

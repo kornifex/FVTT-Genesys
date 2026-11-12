@@ -19,6 +19,7 @@ import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentType } from '@/item/ItemTypes';
 import { attackProfile, vehicleAttackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
+import { pickPatient } from '@/operations/Healing';
 import { castingDifficulty, castingSkillName, initiallyCheckedEffects } from '@/item/SpellCasting';
 import { difficultyGlyphs } from '@/dice/Difficulty';
 import { notify } from '@/notifications';
@@ -70,9 +71,9 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapo
 /**
  * Open the dice prompt of a spell's casting, with the magic skill of the spell's the character has the most ranks in,
  * at the spell's difficulty raised by the Additional Effects that start checked (CRB pp. 210–215). A character without
- * a rank in any of the spell's skills is refused, and told why.
+ * a rank in any of the spell's skills is refused, and told why. A Heal spell's card offers to heal its patient.
  */
-export async function castSpell(actor: GenesysActor, spell: GenesysItem<'spell'>) {
+export async function castSpell(actor: Stored<GenesysActor>, spell: GenesysItem<'spell'>) {
 	const { difficulty, skills, additionalEffects } = spell.system;
 	const skillName = castingSkillName(actor.skills, skills);
 	if (!skillName) {
@@ -82,10 +83,19 @@ export async function castSpell(actor: GenesysActor, spell: GenesysItem<'spell'>
 		return;
 	}
 
+	// A Heal spell is cast in place of a Medicine check, on a patient picked as Medicine's is, and at the spell's own
+	// difficulty rather than the patient's state of health (CRB p. 217). Cancelling the pick casts nothing.
+	const heals = spell.system.action === 'heal';
+	const patient = heals ? await pickPatient(actor) : undefined;
+	if (heals && !patient) {
+		return;
+	}
+
 	const checkedEffects = initiallyCheckedEffects(difficulty, additionalEffects);
 	await DicePrompt.promptForRoll(actor, skillName, {
 		roll: { type: RollType.Spell, spell, checkedEffects },
 		difficulty: difficultyGlyphs({ level: castingDifficulty(difficulty, additionalEffects, checkedEffects), upgrades: 0 }),
+		recovery: patient && { patient: patient.uuid, rule: 'healSpell' },
 	});
 }
 
