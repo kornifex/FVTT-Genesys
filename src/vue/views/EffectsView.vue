@@ -108,7 +108,7 @@ async function toggleDisabled(effect: GenesysEffect) {
 					<div class="source">{{ sourceName(effect) }}</div>
 					<div class="duration">
 						<Localized v-if="effect.isExpired" label="Genesys.ActiveEffects.Expired" />
-						<template v-else>{{ effect.duration.label }}</template>
+						<template v-else>{{ effect.durationLabel }}</template>
 					</div>
 					<!-- The on/off toggle stays on the row, where it shows the effect's state. -->
 					<div v-if="editable" class="buttons">
