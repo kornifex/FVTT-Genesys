@@ -13,6 +13,7 @@ import { useSheetContext } from '@/vue/SheetContext';
 import { usePromptAnswer } from '@/vue/usePrompt';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
+import Glyphs from '@/vue/components/Glyphs.vue';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
 import PromptFooter from '@/vue/components/PromptFooter.vue';
@@ -64,6 +65,8 @@ import {
 	spendOptions,
 } from '@/dice/CheckStoryPoints';
 import type { StoryPointPool } from '@/data/StoryPoints';
+import type { ContainedAdditionalEffect } from '@/item/data/Spells';
+import { canCheckEffect } from '@/item/SpellCasting';
 
 type AlsoNone<T> = T | undefined;
 
@@ -89,6 +92,7 @@ const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.gen
 
 const context = useSheetContext<DicePromptContext>();
 const attack = context.value.roll.type === RollType.Attack ? context.value.roll : undefined;
+const spell = context.value.roll.type === RollType.Spell ? context.value.roll.spell : undefined;
 // The Token States of the roller that change no dice, such as Staggered, which the prompt reminds them of.
 const stateReminderLabels = stateReminders(context.value.actor?.statuses ?? []);
 
@@ -119,6 +123,13 @@ const spendContext = computed<SpendContext>(() => ({
 const spends = computed(() => chosenSpends(chosen.value, spendContext.value));
 const options = computed(() => spendOptions(chosen.value, spendContext.value));
 const canRoll = computed(() => canRollWithSpends(spends.value, impossible.value));
+
+// The ids of the spell's Additional Effects the caster checked: those that start checked, as the difficulty received
+// counts them already.
+const checkedEffects = ref<string[]>(context.value.roll.type === RollType.Spell ? [...context.value.roll.checkedEffects] : []);
+const spellEffects = spell?.system.additionalEffects ?? [];
+const canCheck = (effect: ContainedAdditionalEffect) =>
+	!!spell && canCheckEffect(spell.system.difficulty, spellEffects, checkedEffects.value, effect);
 
 // What each spend buys, and the short name of the pool it comes from.
 const SPEND_LABELS: Record<CheckSpend, string> = {
@@ -173,8 +184,10 @@ onMounted(() => {
 	const actor = context.value.actor;
 
 	if (actor) {
-		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill.
-		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, attack?.weapon.type === 'weapon' ? attack.profile.skills : []);
+		// A vehicle weapon's attack is rolled by a crew member for their role, not with an Attack Skill. A spell offers its
+		// magic skills first, as a weapon its Attack Skills.
+		const listed = spell?.system.skills ?? (attack?.weapon.type === 'weapon' ? attack.profile.skills : []);
+		const skills = promptSkills(actor.skills, CONFIG.genesys.skills, listed);
 		weaponSkills.value = skills.weapon;
 		availableSkills.value = skills.owned;
 		unrankedSkills.value = skills.unranked;
@@ -235,6 +248,9 @@ function checkPurpose(): CheckPurpose {
 	switch (context.value.roll.type) {
 		case RollType.Attack:
 			return { kind: 'attack', weaponName: context.value.roll.profile.attackName };
+
+		case RollType.Spell:
+			return { kind: 'spell', spellName: context.value.roll.spell.name };
 
 		case RollType.Initiative:
 			return { kind: 'initiative' };
@@ -374,6 +390,18 @@ function onDifficultyDieClick(die: number) {
 	buildDicePool();
 }
 
+/**
+ * Check or uncheck one of the spell's Additional Effects, which raises or lowers the difficulty by its own (CRB p. 215),
+ * from whatever level the roller left it at.
+ */
+function onEffectChange(effect: ContainedAdditionalEffect, event: Event) {
+	const checked = (event.currentTarget as HTMLInputElement).checked;
+	const others = checkedEffects.value.filter((id) => id !== effect.id);
+	checkedEffects.value = checked ? [...others, effect.id] : others;
+	difficulty.value = withLevel(difficulty.value, difficulty.value.level + (checked ? effect.difficulty : -effect.difficulty));
+	buildDicePool();
+}
+
 function onSpendChange(spend: CheckSpend, event: Event) {
 	const others = chosen.value.filter((other) => other !== spend);
 	chosen.value = (event.currentTarget as HTMLInputElement).checked ? [...others, spend] : others;
@@ -409,9 +437,15 @@ function cancelName(glyph: string) {
 
 // The prompt answers with the check, the pool built for it and the Story Points spent on it; it spends them, and its
 // caller rolls the check.
-usePromptAnswer<DicePromptAnswer>(() => ({ check: check.value!, dicePool: currentDicePool.value, spends: spends.value }));
+usePromptAnswer<DicePromptAnswer>(() => ({
+	check: check.value!,
+	dicePool: currentDicePool.value,
+	spends: spends.value,
+	...(spell && { spellEffects: [...checkedEffects.value] }),
+}));
 
 const superCharacteristicId = useId();
+const effectId = useId();
 const chanceId = useId();
 const spendId = useId();
 </script>
@@ -473,7 +507,10 @@ const spendId = useId();
 
 			<select name="skill" v-localize:aria-label="'Genesys.Labels.Skill'" :value="selectedSkill?.id ?? '-'" @change="onSkillChange">
 				<option value="-">—</option>
-				<optgroup v-if="weaponSkills.length > 0" v-localize:label="'Genesys.DicePrompt.WeaponSkills'">
+				<optgroup
+					v-if="weaponSkills.length > 0"
+					v-localize:label="spell ? 'Genesys.DicePrompt.SpellSkills' : 'Genesys.DicePrompt.WeaponSkills'"
+				>
 					<option v-for="skill in weaponSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
 				</optgroup>
 				<option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">{{ skillLabel(skill) }}</option>
@@ -555,32 +592,59 @@ const spendId = useId();
 			</template>
 		</DescriptionFold>
 
-		<!-- Out of the Pool Modifications' fold: an Impossible task's point, without which it can't be rolled, stays in sight. -->
-		<fieldset class="story-points">
-			<legend><Localized label="Genesys.DicePrompt.StoryPoints.Title" /></legend>
-			<div v-for="option in options" :key="option.spend" :class="['story-point-spend', option.spend]">
-				<input
-					:id="`${spendId}-${option.spend}`"
-					type="checkbox"
-					:name="`spend-${option.spend}`"
-					:checked="spends.includes(option.spend)"
-					:disabled="!!option.refusal"
-					:aria-describedby="option.refusal || option.spend === 'impossible' ? `${spendId}-${option.spend}-why` : undefined"
-					@change="onSpendChange(option.spend, $event)"
-				/>
-				<label :for="`${spendId}-${option.spend}`">
-					<Localized :label="SPEND_LABELS[option.spend]" />
-					<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads the
+		<!-- Out of the Pool Modifications' fold: the Additional Effects checked change the spell, not only its dice; an Impossible
+		task's point, without which it can't be rolled, stays in sight. -->
+		<div class="choices">
+			<fieldset v-if="spellEffects.length > 0" class="spell-effects">
+				<legend><Localized label="Genesys.Labels.AdditionalEffects" /></legend>
+				<div v-for="effect in spellEffects" :key="effect.id" class="spell-effect">
+					<input
+						:id="`${effectId}-${effect.id}`"
+						type="checkbox"
+						:name="`effect-${effect.id}`"
+						:checked="checkedEffects.includes(effect.id)"
+						:disabled="!canCheck(effect)"
+						:aria-describedby="canCheck(effect) ? undefined : `${effectId}-${effect.id}-why`"
+						@change="onEffectChange(effect, $event)"
+					/>
+					<label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label>
+					<Glyphs class="glyph" :glyphs="`+${DIE_GLYPHS.Difficulty.repeat(effect.difficulty)}`" />
+					<span v-if="!canCheck(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
+						<Localized label="Genesys.DicePrompt.BeyondFormidable" />
+					</span>
+				</div>
+			</fieldset>
+
+			<fieldset class="story-points">
+				<legend><Localized label="Genesys.DicePrompt.StoryPoints.Title" /></legend>
+				<div v-for="option in options" :key="option.spend" :class="['story-point-spend', option.spend]">
+					<input
+						:id="`${spendId}-${option.spend}`"
+						type="checkbox"
+						:name="`spend-${option.spend}`"
+						:checked="spends.includes(option.spend)"
+						:disabled="!!option.refusal"
+						:aria-describedby="option.refusal || option.spend === 'impossible' ? `${spendId}-${option.spend}-why` : undefined"
+						@change="onSpendChange(option.spend, $event)"
+					/>
+					<label :for="`${spendId}-${option.spend}`">
+						<Localized :label="SPEND_LABELS[option.spend]" />
+						<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads the
 					label as one. -->
-					<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>
-				</label>
-				<span v-if="SPEND_GLYPHS[option.spend]" class="glyph"><PoolModificationIcon :glyph="SPEND_GLYPHS[option.spend]!" /></span>
-				<span v-if="option.refusal" :id="`${spendId}-${option.spend}-why`" class="why"><Localized :label="option.refusal" /></span>
-				<span v-else-if="option.spend === 'impossible'" :id="`${spendId}-${option.spend}-why`" class="why">
-					<Localized label="Genesys.DicePrompt.StoryPoints.ImpossibleCost" />
-				</span>
-			</div>
-		</fieldset>
+						<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>
+					</label>
+					<span v-if="SPEND_GLYPHS[option.spend]" class="glyph"
+						><PoolModificationIcon :glyph="SPEND_GLYPHS[option.spend]!"
+					/></span>
+					<span v-if="option.refusal" :id="`${spendId}-${option.spend}-why`" class="why"
+						><Localized :label="option.refusal"
+					/></span>
+					<span v-else-if="option.spend === 'impossible'" :id="`${spendId}-${option.spend}-why`" class="why">
+						<Localized label="Genesys.DicePrompt.StoryPoints.ImpossibleCost" />
+					</span>
+				</div>
+			</fieldset>
+		</div>
 
 		<div v-if="USE_CHANCE_TO_SUCCEED" class="chance-to-succeed">
 			<label :for="chanceId">
@@ -985,11 +1049,17 @@ $target-size: 24px;
 		}
 	}
 
-	// A row per spend: its checkbox, its label with the pool it comes from, the upgrade it adds, then why it is closed, under
-	// the label.
-	.story-points {
+	// The choices that change more than the dice: a spell's Additional Effects, when it has some, then the Story Points, in
+	// one row of the grid, so that a check without effects keeps its rows and gaps.
+	.choices {
 		grid-column: 1 / span all;
 		grid-row: 6 / span 1;
+	}
+
+	// A row per spend or per Additional Effect: its checkbox, its label with the pool it comes from, the upgrade or the
+	// difficulty it adds, then why it is closed, under the label.
+	.story-points,
+	.spell-effects {
 		margin: 0.5rem 0 0;
 		padding: 0;
 		border: none;
@@ -1001,7 +1071,8 @@ $target-size: 24px;
 			padding: 0;
 		}
 
-		.story-point-spend {
+		.story-point-spend,
+		.spell-effect {
 			@include reset.input;
 			display: grid;
 			grid-template-columns: $checkbox-size 1fr auto;
@@ -1024,6 +1095,11 @@ $target-size: 24px;
 
 			.glyph {
 				font-family: 'Genesys Symbols', sans-serif;
+			}
+
+			// The Difficulty dice an Additional Effect adds, in their colour.
+			&.spell-effect .glyph {
+				color: colors.$die-difficulty;
 			}
 
 			.why {

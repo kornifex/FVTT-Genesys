@@ -14,6 +14,8 @@ import { StoryPointTracker } from '@/app/StoryPointTracker';
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { useUpEffects } from '@/effects/maneuverEffects';
+import { ownedSkill } from '@/data/Skills';
+import { spellCast } from '@/item/SpellCasting';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -21,16 +23,18 @@ import { useUpEffects } from '@/effects/maneuverEffects';
 export const RollType = {
 	Skill: 'skill',
 	Attack: 'attack',
+	Spell: 'spell',
 	Initiative: 'initiative',
 } as const;
 
 /**
  * A check the Dice Prompt is answered for, and what its roll type needs on top of the dice pool: the weapon of an
- * attack and the Weapon Profile it is made with.
+ * attack and the Weapon Profile it is made with; the spell cast and the Additional Effects checked as the prompt opens.
  */
 export type DicePromptRoll =
 	| { type: typeof RollType.Skill }
 	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'>; profile: AttackProfile }
+	| { type: typeof RollType.Spell; spell: GenesysItem<'spell'>; checkedEffects: string[] }
 	| { type: typeof RollType.Initiative };
 
 /**
@@ -50,9 +54,10 @@ export type DicePromptContext = {
 };
 
 /**
- * The Dice Prompt's answer: the check and its dice pool, and the Story Points the roller spends on it.
+ * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell the
+ * ids of the Additional Effects checked.
  */
-export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[] };
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[] };
 
 /**
  * What a Dice Prompt opens with, besides its actor and skill.
@@ -114,10 +119,17 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			return;
 		}
 
+		const cast = app.roll.type === RollType.Spell && actor ? castOf(actor, app.roll.spell, checkRoll.spellEffects ?? []) : undefined;
 		await rollCheck(checkRoll, {
 			attack: app.roll.type === RollType.Attack ? app.roll.profile : undefined,
 			recovery: app.recovery,
+			spell: cast,
 		});
+		// The caster suffers the strain once the check is resolved, whatever its result (CRB p. 210). Past their strain
+		// threshold, the update incapacitates them, as any strain does.
+		if (cast && actor) {
+			await sufferStrain(actor, cast.strain);
+		}
 		// Once rolled, the check uses up the effects it was the next check for, as an attack the roller's Aim.
 		if (actor) {
 			await useUpEffects(actor, checkRoll.check.purpose);
@@ -218,6 +230,25 @@ export function refuseUnusableWeapon(weapon: Pick<GenesysItem<'weapon' | 'vehicl
 		}),
 	);
 	return true;
+}
+
+/**
+ * What a spell's card shows of its casting by an actor, with the Additional Effects checked: a quality rated by the
+ * caster's ranks counts those they own.
+ */
+function castOf(actor: GenesysActor, spell: GenesysItem<'spell'>, checked: string[]) {
+	return spellCast(spell.system.additionalEffects, checked, (name) => ownedSkill(actor.skills, name)?.system.rank ?? 0);
+}
+
+/**
+ * Make an actor suffer strain, when they track it. Their strain may go past its threshold: the update's Threshold States
+ * then incapacitate them.
+ */
+async function sufferStrain(actor: GenesysActor, strain: number) {
+	const pool = 'strain' in actor.system ? actor.system.strain : undefined;
+	if (pool) {
+		await actor.update({ system: { strain: { value: pool.value + strain } } });
+	}
 }
 
 /**

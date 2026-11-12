@@ -98,6 +98,7 @@ Genesys:
     OpenActor: Abrir la hoja del actor
     RollSkill: Tirar {skill}
     RollAttack: Atacar con {weapon}
+    CastSpell: Lanzar {spell}
     RollHealing: Tirar {skill} para curar {injury}
     RollRepair: Tirar {skill} para reparar {hit}
     RollCharacteristic: Tirar {characteristic}
@@ -115,6 +116,12 @@ Genesys:
       AttackCharacteristic: ¡Atacando con <strong>{name}</strong> usando <strong>{characteristic}</strong>!
       AttackSkill: '¡Atacando con <strong>{name}</strong> usando <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
       AttackSkillWithoutCharacteristic: ¡Atacando con <strong>{name}</strong> usando <strong>{skill}</strong>!
+      SpellSkill: '¡Lanzando <strong>{name}</strong> usando <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
+      SpellSkillWithoutCharacteristic: ¡Lanzando <strong>{name}</strong> usando <strong>{skill}</strong>!
+      SpellWithoutSkill: ¡Lanzando <strong>{name}</strong>!
+    Spell:
+      AdditionalEffects: Efectos adicionales
+      Strain: Tensión sufrida por el lanzador
     Attack:
       Critical: Crítico
       Label: Resultados del ataque
@@ -279,6 +286,8 @@ Genesys:
     UseSuperCharacteristic: Tira como una supercaracterística
     UnrankedSkills: Sin rangos
     WeaponSkills: Habilidades del arma
+    SpellSkills: Habilidades del hechizo
+    BeyondFormidable: La dificultad pasaría de Formidable.
     PoolModifications:
       Title: Modificaciones de la reserva
       Cancel: 'Cancelar: {modification}'
@@ -416,6 +425,7 @@ Genesys:
     NoRoleMembersWithAppropriateSkills: Ningún personaje en este puesto tiene las habilidades apropiadas para realizar esta acción.
     TooManySuperCharacteristics: Un actor no puede tener más de dos supercaracterísticas. Desmarca una primero.
     UnusableWeapon: '{name} no puede atacar: tiene {damage}.'
+    NoRankInSpellSkills: '{name} necesita un rango en una de sus habilidades para lanzarse: {skills}.'
 
   # Dialogs Prompts
   Dialogs:

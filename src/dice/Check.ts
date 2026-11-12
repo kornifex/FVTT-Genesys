@@ -315,9 +315,13 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 }
 
 /**
- * What a check is rolled for: a plain check, an attack with a weapon, or initiative.
+ * What a check is rolled for: a plain check, an attack with a weapon, the casting of a spell, or initiative.
  */
-export type CheckPurpose = { kind: 'check' } | { kind: 'attack'; weaponName: string } | { kind: 'initiative' };
+export type CheckPurpose =
+	| { kind: 'check' }
+	| { kind: 'attack'; weaponName: string }
+	| { kind: 'spell'; spellName: string }
+	| { kind: 'initiative' };
 
 /**
  * The localization functions the chat description is written with.
@@ -360,6 +364,20 @@ export function checkDescription(check: Check, i18n: Localizer): string | undefi
 					characteristic: characteristicName,
 				})
 			);
+
+		case 'spell':
+			if (skill) {
+				return characteristicAbbr
+					? i18n.format('Genesys.Rolls.Description.SpellSkill', {
+							name: purpose.spellName,
+							skill,
+							characteristic: characteristicAbbr,
+							superChar,
+						})
+					: i18n.format('Genesys.Rolls.Description.SpellSkillWithoutCharacteristic', { name: purpose.spellName, skill });
+			}
+
+			return i18n.format('Genesys.Rolls.Description.SpellWithoutSkill', { name: purpose.spellName });
 
 		case 'check':
 			if (skill) {

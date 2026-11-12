@@ -592,6 +592,17 @@ describe('checkDescription', () => {
 		expect(description(resolveCheck(hero, { purpose: attack }, rules))).toBeUndefined();
 	});
 
+	it('names the spell cast, with its skill, or alone when the roller picks none', () => {
+		const spell = { kind: 'spell', spellName: 'Curse' } as const;
+
+		expect(description(resolveCheck(hero, { purpose: spell, skillName: 'Melee' }, rules))).toBe(
+			'SpellSkill {"name":"Curse","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',
+		);
+		expect(description(resolveCheck(hero, { purpose: spell, characteristic: Characteristic.Brawn }, rules))).toBe(
+			'SpellWithoutSkill {"name":"Curse"}',
+		);
+	});
+
 	it('describes initiative with the skill, or the characteristic of a Characteristic Check', () => {
 		expect(description(resolveCheck(hero, { purpose: initiative, skillName: 'Vigilance' }, rules))).toBe(
 			'Initiative {"skill":"Vigilance","superChar":"hide-it"}',

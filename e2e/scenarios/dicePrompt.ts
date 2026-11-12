@@ -54,8 +54,21 @@ type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 	labels: string[];
 	/** Each quality of an attack, with its tooltip. */
 	qualities: { text: string; tooltip: string | null }[];
+	/** Each Additional Effect a spell is cast with, its qualities after its name; left out of a card without any. */
+	spellEffects?: string[];
 	/** The dice row: each die's letter and face, then the extra symbols. */
 	dice: string;
+};
+
+/**
+ * The Additional Effects of a spell's Dice Prompt (§#705), as the caster reads them.
+ */
+type PromptSpellEffects = {
+	/** Each effect: its label, the difficulty it adds, its checkbox, and why it is closed. */
+	effects: { name: string; adds: string; checked: boolean; disabled: boolean; why: string }[];
+	/** The Difficulty row's label: `Difficulty: Hard`. */
+	difficulty: string;
+	pool: string;
 };
 
 type CheckLink = { skill: string | null; difficulty: string | null; text: string };
@@ -203,6 +216,10 @@ type DicePromptHelpers = {
 	promptSpends(): PromptSpends;
 	/** Clicks a Story Point spend's checkbox, by the spend's name. */
 	promptSpend(spend: string): Promise<PromptSpends>;
+	/** The Additional Effects of a spell's prompt, its difficulty's label and its pool. */
+	promptSpellEffects(): PromptSpellEffects;
+	/** Clicks an Additional Effect's checkbox, by its label. */
+	promptCheckEffect(name: string): Promise<PromptSpellEffects>;
 	/**
 	 * Clicks the prompt's roll button, then waits for the check's message, which comes after those of the spends: the
 	 * check's message, null when none was posted, the Story Point messages posted, and the prompts left open.
@@ -939,6 +956,34 @@ function installDicePromptHelpers() {
 			return window.dicePromptE2E.promptSpends();
 		},
 
+		promptSpellEffects() {
+			const root = htmlOf(thePrompt())!;
+			return {
+				effects: [...root.querySelectorAll('.spell-effect')].map((row) => {
+					const input = row.querySelector('input')!;
+					return {
+						name: text(row.querySelector('label')),
+						adds: text(row.querySelector('.glyph')),
+						checked: input.checked,
+						disabled: input.disabled,
+						why: text(row.querySelector('.why')),
+					};
+				}),
+				difficulty: text(root.querySelector('.pool-modifications-difficulty > span')),
+				pool: poolPreview(root),
+			};
+		},
+
+		async promptCheckEffect(name) {
+			const row = [...htmlOf(thePrompt())!.querySelectorAll('.spell-effect')].find(
+				(candidate) => text(candidate.querySelector('label')) === name,
+			);
+			if (!row) throw new Error(`No Additional Effect ${name}`);
+			row.querySelector('input')!.click();
+			await settle();
+			return window.dicePromptE2E.promptSpellEffects();
+		},
+
 		async promptRollSpending() {
 			const before = new Set(game.messages.contents.map((message: { id: string }) => message.id));
 			const posted = () => game.messages.contents.filter((message: { id: string }) => !before.has(message.id));
@@ -1048,6 +1093,9 @@ function installDicePromptHelpers() {
 					text: text(quality),
 					tooltip: quality.getAttribute('data-tooltip'),
 				})),
+				...(content.querySelector('.spell-effect') && {
+					spellEffects: [...content.querySelectorAll('.spell-effect')].map(text),
+				}),
 				dice: text(content.querySelector('.dice')),
 			};
 		},
@@ -4898,6 +4946,106 @@ export async function run(e2e: ScenarioContext) {
 			{ effects: [], prepared: ['5/3', '2/4'], rifle: [] },
 		);
 		await e2e.step('attachments end');
+	});
+
+	// S: casting a spell from the Magic tab, with its magic skill, at its difficulty raised by the Additional Effects
+	// checked in the Dice Prompt, never beyond Formidable, and the 2 strain it costs (§#705, CRB pp. 210–217).
+	await part('spellCasting', async () => {
+		await gm.evaluate(async () => {
+			const effect = (id: string, name: string, difficulty: number, startsChecked: boolean) => ({
+				id,
+				name,
+				difficulty,
+				startsChecked,
+				qualities: [],
+				critical: null,
+				doublesDamageCharacteristic: false,
+			});
+			// Curse, at Average, with Enervate (+1, checked by default), Additional Target (+2) and Range (+1) (CRB p. 217).
+			const curse = {
+				name: 'E2E Curse',
+				type: 'spell',
+				system: {
+					action: 'curse',
+					difficulty: 2,
+					skills: ['Arcana', 'Divine'],
+					additionalEffects: [
+						effect('enervate', 'Enervate', 1, true),
+						effect('target', 'Additional Target', 2, false),
+						effect('range', 'Range', 1, false),
+					],
+				},
+			};
+			const arcana = (rank: number) => ({ name: 'Arcana', type: 'skill', system: { characteristic: 'intellect', rank } });
+			await Actor.createDocuments([
+				{
+					name: 'E2E Mage',
+					type: 'character',
+					system: { characteristics: { intellect: 3 }, strain: { value: 9, max: 10 } },
+					items: [arcana(2), curse],
+				},
+				{ name: 'E2E Novice', type: 'character', items: [arcana(0), curse] },
+			]);
+		});
+		const cast = (actor: string) => click(gm, { actor }, '.tab-magic .spell .name button|E2E Curse');
+		const effects = () => gm.evaluate(() => window.dicePromptE2E.promptSpellEffects());
+		const check = (name: string) => gm.evaluate((name) => window.dicePromptE2E.promptCheckEffect(name), name);
+
+		const opening = await opened(gm, cast('Mage'));
+		e2e.expect(
+			"#705 S1 the Mage's Curse opens the Dice Prompt on Arcana, at Hard: Average and Enervate, checked by default",
+			{ skill: opening.skill, spellSkills: opening.skills?.['Spell Skills'], ...(await effects()) },
+			{
+				skill: 'Arcana (Int)',
+				spellSkills: ['Arcana (Int)', 'Divine (Will)'],
+				effects: [
+					{ name: 'Enervate', adds: '+D', checked: true, disabled: false, why: '' },
+					{ name: 'Additional Target', adds: '+DD', checked: false, disabled: false, why: '' },
+					{ name: 'Range', adds: '+D', checked: false, disabled: false, why: '' },
+				],
+				difficulty: 'Difficulty: Hard',
+				pool: 'PPA|DDD',
+			},
+		);
+
+		const formidable = await check('Additional Target');
+		e2e.expect(
+			"#705 S2 checking Additional Target takes the Curse to Formidable, and Range, which would take it beyond, can't be checked",
+			{ difficulty: formidable.difficulty, range: formidable.effects[2] },
+			{
+				difficulty: 'Difficulty: Formidable',
+				range: { name: 'Range', adds: '+D', checked: false, disabled: true, why: 'Would take the difficulty beyond Formidable.' },
+			},
+		);
+
+		const rolled = await roll();
+		const card = await gm.evaluate(() => window.dicePromptE2E.lastCard());
+		e2e.expect(
+			'#705 S3 the card names the Curse and its checked effects, and the Mage suffers 2 strain, past their threshold',
+			{
+				description: rolled.description,
+				labels: card.labels,
+				effects: card.spellEffects,
+				strain: card.summaries.at(-1),
+				health: await health('Mage'),
+				incapacitated: await gm.evaluate(() => game.actors.getName('E2E Mage').statuses.has('incapacitated')),
+			},
+			{
+				description: 'Casting <strong>E2E Curse</strong> using <strong>Arcana (Int<i class="fas fa-star hide-it"></i>)</strong>!',
+				labels: ['Roll Results', 'Summary', 'Additional Effects', 'Dice'],
+				effects: ['Enervate', 'Additional Target'],
+				strain: 'Strain suffered by the caster 2',
+				health: { wounds: 0, strain: 11 },
+				incapacitated: true,
+			},
+		);
+
+		e2e.expect(
+			"#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why",
+			await noPrompt(gm, cast('Novice')),
+			{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
+		);
+		await e2e.step('spellCasting end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

@@ -164,6 +164,18 @@
 		}
 	}
 
+	// A spell's Additional Effects: one per line, its qualities after its name, drawn as an attack's are.
+	.spell-effects {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+
+		.spell-effect {
+			@extend .qualities;
+			align-items: center;
+		}
+	}
+
 	.qualities {
 		display: flex;
 		flex-direction: row;

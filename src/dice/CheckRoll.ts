@@ -12,6 +12,7 @@ import type { AttackProfile } from '@/item/WeaponProfiles';
 import { CharacteristicsContainer } from '@/data/Characteristics';
 import { CRITICAL_INJURY_FLAG, type CriticalInjuryFlag, criticalTriggers } from '@/dice/CriticalInjuryRoll';
 import { heals, type Recovery, recoveryCard, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
+import type { SpellCast } from '@/item/SpellCasting';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
 const ATTACK_TEMPLATE = 'systems/genesys/templates/chat/rolls/attack.hbs';
@@ -53,21 +54,28 @@ export async function rollPool(dicePool: DicePool): Promise<PoolRoll> {
 type CheckRollOptions = {
 	attack?: AttackProfile;
 	recovery?: RecoveryRequest;
+	spell?: SpellCast;
 };
 
 /**
  * The data of the chat message that shows a check's roll: the check's card, or the attack's card with the Weapon Profile
- * an attack is rolled with. A check rolled for a recovery carries it in the message's flags, which its card's Apply
- * button reads.
+ * an attack is rolled with. A spell's card lists its checked Additional Effects and the strain its caster suffers. A
+ * check rolled for a recovery carries it in the message's flags, which its card's Apply button reads.
  */
 export async function checkMessageData(
 	check: Check,
 	{ roll, results }: PoolRoll,
-	{ attack, recovery: recoveryRequest }: CheckRollOptions = {},
+	{ attack, recovery: recoveryRequest, spell }: CheckRollOptions = {},
 ) {
 	const card = cardResults(results);
 	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results);
-	const data = { description: checkDescription(check, game.i18n), results, card, recovery: recovery && recoveryCardData(recovery) };
+	const data = {
+		description: checkDescription(check, game.i18n),
+		results,
+		card,
+		recovery: recovery && recoveryCardData(recovery),
+		spell: spell && (await spellCardData(spell)),
+	};
 	const triggers = attack
 		? criticalTriggers({
 				succeeded: card.succeeded,
@@ -127,6 +135,17 @@ function recoveryCardData(recovery: Recovery) {
 		wounds: recovery.wounds,
 		strain: recovery.strain,
 		applicable: heals(recovery),
+	};
+}
+
+/**
+ * What a spell's card shows: its checked Additional Effects, their qualities' descriptions enriched, and the strain the
+ * caster suffers.
+ */
+async function spellCardData({ effects, strain }: SpellCast) {
+	return {
+		effects: await Promise.all(effects.map(async (effect) => ({ ...effect, qualities: await enrichedQualities(effect.qualities) }))),
+		strain,
 	};
 }
 

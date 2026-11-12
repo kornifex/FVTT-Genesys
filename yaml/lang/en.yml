@@ -98,6 +98,7 @@ Genesys:
     OpenActor: Open the actor's sheet
     RollSkill: Roll {skill}
     RollAttack: Attack with {weapon}
+    CastSpell: Cast {spell}
     RollHealing: Roll {skill} to heal {injury}
     RollRepair: Roll {skill} to repair {hit}
     RollCharacteristic: Roll {characteristic}
@@ -115,6 +116,12 @@ Genesys:
       AttackCharacteristic: Attacking with <strong>{name}</strong> using <strong>{characteristic}</strong>!
       AttackSkill: 'Attacking with <strong>{name}</strong> using <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
       AttackSkillWithoutCharacteristic: Attacking with <strong>{name}</strong> using <strong>{skill}</strong>!
+      SpellSkill: 'Casting <strong>{name}</strong> using <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
+      SpellSkillWithoutCharacteristic: Casting <strong>{name}</strong> using <strong>{skill}</strong>!
+      SpellWithoutSkill: Casting <strong>{name}</strong>!
+    Spell:
+      AdditionalEffects: Additional Effects
+      Strain: Strain suffered by the caster
     Attack:
       Critical: Critical
       Label: Attack Results
@@ -279,6 +286,8 @@ Genesys:
     UseSuperCharacteristic: Roll as a super-characteristic
     UnrankedSkills: Unranked
     WeaponSkills: Weapon Skills
+    SpellSkills: Spell Skills
+    BeyondFormidable: Would take the difficulty beyond Formidable.
     PoolModifications:
       Title: Pool Modifications
       Cancel: 'Cancel: {modification}' # e.g. Cancel: Upgrade 1 Ability die
@@ -424,6 +433,7 @@ Genesys:
     NoRoleMembersWithAppropriateSkills: There are no role members that have the appropriate skills to perform this action.
     TooManySuperCharacteristics: An actor can't have more than two super-characteristics. Unmark one first.
     UnusableWeapon: "{name} can't attack: it has {damage}." # e.g. Pistol can't attack: it has Major Damage.
+    NoRankInSpellSkills: '{name} needs a rank in one of its skills to be cast: {skills}.' # e.g. Curse needs a rank in one of its skills to be cast: Arcana, Divine.
 
   # Dialogs Prompts
   Dialogs:
