@@ -1,7 +1,7 @@
 /**
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
  * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
- * (CRB p. 116); the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
+ * (CRB p. 116), and the Heal spell cast in its place (CRB p. 217); the checkthat recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
  */
 
 import type { CombatPool } from '@/data/schemaFields';
@@ -46,6 +46,8 @@ type RecoveryRuleDefinition = { heal: (results: RecoveryResults) => Healed; labe
  */
 const RECOVERY_RULES = {
 	medicine: { heal: medicineHealing, label: 'Genesys.Recovery.CardLabel', healsWounds: true },
+	// A Heal spell is cast in place of a Medicine check, and heals as one does on success (CRB p. 217).
+	healSpell: { heal: medicineHealing, label: 'Genesys.Recovery.CardLabel', healsWounds: true },
 	endOfEncounter: { heal: endOfEncounterRecovery, label: 'Genesys.Recovery.EndOfEncounterCardLabel', healsWounds: false },
 } satisfies Record<string, RecoveryRuleDefinition>;
 

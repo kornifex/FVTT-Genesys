@@ -10,6 +10,7 @@ import type { GenesysItem } from '@/item/GenesysItem';
 const { promptForRoll } = vi.hoisted(() => ({ promptForRoll: vi.fn() }));
 vi.mock('@/app/DicePrompt', () => ({ DicePrompt: { promptForRoll }, RollType: {} }));
 vi.mock('@/operations/CrewRoll', () => ({ rollForCrew: vi.fn() }));
+vi.mock('@/operations/Healing', () => ({ pickPatient: vi.fn() }));
 
 const { confirmDelete, freeSkillRank, rollSkill } = await import('@/operations/ItemActions');
 
