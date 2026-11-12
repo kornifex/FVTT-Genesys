@@ -143,9 +143,46 @@ describe('Prone', () => {
 		);
 	});
 
-	it("adds nothing to a check against its actor that is no attack, nor to its actor's own checks", () => {
+	it('adds nothing to a check against its actor that is no attack', () => {
 		expect(poolModificationsForCheck(attacker, characterWith('prone'), { characteristic: Characteristic.Presence })).toEqual([]);
-		expect(poolModificationsForCheck(characterWith('prone'), undefined, { attackRange: 'short' })).toEqual([]);
+	});
+
+	it("adds a Setback to its actor's own melee attack, not to their ranged attack nor to their Athletics check (CRB p. 108)", () => {
+		const prone = characterWith('prone');
+		expect(
+			poolModificationsForCheck(prone, undefined, {
+				characteristic: Characteristic.Brawn,
+				skillName: 'Melee (Light)',
+				attackRange: 'engaged',
+			}),
+		).toEqual([
+			{
+				source: 'self',
+				from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
+				mods: [DieTypes.Setback.GLYPH],
+			},
+		]);
+		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
+			expect(
+				poolModificationsForCheck(prone, undefined, {
+					characteristic: Characteristic.Agility,
+					skillName: 'Ranged (Light)',
+					attackRange,
+				}),
+			).toEqual([]);
+		}
+		expect(poolModificationsForCheck(prone, undefined, { characteristic: Characteristic.Brawn, skillName: 'Athletics' })).toEqual([]);
+	});
+
+	it("adds the Setback on its actor's melee attack against a prone target beside the target's Boost (CRB p. 100, 108)", () => {
+		expect(poolModificationsForCheck(characterWith('prone'), characterWith('prone'), { attackRange: 'engaged' })).toEqual([
+			{
+				source: 'self',
+				from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
+				mods: [DieTypes.Setback.GLYPH],
+			},
+			...fromProne(DieTypes.Boost.GLYPH),
+		]);
 	});
 });
 
