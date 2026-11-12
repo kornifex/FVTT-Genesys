@@ -1,7 +1,7 @@
 /**
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
- * carries until it is applied; and the Medicine check that heals a patient, at the difficulty of their state of health
- * (CRB p. 116).
+ * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
+ * (CRB p. 116); the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
  */
 
 import type { CombatPool } from '@/data/schemaFields';
@@ -29,16 +29,38 @@ function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults): Healed 
 }
 
 /**
- * How each kind of recovery check heals, from its results.
+ * The check a character makes at the end of an encounter recovers a strain per Success, and heals no wound (CRB p. 117).
+ */
+function endOfEncounterRecovery({ netSuccess }: RecoveryResults): Healed {
+	return { wounds: 0, strain: Math.max(netSuccess, 0) };
+}
+
+/**
+ * A kind of recovery check: how it heals from its results, the localization key of its card's label, which names the
+ * patient, and whether it heals wounds, which its card shows only then.
+ */
+type RecoveryRuleDefinition = { heal: (results: RecoveryResults) => Healed; label: string; healsWounds: boolean };
+
+/**
+ * How each kind of recovery check heals, and how its card shows it.
  */
 const RECOVERY_RULES = {
-	medicine: medicineHealing,
-} satisfies Record<string, (results: RecoveryResults) => Healed>;
+	medicine: { heal: medicineHealing, label: 'Genesys.Recovery.CardLabel', healsWounds: true },
+	endOfEncounter: { heal: endOfEncounterRecovery, label: 'Genesys.Recovery.EndOfEncounterCardLabel', healsWounds: false },
+} satisfies Record<string, RecoveryRuleDefinition>;
 
 /**
  * A kind of recovery check, by the rule its results heal by.
  */
 type RecoveryRule = keyof typeof RECOVERY_RULES;
+
+/**
+ * How a recovery check's card shows it: the localization key of its label, and whether it shows the wounds healed.
+ */
+export function recoveryCard(rule: RecoveryRule) {
+	const { label, healsWounds } = RECOVERY_RULES[rule];
+	return { label, healsWounds };
+}
 
 /**
  * The recovery a check is rolled for: the uuid of its patient, and the rule its results heal by.
@@ -54,7 +76,7 @@ export type Recovery = RecoveryRequest & Healed;
  * The recovery a check's results give: what they heal by the rule it is rolled for.
  */
 export function recoveryOf(request: RecoveryRequest, results: RecoveryResults): Recovery {
-	return { ...request, ...RECOVERY_RULES[request.rule](results) };
+	return { ...request, ...RECOVERY_RULES[request.rule].heal(results) };
 }
 
 /**
@@ -88,6 +110,53 @@ export type Patient = { wounds: CombatPool; strain?: CombatPool };
 export function healedPools(patient: Patient, healing: Healed): { wounds: number; strain?: number } {
 	const wounds = Math.max(patient.wounds.value - healing.wounds, 0);
 	return patient.strain ? { wounds, strain: Math.max(patient.strain.value - healing.strain, 0) } : { wounds };
+}
+
+/**
+ * What a full night's rest heals a character of, without a check: all their strain, and one wound when they suffer any
+ * (CRB pp. 116–117).
+ */
+export function nightsRest({ wounds, strain }: { wounds: CombatPool; strain: CombatPool }): Healed {
+	return { wounds: Math.min(wounds.value, 1), strain: strain.value };
+}
+
+/**
+ * The skills a character picks between for the check that recovers strain at the end of an encounter (CRB p. 117), the
+ * first one winning a tie.
+ */
+const STRAIN_RECOVERY_SKILLS = ['Discipline', 'Cool'] as const;
+
+/**
+ * What a character rolls a skill with: the value of its characteristic, and their ranks in it.
+ */
+type SkillPool = { characteristic: number; rank: number };
+
+/**
+ * The skill the check that recovers strain at the end of an encounter opens with, among those the character can roll: the
+ * one of the larger dice pool, then of more Proficiency dice, Discipline on a tie or when they can roll neither. The
+ * roller can still pick the other in the Dice Prompt.
+ *
+ * @param poolOf What the character rolls a skill with, by its name; undefined when they can't roll it.
+ */
+export function strainRecoverySkill(poolOf: (name: string) => SkillPool | undefined): string {
+	// A skill check rolls as many dice as the higher of the characteristic and the ranks, the lower of them upgraded.
+	const dice = ({ characteristic, rank }: SkillPool) => ({
+		total: Math.max(characteristic, rank),
+		proficiency: Math.min(characteristic, rank),
+	});
+	let best: { name: string; total: number; proficiency: number } | undefined;
+	for (const name of STRAIN_RECOVERY_SKILLS) {
+		const pool = poolOf(name);
+		const candidate = pool && { name, ...dice(pool) };
+		if (
+			candidate &&
+			(!best || candidate.total > best.total || (candidate.total === best.total && candidate.proficiency > best.proficiency))
+		) {
+			best = candidate;
+		}
+	}
+
+	return best?.name ?? STRAIN_RECOVERY_SKILLS[0];
 }
 
 /**

@@ -209,6 +209,8 @@ type DicePromptHelpers = {
 	 */
 	promptRollSpending(): Promise<{ rolled: MessageSummary | null; storyPointMessages: number; prompts: number }>;
 	lastMessage(): MessageSummary;
+	/** The last message's speaker, without its `E2E ` prefix, and its text, for a message that shows no roll. */
+	lastMessageText(): { speaker: string | null; text: string };
 	lastCard(): CardSummary;
 	/** Clicks the element at a path of a document's sheet, which it renders if needed. */
 	click(args: { doc: Doc; path: string }): Promise<void>;
@@ -956,6 +958,13 @@ function installDicePromptHelpers() {
 		},
 
 		lastMessage: () => messageSummary(game.messages.contents.at(-1)),
+
+		lastMessageText() {
+			const message = game.messages.contents.at(-1);
+			const content = document.createElement('div');
+			content.innerHTML = message.content;
+			return { speaker: messageSummary(message).speaker, text: text(content) };
+		},
 
 		async rollToChat(formula) {
 			const message = await (await new foundry.dice.Roll(formula).evaluate()).toMessage();
@@ -1750,6 +1759,10 @@ export async function run(e2e: ScenarioContext) {
 	const update = (doc: Doc, data: object) => gm.evaluate((args) => window.dicePromptE2E.update(args), { doc, data });
 	const target = (name: string | null) => gm.evaluate((name) => window.e2e.target(name), name);
 	const control = (client: Client, names: string[]) => client.evaluate((names) => window.dicePromptE2E.control(names), names);
+	// The Apply button of a check that heals, as a client sees it, and an actor's wounds and strain (§#686, §#687).
+	const recoveryButton = (client: Client, id: string, click = false) =>
+		client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
+	const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 	const ada = { actor: 'Ada' };
 	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.skill-name|${skill} (`);
 	const characteristicRoll = (index: number, doc: Doc = ada) =>
@@ -4389,9 +4402,6 @@ export async function run(e2e: ScenarioContext) {
 		const heal = (client: Client) => click(client, cy, '.tab-skills .skill .heal');
 		const patientPrompt = (client: Client, pick: string | null) =>
 			client.evaluate((pick) => window.dicePromptE2E.patientPrompt(pick), pick);
-		const recoveryButton = (client: Client, id: string, click = false) =>
-			client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
-		const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 		// Cy, the player's, rolls two Ability dice for Medicine. Bo, the player's, has suffered more than half his wound
 		// threshold; Mark, the GM's, more than his wound threshold; Cy, none.
 		await update(cy, { system: { characteristics: { intellect: 2 }, wounds: { value: 0, max: 10 } } });
@@ -4461,6 +4471,61 @@ export async function run(e2e: ScenarioContext) {
 			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 		);
 		await e2e.step('medicineHeal end');
+	});
+
+	// R: the End of encounter and Night's rest actions beside a character's strain and wounds: a Simple Discipline or Cool
+	// check whose card recovers a strain per Success, and a night's rest that recovers all strain and heals a wound
+	// (§#687, CRB pp. 116–117).
+	await part('recovery', async () => {
+		const cy = { actor: 'Cy' };
+		// Cy, the player's, rolls Cool on three Ability dice, Discipline on two.
+		await update(cy, {
+			system: { characteristics: { willpower: 2, presence: 3 }, wounds: { value: 4, max: 10 }, strain: { value: 5, max: 10 } },
+		});
+
+		const encounter = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
+		const difficulty = await player.evaluate(() => window.dicePromptE2E.promptDifficulty().label);
+		const discipline = await player.evaluate((args) => window.dicePromptE2E.promptSelect(args), {
+			name: 'skill' as const,
+			option: 'Discipline',
+		});
+		e2e.expect(
+			'#687 R1 End of encounter opens a Simple check on the better of Discipline and Cool, and the player can pick the other',
+			{ actor: encounter.actor, skill: encounter.skill, pool: encounter.pool, difficulty, other: discipline.pool },
+			{ actor: 'Cy', skill: 'Cool (Pr)', pool: 'AAA|', difficulty: 'Difficulty: Simple', other: 'AA|' },
+		);
+
+		// Discipline's Ability dice on two Successes, then a Success and an Advantage.
+		await player.fixDice([
+			{ face: 4, faces: 8 },
+			{ face: 7, faces: 8 },
+		]);
+		const rolled = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+		const { labels } = await player.evaluate(() => window.dicePromptE2E.lastCard());
+		const shown = await recoveryButton(player, rolled.id, true);
+		e2e.expect(
+			"#687 R2 the card recovers a strain per Success, and no wound; Apply lowers Cy's strain by them",
+			{ results: rolled.results, labels, summaries: rolled.summaries, shown, health: await health('Cy') },
+			{
+				results: 's s s a',
+				labels: ['Roll Results', 'Summary', 'E2E Cy recovers', 'Dice'],
+				summaries: ['s Successes 3 a Advantage 1', 'Strain 3'],
+				shown: true,
+				health: { wounds: 4, strain: 2 },
+			},
+		);
+
+		await e2e.step("#687 R3 Cy's owner rests for the night", click(player, cy, '.recovery-actions .nights-rest'));
+		await e2e.settle();
+		e2e.expect(
+			"#687 R3 Night's rest empties the strain and heals one wound, and the chat says so",
+			{ health: await health('Cy'), message: await gm.evaluate(() => window.dicePromptE2E.lastMessageText()) },
+			{
+				health: { wounds: 3, strain: 0 },
+				message: { speaker: 'Cy', text: 'Rests for the night. Strain recovered: 2. Wounds healed: 1.' },
+			},
+		);
+		await e2e.step('recovery end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

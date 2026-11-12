@@ -53,7 +53,7 @@ A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its s
 _Avoid_: Crit, wound
 
 **Recovery**:
-What a check that heals gives its **Patient**, the character, rival or nemesis it heals: the wounds and strain its results heal, by the rule it is rolled for, as a Medicine check heals a wound per Success and a strain per Advantage once it succeeds. Its chat card shows them, and its Apply button lowers the Patient's wounds and strain by them, never below zero, for the GM and the Patient's owners. How often a Patient may receive one is left to the table.
+What a check that heals gives its **Patient**, the character, rival or nemesis it heals: the wounds and strain its results heal, by the rule it is rolled for, as a Medicine check heals a wound per Success and a strain per Advantage once it succeeds, and the Discipline or Cool check a character makes at the end of an encounter a strain per Success. A full night's rest heals all strain and one wound without a check, and gives no Recovery. Its chat card shows them, and its Apply button lowers the Patient's wounds and strain by them, never below zero, for the GM and the Patient's owners. How often a Patient may receive one is left to the table.
 _Avoid_: Heal payload, healing result
 
 **Status Effect**:

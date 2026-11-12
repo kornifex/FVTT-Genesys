@@ -345,6 +345,11 @@ Genesys:
     Wounds: Blessures
     Strain: Stress
     Apply: Appliquer
+    # The end of an encounter's check and a night's rest
+    EndOfEncounter: Fin de rencontre
+    EndOfEncounterCardLabel: '{patient} récupère'
+    NightsRest: Nuit de repos
+    NightsRestMessage: 'Se repose pour la nuit. Stress récupéré : {strain}. Blessures soignées : {wounds}.'
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:

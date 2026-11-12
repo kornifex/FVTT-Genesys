@@ -3,6 +3,8 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
+import ActionButton from '@/vue/components/ActionButton.vue';
+import { recoverAtEndOfEncounter, restForTheNight } from '@/operations/Resting';
 import SheetTabs from '@/vue/components/SheetTabs.vue';
 import EffectsView from '@/vue/views/EffectsView.vue';
 import { useDocumentEffects } from '@/vue/useDocumentEffects';
@@ -13,7 +15,7 @@ import TalentsTab from '@/vue/sheets/actor/character/TalentsTab.vue';
 import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 
-const { system } = useSheetDocument<GenesysActor<'character'>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 
 const { effects, addEffect } = useDocumentEffects();
 
@@ -55,6 +57,24 @@ const TABS = [
 					counter: { attribute: 'strain', label: 'Genesys.Counter.CurrentStrain' },
 				}"
 			/>
+
+			<!-- Beside the strain and wounds they recover, so that the player sees the bars change as they click (#687). -->
+			<div class="recovery-actions">
+				<ActionButton
+					class="end-of-encounter"
+					icon="fas fa-flag-checkered"
+					label="Genesys.Recovery.EndOfEncounter"
+					edits
+					@click="recoverAtEndOfEncounter(actor)"
+				/>
+				<ActionButton
+					class="nights-rest"
+					icon="fas fa-bed"
+					label="Genesys.Recovery.NightsRest"
+					edits
+					@click="restForTheNight(actor)"
+				/>
+			</div>
 
 			<CombatStat
 				label="Genesys.Labels.Defense"
@@ -101,6 +121,20 @@ const TABS = [
 
 		.combat-stat {
 			width: 165px;
+		}
+	}
+
+	// Stacked, the two icon buttons take a narrow column, which leaves the stat boxes their width on a narrow sheet.
+	.recovery-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25em;
+
+		.action-button {
+			width: 2em;
+			height: 2em;
+			margin: 0;
+			padding: 0;
 		}
 	}
 }
