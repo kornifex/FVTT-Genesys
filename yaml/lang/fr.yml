@@ -495,7 +495,7 @@ Genesys:
       Les sorts et leurs effets supplémentaires, lancés depuis l'onglet Magie : les effets choisis dans la réserve de dés,
       les attaques magiques et leurs dégâts, et Soin
     Attachments: >-
-      Les accessoires s'installent sur une arme ou une armure, dans la limite de ses points de montage, et leurs effets
+      Les accessoires s'installent sur une arme ou une armure, dans la limite de ses points d'emplacement, et leurs effets
       actifs peuvent modifier l'objet lui-même
     Qualities: Un attribut déposé sur un objet apporte ses effets actifs, proportionnés à son rang
     Maneuvers: Viser, Posture défensive, Abrité et À terre modifient les tests de combat qu'ils concernent
