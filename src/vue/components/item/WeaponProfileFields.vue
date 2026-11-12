@@ -17,7 +17,7 @@ const props = withDefaults(
 		profile: VehicleWeaponProfileData & Partial<Pick<WeaponProfileData, 'damageCharacteristic'>>;
 		/**
 		 * Whether the profile's fields are the weapon's own, which the sheet's form submits by their names: its main
-		 * profile's. An extra profile's fields are unnamed, and each change is emitted.
+		 * profile's. An extra profile's fields are unnamed, and each change goes to `onChange`.
 		 */
 		named?: boolean;
 		/**
@@ -25,13 +25,14 @@ const props = withDefaults(
 		 * profile's by default.
 		 */
 		qualitiesPath?: string;
+		/**
+		 * Saves a change to the profile, which `@change` binds. A prop rather than an event, so that the qualities can
+		 * wait for the change to be saved.
+		 */
+		onChange: (changes: Partial<WeaponProfileData>) => unknown;
 	}>(),
 	{ qualitiesPath: 'system.qualities' },
 );
-
-const emit = defineEmits<{
-	(e: 'change', changes: Partial<WeaponProfileData>): void;
-}>();
 
 function fieldName(field: keyof WeaponProfileData) {
 	return props.named ? `system.${field}` : undefined;
@@ -40,7 +41,7 @@ function fieldName(field: keyof WeaponProfileData) {
 // A named field is written by the sheet's form.
 function changeField(changes: Partial<WeaponProfileData>) {
 	if (!props.named) {
-		emit('change', changes);
+		void props.onChange(changes);
 	}
 }
 
@@ -117,7 +118,7 @@ function numberOf(event: Event) {
 					icon="fas fa-trash"
 					label="Genesys.Labels.RemoveSkill"
 					edits
-					@click="emit('change', { skills: withoutIndex(profile.skills, index) })"
+					@click="onChange({ skills: withoutIndex(profile.skills, index) })"
 				/>
 			</div>
 		</div>
@@ -125,7 +126,7 @@ function numberOf(event: Event) {
 
 	<DataRow label="Genesys.Labels.Qualities" group>
 		<div class="profile-qualities">
-			<QualityRows :qualities="profile.qualities" :path="qualitiesPath" @change="emit('change', { qualities: $event })" />
+			<QualityRows :qualities="profile.qualities" :path="qualitiesPath" @change="onChange({ qualities: $event })" />
 		</div>
 	</DataRow>
 </template>

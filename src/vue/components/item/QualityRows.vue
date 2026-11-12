@@ -15,7 +15,7 @@ import { addQualityEffect } from '@/operations/QualityEffects';
 /**
  * The qualities of a weapon's profile or of an armor, each with its rating and its removal, which open to edit the
  * quality in full: its activation, the Advantage an active one costs, its description, and an effect to add to it, which
- * the item's Effects tab lists. Each change is emitted as the new list.
+ * the item's Effects tab lists. Each change goes to `onChange` as the new list.
  */
 const props = defineProps<{
 	qualities: readonly ContainedItemQuality[];
@@ -24,10 +24,11 @@ const props = defineProps<{
 	 * main profile or an armor.
 	 */
 	path: string;
-}>();
-
-const emit = defineEmits<{
-	(e: 'change', qualities: ContainedItemQuality[]): void;
+	/**
+	 * Saves the new list, which `@change` binds. A prop rather than an event, so that an effect is tagged with a
+	 * quality's new id only once the id is saved.
+	 */
+	onChange: (qualities: ContainedItemQuality[]) => unknown;
 }>();
 
 const { document: item } = useSheetDocument<GenesysItem<'weapon' | 'vehicleWeapon' | 'armor'>>();
@@ -49,14 +50,14 @@ function toggle(quality: ContainedItemQuality) {
 	}
 }
 
-function change(qualities: ContainedItemQuality[] | undefined) {
+async function change(qualities: ContainedItemQuality[] | undefined) {
 	if (qualities) {
-		emit('change', qualities);
+		await props.onChange(qualities);
 	}
 }
 
 function changeQuality(index: number, changes: Partial<ContainedItemQuality>) {
-	change(withQualityChanged(props.qualities, index, changes));
+	return change(withQualityChanged(props.qualities, index, changes));
 }
 
 // The name of a quality's rating field, which shows no label of its own: "Pierce Rating".
@@ -72,15 +73,15 @@ function valueOf(event: Event) {
 	return (event.target as HTMLInputElement | HTMLSelectElement).value;
 }
 
-function updateRating(index: number, event: Event) {
+async function updateRating(index: number, event: Event) {
 	// A rating that isn't a number changes nothing.
-	change(withQualityRating(props.qualities, index, parseInt(valueOf(event), 10)));
+	await change(withQualityRating(props.qualities, index, parseInt(valueOf(event), 10)));
 }
 
-function updateAdvantageCost(index: number, event: Event) {
+async function updateAdvantageCost(index: number, event: Event) {
 	const cost = parseInt(valueOf(event), 10);
 	if (!Number.isNaN(cost) && cost >= 0) {
-		changeQuality(index, { advantageCost: cost });
+		await changeQuality(index, { advantageCost: cost });
 	}
 }
 
@@ -89,18 +90,31 @@ async function removeQuality(index: number) {
 	const { name } = props.qualities[index];
 	// The list may change while the dialog is open: remove the quality it named, or nothing.
 	if ((await confirmDelete(name)) && props.qualities[index]?.name === name) {
-		change(withoutIndex(props.qualities, index));
+		await change(withoutIndex(props.qualities, index));
 	}
 }
 
-// A quality stored before its copies had ids gets one with its first effect, which the effect is tagged with.
+// Whether an effect is being added, during which another click adds none: a quality without an id would get a second
+// one, and the item would delete the effect tagged with the first.
+let addingEffect = false;
+
+// A quality stored before its copies had ids gets one with its first effect, saved before the effect is tagged with it.
 async function addEffect(index: number) {
-	let quality = props.qualities[index];
-	if (!quality.id) {
-		quality = { ...quality, id: foundry.utils.randomID() };
-		changeQuality(index, { id: quality.id });
+	if (addingEffect) {
+		return;
 	}
-	await addQualityEffect(item.value, quality);
+
+	addingEffect = true;
+	try {
+		let quality = props.qualities[index];
+		if (!quality.id) {
+			quality = { ...quality, id: foundry.utils.randomID() };
+			await changeQuality(index, { id: quality.id });
+		}
+		await addQualityEffect(item.value, quality);
+	} finally {
+		addingEffect = false;
+	}
 }
 </script>
 
