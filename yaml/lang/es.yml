@@ -220,6 +220,10 @@ Genesys:
           Check: Cualquier tirada
           Characteristic: Utiliza característica
           Skill: Utiliza habilidad
+          # The scopes of combat checks and attacks (CRB p. 98–100, 108)
+          CombatCheck: Tirada de combate
+          MeleeAttack: Ataque cuerpo a cuerpo
+          RangedAttack: Ataque a distancia
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
@@ -236,6 +240,21 @@ Genesys:
     RoundsLeft:
       one: '{rounds} asalto'
       other: '{rounds} asaltos'
+    # Cover and prone (CRB p. 99–100)
+    Cover:
+      Name: A cubierto
+    Prone:
+      Name: Tumbado
+
+  # Maneuvers: those of the character sheet's Combat tab (CRB p. 98–99)
+  Maneuvers:
+    Title: Maniobras
+    Aim:
+      Name: Apuntar
+      Hint: Un dado de Beneficio en la próxima tirada de combate, dos tras dos maniobras de Apuntar seguidas.
+    GuardedStance:
+      Name: Postura defensiva
+      Hint: Un dado de Complicación en las tiradas de combate y defensa cuerpo a cuerpo 1, hasta el final del próximo turno.
 
   # Dice Prompt Labels
   DicePrompt:
@@ -376,6 +395,7 @@ Genesys:
     NoGMForStoryPoint: Un DJ debe estar conectado para gastar un punto de Historia.
     CombatantHasNoActivationLeft: '{name} no tiene más activaciones esta ronda.'
     NoGMForClaim: Un DJ debe estar conectado para reclamar un puesto de iniciativa.
+    NoGMForUsedUpEffects: Un DJ debe estar conectado para retirar el Apuntar que gastó el ataque de {name}.
     NotOwnerOfCombatant: No eres propietario de este combatiente.
     ActingGMTimedOut: El DJ no respondió a tiempo. Comprueba si la acción se realizó antes de volver a intentarlo.
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.

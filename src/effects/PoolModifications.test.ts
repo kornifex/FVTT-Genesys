@@ -79,11 +79,20 @@ describe('change keys', () => {
 		expect(encodeKey({ kind: 'skill', source: 'self', subject: 'Ranged (Light)' })).toBe('genesys.pool.skill.self.Ranged (Light)');
 	});
 
+	it('encodes the keys of combat checks and of melee or ranged attacks with an empty subject', () => {
+		expect(encodeKey({ kind: 'combat', source: 'self', subject: 'ignored' })).toBe('genesys.pool.combat.self.');
+		expect(encodeKey({ kind: 'melee', source: 'target', subject: '' })).toBe('genesys.pool.melee.target.');
+		expect(encodeKey({ kind: 'ranged', source: 'target', subject: '' })).toBe('genesys.pool.ranged.target.');
+	});
+
 	it('decodes the keys it encodes', () => {
 		for (const key of [
 			{ kind: 'check', source: 'self', subject: '' },
 			{ kind: 'char', source: 'target', subject: 'brawn' },
 			{ kind: 'skill', source: 'self', subject: 'Ranged (Light)' },
+			{ kind: 'combat', source: 'self', subject: '' },
+			{ kind: 'melee', source: 'target', subject: '' },
+			{ kind: 'ranged', source: 'target', subject: '' },
 		] as const) {
 			expect(decodeKey(encodeKey(key))).toEqual(key);
 		}
@@ -207,6 +216,58 @@ describe('poolModificationsForCheck', () => {
 		]);
 
 		expect(poolModificationsForCheck(self, undefined, {})[0].mods).toEqual(['B']);
+	});
+
+	describe("the changes of the actor's combat checks (CRB p. 101)", () => {
+		const aiming = actor('character', [effect([{ key: 'genesys.pool.combat.self.', value: 'B' }], { name: 'Aim' })]);
+
+		it('applies to an attack, melee or ranged', () => {
+			for (const attackRange of ['engaged', 'short', 'extreme']) {
+				expect(poolModificationsForCheck(aiming, undefined, { ...check, attackRange })).toEqual([
+					{ source: 'self', from: { effect: 'Aim', uuid: 'ActiveEffect.Aim' }, mods: ['B'] },
+				]);
+			}
+		});
+
+		it('is left out of a check that is no attack, as a Stealth or a Characteristic Check (CRB p. 98)', () => {
+			expect(poolModificationsForCheck(aiming, undefined, check)).toEqual([]);
+			expect(poolModificationsForCheck(aiming, undefined, { characteristic: Characteristic.Agility })).toEqual([]);
+			expect(poolModificationsForCheck(aiming, undefined, {})).toEqual([]);
+		});
+
+		it("is left out of the attacks against the actor: only the actor's own checks get it", () => {
+			expect(poolModificationsForCheck(actor('rival', []), aiming, { attackRange: 'short' })).toEqual([]);
+		});
+	});
+
+	describe('the changes of the attacks that target the actor, melee or ranged (CRB p. 100, 108)', () => {
+		const self = actor('character', []);
+		const prone = actor('character', [
+			effect(
+				[
+					{ key: 'genesys.pool.ranged.target.', value: 'S' },
+					{ key: 'genesys.pool.melee.target.', value: 'B' },
+				],
+				{ name: 'Prone' },
+			),
+		]);
+		const fromProne = (mods: string[]) => [{ source: 'target', from: { effect: 'Prone', uuid: 'ActiveEffect.Prone' }, mods }];
+
+		it('applies the melee change to an attack at engaged range, the ranged change to an attack at any other range', () => {
+			expect(poolModificationsForCheck(self, prone, { attackRange: 'engaged' })).toEqual(fromProne(['B']));
+			for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
+				expect(poolModificationsForCheck(self, prone, { attackRange })).toEqual(fromProne(['S']));
+			}
+		});
+
+		it('applies to no check that is no attack', () => {
+			expect(poolModificationsForCheck(self, prone, check)).toEqual([]);
+		});
+
+		it("applies to no check of the actor's own", () => {
+			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'engaged' })).toEqual([]);
+			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'short' })).toEqual([]);
+		});
 	});
 
 	it('leaves out suppressed effects and effects without a relevant change', () => {
@@ -522,7 +583,14 @@ describe('editing changes in the effect sheets', () => {
 	});
 
 	it('round-trips every kind of key', () => {
-		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
+		for (const key of [
+			'genesys.pool.check.self.',
+			'genesys.pool.char.target.cunning',
+			'genesys.pool.skill.self.Cool',
+			'genesys.pool.combat.self.',
+			'genesys.pool.melee.target.',
+			'genesys.pool.ranged.target.',
+		]) {
 			expect(fromEditedChange(toEditedChange(editedChange(key, 'B')), customMode).key).toBe(key);
 		}
 	});
@@ -565,6 +633,9 @@ describe('editing changes in the effect sheets', () => {
 		expect(subjectFieldForKey('genesys.pool.check.self')).toBe('check-selection');
 		expect(subjectFieldForKey('genesys.pool.char.target')).toBe('characteristic-selection');
 		expect(subjectFieldForKey('genesys.pool.skill.self')).toBe('skill-selection');
+		for (const key of ['genesys.pool.combat.self', 'genesys.pool.melee.target', 'genesys.pool.ranged.target']) {
+			expect(subjectFieldForKey(key)).toBe('check-selection');
+		}
 		expect(subjectFieldForKey('system.soak')).toBe('effect-mode');
 	});
 

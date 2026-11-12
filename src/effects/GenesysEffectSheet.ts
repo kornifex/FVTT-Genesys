@@ -2,6 +2,7 @@ import { CHARACTERISTICS } from '@/data/Characteristics';
 import type { DeepPartial } from 'fvtt-types/utils';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
 import { isFoundryV13 } from '@/foundryGeneration';
+import { changesPath } from '@/effects/GenesysEffect';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import '@/effects/GenesysEffectSheet.scss';
 
@@ -78,6 +79,11 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 			},
 			{ key: 'genesys.pool.skill.self', appliesTo: SELF_GLYPH, label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill' },
 			{
+				key: 'genesys.pool.combat.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.CombatCheck',
+			},
+			{
 				key: 'genesys.pool.check.target',
 				appliesTo: TARGET_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check',
@@ -91,6 +97,16 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				key: 'genesys.pool.skill.target',
 				appliesTo: TARGET_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill',
+			},
+			{
+				key: 'genesys.pool.melee.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.MeleeAttack',
+			},
+			{
+				key: 'genesys.pool.ranged.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.RangedAttack',
 			},
 		],
 	},
@@ -128,14 +144,6 @@ function changeTypes() {
 }
 
 /**
- * Where an effect keeps its changes, in its data and in the sheet's form.
- */
-function changesPath() {
-	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
-	return isFoundryV13() ? 'changes' : 'system.changes';
-}
-
-/**
  * The change types the type selects offer, sorted by label as Foundry's sheet lists them. A change keeps a type no
  * module registers anymore, which Foundry's form processing then leaves as stored, rather than taking the first one.
  */
@@ -163,7 +171,11 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		const partContext = await super._preparePartContext(partId, context, options);
 
 		if (partId === 'changes') {
-			const changes = (foundry.utils.getProperty(partContext.source, changesPath()) as EditedChange[]).map(toEditedChange);
+			// Each change shows the field that edits what its key applies to.
+			const changes = (foundry.utils.getProperty(partContext.source, changesPath()) as EditedChange[]).map((change) => {
+				const edited = toEditedChange(change);
+				return { ...edited, subjectField: subjectFieldForKey(edited.key) };
+			});
 
 			// The template reads the system's own entries, which the types of Foundry's context lack.
 			Object.assign(partContext, {

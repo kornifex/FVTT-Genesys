@@ -8,6 +8,7 @@ import { Characteristic } from '@/data/Characteristics';
 import {
 	Check,
 	CheckActor,
+	CheckPurpose,
 	CheckSkill,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
@@ -79,6 +80,8 @@ const rules = { compendiumSkills: compendium, useSuperCharacteristics: true, unc
 const uncoupled = { ...rules, uncoupleSkillsFromCharacteristics: true };
 
 describe('resolveCheck', () => {
+	const attack: CheckPurpose = { kind: 'attack', weaponName: 'Sword' };
+
 	it('resolves a check of an owned skill with its rank and characteristic', () => {
 		const melee = skill('melee', Characteristic.Brawn, 2);
 		const check = resolveCheck(actor('character', [melee]), { skillName: 'Melee' }, rules);
@@ -213,10 +216,27 @@ describe('resolveCheck', () => {
 			},
 		]);
 		expect(
-			resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged' }, rules).poolModifications.map(
+			resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged', purpose: attack }, rules).poolModifications.map(
 				(modification) => modification.key,
 			),
 		).toEqual(['self.effect.ActiveEffect.Dueling', 'target.effect.ActiveEffect.Shield', 'target.defense.melee']);
+	});
+
+	it("leaves a range given to a check that isn't an attack out: only an attack is a combat check, which defense, cover, prone and Aim change (CRB p. 98–100, 104)", () => {
+		const hero = actor('character', [skill('Melee', Characteristic.Brawn, 1)], {
+			effects: [effect('Aim', [{ key: 'genesys.pool.combat.self.', value: 'B' }])],
+		});
+		const foe = actor('rival', [], {
+			effects: [effect('Prone', [{ key: 'genesys.pool.melee.target.', value: 'B' }])],
+			totalDefense: { melee: 1, ranged: 0 },
+		});
+		const keys = (purpose: CheckPurpose) =>
+			resolveCheck(hero, { skillName: 'Melee', target: foe, attackRange: 'engaged', purpose }, rules).poolModifications.map(
+				(modification) => modification.key,
+			);
+
+		expect(keys({ kind: 'check' })).toEqual([]);
+		expect(keys(attack)).toEqual(['self.effect.ActiveEffect.Aim', 'target.effect.ActiveEffect.Prone', 'target.defense.melee']);
 	});
 
 	it('tells apart the Pool Modifications of effects that share a name, as the effects of two copies of an item do (#445)', () => {

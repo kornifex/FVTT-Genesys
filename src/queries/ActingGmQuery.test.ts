@@ -96,6 +96,7 @@ describe('failureNotification', () => {
 		expect(failureNotification({ cause: 'noActingGm' }, QueryName.WriteExtraSlotInitiative)).toBe(
 			'Genesys.Notifications.NoGMForExtraSlot',
 		);
+		expect(failureNotification({ cause: 'noActingGm' }, QueryName.UseUpEffects)).toBe('Genesys.Notifications.NoGMForUsedUpEffects');
 	});
 
 	it('warns of the refusal the Acting GM gave', () => {
