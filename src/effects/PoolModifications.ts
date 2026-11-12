@@ -114,7 +114,7 @@ export type CheckForPoolModifications = {
 /**
  * What this module needs of an item whose damage hinders the checks made with it.
  */
-export type DamageableItem = {
+type DamageableItem = {
 	name: string;
 	uuid: string | null;
 	system: { damage: EquipmentDamageState };

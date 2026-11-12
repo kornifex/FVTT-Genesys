@@ -13,6 +13,12 @@ const props = defineProps<{
 	 * The path of the edited field in the sheet's document, under which the sheet's form submits the text.
 	 */
 	name: string;
+
+	/**
+	 * Saves the text instead of the sheet's form, for a field the form can't submit by its path: an element of a list,
+	 * such as a weapon's quality, which Foundry would replace the whole list with.
+	 */
+	save?: (text: string) => unknown;
 }>();
 
 const context = useSheetContext<DocumentSheetContext<GenesysActor | GenesysItem>>();
@@ -61,14 +67,22 @@ async function show() {
 		return;
 	}
 
-	// The element saves through the sheet's form: its `change` event submits it, under its name.
+	// The element saves through the sheet's form: its `change` event submits it, under its name. Given its own save, it
+	// has no name, which the form would submit it under, and its `change` event stops at it.
+	const save = props.save;
 	const element = foundry.applications.elements.HTMLProseMirrorElement.create({
-		name: props.name,
+		name: save ? '' : props.name,
 		value: text,
 		enriched,
 		toggled: true,
 		disabled: !editable,
 	});
+	if (save) {
+		element.addEventListener('change', (event) => {
+			event.stopPropagation();
+			void save(element.value);
+		});
+	}
 	// Once a toggled editor saves and closes, show what the document stores now.
 	element.addEventListener('close', () => void show());
 	container.value.replaceChildren(element);

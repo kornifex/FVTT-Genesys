@@ -76,7 +76,11 @@ async function deleteProfile(profile: WeaponProfile) {
 					/>
 				</DataRow>
 
-				<WeaponProfileFields :profile="profile" @change="updateProfile(profile, $event)" />
+				<WeaponProfileFields
+					:profile="profile"
+					:qualities-path="`system.extraProfiles.${profile.index - 1}.qualities`"
+					@change="updateProfile(profile, $event)"
+				/>
 			</section>
 
 			<div v-if="editable" class="add-profile">

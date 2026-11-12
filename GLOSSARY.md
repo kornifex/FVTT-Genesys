@@ -151,7 +151,7 @@ One way to attack with a weapon: its skills, damage, Critical rating, range and 
 _Avoid_: Mode, stat line
 
 **Quality**:
-A rule that a weapon or an armor carries, such as Pierce, Disorient or Defensive, with a rating when it's rated. A passive quality always applies; an active one applies only when the attacker triggers it, usually by spending Advantage.
+A rule that a weapon or an armor carries, such as Pierce, Disorient or Defensive, with a rating when it's rated. A passive quality always applies; an active one applies only when the attacker triggers it by spending its Advantage cost, two by default. A quality dropped on a weapon or an armor is copied whole, and its Active Effects become the item's own: they apply while the item's do, its rating counts each of their changes once per rank, and they go with the quality. A weapon's quality changes the dice of the attacks made with the Weapon Profile that holds it alone; an armor's, every check its changes name. In the Dice Prompt, an active quality's Pool Modifications start off.
 _Avoid_: Trait, property
 
 **Hard Points**:

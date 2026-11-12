@@ -725,9 +725,9 @@ Genesys:
     RankDown: Rang inférieur
     FreeRankUp: Rang supérieur (gratuit)
     FreeRankDown: Rang inférieur (gratuit)
-    IsRated: A niveau
+    IsRated: A un rang
     Qualities: Attributs
-    QualityRating: 'Classement de {quality}'
+    QualityRating: 'Rang de {quality}'
     Severity: Sévérité
     Attacks: Attaques
     Armor: Armure
@@ -779,6 +779,9 @@ Genesys:
     RaiseCharacteristic: Augmenter la caractéristique
     RemoveSkill: Retirer la compétence
     RemoveQuality: Retirer l'attribut
+    QualityDetails: 'Détails de {quality}'
+    AdvantageCost: Coût en Avantages
+    AddQualityEffect: Ajouter un effet
     RemoveGrantedItem: Retirer l'objet accordé
     PutInContainer: Ranger dans {container}
     TakeOutOfContainer: Sortir de {container}

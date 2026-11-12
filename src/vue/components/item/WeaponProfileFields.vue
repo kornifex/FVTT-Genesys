@@ -2,25 +2,32 @@
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
+import QualityRows from '@/vue/components/item/QualityRows.vue';
 import { CHARACTERISTICS } from '@/data/Characteristics';
-import { withQualityRating } from '@/item/data/Qualities';
 import { type DamageCharacteristic, RANGE_LABELS, type RangeBand } from '@/item/Weapons';
 import type { VehicleWeaponProfileData, WeaponProfileData } from '@/item/WeaponProfiles';
 import { withoutIndex } from '@/arrays';
-import { confirmDelete } from '@/operations/ItemActions';
 
 /**
  * The rows of a Weapon Profile on a weapon's Data tab: its damage characteristic when it has one, damage, Critical
  * rating, range, then the default slot, then its skills and qualities.
  */
-const props = defineProps<{
-	profile: VehicleWeaponProfileData & Partial<Pick<WeaponProfileData, 'damageCharacteristic'>>;
-	/**
-	 * Whether the profile's fields are the weapon's own, which the sheet's form submits by their names: its main
-	 * profile's. An extra profile's fields are unnamed, and each change is emitted.
-	 */
-	named?: boolean;
-}>();
+const props = withDefaults(
+	defineProps<{
+		profile: VehicleWeaponProfileData & Partial<Pick<WeaponProfileData, 'damageCharacteristic'>>;
+		/**
+		 * Whether the profile's fields are the weapon's own, which the sheet's form submits by their names: its main
+		 * profile's. An extra profile's fields are unnamed, and each change is emitted.
+		 */
+		named?: boolean;
+		/**
+		 * The path of the profile's qualities in the weapon's data, which their descriptions' editors read: the main
+		 * profile's by default.
+		 */
+		qualitiesPath?: string;
+	}>(),
+	{ qualitiesPath: 'system.qualities' },
+);
 
 const emit = defineEmits<{
 	(e: 'change', changes: Partial<WeaponProfileData>): void;
@@ -45,28 +52,6 @@ function numberOf(event: Event) {
 	// An emptied number field counts as 0.
 	const value = parseInt(valueOf(event), 10);
 	return Number.isNaN(value) ? 0 : value;
-}
-
-// The name of a quality's rating field, which shows no label of its own: "Pierce Rating".
-function qualityRatingLabel(quality: string) {
-	return game.i18n.format('Genesys.Labels.QualityRating', { quality });
-}
-
-// Removing a quality asks first, naming it.
-async function removeQuality(index: number) {
-	const { name } = props.profile.qualities[index];
-	// The list may change while the dialog is open: remove the quality it named, or nothing.
-	if ((await confirmDelete(name)) && props.profile.qualities[index]?.name === name) {
-		emit('change', { qualities: withoutIndex(props.profile.qualities, index) });
-	}
-}
-
-function updateQualityRating(index: number, event: Event) {
-	// A rating that isn't a number changes nothing.
-	const qualities = withQualityRating(props.profile.qualities, index, parseInt(valueOf(event), 10));
-	if (qualities) {
-		emit('change', { qualities });
-	}
 }
 </script>
 
@@ -140,19 +125,7 @@ function updateQualityRating(index: number, event: Event) {
 
 	<DataRow label="Genesys.Labels.Qualities" group>
 		<div class="profile-qualities">
-			<div v-for="(quality, index) in profile.qualities" :key="index" class="data-rated">
-				<div>{{ quality.name }}</div>
-				<div>
-					<span v-if="quality.isRated"
-						><input
-							type="text"
-							:value="quality.rating"
-							:aria-label="qualityRatingLabel(quality.name)"
-							@blur="updateQualityRating(index, $event)"
-					/></span>
-				</div>
-				<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveQuality" edits @click="removeQuality(index)" />
-			</div>
+			<QualityRows :qualities="profile.qualities" :path="qualitiesPath" @change="emit('change', { qualities: $event })" />
 		</div>
 	</DataRow>
 </template>
@@ -169,15 +142,6 @@ function updateQualityRating(index: number, event: Event) {
 
 	&:last-child {
 		border-bottom: none;
-	}
-}
-
-.data-rated {
-	@extend .data;
-	grid-template-columns: /* Name */ 2fr /* Rating */ 1fr /* Delete Button */ auto;
-
-	.action-button {
-		margin-left: 1rem;
 	}
 }
 </style>
