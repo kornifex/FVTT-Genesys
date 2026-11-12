@@ -1,5 +1,6 @@
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { weaponProfileFields } from '@/item/data/WeaponProfileFields';
+import { hardPointsField } from '@/data/schemaFields';
 import type { DamageCharacteristic } from '@/item/Weapons';
 import type { ExtraWeaponProfile } from '@/item/WeaponProfiles';
 
@@ -23,12 +24,19 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 	 */
 	abstract extraProfiles: ExtraWeaponProfile[];
 
+	/**
+	 * The Hard Points the weapon sets as an exception, `null` while it gets them from its encumbrance: read them with
+	 * `hardPoints`. A vehicle weapon has none.
+	 */
+	abstract hardPoints: number | null;
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
 		return {
 			...super.defineSchema(),
 			...weaponProfileFields(),
+			hardPoints: hardPointsField(),
 			// An extra profile holds the fields of the main profile, with the same defaults, and a name of its own.
 			extraProfiles: new fields.ArrayField(
 				new fields.SchemaField({ name: new fields.StringField({ initial: '' }), ...weaponProfileFields() }),

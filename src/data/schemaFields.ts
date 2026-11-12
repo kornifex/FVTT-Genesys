@@ -134,6 +134,14 @@ export function activationField() {
 }
 
 /**
+ * The Hard Points a weapon or an armor sets as an exception: a whole number from 0, or `null` while it gets them from
+ * its encumbrance, as every item stored before the field does.
+ */
+export function hardPointsField() {
+	return new foundry.data.fields.NumberField({ required: true, nullable: true, integer: true, min: 0, initial: null });
+}
+
+/**
  * The qualities a weapon or an armor holds, copied from the quality items dropped on it.
  */
 export function qualitiesField() {

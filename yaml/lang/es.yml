@@ -82,6 +82,8 @@ Genesys:
     NoDescription: Descripción no disponible
     SkillDifficulty: >-
       La dificultad con la que se abre la reserva de dados para esta habilidad, en símbolos de modificación de reserva (DD para Medio). Déjalo vacío para la dificultad por defecto del mundo. Solo cuenta la habilidad del compendio de habilidades.
+    HardPoints: >-
+      La mitad del impedimento base, redondeada hacia arriba (manual básico, p. 206). Cámbialo para un objeto que sea una excepción; vacíalo para volver al valor calculado.
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.
     CycleInitiativeSkill: Cambia la habilidad de iniciativa que utiliza el combatiente.
     AddExtraInitiativeSlot: Añade un puesto de iniciativa adicional.
@@ -697,6 +699,7 @@ Genesys:
     Add: Añadir
     Cancel: Cancelar
     Encumbrance: Impedimento
+    HardPoints: Puntos de anclaje
     Price: Precio
     Rarity: Rareza
     Damage: Daño
