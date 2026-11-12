@@ -98,6 +98,7 @@ Genesys:
     OpenActor: Ouvrir la fiche de l'acteur
     RollSkill: Lancer {skill}
     RollAttack: Attaquer avec {weapon}
+    CastSpell: Lancer {spell}
     RollHealing: Lancer {skill} pour soigner {injury}
     RollRepair: Lancer {skill} pour réparer {hit}
     RollCharacteristic: Lancer {characteristic}
@@ -115,6 +116,12 @@ Genesys:
       AttackCharacteristic: Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{characteristic}</strong>!
       AttackSkill: 'Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
       AttackSkillWithoutCharacteristic: Attaque avec un(e) <strong>{name}</strong> en utilisant <strong>{skill}</strong>!
+      SpellSkill: 'Lance <strong>{name}</strong> en utilisant <strong>{skill} ({characteristic}<i class="fas fa-star {superChar}"></i>)</strong>!'
+      SpellSkillWithoutCharacteristic: Lance <strong>{name}</strong> en utilisant <strong>{skill}</strong>!
+      SpellWithoutSkill: Lance <strong>{name}</strong>!
+    Spell:
+      AdditionalEffects: Effets supplémentaires
+      Strain: Stress subi par le lanceur
     Attack:
       Critical: Critique
       Label: "Résultat de l'attaque"
@@ -279,6 +286,8 @@ Genesys:
     UseSuperCharacteristic: Utiliser comme une super-Caractérisique
     UnrankedSkills: Sans rang
     WeaponSkills: Compétences de l'arme
+    SpellSkills: Compétences du sort
+    BeyondFormidable: La difficulté dépasserait Exceptionnel.
     PoolModifications:
       Title: Modification de la réserve de dés
       Cancel: 'Annuler : {modification}'
@@ -420,6 +429,7 @@ Genesys:
     NoRoleMembersWithAppropriateSkills: Aucun membre du groupe pour ce rôle ne possède les compétences appropriées pour faire cette action.
     TooManySuperCharacteristics: Un acteur ne peut pas avoir plus de deux super-caractéristiques. Retirez-en une d'abord.
     UnusableWeapon: "Impossible d'attaquer avec {name} : {damage}."
+    NoRankInSpellSkills: 'Lancer {name} demande un rang dans une de ses compétences : {skills}.'
 
   # Dialogs Prompts
   Dialogs:

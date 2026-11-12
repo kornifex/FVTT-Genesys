@@ -1,5 +1,5 @@
 /**
- * @file The actions the sheets offer on an item: roll a skill, attack with a weapon, open its sheet, delete it, remove a
+ * @file The actions the sheets offer on an item: roll a skill, attack with a weapon, cast a spell, open its sheet, delete it, remove a
  * character's Archetype or Career, give or take a skill's Free Rank, step its quantity, damage or an adversary talent's
  * rank, and send it to chat. Each that deletes the item asks the user first.
  */
@@ -19,6 +19,8 @@ import type { GenesysItem } from '@/item/GenesysItem';
 import type { EquipmentType } from '@/item/ItemTypes';
 import { attackProfile, vehicleAttackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
+import { castingDifficulty, castingSkillName, initiallyCheckedEffects } from '@/item/SpellCasting';
+import { difficultyGlyphs } from '@/dice/Difficulty';
 import { notify } from '@/notifications';
 
 /**
@@ -63,6 +65,28 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapo
 			roll: { type: RollType.Attack, weapon, profile: attackProfile(weapon.name, attacked, game.i18n) },
 		});
 	}
+}
+
+/**
+ * Open the dice prompt of a spell's casting, with the magic skill of the spell's the character has the most ranks in,
+ * at the spell's difficulty raised by the Additional Effects that start checked (CRB pp. 210–215). A character without
+ * a rank in any of the spell's skills is refused, and told why.
+ */
+export async function castSpell(actor: GenesysActor, spell: GenesysItem<'spell'>) {
+	const { difficulty, skills, additionalEffects } = spell.system;
+	const skillName = castingSkillName(actor.skills, skills);
+	if (!skillName) {
+		ui.notifications.warn(
+			game.i18n.format('Genesys.Notifications.NoRankInSpellSkills', { name: spell.name, skills: skills.join(', ') }),
+		);
+		return;
+	}
+
+	const checkedEffects = initiallyCheckedEffects(difficulty, additionalEffects);
+	await DicePrompt.promptForRoll(actor, skillName, {
+		roll: { type: RollType.Spell, spell, checkedEffects },
+		difficulty: difficultyGlyphs({ level: castingDifficulty(difficulty, additionalEffects, checkedEffects), upgrades: 0 }),
+	});
 }
 
 /**

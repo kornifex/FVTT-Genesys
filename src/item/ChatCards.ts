@@ -170,7 +170,7 @@ export async function postChatCard(item: GenesysItem, actor: GenesysActor) {
  * Copies of qualities with their descriptions enriched for a chat message. The weapon and armor sheets save their
  * item's qualities as they find them, so enriching those in place would save the rendered links over the enrichers.
  */
-export function enrichedQualities(qualities: ContainedItemQuality[]) {
+export function enrichedQualities<Q extends Pick<ContainedItemQuality, 'description'>>(qualities: Q[]) {
 	return Promise.all(
 		qualities.map(async (quality) => ({
 			...quality,

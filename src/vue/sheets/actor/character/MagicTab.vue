@@ -5,7 +5,8 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { itemsOfType } from '@/item/ItemTypes';
 import { SPELL_ACTION_LABELS } from '@/item/data/Spells';
 import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
-import { openSheet } from '@/operations/ItemActions';
+import { castSpell, openSheet } from '@/operations/ItemActions';
+import RollLink from '@/vue/components/RollLink.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
@@ -34,11 +35,14 @@ const difficultyGlyphs = (difficulty: number) => DIE_GLYPHS.Difficulty.repeat(di
 					<div></div>
 				</div>
 				<div v-for="spell in spells" :key="spell.id" class="spell" :data-item-id="spell.id">
-					<!-- Casting the spell comes with #705: the icon opens its sheet for now. -->
-					<ActionButton class="icon" :localized-label="spell.name" @click="openSheet(spell)">
+					<ActionButton class="icon" label="Genesys.Tooltips.OpenItem" @click="openSheet(spell)">
 						<img :src="spell.img ?? undefined" alt="" />
 					</ActionButton>
-					<DescriptionFold class="name" :description="spell.system.description">{{ spell.name }}</DescriptionFold>
+					<DescriptionFold class="name" :description="spell.system.description">
+						<RollLink label="Genesys.Tooltips.CastSpell" :label-data="{ spell: spell.name }" @roll="castSpell(actor, spell)">{{
+							spell.name
+						}}</RollLink>
+					</DescriptionFold>
 					<div class="action"><Localized :label="SPELL_ACTION_LABELS[spell.system.action]" /></div>
 					<Glyphs class="difficulty" :glyphs="difficultyGlyphs(spell.system.difficulty)" />
 					<ul class="additional-effects">

@@ -31,6 +31,31 @@
 		{{#> attackQualities}}
 		{{/attackQualities}}
 
+		{{!-- The Additional Effects a spell is cast with, each with its qualities, and the strain casting costs the caster (CRB p. 210). --}}
+		{{#if spell}}
+			{{#if spell.effects}}
+				<label>{{localize 'Genesys.Rolls.Spell.AdditionalEffects'}}</label>
+				<ul class="spell-effects">
+					{{#each spell.effects}}
+						<li class="spell-effect">
+							<span class="name">{{name}}</span>
+							{{#each qualities}}
+								<a class="quality" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}} {{#if isRated}}{{rating}}{{/if}}</a>
+							{{/each}}
+						</li>
+					{{/each}}
+				</ul>
+			{{/if}}
+
+			<div class="summary-table spell-strain">
+				<span class="symbol" aria-hidden="true"><i class="fas fa-face-tired"></i></span>
+				<span class="label">{{localize 'Genesys.Rolls.Spell.Strain'}}</span>
+				<span class="count">{{spell.strain}}</span>
+
+				<div class="separator"></div>
+			</div>
+		{{/if}}
+
 		{{!-- What a check that heals heals its patient of, and the button that heals them, which src/dice/recoveryCard.ts shows only to the GM and the patient's owners. A check that heals no wound, as the end of an encounter's, shows the strain alone. --}}
 		{{#if recovery}}
 			<label>{{localize recovery.label patient=recovery.patientName}}</label>
