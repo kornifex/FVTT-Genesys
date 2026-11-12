@@ -50,9 +50,9 @@ function ids() {
 }
 
 describe('decideCharacterDrop', () => {
-	describe('an ability, a Critical Injury or a skill', () => {
-		it('copies an ability or a Critical Injury on the character, under a new id', () => {
-			for (const type of ['ability', 'injury']) {
+	describe('an ability, a Critical Injury, a spell or a skill', () => {
+		it('copies an ability, a Critical Injury or a spell on the character, under a new id', () => {
+			for (const type of ['ability', 'injury', 'spell']) {
 				expect(decideCharacterDrop(character(), dropped(type, 'Tough'), ids())).toEqual({
 					action: 'write',
 					plan: {

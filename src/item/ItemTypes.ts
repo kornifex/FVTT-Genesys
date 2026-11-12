@@ -4,6 +4,7 @@ import type { Stored } from '@/data/Stored';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import type { AbilityDataModel } from '@/item/data/AbilityDataModel';
+import type { AdditionalEffectDataModel } from '@/item/data/AdditionalEffectDataModel';
 import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import type { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
@@ -13,6 +14,7 @@ import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import type { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import type { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
+import type { SpellDataModel } from '@/item/data/SpellDataModel';
 import type { TalentDataModel } from '@/item/data/TalentDataModel';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
@@ -22,6 +24,7 @@ import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
  */
 export type ItemDataModels = {
 	ability: AbilityDataModel;
+	additionalEffect: AdditionalEffectDataModel;
 	archetype: ArchetypeDataModel;
 	armor: ArmorDataModel;
 	attachment: AttachmentDataModel;
@@ -32,6 +35,7 @@ export type ItemDataModels = {
 	injury: InjuryDataModel;
 	quality: ItemQualityDataModel;
 	skill: SkillDataModel;
+	spell: SpellDataModel;
 	talent: TalentDataModel;
 	vehicleWeapon: VehicleWeaponDataModel;
 	weapon: WeaponDataModel;

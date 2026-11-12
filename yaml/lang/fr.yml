@@ -15,6 +15,10 @@ TYPES:
     skill: Compétence
     talent: Talent
 
+    # Magic Items
+    additionalEffect: Effet supplémentaire
+    spell: Sort
+
     # Equipment Items
     armor: Armure
     attachment: Accessoire
@@ -541,6 +545,7 @@ Genesys:
     Skills: Compétences
     Combat: Combat
     Talents: Talents
+    Magic: Magie
     Inventory: Inventaire
     Effects: Effets
     Journal: Journal
@@ -575,6 +580,18 @@ Genesys:
     Combat: Combat
     Social: Social
     Knowledge: Connaissance
+
+  # The magic action a spell performs (CRB pp. 214–218)
+  SpellAction:
+    Attack: Attaque
+    Augment: Amélioration
+    Barrier: Barrière
+    Conjure: Invocation
+    Curse: Malédiction
+    Dispel: Dissipation
+    Heal: Soin
+    Utility: Utilitaire
+    Custom: Personnalisée
 
   # Archetype Data
   Archetype:
@@ -719,6 +736,25 @@ Genesys:
     RemoveAttachment: Retirer l'accessoire
     AttachmentDetails: 'Détails de {attachment}'
     WithEffects: Avec ses effets
+    Spells: Sorts
+    SpellAction: Action
+    Difficulty: Difficulté
+    IsAttack: Est une attaque ?
+    BaseDamage: Dégâts de base
+    AdditionalEffects: Effets supplémentaires
+    RemoveAdditionalEffect: Retirer l'effet supplémentaire
+    AdditionalEffectDetails: 'Détails de {effect}'
+    AddedDifficulty: Difficulté ajoutée
+    StartsChecked: Coché au lancement ?
+    ForAnAttack: Pour une attaque
+    Unrated: Sans indice
+    FixedRating: Indice fixe
+    SkillRanksRating: Rangs dans une compétence
+    QualityRatingSource: '{quality} : indice tiré de'
+    QualityRatingSkill: '{quality} : compétence'
+    DoublesDamageCharacteristic: Double la caractéristique de dégâts ?
+    HideMagicTab: Masquer l'onglet Magie
+    ShowMagicTab: Afficher l'onglet Magie
     Price: Prix
     Rarity: Rareté
     Damage: Dégâts

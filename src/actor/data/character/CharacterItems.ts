@@ -89,8 +89,10 @@ export function decideCharacterDrop(
 			// A character never owns a skill twice, whatever the case of its name.
 			return isOwnedSkill(ofType(character.items, 'skill'), dropped) ? { action: 'refuse' } : copy(dropped, newId);
 		}
+		// A spell is owned as it is written, as an ability is: the same spell dropped twice is owned twice.
 		case 'ability':
 		case 'injury':
+		case 'spell':
 			return copy(dropped, newId);
 		case 'archetype': {
 			// The Archetype can only be changed while the Experience Journal holds nothing but its Starting XP.

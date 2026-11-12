@@ -56,6 +56,10 @@ documentTypes:
     injury: {}
     skill: {}
     talent: {}
+
+    # Magic
+    additionalEffect: {}
+    spell: {}
 url: https://github.com/kornifex/FVTT-Genesys
 bugs: https://github.com/kornifex/FVTT-Genesys/issues
 changelog: https://github.com/kornifex/FVTT-Genesys/blob/main/CHANGELOG.md

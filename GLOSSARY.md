@@ -198,6 +198,16 @@ A special ability of a character or an Adversary, distinct from their talents: i
 **Talent Pyramid**:
 The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached, and every rank bought at tier 5 counts at tier 5.
 
+### Magic
+
+**Spell**:
+A magic action written as an item, which a character owns as they own an ability and casts with a magic skill (CRB pp. 210–219): one of the Core Rulebook's eight actions, or Custom, at a base difficulty, as an attack or not, castable with the magic skills it lists, and with the Additional Effects it holds. Picking an action fills its difficulty, attack flag and skills from the Core Rulebook, which stay editable. A character's sheet lists their spells in its Magic tab, which shows while the character has a rank in a skill of the magic category or owns a spell, unless their window's menu hides it.
+_Avoid_: Power, incantation
+
+**Additional Effect**:
+An option a spell's caster may add to it, written as an item (Tables III.2–5 to III.2–11): the Difficulty dice it adds, whether it starts checked when the spell is cast, and for an attack the qualities it gives, each unrated, at a fixed rating or at the caster's ranks in a skill (Knowledge by default), the Critical rating it gives, and whether it doubles the damage characteristic. Dropped on a spell, it is copied whole, as a quality is on a weapon; the same effect dropped twice is held twice. A quality dropped on it gives its data alone, without its Active Effects.
+_Avoid_: Spell effect, modifier
+
 ### Table
 
 **Acting GM**:

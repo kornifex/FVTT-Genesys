@@ -15,6 +15,10 @@ TYPES:
     skill: Skill
     talent: Talent
 
+    # Magic Items
+    additionalEffect: Additional Effect
+    spell: Spell
+
     # Equipment Items
     armor: Armor
     attachment: Attachment
@@ -542,6 +546,7 @@ Genesys:
     Skills: Skills
     Combat: Combat
     Talents: Talents
+    Magic: Magic
     Inventory: Inventory
     Effects: Effects
     Journal: Journal
@@ -576,6 +581,18 @@ Genesys:
     Combat: Combat
     Social: Social
     Knowledge: Knowledge
+
+  # The magic action a spell performs (CRB pp. 214–218)
+  SpellAction:
+    Attack: Attack
+    Augment: Augment
+    Barrier: Barrier
+    Conjure: Conjure
+    Curse: Curse
+    Dispel: Dispel
+    Heal: Heal
+    Utility: Utility
+    Custom: Custom
 
   # Archetype Data
   Archetype:
@@ -720,6 +737,25 @@ Genesys:
     RemoveAttachment: Remove the Attachment
     AttachmentDetails: '{attachment} Details' # e.g. Scope Details, the button that shows a weapon's or an armor's attachment in full
     WithEffects: With Its Effects # The stats of a weapon or an armor once its effects (its attachments') change them
+    Spells: Spells
+    SpellAction: Action # The magic action a spell performs: Attack, Heal…
+    Difficulty: Difficulty
+    IsAttack: Is an Attack?
+    BaseDamage: Base Damage # What a magic attack adds to its characteristic: an implement's bonus
+    AdditionalEffects: Additional Effects
+    RemoveAdditionalEffect: Remove the Additional Effect
+    AdditionalEffectDetails: '{effect} Details' # e.g. Blast Details, the button that shows a spell's additional effect in full
+    AddedDifficulty: Added Difficulty # The Difficulty dice an additional effect adds to its spell
+    StartsChecked: Checked When Cast? # Whether an additional effect starts checked when its spell is cast
+    ForAnAttack: For an Attack # The heading of what an additional effect gives a magic attack
+    Unrated: Unrated
+    FixedRating: Fixed Rating
+    SkillRanksRating: Ranks in a Skill # A quality whose rating is the caster's ranks in a skill, Knowledge by default
+    QualityRatingSource: '{quality}: Rating From' # e.g. Blast: Rating From, the name of the field that says where a quality's rating comes from
+    QualityRatingSkill: '{quality}: Skill' # e.g. Blast: Skill, the name of the skill whose ranks a quality's rating counts
+    DoublesDamageCharacteristic: Doubles the Damage Characteristic? # Empowered: the attack deals twice the characteristic linked to its skill
+    HideMagicTab: Hide the Magic Tab
+    ShowMagicTab: Show the Magic Tab
     Price: Price
     Rarity: Rarity
     Damage: Damage
