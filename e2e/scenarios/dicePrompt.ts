@@ -4392,6 +4392,27 @@ export async function run(e2e: ScenarioContext) {
 			{ rows: maneuverRows(observed), buttons: observerButtons, effects: (await adaState()).effects },
 			{ rows: [{ name: 'From Self: Aim', enabled: false, mods: 'B+' }], buttons: [], effects: [] },
 		);
+
+		// Prone on the attacker: a Setback on their own melee attacks only (§#696, CRB p. 108).
+		const setAdaProne = (active: boolean) =>
+			gm.evaluate((active) => game.actors.getName('E2E Ada').toggleStatusEffect('prone', { active }), active);
+		await e2e.step('#696 M8 GM puts Prone on Ada', () => setAdaProne(true));
+		const selfRows = (state: PromptState) => named(state, 'From Self');
+		const proneSpear = await opened(gm, attack('Spear'));
+		const pronePistol = await opened(gm, attack('Pistol'));
+		const proneMeleeCheck = await opened(gm, skillRoll('Melee'));
+		const proneCool = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			"#696 M8 a prone character's melee attack lists a Setback from Prone; their ranged attack and their checks that aren't attacks don't",
+			{
+				spear: selfRows(proneSpear),
+				pistol: selfRows(pronePistol),
+				melee: selfRows(proneMeleeCheck),
+				cool: selfRows(proneCool),
+			},
+			{ spear: [{ name: 'From Self: Prone', enabled: false, mods: 'S+' }], pistol: [], melee: [], cool: [] },
+		);
+		await e2e.step('#696 M8 GM takes Prone off Ada', () => setAdaProne(false));
 		await e2e.step('combat maneuvers end');
 	});
 

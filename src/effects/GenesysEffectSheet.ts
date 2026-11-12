@@ -84,6 +84,16 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.CombatCheck',
 			},
 			{
+				key: 'genesys.pool.melee.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.MeleeAttack',
+			},
+			{
+				key: 'genesys.pool.ranged.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.RangedAttack',
+			},
+			{
 				key: 'genesys.pool.check.target',
 				appliesTo: TARGET_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check',

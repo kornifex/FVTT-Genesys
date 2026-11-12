@@ -81,8 +81,9 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		actorTypes: CHARACTER_TYPES,
 		lapses: false,
 	},
-	// A prone character adds a Setback to the ranged attacks against them, a Boost to the melee ones (CRB p. 100, 108). It
-	// takes Foundry's own prone status's place, keeping its id and icon, until they stand up.
+	// A prone character adds a Setback to the ranged attacks against them, a Boost to the melee ones, and a Setback to their
+	// own melee attacks (CRB p. 100, 108). It takes Foundry's own prone status's place, keeping its id and icon, until they
+	// stand up.
 	{
 		id: 'prone',
 		name: 'Genesys.TokenStates.Prone.Name',
@@ -90,6 +91,7 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		changes: [
 			{ key: encodeKey({ kind: 'ranged', source: 'target', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' },
 			{ key: encodeKey({ kind: 'melee', source: 'target', subject: '' }), value: DieTypes.Boost.GLYPH, type: 'custom' },
+			{ key: encodeKey({ kind: 'melee', source: 'self', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' },
 		],
 		actorTypes: CHARACTER_TYPES,
 		lapses: false,

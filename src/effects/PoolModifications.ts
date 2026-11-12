@@ -417,7 +417,7 @@ function effectModifications(
 			case 'skill':
 				return !!skillName && skillNamesMatch(key.subject, skillName);
 			// An attack is a combat check: Aim and Guarded Stance change the actor's own, cover and prone those made against
-			// them, by their kind (CRB p. 98–100, 108).
+			// them, by their kind, and prone the actor's own melee attacks (CRB p. 98–100, 108).
 			case 'combat':
 				return key.subject === '' && attackRange !== undefined;
 			case 'melee':
