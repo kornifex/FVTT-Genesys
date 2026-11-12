@@ -491,23 +491,23 @@ Genesys:
     Updates: Corrections et nouveautés
     Fix: CORRECTIF
     Feature: NOUVEAUTÉ
-    Styling: STYLE
-    Counters: >-
-      Chaque compteur se règle d'un − et d'un + compacts, qui apparaissent sous le pointeur : quantité, dégâts, blessures,
-      stress, dégâts de la coque, stress mécanique
-    RowMenu: >-
-      Chaque ligne a un menu ⋮ de ses actions, qu'ouvre aussi un clic droit sur la ligne, et chaque suppression demande
-      confirmation
-    NameRolls: Le nom d'une ligne lance son test, et son icône ouvre sa fiche
-    CombatTabAttack: Une arme attaque depuis l'onglet Combat, et non plus depuis l'inventaire
-    Keyboard: >-
-      Chaque fiche s'utilise au clavier et avec un lecteur d'écran : des boutons nommés, un contour de focus visible, des
-      champs étiquetés, et les symboles des dés lus en toutes lettres
-    Contrast: Le texte se lit mieux dans les deux styles, et aucune information ne repose sur la couleur seule
-    ActingGmFailure: Quand une action que le MJ effectue pour un joueur échoue, le joueur apprend pourquoi
-    MagicalGirl: Les symboles, la police et les dés Magical Girl sont supprimés
-    DefensiveDriving: La défense d'un véhicule ajoute le talent Conduite défensive de son pilote, toujours plafonnée à 4
-    InventoryFooter: La ligne de la monnaie et de l'encombrement se place en bas de l'onglet Inventaire
+    Spells: >-
+      Les sorts et leurs effets supplémentaires, lancés depuis l'onglet Magie : les effets choisis dans la réserve de dés,
+      les attaques magiques et leurs dégâts, et Soin
+    Attachments: >-
+      Les accessoires s'installent sur une arme ou une armure, dans la limite de ses points de montage, et leurs effets
+      actifs peuvent modifier l'objet lui-même
+    Qualities: Un attribut déposé sur un objet apporte ses effets actifs, proportionnés à son rang
+    Maneuvers: Viser, Posture défensive, Abrité et À terre modifient les tests de combat qu'ils concernent
+    TokenStates: Immobilisé, Désorienté et Sonné sont des états de jeton, avec leur durée
+    Thresholds: Un acteur qui dépasse son seuil de blessures ou de stress est marqué neutralisé ou vaincu
+    CriticalInjuries: Les blessures critiques se tirent sur la table du monde, depuis la carte d'attaque ou la fiche
+    Healing: >-
+      Médecine soigne un patient depuis sa carte, et les personnages récupèrent du stress en fin de rencontre et après une
+      nuit de repos
+    StoryPointSpends: Les points narratifs se dépensent depuis la réserve de dés
+    Hindrances: L'encombrement et une arme endommagée ajoutent leurs dés aux tests qu'ils gênent
+    FrenchNames: Les noms français de Posture défensive, Abrité et de la portée stratégique suivent l'édition française
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
