@@ -8,10 +8,16 @@ vi.hoisted(() => {
 		data: {
 			fields: {
 				SchemaField: class {
-					constructor(readonly fields: object) {}
+					readonly fields: object;
+					constructor(fields: object) {
+						this.fields = fields;
+					}
 				},
 				NumberField: class {
-					constructor(readonly options: object) {}
+					readonly options: object;
+					constructor(options: object) {
+						this.options = options;
+					}
 				},
 			},
 		},

@@ -36,6 +36,7 @@ How code, commits and pull requests are written in this repo. A rule a tool can 
 
 - Named exports. A file exports what another file or a test imports, and nothing more.
 - Functions over narrow types; a class only where Foundry requires one.
+- Erasable syntax only (`erasableSyntaxOnly` in every tsconfig): no `enum`, no parameter properties, no runtime `namespace`, no `<T>value` assertions. The code stays typed JavaScript, as the e2e harness and the build scripts already need, since Node runs them by stripping their types.
 - `type` aliases. Enumerations are literal unions or `as const` objects.
 - Private members use `#private`.
 - Types are named for what they are, without an `I` prefix.

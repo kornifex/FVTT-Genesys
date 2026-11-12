@@ -13,6 +13,7 @@
 
 		"skipLibCheck": true,
 		"isolatedModules": true,
+		"erasableSyntaxOnly": true,
 		"noEmit": true,
 		"allowImportingTsExtensions": true
 	},
