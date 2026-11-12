@@ -15,6 +15,7 @@ import { ready as readyMigrations } from '@/migrations';
 
 import { register as registerDicePrompt } from '@/app/DicePrompt';
 import { register as registerStoryPointTracker } from '@/app/StoryPointTracker';
+import { register as registerCriticalInjuryPrompt } from '@/app/CriticalInjuryPrompt';
 import { register as registerActors } from '@/actor';
 import { register as registerToken } from '@/token';
 import { register as registerEffects } from '@/effects';
@@ -35,6 +36,7 @@ Hooks.once('init', () => {
 	registerFonts();
 	registerDice();
 	registerDicePrompt();
+	registerCriticalInjuryPrompt();
 	registerHandlebarsHelpers();
 	registerSettings();
 	registerConfig();

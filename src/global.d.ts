@@ -17,7 +17,9 @@ import type { GenesysCombat } from '@/combat/GenesysCombat';
 import type { GenesysCombatant } from '@/combat/GenesysCombatant';
 import type { GenesysCombatTracker } from '@/combat/GenesysCombatTracker';
 import type { GENESYS_CONFIG } from '@/config';
+import type { CriticalInjuryFlag } from '@/dice/CriticalInjuryRoll';
 import type { GenesysEffect } from '@/effects/GenesysEffect';
+import type { CombatTurn } from '@/effects/LapsingEffects';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ItemDataModels } from '@/item/ItemTypes';
 import type { QueryHandlers } from '@/queries';
@@ -79,9 +81,10 @@ declare module 'fvtt-types/configuration' {
 
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
-		ActiveEffect: { genesys: { expired?: boolean } };
-		// The recovery of a check that heals, which its card's Apply button reads (`src/dice/recoveryCard.ts`).
-		ChatMessage: { genesys: { recovery?: Recovery } };
+		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
+		// The Critical Injury an attack triggered, which its card's button reads, and the recovery of a check that heals,
+		// which its card's Apply button reads (`src/dice/recoveryCard.ts`).
+		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery } };
 	}
 
 	interface SettingConfig extends TableSettings {

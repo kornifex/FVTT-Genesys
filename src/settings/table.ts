@@ -134,6 +134,25 @@ export const SETTINGS = {
 		field: { name: 'skillForRepairingHit' },
 	}),
 
+	/**
+	 * The world's Critical Injury table, by its uuid: a RollTable the GM picks among the world's, whose results are the
+	 * world's Critical Injury items. Empty until the GM picks one: the system ships no table.
+	 */
+	criticalInjuryTable: setting({
+		scope: 'world',
+		type: () =>
+			new foundry.data.fields.StringField({
+				required: true,
+				blank: true,
+				// Read when the menu renders and when a value is validated, once the world's tables exist.
+				choices: () => Object.fromEntries((game.tables ?? []).map((table) => [table.uuid, table.name])),
+			}),
+		default: '',
+		name: 'Genesys.CriticalInjuryPrompt.Setting',
+		hint: 'Genesys.CriticalInjuryPrompt.SettingHint',
+		field: { name: 'criticalInjuryTable' },
+	}),
+
 	/** Name of the currency used for the setting. */
 	currency: setting({
 		scope: 'world',

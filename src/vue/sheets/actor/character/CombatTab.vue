@@ -12,6 +12,7 @@ import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import { severityDifficulty } from '@/item/data/Injuries';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import { DicePrompt } from '@/app/DicePrompt';
+import { CriticalInjuryPrompt } from '@/app/CriticalInjuryPrompt';
 import SkillRanks from '@/vue/components/character/SkillRanks.vue';
 import QualityList from '@/vue/components/QualityList.vue';
 import RollLink from '@/vue/components/RollLink.vue';
@@ -40,6 +41,11 @@ const weaponRows = computed(() =>
 );
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
+
+// The character suffers a Critical Injury outside an attack, or from one whose card the roller doesn't use.
+async function rollCriticalInjury() {
+	await CriticalInjuryPrompt.promptForActor(actor.value);
+}
 
 async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
@@ -147,7 +153,12 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 		</div>
 
 		<div class="block">
-			<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
+			<div class="heading-row">
+				<h3><Localized label="Genesys.Labels.CriticalInjuries" /></h3>
+				<ActionButton class="roll-critical-injury" icon="fas fa-dice-d20" @click="rollCriticalInjury"
+					><Localized label="Genesys.CriticalInjuryPrompt.Open"
+				/></ActionButton>
+			</div>
 			<CriticalInjuryList kind="injury" :injuries="injuries" @roll="healInjury" />
 		</div>
 	</section>
@@ -170,6 +181,14 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 	.weapon {
 		grid-template-columns: 1.5rem 2fr 1fr repeat(3, 80px);
+	}
+
+	// The Critical Injuries' heading, with the button that rolls a new one at its end.
+	.heading-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5em;
 	}
 }
 </style>
