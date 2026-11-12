@@ -270,6 +270,35 @@ Genesys:
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
     ChanceToSucceedBySimulationDisclaimer: La probabilidad mostrada es una aproximación que utiliza el método Monte Carlo.
 
+  # Rolling a Critical Injury on the world's table (#685). The Vicious quality keeps its English name.
+  CriticalInjuryPrompt:
+    Setting: Tabla de heridas críticas
+    SettingHint: >-
+      La tabla aleatoria del mundo en la que se tira una herida crítica: sus resultados son las heridas críticas del mundo, y sus rangos los del d100 (manual básico, p. 115).
+    NoTable: No se ha elegido ninguna tabla de heridas críticas. El DJ elige una en los ajustes del sistema.
+    NoResult: La tabla de heridas críticas no tiene resultado para {total}.
+    CardTriggers: Heridas críticas activadas
+    Open: Tirar una herida crítica
+    Title: Tirar una herida crítica
+    For: Herida crítica de {actor}
+    Attack: 'Ataque: {weapon}'
+    Table: 'Tabla: {table}'
+    Spent: Activaciones gastadas (de {triggers})
+    Lines:
+      Triggers: Activaciones adicionales (+10 cada una tras la primera)
+      Injuries: Heridas críticas ya sufridas ({count})
+      Inflicted: '{source} (atacante)'
+      Suffered: '{source}'
+      Free: Modificador libre
+    Formula: 'Tirada:'
+    Roll: Tirar
+    Message: Herida crítica
+    MessageFor: 'Herida crítica: {actor}'
+    Effects:
+      GroupLabel: Modificar heridas críticas
+      Inflicted: Infligidas a otros
+      Suffered: Sufridas
+
   # Rewards Prompt Labels
   RewardsPrompt:
     Title: Recompensas

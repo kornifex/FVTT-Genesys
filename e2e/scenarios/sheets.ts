@@ -3285,6 +3285,10 @@ export async function run(e2e: ScenarioContext) {
 					'genesys.pool.skill.target=🎯 Uses Skill',
 				],
 			},
+			{
+				label: 'Modify Critical Injuries',
+				options: ['genesys.critical.inflicted=🎯 Inflicted on Others', 'genesys.critical.suffered=👇 Suffered'],
+			},
 		]);
 		const skillSelect = (index: number, selected: string) => ({
 			index,

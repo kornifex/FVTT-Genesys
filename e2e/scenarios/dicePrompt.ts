@@ -1474,6 +1474,206 @@ const unranked = (except: string[]) =>
 
 const SIX_CHARACTERISTICS = ['brawn', 'agility', 'intellect', 'cunning', 'willpower', 'presence'];
 
+/**
+ * The Roll a Critical Injury dialog as the user reads it (§#685).
+ */
+type CriticalPromptState = {
+	/** The lines of its header: whom it rolls for, the attack, the table. */
+	header: string[];
+	/** The triggers spent, and how many the attack offers; null without an attack. */
+	spent: { value: string; max: string } | null;
+	/** Each line of the modifier, as `<label>: <value>`. */
+	lines: string[];
+	/** The formula it rolls. */
+	formula: string;
+};
+
+/**
+ * A Critical Injury roll's message as the user reads it: the item names its results link to.
+ */
+type CriticalMessage = {
+	speaker: string | null;
+	flavor: string;
+	formula: string | null;
+	total: number | null;
+	results: string[];
+	links: string[];
+};
+
+/**
+ * The helpers of the `criticalInjuries` part (§#685), installed in the page as `window.criticalInjuryE2E`.
+ */
+type CriticalInjuryHelpers = {
+	/**
+	 * Creates the Critical Injury items `E2E Nick`, `E2E Scar` and `E2E Maim`, the table `E2E Crits` drawing them on
+	 * 1–50, 51–100 and 101–200, which the players aren't given, and makes it the world's Critical Injury table; returns the
+	 * table set before.
+	 */
+	setUp(): Promise<string>;
+	/** Deletes the table, and sets back the table set before. */
+	tearDown(previous: string): Promise<void>;
+	/** The attack card's Critical Injury triggers line, and whether it shows the button that rolls one. */
+	attackCard(): { triggers: string | null; button: boolean };
+	/** Clicks the last message's Roll a Critical Injury button, in the chat log, and waits for the dialog. */
+	openFromCard(): Promise<CriticalPromptState>;
+	/** Clicks the Roll a Critical Injury button of an actor's sheet, and waits for the dialog. */
+	openFromSheet(actor: string): Promise<CriticalPromptState>;
+	/** Types a value in one of the dialog's fields, named `spent` or `line-<kind>`, as the user does. */
+	type(args: { name: string; value: string }): Promise<CriticalPromptState>;
+	/** Clicks the dialog's Roll button, and waits for the roll's message. */
+	roll(): Promise<CriticalMessage>;
+	/** How many Roll a Critical Injury dialogs are open. */
+	openPrompts(): number;
+	closePrompts(): Promise<void>;
+};
+
+declare global {
+	interface Window {
+		criticalInjuryE2E: CriticalInjuryHelpers;
+	}
+}
+
+/**
+ * Installs `window.criticalInjuryE2E`. Playwright sends this function's source to the page, so it uses nothing from this
+ * module.
+ */
+function installCriticalInjuryHelpers() {
+	const { settle, waitFor, apps, htmlOf, text, render, actor } = window.e2e;
+	const thePrompt = () => {
+		const open = apps('app-critical-injury-prompt');
+		if (open.length !== 1) throw new Error(`${open.length} Critical Injury dialogs are open`);
+		return htmlOf(open[0])!;
+	};
+	const promptState = (): CriticalPromptState => {
+		const root = thePrompt();
+		const spent = root.querySelector<HTMLInputElement>('input[name=spent]');
+		return {
+			header: [...root.querySelectorAll('header > div')].map(text),
+			spent: spent && { value: spent.value, max: spent.max },
+			lines: [...root.querySelectorAll('.line')].map(
+				(line) => `${text(line.querySelector('label'))}: ${line.querySelector<HTMLInputElement>('input')!.value}`,
+			),
+			formula: text(root.querySelector('.formula output')),
+		};
+	};
+	const waitForPrompt = async () => {
+		await waitFor(
+			'the Critical Injury dialog',
+			() => apps('app-critical-injury-prompt').length === 1 && thePrompt().querySelector('.line'),
+		);
+		await settle();
+		return promptState();
+	};
+
+	window.criticalInjuryE2E = {
+		async setUp() {
+			for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
+			const items = await Item.createDocuments(
+				['Nick', 'Scar', 'Maim'].map((name) => ({ name: `E2E ${name}`, type: 'injury', system: { severity: 'easy' } })),
+			);
+			const ranges = [
+				[1, 50],
+				[51, 100],
+				[101, 200],
+			];
+			const table = await CONFIG.RollTable.documentClass.create({
+				name: 'E2E Crits',
+				formula: '1d100',
+				replacement: true,
+				displayRoll: true,
+				results: items.map((item: { uuid: string; name: string }, index: number) => ({
+					type: 'document',
+					documentUuid: item.uuid,
+					name: item.name,
+					range: ranges[index],
+					weight: 1,
+				})),
+			});
+			const previous = game.settings.get('genesys', 'criticalInjuryTable');
+			await game.settings.set('genesys', 'criticalInjuryTable', table.uuid);
+			await settle();
+			return previous;
+		},
+
+		async tearDown(previous) {
+			await window.criticalInjuryE2E.closePrompts();
+			await game.settings.set('genesys', 'criticalInjuryTable', previous);
+			for (const table of game.tables.filter((table: { name: string }) => table.name.startsWith('E2E '))) await table.delete();
+			await settle();
+		},
+
+		attackCard() {
+			const content = document.createElement('div');
+			content.innerHTML = game.messages.contents.at(-1).content;
+			const row = [...content.querySelectorAll('.summary-table .label')].find((label) => text(label) === 'Critical Injury Triggers');
+			return {
+				triggers: row ? `${text(row)} ${text(row.nextElementSibling)}` : null,
+				button: !!content.querySelector('button.roll-critical-injury'),
+			};
+		},
+
+		async openFromCard() {
+			const { id } = game.messages.contents.at(-1);
+			const state = await window.dicePromptE2E.showMessage(id);
+			const button = await waitFor('the card button', () =>
+				[...document.querySelectorAll<HTMLElement>(`[data-message-id="${id}"] button.roll-critical-injury`)].find(
+					(element) => !element.closest('#chat-notifications'),
+				),
+			);
+			button.click();
+			const prompt = await waitForPrompt();
+			window.dicePromptE2E.restoreSidebar(state);
+			return prompt;
+		},
+
+		async openFromSheet(name) {
+			const doc = actor(name);
+			const root = await render(doc.sheet);
+			const button = await waitFor('the sheet button', () => root.querySelector<HTMLElement>('button.roll-critical-injury'));
+			button.click();
+			return waitForPrompt();
+		},
+
+		async type({ name, value }) {
+			const input = thePrompt().querySelector<HTMLInputElement>(`input[name="${name}"]`);
+			if (!input) throw new Error(`No field ${name}`);
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+			await settle();
+			return promptState();
+		},
+
+		async roll() {
+			const last = game.messages.contents.at(-1)?.id;
+			thePrompt().querySelector<HTMLElement>('.prompt-submit')!.click();
+			await waitFor('the Critical Injury message', () => game.messages.contents.at(-1)?.id !== last);
+			await settle();
+			const message = game.messages.contents.at(-1);
+			const content = document.createElement('div');
+			content.innerHTML = message.content;
+			const speaker = message.speaker?.actor ? game.actors.get(message.speaker.actor)?.name : undefined;
+			return {
+				speaker: speaker ?? null,
+				flavor: message.flavor,
+				formula: message.rolls[0]?.formula ?? null,
+				total: message.rolls[0]?.total ?? null,
+				results: [...content.querySelectorAll('.table-results li')].map(text),
+				links: [...content.querySelectorAll<HTMLElement>('.table-results a.content-link')].map(
+					(link) => fromUuidSync(link.dataset.uuid ?? '')?.name ?? `broken ${link.dataset.uuid}`,
+				),
+			};
+		},
+
+		openPrompts: () => apps('app-critical-injury-prompt').length,
+
+		async closePrompts() {
+			for (const app of apps('app-critical-injury-prompt')) await app.close();
+			await settle();
+		},
+	};
+}
+
 // The scenario controls and targets tokens on the canvas.
 export const needsCanvas = true;
 
@@ -3795,6 +3995,210 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.step('X end');
 	});
 
+	// C: Critical Injuries rolled on the world's table (§#685), from an attack's card and from the sheets.
+	await part('criticalInjuries', async () => {
+		for (const client of [gm, player]) await client.evaluate(installCriticalInjuryHelpers);
+		const previous = await gm.evaluate(() => window.criticalInjuryE2E.setUp());
+		const fromSheet = (client: Client, actor: string) =>
+			client.evaluate((actor) => window.criticalInjuryE2E.openFromSheet(actor), actor);
+		const type = (client: Client, name: string, value: string) =>
+			client.evaluate((args) => window.criticalInjuryE2E.type(args), { name, value });
+		const rollCritical = async (client: Client, d100: number) => {
+			await client.fixDice([{ face: d100, faces: 100 }]);
+			return client.evaluate(() => window.criticalInjuryE2E.roll());
+		};
+		// A talent of rank 2 whose effect changes Critical Injury rolls, scaled by its rank or not. Mode 0 is Foundry's custom
+		// mode, which v14 reads as the custom type.
+		const talent = (name: string, key: string, value: string, scalesWithRank: 'yes' | 'no') => ({
+			name: `E2E ${name}`,
+			type: 'talent',
+			system: { ranked: 'yes', rank: 2, scalesWithRank },
+			effects: [{ name: `E2E ${name}`, changes: [{ key, value, mode: 0 }] }],
+		});
+		// The attacker's talent adds 10 per rank to the injuries it inflicts; the target already has an injury, and a talent
+		// that takes 10 off those it suffers, whatever its rank.
+		await gm.evaluate(
+			async ({ inflicted, suffered }) => {
+				await window.e2e.actor('Ada').createEmbeddedDocuments('Item', [inflicted]);
+				await window.e2e
+					.actor('Rival')
+					.createEmbeddedDocuments('Item', [suffered, { name: 'E2E Wound', type: 'injury', system: { severity: 'easy' } }]);
+				await window.e2e.settle();
+			},
+			{
+				inflicted: talent('Lethal', 'genesys.critical.inflicted', '10', 'yes'),
+				suffered: talent('Durable', 'genesys.critical.suffered', '-10', 'no'),
+			},
+		);
+		await update(
+			{ actor: 'Ada', item: 'Pistol' },
+			{ 'system.critical': 1, 'system.qualities': [{ name: 'Vicious', description: '', isRated: true, rating: 2 }] },
+		);
+		await target('Rival');
+
+		await opened(gm, attack('Pistol'));
+		// Proficiency faces: 12 is a Triumph, 10 two Advantages; Difficulty face 1 is blank.
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		const attackMessage = await roll();
+		const card = await gm.evaluate(() => window.criticalInjuryE2E.attackCard());
+		e2e.expect(
+			'#685 C1 an attack whose Advantage reaches its Critical rating twice, with a Triumph, triggers three Critical Injuries, which its card offers to roll',
+			{ results: attackMessage.results, card },
+			{ results: 'a a t', card: { triggers: 'Critical Injury Triggers 3', button: true } },
+		);
+
+		const fromCard = await gm.evaluate(() => window.criticalInjuryE2E.openFromCard());
+		e2e.expect(
+			"#685 C2 the card's dialog rolls for the target: one trigger spent, the weapon's Vicious, the attacker's talent by rank, the target's injury and talent",
+			fromCard,
+			{
+				header: ['Critical Injury for E2E Rival', 'Attack: E2E Pistol', 'Table: E2E Crits'],
+				spent: { value: '1', max: '3' },
+				lines: [
+					'Extra triggers (+10 each past the first): 0',
+					'Vicious 2: 20',
+					'E2E Lethal (attacker): 20',
+					'Critical Injuries already suffered (1): 10',
+					'E2E Durable: -10',
+					'Free modifier: 0',
+				],
+				formula: '1d100 + 40',
+			},
+		);
+		const spentAll = await type(gm, 'spent', '3');
+		const attackRolled = await rollCritical(gm, 25);
+		e2e.expect(
+			'#685 C3 spending every trigger adds 10 for each past the first, and the roll draws from the table, its message linking the item',
+			{ spent: { lines: spentAll.lines[0], formula: spentAll.formula }, rolled: attackRolled },
+			{
+				spent: { lines: 'Extra triggers (+10 each past the first): 20', formula: '1d100 + 60' },
+				rolled: {
+					speaker: 'E2E Ada',
+					flavor: 'Critical Injury: E2E Rival',
+					formula: '1d100 + 60',
+					total: 85,
+					results: ['E2E Scar'],
+					links: ['E2E Scar'],
+				},
+			},
+		);
+
+		await target(null);
+		const fromAda = await fromSheet(gm, 'Ada');
+		const adaRolled = await rollCritical(gm, 25);
+		e2e.expect(
+			"#685 C4 a character's sheet rolls without an attack, with the character's injury: the same d100 draws a lower result",
+			{ dialog: fromAda, rolled: adaRolled },
+			{
+				dialog: {
+					header: ['Critical Injury for E2E Ada', 'Table: E2E Crits'],
+					spent: null,
+					lines: ['Critical Injuries already suffered (1): 10', 'Free modifier: 0'],
+					formula: '1d100 + 10',
+				},
+				rolled: {
+					speaker: 'E2E Ada',
+					flavor: 'Critical Injury: E2E Ada',
+					formula: '1d100 + 10',
+					total: 35,
+					results: ['E2E Nick'],
+					links: ['E2E Nick'],
+				},
+			},
+		);
+
+		await fromSheet(gm, 'Ada');
+		await type(gm, 'line-injuries', '0');
+		const edited = await type(gm, 'line-free', '80');
+		const editedRolled = await rollCritical(gm, 25);
+		e2e.expect(
+			'#685 C5 every line stays editable: an injury left out and a free modifier move the result',
+			{ lines: edited.lines, formula: edited.formula, total: editedRolled.total, results: editedRolled.results },
+			{
+				lines: ['Critical Injuries already suffered (1): 0', 'Free modifier: 80'],
+				formula: '1d100 + 80',
+				total: 105,
+				results: ['E2E Maim'],
+			},
+		);
+
+		const fromRival = await fromSheet(gm, 'Rival');
+		await gm.evaluate(() => window.criticalInjuryE2E.closePrompts());
+		e2e.expect("#685 C6 an adversary's sheet rolls with its injuries and its own talent", fromRival, {
+			header: ['Critical Injury for E2E Rival', 'Table: E2E Crits'],
+			spent: null,
+			lines: ['Critical Injuries already suffered (1): 10', 'E2E Durable: -10', 'Free modifier: 0'],
+			formula: '1d100',
+		});
+
+		const fromBo = await fromSheet(player, 'Bo');
+		const boRolled = await rollCritical(player, 60);
+		e2e.expect(
+			"#685 C7 a player rolls from their character's sheet, on a table the GM hasn't shared with them",
+			{ formula: fromBo.formula, rolled: boRolled },
+			{
+				formula: '1d100',
+				rolled: {
+					speaker: 'E2E Bo',
+					flavor: 'Critical Injury: E2E Bo',
+					formula: '1d100',
+					total: 60,
+					results: ['E2E Scar'],
+					links: ['E2E Scar'],
+				},
+			},
+		);
+
+		await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
+		await e2e.step('Critical Injuries end');
+	});
+
+	// S: the Token States of the roller in the Dice Prompt (§#682, CRB p. 114). Their menu and rounds sit in `combat.ts`,
+	// part `tokenStates`.
+	await part('tokenStateDice', async () => {
+		const STATES = ['immobilized', 'disoriented', 'staggered'];
+		const setStates = (active: boolean) =>
+			gm.evaluate(
+				async (args) => {
+					const ada = game.actors.getName('E2E Ada');
+					for (const id of args.states) await ada.toggleStatusEffect(id, { active: args.active, rounds: 1 });
+				},
+				{ states: STATES, active },
+			);
+		const stateRows = (state: PromptState) => state.modifications.filter(({ name }) => /Immobilized|Disoriented|Staggered/.test(name));
+		const reminders = () => gm.evaluate(() => window.dicePromptE2E.promptReminders());
+
+		await setStates(true);
+		const cool = await opened(gm, skillRoll('Cool'));
+		const shown = await reminders();
+		const turnedOn = await toggle('Disoriented');
+		const brawn = await opened(gm, characteristicRoll(1));
+		e2e.expect(
+			"#682 S1 a Disoriented character's checks list its Setback, which the roller turns on like any effect; Immobilized and Staggered show as reminders",
+			{ rows: stateRows(cool), reminders: shown, on: turnedOn.pool, brawn: stateRows(brawn) },
+			{
+				rows: [{ name: 'From Self: Disoriented', enabled: false, mods: 'S+' }],
+				reminders: ["Immobilized: can't perform maneuvers.", "Staggered: can't perform actions."],
+				on: 'A|DDS',
+				brawn: [{ name: 'From Self: Disoriented', enabled: false, mods: 'S+' }],
+			},
+		);
+
+		await setStates(false);
+		const cleared = await opened(gm, skillRoll('Cool'));
+		e2e.expect(
+			'#682 S2 once the states are removed, the check lists no Setback and shows no reminder',
+			{ rows: stateRows(cleared), reminders: await reminders() },
+			{ rows: [], reminders: [] },
+		);
+		await e2e.step('token states end');
+	});
+
 	// H: the Heal action beside Medicine, a Medicine check for a patient at the difficulty of their state of health, whose
 	// card heals them by its results, for the GM and the patient's owners (§#686, CRB p. 116).
 	await part('medicineHeal', async () => {
@@ -3874,47 +4278,6 @@ export async function run(e2e: ScenarioContext) {
 			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 		);
 		await e2e.step('medicineHeal end');
-	});
-
-	// S: the Token States of the roller in the Dice Prompt (§#682, CRB p. 114). Their menu and rounds sit in `combat.ts`,
-	// part `tokenStates`.
-	await part('tokenStateDice', async () => {
-		const STATES = ['immobilized', 'disoriented', 'staggered'];
-		const setStates = (active: boolean) =>
-			gm.evaluate(
-				async (args) => {
-					const ada = game.actors.getName('E2E Ada');
-					for (const id of args.states) await ada.toggleStatusEffect(id, { active: args.active, rounds: 1 });
-				},
-				{ states: STATES, active },
-			);
-		const stateRows = (state: PromptState) => state.modifications.filter(({ name }) => /Immobilized|Disoriented|Staggered/.test(name));
-		const reminders = () => gm.evaluate(() => window.dicePromptE2E.promptReminders());
-
-		await setStates(true);
-		const cool = await opened(gm, skillRoll('Cool'));
-		const shown = await reminders();
-		const turnedOn = await toggle('Disoriented');
-		const brawn = await opened(gm, characteristicRoll(1));
-		e2e.expect(
-			"#682 S1 a Disoriented character's checks list its Setback, which the roller turns on like any effect; Immobilized and Staggered show as reminders",
-			{ rows: stateRows(cool), reminders: shown, on: turnedOn.pool, brawn: stateRows(brawn) },
-			{
-				rows: [{ name: 'From Self: Disoriented', enabled: false, mods: 'S+' }],
-				reminders: ["Immobilized: can't perform maneuvers.", "Staggered: can't perform actions."],
-				on: 'A|DDS',
-				brawn: [{ name: 'From Self: Disoriented', enabled: false, mods: 'S+' }],
-			},
-		);
-
-		await setStates(false);
-		const cleared = await opened(gm, skillRoll('Cool'));
-		e2e.expect(
-			'#682 S2 once the states are removed, the check lists no Setback and shows no reminder',
-			{ rows: stateRows(cleared), reminders: await reminders() },
-			{ rows: [], reminders: [] },
-		);
-		await e2e.step('token states end');
 	});
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);

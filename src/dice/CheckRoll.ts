@@ -10,6 +10,7 @@ import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 import { CharacteristicsContainer } from '@/data/Characteristics';
+import { CRITICAL_INJURY_FLAG, type CriticalInjuryFlag, criticalTriggers } from '@/dice/CriticalInjuryRoll';
 import { heals, type Recovery, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
@@ -67,10 +68,25 @@ export async function checkMessageData(
 	const card = cardResults(results);
 	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results);
 	const data = { description: checkDescription(check, game.i18n), results, card, recovery: recovery && recoveryCardData(recovery) };
+	const triggers = attack
+		? criticalTriggers({
+				succeeded: card.succeeded,
+				netAdvantage: results.netAdvantage,
+				triumphs: results.totalTriumph,
+				critical: attack.critical,
+			})
+		: 0;
+	// An attack that triggers a Critical Injury keeps it for the card's button, a check that heals its recovery for the
+	// card's Apply button.
+	const flags = {
+		...(attack && triggers > 0 && { [CRITICAL_INJURY_FLAG]: criticalInjuryFlag(check, attack, triggers) }),
+		...(recovery && { recovery }),
+	};
 	const content = attack
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {
 				...data,
 				...(await attackCardData(check, attack, results, card)),
+				criticalTriggers: triggers,
 			})
 		: await foundry.applications.handlebars.renderTemplate(CHECK_TEMPLATE, data);
 
@@ -79,7 +95,24 @@ export async function checkMessageData(
 		speaker: { actor: (check.actor as GenesysActor | undefined)?.id },
 		content,
 		rolls: [roll],
-		...(recovery && { flags: { genesys: { recovery } } }),
+		...(Object.keys(flags).length > 0 && { flags: { genesys: flags } }),
+	};
+}
+
+/**
+ * What an attack's message keeps for the Critical Injury it triggered. The target is the single one the roller targets,
+ * as the Dice Prompt reads it.
+ */
+function criticalInjuryFlag(check: Check, attack: AttackProfile, triggers: number): CriticalInjuryFlag {
+	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+	return {
+		triggers,
+		attacker: (check.actor as GenesysActor | undefined)?.uuid ?? null,
+		target: target?.actor?.uuid ?? null,
+		weapon: {
+			name: attack.attackName,
+			qualities: attack.qualities.map(({ name, isRated, rating }) => ({ name, isRated, rating })),
+		},
 	};
 }
 
