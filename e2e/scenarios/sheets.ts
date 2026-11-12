@@ -3280,9 +3280,12 @@ export async function run(e2e: ScenarioContext) {
 					'genesys.pool.check.self=👇 Any Check',
 					'genesys.pool.char.self=👇 Uses Characteristic',
 					'genesys.pool.skill.self=👇 Uses Skill',
+					'genesys.pool.combat.self=👇 Combat Check',
 					'genesys.pool.check.target=🎯 Any Check',
 					'genesys.pool.char.target=🎯 Uses Characteristic',
 					'genesys.pool.skill.target=🎯 Uses Skill',
+					'genesys.pool.melee.target=🎯 Melee Attack',
+					'genesys.pool.ranged.target=🎯 Ranged Attack',
 				],
 			},
 			{

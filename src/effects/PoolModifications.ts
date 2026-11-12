@@ -14,9 +14,22 @@ import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
 /**
- * What a Pool Modification change applies to: every check, checks of a characteristic, or checks of a skill.
+ * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
+ * or only melee or only ranged attacks.
  */
-type PoolModificationKind = 'check' | 'char' | 'skill';
+const KINDS = ['check', 'char', 'skill', 'combat', 'melee', 'ranged'] as const;
+type PoolModificationKind = (typeof KINDS)[number];
+
+/**
+ * The kinds of change that apply to the checks of one characteristic or one skill, which their key names. The others
+ * apply to every check of their kind, with an empty subject.
+ */
+const SUBJECT_KINDS: readonly PoolModificationKind[] = ['char', 'skill'];
+
+/**
+ * The kind of an attack, melee or ranged, which the defense it meets and the changes that target that kind depend on.
+ */
+type AttackKind = Extract<PoolModificationKind, 'melee' | 'ranged'>;
 
 /**
  * Whose checks a Pool Modification change applies to: the checks of the effect's actor, or the checks that target it.
@@ -71,7 +84,7 @@ export type CheckForPoolModifications = {
 	skillName?: string;
 
 	/**
-	 * Range of the weapon, for an attack.
+	 * Range of the weapon, for an attack, which is a combat check. Left undefined for any other check.
 	 */
 	attackRange?: string;
 
@@ -181,15 +194,15 @@ export function matchOrigin<T>(
 const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis', 'vehicle'];
 
 const KEY_PREFIX = 'genesys.pool';
-const KEY_PATTERN = /^genesys\.pool\.(check|char|skill)\.(self|target)\.(.*)$/;
-const BASE_KEY_PATTERN = /^genesys\.pool\.(check|char|skill)\.(self|target)$/;
+const KEY_PATTERN = new RegExp(`^genesys\\.pool\\.(${KINDS.join('|')})\\.(self|target)\\.(.*)$`);
+const BASE_KEY_PATTERN = new RegExp(`^genesys\\.pool\\.(${KINDS.join('|')})\\.(self|target)$`);
 const VALUE_PATTERN = new RegExp(`^${PoolModGlyphPattern.source}*$`);
 
 /**
  * The change key of a Pool Modification, which {@link decodeKey} reads back.
  */
 export function encodeKey({ kind, source, subject }: PoolModificationKey) {
-	return `${KEY_PREFIX}.${kind}.${source}.${kind === 'check' ? '' : subject}`;
+	return `${KEY_PREFIX}.${kind}.${source}.${SUBJECT_KINDS.includes(kind) ? subject : ''}`;
 }
 
 /**
@@ -287,7 +300,7 @@ export function poolModificationsForCheck(
 
 		// The target's defense against the range of an attack adds one Setback per point.
 		if (check.attackRange) {
-			const defense = check.attackRange === 'engaged' ? 'melee' : 'ranged';
+			const defense = attackKind(check.attackRange);
 			const totalDefense = (target.system as { totalDefense: Defense }).totalDefense;
 
 			if (totalDefense[defense] > 0) {
@@ -373,6 +386,14 @@ function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: S
 	];
 }
 
+/**
+ * The kind of an attack with a weapon of a range: melee at engaged range, ranged at any other, as the defense it meets
+ * (CRB p. 104).
+ */
+function attackKind(range: string): AttackKind {
+	return range === 'engaged' ? 'melee' : 'ranged';
+}
+
 function silhouetteOf({ system }: SilhouettedActor) {
 	const silhouette: unknown = system.silhouette;
 	return typeof silhouette === 'number' ? silhouette : undefined;
@@ -381,7 +402,7 @@ function silhouetteOf({ system }: SilhouettedActor) {
 function effectModifications(
 	actor: PoolModificationActor,
 	source: PoolModificationSource,
-	{ characteristic, skillName }: CheckForPoolModifications,
+	{ characteristic, skillName, attackRange }: CheckForPoolModifications,
 ) {
 	const appliesToCheck = (key: PoolModificationKey | undefined) => {
 		if (key?.source !== source) {
@@ -395,6 +416,13 @@ function effectModifications(
 				return key.subject === (characteristic as string | undefined);
 			case 'skill':
 				return !!skillName && skillNamesMatch(key.subject, skillName);
+			// An attack is a combat check: Aim and Guarded Stance change the actor's own, cover and prone those made against
+			// them, by their kind (CRB p. 98–100, 108).
+			case 'combat':
+				return key.subject === '' && attackRange !== undefined;
+			case 'melee':
+			case 'ranged':
+				return key.subject === '' && attackRange !== undefined && attackKind(attackRange) === key.kind;
 		}
 	};
 
@@ -470,8 +498,11 @@ export function subjectFieldForKey(key: string) {
 		return 'check-selection';
 	}
 
-	switch (key.match(BASE_KEY_PATTERN)?.[1]) {
+	switch (key.match(BASE_KEY_PATTERN)?.[1] as PoolModificationKind | undefined) {
 		case 'check':
+		case 'combat':
+		case 'melee':
+		case 'ranged':
 			return 'check-selection';
 		case 'char':
 			return 'characteristic-selection';

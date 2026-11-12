@@ -13,6 +13,7 @@ import { type CheckSpend, spentPoints } from '@/dice/CheckStoryPoints';
 import { StoryPointTracker } from '@/app/StoryPointTracker';
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
+import { useUpEffects } from '@/effects/maneuverEffects';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -117,6 +118,10 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			attack: app.roll.type === RollType.Attack ? app.roll.profile : undefined,
 			recovery: app.recovery,
 		});
+		// Once rolled, the check uses up the effects it was the next check for, as an attack the roller's Aim.
+		if (actor) {
+			await useUpEffects(actor, checkRoll.check.purpose);
+		}
 	}
 
 	/**
