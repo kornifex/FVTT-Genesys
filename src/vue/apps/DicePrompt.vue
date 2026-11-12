@@ -41,6 +41,7 @@ import {
 	worldCheckRules,
 } from '@/dice/Check';
 import { matchOrigin } from '@/effects/PoolModifications';
+import { stateReminders } from '@/effects/TokenStates';
 import { type DicePool, poolEntries, sortPoolModifications } from '@/dice/DicePool';
 import {
 	clickedLevel,
@@ -88,6 +89,8 @@ const USE_CHANCE_TO_SUCCEED = USE_CHANCE_TO_SUCCEED_BY_PERMUTATION || CONFIG.gen
 
 const context = useSheetContext<DicePromptContext>();
 const attack = context.value.roll.type === RollType.Attack ? context.value.roll : undefined;
+// The Token States of the roller that change no dice, such as Staggered, which the prompt reminds them of.
+const stateReminderLabels = stateReminders(context.value.actor?.statuses ?? []);
 
 // Shallow, so that the dice pool reaches the chance Worker as it is: a reactive proxy can't be cloned to a Worker.
 const currentDicePool = shallowRef<DicePool>({
@@ -416,6 +419,12 @@ const spendId = useId();
 	<div class="genesys dice-prompt">
 		<header>
 			<span class="hint"><Localized label="Genesys.DicePrompt.Hint" /></span>
+			<ul v-if="stateReminderLabels.length > 0" class="state-reminders">
+				<li v-for="reminder in stateReminderLabels" :key="reminder">
+					<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+					<Localized :label="reminder" />
+				</li>
+			</ul>
 		</header>
 
 		<div class="preview">
@@ -655,6 +664,20 @@ $target-size: 24px;
 			font-size: 1rem;
 			// Foundry's colour for the hints of a form, which v13 only gives AppV1 windows.
 			color: appv1.$text-secondary;
+		}
+
+		.state-reminders {
+			list-style: none;
+			margin: 0.25em 0 0;
+			padding: 0;
+			font-family: 'Roboto', sans-serif;
+			font-size: 1rem;
+			font-weight: bold;
+
+			// Vue drops the line break between the icon and the text, which the margin stands for.
+			i {
+				margin-inline-end: 0.4em;
+			}
 		}
 	}
 

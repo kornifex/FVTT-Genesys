@@ -17,6 +17,7 @@ import type { GenesysCombatant } from '@/combat/GenesysCombatant';
 import type { GenesysCombatTracker } from '@/combat/GenesysCombatTracker';
 import type { GENESYS_CONFIG } from '@/config';
 import type { GenesysEffect } from '@/effects/GenesysEffect';
+import type { CombatTurn } from '@/effects/LapsingEffects';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ItemDataModels } from '@/item/ItemTypes';
 import type { QueryHandlers } from '@/queries';
@@ -78,7 +79,7 @@ declare module 'fvtt-types/configuration' {
 
 	interface FlagConfig {
 		Actor: { genesys: { independentMinion?: boolean } };
-		ActiveEffect: { genesys: { expired?: boolean } };
+		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
 	}
 
 	interface SettingConfig extends TableSettings {

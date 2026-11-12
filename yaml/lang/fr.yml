@@ -221,6 +221,22 @@ Genesys:
           Characteristic: Utilise la caractéristique
           Skill: Utilise la compétence
 
+  # Token States: the states of the token's status menu (CRB p. 114)
+  TokenStates:
+    Immobilized:
+      Name: Immobilisé
+      Reminder: 'Immobilisé : ne peut pas effectuer de manœuvre.'
+    Disoriented:
+      Name: Désorienté
+    Staggered:
+      Name: Sonné
+      Reminder: "Sonné : ne peut pas effectuer d'action."
+    Rounds: Rounds
+    Apply: Appliquer
+    RoundsLeft:
+      one: '{rounds} round'
+      other: '{rounds} rounds'
+
   # Dice Prompt Labels
   DicePrompt:
     Title: Réserve de dés

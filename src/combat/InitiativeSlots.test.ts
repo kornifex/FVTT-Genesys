@@ -25,6 +25,7 @@ import {
 	slotView,
 	SlotViewer,
 	StoredExtraSlot,
+	turnTakerId,
 	withExtraSlotInitiatives,
 } from '@/combat/InitiativeSlots';
 
@@ -276,6 +277,24 @@ describe('slotView', () => {
 		expect(slotView({ ...unclaimed, claimantId: 'rogue' }, true, player).canRollInitiative).toBe(true);
 		expect(slotView({ ...rogueSlot, claimantId: 'hero' }, true, player).canRollInitiative).toBe(false);
 		expect(slotView(rogueSlot, true, gm).canRollInitiative).toBe(true);
+	});
+});
+
+describe('turnTakerId', () => {
+	const [heroSlot] = buildSlots([combatant('hero', 1)], []);
+	const [bossSlot] = buildSlots([combatant('boss', 1, 'npc')], []);
+
+	it('gives a slot to the combatant that Claimed it, whatever its origin (CRB p. 96)', () => {
+		expect(turnTakerId({ ...heroSlot, claimantId: 'rogue' })).toBe('rogue');
+		expect(turnTakerId({ ...bossSlot, claimantId: 'minion' })).toBe('minion');
+	});
+
+	it('gives an unclaimed NPC slot to its origin, which the GM plays without a Claim', () => {
+		expect(turnTakerId(bossSlot)).toBe('boss');
+	});
+
+	it('gives an unclaimed PC slot to nobody: its origin may take another slot of the round', () => {
+		expect(turnTakerId(heroSlot)).toBeUndefined();
 	});
 });
 
