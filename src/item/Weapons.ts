@@ -5,9 +5,11 @@ import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel'
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 
 /**
- * What a weapon's damage is read from. A vehicle weapon has no damage characteristic.
+ * What a weapon's damage is read from. A vehicle weapon has no damage characteristic. A magic attack with Empowered adds
+ * its characteristic twice (CRB p. 215).
  */
-type WeaponDamageData = Pick<BaseWeaponDataModel, 'baseDamage'> & Partial<Pick<WeaponDataModel, 'damageCharacteristic'>>;
+type WeaponDamageData = Pick<BaseWeaponDataModel, 'baseDamage'> &
+	Partial<Pick<WeaponDataModel, 'damageCharacteristic'>> & { doublesDamageCharacteristic?: boolean };
 
 /**
  * The damage a weapon deals in the hands of an actor with these characteristics. An actor without characteristics,
@@ -16,7 +18,7 @@ type WeaponDamageData = Pick<BaseWeaponDataModel, 'baseDamage'> & Partial<Pick<W
 export function weaponDamage(weapon: WeaponDamageData, characteristics: CharacteristicsContainer | undefined) {
 	const characteristic = damageCharacteristicOf(weapon);
 
-	return baseDamageOf(weapon) + (characteristic && characteristics ? characteristics[characteristic] : 0);
+	return baseDamageOf(weapon) + (characteristic && characteristics ? characteristics[characteristic] * timesOf(weapon) : 0);
 }
 
 /**
@@ -28,13 +30,17 @@ export function attackDamage(weapon: WeaponDamageData, characteristics: Characte
 
 /**
  * The parts a weapon's damage is written with: its base damage, and the localization key of its damage
- * characteristic's abbreviation when it has one.
+ * characteristic's abbreviation when it has one, with how many times it adds when it adds more than once.
  */
-export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; characteristic?: string } {
+export function damageFormula(weapon: WeaponDamageData): { baseDamage: number; characteristic?: string; times?: number } {
 	const baseDamage = baseDamageOf(weapon);
 	const characteristic = damageCharacteristicOf(weapon);
+	if (!characteristic) {
+		return { baseDamage };
+	}
 
-	return characteristic ? { baseDamage, characteristic: CHARACTERISTIC_ABBREVIATIONS[characteristic] } : { baseDamage };
+	const times = timesOf(weapon);
+	return { baseDamage, characteristic: CHARACTERISTIC_ABBREVIATIONS[characteristic], ...(times > 1 && { times }) };
 }
 
 /**
@@ -137,6 +143,10 @@ export function firingArcLabels(firingArc: VehicleWeaponDataModel['firingArc']) 
 function damageCharacteristicOf(weapon: WeaponDamageData) {
 	// A vehicle weapon has no damage characteristic, and a weapon saves its absence as '-'.
 	return weapon.damageCharacteristic === '-' ? undefined : weapon.damageCharacteristic;
+}
+
+function timesOf(weapon: WeaponDamageData) {
+	return weapon.doublesDamageCharacteristic ? 2 : 1;
 }
 
 function baseDamageOf(weapon: WeaponDamageData) {

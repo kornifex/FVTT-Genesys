@@ -143,10 +143,13 @@ export function deleteExtraProfileUpdate(weapon: ProfiledWeapon, index: number) 
 /**
  * What an attack reads of the profile it is made with, a vehicle weapon's single profile included: the name the attack
  * is described with, the skills it offers first, the range whose defense the target meets, and the damage, Critical
- * rating and qualities its card shows.
+ * rating and qualities its card shows. A magic attack with Empowered adds its damage characteristic twice (CRB p. 215).
  */
 export type AttackProfile = VehicleWeaponProfileData &
-	Partial<Pick<WeaponProfileData, 'damageCharacteristic' | 'attackSkill'>> & { attackName: string };
+	Partial<Pick<WeaponProfileData, 'damageCharacteristic' | 'attackSkill'>> & {
+		attackName: string;
+		doublesDamageCharacteristic?: boolean;
+	};
 
 /**
  * What an attack with a weapon's profile reads of it, named as the profile's row.

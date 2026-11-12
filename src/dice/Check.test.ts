@@ -239,6 +239,22 @@ describe('resolveCheck', () => {
 		expect(keys(attack)).toEqual(['self.effect.ActiveEffect.Aim', 'target.effect.ActiveEffect.Prone', 'target.defense.melee']);
 	});
 
+	it("makes a magic attack a combat check, which the target's defense and Aim change, and leaves another spell out (CRB p. 215)", () => {
+		const hero = actor('character', [skill('Arcana', Characteristic.Intellect, 1)], {
+			effects: [effect('Aim', [{ key: 'genesys.pool.combat.self.', value: 'B' }])],
+		});
+		const foe = actor('rival', [], { totalDefense: { melee: 0, ranged: 1 } });
+		const keys = (isAttack: boolean) =>
+			resolveCheck(
+				hero,
+				{ skillName: 'Arcana', target: foe, attackRange: 'short', purpose: { kind: 'spell', spellName: 'Fireball', isAttack } },
+				rules,
+			).poolModifications.map((modification) => modification.key);
+
+		expect(keys(true)).toEqual(['self.effect.ActiveEffect.Aim', 'target.defense.ranged']);
+		expect(keys(false)).toEqual([]);
+	});
+
 	it('tells apart the Pool Modifications of effects that share a name, as the effects of two copies of an item do (#445)', () => {
 		const hero = actor('character', [], {
 			effects: rings('^', '^^'),
@@ -593,7 +609,7 @@ describe('checkDescription', () => {
 	});
 
 	it('names the spell cast, with its skill, or alone when the roller picks none', () => {
-		const spell = { kind: 'spell', spellName: 'Curse' } as const;
+		const spell = { kind: 'spell', spellName: 'Curse', isAttack: false } as const;
 
 		expect(description(resolveCheck(hero, { purpose: spell, skillName: 'Melee' }, rules))).toBe(
 			'SpellSkill {"name":"Curse","skill":"Melee","characteristic":"Brawn","superChar":"super-char"}',

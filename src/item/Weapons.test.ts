@@ -58,6 +58,12 @@ describe('attackDamage', () => {
 		expect(attackDamage({ baseDamage: 4, damageCharacteristic: Characteristic.Intellect }, characteristics, 2)).toBe(7);
 	});
 
+	it("adds twice the characteristic to a magic attack with Empowered, then the implement's bonus and the Successes (CRB pp. 215, 219)", () => {
+		const empowered = { damageCharacteristic: Characteristic.Willpower, doublesDamageCharacteristic: true };
+		// Willpower 4, doubled: 8, plus a +2 implement and two Successes left.
+		expect(attackDamage({ ...empowered, baseDamage: 2 }, characteristics, 2)).toBe(12);
+	});
+
 	it("gives the damage a chat card shows on a miss, when the world's setting shows it: the weapon's damage alone", () => {
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, 0)).toBe(6);
 		expect(attackDamage({ baseDamage: 6, damageCharacteristic: '-' }, characteristics, -2)).toBe(6);
@@ -100,6 +106,16 @@ describe('damageFormula', () => {
 			baseDamage: 2,
 			characteristic: 'Genesys.CharacteristicAbbr.Willpower',
 		});
+	});
+
+	it('gives how many times the characteristic adds when Empowered doubles it (CRB p. 215)', () => {
+		expect(damageFormula({ baseDamage: 0, damageCharacteristic: Characteristic.Intellect, doublesDamageCharacteristic: true })).toEqual(
+			{
+				baseDamage: 0,
+				characteristic: 'Genesys.CharacteristicAbbr.Intellect',
+				times: 2,
+			},
+		);
 	});
 
 	it('gives a weapon without a damage characteristic, or a vehicle weapon, its base damage alone', () => {

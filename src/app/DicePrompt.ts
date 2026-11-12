@@ -15,7 +15,7 @@ import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { useUpEffects } from '@/effects/maneuverEffects';
 import { ownedSkill } from '@/data/Skills';
-import { spellCast } from '@/item/SpellCasting';
+import { spellAttackProfile, spellCast } from '@/item/SpellCasting';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -121,7 +121,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 
 		const cast = app.roll.type === RollType.Spell && actor ? castOf(actor, app.roll.spell, checkRoll.spellEffects ?? []) : undefined;
 		await rollCheck(checkRoll, {
-			attack: app.roll.type === RollType.Attack ? app.roll.profile : undefined,
+			attack: attackOf(app.roll, checkRoll, actor),
 			recovery: app.recovery,
 			spell: cast,
 		});
@@ -237,7 +237,32 @@ export function refuseUnusableWeapon(weapon: Pick<GenesysItem<'weapon' | 'vehicl
  * caster's ranks counts those they own.
  */
 function castOf(actor: GenesysActor, spell: GenesysItem<'spell'>, checked: string[]) {
-	return spellCast(spell.system.additionalEffects, checked, (name) => ownedSkill(actor.skills, name)?.system.rank ?? 0);
+	return spellCast(spell.system.additionalEffects, checked, ranksOf(actor));
+}
+
+/**
+ * The ranks an actor owns in a skill, by its name, which a quality rated by the caster's ranks counts.
+ */
+function ranksOf(actor: GenesysActor | undefined) {
+	return (name: string) => (actor && ownedSkill(actor.skills, name)?.system.rank) ?? 0;
+}
+
+/**
+ * The profile of the attack a check rolls: a weapon's, or the magic attack's of an attack spell, with the Additional
+ * Effects checked. Its damage adds the characteristic linked to the skill rolled (CRB p. 215), the characteristic rolled
+ * without one.
+ */
+function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswer, actor: GenesysActor | undefined) {
+	if (roll.type === RollType.Attack) {
+		return roll.profile;
+	}
+
+	if (roll.type !== RollType.Spell || !roll.spell.system.isAttack) {
+		return undefined;
+	}
+
+	const characteristic = check.skill?.system.characteristic ?? check.characteristic ?? '-';
+	return spellAttackProfile(roll.spell, spellEffects ?? [], characteristic, ranksOf(actor));
 }
 
 /**
