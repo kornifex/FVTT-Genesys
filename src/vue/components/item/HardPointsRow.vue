@@ -6,18 +6,19 @@ import { hardPoints, hardPointsException } from '@/item/HardPoints';
 import Localized from '@/vue/components/Localized.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-const { document: item, system } = useSheetDocument<GenesysItem<'weapon' | 'armor'>>();
+// The Hard Points come from the base encumbrance, the stored one, which an attachment's effect may change.
+const { document: item, source } = useSheetDocument<GenesysItem<'weapon' | 'armor'>>();
 const id = useId();
 
-const value = computed(() => hardPoints(system.value));
+const value = computed(() => hardPoints(source.value));
 
 // The field is unnamed, so that the sheet's form doesn't submit the computed number as an exception whenever another
 // field changes: its own change stores the exception, or clears it to follow the encumbrance again.
 async function update(event: Event) {
 	const input = event.target as HTMLInputElement;
-	const exception = hardPointsException(system.value.encumbrance, input.value);
+	const exception = hardPointsException(source.value.encumbrance, input.value);
 
-	if (exception === undefined || exception === system.value.hardPoints) {
+	if (exception === undefined || exception === source.value.hardPoints) {
 		// Nothing to store, so the sheet won't render again: show the item's number in place of what was typed.
 		input.value = String(value.value);
 		return;

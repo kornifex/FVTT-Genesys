@@ -41,6 +41,7 @@ documentTypes:
   Item:
     # Equipment
     armor: {}
+    attachment: {}
     consumable: {}
     container: {}
     gear: {}

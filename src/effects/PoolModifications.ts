@@ -14,6 +14,7 @@ import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
+import { attachmentIdOf } from '@/item/data/Attachments';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
@@ -326,8 +327,8 @@ export function poolModificationsForCheck(
 	}
 
 	modifications.push(
-		...effectModifications(effectsExcept(actor.allApplicableEffects(), isWeaponQualityEffect), 'self', check),
-		...effectModifications(weaponQualityEffects(check), 'self', check),
+		...effectModifications(effectsExcept(actor.allApplicableEffects(), isWeaponAttackEffect), 'self', check),
+		...effectModifications(weaponAttackEffects(check), 'self', check),
 		...encumbranceModifications(actor, check),
 		...itemDamageModifications(check.weapon),
 	);
@@ -436,13 +437,15 @@ function silhouetteOf({ system }: SilhouettedActor) {
 	return typeof silhouette === 'number' ? silhouette : undefined;
 }
 
-// The item types whose qualities' Pool Modifications change only the attacks made with the item.
+// The item types whose qualities' and attachments' Pool Modifications change only the attacks made with the item.
 const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 
-// Whether an effect is a weapon's quality's, whose own Pool Modifications change only the attacks made with that weapon,
-// rather than every check its keys name, as an armor's quality's do (#694).
-function isWeaponQualityEffect(effect: PoolModificationEffect) {
-	return qualityIdOf(effect) !== undefined && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '');
+// Whether an effect is a weapon's quality's or attachment's, whose own Pool Modifications change only the attacks made
+// with that weapon, rather than every check its keys name, as an armor's do (#694, #702).
+function isWeaponAttackEffect(effect: PoolModificationEffect) {
+	return (
+		(qualityIdOf(effect) !== undefined || attachmentIdOf(effect) !== undefined) && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
+	);
 }
 
 // Whether an effect belongs to a weapon's quality that another of the weapon's profiles holds at a higher rank: a quality
@@ -459,11 +462,11 @@ function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (ef
 	}
 }
 
-// The effects of the qualities of the Weapon Profile an attack is made with, read from the weapon itself: a vehicle
-// weapon's never reach the crew member who fires it.
-function weaponQualityEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
+// The effects of the qualities of the Weapon Profile an attack is made with, and of the weapon's attachments, which
+// change every profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
+function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
 	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
-	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(qualityIdOf(effect) ?? ''));
+	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(qualityIdOf(effect) ?? '') || attachmentIdOf(effect) !== undefined);
 }
 
 function effectModifications(

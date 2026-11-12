@@ -7,6 +7,7 @@ import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import WeaponProfileFields from '@/vue/components/item/WeaponProfileFields.vue';
+import EffectiveStats from '@/vue/components/item/EffectiveStats.vue';
 import {
 	addExtraProfileUpdate,
 	deleteExtraProfileUpdate,
@@ -18,29 +19,38 @@ import {
 } from '@/item/WeaponProfiles';
 import { confirmDelete } from '@/operations/ItemActions';
 
-const { document: item, system, editable } = useSheetDocument<GenesysItem<'weapon'>>();
+// The profiles are read from the stored data, which each change writes back whole: the prepared data holds the damage
+// and Critical ratings the weapon's effects add (its attachments'), which the change would store.
+const { document: item, system, source, editable } = useSheetDocument<GenesysItem<'weapon'>>();
 
-const extraProfiles = computed(() => weaponProfiles(system.value).slice(1));
+const PROFILE_STATS = ['baseDamage', 'critical'] as const;
+
+const extraProfiles = computed(() => weaponProfiles(source.value).slice(1));
+
+// The profile as the weapon's effects change it.
+function preparedProfile(profile: WeaponProfile) {
+	return system.value.extraProfiles[profile.index - 1] ?? profile;
+}
 
 // The extra profiles' fields are unnamed, so that the sheet's form doesn't submit them: each change writes its profile
 // in the weapon's list.
 async function updateProfile(profile: WeaponProfile, changes: Partial<ExtraWeaponProfile>) {
-	await item.value.update({ system: profileUpdate(system.value, profile.index, changes) });
+	await item.value.update({ system: profileUpdate(source.value, profile.index, changes) });
 }
 
 async function addProfile() {
-	await item.value.update({ system: addExtraProfileUpdate(system.value) });
+	await item.value.update({ system: addExtraProfileUpdate(source.value) });
 }
 
 // Deleting an extra profile asks first, naming it as the weapon's rows do: "Blaster (Stun)".
 async function deleteProfile(profile: WeaponProfile) {
-	const { name } = system.value.extraProfiles[profile.index - 1];
+	const { name } = source.value.extraProfiles[profile.index - 1];
 	// The list may change while the dialog is open: delete the profile it named, or nothing.
 	if (
 		(await confirmDelete(profileRowName(item.value.name, profile, game.i18n))) &&
-		system.value.extraProfiles[profile.index - 1]?.name === name
+		source.value.extraProfiles[profile.index - 1]?.name === name
 	) {
-		await item.value.update({ system: deleteExtraProfileUpdate(system.value, profile.index) });
+		await item.value.update({ system: deleteExtraProfileUpdate(source.value, profile.index) });
 	}
 }
 </script>
@@ -80,7 +90,9 @@ async function deleteProfile(profile: WeaponProfile) {
 					:profile="profile"
 					:qualities-path="`system.extraProfiles.${profile.index - 1}.qualities`"
 					@change="updateProfile(profile, $event)"
-				/>
+				>
+					<EffectiveStats :stored="profile" :prepared="preparedProfile(profile)" :fields="PROFILE_STATS" />
+				</WeaponProfileFields>
 			</section>
 
 			<div v-if="editable" class="add-profile">

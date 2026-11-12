@@ -10,6 +10,7 @@ import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
 import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -44,6 +45,9 @@ export function changesPath() {
 	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
 	return isFoundryV13() ? 'changes' : 'system.changes';
 }
+
+// The item types whose effects a weapon or an armor copies, and which change nothing until then.
+const UNINSTALLED_TYPES: readonly string[] = ['quality', 'attachment'];
 
 // v13: the mode of each type of change.
 const V13_MODES = { custom: 'CUSTOM', add: 'ADD' } as const satisfies Record<StateChange['type'], string>;
@@ -82,7 +86,16 @@ export class GenesysEffect extends ActiveEffect {
 	 * from applying.
 	 */
 	override get isSuppressed() {
-		return this.disabled || this.isExpired || this.isSuppressedByEquipmentState;
+		return this.disabled || this.isExpired || this.isSuppressedByEquipmentState || this.isUninstalled;
+	}
+
+	/**
+	 * Whether this effect belongs to a quality or an attachment item that an actor holds as is: its effects apply once
+	 * it is copied on a weapon or an armor, never from the actor's items.
+	 */
+	get isUninstalled() {
+		const item = this.originItem;
+		return !!item?.actor && UNINSTALLED_TYPES.includes(item.type);
 	}
 
 	/**
@@ -250,6 +263,11 @@ export class GenesysEffect extends ActiveEffect {
 		change: ActiveEffect.ChangeData,
 		options?: ActiveEffect.ApplyChangeOptions,
 	) {
+		// An Item Change changes the effect's item, which prepares it itself (`GenesysItem#prepareDerivedData`).
+		if (isItemChangeKey(change.key)) {
+			return {};
+		}
+
 		const effect = change.effect;
 		const value = scaledChangeValue(effect?.originItem, { key: change.key ?? '', value: change.value }, effect?.quality);
 
@@ -259,6 +277,10 @@ export class GenesysEffect extends ActiveEffect {
 	// v13: `Actor#applyActiveEffects` calls the instance `apply`. On v14 it is a deprecated shim that calls the static
 	// `applyChange`, which scales the change itself.
 	override apply(actor: Actor.Implementation, change: ActiveEffect.ChangeData) {
+		if (isItemChangeKey(change.key)) {
+			return {};
+		}
+
 		if (isFoundryV13()) {
 			change.value = scaledChangeValue(this.originItem, { key: change.key ?? '', value: change.value }, this.quality);
 		}

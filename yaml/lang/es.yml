@@ -17,6 +17,7 @@ TYPES:
 
     # Equipment Items
     armor: Armadura
+    attachment: Accesorio
     consumable: Consumible
     container: Contenedor
     gear: Equipo
@@ -700,6 +701,12 @@ Genesys:
     Cancel: Cancelar
     Encumbrance: Impedimento
     HardPoints: Puntos de anclaje
+    HardPointsRequired: Puntos de anclaje requeridos
+    HardPointsOver: '¡{taken} puntos de anclaje ocupados, de {total}!'
+    Attachments: Accesorios
+    RemoveAttachment: Quitar el accesorio
+    AttachmentDetails: 'Detalles de {attachment}'
+    WithEffects: Con sus efectos
     Price: Precio
     Rarity: Rareza
     Damage: Daño

@@ -155,8 +155,16 @@ A rule that a weapon or an armor carries, such as Pierce, Disorient or Defensive
 _Avoid_: Trait, property
 
 **Hard Points**:
-How many attachments a weapon or an armor can hold: half its base encumbrance, rounded up, and none for an encumbrance of 0 or less (CRB p. 206). An item that is an exception sets its own number, which wins over the computed one. A vehicle weapon has none: a vehicle's own hard points are a vehicle rule.
+How many attachments a weapon or an armor can hold: half its base encumbrance, rounded up, and none for an encumbrance of 0 or less (CRB p. 206). The base encumbrance is the stored one, whatever an Item Change does to it. An item that is an exception sets its own number, which wins over the computed one. Attachments that take more than the item has are warned about, never refused. A vehicle weapon has none: a vehicle's own hard points are a vehicle rule.
 _Avoid_: Slots, mod slots
+
+**Attachment**:
+Equipment installed on a weapon or an armor that takes some of its Hard Points (CRB pp. 206–209). An attachment dropped on a weapon or an armor is copied whole, as a quality is: its Active Effects become the item's own, and go with it. Its enabled effects are its base modifiers; its disabled ones, its modification options, which the table installs by enabling them. On a weapon, its Pool Modifications change the attacks made with any of the weapon's profiles; on an armor, every check they name. The same attachment dropped twice is installed twice. An attachment an actor holds as is changes nothing, nor does a quality.
+_Avoid_: Mod, upgrade
+
+**Item Change**:
+A change of a weapon's or an armor's own effect, keyed `genesys.item.<field>`, that adds its value to the item itself rather than to its actor: damage and Critical rating on every Weapon Profile, defense, soak, encumbrance. It applies while its effect is enabled, whatever the item's Equipment State. The item's sheet edits the stored values, and shows the changed ones beside them.
+_Avoid_: Item override
 
 ### Vehicles
 

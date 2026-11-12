@@ -1,5 +1,6 @@
 import AbilitySheet from '@/vue/sheets/item/AbilitySheet.vue';
 import { ArmorSheet } from '@/item/sheets/ArmorSheet';
+import AttachmentSheet from '@/vue/sheets/item/AttachmentSheet.vue';
 import EquipmentSheet from '@/vue/sheets/item/EquipmentSheet.vue';
 import InjurySheet from '@/vue/sheets/item/InjurySheet.vue';
 import ItemQualitySheet from '@/vue/sheets/item/ItemQualitySheet.vue';
@@ -49,6 +50,11 @@ export function register() {
 
 	registerSheet(ArmorSheet, {
 		types: ['armor'],
+		makeDefault: true,
+	});
+
+	registerSheet(basicSheet(AttachmentSheet), {
+		types: ['attachment'],
 		makeDefault: true,
 	});
 

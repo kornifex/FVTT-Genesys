@@ -1,0 +1,91 @@
+/**
+ * @file Item Changes: the changes of a weapon's or an armor's own effects that change the item itself (its damage,
+ * Critical rating, defense, soak or encumbrance) rather than its actor, as an attachment's do (CRB pp. 206–209).
+ */
+
+/**
+ * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on each of
+ * its Weapon Profiles.
+ */
+const ITEM_CHANGE_FIELDS = ['baseDamage', 'critical', 'defense', 'soak', 'encumbrance'] as const;
+export type ItemChangeField = (typeof ITEM_CHANGE_FIELDS)[number];
+
+const PREFIX = 'genesys.item.';
+
+/**
+ * The change key of an Item Change to a field.
+ */
+export function itemChangeKey(field: ItemChangeField) {
+	return `${PREFIX}${field}`;
+}
+
+/**
+ * Whether a change key is an Item Change's, which never applies to an actor, whatever field it names.
+ */
+export function isItemChangeKey(key: string | undefined) {
+	return key?.startsWith(PREFIX) ?? false;
+}
+
+/**
+ * What this module reads of an effect of the item: whether it is disabled, its changes, and the rank that scales them,
+ * a quality's rating, one by default.
+ */
+export type ItemChangeEffect = {
+	disabled: boolean;
+	// v14 lets a change hold a value of any type.
+	changes: readonly { key?: string; value: unknown }[];
+	rank?: number;
+};
+
+/**
+ * What each field of the item gains from its effects: the sum of the values of their enabled Item Changes, each once
+ * per rank. A value that isn't a number, or a key naming no field, changes nothing. The item's Equipment State doesn't
+ * matter: an attachment changes its item, carried or equipped.
+ */
+export function itemChangeTotals(effects: Iterable<ItemChangeEffect>): Partial<Record<ItemChangeField, number>> {
+	const totals: Partial<Record<ItemChangeField, number>> = {};
+	for (const { disabled, changes, rank = 1 } of effects) {
+		if (disabled) {
+			continue;
+		}
+
+		for (const { key, value } of changes) {
+			const field = isItemChangeKey(key) ? key!.slice(PREFIX.length) : '';
+			const amount = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
+			if ((ITEM_CHANGE_FIELDS as readonly string[]).includes(field) && Number.isFinite(amount)) {
+				totals[field as ItemChangeField] = (totals[field as ItemChangeField] ?? 0) + amount * rank;
+			}
+		}
+	}
+
+	return totals;
+}
+
+/**
+ * The data of a weapon or an armor that Item Changes change: the fields of its type, and a weapon's extra Weapon
+ * Profiles.
+ */
+type ItemChangeTarget = Partial<Record<ItemChangeField, number>> & {
+	extraProfiles?: Partial<Record<'baseDamage' | 'critical', number>>[];
+};
+
+/**
+ * Adds the totals of an item's Item Changes to its prepared data, in place, leaving the fields its type lacks alone. A
+ * Critical rating stays at 1 or more: the attack card counts the Advantage spent on a Critical Injury by it.
+ */
+export function applyItemChanges(system: ItemChangeTarget, totals: Partial<Record<ItemChangeField, number>>) {
+	const add = (target: Partial<Record<ItemChangeField, number>>, field: ItemChangeField) => {
+		const total = totals[field];
+		if (total !== undefined && typeof target[field] === 'number') {
+			target[field] = field === 'critical' ? Math.max(1, target[field] + total) : target[field] + total;
+		}
+	};
+
+	for (const field of ITEM_CHANGE_FIELDS) {
+		add(system, field);
+	}
+	for (const profile of system.extraProfiles ?? []) {
+		add(profile, 'baseDamage');
+		add(profile, 'critical');
+	}
+}

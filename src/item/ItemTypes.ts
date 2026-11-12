@@ -6,6 +6,7 @@ import type { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import type { AbilityDataModel } from '@/item/data/AbilityDataModel';
 import type { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import type { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
 import type { CareerDataModel } from '@/item/data/CareerDataModel';
 import type { ContainerDataModel } from '@/item/data/ContainerDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
@@ -23,6 +24,7 @@ export type ItemDataModels = {
 	ability: AbilityDataModel;
 	archetype: ArchetypeDataModel;
 	armor: ArmorDataModel;
+	attachment: AttachmentDataModel;
 	career: CareerDataModel;
 	consumable: EquipmentDataModel;
 	container: ContainerDataModel;

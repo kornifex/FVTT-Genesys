@@ -38,6 +38,12 @@ type SheetDocument<DocumentType extends SheetDocumentType, SheetType> = {
 	 * The document's system data.
 	 */
 	system: Readonly<Ref<DocumentType['system']>>;
+	/**
+	 * The document's stored system data, before its effects change it: what a field the sheet's form submits must show,
+	 * so that submitting another field doesn't store what the effects added. Its fields only, without the DataModel's
+	 * getters.
+	 */
+	source: Readonly<Ref<DocumentType['system']>>;
 	editable: Readonly<Ref<boolean>>;
 };
 
@@ -64,6 +70,11 @@ export function useSheetDocument<
 		sheet: context.value.sheet,
 		document: toRef(() => context.value.document),
 		system: toRef(() => context.value.document.system),
+		// A copy made again on each render: Foundry updates the stored data in place, so that the same object would reach the
+		// components' props, which Vue would then not render again.
+		source: computed(() =>
+			structuredClone((context.value.document as unknown as { _source: { system: DocumentType['system'] } })._source.system),
+		),
 		editable: computed(() => context.value.editable),
 	};
 }

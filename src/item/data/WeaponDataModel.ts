@@ -1,6 +1,7 @@
 import { BaseWeaponDataModel } from '@/item/data/BaseWeaponDataModel';
 import { weaponProfileFields } from '@/item/data/WeaponProfileFields';
-import { hardPointsField } from '@/data/schemaFields';
+import { attachmentsField, hardPointsField } from '@/data/schemaFields';
+import type { ContainedAttachment } from '@/item/data/Attachments';
 import type { DamageCharacteristic } from '@/item/Weapons';
 import type { ExtraWeaponProfile } from '@/item/WeaponProfiles';
 
@@ -30,6 +31,11 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 	 */
 	abstract hardPoints: number | null;
 
+	/**
+	 * The attachments installed on the weapon, which change it with every Weapon Profile. A vehicle weapon has none.
+	 */
+	abstract attachments: ContainedAttachment[];
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -37,6 +43,7 @@ export abstract class WeaponDataModel extends BaseWeaponDataModel {
 			...super.defineSchema(),
 			...weaponProfileFields(),
 			hardPoints: hardPointsField(),
+			attachments: attachmentsField(),
 			// An extra profile holds the fields of the main profile, with the same defaults, and a name of its own.
 			extraProfiles: new fields.ArrayField(
 				new fields.SchemaField({ name: new fields.StringField({ initial: '' }), ...weaponProfileFields() }),
