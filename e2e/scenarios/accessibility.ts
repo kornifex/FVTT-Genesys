@@ -2106,8 +2106,6 @@ async function headings(e2e: ScenarioContext) {
 			if (name === 'archetype') outline.description = ['h3 Archetype Abilities'];
 			if (name === 'career') outline.description = ['h3 Career Skills'];
 			if (name === 'Profiled Weapon') outline.data = ['h3 Weapon Profile'];
-			// A quality changes no data, and has no Effects tab.
-			if (name === 'quality') delete outline.effects;
 			return [name, outline];
 		}),
 	);

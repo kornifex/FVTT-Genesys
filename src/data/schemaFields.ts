@@ -142,13 +142,25 @@ export function hardPointsField() {
 }
 
 /**
- * The qualities a weapon or an armor holds, copied from the quality items dropped on it.
+ * The Advantage an active quality costs to trigger: two by default (CRB p. 86).
+ */
+export function advantageCostField() {
+	return new foundry.data.fields.NumberField({ integer: true, min: 0, initial: 2 });
+}
+
+/**
+ * The qualities a weapon or an armor holds, copied from the quality items dropped on it. A copy stored before it had an
+ * id, an activation and an Advantage cost reads as passive, costing 2, without an id: Foundry fills the fields it lacks
+ * with their initial values when it cleans the data. A copy without an id gets one once an effect is added to it.
  */
 export function qualitiesField() {
 	return new foundry.data.fields.ArrayField(
 		new foundry.data.fields.SchemaField({
+			id: new foundry.data.fields.StringField({ initial: '' }),
 			name: new foundry.data.fields.StringField(),
 			description: new foundry.data.fields.HTMLField(),
+			activation: choiceField(ACTIVATION_TYPES, 'passive'),
+			advantageCost: advantageCostField(),
 			isRated: new foundry.data.fields.BooleanField({ initial: true }),
 			rating: integerField(1),
 		}),

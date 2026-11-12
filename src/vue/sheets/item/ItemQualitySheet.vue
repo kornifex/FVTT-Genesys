@@ -9,7 +9,7 @@ const { system } = useSheetDocument<GenesysItem<'quality'>>();
 </script>
 
 <template>
-	<BasicItemSheet>
+	<BasicItemSheet show-effects-tab>
 		<template v-slot:data>
 			<section class="data-grid">
 				<DataRow label="Genesys.Labels.Activation" v-slot="{ id }">
@@ -18,6 +18,15 @@ const { system } = useSheetDocument<GenesysItem<'quality'>>();
 						<option value="active"><Localized label="Genesys.Labels.Active" /></option>
 					</select>
 				</DataRow>
+
+				<!-- Only an active quality is triggered by spending Advantage. -->
+				<DataRow
+					v-if="system.activation === 'active'"
+					label="Genesys.Labels.AdvantageCost"
+					name="system.advantageCost"
+					:value="system.advantageCost"
+					type="number"
+				/>
 
 				<DataRow label="Genesys.Labels.IsRated" v-slot="{ id }">
 					<input :id="id" type="checkbox" name="system.isRated" :checked="system.isRated" />

@@ -8,6 +8,9 @@ const i18n = {
 	format: (key: string, data: Record<string, string>) => `${key.split('.').pop()!}(${Object.values(data).join(', ')})`,
 };
 
+// What a quality copy holds besides its name, description and rating.
+const copy = { id: 'q1', activation: 'passive' as const, advantageCost: 2 };
+
 describe('chatCard', () => {
 	it("gives an ability's card its activation, without tier or rank", () => {
 		const card = chatCard(
@@ -67,7 +70,7 @@ describe('chatCard', () => {
 		});
 	});
 
-	const sharp = () => ({ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 });
+	const sharp = () => ({ ...copy, name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 });
 
 	it("gives an armor's card its defense, soak and qualities", () => {
 		const system = { description: '<p>Heavy.</p>', defense: 1, soak: 2, qualities: [sharp()] };
@@ -141,7 +144,7 @@ describe('chatCard', () => {
 	});
 
 	it('lists each extra profile of a weapon after its main profile, named as its row, with its own skill, range, damage, critical and qualities', () => {
-		const accurate = { name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 };
+		const accurate = { ...copy, name: 'Accurate', description: '<p>Aims true.</p>', isRated: true, rating: 1 };
 		const thrown = {
 			name: 'Thrown',
 			skills: ['Ranged'],
@@ -251,11 +254,11 @@ describe('enrichedQualities', () => {
 				},
 			},
 		});
-		const qualities = [{ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }];
+		const qualities = [{ ...copy, name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }];
 
 		expect(await enrichedQualities(qualities)).toEqual([
-			{ name: 'Pierce', description: '<p><a>Pierce</a></p>', isRated: true, rating: 2 },
+			{ ...copy, name: 'Pierce', description: '<p><a>Pierce</a></p>', isRated: true, rating: 2 },
 		]);
-		expect(qualities).toEqual([{ name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }]);
+		expect(qualities).toEqual([{ ...copy, name: 'Pierce', description: '<p>@UUID[Item.abc]{Pierce}</p>', isRated: true, rating: 2 }]);
 	});
 });

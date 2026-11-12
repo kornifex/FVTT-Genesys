@@ -780,6 +780,9 @@ Genesys:
     RaiseCharacteristic: Raise the characteristic
     RemoveSkill: Remove the skill
     RemoveQuality: Remove the Quality
+    QualityDetails: '{quality} Details' # e.g. Pierce Details, the button that shows a weapon's or an armor's quality in full
+    AdvantageCost: Advantage Cost
+    AddQualityEffect: Add an Effect
     RemoveGrantedItem: Remove the granted item
     PutInContainer: Put in {container}
     TakeOutOfContainer: Take out of {container}

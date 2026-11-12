@@ -8,6 +8,8 @@ import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } f
 import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
 import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
+import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
+import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -71,7 +73,8 @@ export function lapsingFor(rounds: number) {
 }
 
 /**
- * An Active Effect, which the Equipment State of its item suppresses, and whose changes the rank of its talent scales.
+ * An Active Effect, which the Equipment State of its item suppresses, and whose changes the rank of its talent, or of
+ * its weapon's or armor's quality, scales.
  */
 export class GenesysEffect extends ActiveEffect {
 	/**
@@ -80,6 +83,15 @@ export class GenesysEffect extends ActiveEffect {
 	 */
 	override get isSuppressed() {
 		return this.disabled || this.isExpired || this.isSuppressedByEquipmentState;
+	}
+
+	/**
+	 * An effect applies its changes to its actor unless it is suppressed, or belongs to a weapon's quality that another of
+	 * the weapon's profiles holds at a higher rank: such a quality counts once per weapon. Its Pool Modifications still
+	 * change the attacks made with its profile, which read the weapon's effects rather than whether they are active.
+	 */
+	override get active() {
+		return super.active && !isOutrankedQualityEffect(this, this.originItem?.system);
 	}
 
 	/**
@@ -219,6 +231,13 @@ export class GenesysEffect extends ActiveEffect {
 	}
 
 	/**
+	 * The quality of a weapon or an armor this effect belongs to, if any, whose rating scales its changes.
+	 */
+	get quality(): ContainedItemQuality | undefined {
+		return effectQuality(this, this.originItem?.system);
+	}
+
+	/**
 	 * Applies a change scaled by the rank of the talent its effect comes from. Foundry v14's `Actor#applyActiveEffects`
 	 * and `TokenDocument#applyActiveEffects` call this method, with the effect in `change.effect`.
 	 *
@@ -231,7 +250,8 @@ export class GenesysEffect extends ActiveEffect {
 		change: ActiveEffect.ChangeData,
 		options?: ActiveEffect.ApplyChangeOptions,
 	) {
-		const value = scaledChangeValue(change.effect?.originItem, { key: change.key ?? '', value: change.value });
+		const effect = change.effect;
+		const value = scaledChangeValue(effect?.originItem, { key: change.key ?? '', value: change.value }, effect?.quality);
 
 		return super.applyChange(targetDoc, { ...change, value }, options);
 	}
@@ -240,7 +260,7 @@ export class GenesysEffect extends ActiveEffect {
 	// `applyChange`, which scales the change itself.
 	override apply(actor: Actor.Implementation, change: ActiveEffect.ChangeData) {
 		if (isFoundryV13()) {
-			change.value = scaledChangeValue(this.originItem, { key: change.key ?? '', value: change.value });
+			change.value = scaledChangeValue(this.originItem, { key: change.key ?? '', value: change.value }, this.quality);
 		}
 
 		return super.apply(actor, change);

@@ -716,6 +716,9 @@ Genesys:
     IsRated: ¿Tiene grado?
     Qualities: Propiedades
     QualityRating: 'Valor de {quality}'
+    QualityDetails: 'Detalles de {quality}'
+    AdvantageCost: Coste en Ventajas
+    AddQualityEffect: Añadir un efecto
     Severity: Gravedad
     Attacks: Ataques
     Armor: Armadura
