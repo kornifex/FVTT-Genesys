@@ -63,6 +63,17 @@ describe('recoveryOf', () => {
 		expect(recoveryOf(request, { netSuccess: -1, netAdvantage: 2 })).toEqual({ ...request, wounds: 0, strain: 0 });
 	});
 
+	const healSpell = { patient: 'Actor.bo', rule: 'healSpell' as const };
+
+	it('heals a wound per Success and a strain per Advantage of a Heal spell (CRB p. 217)', () => {
+		expect(recoveryOf(healSpell, { netSuccess: 3, netAdvantage: 2 })).toEqual({ ...healSpell, wounds: 3, strain: 2 });
+		expect(recoveryOf(healSpell, { netSuccess: 1, netAdvantage: -1 })).toEqual({ ...healSpell, wounds: 1, strain: 0 });
+	});
+
+	it('heals nothing when the Heal spell fails, whatever its Advantage (CRB p. 217)', () => {
+		expect(recoveryOf(healSpell, { netSuccess: 0, netAdvantage: 3 })).toEqual({ ...healSpell, wounds: 0, strain: 0 });
+	});
+
 	const endOfEncounter = { patient: 'Actor.bo', rule: 'endOfEncounter' as const };
 
 	it("recovers a strain per Success of the end of an encounter's check, and no wound (CRB p. 117)", () => {

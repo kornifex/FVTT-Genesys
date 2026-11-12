@@ -1,4 +1,7 @@
-/** @file The Heal action: a healer's Medicine check for a patient, at the difficulty of the patient's state of health. */
+/**
+ * @file The Heal action: a healer's Medicine check for a patient, at the difficulty of the patient's state of health;
+ * and the patient a Heal spell heals, picked as Medicine's is.
+ */
 
 import { GenesysActor } from '@/actor/GenesysActor';
 import { canBePatient, medicineDifficulty, type Patient, patientChoices } from '@/actor/Recovery';
@@ -32,6 +35,14 @@ function patientsToPick(healer: StoredActor) {
 }
 
 /**
+ * The patient a healer heals: their single target when it can be healed, else the one they pick among the scene's
+ * characters, the players' characters and themselves. Undefined when they cancel the pick.
+ */
+export async function pickPatient(healer: StoredActor) {
+	return targetedPatient() ?? (await SelectPatientPrompt.promptForPatient(patientsToPick(healer)));
+}
+
+/**
  * Open a healer's Medicine check that heals a patient's wounds: the patient is the healer's target when they have one,
  * else the one they pick. The Dice Prompt opens at the difficulty of the patient's state of health, two more when the
  * healer heals themselves (CRB p. 116), and the check's card offers to heal the patient by its results.
@@ -39,7 +50,7 @@ function patientsToPick(healer: StoredActor) {
  * @param skillName The healer's Medicine skill, by its name.
  */
 export async function healWithMedicine(healer: StoredActor, skillName: string) {
-	const patient = targetedPatient() ?? (await SelectPatientPrompt.promptForPatient(patientsToPick(healer)));
+	const patient = await pickPatient(healer);
 	if (!patient) {
 		return;
 	}
