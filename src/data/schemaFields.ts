@@ -1,6 +1,7 @@
 /** @file The schema fields several DataModels share, built by one factory each, with the types of the data they hold. */
 
 import { Characteristic } from '@/data/Characteristics';
+import { DEFAULT_RATING_SKILL, QUALITY_RATING_SOURCES } from '@/item/data/Spells';
 
 /**
  * A count against its maximum, such as wounds and strain, or a vehicle's hull trauma and system strain.
@@ -184,6 +185,47 @@ export function qualitiesField() {
 			advantageCost: advantageCostField(),
 			isRated: new foundry.data.fields.BooleanField({ initial: true }),
 			rating: integerField(1),
+		}),
+	);
+}
+
+/**
+ * What an Additional Effect adds to a spell, as its item and the spell's copy of it both hold it: the difficulty it adds
+ * (one Difficulty die by default, up to four: CRB pp. 215–218), whether it starts checked when the spell is cast, and
+ * what it gives an attack.
+ */
+export function additionalEffectFields() {
+	const fields = foundry.data.fields;
+
+	return {
+		difficulty: new fields.NumberField({ required: true, nullable: false, integer: true, min: 1, max: 4, initial: 1 }),
+		startsChecked: new fields.BooleanField({ initial: false }),
+		qualities: new fields.ArrayField(
+			new fields.SchemaField({
+				name: new fields.StringField(),
+				description: new fields.HTMLField(),
+				activation: choiceField(ACTIVATION_TYPES, 'passive'),
+				advantageCost: advantageCostField(),
+				ratingSource: choiceField(QUALITY_RATING_SOURCES, 'unrated'),
+				rating: new fields.NumberField({ required: true, nullable: false, integer: true, min: 1, initial: 1 }),
+				ratingSkill: new fields.StringField({ initial: DEFAULT_RATING_SKILL }),
+			}),
+		),
+		critical: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, initial: null }),
+		doublesDamageCharacteristic: new fields.BooleanField({ initial: false }),
+	};
+}
+
+/**
+ * The Additional Effects a spell holds, copied from the Additional Effect items dropped on it.
+ */
+export function additionalEffectsField() {
+	return new foundry.data.fields.ArrayField(
+		new foundry.data.fields.SchemaField({
+			id: new foundry.data.fields.StringField({ initial: '' }),
+			name: new foundry.data.fields.StringField(),
+			description: new foundry.data.fields.HTMLField(),
+			...additionalEffectFields(),
 		}),
 	);
 }

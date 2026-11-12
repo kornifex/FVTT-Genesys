@@ -11,6 +11,8 @@ import WeaponSheet from '@/vue/sheets/item/WeaponSheet.vue';
 import VehicleWeaponSheet from '@/vue/sheets/item/VehicleWeaponSheet.vue';
 import { ArchetypeSheet } from '@/item/sheets/ArchetypeSheet';
 import { CareerSheet } from '@/item/sheets/CareerSheet';
+import { SpellSheet } from '@/item/sheets/SpellSheet';
+import { AdditionalEffectSheet } from '@/item/sheets/AdditionalEffectSheet';
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import type { Component } from 'vue';
 
@@ -55,6 +57,16 @@ export function register() {
 
 	registerSheet(basicSheet(AttachmentSheet), {
 		types: ['attachment'],
+		makeDefault: true,
+	});
+
+	registerSheet(SpellSheet, {
+		types: ['spell'],
+		makeDefault: true,
+	});
+
+	registerSheet(AdditionalEffectSheet, {
+		types: ['additionalEffect'],
 		makeDefault: true,
 	});
 

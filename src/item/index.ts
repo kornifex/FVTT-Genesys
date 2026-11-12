@@ -3,6 +3,7 @@ import { register as registerSheets } from '@/item/sheets';
 import type { ItemDataModels, ItemType } from '@/item/ItemTypes';
 
 import { AbilityDataModel } from '@/item/data/AbilityDataModel';
+import { AdditionalEffectDataModel } from '@/item/data/AdditionalEffectDataModel';
 import { ArchetypeDataModel } from '@/item/data/ArchetypeDataModel';
 import { ArmorDataModel } from '@/item/data/ArmorDataModel';
 import { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
@@ -11,6 +12,7 @@ import { ContainerDataModel } from '@/item/data/ContainerDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
+import { SpellDataModel } from '@/item/data/SpellDataModel';
 import { TalentDataModel } from '@/item/data/TalentDataModel';
 import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { WeaponDataModel } from '@/item/data/WeaponDataModel';
@@ -30,6 +32,7 @@ export function register() {
 // with a DataModel that lacks the data the map promises, fails to compile.
 const DATA_MODELS: { [T in ItemType]: abstract new (...args: never[]) => ItemDataModels[T] } = {
 	ability: AbilityDataModel,
+	additionalEffect: AdditionalEffectDataModel,
 	archetype: ArchetypeDataModel,
 	armor: ArmorDataModel,
 	attachment: AttachmentDataModel,
@@ -39,6 +42,7 @@ const DATA_MODELS: { [T in ItemType]: abstract new (...args: never[]) => ItemDat
 	injury: InjuryDataModel,
 	gear: EquipmentDataModel,
 	skill: SkillDataModel,
+	spell: SpellDataModel,
 	talent: TalentDataModel,
 	quality: ItemQualityDataModel,
 	weapon: WeaponDataModel,

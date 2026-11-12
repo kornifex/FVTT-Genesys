@@ -15,6 +15,10 @@ TYPES:
     skill: Habilidad
     talent: Talento
 
+    # Magic Items
+    additionalEffect: Efecto adicional
+    spell: Hechizo
+
     # Equipment Items
     armor: Armadura
     attachment: Accesorio
@@ -535,6 +539,7 @@ Genesys:
     Skills: Habilidades
     Combat: Combate
     Talents: Talentos
+    Magic: Magia
     Inventory: Inventario
     Effects: Efectos
     Journal: Diario
@@ -569,6 +574,18 @@ Genesys:
     Combat: Combate
     Social: Social
     Knowledge: Conocimiento
+
+  # The magic action a spell performs (CRB pp. 214–218)
+  SpellAction:
+    Attack: Ataque
+    Augment: Aumento
+    Barrier: Barrera
+    Conjure: Conjuración
+    Curse: Maldición
+    Dispel: Disipación
+    Heal: Curación
+    Utility: Utilidad
+    Custom: Personalizada
 
   # Archetype Data
   Archetype:
@@ -707,6 +724,25 @@ Genesys:
     RemoveAttachment: Quitar el accesorio
     AttachmentDetails: 'Detalles de {attachment}'
     WithEffects: Con sus efectos
+    Spells: Hechizos
+    SpellAction: Acción
+    Difficulty: Dificultad
+    IsAttack: ¿Es un ataque?
+    BaseDamage: Daño base
+    AdditionalEffects: Efectos adicionales
+    RemoveAdditionalEffect: Quitar el efecto adicional
+    AdditionalEffectDetails: 'Detalles de {effect}'
+    AddedDifficulty: Dificultad añadida
+    StartsChecked: ¿Marcado al lanzar?
+    ForAnAttack: Para un ataque
+    Unrated: Sin índice
+    FixedRating: Índice fijo
+    SkillRanksRating: Rangos en una habilidad
+    QualityRatingSource: '{quality}: índice según'
+    QualityRatingSkill: '{quality}: habilidad'
+    DoublesDamageCharacteristic: ¿Duplica la característica de daño?
+    HideMagicTab: Ocultar la pestaña Magia
+    ShowMagicTab: Mostrar la pestaña Magia
     Price: Precio
     Rarity: Rareza
     Damage: Daño

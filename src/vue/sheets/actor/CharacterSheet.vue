@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
+import { HIDE_MAGIC_TAB_FLAG, showsMagicTab } from '@/actor/data/character/MagicTab';
 import { GenesysActor } from '@/actor/GenesysActor';
 import CharacterMeta from '@/vue/sheets/actor/character/CharacterMeta.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
@@ -12,6 +14,7 @@ import { useDocumentEffects } from '@/vue/useDocumentEffects';
 import JournalTab from '@/vue/sheets/actor/character/JournalTab.vue';
 import SkillsTab from '@/vue/sheets/actor/character/SkillsTab.vue';
 import TalentsTab from '@/vue/sheets/actor/character/TalentsTab.vue';
+import MagicTab from '@/vue/sheets/actor/character/MagicTab.vue';
 import InventoryTab from '@/vue/components/inventory/InventoryTab.vue';
 import CombatTab from '@/vue/sheets/actor/character/CombatTab.vue';
 
@@ -19,14 +22,18 @@ const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>(
 
 const { effects, addEffect } = useDocumentEffects();
 
-const TABS = [
+// Read on each render of the sheet, which follows a change of the actor's items or of the flag the window's menu sets.
+const showsMagic = computed(() => showsMagicTab(actor.value.items, actor.value.getFlag('genesys', HIDE_MAGIC_TAB_FLAG) === true));
+
+const tabs = computed(() => [
 	{ id: 'skills', label: 'Genesys.Tabs.Skills' },
 	{ id: 'combat', label: 'Genesys.Tabs.Combat' },
 	{ id: 'talents', label: 'Genesys.Tabs.Talents' },
+	...(showsMagic.value ? [{ id: 'magic', label: 'Genesys.Tabs.Magic' }] : []),
 	{ id: 'inventory', label: 'Genesys.Tabs.Inventory' },
 	{ id: 'effects', label: 'Genesys.Tabs.Effects' },
 	{ id: 'journal', label: 'Genesys.Tabs.Journal' },
-];
+]);
 </script>
 
 <template>
@@ -84,10 +91,11 @@ const TABS = [
 			/>
 		</section>
 
-		<SheetTabs :tabs="TABS">
+		<SheetTabs :tabs>
 			<template #skills><SkillsTab /></template>
 			<template #combat><CombatTab /></template>
 			<template #talents><TalentsTab /></template>
+			<template #magic><MagicTab /></template>
 			<template #inventory><InventoryTab allow-dropped-state /></template>
 			<template #effects><EffectsView :effects="[...effects]" @add-effect="addEffect" /></template>
 			<template #journal><JournalTab /></template>
