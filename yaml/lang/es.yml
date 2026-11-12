@@ -485,23 +485,23 @@ Genesys:
     Updates: Correcciones y novedades
     Fix: CORRECCIÓN
     Feature: NOVEDAD
-    Styling: ESTILO
-    Counters: >-
-      Cada contador se ajusta con un − y un + compactos, que aparecen bajo el puntero: cantidad, daño, heridas, tensión,
-      daños en el casco, tensión de sistemas
-    RowMenu: >-
-      Cada fila tiene un menú ⋮ con sus acciones, que también abre un clic derecho en la fila, y cada eliminación pide
-      confirmación
-    NameRolls: El nombre de una fila tira su prueba, y su icono abre su hoja
-    CombatTabAttack: Un arma ataca desde la pestaña Combate, ya no desde el inventario
-    Keyboard: >-
-      Cada hoja se usa con el teclado y con un lector de pantalla: botones con nombre, un contorno de foco visible, campos
-      etiquetados y los símbolos de los dados leídos en palabras
-    Contrast: El texto se lee mejor en ambos estilos, y ninguna información depende solo del color
-    ActingGmFailure: Cuando falla una acción que el DJ realiza por un jugador, el jugador sabe por qué
-    MagicalGirl: Se eliminan los símbolos, la fuente y los dados Magical Girl
-    DefensiveDriving: La defensa de un vehículo suma el talento Conducción defensiva de su piloto, aún con un máximo de 4
-    InventoryFooter: La fila de la moneda y la carga se coloca al final de la pestaña Inventario
+    Spells: >-
+      Los hechizos y sus efectos adicionales, lanzados desde la pestaña Magia: los efectos elegidos en la reserva de dados,
+      los ataques mágicos con su daño, y Curación
+    Attachments: >-
+      Los accesorios se instalan en un arma o una armadura, dentro de sus puntos de montaje, y sus efectos activos pueden
+      cambiar el propio objeto
+    Qualities: Una propiedad soltada sobre un objeto trae sus efectos activos, según su rango
+    Maneuvers: Apuntar, Postura defensiva, A cubierto y Tumbado cambian las pruebas de combate a las que afectan
+    TokenStates: Inmovilizado, Desorientado y Aturdido son estados de ficha, con su duración
+    Thresholds: Un actor que supera su umbral de heridas o de tensión queda marcado como incapacitado o derrotado
+    CriticalInjuries: Las heridas críticas se tiran en la tabla del mundo, desde la tarjeta de ataque o la hoja
+    Healing: >-
+      Medicina cura a un paciente desde su tarjeta, y los personajes recuperan tensión al final de un encuentro y tras una
+      noche de descanso
+    StoryPointSpends: Los Puntos de Historia se gastan desde la reserva de dados
+    Hindrances: El impedimento y un arma dañada añaden sus dados a las pruebas que dificultan
+    FrenchNames: Los nombres franceses de Postura defensiva, A cubierto y el alcance estratégico siguen la edición francesa
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

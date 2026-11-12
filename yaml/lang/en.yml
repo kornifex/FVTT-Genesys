@@ -492,22 +492,22 @@ Genesys:
     Updates: Bug Fixes & Updates
     Fix: FIX
     Feature: FEATURE
-    Styling: STYLING
-    Counters: >-
-      Every counter is one compact stepper, its − and + showing under the pointer: quantity, damage, wounds, strain, hull
-      trauma, system strain
-    RowMenu: >-
-      Every row has a ⋮ menu of its actions, also opened by a right-click on the row, and every deletion asks for confirmation
-    NameRolls: A row's name rolls its check, and its icon opens its sheet
-    CombatTabAttack: A weapon attacks from the Combat tab, no longer from the inventory
-    Keyboard: >-
-      Every sheet works from the keyboard and with a screen reader: named buttons, a visible focus ring, labelled fields, and
-      dice symbols read in words
-    Contrast: Text is easier to read in both Styles, and no meaning rests on color alone
-    ActingGmFailure: When an action the GM carries out for a player fails, the player is told why
-    MagicalGirl: The Magical Girl symbols, font and dice are removed
-    DefensiveDriving: A vehicle's defense adds its Pilot's Defensive Driving, still capped at 4
-    InventoryFooter: The currency and encumbrance row sits at the bottom of the Inventory tab
+    Spells: >-
+      Spells and their Additional Effects, cast from the Magic tab: the effects picked in the Dice Prompt, magic attacks with
+      their damage, and Heal
+    Attachments: >-
+      Attachments install on a weapon or an armor, within its hard points, and their Active Effects can change the item
+      itself
+    Qualities: A quality dropped on an item brings its Active Effects, scaled by its rank
+    Maneuvers: Aim, Guarded Stance, cover and prone change the combat checks they affect
+    TokenStates: Immobilized, Disoriented and Staggered are token states, with their durations
+    Thresholds: An actor past their wound or strain threshold is marked incapacitated or defeated
+    CriticalInjuries: Critical Injuries roll on the world's table, from the attack card or the sheet
+    Healing: >-
+      Medicine heals a patient from its card, and characters recover strain after an encounter and after a night's rest
+    StoryPointSpends: Story Points are spent from the Dice Prompt
+    Hindrances: Encumbrance and a damaged weapon add their dice to the checks they hinder
+    FrenchNames: The French names of Guarded Stance, cover and the strategic range follow the French edition
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
