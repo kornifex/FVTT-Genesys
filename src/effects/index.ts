@@ -2,6 +2,7 @@ import { GenesysEffect, registerCombatantEffects } from '@/effects/GenesysEffect
 import { isFoundryV13 } from '@/foundryGeneration';
 import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
 import { registerTokenStates } from '@/effects/tokenStateMenu';
+import { registerUsedUpEffects } from '@/effects/maneuverEffects';
 
 /**
  * Register the Active Effect document and its sheet in place of Foundry's own.
@@ -9,6 +10,7 @@ import { registerTokenStates } from '@/effects/tokenStateMenu';
 export function register() {
 	CONFIG.ActiveEffect.documentClass = GenesysEffect;
 	registerTokenStates();
+	registerUsedUpEffects();
 
 	foundry.applications.apps.DocumentSheetConfig.unregisterSheet(ActiveEffect, 'core', foundry.applications.sheets.ActiveEffectConfig);
 	foundry.applications.apps.DocumentSheetConfig.registerSheet(ActiveEffect, 'genesys', GenesysEffectSheetV2, {

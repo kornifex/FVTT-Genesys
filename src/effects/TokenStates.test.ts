@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { adversaryDefense } from '@/actor/data/Protection';
+import type { Defense } from '@/data/Actors';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
 import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
@@ -6,13 +8,13 @@ import { stateReminders, TOKEN_STATES, tokenState } from '@/effects/TokenStates'
 
 /**
  * A character with a Token State, as the token's status menu applies it: an effect named after the state, holding its
- * changes.
+ * changes. Their defense is 0.
  */
 function characterWith(stateId: string): PoolModificationActor {
 	const state = tokenState(stateId)!;
 	return {
 		type: 'character',
-		system: {},
+		system: { totalDefense: { melee: 0, ranged: 0 } },
 		allApplicableEffects: () => [
 			{
 				name: state.name,
@@ -27,13 +29,22 @@ function characterWith(stateId: string): PoolModificationActor {
 }
 
 describe('TOKEN_STATES', () => {
-	it('offers Immobilized, Disoriented and Staggered, each with its own id, which lapse after their rounds (CRB p. 114), and Incapacitated, which lasts while the actor is past a threshold (CRB pp. 112–113)', () => {
+	it('offers Immobilized, Disoriented and Staggered, which lapse after their rounds (CRB p. 114), then cover and prone, which last until removed (CRB p. 99–100), and Incapacitated, which lasts while the actor is past a threshold (CRB pp. 112–113)', () => {
 		expect(TOKEN_STATES.map(({ id, lapses }) => ({ id, lapses }))).toEqual([
 			{ id: 'immobilized', lapses: true },
 			{ id: 'disoriented', lapses: true },
 			{ id: 'staggered', lapses: true },
+			{ id: 'cover', lapses: false },
+			{ id: 'prone', lapses: false },
 			{ id: 'incapacitated', lapses: false },
 		]);
+	});
+
+	it('offers cover and prone to characters and adversaries only, whose defense has a ranged rating', () => {
+		const types = ['character', 'minion', 'rival', 'nemesis'];
+		expect(tokenState('cover')?.actorTypes).toEqual(types);
+		expect(tokenState('prone')?.actorTypes).toEqual(types);
+		expect(tokenState('disoriented')?.actorTypes).toBeUndefined();
 	});
 
 	it('gives each state its own icon', () => {
@@ -76,6 +87,68 @@ describe('Immobilized and Staggered', () => {
 	});
 });
 
+describe('In cover', () => {
+	/**
+	 * A target in cover, its defense raised by the state's changes as Foundry adds them to its own (0 by default).
+	 */
+	function inCover(own: Defense = { melee: 0, ranged: 0 }): PoolModificationActor {
+		const defense = { ...own };
+		for (const { key, value, type } of tokenState('cover')!.changes) {
+			const rating = key.match(/^system\.defense\.(melee|ranged)$/)?.[1] as keyof Defense | undefined;
+			if (type === 'add' && rating) {
+				defense[rating] += Number(value);
+			}
+		}
+		return { type: 'rival', system: { totalDefense: adversaryDefense(defense) }, allApplicableEffects: () => [] };
+	}
+
+	const attacker = characterWith('immobilized');
+
+	it('adds a Setback to a ranged attack against its actor, as ranged defense 1 (CRB p. 99, 104)', () => {
+		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
+			expect(poolModificationsForCheck(attacker, inCover(), { attackRange })).toEqual([
+				{ source: 'target', from: { defense: 'ranged' }, mods: [DieTypes.Setback.GLYPH] },
+			]);
+		}
+	});
+
+	it('adds nothing to a melee attack against its actor (CRB p. 99)', () => {
+		expect(poolModificationsForCheck(attacker, inCover(), { attackRange: 'engaged' })).toEqual([]);
+	});
+
+	it('raises the ranged defense its actor has already, up to 4 (CRB p. 99, 104)', () => {
+		expect(poolModificationsForCheck(attacker, inCover({ melee: 1, ranged: 1 }), { attackRange: 'short' })[0].mods).toEqual([
+			DieTypes.Setback.GLYPH,
+			DieTypes.Setback.GLYPH,
+		]);
+		expect(poolModificationsForCheck(attacker, inCover({ melee: 0, ranged: 4 }), { attackRange: 'short' })[0].mods).toHaveLength(4);
+	});
+});
+
+describe('Prone', () => {
+	const attacker = characterWith('immobilized');
+	const fromProne = (glyph: string) => [
+		{ source: 'target', from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' }, mods: [glyph] },
+	];
+
+	it('adds a Setback to a ranged attack against its actor (CRB p. 100, 108)', () => {
+		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
+			expect(poolModificationsForCheck(attacker, characterWith('prone'), { attackRange })).toEqual(fromProne(DieTypes.Setback.GLYPH));
+		}
+	});
+
+	it('adds a Boost to a melee attack against its actor (CRB p. 100, 108)', () => {
+		expect(poolModificationsForCheck(attacker, characterWith('prone'), { attackRange: 'engaged' })).toEqual(
+			fromProne(DieTypes.Boost.GLYPH),
+		);
+	});
+
+	it("adds nothing to a check against its actor that is no attack, nor to its actor's own checks", () => {
+		expect(poolModificationsForCheck(attacker, characterWith('prone'), { characteristic: Characteristic.Presence })).toEqual([]);
+		expect(poolModificationsForCheck(characterWith('prone'), undefined, { attackRange: 'short' })).toEqual([]);
+	});
+});
+
 describe('stateReminders', () => {
 	it("reminds the roller of the Immobilized and Staggered states their actor has, in the menu's order", () => {
 		expect(stateReminders(['staggered', 'dead', 'immobilized'])).toEqual([
@@ -93,6 +166,7 @@ describe('stateReminders', () => {
 describe('tokenState', () => {
 	it('finds a state by its id, and none for a status of Foundry', () => {
 		expect(tokenState('staggered')?.name).toBe('Genesys.TokenStates.Staggered.Name');
-		expect(tokenState('prone')).toBeUndefined();
+		expect(tokenState('prone')?.name).toBe('Genesys.TokenStates.Prone.Name');
+		expect(tokenState('bless')).toBeUndefined();
 	});
 });

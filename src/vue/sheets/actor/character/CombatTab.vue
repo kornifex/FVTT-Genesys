@@ -22,8 +22,9 @@ import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
+import { aim, takeGuardedStance } from '@/effects/maneuverEffects';
 
-const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
+const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
 // A row for each Weapon Profile of each equipped weapon, its main profile first: each shows the weapon's description, and
 // opens it on its own.
@@ -125,6 +126,24 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 			<ListEmpty v-else />
 		</div>
 
+		<!-- The maneuvers that change the character's next combat checks, which only a user who can edit them performs. -->
+		<div v-if="editable" class="block">
+			<h3><Localized label="Genesys.Maneuvers.Title" /></h3>
+			<div class="maneuvers">
+				<ActionButton icon="fa-solid fa-crosshairs" label="Genesys.Maneuvers.Aim.Hint" edits @click="aim(actor)">
+					<Localized label="Genesys.Maneuvers.Aim.Name" />
+				</ActionButton>
+				<ActionButton
+					icon="fa-solid fa-shield-halved"
+					label="Genesys.Maneuvers.GuardedStance.Hint"
+					edits
+					@click="takeGuardedStance(actor)"
+				>
+					<Localized label="Genesys.Maneuvers.GuardedStance.Name" />
+				</ActionButton>
+			</div>
+		</div>
+
 		<div class="block">
 			<h3><Localized label="Genesys.Labels.Armor" /></h3>
 			<div v-if="armors.length > 0" class="armors">
@@ -181,6 +200,12 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 	.weapon {
 		grid-template-columns: 1.5rem 2fr 1fr repeat(3, 80px);
+	}
+
+	.maneuvers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
 	}
 
 	// The Critical Injuries' heading, with the button that rolls a new one at its end.

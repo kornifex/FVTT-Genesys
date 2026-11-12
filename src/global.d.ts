@@ -130,6 +130,7 @@ declare global {
 			'genesys.spendStoryPoint': QueryHandlers['genesys.spendStoryPoint'];
 			'genesys.claimInitiativeSlot': QueryHandlers['genesys.claimInitiativeSlot'];
 			'genesys.writeExtraSlotInitiative': QueryHandlers['genesys.writeExtraSlotInitiative'];
+			'genesys.useUpEffects': QueryHandlers['genesys.useUpEffects'];
 		}
 	}
 

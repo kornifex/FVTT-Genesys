@@ -1,5 +1,6 @@
 /** @file The operations a player's client asks the Acting GM to write, as Foundry queries, and why one may fail. */
 import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
+import type { CheckPurpose } from '@/dice/Check';
 
 /**
  * The queries the Acting GM answers. Foundry asks a system to prefix their names with its id.
@@ -11,6 +12,8 @@ export const QueryName = {
 	ClaimInitiativeSlot: 'genesys.claimInitiativeSlot',
 	/** A player rolled the initiative of Extra Slots. */
 	WriteExtraSlotInitiative: 'genesys.writeExtraSlotInitiative',
+	/** A player rolled a check of an actor they can't write, which uses up some of its effects, as an attack its Aim. */
+	UseUpEffects: 'genesys.useUpEffects',
 } as const;
 
 export type QueryName = (typeof QueryName)[keyof typeof QueryName];
@@ -48,6 +51,12 @@ export type QueryData = {
 		updates: ExtraSlotInitiative[];
 		/** Whether the turn stays on the slot it is on once the initiatives are written. */
 		updateTurn: boolean;
+	};
+	[QueryName.UseUpEffects]: QueryBaseData & {
+		/** The actor that made the check. */
+		actorUuid: string;
+		/** What the check was rolled for, which tells the effects it uses up. */
+		purpose: CheckPurpose;
 	};
 };
 
@@ -158,6 +167,7 @@ const NO_ACTING_GM = {
 	[QueryName.SpendStoryPoint]: 'Genesys.Notifications.NoGMForStoryPoint',
 	[QueryName.ClaimInitiativeSlot]: 'Genesys.Notifications.NoGMForClaim',
 	[QueryName.WriteExtraSlotInitiative]: 'Genesys.Notifications.NoGMForExtraSlot',
+	[QueryName.UseUpEffects]: 'Genesys.Notifications.NoGMForUsedUpEffects',
 } as const satisfies Record<QueryName, string>;
 
 /**

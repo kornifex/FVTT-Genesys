@@ -7,6 +7,7 @@ import { hasTimeLeft, isExpired } from '@/effects/EffectExpiry';
 import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } from '@/effects/EffectExpiry.v13';
 import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
 import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
+import type { StateChange } from '@/effects/TokenStates';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -33,6 +34,25 @@ const FLAG_LAST_COUNTED = 'lastCounted';
 
 // The rounds left of a Lapsing Effect, by plural category.
 const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys.TokenStates.RoundsLeft.other' };
+
+/**
+ * Where an effect keeps its changes, in its data and in the effect sheet's form.
+ */
+export function changesPath() {
+	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
+	return isFoundryV13() ? 'changes' : 'system.changes';
+}
+
+// v13: the mode of each type of change.
+const V13_MODES = { custom: 'CUSTOM', add: 'ADD' } as const satisfies Record<StateChange['type'], string>;
+
+/**
+ * A change of a Token State or a maneuver, as the version of Foundry stores it.
+ */
+export function foundryChange({ key, value, type }: StateChange) {
+	// v13: a change has a numeric mode, which v14 replaced with a type, and logs a deprecation warning for.
+	return { key, value, ...(isFoundryV13() ? { mode: CONST.ACTIVE_EFFECT_MODES[V13_MODES[type]] } : { type }) };
+}
 
 /**
  * A duration in rounds, as the version of Foundry stores it.
