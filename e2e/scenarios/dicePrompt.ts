@@ -4703,6 +4703,28 @@ export async function run(e2e: ScenarioContext) {
 			{ weapon: await weaponState('Sword'), sword: accurateRows(await opened(gm, attack('Sword'))) },
 			{ weapon: { qualities: [], effects: [] }, sword: [] },
 		);
+
+		await e2e.step("#694 Q6 GM gives Ada's Shield a second profile and drops Defensive on it too", async () => {
+			await update({ actor: 'Ada', item: 'Shield' }, { 'system.extraProfiles': [{ name: 'E2E Bash' }] });
+			await gm.evaluate(async () => {
+				const item = game.actors.getName('E2E Ada').items.getName('E2E Shield');
+				const block = '[data-weapon-profile="1"]';
+				const root = await window.e2e.render(item.sheet, (root) => root.querySelector(block));
+				window.e2e.drop(root.querySelector(block)!, { type: 'Item', uuid: game.items.getName('E2E Defensive').uuid });
+				await window.e2e.settle();
+			});
+		});
+		const bash = await gm.evaluate(() =>
+			game.actors
+				.getName('E2E Ada')
+				.items.getName('E2E Shield')
+				.system.extraProfiles[0].qualities.map((quality: { name: string; rating: number }) => `${quality.name} ${quality.rating}`),
+		);
+		e2e.expect(
+			'#694 Q6 Defensive 1 on both profiles of the Shield counts once: the melee defense stays 1',
+			{ bash, defense: await meleeDefense() },
+			{ bash: ['E2E Defensive 1'], defense: 1 },
+		);
 		await e2e.step('quality effects end');
 	});
 

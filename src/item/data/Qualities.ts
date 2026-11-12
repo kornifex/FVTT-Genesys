@@ -113,6 +113,27 @@ export function effectQuality(effect: Pick<TaggedEffect, 'flags'>, system: objec
 	return id && system ? itemQualities(system).find((quality) => quality.id === id) : undefined;
 }
 
+// The rank a quality's effects count for: its rating when it is rated, one otherwise.
+const rankOf = (quality: ContainedItemQuality) => (quality.isRated ? quality.rating : 1);
+
+/**
+ * Whether an effect belongs to a quality whose copy on another Weapon Profile of the item, by name, outranks it: at a
+ * higher rank, or at the same rank on an earlier profile. Outside the attacks made with its profile, a quality counts
+ * once per weapon, at its highest rank (CRB pp. 86–89): Defensive 1 on two profiles of a shield raises melee defense by
+ * one, not two. An armor's names are unique in its single list, so none of its qualities is outranked.
+ */
+export function isOutrankedQualityEffect(effect: Pick<TaggedEffect, 'flags'>, system: object | undefined): boolean {
+	const quality = effectQuality(effect, system);
+	if (!quality || !system) {
+		return false;
+	}
+
+	const name = quality.name.toLowerCase();
+	const copies = itemQualities(system).filter((other) => other.name.toLowerCase() === name);
+	const highest = Math.max(...copies.map(rankOf));
+	return copies.find((copy) => rankOf(copy) === highest)?.id !== quality.id;
+}
+
 /**
  * The ids of an item's effects that belong to a quality the item no longer holds, which go with it.
  */

@@ -13,7 +13,7 @@ import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, qualityIdOf } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
@@ -326,14 +326,14 @@ export function poolModificationsForCheck(
 	}
 
 	modifications.push(
-		...effectModifications(withoutWeaponQualityEffects(actor.allApplicableEffects()), 'self', check),
+		...effectModifications(effectsExcept(actor.allApplicableEffects(), isWeaponQualityEffect), 'self', check),
 		...effectModifications(weaponQualityEffects(check), 'self', check),
 		...encumbranceModifications(actor, check),
 		...itemDamageModifications(check.weapon),
 	);
 
 	if (target && TARGET_TYPES.includes(target.type)) {
-		modifications.push(...effectModifications(target.allApplicableEffects(), 'target', check));
+		modifications.push(...effectModifications(effectsExcept(target.allApplicableEffects(), isOutrankedEffect), 'target', check));
 
 		// The target's defense against the range of an attack adds one Setback per point.
 		if (check.attackRange) {
@@ -445,9 +445,15 @@ function isWeaponQualityEffect(effect: PoolModificationEffect) {
 	return qualityIdOf(effect) !== undefined && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '');
 }
 
-function* withoutWeaponQualityEffects(effects: Iterable<PoolModificationEffect>) {
+// Whether an effect belongs to a weapon's quality that another of the weapon's profiles holds at a higher rank: a quality
+// counts once per weapon for those who target its wielder, as it does in its numeric changes.
+function isOutrankedEffect(effect: PoolModificationEffect) {
+	return isOutrankedQualityEffect(effect, sourceItem(effect)?.system);
+}
+
+function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (effect: PoolModificationEffect) => boolean) {
 	for (const effect of effects) {
-		if (!isWeaponQualityEffect(effect)) {
+		if (!excluded(effect)) {
 			yield effect;
 		}
 	}

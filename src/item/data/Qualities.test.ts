@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import {
 	effectQuality,
+	isOutrankedQualityEffect,
 	itemQualities,
 	orphanedQualityEffects,
 	qualityCopy,
@@ -144,6 +145,39 @@ describe('effectQuality', () => {
 		expect(effectQuality(tagged('e1', 'gone'), system)).toBeUndefined();
 		expect(effectQuality({ flags: {} }, system)).toBeUndefined();
 		expect(effectQuality(tagged('e1', 'accurate'), undefined)).toBeUndefined();
+	});
+});
+
+describe('isOutrankedQualityEffect (CRB pp. 86–89)', () => {
+	// A copy of a quality under its own id, as a drop on another Weapon Profile makes it.
+	const copyOf = (id: string, name: string, rating = 1, isRated = true) => ({ ...quality(name, rating, isRated), id });
+
+	it('keeps one copy of a quality held by two profiles at the same rank, the first: Defensive 1 counts once per weapon', () => {
+		const system = { qualities: [copyOf('d1', 'Defensive')], extraProfiles: [{ qualities: [copyOf('d2', 'defensive')] }] };
+
+		expect(isOutrankedQualityEffect(tagged('e1', 'd1'), system)).toBe(false);
+		expect(isOutrankedQualityEffect(tagged('e2', 'd2'), system)).toBe(true);
+	});
+
+	it('keeps the copy of the highest rank, on whichever profile holds it', () => {
+		const system = {
+			qualities: [copyOf('d1', 'Defensive', 1)],
+			extraProfiles: [{ qualities: [copyOf('d2', 'Defensive', 2)] }, { qualities: [copyOf('d3', 'Defensive', 2)] }],
+		};
+
+		expect(isOutrankedQualityEffect(tagged('e1', 'd1'), system)).toBe(true);
+		expect(isOutrankedQualityEffect(tagged('e2', 'd2'), system)).toBe(false);
+		expect(isOutrankedQualityEffect(tagged('e3', 'd3'), system)).toBe(true);
+	});
+
+	it("outranks nothing else: an armor's quality, distinct qualities, an untagged effect or one without item", () => {
+		const system = { qualities: [copyOf('d1', 'Defensive')], extraProfiles: [{ qualities: [copyOf('a1', 'Accurate', 2)] }] };
+
+		expect(isOutrankedQualityEffect(tagged('e1', 'd1'), { qualities: [copyOf('d1', 'Defensive')] })).toBe(false);
+		expect(isOutrankedQualityEffect(tagged('e1', 'd1'), system)).toBe(false);
+		expect(isOutrankedQualityEffect(tagged('e2', 'a1'), system)).toBe(false);
+		expect(isOutrankedQualityEffect({ flags: {} }, system)).toBe(false);
+		expect(isOutrankedQualityEffect(tagged('e1', 'd1'), undefined)).toBe(false);
 	});
 });
 

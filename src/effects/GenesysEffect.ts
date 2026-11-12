@@ -8,7 +8,7 @@ import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } f
 import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
 import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
-import { effectQuality } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 
 /**
@@ -83,6 +83,15 @@ export class GenesysEffect extends ActiveEffect {
 	 */
 	override get isSuppressed() {
 		return this.disabled || this.isExpired || this.isSuppressedByEquipmentState;
+	}
+
+	/**
+	 * An effect applies its changes to its actor unless it is suppressed, or belongs to a weapon's quality that another of
+	 * the weapon's profiles holds at a higher rank: such a quality counts once per weapon. Its Pool Modifications still
+	 * change the attacks made with its profile, which read the weapon's effects rather than whether they are active.
+	 */
+	override get active() {
+		return super.active && !isOutrankedQualityEffect(this, this.originItem?.system);
 	}
 
 	/**

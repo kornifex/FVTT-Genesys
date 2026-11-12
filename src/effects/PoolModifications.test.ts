@@ -626,6 +626,17 @@ describe('poolModificationsForCheck', () => {
 			).toEqual([fromQuality('Accurate', 'Dagger', ['B'])]);
 		});
 
+		it("counts a quality held by two profiles of its wielder's weapon once, at its highest rank, for whoever attacks the wielder", () => {
+			const guard = { key: 'genesys.pool.combat.target.', value: 'S' };
+			const shield = equipment('weapon', 'Shield', [{ id: 'd1', name: 'Guarding', rating: 1, changes: [guard] }], {
+				extra: [{ id: 'd2', name: 'Guarding', rating: 2, changes: [guard] }],
+			});
+
+			expect(poolModificationsForCheck(actor('character', []), actor('character', [...shield.effects]), attackWith(pistol))).toEqual([
+				{ ...fromQuality('Guarding', 'Shield', ['S', 'S']), source: 'target' },
+			]);
+		});
+
 		it("reads a vehicle weapon's qualities from the weapon, which the crew member who fires it doesn't hold", () => {
 			const cannon = equipment('vehicleWeapon', 'Cannon', [
 				{ id: 'inacc', name: 'Inaccurate', rating: 1, changes: [{ key: 'genesys.pool.combat.self.', value: 'S' }] },
