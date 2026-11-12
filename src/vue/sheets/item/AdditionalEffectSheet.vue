@@ -67,7 +67,8 @@ async function removeQuality(index: number) {
 					<input :id="id" type="checkbox" name="system.startsChecked" :checked="system.startsChecked" />
 				</DataRow>
 
-				<h4 class="attack-heading"><Localized label="Genesys.Labels.ForAnAttack" /></h4>
+				<!-- The tab's one section: an h3, as every section of a tab (§#584). -->
+				<h3 class="attack-heading"><Localized label="Genesys.Labels.ForAnAttack" /></h3>
 
 				<!-- Dropped quality items fill the list; their ratings come from where each row says. -->
 				<DataRow label="Genesys.Labels.Qualities" group>
@@ -132,7 +133,7 @@ async function removeQuality(index: number) {
 @use '@scss/vars/colors.scss';
 
 .attack-heading {
-	@include headings.font;
+	@include headings.section;
 	margin: 0.5em 0 0;
 	border-bottom: 1px solid colors.$ink;
 }

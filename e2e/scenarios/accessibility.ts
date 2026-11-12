@@ -2099,13 +2099,17 @@ async function headings(e2e: ScenarioContext) {
 		...itemTypes,
 		'Profiled Weapon',
 	]);
-	// Only an Archetype's and a Career's descriptions, and an extra Weapon Profile, have sections; every Effects tab does.
+	// Only an Archetype's and a Career's descriptions, an extra Weapon Profile and an Additional Effect's attack part have
+	// sections; every Effects tab does. A spell and an Additional Effect have no Effects tab: an Additional Effect gives its
+	// qualities as data only (§#704), and a spell's own would apply to its caster for as long as they own it, not while it lasts.
 	const expectedItems = Object.fromEntries(
 		[...itemTypes, 'Profiled Weapon'].map((name) => {
-			const outline: Record<string, string[]> = { description: [], data: [], effects };
+			const outline: Record<string, string[]> =
+				name === 'spell' || name === 'additionalEffect' ? { description: [], data: [] } : { description: [], data: [], effects };
 			if (name === 'archetype') outline.description = ['h3 Archetype Abilities'];
 			if (name === 'career') outline.description = ['h3 Career Skills'];
 			if (name === 'Profiled Weapon') outline.data = ['h3 Weapon Profile'];
+			if (name === 'additionalEffect') outline.data = ['h3 For an Attack'];
 			return [name, outline];
 		}),
 	);
