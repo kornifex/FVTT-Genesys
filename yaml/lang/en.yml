@@ -509,7 +509,16 @@ Genesys:
       Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
+    Feature: FEATURE
     Fix: FIX
+    CombatTabStates: >-
+      The Combat tab toggles the Token States and takes back Aim and Guarded Stance; Genesys's states come first in the
+      token's menu
+    RepeatableEffects: An Additional Effect such as Range can be added more than once to a spell
+    SpellRows: A spell's row in the Magic tab reads like a weapon's, with its effects' descriptions as tooltips
+    QualityDescriptions: A quality's or an attachment's description shows on its Dice Prompt row
+    PatientWindow: The patient window lists the scene's rivals and nemeses
+    CompendiumSkills: A character's skill shows the Skills Compendium's Default Difficulty and Initiative, read-only
     RecoverySkills: >-
       The skills that heal wounds and recover strain are ticked on the skill: tick them in a copied skills compendium
     ProvidedDefense: >-
