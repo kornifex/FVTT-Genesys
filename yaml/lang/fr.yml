@@ -361,6 +361,7 @@ Genesys:
     Wounds: Blessures
     Strain: Stress
     Apply: Appliquer
+    Applied: Appliqués
     # The end of an encounter's check and a night's rest
     EndOfEncounter: Fin de rencontre
     EndOfEncounterCardLabel: '{patient} récupère'
@@ -423,6 +424,7 @@ Genesys:
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     NoGMForClaim: Un MJ doit être connecté pour réclamer un slot d'initiative.
     NoGMForUsedUpEffects: Un MJ doit être connecté pour retirer la visée que l'attaque de {name} a consommée.
+    NoGMForRecovery: Un MJ doit être connecté pour appliquer des soins.
     NotOwnerOfCombatant: Vous n'êtes pas propriétaire de ce combattant.
     ActingGMTimedOut: Le MJ n'a pas répondu à temps. Vérifiez si l'action a eu lieu avant de réessayer.
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.

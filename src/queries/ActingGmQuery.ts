@@ -14,6 +14,8 @@ export const QueryName = {
 	WriteExtraSlotInitiative: 'genesys.writeExtraSlotInitiative',
 	/** A player rolled a check of an actor they can't write, which uses up some of its effects, as an attack its Aim. */
 	UseUpEffects: 'genesys.useUpEffects',
+	/** A player applies the healing of the card of a check that heals. */
+	ApplyRecovery: 'genesys.applyRecovery',
 } as const;
 
 export type QueryName = (typeof QueryName)[keyof typeof QueryName];
@@ -57,6 +59,10 @@ export type QueryData = {
 		actorUuid: string;
 		/** What the check was rolled for, which tells the effects it uses up. */
 		purpose: CheckPurpose;
+	};
+	[QueryName.ApplyRecovery]: QueryBaseData & {
+		/** The chat message of the card, whose flags hold the recovery. */
+		messageId: string;
 	};
 };
 
@@ -168,6 +174,7 @@ const NO_ACTING_GM = {
 	[QueryName.ClaimInitiativeSlot]: 'Genesys.Notifications.NoGMForClaim',
 	[QueryName.WriteExtraSlotInitiative]: 'Genesys.Notifications.NoGMForExtraSlot',
 	[QueryName.UseUpEffects]: 'Genesys.Notifications.NoGMForUsedUpEffects',
+	[QueryName.ApplyRecovery]: 'Genesys.Notifications.NoGMForRecovery',
 } as const satisfies Record<QueryName, string>;
 
 /**
