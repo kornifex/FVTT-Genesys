@@ -1,4 +1,11 @@
-import { CLOSED_CHEVRON, CLOSED_DESCRIPTION, closedDescription, LONG_DESCRIPTION, OPEN_CHEVRON, shownDescription } from '../../descriptions.ts';
+import {
+	CLOSED_CHEVRON,
+	CLOSED_DESCRIPTION,
+	closedDescription,
+	LONG_DESCRIPTION,
+	OPEN_CHEVRON,
+	shownDescription,
+} from '../../descriptions.ts';
 import type { ScenarioContext } from '../../scenario.ts';
 import type { FoldHalfway, Evaluate } from './shared.ts';
 

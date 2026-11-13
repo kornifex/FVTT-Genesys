@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function fieldLooksPart(ctx: SheetsContext, actorTypes: string[], itemTypes: string[]) {
 	const { e2e, gm } = ctx;
 	const fieldLooks: Record<string, Record<string, number>> = {};

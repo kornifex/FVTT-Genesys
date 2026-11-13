@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function sameNameEffectsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, select, toggle, characteristicRoll, rows } = ctx;
 	const poolAndRows = (state: PromptState) => ({ pool: state.pool, rows: rows(state) });

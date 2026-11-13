@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function appV2WindowsPart(ctx: SheetsContext, actorTypes: string[], itemTypes: string[]) {
 	const { e2e, gm } = ctx;
 	const windows: Record<string, unknown> = {};

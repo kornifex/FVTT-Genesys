@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function attachmentsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, update, attack } = ctx;
 	// The world's attachments: a scope adding 1 damage, with a modification option adding a Boost to the weapon's attacks,

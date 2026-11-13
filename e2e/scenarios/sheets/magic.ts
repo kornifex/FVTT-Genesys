@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function magicPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	// The Mage's sheet: its tabs, and the Magic tab entries of its window's menu, as v13 renders them and as either
@@ -38,13 +36,11 @@ export async function magicPart(ctx: SheetsContext) {
 			{ target, dropped },
 		);
 
-	await e2e.step(
-		'#704 M1 GM creates the character E2E Mage, without a rank in a magic skill nor a spell, and opens their sheet',
-		() =>
-			gm.evaluate(async () => {
-				await window.sheetsE2E.closeAll();
-				await Actor.createDocuments([{ name: 'E2E Mage', type: 'character' }]);
-			}),
+	await e2e.step('#704 M1 GM creates the character E2E Mage, without a rank in a magic skill nor a spell, and opens their sheet', () =>
+		gm.evaluate(async () => {
+			await window.sheetsE2E.closeAll();
+			await Actor.createDocuments([{ name: 'E2E Mage', type: 'character' }]);
+		}),
 	);
 	const withoutMagic = await mageSheet();
 	e2e.expect(
@@ -70,14 +66,11 @@ export async function magicPart(ctx: SheetsContext) {
 		{ action: 'attack', difficulty: 1, isAttack: true, skills: ['Arcana', 'Divine', 'Primal'] },
 	);
 
-	await e2e.step(
-		"#704 M3 GM drops the world's E2E quality on the E2E additionalEffect, then the effect twice on the spell",
-		async () => {
-			await dropOn({ item: 'E2E additionalEffect' }, 'E2E quality');
-			await dropOn({ item: 'E2E spell' }, 'E2E additionalEffect');
-			await dropOn({ item: 'E2E spell' }, 'E2E additionalEffect');
-		},
-	);
+	await e2e.step("#704 M3 GM drops the world's E2E quality on the E2E additionalEffect, then the effect twice on the spell", async () => {
+		await dropOn({ item: 'E2E additionalEffect' }, 'E2E quality');
+		await dropOn({ item: 'E2E spell' }, 'E2E additionalEffect');
+		await dropOn({ item: 'E2E spell' }, 'E2E additionalEffect');
+	});
 	e2e.expect(
 		"#704 M3 the effect gives the rated quality at the caster's ranks in Knowledge, and the spell lists the effect twice, with it, under two ids",
 		await gm.evaluate(() => {

@@ -1,21 +1,17 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function addedEffectsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	const added = ['Observed', 'Vehicle', 'Nemesis', 'gear'];
-	await e2e.step(
-		'#101 GM adds an effect in each section of the Effects tab of a character, a vehicle, an adversary and an item',
-		() =>
-			gm.evaluate(async (names) => {
-				const sheets = window.sheetsE2E;
-				for (const name of names) {
-					await sheets.open(name);
-					await sheets.clickTab(name, 'effects');
-					for (const section of [1, 2, 3]) await sheets.addEffect(name, section);
-				}
-			}, added),
+	await e2e.step('#101 GM adds an effect in each section of the Effects tab of a character, a vehicle, an adversary and an item', () =>
+		gm.evaluate(async (names) => {
+			const sheets = window.sheetsE2E;
+			for (const name of names) {
+				await sheets.open(name);
+				await sheets.clickTab(name, 'effects');
+				for (const section of [1, 2, 3]) await sheets.addEffect(name, section);
+			}
+		}, added),
 	);
 	const addedRows = await gm.evaluate(
 		(names) =>

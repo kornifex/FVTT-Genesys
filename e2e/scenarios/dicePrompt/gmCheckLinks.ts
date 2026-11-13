@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function gmCheckLinksPart(ctx: DicePromptContext) {
 	const { e2e, gm, noPrompt, control, ada, journal, linkPrompt } = ctx;
 	e2e.expect(

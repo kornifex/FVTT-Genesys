@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function storyPointTrackerPart(ctx: DicePromptContext) {
 	const { e2e, gm, player } = ctx;
 	const storyPoints = async () => ({

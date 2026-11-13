@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function combatManeuversPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, toggle, roll, target, ada, skillRoll, attack, named } = ctx;
 	const maneuver = (name: string) => click(gm, ada, `.tab-combat .maneuvers button|${name}`);
@@ -211,9 +209,7 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 			const worn = mark.items.filter((item: { type: string }) => item.type === 'armor').map((item: { id: string }) => item.id);
 			await mark.deleteEmbeddedDocuments('Item', worn);
 			if (defense !== null) {
-				await mark.createEmbeddedDocuments('Item', [
-					{ name: 'E2E Shield', type: 'armor', system: { state: 'equipped', defense } },
-				]);
+				await mark.createEmbeddedDocuments('Item', [{ name: 'E2E Shield', type: 'armor', system: { state: 'equipped', defense } }]);
 			}
 		}, defense);
 	await e2e.step('#724 M9 GM takes Prone off Mark, in cover, gives him an armor with defense 1, and targets him', async () => {

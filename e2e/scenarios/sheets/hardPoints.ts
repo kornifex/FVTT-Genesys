@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function hardPointsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	const hardPoints = () =>
@@ -14,20 +12,18 @@ export async function hardPointsPart(ctx: SheetsContext) {
 				}),
 			),
 		);
-	await e2e.step(
-		"#695 H1 GM sets the weapon to encumbrance 3, the armor to 4, and opens their Data tabs and the vehicle weapon's",
-		() =>
-			gm.evaluate(async () => {
-				const sheets = window.sheetsE2E;
-				await sheets.closeAll();
-				await sheets.update('weapon', { 'system.encumbrance': 3, 'system.hardPoints': null });
-				await sheets.update('armor', { 'system.encumbrance': 4, 'system.hardPoints': null });
-				await sheets.update('vehicleWeapon', { 'system.encumbrance': 3 });
-				for (const name of ['weapon', 'armor', 'vehicleWeapon']) {
-					await sheets.open(name);
-					await sheets.clickTab(name, 'data');
-				}
-			}),
+	await e2e.step("#695 H1 GM sets the weapon to encumbrance 3, the armor to 4, and opens their Data tabs and the vehicle weapon's", () =>
+		gm.evaluate(async () => {
+			const sheets = window.sheetsE2E;
+			await sheets.closeAll();
+			await sheets.update('weapon', { 'system.encumbrance': 3, 'system.hardPoints': null });
+			await sheets.update('armor', { 'system.encumbrance': 4, 'system.hardPoints': null });
+			await sheets.update('vehicleWeapon', { 'system.encumbrance': 3 });
+			for (const name of ['weapon', 'armor', 'vehicleWeapon']) {
+				await sheets.open(name);
+				await sheets.clickTab(name, 'data');
+			}
+		}),
 	);
 	e2e.expect(
 		'#695 H1 a weapon of encumbrance 3 shows 2 hard points, an armor of encumbrance 4 shows 2, a vehicle weapon none (CRB p. 206)',

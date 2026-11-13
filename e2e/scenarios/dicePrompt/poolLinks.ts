@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function poolLinksPart(ctx: DicePromptContext) {
 	const { e2e, gm, journal } = ctx;
 	e2e.expect(

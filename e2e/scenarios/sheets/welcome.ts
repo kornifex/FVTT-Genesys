@@ -1,7 +1,5 @@
 import { installSheetsHelpers, type SheetsContext } from './shared.ts';
 
-
-
 export async function welcomePart(ctx: Pick<SheetsContext, 'e2e' | 'gm'>) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#97 GM reloads after an update', async () => {

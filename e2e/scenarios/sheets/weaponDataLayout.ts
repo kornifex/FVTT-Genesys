@@ -1,9 +1,14 @@
 import { thrownProfile } from '../../weaponProfiles.ts';
 import type { WeaponDataLayout, SheetsContext } from './shared.ts';
 
-
-
-export async function weaponDataLayoutPart(ctx: SheetsContext, weaponProfiles: () => Promise<{ main: { skills: string[]; qualities: { name: string; rating: number }[] }; extraProfiles: ({ name: string; skills: string[]; qualities: { name: string; rating: number }[] } & Record<string, unknown>)[]; blocks: number }>) {
+export async function weaponDataLayoutPart(
+	ctx: SheetsContext,
+	weaponProfiles: () => Promise<{
+		main: { skills: string[]; qualities: { name: string; rating: number }[] };
+		extraProfiles: ({ name: string; skills: string[]; qualities: { name: string; rating: number }[] } & Record<string, unknown>)[];
+		blocks: number;
+	}>,
+) {
 	const { e2e, gm } = ctx;
 	const heights = [500, 950];
 	let profiled: WeaponDataLayout[] = [];

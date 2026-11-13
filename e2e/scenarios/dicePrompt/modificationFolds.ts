@@ -1,8 +1,6 @@
 import { FOLD_TRANSITION } from '../../descriptions.ts';
 import type { PoolModificationsBox, DicePromptContext } from './shared.ts';
 
-
-
 export async function modificationFoldsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, setSetting, skillRoll } = ctx;
 	await setSetting('dicePoolCollapseModificationsDetails', true);
@@ -41,10 +39,11 @@ export async function modificationFoldsPart(ctx: DicePromptContext) {
 			modifications: true,
 		},
 	);
-	e2e.expect(
-		"#579 E2 the folded Pool Modifications' title tells it is collapsed, and shows a chevron pointing right",
-		await toggle(),
-		{ text: 'Pool Modifications', expanded: false, icon: 'fa-chevron-right', controlsFold: true },
-	);
+	e2e.expect("#579 E2 the folded Pool Modifications' title tells it is collapsed, and shows a chevron pointing right", await toggle(), {
+		text: 'Pool Modifications',
+		expanded: false,
+		icon: 'fa-chevron-right',
+		controlsFold: true,
+	});
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 }

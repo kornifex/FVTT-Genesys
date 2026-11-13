@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function tabsAndFieldsPart(ctx: SheetsContext) {
 	const { e2e, gm, page } = ctx;
 	await e2e.step('#95 GM switches tabs, closes and reopens the sheets', async () => {

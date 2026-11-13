@@ -1,7 +1,5 @@
 import { installDicePromptHelpers, type DicePromptContext } from './shared.ts';
 
-
-
 export async function chanceToSucceedPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened } = ctx;
 	// The player's character is Cy, so that the reloaded player controls only Cy's token: with no character, Foundry 13

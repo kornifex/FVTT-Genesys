@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function spellCastingPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, noPrompt, click, roll, health } = ctx;
 	await gm.evaluate(async () => {
@@ -93,11 +91,10 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 		},
 	);
 
-	e2e.expect(
-		"#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why",
-		await noPrompt(gm, cast('Novice')),
-		{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
-	);
+	e2e.expect("#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why", await noPrompt(gm, cast('Novice')), {
+		prompts: 0,
+		notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'],
+	});
 
 	await opened(gm, cast('Mage'));
 	await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([5]));

@@ -1,8 +1,6 @@
 import type { Client } from '../../scenario.ts';
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function storyPointSpendsPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, update, control, linkPrompt } = ctx;
 	const found = await gm.evaluate(() => game.settings.get('genesys', 'storyPoints'));

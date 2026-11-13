@@ -1,7 +1,5 @@
 import type { Doc, PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function encumbranceAndItemDamagePart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, noPrompt, click, select, toggle, update, characteristicRoll, attack, skiff } = ctx;
 	const hindrances = (state: PromptState) => state.modifications.filter(({ name }) => /Encumbrance|Damage/.test(name));
@@ -12,9 +10,7 @@ export async function encumbranceAndItemDamagePart(ctx: DicePromptContext) {
 	const encumbrance = await gm.evaluate(async () => {
 		const ada = game.actors.getName('E2E Ada');
 		const { value, threshold } = ada.system.currentEncumbrance;
-		await ada.createEmbeddedDocuments('Item', [
-			{ name: 'E2E Anvil', type: 'gear', system: { encumbrance: threshold - value + 2 } },
-		]);
+		await ada.createEmbeddedDocuments('Item', [{ name: 'E2E Anvil', type: 'gear', system: { encumbrance: threshold - value + 2 } }]);
 		return ada.system.currentEncumbrance;
 	});
 

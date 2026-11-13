@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function effectsTabsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#102 GM gives a character, an adversary and a vehicle an effect of their own and an item with an effect', () =>
@@ -79,8 +77,7 @@ export async function effectsTabsPart(ctx: SheetsContext) {
 				const kit = game.actors.getName('E2E Rival').items.getName('E2E Kit');
 				const effect = kit.effects.getName('E2E Kit effect');
 				const opened = [...foundry.applications.instances.values(), ...Object.values(ui.windows)].filter(
-					(app: { rendered: boolean; document?: { name: string } }) =>
-						app.rendered && app.document?.name === 'E2E Kit effect',
+					(app: { rendered: boolean; document?: { name: string } }) => app.rendered && app.document?.name === 'E2E Kit effect',
 				);
 				return {
 					opened: opened.map((app: { document: { uuid: string } }) => app.document.uuid === effect.uuid),
@@ -118,9 +115,7 @@ export async function effectsTabsPart(ctx: SheetsContext) {
 	);
 	e2e.expect(
 		"#102 A4 on an item's Effects tab, Delete shows for every effect, those with an origin included",
-		await gm.evaluate(async () =>
-			(await window.sheetsE2E.effectButtons('Bearer/Kit')).map(({ name, buttons }) => ({ name, buttons })),
-		),
+		await gm.evaluate(async () => (await window.sheetsE2E.effectButtons('Bearer/Kit')).map(({ name, buttons }) => ({ name, buttons }))),
 		[
 			{ name: 'E2E Kit effect', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },
 			{ name: 'E2E Origin', buttons: ['fa-toggle-on', 'fa-edit', 'fa-trash'] },

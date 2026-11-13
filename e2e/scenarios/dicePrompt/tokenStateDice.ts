@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function tokenStateDicePart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, toggle, skillRoll, characteristicRoll } = ctx;
 	const STATES = ['immobilized', 'disoriented', 'staggered'];

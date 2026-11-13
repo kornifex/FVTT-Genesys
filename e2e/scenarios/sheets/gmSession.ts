@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function gmSessionPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#95 GM changes the image of a character from the file picker', () =>
@@ -17,8 +15,7 @@ export async function gmSessionPart(ctx: SheetsContext) {
 	// The Archetype and the Career go first: a character who spent XP can't change them.
 	await e2e.step('#95 GM drops an archetype, a career, a skill and an item on a character', () =>
 		gm.evaluate(async () => {
-			for (const name of ['archetype', 'career', 'skill', 'weapon'])
-				await window.sheetsE2E.drop('Bearer', { type: 'Item', name });
+			for (const name of ['archetype', 'career', 'skill', 'weapon']) await window.sheetsE2E.drop('Bearer', { type: 'Item', name });
 		}),
 	);
 	e2e.expect(

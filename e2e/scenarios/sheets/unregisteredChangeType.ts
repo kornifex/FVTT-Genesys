@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function unregisteredChangeTypePart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	if (e2e.version >= 14) {

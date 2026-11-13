@@ -1,7 +1,5 @@
 import type { ChangeRow, SheetsContext } from './shared.ts';
 
-
-
 export async function effectSheetPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await e2e.step('effect sheet setup', () => gm.evaluate(() => window.sheetsE2E.effectSheet.create()));
@@ -14,10 +12,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			const hero = game.actors.getName('E2E Hero');
 			await editEffect(effectRows(hero.sheet).find((row) => row.name === 'E2E Edited')!);
 			const effectSheet = hero.effects.getName('E2E Edited').sheet;
-			await waitFor(
-				'the effect sheet',
-				() => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name$="changes.0.key"]'),
-			);
+			await waitFor('the effect sheet', () => effectSheet.rendered && htmlOf(effectSheet)?.querySelector('[name$="changes.0.key"]'));
 		}),
 	);
 	const englishCharacteristics = {
@@ -59,12 +54,12 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		'#140 A2 the key select lists the six characteristics in their order, then the vehicle characteristics, and keeps its selection',
 		{ group: state.keyGroup, selected: state.keySelected },
 		{
-			group: keyGroup(
-				'Modify Characteristic',
-				['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'],
-				'Silhouette',
-				['Speed', 'Handling', 'Defense', 'Armor'],
-			),
+			group: keyGroup('Modify Characteristic', ['Brawn', 'Agility', 'Intellect', 'Cunning', 'Willpower', 'Presence'], 'Silhouette', [
+				'Speed',
+				'Handling',
+				'Defense',
+				'Armor',
+			]),
 			selected: 'system.characteristics.cunning',
 		},
 	);

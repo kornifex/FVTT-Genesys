@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function customSkillEffectsPart(ctx: DicePromptContext) {
 	const { e2e, gm } = ctx;
 	e2e.expect(

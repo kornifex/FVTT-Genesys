@@ -1,7 +1,5 @@
 import type { MessageSummary, DicePromptContext } from './shared.ts';
 
-
-
 export async function checkMessagesPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, roll, setSetting, update, ada, skillRoll, characteristicRoll, attack } = ctx;
 	const heal = await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));

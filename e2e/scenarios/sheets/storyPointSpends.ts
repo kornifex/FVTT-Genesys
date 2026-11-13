@@ -73,7 +73,11 @@ async function storyPointSpends(e2e: ScenarioContext, player: Client) {
 	await e2e.step('#335 second player leaves', () => second.leave());
 }
 
-export async function storyPointSpendsPart(ctx: SheetsContext, storyPoints: { gm: number; player: number }, assistantGM: () => Promise<Client>) {
+export async function storyPointSpendsPart(
+	ctx: SheetsContext,
+	storyPoints: { gm: number; player: number },
+	assistantGM: () => Promise<Client>,
+) {
 	const { e2e, gm, player, recordCompatibilityWarnings } = ctx;
 	const assistant = await assistantGM();
 	await gm.evaluate(() => window.sheetsE2E.setStoryPoints({ gm: 1, player: 2 }));
@@ -197,9 +201,7 @@ export async function storyPointSpendsPart(ctx: SheetsContext, storyPoints: { gm
 		{ opened: { gm: true, player: false }, afterRightClick: { gm: 3, player: 1 } },
 	);
 	await e2e.step("#580 C5 GM clicks the GM pool's count twice, then the players' count, before the tracker renders again", () =>
-		gm.evaluate(() =>
-			window.sheetsE2E.clickStoryPointsTogether(['.gm button.points', '.gm button.points', '.player button.points']),
-		),
+		gm.evaluate(() => window.sheetsE2E.clickStoryPointsTogether(['.gm button.points', '.gm button.points', '.player button.points'])),
 	);
 	e2e.expect(
 		'#580 C5 GM: three spends before the tracker renders all count, each from the pools the previous one wrote',

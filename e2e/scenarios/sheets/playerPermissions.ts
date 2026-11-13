@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function playerPermissionsPart(ctx: SheetsContext) {
 	const { e2e, gm, player } = ctx;
 	await e2e.step('#95 player opens a sheet they observe, one they see limited, and their own', () =>

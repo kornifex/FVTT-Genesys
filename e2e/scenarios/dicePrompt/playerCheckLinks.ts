@@ -1,12 +1,9 @@
 import type { Doc, DicePromptContext } from './shared.ts';
 
-
-
 export async function playerCheckLinksPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, noPrompt, control, journal, linkPrompt } = ctx;
 	const warning = 'warning: Select a single token or assign yourself a character to roll this check.';
-	const playerLink = (doc: Doc | { message: string }, skill: string, difficulty?: string) =>
-		linkPrompt(player, doc, skill, difficulty);
+	const playerLink = (doc: Doc | { message: string }, skill: string, difficulty?: string) => linkPrompt(player, doc, skill, difficulty);
 	const playerNoPrompt = (doc: Doc) =>
 		noPrompt(player, () =>
 			player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: 'Athletics', difficulty: 'DDD' }), doc),
@@ -43,9 +40,7 @@ export async function playerCheckLinksPart(ctx: DicePromptContext) {
 			twoTokens: characterTwoTokens,
 			noToken: characterNoToken,
 			message: await playerLink({ message: playerMessage }, 'Athletics'),
-			opposed: await noPrompt(player, () =>
-				player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal),
-			),
+			opposed: await noPrompt(player, () => player.evaluate((doc) => window.dicePromptE2E.clickLink({ doc, skill: null }), journal)),
 		},
 		{
 			twoTokens: { actor: 'Cy', skill: 'Athletics (Br)', pool: '|DDD' },

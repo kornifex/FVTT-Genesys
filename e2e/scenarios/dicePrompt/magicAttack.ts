@@ -1,7 +1,5 @@
 import { installCriticalInjuryHelpers, type DicePromptContext } from './shared.ts';
 
-
-
 export async function magicAttackPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, click, roll } = ctx;
 	await gm.evaluate(installCriticalInjuryHelpers);
@@ -68,8 +66,7 @@ export async function magicAttackPart(ctx: DicePromptContext) {
 		"#706 MA2 the card shows the damage as Intellect 3 plus the Successes, Burn rated by the Mage's 2 ranks in Knowledge, and no Critical Injury for Advantage",
 		{ description: hit.description, ...(await card()) },
 		{
-			description:
-				'Casting <strong>E2E Fireball</strong> using <strong>Arcana (Int<i class="fas fa-star hide-it"></i>)</strong>!',
+			description: 'Casting <strong>E2E Fireball</strong> using <strong>Arcana (Int<i class="fas fa-star hide-it"></i>)</strong>!',
 			labels: ['Roll Results', 'Attack Results', 'Summary', 'Attack Qualities', 'Additional Effects', 'Dice'],
 			summaries: ['Damage (Int + 0) 6 Critical 0', 's Successes 3 a Advantage 2', 'Strain suffered by the caster 2'],
 			qualities: ['Burn 2'],

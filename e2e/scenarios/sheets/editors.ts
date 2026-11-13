@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function editorsPart(ctx: SheetsContext) {
 	const { e2e, gm, page } = ctx;
 	const editors = [

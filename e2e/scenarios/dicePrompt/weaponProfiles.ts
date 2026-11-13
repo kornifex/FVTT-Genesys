@@ -1,8 +1,6 @@
 import { dagger } from '../../weaponProfiles.ts';
 import type { PromptState, CardSummary, DicePromptContext } from './shared.ts';
 
-
-
 export async function weaponProfilesPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, roll, update, target, attack, named, combatWeapons } = ctx;
 	await e2e.step('#366 GM gives Ada a dagger with a Thrown profile, and targets the rival', async () => {

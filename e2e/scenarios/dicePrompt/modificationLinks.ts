@@ -1,8 +1,6 @@
 import type { Client } from '../../scenario.ts';
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function modificationLinksPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, update, target, attack, seekerCheck } = ctx;
 	const sourceLinks = (client: Client) => client.evaluate(() => window.dicePromptE2E.promptSourceLinks());

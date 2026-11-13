@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function recoveryPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, setSetting, update, recoveryButton, health } = ctx;
 	const cy = { actor: 'Cy' };
@@ -61,9 +59,7 @@ export async function recoveryPart(ctx: DicePromptContext) {
 			type: 'skill',
 			system: { characteristic, rank: 1, category: 'general' },
 		});
-		await window.e2e
-			.actor('Cy')
-			.createEmbeddedDocuments('Item', [skill('E2E Serenite', 'willpower'), skill('E2E Calme', 'presence')]);
+		await window.e2e.actor('Cy').createEmbeddedDocuments('Item', [skill('E2E Serenite', 'willpower'), skill('E2E Calme', 'presence')]);
 		await window.e2e.settle();
 	});
 	const renamed = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));

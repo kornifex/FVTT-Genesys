@@ -1,7 +1,5 @@
 import { installSheetsHelpers, type SheetsContext } from './shared.ts';
 
-
-
 export async function settingsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	// Each setting of the table and the Story Point pools, at a value other than its default but the Skills Compendium's,

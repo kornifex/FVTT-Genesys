@@ -1,7 +1,5 @@
 import type { ToggleIcon, SheetsContext } from './shared.ts';
 
-
-
 export async function editorTogglesPart(ctx: SheetsContext) {
 	const { e2e, gm, page } = ctx;
 	const toggleIcons = async (fields: { sheet: string; tab: string; field: string }[], label: string) => {

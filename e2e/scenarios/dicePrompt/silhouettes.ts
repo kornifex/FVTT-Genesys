@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function silhouettesPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, click, toggle, update, target, skillRoll, attack, rows, skiff } = ctx;
 	const silhouetteRows = (state: PromptState) => state.modifications.filter(({ name }) => name.includes('Silhouette'));

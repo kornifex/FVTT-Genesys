@@ -1,7 +1,5 @@
 import type { SheetsHelpers, SheetsContext } from './shared.ts';
 
-
-
 export async function characteristicBoxesPart(ctx: SheetsContext) {
 	const { e2e, gm, player } = ctx;
 	let boxes = {};
@@ -68,8 +66,7 @@ export async function characteristicBoxesPart(ctx: SheetsContext) {
 										name: name.textContent.trim(),
 										width: field.offsetWidth,
 										fitted:
-											field.offsetWidth > 0 &&
-											Math.abs(field.offsetWidth - Math.max(labelWidth, value.width)) <= 1,
+											field.offsetWidth > 0 && Math.abs(field.offsetWidth - Math.max(labelWidth, value.width)) <= 1,
 										nameCentred: Math.abs(named.left + named.width / 2 - (value.left + value.width / 2)) <= 1,
 										nameInBox: within(named),
 										// Inside the box, on the name's line, at most a quarter of an em past its end.

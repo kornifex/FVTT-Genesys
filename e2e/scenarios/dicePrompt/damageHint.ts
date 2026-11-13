@@ -1,7 +1,5 @@
 import { installDicePromptHelpers, type DicePromptContext } from './shared.ts';
 
-
-
 export async function damageHintPart(ctx: DicePromptContext) {
 	const { e2e, gm } = ctx;
 	const settingText = () => gm.evaluate(() => window.dicePromptE2E.settingText('genesys.showDamageOnFailure'));

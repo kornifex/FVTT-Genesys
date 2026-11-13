@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function storyPointEditsPart(ctx: SheetsContext, storyPoints: { gm: number; player: number }) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#95 GM sets the story points, spends one of the GM pool, then resets them', async () => {

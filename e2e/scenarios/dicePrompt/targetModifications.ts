@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function targetModificationsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, toggle, roll, update, target, skillRoll, attack, rows, named } = ctx;
 	await target('Rival');
@@ -91,11 +89,9 @@ export async function targetModificationsPart(ctx: DicePromptContext) {
 		'5 Pistol': vehicleRow('Ranged', 4),
 	});
 	const coolAtWagon = await opened(gm, skillRoll('Cool'));
-	e2e.expect(
-		'#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications',
-		named(coolAtWagon, 'From Target'),
-		[{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' }],
-	);
+	e2e.expect('#201 C6 a check made while a vehicle is targeted lists its target Pool Modifications', named(coolAtWagon, 'From Target'), [
+		{ name: 'From Target: E2E Smoke', enabled: false, mods: 'S+' },
+	]);
 
 	// The Pilot's Defensive Driving raises the defense of the vehicle they pilot (§#482): the Driver, first member of the
 	// Rig's Helm, holds 2 ranks of a talent adding 1 Piloted Vehicle Defense.

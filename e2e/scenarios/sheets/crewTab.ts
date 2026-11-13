@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function crewTabPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	const crew = async (name: string, action: () => Promise<unknown>) => {
@@ -23,12 +21,7 @@ export async function crewTabPart(ctx: SheetsContext) {
 		),
 		memberAdded: await crew('#82 GM moves a passenger to the role', () =>
 			gm.evaluate(() =>
-				window.sheetsE2E.drag(
-					'Vehicle',
-					'.tab-crew .passengers .actor-tile-mini',
-					'E2E Bearer',
-					'.tab-crew .roles .role-section',
-				),
+				window.sheetsE2E.drag('Vehicle', '.tab-crew .passengers .actor-tile-mini', 'E2E Bearer', '.tab-crew .roles .role-section'),
 			),
 		),
 		memberRemoved: await crew('#82 GM removes the role member', () =>

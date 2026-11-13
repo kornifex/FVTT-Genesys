@@ -1,7 +1,5 @@
 import type { PromptDifficulty, DicePromptContext } from './shared.ts';
 
-
-
 export async function difficultyPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, click, toggle, roll, setSetting, control, ada, characteristicRoll, journal, linkPrompt } = ctx;
 	await setSetting('defaultDifficulty', 'DDD');
@@ -53,9 +51,7 @@ export async function difficultyPart(ctx: DicePromptContext) {
 	};
 	e2e.expect(
 		'#469 P4 a click on a die lights it and those before it, a click on the highest lit die lowers the level by one, down to Simple',
-		Object.fromEntries(
-			Object.entries(clicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }]),
-		),
+		Object.fromEntries(Object.entries(clicks).map(([name, { pool, difficulty }]) => [name, { pool, difficulty: shown(difficulty) }])),
 		{
 			formidable: { pool: 'AA|DDDDD', difficulty: difficultyOf('Formidable', 'DDDDD') },
 			average: { pool: 'AA|DD', difficulty: difficultyOf('Average', 'DD···') },

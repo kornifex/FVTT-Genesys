@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function diceRollerPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, noPrompt, control } = ctx;
 	e2e.expect(

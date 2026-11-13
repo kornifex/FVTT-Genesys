@@ -1,9 +1,14 @@
 import { thrownProfile } from '../../weaponProfiles.ts';
 import type { SheetsContext } from './shared.ts';
 
-
-
-export async function weaponProfilesPart(ctx: SheetsContext, weaponProfiles: () => Promise<{ main: { skills: string[]; qualities: { name: string; rating: number }[] }; extraProfiles: ({ name: string; skills: string[]; qualities: { name: string; rating: number }[] } & Record<string, unknown>)[]; blocks: number }>) {
+export async function weaponProfilesPart(
+	ctx: SheetsContext,
+	weaponProfiles: () => Promise<{
+		main: { skills: string[]; qualities: { name: string; rating: number }[] };
+		extraProfiles: ({ name: string; skills: string[]; qualities: { name: string; rating: number }[] } & Record<string, unknown>)[];
+		blocks: number;
+	}>,
+) {
 	const { e2e, gm } = ctx;
 	await gm.evaluate(async () => {
 		const sheets = window.sheetsE2E;
@@ -87,8 +92,7 @@ export async function weaponProfilesPart(ctx: SheetsContext, weaponProfiles: () 
 	// The deletion asks first since #577: No keeps the profile, Yes deletes it.
 	const deleteProfile = (answer: 'yes' | 'no') =>
 		gm.evaluate(async (answer) => {
-			if (!window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile'))
-				return null;
+			if (!window.e2e.htmlOf(game.items.getName('E2E weapon').sheet)!.querySelector('.weapon-profile .delete-profile')) return null;
 			await window.sheetsE2E.click('weapon', '.weapon-profile .delete-profile');
 			return window.e2e.answerConfirm(answer);
 		}, answer);

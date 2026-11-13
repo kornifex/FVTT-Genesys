@@ -1,8 +1,6 @@
 import type { Client } from '../../scenario.ts';
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function liveEditsPart(ctx: SheetsContext, actorTypes: string[], itemTypes: string[], assistantGM: () => Promise<Client>) {
 	const { e2e, gm } = ctx;
 	const assistant = await assistantGM();

@@ -1773,6 +1773,11 @@ export type DicePromptContext = {
 	journal: { journal: string };
 	skiff: { actor: string };
 	combatWeapons: (actor: string) => Promise<{ name: string; link: boolean; skill: string; choices: string[] | null }[]>;
-	linkPrompt: (client: Client, doc: Doc | { message: string }, skill: string, difficulty?: string) => Promise<{ actor: string | null; skill: string | null; pool: string }>;
+	linkPrompt: (
+		client: Client,
+		doc: Doc | { message: string },
+		skill: string,
+		difficulty?: string,
+	) => Promise<{ actor: string | null; skill: string | null; pool: string }>;
 	seekerCheck: (client: Client) => Promise<PromptState>;
 };

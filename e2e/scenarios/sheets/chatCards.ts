@@ -1,8 +1,6 @@
 import type { Client } from '../../scenario.ts';
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function chatCardsPart(ctx: SheetsContext) {
 	const { e2e, gm, player } = ctx;
 	const sends = async (client: Client, sheets: [string, string[]][]) =>
@@ -14,14 +12,12 @@ export async function chatCardsPart(ctx: SheetsContext) {
 			await window.sheetsE2E.closeAll();
 		}, sheets);
 	await gm.evaluate(() => window.sheetsE2E.readMessages());
-	await e2e.step(
-		'#130 GM without a character sends talents, abilities and weapons from a character, an adversary and a vehicle',
-		() =>
-			sends(gm, [
-				['Hero', ['Ranked', 'Unranked', 'Active', 'Sword']],
-				['Nemesis', ['Ranked', 'Unranked', 'Active', 'Sword']],
-				['Vehicle', ['Cannon']],
-			]),
+	await e2e.step('#130 GM without a character sends talents, abilities and weapons from a character, an adversary and a vehicle', () =>
+		sends(gm, [
+			['Hero', ['Ranked', 'Unranked', 'Active', 'Sword']],
+			['Nemesis', ['Ranked', 'Unranked', 'Active', 'Sword']],
+			['Vehicle', ['Cannon']],
+		]),
 	);
 	const gmCards = await gm.evaluate(() => window.sheetsE2E.cards());
 	await gm.evaluate((name) => window.sheetsE2E.setUserCharacter(name, 'Observed'), gm.user);
@@ -179,9 +175,7 @@ export async function chatCardsPart(ctx: SheetsContext) {
 			const { actor } = window.e2e;
 			await window.sheetsE2E.update('Hero', { 'system.characteristics.agility': 2 });
 			await window.sheetsE2E.update('Vehicle', {
-				'system.roles': [
-					{ id: foundry.utils.randomID(), name: 'E2E Gunner', skills: ['Gunnery'], members: [actor('Hero').uuid] },
-				],
+				'system.roles': [{ id: foundry.utils.randomID(), name: 'E2E Gunner', skills: ['Gunnery'], members: [actor('Hero').uuid] }],
 			});
 			await window.sheetsE2E.attackWithVehicleWeapon('Vehicle', 'Cannon');
 		}),

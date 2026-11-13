@@ -1,7 +1,5 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
-
-
 export async function qualityEffectsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, setSetting, update, attack } = ctx;
 	// The world's qualities, each with one effect: Accurate as one Boost on combat checks, Defensive as melee defense 1.

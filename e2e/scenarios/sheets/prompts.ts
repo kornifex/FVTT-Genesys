@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function promptsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await gm.evaluate(() => window.sheetsE2E.open('Hero'));
@@ -15,8 +13,7 @@ export async function promptsPart(ctx: SheetsContext) {
 		await gm.evaluate(() => ({
 			dicePrompt: window.sheetsE2E.prompts('app-dice-prompt'),
 			awardXP: window.sheetsE2E.prompts('app-award-xp-prompt'),
-			storyPointTracker:
-				foundry.applications.instances.get('story-point-tracker') instanceof foundry.applications.api.ApplicationV2,
+			storyPointTracker: foundry.applications.instances.get('story-point-tracker') instanceof foundry.applications.api.ApplicationV2,
 		})),
 		{
 			dicePrompt: [{ appV2: true, title: 'Dice Pool' }],

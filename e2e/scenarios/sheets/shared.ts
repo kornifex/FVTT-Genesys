@@ -68,7 +68,15 @@ export type ToggleIcon = { display: string; visible: boolean; x: number; y: numb
  */
 type StoryPointPoolState = { shown: string; spend: { name: string | null; tooltip: string | null } | null; beside: string[] };
 
-export type HeadingStyle = { size: number; margin: string; weight: string; lineHeight: string; color: string; shadow: string; border: string };
+export type HeadingStyle = {
+	size: number;
+	margin: string;
+	weight: string;
+	lineHeight: string;
+	color: string;
+	shadow: string;
+	border: string;
+};
 
 export type SheetsHelpers = {
 	/** Deletes what the previous run left, then creates the actors and the world items, one of each item type. */

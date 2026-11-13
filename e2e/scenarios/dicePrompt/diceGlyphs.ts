@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function diceGlyphsPart(ctx: DicePromptContext) {
 	const { e2e, gm, journal } = ctx;
 	let fonts: Record<string, boolean> = {};

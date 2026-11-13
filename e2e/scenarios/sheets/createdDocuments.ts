@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function createdDocumentsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	for (const documentName of ['Actor', 'Item'] as const) {

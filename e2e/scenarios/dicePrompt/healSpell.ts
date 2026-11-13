@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function healSpellPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, noPrompt, click, roll, update, target, recoveryButton, health } = ctx;
 	await gm.evaluate(async () => {

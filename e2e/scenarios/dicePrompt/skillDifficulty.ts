@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function skillDifficultyPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, select, setSetting, control, skillRoll, attack, linkPrompt } = ctx;
 	await setSetting('defaultDifficulty', 'D');

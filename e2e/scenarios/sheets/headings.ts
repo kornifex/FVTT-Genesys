@@ -1,7 +1,5 @@
 import type { HeadingStyle, SheetsHelpers, SheetsContext } from './shared.ts';
 
-
-
 export async function headingsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	let headings: Record<string, HeadingStyle> | undefined;
@@ -48,14 +46,10 @@ export async function headingsPart(ctx: SheetsContext) {
 		shadow: 'none',
 		border: '1px solid rgb(93, 20, 43)',
 	});
-	e2e.expect(
-		"#505 A1 a journal text page's h3 and h4 take a sheet's sizes and rules, in the page and in its editor",
-		journalHeadings,
-		{
-			page: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 1) },
-			editor: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 0) },
-		},
-	);
+	e2e.expect("#505 A1 a journal text page's h3 and h4 take a sheet's sizes and rules, in the page and in its editor", journalHeadings, {
+		page: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 1) },
+		editor: { h3: journalHeading(1.25, '17.5px', 0), h4: journalHeading(1.1, '15.4px', 0) },
+	});
 
 	// #430: Foundry gives a chat message's headings its own sizes and colours. The headings of a description in the
 	// system's cards look as in the sheet that shows it, and a plain message's are left alone.

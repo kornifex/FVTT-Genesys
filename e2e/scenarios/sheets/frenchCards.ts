@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function frenchCardsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#82 GM sends a passive and an active ability to chat in French, and creates a character without skills', () =>

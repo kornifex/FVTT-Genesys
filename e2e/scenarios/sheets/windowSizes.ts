@@ -1,7 +1,5 @@
 import type { Size, SheetClosing, SheetsContext } from './shared.ts';
 
-
-
 export async function windowSizesPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	const sizedSheets = ['Hero', 'Rival', 'gear', 'archetype'];

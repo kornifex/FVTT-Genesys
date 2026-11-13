@@ -1,7 +1,5 @@
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function modificationColumnsPart(ctx: DicePromptContext) {
 	const { e2e, gm, seekerCheck } = ctx;
 	await gm.evaluate(() =>

@@ -1,7 +1,5 @@
 import type { SheetsContext } from './shared.ts';
 
-
-
 export async function tokenLabelsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	e2e.expect(

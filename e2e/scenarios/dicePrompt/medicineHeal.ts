@@ -1,8 +1,6 @@
 import type { Client } from '../../scenario.ts';
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function medicineHealPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, roll, setSetting, update, target, recoveryButton, recoveryCard, health } = ctx;
 	const cy = { actor: 'Cy' };

@@ -1,7 +1,5 @@
 import { type Doc, unranked, type DicePromptContext } from './shared.ts';
 
-
-
 export async function attackSkillsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, noPrompt, click, select, update, attack, skiff, combatWeapons } = ctx;
 	const inventoryWeapons = () => gm.evaluate(() => window.dicePromptE2E.inventoryWeapons('Ada'));

@@ -1,14 +1,11 @@
 import type { Client } from '../../scenario.ts';
 import { installCriticalInjuryHelpers, type DicePromptContext } from './shared.ts';
 
-
-
 export async function criticalInjuriesPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, roll, update, target, attack } = ctx;
 	for (const client of [gm, player]) await client.evaluate(installCriticalInjuryHelpers);
 	const previous = await gm.evaluate(() => window.criticalInjuryE2E.setUp());
-	const fromSheet = (client: Client, actor: string) =>
-		client.evaluate((actor) => window.criticalInjuryE2E.openFromSheet(actor), actor);
+	const fromSheet = (client: Client, actor: string) => client.evaluate((actor) => window.criticalInjuryE2E.openFromSheet(actor), actor);
 	const type = (client: Client, name: string, value: string) =>
 		client.evaluate((args) => window.criticalInjuryE2E.type(args), { name, value });
 	const rollCritical = async (client: Client, d100: number) => {

@@ -1,8 +1,6 @@
 import type { GlyphName } from '../../accessibility.ts';
 import type { DicePromptContext } from './shared.ts';
 
-
-
 export async function glyphLabelsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, roll, skillRoll, journal } = ctx;
 	const read = (names: GlyphName[]) => names.map(({ text, name }) => [text, name]);
