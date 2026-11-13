@@ -10,6 +10,7 @@ export async function magicAttackPart(ctx: DicePromptContext) {
 		const fire = {
 			id: 'fire',
 			name: 'Fire',
+			description: '<p>Sets the target ablaze.</p>',
 			difficulty: 1,
 			startsChecked: true,
 			qualities: [
@@ -73,6 +74,19 @@ export async function magicAttackPart(ctx: DicePromptContext) {
 			spellEffects: ['Fire'],
 			critical: { triggers: null, button: false },
 		},
+	);
+
+	e2e.expect(
+		"#760 MA2 the attack's card shows the description of Fire as its tooltip",
+		await gm.evaluate(() => {
+			const content = document.createElement('div');
+			content.innerHTML = game.messages.contents.at(-1).content;
+			return content
+				.querySelector('.spell-effect .name')
+				?.getAttribute('data-tooltip')
+				?.replace(/<[^>]*>/g, '');
+		}),
+		'Sets the target ablaze.',
 	);
 
 	await opened(gm, cast);

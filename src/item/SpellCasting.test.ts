@@ -137,16 +137,20 @@ const quality = (name: string, ratingSource: SpellQuality['ratingSource'], ratin
 
 describe('spellCast', () => {
 	const effects = [
-		{ id: 'blast', name: 'Blast', qualities: [quality('Blast', 'skillRanks')] },
-		{ id: 'impact', name: 'Impact', qualities: [quality('Knockdown', 'unrated')] },
-		{ id: 'fire', name: 'Fire', qualities: [quality('Burn', 'fixed', 2)] },
+		{ id: 'blast', name: 'Blast', description: '', qualities: [quality('Blast', 'skillRanks')] },
+		{ id: 'impact', name: 'Impact', description: '<p>Knocks the target down.</p>', qualities: [quality('Knockdown', 'unrated')] },
+		{ id: 'fire', name: 'Fire', description: '', qualities: [quality('Burn', 'fixed', 2)] },
 	];
 
 	it('lists the checked effects in the spell’s order, with the 2 strain casting costs (CRB p. 210)', () => {
 		expect(spellCast(effects, ['fire', 'impact'], () => 0)).toEqual({
 			effects: [
-				{ name: 'Impact', qualities: [{ name: 'Knockdown', description: '<p>Knockdown</p>', isRated: false, rating: 0 }] },
-				{ name: 'Fire', qualities: [{ name: 'Burn', description: '<p>Burn</p>', isRated: true, rating: 2 }] },
+				{
+					name: 'Impact',
+					description: '<p>Knocks the target down.</p>',
+					qualities: [{ name: 'Knockdown', description: '<p>Knockdown</p>', isRated: false, rating: 0 }],
+				},
+				{ name: 'Fire', description: '', qualities: [{ name: 'Burn', description: '<p>Burn</p>', isRated: true, rating: 2 }] },
 			],
 			strain: 2,
 		});

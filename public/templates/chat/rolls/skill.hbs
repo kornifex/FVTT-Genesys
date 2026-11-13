@@ -38,7 +38,7 @@
 				<ul class="spell-effects">
 					{{#each spell.effects}}
 						<li class="spell-effect">
-							<span class="name">{{name}}</span>
+							<span class="name" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}}</span>
 							{{#each qualities}}
 								<a class="quality" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}} {{#if isRated}}{{rating}}{{/if}}</a>
 							{{/each}}

@@ -117,7 +117,7 @@ type CastQuality = { name: string; description: string; isRated: boolean; rating
  * caster suffers.
  */
 export type SpellCast = {
-	effects: { name: string; qualities: CastQuality[] }[];
+	effects: { name: string; description: string; qualities: CastQuality[] }[];
 	strain: number;
 };
 
@@ -126,14 +126,18 @@ export type SpellCast = {
  * caster's ranks in a skill takes them from `ranksIn`.
  */
 export function spellCast(
-	effects: readonly Pick<ContainedAdditionalEffect, 'id' | 'name' | 'qualities'>[],
+	effects: readonly Pick<ContainedAdditionalEffect, 'id' | 'name' | 'description' | 'qualities'>[],
 	checked: readonly string[],
 	ranksIn: (skill: string) => number,
 ): SpellCast {
 	return {
 		effects: effects
 			.filter((effect) => checked.includes(effect.id))
-			.map(({ name, qualities }) => ({ name, qualities: qualities.map((quality) => castQuality(quality, ranksIn)) })),
+			.map(({ name, description, qualities }) => ({
+				name,
+				description,
+				qualities: qualities.map((quality) => castQuality(quality, ranksIn)),
+			})),
 		strain: CASTING_STRAIN,
 	};
 }

@@ -65,6 +65,7 @@ import {
 	spendOptions,
 } from '@/dice/CheckStoryPoints';
 import type { StoryPointPool } from '@/data/StoryPoints';
+import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
 import { canCheckEffect, difficultyAddedBy } from '@/item/SpellCasting';
 import { attackRangeOf, checkPurposeOf, poolModificationOriginLabel } from '@/dice/PromptCheck';
@@ -603,7 +604,9 @@ const spendId = useId();
 						:aria-describedby="canCheck(effect) ? undefined : `${effectId}-${effect.id}-why`"
 						@change="onEffectChange(effect, $event)"
 					/>
-					<label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label>
+					<DescriptionTooltip :description="effect.description"
+						><label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label></DescriptionTooltip
+					>
 					<Glyphs class="glyph" :glyphs="`+${DIE_GLYPHS.Difficulty.repeat(effect.difficulty)}`" />
 					<span v-if="!canCheck(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
 						<Localized label="Genesys.DicePrompt.BeyondFormidable" />
