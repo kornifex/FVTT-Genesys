@@ -3,6 +3,7 @@ type: skill
 img: icons/environment/people/infantry-army.webp
 system:
   description: ''
+  recoversStrain: true
   source: Core Rulebook, p.60
   characteristic: willpower
   category: general

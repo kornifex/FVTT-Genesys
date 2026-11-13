@@ -418,9 +418,6 @@ export function installDicePromptHelpers() {
 		'skillsCompendium',
 		'showDamageOnFailure',
 		'dicePoolCollapseModificationsDetails',
-		'skillForHealingWounds',
-		'skillForRecoveringStrain',
-		'alternativeSkillForRecoveringStrain',
 	];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 

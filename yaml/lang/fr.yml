@@ -55,12 +55,6 @@ Genesys:
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
     SkillForRepairingVehicleHitsHint: Nom de la compétence utilisée pour récupérer des dommages critiques.
-    SkillForHealingWounds: Nom de la compétence Médecine
-    SkillForHealingWoundsHint: "Nom de la compétence dont le jet soigne les blessures d'un patient, et à côté de laquelle s'affiche l'action Soigner."
-    SkillForRecoveringStrain: Nom de la compétence Discipline
-    SkillForRecoveringStrainHint: "Nom de la première des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit ; elle l'emporte en cas d'égalité."
-    AlternativeSkillForRecoveringStrain: Nom de la compétence Sang-froid
-    AlternativeSkillForRecoveringStrainHint: "Nom de la seconde des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit."
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
@@ -96,6 +90,8 @@ Genesys:
     HardPoints: >-
       La moitié de l'encombrement de base, arrondie au supérieur (livre de base, p. 206). Changez-la pour un objet qui fait exception ; videz le champ pour revenir à la valeur calculée.
     IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
+    HealsWounds: "Si le jet de la compétence soigne les blessures d'un patient, comme celui de Médecine (livre de base, p. 116). L'action Soigner s'affiche à côté de la compétence sur la fiche d'un personnage. Seule la compétence du compendium de compétences est lue."
+    RecoversStrain: "Si la compétence peut être jetée pour récupérer du stress à la fin d'une rencontre, comme Discipline et Sang-froid (livre de base, p. 117). Fin de rencontre s'ouvre sur la meilleure des compétences cochées. Seule la compétence du compendium de compétences est lue."
     CycleInitiativeSkill: Cycle de la compétence d'initiative utilisée par le combattant.
     AddExtraInitiativeSlot: Ajoute un slot supplémentaire pour l'initiative.
     Details: Détails
@@ -808,6 +804,8 @@ Genesys:
     RemainingMembers: Membres restants
     SkillNotFound: Compétence non trouvée
     IsInitiative: Est une compétence d'initiative ?
+    HealsWounds: Soigne les blessures ?
+    RecoversStrain: Récupère du stress à la fin d'une rencontre ?
     SkillDifficulty: Difficulté par défaut
     Equipped: Equipé
     Carried: Porté

@@ -11,6 +11,8 @@ import Tooltip from '@/vue/components/Tooltip.vue';
 
 const { system } = useSheetDocument<GenesysItem<'skill'>>();
 const initiativeId = useId();
+const healsWoundsId = useId();
+const recoversStrainId = useId();
 const difficultyId = useId();
 </script>
 
@@ -41,6 +43,22 @@ const difficultyId = useId();
 						/></Tooltip>
 					</label>
 					<input :id="initiativeId" type="checkbox" name="system.initiative" :checked="system.initiative" />
+				</div>
+
+				<div class="row">
+					<label :for="healsWoundsId">
+						<Tooltip content="Genesys.Tooltips.HealsWounds" localized><Localized label="Genesys.Labels.HealsWounds" /></Tooltip>
+					</label>
+					<input :id="healsWoundsId" type="checkbox" name="system.healsWounds" :checked="system.healsWounds" />
+				</div>
+
+				<div class="row">
+					<label :for="recoversStrainId">
+						<Tooltip content="Genesys.Tooltips.RecoversStrain" localized
+							><Localized label="Genesys.Labels.RecoversStrain"
+						/></Tooltip>
+					</label>
+					<input :id="recoversStrainId" type="checkbox" name="system.recoversStrain" :checked="system.recoversStrain" />
 				</div>
 
 				<div class="row">

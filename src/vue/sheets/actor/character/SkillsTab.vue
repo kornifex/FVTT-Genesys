@@ -25,7 +25,7 @@ import { healWithMedicine } from '@/operations/Healing';
 const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
 
-const isHealing = (skillName: string) => isHealingSkill(skillName, CONFIG.genesys.settings.skillForHealingWounds);
+const isHealing = (skillName: string) => isHealingSkill(skillName, CONFIG.genesys.skills);
 
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
 

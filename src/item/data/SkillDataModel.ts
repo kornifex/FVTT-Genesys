@@ -26,6 +26,18 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	abstract initiative: boolean;
 
 	/**
+	 * Whether the skill's check heals a patient's wounds, which shows the Heal action beside it (Medicine, CRB p. 116).
+	 * Only the Skills Compendium's skill is read.
+	 */
+	abstract healsWounds: boolean;
+
+	/**
+	 * Whether the skill can be rolled to recover strain at the end of an encounter (Discipline and Cool, CRB p. 117).
+	 * Only the Skills Compendium's skill is read.
+	 */
+	abstract recoversStrain: boolean;
+
+	/**
 	 * The Pool Modification glyphs of the difficulty the Dice Prompt opens at for the skill, empty for the world's
 	 * Default Difficulty. Only the Skills Compendium's skill is read: an actor's copy keeps the field, ignored.
 	 */
@@ -67,6 +79,8 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 			characteristic: choiceField(Object.values(Characteristic), Characteristic.Brawn),
 			category: choiceField(SKILL_CATEGORIES, 'general'),
 			initiative: new fields.BooleanField({ initial: false }),
+			healsWounds: new fields.BooleanField({ initial: false }),
+			recoversStrain: new fields.BooleanField({ initial: false }),
 			difficulty: new fields.StringField({
 				initial: '',
 				validate: (value: unknown) => typeof value === 'string' && isPoolModificationValue(value),

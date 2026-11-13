@@ -3,6 +3,7 @@ type: skill
 img: icons/magic/life/cross-beam-green.webp
 system:
   description: ''
+  healsWounds: true
   source: Core Rulebook, p.61
   characteristic: intellect
   category: general

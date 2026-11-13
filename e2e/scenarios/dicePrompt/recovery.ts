@@ -50,9 +50,18 @@ export async function recoveryPart(ctx: DicePromptContext) {
 			message: { speaker: 'Cy', text: 'Rests for the night. Strain recovered: 2. Wounds healed: 1.' },
 		},
 	);
-	// A world whose compendium names the two skills otherwise (§#727): the check picks between those the settings name.
-	await setSetting('skillForRecoveringStrain', 'E2E Serenite');
-	await setSetting('alternativeSkillForRecoveringStrain', 'e2e calme');
+	// A world whose Skills Compendium names the strain recovery skills otherwise (§#756): the check picks between the skills
+	// it marks « Recovers strain at the end of an encounter ».
+	await gm.evaluate(async () => {
+		const pack = await window.e2e.createCompendium({ label: 'E2E Strain Skills', name: 'e2e-strain-skills', type: 'Item' });
+		const skill = (name: string, characteristic: string) => ({
+			name,
+			type: 'skill',
+			system: { characteristic, recoversStrain: true },
+		});
+		await Item.create([skill('E2E Serenite', 'willpower'), skill('E2E Calme', 'presence')], { pack: pack.collection });
+	});
+	await setSetting('skillsCompendium', 'world.e2e-strain-skills');
 	await gm.evaluate(async () => {
 		const skill = (name: string, characteristic: string) => ({
 			name,
@@ -63,6 +72,27 @@ export async function recoveryPart(ctx: DicePromptContext) {
 		await window.e2e.settle();
 	});
 	const renamed = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
+	await player.evaluate(() => window.dicePromptE2E.closePrompts());
+	await gm.evaluate(async () => {
+		const calme = (await game.packs.get('world.e2e-strain-skills')!.getDocuments()).find(
+			(skill: { name: string }) => skill.name === 'E2E Calme',
+		);
+		await calme.update({ 'system.recoversStrain': false });
+	});
+	// The system reloads the skills of its Skills Compendium without waiting for the update, on each client.
+	for (const client of [gm, player]) {
+		await client.evaluate(async () => {
+			await window.e2e.waitFor(
+				'the reloaded skills',
+				() =>
+					CONFIG.genesys.skills.filter((loaded: { system: { recoversStrain: boolean } }) => loaded.system.recoversStrain)
+						.length === 1,
+			);
+			await window.e2e.settle();
+		});
+	}
+	const unticked = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
+	await player.evaluate(() => window.dicePromptE2E.closePrompts());
 	await gm.evaluate(async () => {
 		const cy = window.e2e.actor('Cy');
 		await cy.deleteEmbeddedDocuments(
@@ -73,12 +103,12 @@ export async function recoveryPart(ctx: DicePromptContext) {
 		);
 		await window.e2e.settle();
 	});
-	await setSetting('skillForRecoveringStrain', 'Discipline');
-	await setSetting('alternativeSkillForRecoveringStrain', 'Cool');
+	await setSetting('skillsCompendium', 'genesys.crb-skills');
+	await gm.evaluate(() => game.packs.get('world.e2e-strain-skills')?.deleteCompendium());
 	e2e.expect(
-		'#727 R4 with the two strain recovery skills renamed in the settings, End of encounter opens on the better of those',
-		{ skill: renamed.skill, pool: renamed.pool },
-		{ skill: 'E2E Calme (Pr)', pool: 'PAA|' },
+		'#756 R4 End of encounter opens on the better of the skills the Skills Compendium marks, whatever their names, and leaves one out once it is unticked',
+		{ marked: { skill: renamed.skill, pool: renamed.pool }, unticked: { skill: unticked.skill, pool: unticked.pool } },
+		{ marked: { skill: 'E2E Calme (Pr)', pool: 'PAA|' }, unticked: { skill: 'E2E Serenite (Will)', pool: 'PA|' } },
 	);
 	await e2e.step('recovery end');
 }

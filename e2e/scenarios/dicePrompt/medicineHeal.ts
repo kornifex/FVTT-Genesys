@@ -88,8 +88,15 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 		{ bo: { player: applied, gm: applied }, mark: applied, health: { wounds: 5, strain: 2 } },
 	);
 
-	// A world whose compendium names the healing skill otherwise (§#727): the Heal button follows the setting.
-	await setSetting('skillForHealingWounds', 'e2e sanatio');
+	// A world whose Skills Compendium names the healing skill otherwise (§#756): the Heal button follows its « Heals wounds » box.
+	await gm.evaluate(async () => {
+		const pack = await window.e2e.createCompendium({ label: 'E2E Healing Skills', name: 'e2e-healing-skills', type: 'Item' });
+		await Item.create(
+			{ name: 'E2E Sanatio', type: 'skill', system: { characteristic: 'intellect', healsWounds: true } },
+			{ pack: pack.collection },
+		);
+	});
+	await setSetting('skillsCompendium', 'world.e2e-healing-skills');
 	await gm.evaluate(async () => {
 		await window.e2e
 			.actor('Cy')
@@ -98,21 +105,36 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 			]);
 		await window.e2e.settle();
 	});
-	const healRows = await gm.evaluate(async () => {
-		const root = await window.e2e.render(window.e2e.actor('Cy').sheet);
-		return [...root.querySelectorAll('.tab-skills .skill')]
-			.filter((row) => row.querySelector('.heal'))
-			.map((row) => window.e2e.text(row.querySelector('.skill-name')));
+	const healRowsShown = () =>
+		gm.evaluate(async () => {
+			// The sheet reads the Skills Compendium when it opens, not when the compendium changes.
+			await window.e2e.actor('Cy').sheet.close();
+			const root = await window.e2e.render(window.e2e.actor('Cy').sheet);
+			return [...root.querySelectorAll('.tab-skills .skill')]
+				.filter((row) => row.querySelector('.heal'))
+				.map((row) => window.e2e.text(row.querySelector('.skill-name')));
+		});
+	const ticked = await healRowsShown();
+	await gm.evaluate(async () => {
+		const [skill] = await game.packs.get('world.e2e-healing-skills')!.getDocuments();
+		await skill.update({ 'system.healsWounds': false });
+		// The system reloads the skills of its Skills Compendium without waiting for the update.
+		await window.e2e.waitFor('the reloaded skills', () =>
+			CONFIG.genesys.skills.every((loaded: { system: { healsWounds: boolean } }) => !loaded.system.healsWounds),
+		);
+		await window.e2e.settle();
 	});
+	const unticked = await healRowsShown();
 	await gm.evaluate(async () => {
 		await window.e2e.actor('Cy').items.getName('E2E Sanatio').delete();
 		await window.e2e.settle();
 	});
-	await setSetting('skillForHealingWounds', 'Medicine');
+	await setSetting('skillsCompendium', 'genesys.crb-skills');
+	await gm.evaluate(() => game.packs.get('world.e2e-healing-skills')?.deleteCompendium());
 	e2e.expect(
-		'#727 H6 with the healing skill renamed in the settings, the Heal button shows beside it, and no longer beside Medicine',
-		healRows,
-		['E2E Sanatio (Int)'],
+		'#756 H6 a skill the Skills Compendium marks « Heals wounds » shows the Heal button, whatever its name, and none shows once it is unticked',
+		{ ticked, unticked },
+		{ ticked: ['E2E Sanatio (Int)'], unticked: [] },
 	);
 	await e2e.step('medicineHeal end');
 }

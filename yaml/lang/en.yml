@@ -55,12 +55,6 @@ Genesys:
     SkillForInjuriesHint: Name of the skill used when recovering from Critical Injuries.
     SkillForRepairingVehicleHits: Mechanics Skill Name
     SkillForRepairingVehicleHitsHint: Name of the skill used when recovering from Critical Hits.
-    SkillForHealingWounds: Medicine Skill Name
-    SkillForHealingWoundsHint: Name of the skill whose check heals a patient's wounds, which shows the Heal action beside it.
-    SkillForRecoveringStrain: Discipline Skill Name
-    SkillForRecoveringStrainHint: Name of the first of the two skills the check that recovers strain at the end of an encounter picks between; it wins a tie.
-    AlternativeSkillForRecoveringStrain: Cool Skill Name
-    AlternativeSkillForRecoveringStrainHint: Name of the second of the two skills the check that recovers strain at the end of an encounter picks between.
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
@@ -96,6 +90,8 @@ Genesys:
     HardPoints: >-
       Half the base encumbrance, rounded up (CRB p. 206). Change it for an item that is an exception; empty it to go back to the computed value.
     IsInitiative: Whether the skill is commonly used for Initiative or not. Setting this to true will make it appear as an option in the combat tracker for mass rolls.
+    HealsWounds: Whether the skill's check heals a patient's wounds, as Medicine's does (CRB p. 116). The Heal action shows beside the skill on a character's sheet. Only the Skills Compendium's skill is read.
+    RecoversStrain: Whether the skill can be rolled to recover strain at the end of an encounter, as Discipline and Cool can (CRB p. 117). End of Encounter opens on the better of the skills marked. Only the Skills Compendium's skill is read.
     CycleInitiativeSkill: Cycle which initiative skill the combatant is using.
     AddExtraInitiativeSlot: Adds an extra initiative slot.
     Details: Details
@@ -811,6 +807,8 @@ Genesys:
     RemainingMembers: Remaining Members
     SkillNotFound: Skill Not Found
     IsInitiative: Initiative Skill?
+    HealsWounds: Heals wounds?
+    RecoversStrain: Recovers strain at the end of an encounter?
     SkillDifficulty: Default Difficulty
     Equipped: Equipped
     Carried: Carried

@@ -16,6 +16,7 @@ import {
 	recoveryCard,
 	recoveryOf,
 	strainRecoverySkill,
+	strainRecoverySkillNames,
 } from '@/actor/Recovery';
 
 describe('medicineDifficulty', () => {
@@ -141,7 +142,18 @@ describe('strainRecoverySkill', () => {
 		expect(strainRecoverySkill(SKILLS, pools({}))).toBe('Discipline');
 	});
 
-	it('picks between the two skills the world names, the first winning a tie and answering when neither can be rolled', () => {
+	it('answers nothing when no skill is marked', () => {
+		expect(strainRecoverySkill([], pools({ Cool: [1, 0] }))).toBeUndefined();
+	});
+
+	it('picks among any number of skills the world marks, the first winning a tie', () => {
+		const three = ['Discipline', 'Cool', 'Faith'];
+
+		expect(strainRecoverySkill(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [3, 1] }))).toBe('Faith');
+		expect(strainRecoverySkill(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [2, 1] }))).toBe('Discipline');
+	});
+
+	it('picks among skills of any name, the first winning a tie and answering when neither can be rolled', () => {
 		const french = ['Discipline (fr)', 'Calme'] as const;
 
 		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [3, 1] }))).toBe('Calme');
@@ -215,16 +227,38 @@ describe('parseRecovery', () => {
 });
 
 describe('isHealingSkill', () => {
-	it('matches the skill the setting names, Medicine by default, whatever its case', () => {
-		expect([
-			isHealingSkill('Medicine', 'Medicine'),
-			isHealingSkill('medicine', 'Medicine'),
-			isHealingSkill('Mechanics', 'Medicine'),
-		]).toEqual([true, true, false]);
+	const compendium = (name: string, healsWounds: boolean) => ({ name, system: { healsWounds } });
+
+	it('matches a skill the Skills Compendium marks as healing wounds, whatever the case of its name', () => {
+		const skills = [compendium('Medicine', true), compendium('Mechanics', false)];
+
+		expect([isHealingSkill('Medicine', skills), isHealingSkill('medicine', skills), isHealingSkill('Mechanics', skills)]).toEqual([
+			true,
+			true,
+			false,
+		]);
 	});
 
 	it('follows the name a world gives the skill', () => {
-		expect([isHealingSkill('médecine', 'Médecine'), isHealingSkill('Medicine', 'Médecine')]).toEqual([true, false]);
+		const skills = [compendium('Médecine', true)];
+
+		expect([isHealingSkill('médecine', skills), isHealingSkill('Medicine', skills)]).toEqual([true, false]);
+	});
+
+	it('matches no skill when the Skills Compendium marks none', () => {
+		expect(isHealingSkill('Medicine', [compendium('Medicine', false)])).toBe(false);
+	});
+});
+
+describe('strainRecoverySkillNames', () => {
+	it('lists the skills the Skills Compendium marks as recovering strain, sorted by name whatever its order', () => {
+		const skills = [
+			{ name: 'Discipline', system: { recoversStrain: true } },
+			{ name: 'Brawl', system: { recoversStrain: false } },
+			{ name: 'Cool', system: { recoversStrain: true } },
+		];
+
+		expect(strainRecoverySkillNames(skills)).toEqual(['Cool', 'Discipline']);
 	});
 });
 

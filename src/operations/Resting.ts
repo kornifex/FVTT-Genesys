@@ -4,7 +4,7 @@
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
-import { healedPools, nightsRest, strainRecoverySkill } from '@/actor/Recovery';
+import { healedPools, nightsRest, strainRecoverySkill, strainRecoverySkillNames } from '@/actor/Recovery';
 import { DicePrompt } from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import { skillToRoll } from '@/data/Skills';
@@ -19,8 +19,7 @@ type Character = Stored<GenesysActor<'character'>>;
  * in the Dice Prompt.
  */
 export async function recoverAtEndOfEncounter(character: Character) {
-	const { skillForRecoveringStrain, alternativeSkillForRecoveringStrain } = CONFIG.genesys.settings;
-	const skillName = strainRecoverySkill([skillForRecoveringStrain, alternativeSkillForRecoveringStrain], (name) => {
+	const skillName = strainRecoverySkill(strainRecoverySkillNames(CONFIG.genesys.skills), (name) => {
 		const rolled = skillToRoll(character.skills, CONFIG.genesys.skills, name);
 		return (
 			rolled && {
@@ -31,9 +30,10 @@ export async function recoverAtEndOfEncounter(character: Character) {
 		);
 	});
 
-	await DicePrompt.promptForRoll(character, skillName, {
+	// Without a skill marked, the check is a Willpower Characteristic Check, Discipline's characteristic.
+	await DicePrompt.promptForRoll(character, skillName ?? '', {
 		difficulty: difficultyGlyphs({ level: 0, upgrades: 0 }),
-		// Discipline's characteristic, for a world whose Skills Compendium lacks both skills.
+		// Discipline's characteristic, for a world whose Skills Compendium marks no skill.
 		characteristic: Characteristic.Willpower,
 		recovery: { patient: character.uuid, rule: 'endOfEncounter' },
 	});

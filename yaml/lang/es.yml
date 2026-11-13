@@ -55,12 +55,6 @@ Genesys:
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
     SkillForRepairingVehicleHitsHint: Nombre de la habilidad utilizada al recuperarse de Daños críticos.
-    SkillForHealingWounds: Nombre de la habilidad Medicina
-    SkillForHealingWoundsHint: Nombre de la habilidad cuya tirada cura las heridas de un paciente, junto a la cual aparece la acción Curar.
-    SkillForRecoveringStrain: Nombre de la habilidad Disciplina
-    SkillForRecoveringStrainHint: Nombre de la primera de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro; gana en caso de empate.
-    AlternativeSkillForRecoveringStrain: Nombre de la habilidad Sangre fría
-    AlternativeSkillForRecoveringStrainHint: Nombre de la segunda de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro.
     DicePoolCollapseModifications: Colapsar la sección de modificaciones de la reserva
     DicePoolCollapseModificationsHint: Si está activada, la sección "modificaciones de la reserva" de la ventana de dados se colapsará durante la renderización inicial.
     DicePoolAutoApplyModifications: Aplicar automáticamente modificaciones en la reserva
@@ -96,6 +90,8 @@ Genesys:
     HardPoints: >-
       La mitad del impedimento base, redondeada hacia arriba (manual básico, p. 206). Cámbialo para un objeto que sea una excepción; vacíalo para volver al valor calculado.
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.
+    HealsWounds: Si la tirada de la habilidad cura las heridas de un paciente, como la de Medicina (manual básico, p. 116). La acción Curar aparece junto a la habilidad en la hoja de un personaje. Solo se lee la habilidad del compendio de habilidades.
+    RecoversStrain: Si la habilidad puede tirarse para recuperar tensión al final de un encuentro, como Disciplina y Sangre fría (manual básico, p. 117). Fin del encuentro se abre con la mejor de las habilidades marcadas. Solo se lee la habilidad del compendio de habilidades.
     CycleInitiativeSkill: Cambia la habilidad de iniciativa que utiliza el combatiente.
     AddExtraInitiativeSlot: Añade un puesto de iniciativa adicional.
     Details: Detalles
@@ -799,6 +795,8 @@ Genesys:
     RemainingMembers: Miembros restantes
     SkillNotFound: Habilidad no encontrada
     IsInitiative: ¿Habilidad de iniciativa?
+    HealsWounds: ¿Cura heridas?
+    RecoversStrain: ¿Recupera tensión al final de un encuentro?
     SkillDifficulty: Dificultad por defecto
     Equipped: Equipado
     Carried: Transportado
