@@ -120,7 +120,8 @@ function criticalInjuryFlag(check: Check, attack: AttackProfile, triggers: numbe
 		target: target?.actor?.uuid ?? null,
 		weapon: {
 			name: attack.attackName,
-			qualities: attack.qualities.map(({ name, isRated, rating }) => ({ name, isRated, rating })),
+			uuid: attack.weaponUuid ?? null,
+			qualities: attack.qualities.map(({ id, name, isRated, rating }) => ({ id, name, isRated, rating })),
 		},
 	};
 }

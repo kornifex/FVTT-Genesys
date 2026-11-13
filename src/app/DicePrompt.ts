@@ -254,7 +254,7 @@ function ranksOf(actor: GenesysActor | undefined) {
  */
 function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswer, actor: GenesysActor | undefined) {
 	if (roll.type === RollType.Attack) {
-		return roll.profile;
+		return { ...roll.profile, weaponUuid: roll.weapon.uuid };
 	}
 
 	if (roll.type !== RollType.Spell || !roll.spell.system.isAttack) {

@@ -4216,6 +4216,72 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 
+		// The Pistol gets Brutal 2, a quality whose effect adds 10 to the injuries its attacks inflict; the Revolver, which
+		// attacks with the same skill, has none (§#726).
+		await gm.evaluate(async () => {
+			const ada = window.e2e.actor('Ada');
+			const pistol = ada.items.getName('E2E Pistol');
+			await pistol.update({
+				'system.qualities': [
+					...pistol.system.qualities,
+					{ id: 'e2eBrutal', name: 'E2E Brutal', description: '', isRated: true, rating: 2 },
+				],
+			});
+			await pistol.createEmbeddedDocuments('ActiveEffect', [
+				{
+					name: 'E2E Brutal',
+					flags: { genesys: { quality: 'e2eBrutal' } },
+					changes: [{ key: 'genesys.critical.inflicted', value: '10', mode: 0 }],
+				},
+			]);
+			await ada.createEmbeddedDocuments('Item', [
+				{
+					name: 'E2E Revolver',
+					type: 'weapon',
+					system: { skills: ['Ranged (Light)'], range: 'medium', state: 'equipped', critical: 1 },
+				},
+			]);
+			await window.e2e.settle();
+		});
+		const criticalFromAttack = async (weapon: string) => {
+			await target('Rival');
+			await opened(gm, attack(weapon));
+			await gm.fixDice([
+				{ face: 12, faces: 12 },
+				{ face: 10, faces: 12 },
+				{ face: 1, faces: 8 },
+				{ face: 1, faces: 8 },
+			]);
+			await roll();
+			const dialog = await gm.evaluate(() => window.criticalInjuryE2E.openFromCard());
+			await gm.evaluate(() => window.criticalInjuryE2E.closePrompts());
+			return dialog.lines;
+		};
+		e2e.expect(
+			"#726 C8 an attack with a weapon carrying Brutal 2 lists the quality's +10 per rank in the Critical Injury dialog",
+			await criticalFromAttack('Pistol'),
+			[
+				'Extra triggers (+10 each past the first): 0',
+				'Vicious 2: 20',
+				'E2E Brutal (E2E Pistol) (attacker): 20',
+				'E2E Lethal (attacker): 20',
+				'Critical Injuries already suffered (1): 10',
+				'E2E Durable: -10',
+				'Free modifier: 0',
+			],
+		);
+		e2e.expect(
+			"#726 C9 an attack with another weapon of the same attacker doesn't list the quality",
+			await criticalFromAttack('Revolver'),
+			[
+				'Extra triggers (+10 each past the first): 0',
+				'E2E Lethal (attacker): 20',
+				'Critical Injuries already suffered (1): 10',
+				'E2E Durable: -10',
+				'Free modifier: 0',
+			],
+		);
+
 		await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
 		await e2e.step('Critical Injuries end');
 	});
