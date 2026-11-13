@@ -300,6 +300,7 @@ Genesys:
     WeaponSkills: Weapon Skills
     SpellSkills: Spell Skills
     BeyondFormidable: Would take the difficulty beyond Formidable.
+    EffectCount: '{effect}: Times Added' # The count of an additional effect the caster may add more than once, e.g. Range: Times Added
     PoolModifications:
       Title: Pool Modifications
       Cancel: 'Cancel: {modification}' # e.g. Cancel: Upgrade 1 Ability die
@@ -772,6 +773,7 @@ Genesys:
     AdditionalEffectDetails: '{effect} Details' # e.g. Blast Details, the button that shows a spell's additional effect in full
     AddedDifficulty: Added Difficulty # The Difficulty dice an additional effect adds to its spell
     StartsChecked: Checked When Cast? # Whether an additional effect starts checked when its spell is cast
+    Repeatable: Can Be Added More Than Once? # Whether the caster may add an additional effect several times, as Range
     ForAnAttack: For an Attack # The heading of what an additional effect gives a magic attack
     Unrated: Unrated
     FixedRating: Fixed Rating

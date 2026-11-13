@@ -298,6 +298,7 @@ Genesys:
     WeaponSkills: Compétences de l'arme
     SpellSkills: Compétences du sort
     BeyondFormidable: La difficulté dépasserait Exceptionnel.
+    EffectCount: '{effect} : nombre de fois'
     PoolModifications:
       Title: Modification de la réserve de dés
       Cancel: 'Annuler : {modification}'
@@ -768,6 +769,7 @@ Genesys:
     AdditionalEffectDetails: 'Détails de {effect}'
     AddedDifficulty: Difficulté ajoutée
     StartsChecked: Coché au lancement ?
+    Repeatable: Peut être ajouté plusieurs fois ?
     ForAnAttack: Pour une attaque
     Unrated: Sans indice
     FixedRating: Indice fixe

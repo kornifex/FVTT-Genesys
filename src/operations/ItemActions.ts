@@ -20,7 +20,7 @@ import type { EquipmentType } from '@/item/ItemTypes';
 import { attackProfile, vehicleAttackProfile, type WeaponProfile, type WeaponProfileData, weaponProfiles } from '@/item/WeaponProfiles';
 import { rollForCrew } from '@/operations/CrewRoll';
 import { pickPatient } from '@/operations/Healing';
-import { castingDifficulty, castingSkillName, initiallyCheckedEffects } from '@/item/SpellCasting';
+import { castingDifficulty, castingSkillName, initialEffectCounts } from '@/item/SpellCasting';
 import { difficultyGlyphs } from '@/dice/Difficulty';
 import { notify } from '@/notifications';
 
@@ -94,10 +94,10 @@ export async function castSpell(actor: Stored<GenesysActor>, spell: GenesysItem<
 		return;
 	}
 
-	const checkedEffects = initiallyCheckedEffects(difficulty, additionalEffects);
+	const effectCounts = initialEffectCounts(difficulty, additionalEffects);
 	await DicePrompt.promptForRoll(actor, skillName, {
-		roll: { type: RollType.Spell, spell, checkedEffects },
-		difficulty: difficultyGlyphs({ level: castingDifficulty(difficulty, additionalEffects, checkedEffects), upgrades: 0 }),
+		roll: { type: RollType.Spell, spell, effectCounts },
+		difficulty: difficultyGlyphs({ level: castingDifficulty(difficulty, additionalEffects, effectCounts), upgrades: 0 }),
 		recovery: patient && { patient: patient.uuid, rule: 'healSpell' },
 	});
 }

@@ -4,6 +4,8 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import Editor from '@/vue/components/Editor.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
+import Localized from '@/vue/components/Localized.vue';
+import { useEditable } from '@/vue/SheetContext';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
 import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { withoutIndex } from '@/arrays';
@@ -21,6 +23,8 @@ const props = defineProps<{
 	onChange: (additionalEffects: ContainedAdditionalEffect[]) => unknown;
 }>();
 
+const editable = useEditable();
+
 // The effects shown in full, by their id: the same effect added twice is two rows.
 const opened = ref(new Set<string>());
 
@@ -36,6 +40,10 @@ function detailsLabel(effect: string) {
 
 function changeDescription(index: number, description: string) {
 	return props.onChange(props.additionalEffects.map((effect, i) => (i === index ? { ...effect, description } : effect)));
+}
+
+function changeRepeatable(index: number, repeatable: boolean) {
+	return props.onChange(props.additionalEffects.map((effect, i) => (i === index ? { ...effect, repeatable } : effect)));
 }
 
 // Removing an effect asks first, naming it.
@@ -65,6 +73,16 @@ async function remove(index: number) {
 		</div>
 
 		<div v-if="opened.has(effect.id)" class="details">
+			<!-- The copy's own setting, so that an effect already on the spell needs no new drop to change it. -->
+			<label class="repeatable">
+				<input
+					type="checkbox"
+					:checked="effect.repeatable"
+					:disabled="!editable"
+					@change="changeRepeatable(index, ($event.currentTarget as HTMLInputElement).checked)"
+				/>
+				<Localized label="Genesys.Labels.Repeatable" />
+			</label>
 			<Editor
 				:name="`system.additionalEffects.${index}.description`"
 				:save="(description: string) => changeDescription(index, description)"
@@ -94,6 +112,13 @@ async function remove(index: number) {
 
 .details {
 	padding: 0.25rem 0 0.5rem 0.5rem;
+
+	.repeatable {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-bottom: 0.25rem;
+	}
 
 	.editor {
 		min-height: 6rem;

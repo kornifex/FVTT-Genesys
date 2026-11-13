@@ -67,6 +67,10 @@ async function removeQuality(index: number) {
 					<input :id="id" type="checkbox" name="system.startsChecked" :checked="system.startsChecked" />
 				</DataRow>
 
+				<DataRow label="Genesys.Labels.Repeatable" v-slot="{ id }">
+					<input :id="id" type="checkbox" name="system.repeatable" :checked="system.repeatable" />
+				</DataRow>
+
 				<!-- The tab's one section: an h3, as every section of a tab (§#584). -->
 				<h3 class="attack-heading"><Localized label="Genesys.Labels.ForAnAttack" /></h3>
 

@@ -60,8 +60,14 @@ export type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
  * The Additional Effects of a spell's Dice Prompt (§#705), as the caster reads them.
  */
 type PromptSpellEffects = {
-	/** Each effect: its label, the difficulty it adds, its checkbox, and why it is closed. */
-	effects: { name: string; adds: string; checked: boolean; disabled: boolean; why: string }[];
+	/**
+	 * Each effect: its label, the difficulty it adds, its checkbox, and why it is closed; an effect that can be added more
+	 * than once has its count instead, the highest it may reach, and whether its + shows (§#761).
+	 */
+	effects: (
+		| { name: string; adds: string; checked: boolean; disabled: boolean; why: string }
+		| { name: string; adds: string; count: number; max: number; canIncrease: boolean; why: string }
+	)[];
 	/** The Difficulty row's label: `Difficulty: Hard`. */
 	difficulty: string;
 	pool: string;
@@ -221,6 +227,8 @@ type DicePromptHelpers = {
 	promptSpellEffects(): PromptSpellEffects;
 	/** Clicks an Additional Effect's checkbox, by its label. */
 	promptCheckEffect(name: string): Promise<PromptSpellEffects>;
+	/** Clicks the + or the − of the count of an Additional Effect that can be added more than once, by its name. */
+	promptStepEffect(args: { name: string; direction: 1 | -1 }): Promise<PromptSpellEffects>;
 	/**
 	 * Clicks the prompt's roll button, then waits for the check's message, which comes after those of the spends: the
 	 * check's message, null when none was posted, the Story Point messages posted, and the prompts left open.
@@ -985,14 +993,22 @@ export function installDicePromptHelpers() {
 			const root = htmlOf(thePrompt())!;
 			return {
 				effects: [...root.querySelectorAll('.spell-effect')].map((row) => {
+					const adds = text(row.querySelector('.glyph'));
+					const why = text(row.querySelector('.why'));
+					const counter = row.querySelector('.effect-count');
+					if (counter) {
+						const value = counter.querySelector('.value')!;
+						return {
+							name: text(row.querySelector('.name')),
+							adds,
+							count: Number(value.getAttribute('aria-valuenow')),
+							max: Number(value.getAttribute('aria-valuemax')),
+							canIncrease: counter.querySelector('.increase') !== null,
+							why,
+						};
+					}
 					const input = row.querySelector('input')!;
-					return {
-						name: text(row.querySelector('label')),
-						adds: text(row.querySelector('.glyph')),
-						checked: input.checked,
-						disabled: input.disabled,
-						why: text(row.querySelector('.why')),
-					};
+					return { name: text(row.querySelector('label')), adds, checked: input.checked, disabled: input.disabled, why };
 				}),
 				difficulty: text(root.querySelector('.pool-modifications-difficulty > span')),
 				pool: poolPreview(root),
@@ -1005,6 +1021,18 @@ export function installDicePromptHelpers() {
 			);
 			if (!row) throw new Error(`No Additional Effect ${name}`);
 			row.querySelector('input')!.click();
+			await settle();
+			return window.dicePromptE2E.promptSpellEffects();
+		},
+
+		async promptStepEffect({ name, direction }) {
+			const row = [...htmlOf(thePrompt())!.querySelectorAll('.spell-effect')].find(
+				(candidate) => text(candidate.querySelector('.name')) === name,
+			);
+			if (!row) throw new Error(`No Additional Effect ${name} with a count`);
+			const step = row.querySelector<HTMLElement>(`.effect-count .${direction === 1 ? 'increase' : 'decrease'}`);
+			if (!step) throw new Error(`The count of ${name} can't go ${direction === 1 ? 'up' : 'down'}`);
+			step.click();
 			await settle();
 			return window.dicePromptE2E.promptSpellEffects();
 		},

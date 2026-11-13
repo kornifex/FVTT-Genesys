@@ -102,6 +102,7 @@ describe('additionalEffectCopy', () => {
 		description: '<p>Deadly</p>',
 		difficulty: 1,
 		startsChecked: false,
+		repeatable: false,
 		qualities: withSpellQualityAdded([], { name: 'Vicious', system: BLAST }) ?? [],
 		critical: 2,
 		doublesDamageCharacteristic: false,
@@ -115,5 +116,9 @@ describe('additionalEffectCopy', () => {
 		const copy = additionalEffectCopy('copy1', { name: 'Deadly', system: deadly });
 		copy.qualities[0].ratingSkill = 'Knowledge (Lore)';
 		expect(deadly.qualities[0].ratingSkill).toBe('Knowledge');
+	});
+
+	it('copies whether the effect can be added more than once, as Range can (CRB p. 215)', () => {
+		expect(additionalEffectCopy('copy1', { name: 'Range', system: { ...deadly, repeatable: true } }).repeatable).toBe(true);
 	});
 });

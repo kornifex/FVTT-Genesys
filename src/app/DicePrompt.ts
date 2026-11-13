@@ -16,7 +16,7 @@ import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { useUpEffects } from '@/effects/maneuverEffects';
 import { sufferCastingStrain } from '@/dice/castingStrain';
 import { ownedSkill } from '@/data/Skills';
-import { spellAttackProfile, spellCast } from '@/item/SpellCasting';
+import { type EffectCounts, spellAttackProfile, spellCast } from '@/item/SpellCasting';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -30,12 +30,12 @@ export const RollType = {
 
 /**
  * A check the Dice Prompt is answered for, and what its roll type needs on top of the dice pool: the weapon of an
- * attack and the Weapon Profile it is made with; the spell cast and the Additional Effects checked as the prompt opens.
+ * attack and the Weapon Profile it is made with; the spell cast and the Additional Effects added as the prompt opens.
  */
 export type DicePromptRoll =
 	| { type: typeof RollType.Skill }
 	| { type: typeof RollType.Attack; weapon: GenesysItem<'weapon' | 'vehicleWeapon'>; profile: AttackProfile }
-	| { type: typeof RollType.Spell; spell: GenesysItem<'spell'>; checkedEffects: string[] }
+	| { type: typeof RollType.Spell; spell: GenesysItem<'spell'>; effectCounts: EffectCounts }
 	| { type: typeof RollType.Initiative };
 
 /**
@@ -55,11 +55,11 @@ export type DicePromptContext = {
 };
 
 /**
- * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell the
- * ids of the Additional Effects checked. The target is the actor's uuid the prompt read as it opened.
+ * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell how
+ * many times each Additional Effect is added. The target is the actor's uuid the prompt read as it opened.
  */
 export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; targetUuid?: string } & (
-		| { type: typeof RollType.Spell; spellEffects: string[] }
+		| { type: typeof RollType.Spell; effectCounts: EffectCounts }
 		| { type: 'check' }
 	);
 
@@ -125,7 +125,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 
 		const cast =
 			app.roll.type === RollType.Spell && actor
-				? spellCast(app.roll.spell.system.additionalEffects, checkedEffectsOf(checkRoll), ranksOf(actor))
+				? spellCast(app.roll.spell.system.additionalEffects, effectCountsOf(checkRoll), ranksOf(actor))
 				: undefined;
 		const message = await rollCheck(checkRoll, {
 			attack: attackOf(app.roll, checkRoll, actor),
@@ -241,10 +241,10 @@ export function refuseUnusableWeapon(weapon: Pick<GenesysItem<'weapon' | 'vehicl
 }
 
 /**
- * The ids of the Additional Effects an answer checked: those of a spell's casting, none for any other check.
+ * How many times an answer added each Additional Effect: those of a spell's casting, none for any other check.
  */
-function checkedEffectsOf(answer: DicePromptAnswer) {
-	return answer.type === RollType.Spell ? answer.spellEffects : [];
+function effectCountsOf(answer: DicePromptAnswer): EffectCounts {
+	return answer.type === RollType.Spell ? answer.effectCounts : {};
 }
 
 /**
@@ -256,7 +256,7 @@ function ranksOf(actor: GenesysActor | undefined) {
 
 /**
  * The profile of the attack a check rolls: a weapon's, or the magic attack's of an attack spell, with the Additional
- * Effects checked. Its damage adds the characteristic linked to the skill rolled (CRB p. 215), the characteristic rolled
+ * Effects added. Its damage adds the characteristic linked to the skill rolled (CRB p. 215), the characteristic rolled
  * without one.
  */
 function attackOf(roll: DicePromptRoll, answer: DicePromptAnswer, actor: GenesysActor | undefined) {
@@ -274,7 +274,7 @@ function attackOf(roll: DicePromptRoll, answer: DicePromptAnswer, actor: Genesys
 		// Called before any die is rolled or message written, so that a bug here loses no roll.
 		throw new Error(`The magic attack of ${roll.spell.name} is rolled with neither a skill nor a characteristic.`);
 	}
-	return spellAttackProfile(roll.spell, checkedEffectsOf(answer), characteristic, ranksOf(actor));
+	return spellAttackProfile(roll.spell, effectCountsOf(answer), characteristic, ranksOf(actor));
 }
 
 /**

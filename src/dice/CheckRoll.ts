@@ -63,8 +63,9 @@ type CheckRollOptions = {
 
 /**
  * The data of the chat message that shows a check's roll: the check's card, or the attack's card with the Weapon Profile
- * an attack is rolled with. A spell's card lists its checked Additional Effects and the strain its caster suffers. A
- * check rolled for a recovery carries it in the message's flags, which its card's Apply button reads.
+ * an attack is rolled with. A spell's card lists the Additional Effects added to it, with their counts, and the strain
+ * its caster suffers. A check rolled for a recovery carries it in the message's flags, which its card's Apply button
+ * reads.
  */
 export async function checkMessageData(
 	check: Check,
@@ -146,8 +147,8 @@ function recoveryCardData(recovery: Recovery) {
 }
 
 /**
- * What a spell's card shows: its checked Additional Effects, with their qualities' descriptions enriched when it shows
- * them, and the strain the caster suffers.
+ * What a spell's card shows: the Additional Effects added to it, each with its count, with their qualities'
+ * descriptions enriched when it shows them, and the strain the caster suffers.
  */
 async function spellCardData({ effects, strain }: SpellCast, showsQualities: boolean) {
 	return {

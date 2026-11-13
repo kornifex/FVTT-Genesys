@@ -161,7 +161,7 @@ export function withSpellQualityAdded(
 
 /**
  * What an Additional Effect adds to a spell (CRB pp. 215–218): the difficulty it adds, whether it starts checked when the
- * spell is cast, and what it gives an attack.
+ * spell is cast and whether it can be added more than once, and what it gives an attack.
  */
 export type AdditionalEffectData = {
 	description: string;
@@ -173,6 +173,10 @@ export type AdditionalEffectData = {
 	 * Whether the effect starts checked when the spell is cast.
 	 */
 	startsChecked: boolean;
+	/**
+	 * Whether the caster may add the effect more than once, as Range says it may: any other is added once (CRB p. 215).
+	 */
+	repeatable: boolean;
 	/**
 	 * The qualities the effect gives an attack.
 	 */
@@ -192,8 +196,7 @@ export type AdditionalEffectData = {
  */
 export type ContainedAdditionalEffect = AdditionalEffectData & {
 	/**
-	 * The id of the copy, unique among the spell's effects: an effect that can be added more than once, as Range, is
-	 * dropped as many times.
+	 * The id of the copy, unique among the spell's effects: the same effect dropped twice is held twice.
 	 */
 	id: string;
 	name: string;
@@ -212,6 +215,7 @@ export function additionalEffectCopy(
 		description: system.description,
 		difficulty: system.difficulty,
 		startsChecked: system.startsChecked,
+		repeatable: system.repeatable,
 		qualities: system.qualities.map((quality) => ({ ...quality })),
 		critical: system.critical,
 		doublesDamageCharacteristic: system.doublesDamageCharacteristic,

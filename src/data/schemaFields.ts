@@ -191,8 +191,9 @@ export function qualitiesField() {
 
 /**
  * What an Additional Effect adds to a spell, as its item and the spell's copy of it both hold it: the difficulty it adds
- * (one Difficulty die by default, up to four: CRB pp. 215–218), whether it starts checked when the spell is cast, and
- * what it gives an attack.
+ * (one Difficulty die by default, up to four: CRB pp. 215–218), whether it starts checked when the spell is cast, whether
+ * it can be added more than once (off for the effects saved before it, which stay added once), and what it gives an
+ * attack.
  */
 export function additionalEffectFields() {
 	const fields = foundry.data.fields;
@@ -200,6 +201,7 @@ export function additionalEffectFields() {
 	return {
 		difficulty: new fields.NumberField({ required: true, nullable: false, integer: true, min: 1, max: 4, initial: 1 }),
 		startsChecked: new fields.BooleanField({ initial: false }),
+		repeatable: new fields.BooleanField({ initial: false }),
 		qualities: new fields.ArrayField(
 			new fields.SchemaField({
 				name: new fields.StringField(),

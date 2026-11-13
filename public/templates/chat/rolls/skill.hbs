@@ -31,14 +31,14 @@
 		{{#> attackQualities}}
 		{{/attackQualities}}
 
-		{{!-- The Additional Effects a spell is cast with, each with its qualities, and the strain casting costs the caster (CRB p. 210). --}}
+		{{!-- The Additional Effects a spell is cast with, each once with how many times it is added when more than once and its qualities, and the strain casting costs the caster (CRB p. 210). --}}
 		{{#if spell}}
 			{{#if spell.effects}}
 				<label>{{localize 'Genesys.Rolls.Spell.AdditionalEffects'}}</label>
 				<ul class="spell-effects">
 					{{#each spell.effects}}
 						<li class="spell-effect">
-							<span class="name" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}}</span>
+							<span class="name" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}}{{#if (gt count 1)}} ×{{count}}{{/if}}</span>
 							{{#each qualities}}
 								<a class="quality" data-tooltip="{{or description 'Genesys.Tooltips.NoDescription'}}">{{name}} {{#if isRated}}{{rating}}{{/if}}</a>
 							{{/each}}

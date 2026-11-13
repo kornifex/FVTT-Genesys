@@ -18,6 +18,11 @@ export abstract class AdditionalEffectDataModel extends BaseItemDataModel {
 	abstract startsChecked: boolean;
 
 	/**
+	 * Whether the caster may add the effect more than once (CRB p. 215).
+	 */
+	abstract repeatable: boolean;
+
+	/**
 	 * The qualities the effect gives an attack.
 	 */
 	abstract qualities: SpellQuality[];

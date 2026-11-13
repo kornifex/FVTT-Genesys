@@ -35,6 +35,7 @@ import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
 import { qualityAttachmentDescriptionsPart } from './dicePrompt/qualityAttachmentDescriptions.ts';
 import { spellCastingPart } from './dicePrompt/spellCasting.ts';
+import { repeatableEffectsPart } from './dicePrompt/repeatableEffects.ts';
 import { magicAttackPart } from './dicePrompt/magicAttack.ts';
 import { healSpellPart } from './dicePrompt/healSpell.ts';
 
@@ -315,6 +316,10 @@ export async function run(e2e: ScenarioContext) {
 	// S: casting a spell from the Magic tab, with its magic skill, at its difficulty raised by the Additional Effects
 	// checked in the Dice Prompt, never beyond Formidable, and the 2 strain it costs (§#705, CRB pp. 210–217).
 	await part('spellCasting', () => spellCastingPart(context));
+
+	// RE: an Additional Effect that can be added more than once, as Range, whose count in the Dice Prompt adds its
+	// difficulty each time, never beyond Formidable, and which the card lists once with its count (§#761, CRB p. 215).
+	await part('repeatableEffects', () => repeatableEffectsPart(context));
 
 	// MA: a magic attack, an attack spell whose card shows its damage, its effects' qualities and the Critical Injury it
 	// inflicts on a Triumph only, as it has no Critical rating (§#706, CRB p. 215).

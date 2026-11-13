@@ -36,6 +36,7 @@ const range = (id: string, difficulty = 1): ContainedAdditionalEffect => ({
 	description: '',
 	difficulty,
 	startsChecked: false,
+	repeatable: false,
 	qualities: [],
 	critical: null,
 	doublesDamageCharacteristic: false,
@@ -66,5 +67,18 @@ describe('AdditionalEffectRows', () => {
 
 		expect(confirmDelete).toHaveBeenCalledWith('Range');
 		expect(onChange).toHaveBeenCalledExactlyOnceWith([range('r1')]);
+	});
+
+	it('lets the copy on the spell be added more than once, from its details, without touching its twin', async () => {
+		const onChange = vi.fn();
+		const rows = mountRows([range('r1'), range('r2')], onChange);
+		const second = rows.findAll('.additional-effect')[1];
+
+		await second.get('button[aria-expanded]').trigger('click');
+		const checkbox = second.get<HTMLInputElement>('.repeatable input');
+		expect(checkbox.element.checked).toBe(false);
+		await checkbox.setValue(true);
+
+		expect(onChange).toHaveBeenCalledExactlyOnceWith([range('r1'), { ...range('r2'), repeatable: true }]);
 	});
 });
