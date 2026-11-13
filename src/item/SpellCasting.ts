@@ -6,7 +6,7 @@
 
 import { ownedSkill, type Skill } from '@/data/Skills';
 import type { CheckPurpose } from '@/dice/Check';
-import { FORMIDABLE } from '@/dice/Difficulty';
+import { FORMIDABLE, IMPOSSIBLE } from '@/dice/Difficulty';
 import { type ContainedAdditionalEffect, type SpellQuality, spellQualityRating } from '@/item/data/Spells';
 import type { DamageCharacteristic, RangeBand } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
@@ -93,12 +93,28 @@ export function maxEffectCount(spellDifficulty: number, effects: readonly CastEf
 }
 
 /**
- * The levels of difficulty adding an Additional Effect once adds to the level the roller has now: its own, as far as
- * Formidable lets it, and none from a level already at or beyond it (CRB p. 215). Taking it off once gives back exactly
- * these.
+ * How far the roller moved a spell's difficulty by hand from what the spell and its effects added give: a number of
+ * levels, below 0 for the free effects of an implement (CRB pp. 218–219), or an Impossible task.
  */
-export function difficultyAddedBy(level: number, effect: Pick<CastEffect, 'difficulty'>) {
-	return Math.max(0, Math.min(level + effect.difficulty, FORMIDABLE) - level);
+export type RollerChange = number | 'impossible';
+
+/**
+ * The roller's change that a difficulty level set by hand holds, given the effects added.
+ */
+export function rollerChange(level: number, spellDifficulty: number, effects: readonly CastEffect[], counts: EffectCounts): RollerChange {
+	return level >= IMPOSSIBLE ? 'impossible' : level - castingDifficulty(spellDifficulty, effects, counts);
+}
+
+/**
+ * The difficulty level of a spell's check: its casting difficulty moved by the roller's change, from Simple to Formidable,
+ * or Impossible whatever effects are added. Derived from the counts alone, so adding and taking off effects in any
+ * order lands on the same level.
+ */
+export function spellCheckLevel(spellDifficulty: number, effects: readonly CastEffect[], counts: EffectCounts, change: RollerChange) {
+	if (change === 'impossible') {
+		return IMPOSSIBLE;
+	}
+	return Math.max(0, Math.min(castingDifficulty(spellDifficulty, effects, counts) + change, FORMIDABLE));
 }
 
 /**

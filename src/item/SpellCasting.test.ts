@@ -4,16 +4,17 @@ import {
 	castingDifficulty,
 	castingSkillName,
 	castingStrain,
-	difficultyAddedBy,
 	initialEffectCounts,
 	maxEffectCount,
+	rollerChange,
 	spellAttackProfile,
 	spellCast,
+	spellCheckLevel,
 } from '@/item/SpellCasting';
 import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
 import { Characteristic } from '@/data/Characteristics';
 import { criticalTriggers } from '@/dice/CriticalInjuryRoll';
-import { AVERAGE, EASY } from '@/dice/Difficulty';
+import { AVERAGE, EASY, FORMIDABLE, HARD, IMPOSSIBLE } from '@/dice/Difficulty';
 import { attackDamage } from '@/item/Weapons';
 
 const skill = (name: string, rank: number) => ({ name, system: { rank } });
@@ -125,24 +126,48 @@ describe('maxEffectCount', () => {
 	});
 });
 
-describe('difficultyAddedBy', () => {
-	it('adds the effect’s difficulty from a level it fits under Formidable (CRB p. 215)', () => {
-		expect(difficultyAddedBy(AVERAGE, ADDITIONAL_TARGET)).toBe(2);
+describe('spellCheckLevel', () => {
+	// An Easy spell with Range and Additional Target (#790).
+	const EFFECTS = [RANGE, ADDITIONAL_TARGET];
+	const DAUNTING = 4;
+
+	it('keeps the roller’s change as effects come and go: Easy, Hard by hand, Additional Target, Range, Additional Target off is Daunting', () => {
+		const change = rollerChange(HARD, EASY, EFFECTS, {});
+		expect(change).toBe(2);
+		expect(spellCheckLevel(EASY, EFFECTS, { target: 1 }, change)).toBe(FORMIDABLE);
+		expect(spellCheckLevel(EASY, EFFECTS, { target: 1, range: 1 }, change)).toBe(FORMIDABLE);
+		expect(spellCheckLevel(EASY, EFFECTS, { target: 0, range: 1 }, change)).toBe(DAUNTING);
 	});
 
-	it('adds only what reaches Formidable, so that unchecking gives back as much (CRB p. 215)', () => {
-		expect(difficultyAddedBy(4, ADDITIONAL_TARGET)).toBe(1);
+	it('gives back the spell’s difficulty and the roller’s change once every effect is taken off, whatever the order', () => {
+		const change = rollerChange(HARD, EASY, EFFECTS, {});
+		expect(spellCheckLevel(EASY, EFFECTS, { target: 0, range: 0 }, change)).toBe(HARD);
 	});
 
-	it('adds nothing from Formidable, as a check never makes the task Impossible: checking then unchecking leaves it Formidable (CRB p. 215)', () => {
-		const formidable = 5;
-		const added = difficultyAddedBy(formidable, ADDITIONAL_TARGET);
-		expect(formidable + added).toBe(5);
-		expect(formidable + added - added).toBe(5);
+	it('returns to the level it left as Range is raised past Formidable and lowered again', () => {
+		const change = rollerChange(HARD, EASY, EFFECTS, {});
+		const levels = [0, 1, 2, 3, 4, 3, 2, 1, 0].map((range) => spellCheckLevel(EASY, EFFECTS, { range }, change));
+		expect(levels).toEqual([3, 4, 5, 5, 5, 5, 5, 4, 3]);
 	});
 
-	it('adds nothing from a level beyond Formidable', () => {
-		expect(difficultyAddedBy(6, ADDITIONAL_TARGET)).toBe(0);
+	it('keeps a difficulty lowered by hand for an implement’s free effect lowered by as much (CRB pp. 218–219)', () => {
+		// Curse with Enervate, which an implement gives for free: the roller lowers Hard to Average.
+		const change = rollerChange(AVERAGE, AVERAGE, CURSE_EFFECTS, { enervate: 1 });
+		expect(change).toBe(-1);
+		expect(spellCheckLevel(AVERAGE, CURSE_EFFECTS, { enervate: 1, target: 1 }, change)).toBe(DAUNTING);
+		expect(spellCheckLevel(AVERAGE, CURSE_EFFECTS, { enervate: 1, target: 0 }, change)).toBe(AVERAGE);
+		expect(spellCheckLevel(AVERAGE, CURSE_EFFECTS, { enervate: 0, target: 0 }, change)).toBe(EASY);
+	});
+
+	it('never goes below Simple', () => {
+		expect(spellCheckLevel(EASY, CURSE_EFFECTS, {}, -3)).toBe(0);
+	});
+
+	it('keeps an Impossible task Impossible as effects are added and taken off', () => {
+		const change = rollerChange(IMPOSSIBLE, AVERAGE, CURSE_EFFECTS, { target: 1 });
+		expect(change).toBe('impossible');
+		expect(spellCheckLevel(AVERAGE, CURSE_EFFECTS, { target: 0 }, change)).toBe(IMPOSSIBLE);
+		expect(spellCheckLevel(AVERAGE, CURSE_EFFECTS, { target: 1, enervate: 1 }, change)).toBe(IMPOSSIBLE);
 	});
 });
 
