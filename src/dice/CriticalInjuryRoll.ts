@@ -1,5 +1,6 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
-import { effectQuality, isOutrankedQuality, qualityIdOf, qualityNameKey, qualityRank } from '@/item/data/Qualities';
+import { effectTag } from '@/item/data/EffectTags';
+import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityNameKey, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
@@ -205,7 +206,7 @@ const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
  */
 function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: CriticalAttackWeapon | undefined): number | undefined {
 	const item = effect.originItem;
-	const qualityId = qualityIdOf(effect);
+	const qualityId = effectTag(effect, QUALITY_FLAG);
 	if (qualityId === undefined || !item) {
 		return item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
 	}

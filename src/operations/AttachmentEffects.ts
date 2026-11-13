@@ -2,7 +2,8 @@
 
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
-import { attachmentCopy, attachmentEffectsData, type ContainedAttachment } from '@/item/data/Attachments';
+import { ATTACHMENT_FLAG, attachmentCopy, type ContainedAttachment } from '@/item/data/Attachments';
+import { taggedEffectsData } from '@/item/data/EffectTags';
 
 /**
  * Installs an attachment item dropped on a weapon or an armor: its copy joins the item's attachments, even when the item
@@ -13,8 +14,9 @@ export async function installAttachment(item: GenesysItem<'weapon' | 'armor'>, d
 	const attachments: ContainedAttachment[] = [...item.system.attachments, copy];
 	await item.update({ system: { attachments } });
 
-	const effects = attachmentEffectsData(
+	const effects = taggedEffectsData(
 		dropped.effects.map((effect) => effect.toObject()),
+		ATTACHMENT_FLAG,
 		copy.id,
 	);
 	if (effects.length > 0) {

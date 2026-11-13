@@ -5,6 +5,7 @@
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withoutIndex } from '@/arrays';
+import { effectTag } from '@/item/data/EffectTags';
 
 /**
  * What identifies a quality by its name: the name without its surrounding spaces, whatever its case. Two qualities with
@@ -83,9 +84,9 @@ export function qualityLabel(quality: ContainedItemQuality) {
 export const QUALITY_FLAG = 'quality';
 
 /**
- * What this module reads of an effect: its id and its flags.
+ * What this module reads of an effect: its flags.
  */
-type TaggedEffect = { id: string | null; flags?: object };
+type TaggedEffect = { flags?: object };
 
 /**
  * What this module reads of a weapon's, a vehicle weapon's or an armor's data: its qualities, and a weapon's extra
@@ -106,18 +107,10 @@ export function itemQualities(system: object): ContainedItemQuality[] {
 }
 
 /**
- * The id of the quality an effect belongs to, or undefined when it belongs to none.
- */
-export function qualityIdOf(effect: Pick<TaggedEffect, 'flags'>): string | undefined {
-	const id = (effect.flags as { genesys?: Record<string, unknown> } | undefined)?.genesys?.[QUALITY_FLAG];
-	return typeof id === 'string' && id !== '' ? id : undefined;
-}
-
-/**
  * The quality of an item that an effect belongs to, or undefined when it belongs to none of the item's.
  */
-export function effectQuality(effect: Pick<TaggedEffect, 'flags'>, system: object | undefined): ContainedItemQuality | undefined {
-	const id = qualityIdOf(effect);
+export function effectQuality(effect: TaggedEffect, system: object | undefined): ContainedItemQuality | undefined {
+	const id = effectTag(effect, QUALITY_FLAG);
 	return id && system ? itemQualities(system).find((quality) => quality.id === id) : undefined;
 }
 
@@ -150,20 +143,9 @@ export function isOutrankedQuality(quality: RankedQuality, qualities: readonly R
  * once per weapon, at its highest rank (CRB pp. 86–89): Defensive 1 on two profiles of a shield raises melee defense by
  * one, not two. An armor's names are unique in its single list, so none of its qualities is outranked.
  */
-export function isOutrankedQualityEffect(effect: Pick<TaggedEffect, 'flags'>, system: object | undefined): boolean {
+export function isOutrankedQualityEffect(effect: TaggedEffect, system: object | undefined): boolean {
 	const quality = effectQuality(effect, system);
 	return !!quality && !!system && isOutrankedQuality(quality, itemQualities(system));
-}
-
-/**
- * The ids of an item's effects that belong to a quality the item no longer holds, which go with it.
- */
-export function orphanedQualityEffects(effects: Iterable<TaggedEffect>, system: object): string[] {
-	const ids = new Set(itemQualities(system).map((quality) => quality.id));
-	return [...effects].flatMap((effect) => {
-		const id = qualityIdOf(effect);
-		return effect.id && id && !ids.has(id) ? [effect.id] : [];
-	});
 }
 
 /**
@@ -181,15 +163,4 @@ export function qualityCopy(
 		advantageCost: system.advantageCost,
 		isRated: system.isRated,
 	};
-}
-
-/**
- * The data of the effects a weapon or an armor creates for a quality dropped on it: the quality item's effects, without
- * their ids, tagged with the quality's id on the weapon or armor.
- */
-export function qualityEffectsData<Data extends { _id?: unknown; flags?: object | null }>(effects: readonly Data[], id: string) {
-	return effects.map(({ _id: _ignored, ...data }) => {
-		const flags = (data.flags ?? {}) as { genesys?: object };
-		return { ...data, flags: { ...flags, genesys: { ...flags.genesys, [QUALITY_FLAG]: id } } };
-	});
 }

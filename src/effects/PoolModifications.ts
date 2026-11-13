@@ -13,8 +13,9 @@ import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, isOutrankedQualityEffect, qualityIdOf, qualityRank } from '@/item/data/Qualities';
-import { attachmentIdOf } from '@/item/data/Attachments';
+import { effectTag } from '@/item/data/EffectTags';
+import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
+import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
@@ -445,7 +446,8 @@ const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 // with that weapon, rather than every check its keys name, as an armor's do (#694, #702).
 function isWeaponAttackEffect(effect: PoolModificationEffect) {
 	return (
-		(qualityIdOf(effect) !== undefined || attachmentIdOf(effect) !== undefined) && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
+		(effectTag(effect, QUALITY_FLAG) !== undefined || effectTag(effect, ATTACHMENT_FLAG) !== undefined) &&
+		WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
 	);
 }
 
@@ -467,7 +469,9 @@ function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (ef
 // change every profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
 function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
 	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
-	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(qualityIdOf(effect) ?? '') || attachmentIdOf(effect) !== undefined);
+	return [...(weapon?.effects ?? [])].filter(
+		(effect) => ids.has(effectTag(effect, QUALITY_FLAG) ?? '') || effectTag(effect, ATTACHMENT_FLAG) !== undefined,
+	);
 }
 
 function effectModifications(

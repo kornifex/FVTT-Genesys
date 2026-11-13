@@ -2,7 +2,8 @@
 
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { QUALITY_FLAG, qualityEffectsData } from '@/item/data/Qualities';
+import { taggedEffectsData } from '@/item/data/EffectTags';
+import { QUALITY_FLAG } from '@/item/data/Qualities';
 import { newEffectData } from '@/effects/NewEffect';
 
 /**
@@ -15,8 +16,9 @@ export async function copyQualityEffects(item: GenesysItem, dropped: GenesysItem
 		return;
 	}
 
-	const effects = qualityEffectsData(
+	const effects = taggedEffectsData(
 		dropped.effects.map((effect) => effect.toObject()),
+		QUALITY_FLAG,
 		id,
 	);
 	if (effects.length > 0) {
