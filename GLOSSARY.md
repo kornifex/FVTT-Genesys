@@ -205,7 +205,7 @@ A magic action written as an item, which a character owns as they own an ability
 _Avoid_: Power, incantation
 
 **Additional Effect**:
-An option a spell's caster may add to it, written as an item (Tables III.2–5 to III.2–11): the Difficulty dice it adds, whether it starts checked when the spell is cast, and for an attack the qualities it gives, each unrated, at a fixed rating or at the caster's ranks in a skill (Knowledge by default), the Critical rating it gives, and whether it doubles the damage characteristic. Dropped on a spell, it is copied whole, as a quality is on a weapon; the same effect dropped twice is held twice. A quality dropped on it gives its data alone, without its Active Effects.
+An option a spell's caster may add to it, written as an item (Tables III.2–5 to III.2–11): the Difficulty dice it adds, whether it starts checked when the spell is cast, whether it can be added more than once, as Range, which the Dice Prompt then counts in place of a checkbox, and for an attack the qualities it gives, each unrated, at a fixed rating or at the caster's ranks in a skill (Knowledge by default), the Critical rating it gives, and whether it doubles the damage characteristic. Dropped on a spell, it is copied whole, as a quality is on a weapon; the same effect dropped twice is held twice. A quality dropped on it gives its data alone, without its Active Effects.
 _Avoid_: Spell effect, modifier
 
 ### Table

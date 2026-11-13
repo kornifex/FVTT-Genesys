@@ -13,6 +13,7 @@ import { EQUIPMENT_DAMAGE_LABELS } from '@/item/data/EquipmentDamage';
 import { useSheetContext } from '@/vue/SheetContext';
 import { usePromptAnswer } from '@/vue/usePrompt';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import Counter from '@/vue/components/Counter.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -67,7 +68,7 @@ import {
 import type { StoryPointPool } from '@/data/StoryPoints';
 import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
-import { canCheckEffect, difficultyAddedBy } from '@/item/SpellCasting';
+import { difficultyAddedBy, type EffectCounts, maxEffectCount } from '@/item/SpellCasting';
 import { attackRangeOf, checkPurposeOf, poolModificationOriginLabel } from '@/dice/PromptCheck';
 
 type AlsoNone<T> = T | undefined;
@@ -126,17 +127,23 @@ const spends = computed(() => chosenSpends(chosen.value, spendContext.value));
 const options = computed(() => spendOptions(chosen.value, spendContext.value));
 const canRoll = computed(() => canRollWithSpends(spends.value, impossible.value));
 
-// The ids of the spell's Additional Effects the caster checked: those that start checked, as the difficulty received
-// counts them already.
-const checkedEffects = ref<string[]>(context.value.roll.type === RollType.Spell ? [...context.value.roll.checkedEffects] : []);
+// How many times the caster adds each of the spell's Additional Effects: once each that starts checked, as the difficulty
+// received counts them already.
+const effectCounts = ref<EffectCounts>(context.value.roll.type === RollType.Spell ? { ...context.value.roll.effectCounts } : {});
 const spellEffects = spell?.system.additionalEffects ?? [];
-// The levels each checked effect added to the difficulty, which unchecking it gives back. Those checked as the prompt
-// opens added their whole difficulty, as the difficulty received counts them already.
+// The levels each time an effect was added added to the difficulty, the last one last: taking the effect off once gives
+// back the last one's. Those added as the prompt opens added their whole difficulty, as the difficulty received counts
+// them already.
 const addedByEffect = new Map(
-	spellEffects.filter((effect) => checkedEffects.value.includes(effect.id)).map((effect) => [effect.id, effect.difficulty]),
+	spellEffects.map((effect) => [effect.id, Array.from({ length: effectCounts.value[effect.id] ?? 0 }, () => effect.difficulty)]),
 );
-const canCheck = (effect: ContainedAdditionalEffect) =>
-	!!spell && canCheckEffect(spell.system.difficulty, spellEffects, checkedEffects.value, effect);
+const countOf = (effect: ContainedAdditionalEffect) => effectCounts.value[effect.id] ?? 0;
+const maxCount = (effect: ContainedAdditionalEffect) =>
+	spell ? maxEffectCount(spell.system.difficulty, spellEffects, effectCounts.value, effect) : 0;
+// Formidable stops an effect being added: a checkbox that can't be checked, or a count that can't go up.
+const beyondFormidable = (effect: ContainedAdditionalEffect) =>
+	effect.repeatable ? countOf(effect) >= maxCount(effect) : maxCount(effect) === 0;
+const hasCounts = spellEffects.some((effect) => effect.repeatable);
 
 // What each spend buys, and the short name of the pool it comes from.
 const SPEND_LABELS: Record<CheckSpend, string> = {
@@ -378,21 +385,31 @@ function onDifficultyDieClick(die: number) {
 }
 
 /**
- * Check or uncheck one of the spell's Additional Effects, which raises or lowers the difficulty by its own (CRB p. 215),
- * from whatever level the roller left it at.
+ * Add one of the spell's Additional Effects as many times as the count given, within what Formidable allows. Each time
+ * it is added raises the difficulty by its own (CRB p. 215), from whatever level the roller left it at; each time it is
+ * taken off gives back what the last one added.
  */
-function onEffectChange(effect: ContainedAdditionalEffect, event: Event) {
-	const checked = (event.currentTarget as HTMLInputElement).checked;
-	const others = checkedEffects.value.filter((id) => id !== effect.id);
-	checkedEffects.value = checked ? [...others, effect.id] : others;
-	const added = checked ? difficultyAddedBy(difficulty.value.level, effect) : -(addedByEffect.get(effect.id) ?? 0);
-	if (checked) {
-		addedByEffect.set(effect.id, added);
-	} else {
-		addedByEffect.delete(effect.id);
+function setEffectCount(effect: ContainedAdditionalEffect, count: number) {
+	const target = Math.max(0, Math.min(count, maxCount(effect)));
+	const added = addedByEffect.get(effect.id) ?? [];
+	let level = difficulty.value.level;
+	while (added.length < target) {
+		const levels = difficultyAddedBy(level, effect);
+		added.push(levels);
+		level += levels;
 	}
-	difficulty.value = withLevel(difficulty.value, difficulty.value.level + added);
+	while (added.length > target) {
+		// The loop runs while the list holds an entry.
+		level -= added.pop()!;
+	}
+	addedByEffect.set(effect.id, added);
+	effectCounts.value = { ...effectCounts.value, [effect.id]: target };
+	difficulty.value = withLevel(difficulty.value, level);
 	buildDicePool();
+}
+
+function effectCountLabel(effect: ContainedAdditionalEffect) {
+	return game.i18n.format('Genesys.DicePrompt.EffectCount', { effect: effect.name });
 }
 
 function onSpendChange(spend: CheckSpend, event: Event) {
@@ -438,7 +455,7 @@ usePromptAnswer<DicePromptAnswer>(() => {
 		spends: spends.value,
 		targetUuid: target?.uuid ?? undefined,
 	};
-	return spell ? { ...answered, type: RollType.Spell, spellEffects: [...checkedEffects.value] } : { ...answered, type: 'check' };
+	return spell ? { ...answered, type: RollType.Spell, effectCounts: { ...effectCounts.value } } : { ...answered, type: 'check' };
 });
 
 const superCharacteristicId = useId();
@@ -589,26 +606,42 @@ const spendId = useId();
 			</template>
 		</DescriptionFold>
 
-		<!-- Out of the Pool Modifications' fold: the Additional Effects checked change the spell, not only its dice; an Impossible
+		<!-- Out of the Pool Modifications' fold: the Additional Effects added change the spell, not only its dice; an Impossible
 		task's point, without which it can't be rolled, stays in sight. -->
 		<div class="choices">
-			<fieldset v-if="spellEffects.length > 0" class="spell-effects">
+			<!-- An effect that can be added more than once has a count in place of its checkbox, named after the effect. -->
+			<fieldset v-if="spellEffects.length > 0" :class="['spell-effects', { 'has-counts': hasCounts }]">
 				<legend><Localized label="Genesys.Labels.AdditionalEffects" /></legend>
 				<div v-for="effect in spellEffects" :key="effect.id" class="spell-effect">
-					<input
-						:id="`${effectId}-${effect.id}`"
-						type="checkbox"
-						:name="`effect-${effect.id}`"
-						:checked="checkedEffects.includes(effect.id)"
-						:disabled="!canCheck(effect)"
-						:aria-describedby="canCheck(effect) ? undefined : `${effectId}-${effect.id}-why`"
-						@change="onEffectChange(effect, $event)"
-					/>
-					<DescriptionTooltip :description="effect.description"
-						><label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label></DescriptionTooltip
-					>
+					<template v-if="effect.repeatable">
+						<Counter
+							class="effect-count"
+							:label="effectCountLabel(effect)"
+							:value="countOf(effect)"
+							:max="maxCount(effect)"
+							@step="setEffectCount(effect, countOf(effect) + $event)"
+							@type="setEffectCount(effect, $event)"
+						/>
+						<DescriptionTooltip :description="effect.description"
+							><span class="name">{{ effect.name }}</span></DescriptionTooltip
+						>
+					</template>
+					<template v-else>
+						<input
+							:id="`${effectId}-${effect.id}`"
+							type="checkbox"
+							:name="`effect-${effect.id}`"
+							:checked="countOf(effect) > 0"
+							:disabled="beyondFormidable(effect)"
+							:aria-describedby="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
+							@change="setEffectCount(effect, ($event.currentTarget as HTMLInputElement).checked ? 1 : 0)"
+						/>
+						<DescriptionTooltip :description="effect.description"
+							><label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label></DescriptionTooltip
+						>
+					</template>
 					<Glyphs class="glyph" :glyphs="`+${DIE_GLYPHS.Difficulty.repeat(effect.difficulty)}`" />
-					<span v-if="!canCheck(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
+					<span v-if="beyondFormidable(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
 						<Localized label="Genesys.DicePrompt.BeyondFormidable" />
 					</span>
 				</div>
@@ -1066,6 +1099,12 @@ $target-size: 24px;
 				color: appv1.$text-secondary;
 			}
 		}
+	}
+
+	// The − of a count shows left of it, past the row's edge: the rows keep room for it, every one of them, so that the
+	// effects' names stay in line.
+	.spell-effects.has-counts .spell-effect {
+		padding-inline-start: 0.75rem;
 	}
 
 	.chance-to-succeed {

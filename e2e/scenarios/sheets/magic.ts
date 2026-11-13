@@ -200,5 +200,37 @@ export async function magicPart(ctx: SheetsContext) {
 	await e2e.step("#704 M6 GM clicks Show the Magic Tab in the Mage's window menu", () => clickMenuEntry('showMagicTab'));
 	e2e.expect('#704 M6 the Magic tab is back', (await mageSheet()).tabs.includes('magic'), true);
 
+	e2e.expect(
+		"#761 M7 the Additional Effect's sheet offers « Can Be Added More Than Once? », off, and checking it saves it on the item",
+		await gm.evaluate(async () => {
+			const effect = game.items.getName('E2E additionalEffect');
+			const root = await window.e2e.render(effect.sheet);
+			const input = root.querySelector<HTMLInputElement>('input[name="system.repeatable"]')!;
+			const label = root.querySelector(`label[for="${input.id}"]`)?.textContent?.trim();
+			const before = input.checked;
+			input.click();
+			await window.e2e.settle();
+			return { label, before, saved: effect.system.repeatable };
+		}),
+		{ label: 'Can Be Added More Than Once?', before: false, saved: true },
+	);
+	e2e.expect(
+		"#761 M8 the spell's copies, dropped before, stay added once; the checkbox in the second's details makes it alone repeatable",
+		await gm.evaluate(async () => {
+			const spell = game.items.getName('E2E spell');
+			const repeatable = () => spell.system.additionalEffects.map((effect: { repeatable: boolean }) => effect.repeatable);
+			const before = repeatable();
+			const root = await window.e2e.render(spell.sheet);
+			const second = root.querySelectorAll('.additional-effect')[1];
+			second.querySelector<HTMLElement>('button[aria-expanded]')!.click();
+			await window.e2e.settle();
+			const label = second.querySelector('.repeatable')?.textContent?.trim();
+			second.querySelector<HTMLInputElement>('.repeatable input')!.click();
+			await window.e2e.settle();
+			return { before, label, after: repeatable() };
+		}),
+		{ before: [false, false], label: 'Can Be Added More Than Once?', after: [false, true] },
+	);
+
 	await gm.evaluate(() => window.sheetsE2E.closeAll());
 }
