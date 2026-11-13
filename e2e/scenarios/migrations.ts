@@ -1,4 +1,4 @@
-/** @file #56, #102, #280, #441 and #418: the migrations a world runs on load, over its actors, its unlinked tokens, its actor compendiums and its combats, once. */
+/** @file #56, #102, #280, #441, #418 and #724: the migrations a world runs on load, over its actors, its unlinked tokens, its actor compendiums and its combats, once. */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -29,7 +29,11 @@ type WorldState = {
 	/** The talent purchases of a character's Experience Journal, as `<name recorded> → <the talent its id names>`. */
 	purchases: Record<'Elder', string[]>;
 	combat: CombatState;
+	/** The changes of an actor's effects that hold a status, as `<status>: <key> <type> <value>`, and its total defense. */
+	provided: Record<'Sentry' | 'Lookout token' | 'Lookout base' | 'Scout pack', ProvidedDefense>;
 };
+
+type ProvidedDefense = { changes: string[]; defense: { melee: number; ranged: number } };
 
 /**
  * What the system reads of the combat this scenario seeds, by combatant name, and the `genesys` flags it still holds.
@@ -207,6 +211,32 @@ function installMigrationHelpers() {
 		items: [...actor.items].flatMap((item) => [...item.effects].map((effect) => `${item.name} / ${shownEffect(effect)}`)).sort(),
 	});
 
+	// #724: the In Cover state and the Guarded Stance maneuver as 0.7.0-rc.1 put them on an actor, adding to its own defense.
+	const rc1Cover = () => ({ ...effect('In Cover', 'defense.ranged', 1), img: 'icons/svg/barrel.svg', statuses: ['cover'] });
+	const rc1GuardedStance = () => ({ ...effect('Guarded Stance', 'defense.melee', 1), statuses: ['guardedStance'] });
+	type StatusChange = { key: string; value: string; type?: string; mode?: number };
+	// v13: a change has a numeric mode, which v14 replaced with a type, and warns of when read.
+	const changeType = (change: StatusChange) => {
+		if (change.type) return change.type;
+		const { ADD, UPGRADE } = CONST.ACTIVE_EFFECT_MODES;
+		return change.mode === ADD ? 'add' : change.mode === UPGRADE ? 'upgrade' : String(change.mode);
+	};
+	const providedOf = (actor: {
+		effects: { statuses: Set<string>; changes: StatusChange[] }[];
+		system: { totalDefense: { melee: number; ranged: number } };
+	}): ProvidedDefense => ({
+		changes: [...actor.effects]
+			.flatMap((statusEffect) =>
+				[...statusEffect.statuses].flatMap((status) =>
+					statusEffect.changes.map(
+						(change) => `${status}: ${change.key.replace(/^system\./, '')} ${changeType(change)} ${change.value}`,
+					),
+				),
+			)
+			.sort(),
+		defense: { melee: actor.system.totalDefense.melee, ranged: actor.system.totalDefense.ranged },
+	});
+
 	type Purchase = { type: string; data: { name: string; id?: string } };
 	type Journaled = { system: { experienceJournal: { entries: Purchase[] } }; items: { get(id: string): { name: string } | undefined } };
 	const talent = (name: string) => item(name, 'talent', [], { tier: 1, rank: 1 });
@@ -339,6 +369,16 @@ function installMigrationHelpers() {
 			await v2Token.update({ 'system.passengers.list': crew.passengers.list, 'system.roles': crew.roles });
 			await tokenActor('Raider').createEmbeddedDocuments('ActiveEffect', [copyOf(raider.id, hide, { changes: change('soak', 3) })]);
 
+			// #724: 0.7.0-rc.1's cover and Guarded Stance on a world character wearing an armor of defense 1, and cover on the
+			// unlinked token of an adversary whose stat block gives ranged defense 1, its base actor holding none.
+			const shield = () => item('E2E Shield', 'armor', [], { state: 'equipped', defense: 1 });
+			await Actor.create({ name: 'E2E Sentry', type: 'character', items: [shield()], effects: [rc1Cover(), rc1GuardedStance()] });
+			const lookout = await Actor.create({ name: 'E2E Lookout', type: 'rival', system: { defense: { melee: 0, ranged: 1 } } });
+			await migrationScene.createEmbeddedDocuments('Token', [
+				{ name: 'E2E Lookout', actorId: lookout.id, actorLink: false, x: 500, y: 100 },
+			]);
+			await tokenActor('Lookout').createEmbeddedDocuments('ActiveEffect', [rc1Cover()]);
+
 			// A locked world compendium holding a vehicle and a character with an edited copy.
 			const pack = await window.e2e.createCompendium({ label: 'E2E Migrations', type: 'Actor' });
 			await Actor.create({ name: 'E2E V3', type: 'vehicle', system: crewWithIds() }, { pack: pack.collection });
@@ -347,6 +387,10 @@ function installMigrationHelpers() {
 			await packed.createEmbeddedDocuments('ActiveEffect', [
 				copyOf(packed.id, steady, { name: 'E2E Steady (edited)', changes: change('strain.max', 2) }),
 			]);
+			await Actor.create(
+				{ name: 'E2E Scout', type: 'character', items: [shield()], effects: [rc1Cover()] },
+				{ pack: pack.collection },
+			);
 			await packNamed('E2E Migrations').configure({ locked: true });
 
 			// An unlocked world compendium holding a character with an edited copy, as an older compendium held it.
@@ -514,6 +558,12 @@ function installMigrationHelpers() {
 				},
 				purchases: { Elder: purchasesOf(actorNamed('Elder')) },
 				combat: combatState(),
+				provided: {
+					Sentry: providedOf(actorNamed('Sentry')),
+					'Lookout token': providedOf(tokenActor('Lookout')),
+					'Lookout base': providedOf(actorNamed('Lookout')),
+					'Scout pack': providedOf(await packActor('E2E Migrations', 'Scout')),
+				},
 			};
 		},
 
@@ -600,6 +650,26 @@ const MIGRATED_MIRA = {
 	],
 };
 
+// #724: Sentry and Scout wear an armor of defense 1, Lookout's stat block gives ranged defense 1 (CRB p. 106).
+const LEGACY_PROVIDED: WorldState['provided'] = {
+	Sentry: {
+		changes: ['cover: defense.ranged add 1', 'guardedStance: defense.melee add 1'],
+		defense: { melee: 2, ranged: 2 },
+	},
+	'Lookout token': { changes: ['cover: defense.ranged add 1'], defense: { melee: 0, ranged: 2 } },
+	'Lookout base': { changes: [], defense: { melee: 0, ranged: 1 } },
+	'Scout pack': { changes: ['cover: defense.ranged add 1'], defense: { melee: 1, ranged: 2 } },
+};
+const MIGRATED_PROVIDED: WorldState['provided'] = {
+	Sentry: {
+		changes: ['cover: providedDefense.ranged upgrade 1', 'guardedStance: providedDefense.melee upgrade 1'],
+		defense: { melee: 1, ranged: 1 },
+	},
+	'Lookout token': { changes: ['cover: providedDefense.ranged upgrade 1'], defense: { melee: 0, ranged: 1 } },
+	'Lookout base': { changes: [], defense: { melee: 0, ranged: 1 } },
+	'Scout pack': { changes: ['cover: providedDefense.ranged upgrade 1'], defense: { melee: 1, ranged: 1 } },
+};
+
 export const isolated = true;
 
 export async function run(e2e: ScenarioContext) {
@@ -674,7 +744,13 @@ export async function run(e2e: ScenarioContext) {
 	};
 
 	await gm.evaluate(() => window.migrationsE2E.rollBack());
-	e2e.log('legacy world at migration version 0', await gm.evaluate(() => window.migrationsE2E.state()));
+	const legacy = await gm.evaluate(() => window.migrationsE2E.state());
+	e2e.log('legacy world at migration version 0', legacy);
+	e2e.expect(
+		"#724 A1 before the migration, 0.7.0-rc.1's cover and Guarded Stance add to the defense, stacking with the armor's",
+		legacy.provided,
+		LEGACY_PROVIDED,
+	);
 
 	// #56 and #102: the first load as GM runs every migration.
 	const migrated = await reload('GM loads the world at migration version 0');
@@ -683,7 +759,12 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 6);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 7);
+	e2e.expect(
+		'#724 A2 cover and Guarded Stance of a world actor, an unlinked token and a locked compendium provide their defense, the best kept',
+		migrated.provided,
+		MIGRATED_PROVIDED,
+	);
 	e2e.expect(
 		"#418 A1 a combat saved by 0.5.0 keeps its turn order, current turn, Claim, Extra Slot and chosen Initiative Skill, its flags deleted, the legacy Claims' too",
 		migrated.combat,
