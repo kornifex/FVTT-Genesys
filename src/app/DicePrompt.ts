@@ -14,6 +14,7 @@ import { StoryPointTracker } from '@/app/StoryPointTracker';
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { useUpEffects } from '@/effects/maneuverEffects';
+import { sufferStrain } from '@/dice/castingStrain';
 import { ownedSkill } from '@/data/Skills';
 import { spellAttackProfile, spellCast } from '@/item/SpellCasting';
 
@@ -263,17 +264,6 @@ function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswe
 
 	const characteristic = check.skill?.system.characteristic ?? check.characteristic ?? '-';
 	return spellAttackProfile(roll.spell, spellEffects ?? [], characteristic, ranksOf(actor));
-}
-
-/**
- * Make an actor suffer strain, when they track it. Their strain may go past its threshold: the update's Threshold States
- * then incapacitate them.
- */
-async function sufferStrain(actor: GenesysActor, strain: number) {
-	const pool = 'strain' in actor.system ? actor.system.strain : undefined;
-	if (pool) {
-		await actor.update({ system: { strain: { value: pool.value + strain } } });
-	}
 }
 
 /**
