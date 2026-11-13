@@ -4,33 +4,31 @@
 
 import { durationInRounds, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
 import { enteredRounds } from '@/effects/LapsingEffects';
-import { TOKEN_STATES, type TokenState, tokenState } from '@/effects/TokenStates';
+import { statusMenu, TOKEN_STATES, type TokenState, tokenState } from '@/effects/TokenStates';
 
 /**
- * Adds the Token States to Foundry's status effects, after Foundry's own, in place of Foundry's own state of the same id:
+ * Adds the Token States to Foundry's status effects, before Foundry's own, in place of Foundry's own state of the same id:
  * the effects of that state the actors already hold remain that state, which the menu turns off. A Lapsing state lasts
  * one round by default.
  */
 export function registerTokenStates() {
-	for (const state of TOKEN_STATES) {
-		const status = {
-			id: state.id,
-			name: state.name,
-			img: state.img,
-			changes: state.changes.map(foundryChange),
-			...(state.actorTypes && { hud: { actorTypes: [...state.actorTypes] } }),
-			...(state.lapses && lapsingFor(1)),
-		} as CONFIG.StatusEffect;
+	const states = TOKEN_STATES.map(
+		(state) =>
+			({
+				id: state.id,
+				name: state.name,
+				img: state.img,
+				changes: state.changes.map(foundryChange),
+				...(state.actorTypes && { hud: { actorTypes: [...state.actorTypes] } }),
+				...(state.lapses && lapsingFor(1)),
+			}) as CONFIG.StatusEffect,
+	);
+	const menu = statusMenu(CONFIG.statusEffects, states);
 
-		// Foundry has its own prone state, which the system's takes the place of, in its place in the menu. v14's status
-		// effects, which it finds by id too, replace that id's along with the index.
-		const index = CONFIG.statusEffects.findIndex(({ id }) => id === state.id);
-		if (index >= 0) {
-			CONFIG.statusEffects[index] = status;
-		} else {
-			CONFIG.statusEffects.push(status);
-		}
-	}
+	// Emptied, then filled again, in place: v14's status effects are a proxy that indexes them by id as well, which an
+	// emptied list clears and each push fills again, while a status moved within the list would lose its id.
+	CONFIG.statusEffects.length = 0;
+	CONFIG.statusEffects.push(...menu);
 }
 
 /**
