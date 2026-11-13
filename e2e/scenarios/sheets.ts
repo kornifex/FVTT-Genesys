@@ -3278,6 +3278,10 @@ export async function run(e2e: ScenarioContext) {
 				],
 			},
 			{
+				label: 'Provide Defense (best kept)',
+				options: ['system.providedDefense.melee=🧑 Melee Defense', 'system.providedDefense.ranged=🧑 Ranged Defense'],
+			},
+			{
 				label: 'Modify Dice Pool',
 				options: [
 					'genesys.pool.check.self=👇 Any Check',
