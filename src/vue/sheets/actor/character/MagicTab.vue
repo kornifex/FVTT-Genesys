@@ -44,11 +44,11 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 						}}</RollLink>
 					</DescriptionFold>
 					<div class="action"><Localized :label="SPELL_ACTION_LABELS[spell.system.action]" /></div>
-					<Glyphs class="difficulty" :glyphs="glyphsOf(spell.system.difficulty)" />
+					<Glyphs class="difficulty die die-Difficulty" :glyphs="glyphsOf(spell.system.difficulty)" />
 					<ul class="additional-effects">
 						<li v-for="effect in spell.system.additionalEffects" :key="effect.id">
 							{{ effect.name }}
-							<Glyphs :glyphs="`+${glyphsOf(effect.difficulty)}`" />
+							<Glyphs class="die die-Difficulty" :glyphs="`+${glyphsOf(effect.difficulty)}`" />
 						</li>
 					</ul>
 					<RowActions class="actions" :document="spell" />
