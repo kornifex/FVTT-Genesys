@@ -26,12 +26,10 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 		<div class="block">
 			<h3><Localized label="Genesys.Labels.Spells" /></h3>
 			<div v-if="spells.length > 0" class="spells">
-				<div class="spell header" aria-hidden="true">
-					<div></div>
-					<div><Localized label="Genesys.Labels.Name" /></div>
+				<div class="spell header columns" aria-hidden="true">
+					<div class="name"><Localized label="Genesys.Labels.Name" /></div>
 					<div><Localized label="Genesys.Labels.SpellAction" /></div>
 					<div><Localized label="Genesys.Labels.Difficulty" /></div>
-					<div><Localized label="Genesys.Labels.AdditionalEffects" /></div>
 					<div></div>
 				</div>
 				<div v-for="spell in spells" :key="spell.id" class="spell" :data-item-id="spell.id">
@@ -45,13 +43,13 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 					</DescriptionFold>
 					<div class="action"><Localized :label="SPELL_ACTION_LABELS[spell.system.action]" /></div>
 					<Glyphs class="difficulty die die-Difficulty" :glyphs="glyphsOf(spell.system.difficulty)" />
-					<ul class="additional-effects">
+					<RowActions class="actions" :document="spell" />
+					<ul v-if="spell.system.additionalEffects.length > 0" class="additional-effects qualities">
 						<li v-for="effect in spell.system.additionalEffects" :key="effect.id">
 							{{ effect.name }}
 							<Glyphs class="die die-Difficulty" :glyphs="`+${glyphsOf(effect.difficulty)}`" />
 						</li>
 					</ul>
-					<RowActions class="actions" :document="spell" />
 				</div>
 			</div>
 			<ListEmpty v-else />
@@ -60,6 +58,7 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 </template>
 
 <style lang="scss" scoped>
+@use '@scss/mixins/combat-tab.scss';
 @use '@scss/vars/colors.scss';
 
 .tab-magic {
@@ -79,18 +78,10 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 	}
 
 	.spell {
-		display: grid;
-		grid-template-columns:
-			/* Icon */
-			2em /* Name */ 2fr /* Action */ 1fr /* Difficulty */ 1fr /* Additional Effects */ 2fr
-			/* Actions */ auto;
-		align-items: center;
+		@include combat-tab.item-row;
+		grid-template-columns: /* Icon */ 2em /* Name */ 2fr /* Action */ 1fr /* Difficulty */ 1fr /* Actions */ auto;
 		column-gap: 0.5em;
 		padding: 0.25em;
-
-		& + .spell {
-			border-top: 1px dashed colors.$ink;
-		}
 
 		&.header {
 			background: colors.$blue;
@@ -111,22 +102,18 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 			}
 		}
 
-		// The name's fold is the second root of its `DescriptionFold`, which takes no scope attribute from the row: it
-		// opens under the row, across its columns, while every other cell stays on the first line.
-		& > :deep(*) {
-			grid-row: 1 / span 1;
-		}
-
-		& > :deep(.description-fold) {
-			grid-column: 1 / span all;
-			grid-row: 2 / span 1;
-			padding-left: 0.5em;
-		}
-
 		.additional-effects {
 			list-style: none;
 			margin: 0;
 			padding: 0;
+			justify-self: left;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.25em;
+
+			li {
+				@include combat-tab.tag;
+			}
 		}
 	}
 }

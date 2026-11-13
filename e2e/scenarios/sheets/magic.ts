@@ -122,6 +122,23 @@ export async function magicPart(ctx: SheetsContext) {
 		{ tab: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'], sheet: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'] },
 	);
 	e2e.expect(
+		"#762 M4 a spell's Additional Effects sit side by side on a line under the spell, from the row's left edge",
+		await gm.evaluate(async () => {
+			await window.sheetsE2E.open('Mage');
+			await window.sheetsE2E.clickTab('Mage', 'magic');
+			const row = game.actors.getName('E2E Mage').sheet.element.querySelector('.tab-magic .spell:not(.header)')!;
+			const box = (selector: string) => row.querySelector(selector)!.getBoundingClientRect();
+			const [first, second] = [...row.querySelectorAll('.additional-effects li')].map((effect) => effect.getBoundingClientRect());
+			const effects = box('.additional-effects');
+			return {
+				belowSpell: effects.top >= box('.name').bottom,
+				sameLine: Math.abs(first.top - second.top) < 1 && second.left > first.right,
+				fromLeft: Math.abs(effects.left - row.getBoundingClientRect().left) < 32,
+			};
+		}),
+		{ belowSpell: true, sameLine: true, fromLeft: true },
+	);
+	e2e.expect(
 		"#704 M4 the Mage's window offers to hide the Magic tab",
 		{ menu: withSpell.menu, renderedMenu: withSpell.renderedMenu },
 		{ menu: ['hideMagicTab'], renderedMenu: e2e.version < 14 ? ['hideMagicTab'] : [] },

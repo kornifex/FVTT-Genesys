@@ -33,8 +33,7 @@ withDefaults(
 </template>
 
 <style lang="scss" scoped>
-@use '@scss/mixins/headings.scss';
-@use '@scss/vars/colors.scss';
+@use '@scss/mixins/combat-tab.scss';
 
 .tags {
 	display: flex;
@@ -43,11 +42,7 @@ withDefaults(
 	gap: 0.25em;
 
 	.quality {
-		background: colors.alpha(colors.$gold, 0.3);
-		border: 1px dashed colors.$gold;
-		border-radius: 0.25em;
-		padding: 0.25em;
-		@include headings.font;
+		@include combat-tab.tag;
 	}
 }
 
