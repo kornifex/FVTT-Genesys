@@ -126,6 +126,13 @@ export function statusMenu<Status extends { id: string }>(
 }
 
 /**
+ * The Token States an actor of a type may take, in the menu's order.
+ */
+export function tokenStatesFor(actorType: string): TokenState[] {
+	return TOKEN_STATES.filter(({ actorTypes }) => !actorTypes || actorTypes.includes(actorType));
+}
+
+/**
  * The Token State of a status id, or undefined when the system adds no such state.
  */
 export function tokenState(id: string): TokenState | undefined {

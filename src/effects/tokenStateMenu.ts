@@ -49,9 +49,15 @@ export function lapsingStateApplied(actor: Actor.Implementation, statusId: strin
 		return undefined;
 	}
 
-	// Foundry's own toggle finds the effect of a state among the actor's effects that hold that status alone.
-	const has = actor.effects.some((effect) => effect.statuses.size === 1 && effect.statuses.has(statusId));
-	return has ? undefined : state;
+	return hasStatusEffect(actor, statusId) ? undefined : state;
+}
+
+/**
+ * Whether an actor has a status as the token's status menu shows it on: an effect that holds that status alone, which
+ * Foundry's own toggle turns off. An effect holding it beside other statuses, as an item's may, the toggle leaves.
+ */
+export function hasStatusEffect(actor: Actor.Implementation, statusId: string): boolean {
+	return actor.effects.some((effect) => effect.statuses.size === 1 && effect.statuses.has(statusId));
 }
 
 /**
