@@ -1,5 +1,75 @@
 # Changelog
 
+## [0.7.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.1...v0.7.0-rc.2) (2026-11-13)
+
+
+### Features
+
+* **actor:** list the scene's rivals and nemeses in the patient window ([#781](https://github.com/kornifex/FVTT-Genesys/issues/781)) ([acb3731](https://github.com/kornifex/FVTT-Genesys/commit/acb3731b413d8677f5dfe8bfb1ce5606043a5be6))
+* **combat:** take back Aim and Guarded Stance from the Combat tab ([#785](https://github.com/kornifex/FVTT-Genesys/issues/785)) ([2f1bd70](https://github.com/kornifex/FVTT-Genesys/commit/2f1bd706fbca866e49d0b0186d92b2f41f40d27d))
+* **combat:** toggle the Token States from the Combat tab ([#786](https://github.com/kornifex/FVTT-Genesys/issues/786)) ([84a34b5](https://github.com/kornifex/FVTT-Genesys/commit/84a34b5e92af90038b370dac7a2efdee97704708))
+* **dice:** show a quality's or an attachment's description on its Pool Modification row ([#787](https://github.com/kornifex/FVTT-Genesys/issues/787)) ([dc06001](https://github.com/kornifex/FVTT-Genesys/commit/dc06001ea8a3bff6c8916d3a11d239be479afe89))
+* **effects:** list Genesys's states first in the token's status menu ([#784](https://github.com/kornifex/FVTT-Genesys/issues/784)) ([1735c5f](https://github.com/kornifex/FVTT-Genesys/commit/1735c5f7719dd9bbb12715932a4e0fcdab074426))
+* **item:** lay a spell's row in the Magic tab out like a weapon's ([#782](https://github.com/kornifex/FVTT-Genesys/issues/782)) ([565d3ae](https://github.com/kornifex/FVTT-Genesys/commit/565d3ae2761efa831bda88f149a513b8cfc5eb53))
+* **item:** let an additional effect be added more than once to a spell ([#789](https://github.com/kornifex/FVTT-Genesys/issues/789)) ([4b4d77a](https://github.com/kornifex/FVTT-Genesys/commit/4b4d77a6cbbce0c63682092d9688bf57d7776977))
+* **item:** show a character's skill with the Skills Compendium's Default Difficulty and Initiative, read-only ([#788](https://github.com/kornifex/FVTT-Genesys/issues/788)) ([eaa1b9b](https://github.com/kornifex/FVTT-Genesys/commit/eaa1b9b7544e444972fdd6decb0e12917edddcf3))
+* **item:** show an Additional Effect's description as a tooltip on a spell ([#783](https://github.com/kornifex/FVTT-Genesys/issues/783)) ([16e9958](https://github.com/kornifex/FVTT-Genesys/commit/16e9958e71870e34625737db3fdfcf00b0b2aae6))
+
+
+### Bug Fixes
+
+* **actor:** name the healing and strain recovery skills in the world settings ([#739](https://github.com/kornifex/FVTT-Genesys/issues/739)) ([4baab82](https://github.com/kornifex/FVTT-Genesys/commit/4baab82b80eb9a0242bb0dcef31b307407447f56))
+* **actor:** stack an adversary's defense increases on top of its stat block's and the provided one ([#746](https://github.com/kornifex/FVTT-Genesys/issues/746)) ([2c806cf](https://github.com/kornifex/FVTT-Genesys/commit/2c806cf78a8a343d40b69ce5ce5f07112c6ef7af))
+* **combat:** keep the best defense that cover, Guarded Stance and armor provide ([#743](https://github.com/kornifex/FVTT-Genesys/issues/743)) ([b86f8f0](https://github.com/kornifex/FVTT-Genesys/commit/b86f8f0ece1f8a64019201bb15f6860b352d6f65))
+* **dice:** apply a healing card once ([#740](https://github.com/kornifex/FVTT-Genesys/issues/740)) ([7cfc5a3](https://github.com/kornifex/FVTT-Genesys/commit/7cfc5a3a04fe15e6cec8bb7e795cc5d1d036c852))
+* **dice:** derive a spell's difficulty from its effects and the roller's change ([#791](https://github.com/kornifex/FVTT-Genesys/issues/791)) ([f3464d3](https://github.com/kornifex/FVTT-Genesys/commit/f3464d307a18e899dab39be13c6b296ab437ecf2))
+* **dice:** give back the difficulty an Additional Effect added when it is unchecked ([#734](https://github.com/kornifex/FVTT-Genesys/issues/734)) ([7b2bc3f](https://github.com/kornifex/FVTT-Genesys/commit/7b2bc3f3b923322460f06973ddce2dec97f5eb84))
+* **dice:** offer the Critical Injury against the target the attack was rolled against ([#735](https://github.com/kornifex/FVTT-Genesys/issues/735)) ([aac8c36](https://github.com/kornifex/FVTT-Genesys/commit/aac8c36a0ae082b4b9000ae8dc009a83de28890b))
+* **dice:** scale a quality's Critical Injury bonus by its rank, for its own weapon only ([#738](https://github.com/kornifex/FVTT-Genesys/issues/738)) ([c601993](https://github.com/kornifex/FVTT-Genesys/commit/c6019936caf440238921a50ead8a59b69572278e))
+* **dice:** spend no other Story Point on an Impossible task ([#733](https://github.com/kornifex/FVTT-Genesys/issues/733)) ([d7c2156](https://github.com/kornifex/FVTT-Genesys/commit/d7c2156fe44f7ca775604d38b8a400e3a19a57a8))
+* **dice:** write an observer's casting strain and used-up effects through the Acting GM ([#744](https://github.com/kornifex/FVTT-Genesys/issues/744)) ([561f622](https://github.com/kornifex/FVTT-Genesys/commit/561f622c6562aad7b139af04cae540e4e64738ff))
+* **effects:** write an attachment's Item Changes from the effect sheet ([#741](https://github.com/kornifex/FVTT-Genesys/issues/741)) ([383b241](https://github.com/kornifex/FVTT-Genesys/commit/383b241eb75b62b9c1e99732b2656c179907c387))
+* **i18n:** add 0.7.0-rc.2's features to the welcome message ([#792](https://github.com/kornifex/FVTT-Genesys/issues/792)) ([dc63373](https://github.com/kornifex/FVTT-Genesys/commit/dc633735f1bcd585fa74b9a7ca08e153e8d45d0d))
+* **i18n:** name hard points as the sheets do in the welcome message ([#715](https://github.com/kornifex/FVTT-Genesys/issues/715)) ([caf8c23](https://github.com/kornifex/FVTT-Genesys/commit/caf8c23ff3ba6ff7c9e70c9a1386181816c06f9e))
+* **i18n:** summarize 0.7.0-rc.2's fixes in the welcome message ([#778](https://github.com/kornifex/FVTT-Genesys/issues/778)) ([59660f7](https://github.com/kornifex/FVTT-Genesys/commit/59660f74af44013297068d59ccc2fe03d0830cf9))
+* **item:** count a quality's Item Changes once, on the Weapon Profile that carries it ([#742](https://github.com/kornifex/FVTT-Genesys/issues/742)) ([c970c6b](https://github.com/kornifex/FVTT-Genesys/commit/c970c6b12073469c89fdfd0fc4c6df90e982e243))
+* **item:** mark the skills that heal wounds and recover strain on the skill item ([#771](https://github.com/kornifex/FVTT-Genesys/issues/771)) ([81109da](https://github.com/kornifex/FVTT-Genesys/commit/81109da6ffac33f1ec59ad891fa7eddc8dd1ae40))
+* **item:** open the sheet of the effect added to a quality ([#775](https://github.com/kornifex/FVTT-Genesys/issues/775)) ([9ee8c97](https://github.com/kornifex/FVTT-Genesys/commit/9ee8c9725215b84e64d64c1826a5290a663b2192))
+* **ui:** colour the Story Point rows' dice in the Dice Prompt ([#774](https://github.com/kornifex/FVTT-Genesys/issues/774)) ([e3a2029](https://github.com/kornifex/FVTT-Genesys/commit/e3a20299c09107fe0749f16556d8b8489fb1693c))
+* **ui:** show Additional Effect and spell difficulties in the dice font ([#772](https://github.com/kornifex/FVTT-Genesys/issues/772)) ([0e43b05](https://github.com/kornifex/FVTT-Genesys/commit/0e43b059723932f0abb61f4be5e3e8770e4ae5cf))
+* **ui:** show an adversary's defense in play beside its stat block's ([#745](https://github.com/kornifex/FVTT-Genesys/issues/745)) ([5c6005e](https://github.com/kornifex/FVTT-Genesys/commit/5c6005e2154271ca31574f38e99af3ea9bf3edf2))
+
+
+### Code Refactoring
+
+* **dice:** parse 0.7.0's flags where they are read, and fail fast ([#751](https://github.com/kornifex/FVTT-Genesys/issues/751)) ([0a5c7c7](https://github.com/kornifex/FVTT-Genesys/commit/0a5c7c7a93f0c4434b92f970a072bcaf6a812fab))
+* **item:** write each of 0.7.0's Genesys rules once ([#747](https://github.com/kornifex/FVTT-Genesys/issues/747)) ([87868e8](https://github.com/kornifex/FVTT-Genesys/commit/87868e81406196203c4e0ea865d55479fd6e920f))
+
+
+### Documentation
+
+* bring the state of the art into the code style ([#719](https://github.com/kornifex/FVTT-Genesys/issues/719)) ([cdb28bc](https://github.com/kornifex/FVTT-Genesys/commit/cdb28bcc4bb68cf06835ae70ecfa729e77a6a523))
+* name the Item Change keys in the glossary ([#770](https://github.com/kornifex/FVTT-Genesys/issues/770)) ([ef8ab74](https://github.com/kornifex/FVTT-Genesys/commit/ef8ab74dc3c381fd31355b556e1136812b677954))
+
+
+### Build System
+
+* add headings, unticked and replace to pnpm checklist, and retry concurrent edits ([#754](https://github.com/kornifex/FVTT-Genesys/issues/754)) ([2cf83d7](https://github.com/kornifex/FVTT-Genesys/commit/2cf83d77fc11ea361d077ee2a74d0ebeec62e52b))
+* add pnpm check, running every CI step in one command ([#779](https://github.com/kornifex/FVTT-Genesys/issues/779)) ([d5c451f](https://github.com/kornifex/FVTT-Genesys/commit/d5c451f5c89cb34fd37a7ed6818256bd2cd9ebd3))
+* allow only erasable TypeScript syntax ([#720](https://github.com/kornifex/FVTT-Genesys/issues/720)) ([e5f1544](https://github.com/kornifex/FVTT-Genesys/commit/e5f15447e844200756c8a74f82e7dc8423b5807f))
+
+
+### Continuous Integration
+
+* set the next release to 0.7.0-rc.2 ([#777](https://github.com/kornifex/FVTT-Genesys/issues/777)) ([7fa6c41](https://github.com/kornifex/FVTT-Genesys/commit/7fa6c419544de2fd69a9126fa70a3d62a5900ea6))
+
+
+### Tests
+
+* fewer merge conflicts when a wave merges ([#753](https://github.com/kornifex/FVTT-Genesys/issues/753)) ([7401f79](https://github.com/kornifex/FVTT-Genesys/commit/7401f79c6d9b55c17e145971486b265060d85853))
+* run the e2e from any worktree, several at a time ([#752](https://github.com/kornifex/FVTT-Genesys/issues/752)) ([0004755](https://github.com/kornifex/FVTT-Genesys/commit/0004755a45f5ec696c59c577fabcbdd71259e1e6))
+* stop an e2e comparison on a stale branch, and list the scenarios a change runs ([#780](https://github.com/kornifex/FVTT-Genesys/issues/780)) ([93deb7d](https://github.com/kornifex/FVTT-Genesys/commit/93deb7d538622a4928a2fe3c179e6920ccadef59))
+
 ## [0.7.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.6.0...v0.7.0-rc.1) (2026-11-12)
 
 
