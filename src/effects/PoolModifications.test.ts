@@ -880,6 +880,16 @@ describe('editing changes in the effect sheets', () => {
 		expect(fromEditedChange(editedChange('genesys.critical.suffered', 'BB'), customMode).value).toBe('');
 		expect(toEditedChange(editedChange('genesys.critical.inflicted', '10'))).toEqual(editedChange('genesys.critical.inflicted', '10'));
 	});
+
+	it('shows no mode for an Item Change, which the item always adds', () => {
+		expect(subjectFieldForKey('genesys.item.baseDamage')).toBe('check-selection');
+	});
+
+	it('keeps the key and value of an Item Change, with the custom mode', () => {
+		expect(fromEditedChange(toEditedChange(editedChange('genesys.item.baseDamage', '+1', { mode: 2 })), customMode)).toEqual(
+			editedChange('genesys.item.baseDamage', '+1'),
+		);
+	});
 });
 
 /**
@@ -928,6 +938,12 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 	it('gives a change to Critical Injury rolls the custom type', () => {
 		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', '10', { type: 'add' }), unreadMode)).toEqual(
 			v14EditedChange('genesys.critical.inflicted', '10'),
+		);
+	});
+
+	it('keeps the key and value of an Item Change, with the custom type', () => {
+		expect(fromEditedChange(toEditedChange(v14EditedChange('genesys.item.critical', -1, { type: 'add' })), unreadMode)).toEqual(
+			v14EditedChange('genesys.item.critical', '-1'),
 		);
 	});
 

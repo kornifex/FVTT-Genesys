@@ -234,6 +234,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier
+      ModifyItem: Objet à modifier
       ModifyDicePool:
         GroupLabel: Réserve de dés à modifier
         Options:
