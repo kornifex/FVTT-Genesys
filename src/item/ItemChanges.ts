@@ -10,6 +10,17 @@
 const ITEM_CHANGE_FIELDS = ['baseDamage', 'critical', 'defense', 'soak', 'encumbrance'] as const;
 export type ItemChangeField = (typeof ITEM_CHANGE_FIELDS)[number];
 
+/**
+ * The localization key of each field an Item Change can change, as the item's sheet names it.
+ */
+export const ITEM_CHANGE_LABELS = {
+	baseDamage: 'Genesys.Labels.Damage',
+	critical: 'Genesys.Labels.Critical',
+	defense: 'Genesys.Labels.Defense',
+	soak: 'Genesys.Labels.Soak',
+	encumbrance: 'Genesys.Labels.Encumbrance',
+} as const satisfies Record<ItemChangeField, string>;
+
 const PREFIX = 'genesys.item.';
 
 /**
