@@ -269,7 +269,11 @@ function attackOf(roll: DicePromptRoll, answer: DicePromptAnswer, actor: Genesys
 	}
 
 	const { check } = answer;
-	const characteristic = check.skill?.system.characteristic ?? check.characteristic ?? '-';
+	const characteristic = check.skill?.system.characteristic ?? check.characteristic;
+	if (characteristic === undefined) {
+		// Called before any die is rolled or message written, so that a bug here loses no roll.
+		throw new Error(`The magic attack of ${roll.spell.name} is rolled with neither a skill nor a characteristic.`);
+	}
 	return spellAttackProfile(roll.spell, checkedEffectsOf(answer), characteristic, ranksOf(actor));
 }
 
