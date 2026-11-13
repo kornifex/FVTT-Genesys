@@ -85,8 +85,8 @@ declare module 'fvtt-types/configuration' {
 		Actor: { genesys: { independentMinion?: boolean; hideMagicTab?: boolean } };
 		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
 		// The Critical Injury an attack triggered, which its card's button reads, and the recovery of a check that heals,
-		// which its card's Apply button reads (`src/dice/recoveryCard.ts`).
-		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery } };
+		// which its card's Apply button reads and records as applied (`src/dice/recoveryCard.ts`).
+		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery; recoveryApplied?: boolean } };
 	}
 
 	interface SettingConfig extends TableSettings {
@@ -132,6 +132,7 @@ declare global {
 			'genesys.claimInitiativeSlot': QueryHandlers['genesys.claimInitiativeSlot'];
 			'genesys.writeExtraSlotInitiative': QueryHandlers['genesys.writeExtraSlotInitiative'];
 			'genesys.useUpEffects': QueryHandlers['genesys.useUpEffects'];
+			'genesys.applyRecovery': QueryHandlers['genesys.applyRecovery'];
 		}
 	}
 

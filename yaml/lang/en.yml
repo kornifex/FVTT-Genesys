@@ -373,6 +373,7 @@ Genesys:
     Wounds: Wounds
     Strain: Strain
     Apply: Apply
+    Applied: Applied
     # The end of an encounter's check and a night's rest
     EndOfEncounter: End of encounter
     EndOfEncounterCardLabel: '{patient} recovers'
@@ -435,6 +436,7 @@ Genesys:
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     NoGMForClaim: A GM must be online to claim an initiative slot.
     NoGMForUsedUpEffects: A GM must be online to remove the Aim {name}'s attack used up.
+    NoGMForRecovery: A GM must be online to apply a healing.
     NotOwnerOfCombatant: You don't own this combatant.
     ActingGMTimedOut: The GM didn't answer in time. Check whether it went through before trying again.
     CannotSelectActor: You do not have sufficient permission to select this Actor.

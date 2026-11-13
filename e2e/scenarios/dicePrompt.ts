@@ -287,6 +287,11 @@ type DicePromptHelpers = {
 	 * clicks it when asked, waiting for the patient's update.
 	 */
 	recoveryButton(args: { id: string; click: boolean }): Promise<boolean>;
+	/**
+	 * Renders a message's card again in the chat log and shows it, then gives whether it shows the Apply button of a check
+	 * that heals, and the text it shows once the healing was applied, null when it doesn't (§#723).
+	 */
+	recoveryCard(id: string): Promise<{ button: boolean; applied: string | null }>;
 	/** An actor's wounds and strain, `null` for strain when they suffer none. */
 	health(name: string): { wounds: number; strain: number | null };
 };
@@ -1078,6 +1083,17 @@ function installDicePromptHelpers() {
 			return !!button;
 		},
 
+		async recoveryCard(id) {
+			await ui.chat.updateMessage(game.messages.get(id));
+			await settle();
+			const state = await window.dicePromptE2E.showMessage(id);
+			const card = document.querySelector('[data-e2e="glyph-message"]')!;
+			const applied = card.querySelector('.recovery-applied');
+			const result = { button: !!card.querySelector('button.apply-recovery'), applied: applied && text(applied) };
+			window.dicePromptE2E.restoreSidebar(state);
+			return result;
+		},
+
 		health(name) {
 			const { wounds, strain } = actor(name).system as { wounds: { value: number }; strain?: { value: number } };
 			return { wounds: wounds.value, strain: strain?.value ?? null };
@@ -1814,6 +1830,7 @@ export async function run(e2e: ScenarioContext) {
 	// The Apply button of a check that heals, as a client sees it, and an actor's wounds and strain (§#686, §#687).
 	const recoveryButton = (client: Client, id: string, click = false) =>
 		client.evaluate((args) => window.dicePromptE2E.recoveryButton(args), { id, click });
+	const recoveryCard = (client: Client, id: string) => client.evaluate((id) => window.dicePromptE2E.recoveryCard(id), id);
 	const health = (name: string) => gm.evaluate((name) => window.dicePromptE2E.health(name), name);
 	const ada = { actor: 'Ada' };
 	const skillRoll = (skill: string) => click(gm, ada, `.tab-skills .skill button.skill-name|${skill} (`);
@@ -4664,6 +4681,19 @@ export async function run(e2e: ScenarioContext) {
 			{ patientPrompts, pool: targeted.pool, shown: markShown, health: await health('Mark') },
 			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 		);
+
+		// §#723: an applied card records it on its message, so that no re-render, reload or other owner heals again.
+		const applied = { button: false, applied: 'Applied' };
+		e2e.expect(
+			"#723 H6 Bo's card applied by the player shows as applied, with no Apply, after a re-render and to the GM; Mark's to the player; Bo was healed once",
+			{
+				bo: { player: await recoveryCard(player, rolled.id), gm: await recoveryCard(gm, rolled.id) },
+				mark: await recoveryCard(player, marked.id),
+				health: await health('Bo'),
+			},
+			{ bo: { player: applied, gm: applied }, mark: applied, health: { wounds: 5, strain: 2 } },
+		);
+
 		// A world whose compendium names the healing skill otherwise (§#727): the Heal button follows the setting.
 		await setSetting('skillForHealingWounds', 'e2e sanatio');
 		await gm.evaluate(async () => {
