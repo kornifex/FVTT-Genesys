@@ -301,5 +301,81 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 		await setMarkState('cover', false);
 		await target(null);
 	});
+
+	// The Token States on Ada's Combat tab (§#764): each a button, pressed while she has the state.
+	const stateButtons = () =>
+		gm.evaluate(async () => {
+			await window.e2e.settle();
+			const root = game.actors.getName('E2E Ada').sheet.element as HTMLElement;
+			return [...root.querySelectorAll<HTMLElement>('.tab-combat .states button')].map(
+				(button) => `${window.e2e.text(button)}${button.getAttribute('aria-pressed') === 'true' ? ' (on)' : ''}`,
+			);
+		});
+	const stateButton = (name: string) => click(gm, ada, `.tab-combat .states button|${name}`);
+	const unpressed = ['Immobilized', 'Disoriented', 'Staggered', 'In Cover', 'Prone', 'Incapacitated'];
+	const pressing = (name: string) => unpressed.map((state) => (state === name ? `${state} (on)` : state));
+
+	await e2e.step("#764 M10 GM clicks Prone on Ada's Combat tab", stateButton('Prone'));
+	const proneOn = { state: await adaState(), buttons: await stateButtons() };
+	await e2e.step("#764 M10 GM clicks Prone on Ada's Combat tab again", stateButton('Prone'));
+	e2e.expect(
+		"#764 M10 the Combat tab lists the states a character takes; Prone's button puts Prone on Ada and shows pressed, a second click takes it off",
+		{ on: proneOn, off: { state: await adaState(), buttons: await stateButtons() } },
+		{
+			on: {
+				state: { effects: [{ name: 'Prone', statuses: ['prone'], rounds: null }], defense: { melee: 0, ranged: 0 } },
+				buttons: pressing('Prone'),
+			},
+			off: { state: { effects: [], defense: { melee: 0, ranged: 0 } }, buttons: unpressed },
+		},
+	);
+
+	let asked: unknown;
+	await e2e.step("#764 M11 GM clicks Staggered on Ada's Combat tab, and applies it for the 1 round offered", async () => {
+		await stateButton('Staggered')();
+		asked = await gm.evaluate(async () => {
+			const dialog = await window.e2e.waitFor('the question of the rounds', () =>
+				[...foundry.applications.instances.values()].find((app: { element?: HTMLElement }) =>
+					app.element?.querySelector?.('input[name="rounds"]'),
+				),
+			);
+			const question = {
+				title: dialog.title,
+				label: dialog.element.querySelector('label')?.textContent,
+				rounds: dialog.element.querySelector('input[name="rounds"]').value,
+			};
+			dialog.element.querySelector('button[data-action="ok"]').click();
+			await window.e2e.waitFor('the state', () => game.actors.getName('E2E Ada').statuses.has('staggered'));
+			return question;
+		});
+	});
+	e2e.expect(
+		"#764 M11 Staggered's button asks for the rounds, as the token's status menu does, and shows pressed once applied",
+		{ asked, state: await adaState(), buttons: await stateButtons() },
+		{
+			asked: { title: 'Staggered', label: 'Rounds', rounds: '1' },
+			state: { effects: [{ name: 'Staggered', statuses: ['staggered'], rounds: 1 }], defense: { melee: 0, ranged: 0 } },
+			buttons: pressing('Staggered'),
+		},
+	);
+
+	await e2e.step(
+		"#764 M12 GM takes Staggered off Ada from her Combat tab, and puts In Cover on her as the token's status menu does",
+		async () => {
+			await stateButton('Staggered')();
+			await gm.evaluate(() => game.actors.getName('E2E Ada').toggleStatusEffect('cover'));
+		},
+	);
+	e2e.expect(
+		'#764 M12 a state put on Ada outside her sheet shows pressed on her open sheet',
+		{ state: await adaState(), buttons: await stateButtons() },
+		{
+			state: { effects: [{ name: 'In Cover', statuses: ['cover'], rounds: null }], defense: { melee: 0, ranged: 1 } },
+			buttons: pressing('In Cover'),
+		},
+	);
+	await e2e.step('#764 M12 GM takes In Cover off Ada', () =>
+		gm.evaluate(() => game.actors.getName('E2E Ada').toggleStatusEffect('cover', { active: false })),
+	);
 	await e2e.step('combat maneuvers end');
 }

@@ -26,6 +26,8 @@ import { aim, aimBoostsOf, hasGuardedStance, toggleGuardedStance } from '@/effec
 import { aimHint } from '@/effects/Maneuvers';
 import { DieTypes } from '@/dice/DieTypes';
 import Glyphs from '@/vue/components/Glyphs.vue';
+import { tokenStatesFor } from '@/effects/TokenStates';
+import { hasStatusEffect } from '@/effects/tokenStateMenu';
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
@@ -47,6 +49,9 @@ const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
 const aimBoosts = computed(() => aimBoostsOf(actor.value));
 const guarded = computed(() => hasGuardedStance(actor.value));
+const states = computed(() =>
+	tokenStatesFor(actor.value.type).map(({ id, name, img }) => ({ id, name, img, on: hasStatusEffect(actor.value, id) })),
+);
 
 // The character suffers a Critical Injury outside an attack, or from one whose card the roller doesn't use.
 async function rollCriticalInjury() {
@@ -152,6 +157,24 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 			</div>
 		</div>
 
+		<!-- The Token States the character may take, put on and taken off as the token's status menu does: each button shows
+		pressed while the character has its state. -->
+		<div v-if="editable" class="block">
+			<h3><Localized label="Genesys.TokenStates.Title" /></h3>
+			<div class="states toggles">
+				<ActionButton
+					v-for="state in states"
+					:key="state.id"
+					:image="state.img"
+					:pressed="state.on"
+					edits
+					@click="actor.toggleStatusEffect(state.id)"
+				>
+					<Localized :label="state.name" />
+				</ActionButton>
+			</div>
+		</div>
+
 		<div class="block">
 			<h3><Localized label="Genesys.Labels.Armor" /></h3>
 			<div v-if="armors.length > 0" class="armors">
@@ -211,7 +234,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 		grid-template-columns: 1.5rem 2fr 1fr repeat(3, 80px);
 	}
 
-	.maneuvers {
+	.toggles {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5em;
@@ -222,11 +245,25 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 		margin-left: 0.25em;
 	}
 
+	// A state's icon, which Foundry draws in white for the token: darkened on the sheet's light buttons, and white on a
+	// pressed one's fill. The image is the button's, which :deep() reaches.
+	.states :deep(img) {
+		display: inline-block;
+		width: 1.25em;
+		height: 1.25em;
+		vertical-align: middle;
+		filter: brightness(0);
+	}
+
 	// A button that puts something on the character and takes it back: filled while it is on.
 	.toggles .action-button[aria-pressed='true'] {
 		background: colors.$blue;
 		border-color: colors.$gold;
 		color: colors.$text-on-dark;
+
+		:deep(img) {
+			filter: none;
+		}
 	}
 
 	// The Critical Injuries' heading, with the button that rolls a new one at its end.

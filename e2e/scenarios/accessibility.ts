@@ -2040,7 +2040,7 @@ async function headings(e2e: ScenarioContext) {
 	]);
 	e2e.expect("#584 H1 each tab of a character's sheet starts each section with an h3, and each group in it with an h4", characters.Hero, {
 		skills: skillCategories,
-		combat: ['h3 Attacks', 'h3 Maneuvers', 'h3 Armor', 'h3 Critical Injuries'],
+		combat: ['h3 Attacks', 'h3 Maneuvers', 'h3 States', 'h3 Armor', 'h3 Critical Injuries'],
 		talents: ['h3 Special Abilities', 'h4 Passive', 'h3 Talents', 'h4 Passive'],
 		inventory: ['h3 Equipped', 'h3 Carried', 'h3 Dropped'],
 		effects,
@@ -2124,7 +2124,7 @@ async function headings(e2e: ScenarioContext) {
 		'#584 E1 an empty list says so under its heading: Attacks, Armor, Critical Injuries, Special Abilities and Talents on a character',
 		{ combat: blanks['Blank Hero']?.combat, talents: blanks['Blank Hero']?.talents },
 		{
-			combat: ['h3 Attacks', 'None.', 'h3 Maneuvers', 'h3 Armor', 'None.', 'h3 Critical Injuries', 'None.'],
+			combat: ['h3 Attacks', 'None.', 'h3 Maneuvers', 'h3 States', 'h3 Armor', 'None.', 'h3 Critical Injuries', 'None.'],
 			talents: ['h3 Special Abilities', 'None.', 'h3 Talents', 'None.'],
 		},
 	);

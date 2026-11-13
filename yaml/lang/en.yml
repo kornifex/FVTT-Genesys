@@ -246,6 +246,8 @@ Genesys:
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
+    # The heading of the Combat tab's block of states
+    Title: States
     Immobilized:
       Name: Immobilized
       Reminder: "Immobilized: can't perform maneuvers."

@@ -245,6 +245,7 @@ Genesys:
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
+    Title: Estados
     Immobilized:
       Name: Inmovilizado
       Reminder: 'Inmovilizado: no puede realizar maniobras.'

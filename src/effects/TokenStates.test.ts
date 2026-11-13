@@ -4,7 +4,7 @@ import type { Defense } from '@/data/Actors';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
 import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
-import { stateReminders, statusMenu, TOKEN_STATES, tokenState } from '@/effects/TokenStates';
+import { stateReminders, statusMenu, TOKEN_STATES, tokenState, tokenStatesFor } from '@/effects/TokenStates';
 
 /**
  * A character with a Token State, as the token's status menu applies it: an effect named after the state, holding its
@@ -225,6 +225,16 @@ describe('statusMenu', () => {
 	it("keeps the Token States first in v14's menu, which sorts its statuses by their order, then by name", () => {
 		const sorted = [...menu].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
 		expect(sorted.map(({ id }) => id)).toEqual([...TOKEN_STATES.map(({ id }) => id), 'blind', 'dead']);
+	});
+});
+
+describe('tokenStatesFor', () => {
+	it('gives a character every Token State, in their order', () => {
+		expect(tokenStatesFor('character').map(({ id }) => id)).toEqual(TOKEN_STATES.map(({ id }) => id));
+	});
+
+	it('leaves out cover and prone for a vehicle', () => {
+		expect(tokenStatesFor('vehicle').map(({ id }) => id)).toEqual(['immobilized', 'disoriented', 'staggered', 'incapacitated']);
 	});
 });
 
