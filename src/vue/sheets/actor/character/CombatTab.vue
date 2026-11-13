@@ -22,7 +22,10 @@ import { attackSkill, attackWith, openSheet } from '@/operations/ItemActions';
 import WeaponProfileStats from '@/vue/components/WeaponProfileStats.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { profileRowName, type WeaponProfile, weaponProfiles } from '@/item/WeaponProfiles';
-import { aim, takeGuardedStance } from '@/effects/maneuverEffects';
+import { aim, aimBoostsOf, hasGuardedStance, toggleGuardedStance } from '@/effects/maneuverEffects';
+import { aimHint } from '@/effects/Maneuvers';
+import { DieTypes } from '@/dice/DieTypes';
+import Glyphs from '@/vue/components/Glyphs.vue';
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
@@ -42,6 +45,8 @@ const weaponRows = computed(() =>
 );
 const armors = computed(() => wornArmor(itemsOfType(actor.value, 'armor')));
 const injuries = computed(() => itemsOfType(actor.value, 'injury'));
+const aimBoosts = computed(() => aimBoostsOf(actor.value));
+const guarded = computed(() => hasGuardedStance(actor.value));
 
 // The character suffers a Critical Injury outside an attack, or from one whose card the roller doesn't use.
 async function rollCriticalInjury() {
@@ -126,18 +131,21 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 			<ListEmpty v-else />
 		</div>
 
-		<!-- The maneuvers that change the character's next combat checks, which only a user who can edit them performs. -->
+		<!-- The maneuvers that change the character's next combat checks, which only a user who can edit them performs, or
+		takes back: each button shows pressed while its maneuver's effect is on the character. -->
 		<div v-if="editable" class="block">
 			<h3><Localized label="Genesys.Maneuvers.Title" /></h3>
-			<div class="maneuvers">
-				<ActionButton icon="fa-solid fa-crosshairs" label="Genesys.Maneuvers.Aim.Hint" edits @click="aim(actor)">
+			<div class="maneuvers toggles">
+				<ActionButton icon="fa-solid fa-crosshairs" :label="aimHint(aimBoosts)" :pressed="aimBoosts > 0" edits @click="aim(actor)">
 					<Localized label="Genesys.Maneuvers.Aim.Name" />
+					<Glyphs v-if="aimBoosts > 0" class="die die-Boost" :glyphs="DieTypes.Boost.GLYPH.repeat(aimBoosts)" />
 				</ActionButton>
 				<ActionButton
 					icon="fa-solid fa-shield-halved"
-					label="Genesys.Maneuvers.GuardedStance.Hint"
+					:label="guarded ? 'Genesys.Maneuvers.GuardedStance.TakeBack' : 'Genesys.Maneuvers.GuardedStance.Hint'"
+					:pressed="guarded"
 					edits
-					@click="takeGuardedStance(actor)"
+					@click="toggleGuardedStance(actor)"
 				>
 					<Localized label="Genesys.Maneuvers.GuardedStance.Name" />
 				</ActionButton>
@@ -185,6 +193,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 <style lang="scss" scoped>
 @use '@scss/mixins/combat-tab.scss';
+@use '@scss/vars/colors.scss';
 
 .tab-combat {
 	@include combat-tab.tab;
@@ -206,6 +215,18 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5em;
+	}
+
+	// The Boosts Aim gives, after its name.
+	.maneuvers .die-Boost {
+		margin-left: 0.25em;
+	}
+
+	// A button that puts something on the character and takes it back: filled while it is on.
+	.toggles .action-button[aria-pressed='true'] {
+		background: colors.$blue;
+		border-color: colors.$gold;
+		color: colors.$text-on-dark;
 	}
 
 	// The Critical Injuries' heading, with the button that rolls a new one at its end.
