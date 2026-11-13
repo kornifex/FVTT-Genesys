@@ -4,7 +4,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 
-const { system, source } = useSheetDocument<GenesysActor<'rival'>>();
+const { system } = useSheetDocument<GenesysActor<'rival'>>();
 </script>
 
 <template>
@@ -22,21 +22,6 @@ const { system, source } = useSheetDocument<GenesysActor<'rival'>>();
 					label: 'Genesys.Labels.Current',
 					value: system.wounds.value,
 					counter: { attribute: 'wounds', label: 'Genesys.Counter.CurrentWounds' },
-				}"
-			/>
-
-			<!-- The stat block's defense as the GM typed it, without the effects that increase it. -->
-			<CombatStat
-				label="Genesys.Labels.Defense"
-				primary-label="Genesys.Labels.DefenseRanged"
-				:value="source.defense.ranged"
-				name="system.defense.ranged"
-				field-label="Genesys.Labels.RangedDefense"
-				:secondary="{
-					label: 'Genesys.Labels.DefenseMelee',
-					value: source.defense.melee,
-					name: 'system.defense.melee',
-					fieldLabel: 'Genesys.Labels.MeleeDefense',
 				}"
 			/>
 		</template>

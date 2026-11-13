@@ -5,6 +5,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
+import CombatStat from '@/vue/components/character/CombatStat.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -39,7 +40,7 @@ import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
+const { document: actor, system, source, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
 // The menu of each talent and ability, by id, for a right-click on its description to open it, as one on its name does.
 const rowMenus = new Map<string, ContextMenuHandle>();
@@ -160,6 +161,29 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 					<div class="stats-row">
 						<slot name="stats" />
+
+						<!-- The defense in play, which counts cover and Guarded Stance, beside the stat block's, which the GM edits. -->
+						<CombatStat
+							label="Genesys.Labels.Defense"
+							primary-label="Genesys.Labels.DefenseRanged"
+							:value="system.totalDefense.ranged"
+							:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.totalDefense.melee }"
+						/>
+
+						<!-- The stat block's defense as the GM typed it, without the effects that increase it. -->
+						<CombatStat
+							label="Genesys.Labels.StatBlockDefense"
+							primary-label="Genesys.Labels.DefenseRanged"
+							:value="source.defense.ranged"
+							name="system.defense.ranged"
+							field-label="Genesys.Labels.RangedDefense"
+							:secondary="{
+								label: 'Genesys.Labels.DefenseMelee',
+								value: source.defense.melee,
+								name: 'system.defense.melee',
+								fieldLabel: 'Genesys.Labels.MeleeDefense',
+							}"
+						/>
 					</div>
 
 					<div class="adversary-items">

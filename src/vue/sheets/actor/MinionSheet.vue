@@ -6,7 +6,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import AdversarySkills from '@/vue/components/adversary/AdversarySkills.vue';
 import CombatStat from '@/vue/components/character/CombatStat.vue';
 
-const { document: actor, system, source } = useSheetDocument<GenesysActor<'minion'>>();
+const { document: actor, system } = useSheetDocument<GenesysActor<'minion'>>();
 
 // Read on each render of the sheet, which follows a change of the flag.
 const isIndependent = computed(() => actor.value.getFlag('genesys', 'independentMinion'));
@@ -41,21 +41,6 @@ const isIndependent = computed(() => actor.value.getFlag('genesys', 'independent
 			/>
 
 			<CombatStat v-else label="Genesys.Labels.WoundThreshold" name="system.wounds.threshold" :value="system.wounds.threshold" />
-
-			<!-- The stat block's defense as the GM typed it, without the effects that increase it. -->
-			<CombatStat
-				label="Genesys.Labels.Defense"
-				primary-label="Genesys.Labels.DefenseRanged"
-				:value="source.defense.ranged"
-				name="system.defense.ranged"
-				field-label="Genesys.Labels.RangedDefense"
-				:secondary="{
-					label: 'Genesys.Labels.DefenseMelee',
-					value: source.defense.melee,
-					name: 'system.defense.melee',
-					fieldLabel: 'Genesys.Labels.MeleeDefense',
-				}"
-			/>
 		</template>
 
 		<template v-slot:skills>

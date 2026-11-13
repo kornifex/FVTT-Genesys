@@ -1,4 +1,4 @@
-/** @file #215, #246, #269, #300, #343 and #380: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
+/** @file #215, #246, #269, #300, #343, #380 and #736: the token each actor type is created with, adversary drops and talent ranks, the adversary's defense cap and its defense in play, token bar changes within the rules' bounds, whole wounds and strain, the characteristic values in their circle, a minion's sheet following its independence, and the silhouette of characters and Adversaries. */
 import type { ConfirmDialog, CounterState } from '../page.ts';
 import type { ScenarioContext } from '../scenario.ts';
 import { dagger } from '../weaponProfiles.ts';
@@ -74,6 +74,8 @@ type AdversariesHelpers = {
 	attack(args: { actor: string; weapon: string; target: string }): Promise<PromptState>;
 	/** The values of the inputs of an actor's sheet, by name. */
 	sheetInputs(args: { actor: string; names: string[] }): Promise<Record<string, string>>;
+	/** The ranged and melee values of each defense box of an actor's sheet, by the box's label. */
+	defenseStats(actor: string): Promise<Record<string, { ranged: string; melee: string }>>;
 	/** The silhouette field of an actor's sheet, null when it has none. */
 	silhouetteField(actor: string): Promise<SilhouetteField | null>;
 	/** The element and computed `text-align` of each characteristic value of an actor's sheet, by label. */
@@ -420,6 +422,22 @@ function installAdversariesHelpers() {
 			const root = await sheet(name);
 			return Object.fromEntries(
 				names.map((inputName) => [inputName, root.querySelector<HTMLInputElement>(`input[name="${inputName}"]`)?.value ?? '']),
+			);
+		},
+
+		async defenseStats(name) {
+			const root = await sheet(name);
+			const boxes = [...root.querySelectorAll('.stats-row .combat-stat')].filter((box) =>
+				text(box.querySelector('.stat-label-outer')).endsWith('Defense'),
+			);
+			return Object.fromEntries(
+				boxes.map((box) => {
+					// A box shows its ranged value first, then its melee one, each in an input when the sheet edits it.
+					const [ranged, melee] = [...box.querySelectorAll('.value-container > .value')].map((value) =>
+						value instanceof HTMLInputElement ? value.value : text(value),
+					);
+					return [text(box.querySelector('.stat-label-outer')), { ranged, melee }];
+				}),
 			);
 		},
 
@@ -894,6 +912,39 @@ export async function run(e2e: ScenarioContext) {
 			{ Knife: defenseRow('Melee', 1), Bow: defenseRow('Ranged', 2) },
 		);
 		await gm.evaluate(() => window.e2e.actor('Rival').toggleStatusEffect('cover', { active: false }));
+	});
+
+	// D': an adversary's defense in play, which cover provides, beside its stat block's (§#736).
+	await e2e.part('defenseInPlay', async () => {
+		// The shield that part D gives the Rival would raise its defense.
+		await gm.evaluate(() => window.e2e.actor('Rival').effects.getName('E2E Shield')?.delete());
+		await update('Rival', { 'system.defense': { melee: 0, ranged: 0 } });
+		const toggleCover = (active: boolean) =>
+			gm.evaluate((active) => window.e2e.actor('Rival').toggleStatusEffect('cover', { active }), active);
+		const defenseStats = () => gm.evaluate(() => window.adversariesE2E.defenseStats('Rival'));
+
+		await toggleCover(true);
+		e2e.expect(
+			"#736 D'1 a Rival of ranged defense 0 put in cover shows ranged defense 1 in play, and its stat block's 0",
+			await defenseStats(),
+			{ Defense: { ranged: '1', melee: '0' }, 'Stat Block Defense': { ranged: '0', melee: '0' } },
+		);
+		const typed = await gm.evaluate((args) => window.adversariesE2E.typeInSheet(args), {
+			actor: 'Rival',
+			name: 'system.defense.melee',
+			value: '2',
+			path: '_source.system.defense',
+		});
+		e2e.expect(
+			"#736 D'2 the Rival's stat block edited keeps its ranged defense 0, and its defense in play follows",
+			{ stored: typed, sheet: await defenseStats() },
+			{
+				stored: { melee: 2, ranged: 0 },
+				sheet: { Defense: { ranged: '1', melee: '2' }, 'Stat Block Defense': { ranged: '0', melee: '2' } },
+			},
+		);
+		await toggleCover(false);
+		await update('Rival', { 'system.defense': { melee: 0, ranged: 0 } });
 	});
 
 	// E: token bar changes from the Token HUD (§#195).
