@@ -87,7 +87,7 @@ declare module 'fvtt-types/configuration' {
 		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
 		// The Critical Injury an attack triggered, which its card's button reads, the recovery of a check that heals,
 		// which its card's Apply button reads (`src/dice/recoveryCard.ts`), and the check an actor made, which the Acting GM
-		// reads for an observer's query (`src/dice/RolledCheck.ts`).
+		// parses for an observer's query, as that observer's client wrote it (`src/dice/RolledCheck.ts`).
 		ChatMessage: { genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery; check?: CheckFlag } };
 	}
 

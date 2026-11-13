@@ -92,9 +92,7 @@ export async function checkMessageData(
 	const flags = {
 		...(attack && triggers > 0 && { [CRITICAL_INJURY_FLAG]: criticalInjuryFlag(check, attack, triggers) }),
 		...(recovery && { recovery }),
-		...(actorUuid && {
-			check: { actor: actorUuid, purpose: check.purpose, ...(spell && { strain: spell.strain }) } satisfies CheckFlag,
-		}),
+		...(actorUuid && { check: { actor: actorUuid, purpose: check.purpose } satisfies CheckFlag }),
 	};
 	const content = attack
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {

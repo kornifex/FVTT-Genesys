@@ -132,9 +132,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 		}
 		// The caster suffers the strain once the check is resolved, whatever its result (CRB p. 210). Past their strain
 		// threshold, the update incapacitates them, as any strain does.
-		if (cast) {
-			await sufferCastingStrain(actor, cast.strain, message);
-		}
+		await sufferCastingStrain(actor, checkRoll.check.purpose, message);
 		// Once rolled, the check uses up the effects it was the next check for, as an attack the roller's Aim.
 		await useUpEffects(actor, checkRoll.check.purpose, message);
 	}

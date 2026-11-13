@@ -58,8 +58,8 @@ export type QueryData = {
 };
 
 /**
- * What a query about a check a player rolled carries: the Acting GM reads what the check was rolled for, and the strain
- * of a spell, from its chat message rather than from the player.
+ * What a query about a check a player rolled carries: the Acting GM reads what the check was rolled for from its chat
+ * message rather than from the query, and the strain of a spell from the rules.
  */
 type RolledCheckQueryData = QueryBaseData & {
 	/** The actor that made the check. */

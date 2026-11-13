@@ -4,6 +4,7 @@ import {
 	canCheckEffect,
 	castingDifficulty,
 	castingSkillName,
+	castingStrain,
 	initiallyCheckedEffects,
 	spellAttackProfile,
 	spellCast,
@@ -38,6 +39,14 @@ const ENERVATE = { id: 'enervate', difficulty: 1, startsChecked: true };
 const ADDITIONAL_TARGET = { id: 'target', difficulty: 2, startsChecked: false };
 const CURSE_EFFECTS = [ENERVATE, ADDITIONAL_TARGET];
 const AVERAGE = 2;
+
+describe('castingStrain', () => {
+	it('costs a spell cast 2 strain, and any other check none (CRB p. 210)', () => {
+		expect(castingStrain({ kind: 'spell', spellName: 'Curse', isAttack: false })).toBe(2);
+		expect(castingStrain({ kind: 'attack', weaponName: 'Sword' })).toBe(0);
+		expect(castingStrain({ kind: 'check' })).toBe(0);
+	});
+});
 
 describe('addedDifficulty', () => {
 	it('adds the difficulty of each checked effect, an effect held twice counting twice (CRB p. 215)', () => {
