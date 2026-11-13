@@ -501,23 +501,18 @@ Genesys:
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
     Fix: FIX
-    Feature: FEATURE
-    Spells: >-
-      Spells and their Additional Effects, cast from the Magic tab: the effects picked in the Dice Prompt, magic attacks with
-      their damage, and Heal
-    Attachments: >-
-      Attachments install on a weapon or an armor, within its hard points, and their Active Effects can change the item
-      itself
-    Qualities: A quality dropped on an item brings its Active Effects, scaled by its rank
-    Maneuvers: Aim, Guarded Stance, cover and prone change the combat checks they affect
-    TokenStates: Immobilized, Disoriented and Staggered are token states, with their durations
-    Thresholds: An actor past their wound or strain threshold is marked incapacitated or defeated
-    CriticalInjuries: Critical Injuries roll on the world's table, from the attack card or the sheet
-    Healing: >-
-      Medicine heals a patient from its card, and characters recover strain after an encounter and after a night's rest
-    StoryPointSpends: Story Points are spent from the Dice Prompt
-    Hindrances: Encumbrance and a damaged weapon add their dice to the checks they hinder
-    FrenchNames: The French names of Guarded Stance, cover and the strategic range follow the French edition
+    RecoverySkills: >-
+      The skills that heal wounds and recover strain are ticked on the skill: tick them in a copied skills compendium
+    ProvidedDefense: >-
+      Cover and Guarded Stance no longer add to an armor's defense: the higher of the two counts
+    AdversaryDefense: An adversary's sheet shows its defense in play, cover included, beside its stat block's
+    ItemEffects: The effect sheet keeps an item's changes, and adding an effect to a quality opens it
+    CriticalBonus: A quality's Critical Injury bonus follows its rank, on its own weapon only
+    DicePrompt: >-
+      In the Dice Prompt, an unchecked Additional Effect gives back its difficulty, and an Impossible task takes no other
+      Story Point
+    HealingCard: A healing card applies once
+    DiceColours: Story Point rows and spell difficulties show their dice in colour
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

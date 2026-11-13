@@ -493,24 +493,19 @@ Genesys:
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
     Fix: CORRECCIÓN
-    Feature: NOVEDAD
-    Spells: >-
-      Los hechizos y sus efectos adicionales, lanzados desde la pestaña Magia: los efectos elegidos en la reserva de dados,
-      los ataques mágicos con su daño, y Curación
-    Attachments: >-
-      Los accesorios se instalan en un arma o una armadura, dentro de sus puntos de anclaje, y sus efectos activos pueden
-      cambiar el propio objeto
-    Qualities: Una propiedad soltada sobre un objeto trae sus efectos activos, según su rango
-    Maneuvers: Apuntar, Postura defensiva, A cubierto y Tumbado cambian las pruebas de combate a las que afectan
-    TokenStates: Inmovilizado, Desorientado y Aturdido son estados de ficha, con su duración
-    Thresholds: Un actor que supera su umbral de heridas o de tensión queda marcado como incapacitado o derrotado
-    CriticalInjuries: Las heridas críticas se tiran en la tabla del mundo, desde la tarjeta de ataque o la hoja
-    Healing: >-
-      Medicina cura a un paciente desde su tarjeta, y los personajes recuperan tensión al final de un encuentro y tras una
-      noche de descanso
-    StoryPointSpends: Los Puntos de Historia se gastan desde la reserva de dados
-    Hindrances: El impedimento y un arma dañada añaden sus dados a las pruebas que dificultan
-    FrenchNames: Los nombres franceses de Postura defensiva, A cubierto y el alcance estratégico siguen la edición francesa
+    RecoverySkills: >-
+      Las habilidades que curan heridas y recuperan tensión se marcan en la habilidad: márcalas en un compendio de
+      habilidades copiado
+    ProvidedDefense: >-
+      A cubierto y Postura defensiva ya no se suman a la defensa de una armadura: cuenta la mayor de las dos
+    AdversaryDefense: La hoja de un adversario muestra su defensa en juego, cobertura incluida, junto a la de su perfil
+    ItemEffects: La hoja de efecto conserva los cambios de objeto, y añadir un efecto a una propiedad lo abre
+    CriticalBonus: La bonificación de herida crítica de una propiedad sigue su rango, solo en su propia arma
+    DicePrompt: >-
+      En la reserva de dados, un efecto adicional desmarcado devuelve su dificultad, y una tarea imposible no admite otro
+      Punto de Historia
+    HealingCard: Una tarjeta de curación solo se aplica una vez
+    DiceColours: Las filas de Puntos de Historia y las dificultades de los hechizos muestran sus dados en color
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

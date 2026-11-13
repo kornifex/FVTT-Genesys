@@ -499,24 +499,19 @@ Genesys:
       sont possibles !
     Updates: Corrections et nouveautés
     Fix: CORRECTIF
-    Feature: NOUVEAUTÉ
-    Spells: >-
-      Les sorts et leurs effets supplémentaires, lancés depuis l'onglet Magie : les effets choisis dans la réserve de dés,
-      les attaques magiques et leurs dégâts, et Soin
-    Attachments: >-
-      Les accessoires s'installent sur une arme ou une armure, dans la limite de ses points d'emplacement, et leurs effets
-      actifs peuvent modifier l'objet lui-même
-    Qualities: Un attribut déposé sur un objet apporte ses effets actifs, proportionnés à son rang
-    Maneuvers: Viser, Posture défensive, Abrité et À terre modifient les tests de combat qu'ils concernent
-    TokenStates: Immobilisé, Désorienté et Sonné sont des états de jeton, avec leur durée
-    Thresholds: Un acteur qui dépasse son seuil de blessures ou de stress est marqué neutralisé ou vaincu
-    CriticalInjuries: Les blessures critiques se tirent sur la table du monde, depuis la carte d'attaque ou la fiche
-    Healing: >-
-      Médecine soigne un patient depuis sa carte, et les personnages récupèrent du stress en fin de rencontre et après une
-      nuit de repos
-    StoryPointSpends: Les points narratifs se dépensent depuis la réserve de dés
-    Hindrances: L'encombrement et une arme endommagée ajoutent leurs dés aux tests qu'ils gênent
-    FrenchNames: Les noms français de Posture défensive, Abrité et de la portée stratégique suivent l'édition française
+    RecoverySkills: >-
+      Les compétences qui soignent les blessures et récupèrent du stress se cochent sur la compétence : cochez-les dans un
+      compendium de compétences copié
+    ProvidedDefense: >-
+      Abrité et Posture défensive ne s'ajoutent plus à la défense d'une armure : la plus haute des deux compte
+    AdversaryDefense: La fiche d'un adversaire montre sa défense en jeu, couvert compris, à côté de celle de son profil
+    ItemEffects: La fiche d'effet garde les modifications d'objet, et ajouter un effet à un attribut l'ouvre
+    CriticalBonus: Le bonus de blessure critique d'un attribut suit son rang, sur sa propre arme seulement
+    DicePrompt: >-
+      Dans la réserve de dés, un effet supplémentaire décoché rend sa difficulté, et une tâche impossible ne prend aucun
+      autre point narratif
+    HealingCard: Une carte de soin ne s'applique qu'une fois
+    DiceColours: Les lignes de points narratifs et les difficultés des sorts montrent leurs dés en couleur
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
