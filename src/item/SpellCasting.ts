@@ -5,6 +5,7 @@
  */
 
 import { ownedSkill, type Skill } from '@/data/Skills';
+import type { CheckPurpose } from '@/dice/Check';
 import { FORMIDABLE } from '@/dice/Difficulty';
 import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
 import type { DamageCharacteristic, RangeBand } from '@/item/Weapons';
@@ -14,6 +15,14 @@ import type { AttackProfile } from '@/item/WeaponProfiles';
  * The strain a caster suffers once the check is resolved, whether it succeeds or not (CRB p. 210).
  */
 const CASTING_STRAIN = 2;
+
+/**
+ * The strain a check costs the actor who rolls it: a spell's cast costs its caster {@link CASTING_STRAIN}, any other
+ * check none.
+ */
+export function castingStrain(purpose: CheckPurpose) {
+	return purpose.kind === 'spell' ? CASTING_STRAIN : 0;
+}
 
 /**
  * The range band of a magic attack's target, whose defense it meets: short, which the table may change with Range or

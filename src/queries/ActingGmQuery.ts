@@ -1,6 +1,5 @@
 /** @file The operations a player's client asks the Acting GM to write, as Foundry queries, and why one may fail. */
 import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
-import type { CheckPurpose } from '@/dice/Check';
 
 /**
  * The queries the Acting GM answers. Foundry asks a system to prefix their names with its id.
@@ -14,6 +13,8 @@ export const QueryName = {
 	WriteExtraSlotInitiative: 'genesys.writeExtraSlotInitiative',
 	/** A player rolled a check of an actor they can't write, which uses up some of its effects, as an attack its Aim. */
 	UseUpEffects: 'genesys.useUpEffects',
+	/** A player cast a spell for an actor they can't write, which makes the actor suffer its strain. */
+	SufferCastingStrain: 'genesys.sufferCastingStrain',
 	/** A player applies the healing of the card of a check that heals. */
 	ApplyRecovery: 'genesys.applyRecovery',
 } as const;
@@ -54,16 +55,23 @@ export type QueryData = {
 		/** Whether the turn stays on the slot it is on once the initiatives are written. */
 		updateTurn: boolean;
 	};
-	[QueryName.UseUpEffects]: QueryBaseData & {
-		/** The actor that made the check. */
-		actorUuid: string;
-		/** What the check was rolled for, which tells the effects it uses up. */
-		purpose: CheckPurpose;
-	};
+	[QueryName.UseUpEffects]: RolledCheckQueryData;
+	[QueryName.SufferCastingStrain]: RolledCheckQueryData;
 	[QueryName.ApplyRecovery]: QueryBaseData & {
 		/** The chat message of the card, whose flags hold the recovery. */
 		messageId: string;
 	};
+};
+
+/**
+ * What a query about a check a player rolled carries: the Acting GM reads what the check was rolled for from its chat
+ * message rather than from the query, and the strain of a spell from the rules.
+ */
+type RolledCheckQueryData = QueryBaseData & {
+	/** The actor that made the check. */
+	actorUuid: string;
+	/** The chat message of the check. */
+	messageId: string;
 };
 
 /**
@@ -174,6 +182,7 @@ const NO_ACTING_GM = {
 	[QueryName.ClaimInitiativeSlot]: 'Genesys.Notifications.NoGMForClaim',
 	[QueryName.WriteExtraSlotInitiative]: 'Genesys.Notifications.NoGMForExtraSlot',
 	[QueryName.UseUpEffects]: 'Genesys.Notifications.NoGMForUsedUpEffects',
+	[QueryName.SufferCastingStrain]: 'Genesys.Notifications.NoGMForCastingStrain',
 	[QueryName.ApplyRecovery]: 'Genesys.Notifications.NoGMForRecovery',
 } as const satisfies Record<QueryName, string>;
 

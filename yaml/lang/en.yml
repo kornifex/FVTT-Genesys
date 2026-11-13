@@ -438,6 +438,7 @@ Genesys:
     CombatantHasNoActivationLeft: '{name} has no activation left this round.'
     NoGMForClaim: A GM must be online to claim an initiative slot.
     NoGMForUsedUpEffects: A GM must be online to remove the Aim {name}'s attack used up.
+    NoGMForCastingStrain: A GM must be online to give {name} the strain of their spell.
     NoGMForRecovery: A GM must be online to apply a healing.
     NotOwnerOfCombatant: You don't own this combatant.
     ActingGMTimedOut: The GM didn't answer in time. Check whether it went through before trying again.
