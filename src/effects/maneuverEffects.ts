@@ -91,12 +91,17 @@ export function hasGuardedStance(actor: Actor.Implementation): boolean {
  */
 export function aim(actor: Actor.Implementation) {
 	return perform(actor, async () => {
-		const [current] = effectsWith(actor, MANEUVER_IDS.aim);
+		const aims = effectsWith(actor, MANEUVER_IDS.aim);
+		const [current] = aims;
 		const boosts = aimBoostsAfterClick(current ? boostsOf(current) : 0);
 		if (!current) {
 			await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimGiving(boosts)) as ActiveEffect.CreateData]);
 		} else if (boosts === 0) {
-			await current.delete();
+			// Every Aim, as another user's click may have put a second one on the actor, which would keep the button pressed.
+			await actor.deleteEmbeddedDocuments(
+				'ActiveEffect',
+				aims.map((effect) => effect.id),
+			);
 		} else {
 			await current.update({ [changesPath()]: aimGiving(boosts).changes.map(foundryChange) });
 		}
