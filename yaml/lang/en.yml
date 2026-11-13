@@ -308,6 +308,7 @@ Genesys:
       UpgradeDifficulty: Spend a player's point to upgrade the difficulty
       ImpossibleCost: An Impossible task can't be rolled without it.
       EmptyPool: The pool has no point left to spend.
+      ImpossibleOnly: An Impossible task allows no other Story Point.
       NoGM: A GM must be online to spend a Story Point.
     ChanceToSucceed: 'Chance to Succeed:'
     ChanceToSucceedByPermutationDisclaimer: The displayed probability is exact unless the dice pool includes a super-characteristic.

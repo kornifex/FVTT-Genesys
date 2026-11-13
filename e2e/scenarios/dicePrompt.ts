@@ -3947,6 +3947,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		const UPGRADE = 'Spend a point to upgrade the ability';
 		const EMPTY = 'The pool has no point left to spend.';
+		const IMPOSSIBLE_ONLY = 'An Impossible task allows no other Story Point.';
 		await update({ actor: 'Bo' }, { 'system.characteristics.brawn': 2 });
 		const message = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,2]</p><p>@check[Athletics,6]</p>'));
 		await control(player, ['Bo']);
@@ -4042,7 +4043,7 @@ export async function run(e2e: ScenarioContext) {
 							checked: true,
 							why: "An Impossible task can't be rolled without it.",
 						}),
-						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY }),
+						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: IMPOSSIBLE_ONLY }),
 					],
 					difficulty: 'Difficulty: Impossible',
 					pool: 'AA|DDDDD',
@@ -4050,6 +4051,35 @@ export async function run(e2e: ScenarioContext) {
 				},
 				rolled: { formula: '0dp + 2da + 5di', prompts: 0 },
 				pools: { player: 0, gm: 1 },
+			},
+		);
+
+		await setPools({ player: 2, gm: 0 });
+		await linkPrompt(player, { message }, 'Athletics', 'DDDDD');
+		await spend(player, 'impossible');
+		const closed = await spends(player);
+		const reopened = await spend(player, 'impossible');
+		await spend(player, 'impossible');
+		const attempted = await rollSpending(player);
+		e2e.expect(
+			"#725 X5 the Impossible task's point closes the upgrade even with a point to spare, unchecking it opens it again, and the roll spends one point",
+			{
+				closed: closed.spends.map(({ spend, disabled, why }) => [spend, disabled, why]),
+				reopened: reopened.spends.map(({ spend, checked, disabled }) => [spend, checked, disabled]),
+				storyPointMessages: attempted.storyPointMessages,
+				pools: await pools(),
+			},
+			{
+				closed: [
+					['impossible', false, "An Impossible task can't be rolled without it."],
+					['upgradeAbility', true, IMPOSSIBLE_ONLY],
+				],
+				reopened: [
+					['impossible', false, false],
+					['upgradeAbility', false, false],
+				],
+				storyPointMessages: 1,
+				pools: { player: 1, gm: 1 },
 			},
 		);
 		await control(player, []);
@@ -4214,6 +4244,31 @@ export async function run(e2e: ScenarioContext) {
 					links: ['E2E Scar'],
 				},
 			},
+		);
+
+		// Rival is targeted as the prompt opens, then Bo before the roll: the card keeps the Critical Injury against Rival.
+		await target('Rival');
+		await opened(gm, attack('Pistol'));
+		await target('Bo');
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		await roll();
+		const retargeted = await gm.evaluate(() => {
+			const message = game.messages.contents.at(-1);
+			return {
+				target: fromUuidSync(message.flags.genesys.criticalInjury.target)?.name,
+				button: message.content.includes('roll-critical-injury'),
+			};
+		});
+		await target(null);
+		e2e.expect(
+			'#730 C8 an attack rolled against another target than the one the prompt opened with keeps its Critical Injury against the first',
+			retargeted,
+			{ target: 'E2E Rival', button: true },
 		);
 
 		// The Pistol gets Brutal 2, a quality whose effect adds 10 to the injuries its attacks inflict; the Revolver, which
@@ -5110,6 +5165,21 @@ export async function run(e2e: ScenarioContext) {
 			"#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why",
 			await noPrompt(gm, cast('Novice')),
 			{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
+		);
+		await opened(gm, cast('Mage'));
+		await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([5]));
+		const raised = (await effects()).difficulty;
+		const checkedAtFormidable = (await check('Additional Target')).difficulty;
+		const uncheckedAtFormidable = (await check('Additional Target')).difficulty;
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		e2e.expect(
+			'#728 S5 a Curse raised by hand to Formidable stays Formidable when Additional Target is checked, then unchecked',
+			{ raised, checkedAtFormidable, uncheckedAtFormidable },
+			{
+				raised: 'Difficulty: Formidable',
+				checkedAtFormidable: 'Difficulty: Formidable',
+				uncheckedAtFormidable: 'Difficulty: Formidable',
+			},
 		);
 		await e2e.step('spellCasting end');
 	});
