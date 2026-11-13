@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addSection, showSection, tickItem } from './checklistBody.ts';
+import { addSection, headings, replaceSection, showSection, tickItem, untickedItems } from './checklistBody.ts';
 
 const BODY = [
 	'**Still to test at the table**',
@@ -109,5 +109,79 @@ describe('showSection', () => {
 		expect(() => showSection(BODY, '#999')).toThrow('No section heading contains "#999".');
 		expect(() => showSection(BODY, 'clicking')).not.toThrow();
 		expect(() => showSection(BODY, ' (#4')).toThrow('2 section headings match " (#4":\n## #467');
+	});
+});
+
+describe('showSection by number', () => {
+	const body = '## #733 fix(dice): spend no other Story Point (#725)\n\nA\n\n## #7330 Other (#7250)\n\nB\n\n## #740 See #733 (#723)\n\nC';
+
+	it('finds a section by its pull request number or by its issue number', () => {
+		expect(showSection(body, '#733')).toBe('## #733 fix(dice): spend no other Story Point (#725)\n\nA');
+		expect(showSection(body, '#725')).toBe('## #733 fix(dice): spend no other Story Point (#725)\n\nA');
+		expect(showSection(body, '#723')).toBe('## #740 See #733 (#723)\n\nC');
+	});
+
+	it('prefers the pull request number over the issue number', () => {
+		expect(showSection(`${body}\n\n## #800 Again (#733)\n`, '#733')).toMatch(/^## #733 fix/);
+	});
+
+	it('refuses an issue number that two sections carry, naming them', () => {
+		const twice = '## #800 First (#790)\n\nA\n\n## #801 Second (#790)\n\nB';
+
+		expect(() => showSection(twice, '#790')).toThrow('2 section headings match "#790":\n## #800 First (#790)\n## #801 Second (#790)');
+	});
+});
+
+describe('headings', () => {
+	it('lists the section headings in order', () => {
+		expect(headings(BODY)).toEqual([
+			'## #467 A talent counts once per rank (#466)',
+			'## #470 The Difficulty picked by clicking one of five dice (#469)',
+			'## #37 Table tests that 0.4.0 ships without',
+		]);
+	});
+});
+
+describe('untickedItems', () => {
+	it('lists the unticked items with their section heading', () => {
+		const second = '## #470 The Difficulty picked by clicking one of five dice (#469)';
+
+		expect(untickedItems(BODY)).toEqual([
+			{ heading: '## #467 A talent counts once per rank (#466)', item: '- [ ] A talent counts once per rank.' },
+			{ heading: second, item: '- [ ] The five dice at the table, in French.' },
+			{ heading: second, item: '- [ ] The dice keep their upgrades.' },
+			{ heading: '## #37 Table tests that 0.4.0 ships without', item: '- [ ] §#79 (#37): a full session.' },
+		]);
+	});
+
+	it('gives an empty heading to an item before the first section', () => {
+		expect(untickedItems('- [ ] Loose\n- [x] Done')).toEqual([{ heading: '', item: '- [ ] Loose' }]);
+	});
+});
+
+describe('replaceSection', () => {
+	it('replaces the section with the same heading and keeps the others', () => {
+		const body = replaceSection(BODY, '## #470 The Difficulty picked by clicking one of five dice (#469)\n\n- [x] All proven.\n');
+
+		expect(body).toBe(
+			BODY.replace('- [ ] The five dice at the table, in French.\n- [ ] The dice keep their upgrades.', '- [x] All proven.'),
+		);
+	});
+
+	it('finds the section by its number when the title changed', () => {
+		const body = replaceSection(BODY, '## #470 A new title (#469)\n\n- [x] Fresh.');
+
+		expect(headings(body)).toContain('## #470 A new title (#469)');
+		expect(body).not.toContain('five dice at the table');
+		expect(body).toContain('## #37 Table tests');
+	});
+
+	it('replaces the last section up to the end of the body', () => {
+		expect(replaceSection('## #1 One\n\nA\n\n## #2 Two\n\nB\n', '## #2 Two\n\nC')).toBe('## #1 One\n\nA\n\n## #2 Two\n\nC\n');
+	});
+
+	it('refuses a section that no heading matches, or without a heading', () => {
+		expect(() => replaceSection(BODY, '## #999 Nope')).toThrow('No section heading');
+		expect(() => replaceSection(BODY, 'text')).toThrow('"## " heading');
 	});
 });
