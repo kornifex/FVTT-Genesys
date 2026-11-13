@@ -29,12 +29,12 @@ async function sufferStrain(actor: GenesysActor, strain: number) {
 
 /**
  * Makes the caster of a spell suffer the strain of its cast, whose check the message shows (CRB p. 210); does nothing
- * for another check. A roller who can't write the caster, as a player observing
+ * for another check, or for an actor who tracks no strain, as a minion, whose cast asks the Acting GM nothing. A roller who can't write the caster, as a player observing
  * them, asks the Acting GM to, who reads what the check was rolled for from the message; a failure warns the roller.
  */
 export async function sufferCastingStrain(actor: GenesysActor, purpose: CheckPurpose, message: ChatMessage.Implementation) {
 	const strain = castingStrain(purpose);
-	if (strain === 0) {
+	if (strain === 0 || !strainOf(actor)) {
 		return;
 	}
 
