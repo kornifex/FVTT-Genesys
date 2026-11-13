@@ -154,6 +154,31 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 			pools: { player: 1, gm: 1 },
 		},
 	);
+	// The same upgrades, as the GM's spends and as the manual changes of a Pool Modifications' row.
+	await setPools({ player: 1, gm: 1 });
+	await control(gm, ['Bo']);
+	await linkPrompt(gm, { message }, 'Athletics', 'DD');
+	await spend(gm, 'upgradeAbility');
+	await spend(gm, 'upgradeDifficulty');
+	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A^', 'D^']));
+	const looks = await gm.evaluate(() => window.dicePromptE2E.promptModificationLooks());
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	await control(gm, []);
+	const looksOf = (row: string) =>
+		looks.filter((look) => look.row === row).map(({ modification, font, color, arrow }) => ({ modification, font, color, arrow }));
+	e2e.expect(
+		'#758 X6 the dice of a Story Point row look as the same dice of a Pool Modification row: the dice font, the colour of the die they upgrade, and a small arrow',
+		looksOf('spend'),
+		looksOf('manual'),
+	);
+	e2e.expect(
+		'#758 X6 the ability upgrade shows the Ability die and the difficulty upgrade the Difficulty die, each with its outline',
+		looksOf('spend').map(({ modification, color }) => [modification, color]),
+		[
+			['A^', 'rgb(65, 173, 73), outline 0.5px rgb(0, 0, 0)'],
+			['D^', 'rgb(82, 35, 128), outline 0.5px rgb(0, 0, 0)'],
+		],
+	);
 	await control(player, []);
 	await setPools(found);
 	await e2e.step('X end');
