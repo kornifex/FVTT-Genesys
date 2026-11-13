@@ -629,6 +629,7 @@ const spendId = useId();
 							:label="effectCountLabel(effect)"
 							:value="countOf(effect)"
 							:max="maxCount(effect)"
+							:described-by="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
 							@step="setEffectCount(effect, countOf(effect) + $event)"
 							@type="setEffectCount(effect, $event)"
 						/>

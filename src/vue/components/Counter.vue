@@ -19,9 +19,16 @@ const props = withDefaults(
 		value: number;
 
 		/**
-		 * The localization key of the counter's name, which is its tooltip too.
+		 * The localization key of the counter's name, which is its tooltip too, or a name already localized, which
+		 * localizing leaves as it is, such as an Additional Effect's count named after the effect.
 		 */
 		label: string;
+
+		/**
+		 * The id of the text that says why the counter can't go further, such as a step that would take a difficulty
+		 * beyond Formidable: a screen reader reads it with the value.
+		 */
+		describedBy?: string;
 
 		/**
 		 * The highest value the counter steps or is typed up to, such as twice a character's wound threshold. Left out
@@ -207,6 +214,7 @@ function commit() {
 			inputmode="numeric"
 			role="spinbutton"
 			:aria-label="name"
+			:aria-describedby="describedBy"
 			data-tooltip=""
 			:aria-valuenow="value"
 			aria-valuemin="0"
@@ -226,6 +234,7 @@ function commit() {
 			aria-readonly="true"
 			data-keyboard-focus="true"
 			:aria-label="name"
+			:aria-describedby="describedBy"
 			data-tooltip=""
 			:aria-valuenow="value"
 			aria-valuemin="0"

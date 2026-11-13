@@ -1,7 +1,7 @@
 /**
  * @file Casting a spell (CRB pp. 210–215): the magic skill it is cast with, the Additional Effects the caster adds, some
- * more than once, and the difficulty they add, never beyond Formidable, the qualities they give, the strain casting costs, and the profile
- * of a magic attack.
+ * more than once, and the difficulty they add, never beyond Formidable, the qualities they give, the strain casting
+ * costs, and the profile of a magic attack.
  */
 
 import { ownedSkill, type Skill } from '@/data/Skills';
