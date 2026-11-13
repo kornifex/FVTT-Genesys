@@ -11,6 +11,7 @@ import {
 	isHealingSkill,
 	medicineDifficulty,
 	nightsRest,
+	parseRecovery,
 	patientChoices,
 	recoveryCard,
 	recoveryOf,
@@ -188,6 +189,28 @@ describe('canBePatient', () => {
 
 	it('heals no Minion Group nor vehicle', () => {
 		expect(['minion', 'vehicle'].map(canBePatient)).toEqual([false, false]);
+	});
+});
+
+describe('parseRecovery', () => {
+	const recovery = { patient: 'Actor.bo', rule: 'medicine', wounds: 2, strain: 1 };
+
+	it("reads a message's recovery", () => {
+		expect(parseRecovery(recovery)).toEqual(recovery);
+	});
+
+	it.each([
+		['no object', 'Actor.bo'],
+		['no value', undefined],
+		['a recovery without its patient', { ...recovery, patient: undefined }],
+		['a recovery of a rule that heals by none', { ...recovery, rule: 'toString' }],
+		['a recovery of an unknown rule', { ...recovery, rule: 'prayer' }],
+		['a recovery whose wounds are no number', { ...recovery, wounds: '2' }],
+		['a recovery of negative wounds', { ...recovery, wounds: -1 }],
+		['a recovery of a fraction of strain', { ...recovery, strain: 0.5 }],
+		['a recovery without its strain', { ...recovery, strain: undefined }],
+	])('refuses %s', (_, flag) => {
+		expect(parseRecovery(flag)).toBeUndefined();
 	});
 });
 

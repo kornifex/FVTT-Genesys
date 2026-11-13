@@ -2,6 +2,8 @@
  * @file Lapsing Effects: a temporary effect whose duration in rounds counts its actor's turns, one per round, and which is removed once they have run out (CRB p. 114).
  */
 
+import { isCount, isRecord } from '@/data/parsing';
+
 /**
  * A turn of a combat: the Initiative Slot whose turn it is, in a round, and its place among the round's turns.
  */
@@ -11,6 +13,22 @@ export type CombatTurn = {
 	turn: number;
 	slot: string;
 };
+
+/**
+ * The turn an effect's flag holds, or undefined when it holds anything else: a flag of another version or edited by hand
+ * is refused, not read.
+ */
+export function parseCombatTurn(value: unknown): CombatTurn | undefined {
+	if (!isRecord(value)) {
+		return undefined;
+	}
+
+	const { combat, round, turn, slot } = value;
+	if (typeof combat !== 'string' || typeof slot !== 'string' || !isCount(round) || !isCount(turn)) {
+		return undefined;
+	}
+	return { combat, round, turn, slot };
+}
 
 /**
  * What the end of a turn of its actor reads of a Lapsing Effect: its rounds left, the turn it was applied during, when

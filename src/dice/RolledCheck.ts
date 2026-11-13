@@ -3,6 +3,7 @@
  * actor: the strain of a spell cast, the effects it uses up.
  */
 
+import { isRecord } from '@/data/parsing';
 import type { CheckPurpose } from '@/dice/Check';
 import { refuse } from '@/queries';
 
@@ -55,10 +56,6 @@ function parsePurpose(value: unknown): CheckPurpose | undefined {
 		default:
 			return undefined;
 	}
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
 }
 
 /**

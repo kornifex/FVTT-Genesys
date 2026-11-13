@@ -5,6 +5,7 @@
  */
 
 import type { CombatPool } from '@/data/schemaFields';
+import { isCount, isRecord } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
 
@@ -74,6 +75,26 @@ export type RecoveryRequest = { patient: string; rule: RecoveryRule };
  * A rolled check's recovery, as its chat message carries it: its request, and what its results heal.
  */
 export type Recovery = RecoveryRequest & Healed;
+
+/**
+ * The recovery a chat message's flag holds, or undefined when it holds anything else: a message of another version or
+ * edited by hand is refused, not read.
+ */
+export function parseRecovery(value: unknown): Recovery | undefined {
+	if (!isRecord(value)) {
+		return undefined;
+	}
+
+	const { patient, rule, wounds, strain } = value;
+	if (typeof patient !== 'string' || typeof rule !== 'string' || !isRecoveryRule(rule) || !isCount(wounds) || !isCount(strain)) {
+		return undefined;
+	}
+	return { patient, rule, wounds, strain };
+}
+
+function isRecoveryRule(rule: string): rule is RecoveryRule {
+	return Object.hasOwn(RECOVERY_RULES, rule);
+}
 
 /**
  * The recovery a check's results give: what they heal by the rule it is rolled for.

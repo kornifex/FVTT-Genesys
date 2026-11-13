@@ -3,7 +3,7 @@
  * once, for the GM and the patient's owners.
  */
 
-import { canBePatient, healedPools, type Patient, type Recovery } from '@/actor/Recovery';
+import { canBePatient, healedPools, parseRecovery, type Patient, type Recovery } from '@/actor/Recovery';
 import type { GenesysActor } from '@/actor/GenesysActor';
 import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
 
@@ -45,6 +45,13 @@ export function applyingOnce() {
 const applyOnce = applyingOnce();
 
 /**
+ * The recovery a card's message carries, parsed where it is read; undefined when it carries none.
+ */
+function recoveryOfMessage(message: ChatMessage.Implementation) {
+	return parseRecovery(message.getFlag('genesys', 'recovery'));
+}
+
+/**
  * The patient a recovery heals, when they still exist and a check can heal them.
  */
 function patientOf(recovery: Recovery) {
@@ -56,6 +63,7 @@ function patientOf(recovery: Recovery) {
  * Heal a patient by a recovery: their wounds and strain go down by what it heals, never below zero.
  */
 async function applyRecovery(patient: GenesysActor, recovery: Recovery) {
+	// `patientOf` only returns an actor whose type can be a patient: its system has the pools `Patient` reads.
 	const { wounds, strain } = healedPools(patient.system as Patient, recovery);
 	await patient.update({
 		system: { wounds: { value: wounds }, ...(strain !== undefined && { strain: { value: strain } }) },
@@ -87,7 +95,7 @@ export function register() {
 			return;
 		}
 
-		const recovery = message.getFlag('genesys', 'recovery');
+		const recovery = recoveryOfMessage(message);
 		const patient = recovery && patientOf(recovery);
 		const state = recoveryCardState({
 			applied: message.getFlag('genesys', 'recoveryApplied') === true,
@@ -116,7 +124,7 @@ export function register() {
 
 	handleQuery(QueryName.ApplyRecovery, async ({ messageId }, querier) => {
 		const message = game.messages.get(messageId);
-		const recovery = message?.getFlag('genesys', 'recovery');
+		const recovery = message && recoveryOfMessage(message);
 		const patient = recovery && patientOf(recovery);
 		if (!message || !recovery || !patient?.testUserPermission(querier, 'OWNER')) {
 			refuse('Genesys.Notifications.GenericError');

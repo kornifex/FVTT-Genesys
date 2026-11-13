@@ -5,7 +5,7 @@ import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
 import { hasTimeLeft, isExpired } from '@/effects/EffectExpiry';
 import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } from '@/effects/EffectExpiry.v13';
-import { type CombatTurn, lapseAtTurnEnd } from '@/effects/LapsingEffects';
+import { type CombatTurn, lapseAtTurnEnd, parseCombatTurn } from '@/effects/LapsingEffects';
 import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
 import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
@@ -321,6 +321,13 @@ export function registerCombatantEffects() {
 }
 
 /**
+ * The turn an effect's flag holds, parsed where it is read; undefined when it holds none.
+ */
+function turnFlag(effect: GenesysEffect, key: typeof FLAG_APPLIED_DURING | typeof FLAG_LAST_COUNTED) {
+	return parseCombatTurn(effect.getFlag('genesys', key));
+}
+
+/**
  * Takes a round off each Lapsing Effect of an actor, at the end of one of its turns, and removes those whose rounds have
  * run out, given the places of the round's turns the actor takes. Only the actor's own effects lapse: the Token States
  * live on it. Only a GM may write them.
@@ -337,8 +344,8 @@ export async function lapseEffectsAtTurnEnd(actor: Actor.Implementation, ended: 
 		const lapse = lapseAtTurnEnd(
 			{
 				rounds,
-				appliedDuring: effect.getFlag('genesys', FLAG_APPLIED_DURING),
-				lastCounted: effect.getFlag('genesys', FLAG_LAST_COUNTED),
+				appliedDuring: turnFlag(effect, FLAG_APPLIED_DURING),
+				lastCounted: turnFlag(effect, FLAG_LAST_COUNTED),
 			},
 			ended,
 			actorTurns,

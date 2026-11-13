@@ -5,7 +5,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-	attackWeaponOf,
 	type CriticalEffect,
 	type CriticalInjuryActor,
 	criticalEffectBonuses,
@@ -18,6 +17,7 @@ import {
 	extraTriggersBonus,
 	isCriticalChangeKey,
 	isCriticalChangeValue,
+	parseCriticalInjuryFlag,
 	viciousRating,
 } from '@/dice/CriticalInjuryRoll';
 
@@ -216,13 +216,45 @@ describe('criticalEffectBonuses of qualities (#726)', () => {
 	});
 });
 
-describe('attackWeaponOf', () => {
+describe('parseCriticalInjuryFlag', () => {
+	const attack = {
+		triggers: 2,
+		attacker: 'Actor.Hero',
+		target: null,
+		weapon: { name: 'Axe', uuid: 'Item.Axe', qualities: [{ id: 'v1', name: 'Vicious', isRated: true, rating: 2 }] },
+	};
+
+	it("reads an attack's flag", () => {
+		expect(parseCriticalInjuryFlag(attack)).toEqual({ kind: 'attack', ...attack });
+	});
+
 	it("reads the weapon of a message of 0.7.0-rc.1, which has no uuid and no quality ids, as one that matches no effect's", () => {
-		expect(attackWeaponOf({ name: 'Axe', qualities: [{ name: 'Vicious', isRated: true, rating: 2 }] })).toEqual({
-			name: 'Axe',
-			uuid: null,
-			qualities: [{ id: '', name: 'Vicious', isRated: true, rating: 2 }],
+		const flag = { ...attack, weapon: { name: 'Axe', qualities: [{ name: 'Vicious', isRated: true, rating: 2 }] } };
+
+		expect(parseCriticalInjuryFlag(flag)).toMatchObject({
+			kind: 'attack',
+			weapon: { name: 'Axe', uuid: null, qualities: [{ id: '', name: 'Vicious', isRated: true, rating: 2 }] },
 		});
+	});
+
+	it("reads a wound threshold's flag, which has no weapon, as no attack", () => {
+		expect(parseCriticalInjuryFlag({ target: 'Actor.Hero' })).toEqual({ kind: 'threshold', target: 'Actor.Hero' });
+	});
+
+	it.each([
+		['no object', 'Actor.Hero'],
+		['a threshold flag without its target', {}],
+		['a threshold flag whose target is no uuid', { target: 3 }],
+		['an attack without its triggers', { ...attack, triggers: undefined }],
+		['an attack that triggers no injury', { ...attack, triggers: 0 }],
+		['an attack whose attacker is no uuid', { ...attack, attacker: 3 }],
+		['an attack without a target', { ...attack, target: undefined }],
+		['an attack whose weapon is no object', { ...attack, weapon: 'Axe' }],
+		['an attack whose weapon has no name', { ...attack, weapon: { qualities: [] } }],
+		['an attack whose weapon has no qualities', { ...attack, weapon: { name: 'Axe' } }],
+		['an attack whose weapon has a malformed quality', { ...attack, weapon: { name: 'Axe', qualities: [{ name: 'Vicious' }] } }],
+	])('refuses %s', (_, flag) => {
+		expect(parseCriticalInjuryFlag(flag)).toBeUndefined();
 	});
 });
 
