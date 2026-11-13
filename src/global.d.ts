@@ -83,14 +83,31 @@ declare module 'fvtt-types/configuration' {
 
 	interface FlagConfig {
 		// `hideMagicTab`: a character's sheet hides their Magic tab (`src/actor/data/character/MagicTab.ts`).
-		Actor: { genesys: { independentMinion?: boolean; hideMagicTab?: boolean } };
-		ActiveEffect: { genesys: { expired?: boolean; lapses?: boolean; appliedDuring?: CombatTurn; lastCounted?: CombatTurn } };
+		Actor: {
+			genesys: {
+				independentMinion?: boolean;
+				hideMagicTab?: boolean;
+			};
+		};
+		ActiveEffect: {
+			genesys: {
+				expired?: boolean;
+				lapses?: boolean;
+				appliedDuring?: CombatTurn;
+				lastCounted?: CombatTurn;
+			};
+		};
 		// The Critical Injury an attack triggered, which its card's button reads, the recovery of a check that heals,
 		// which its card's Apply button reads and records as applied (`src/dice/recoveryCard.ts`), and the check an actor
 		// made, which the Acting GM parses for an observer's query, as that observer's client wrote it
 		// (`src/dice/RolledCheck.ts`).
 		ChatMessage: {
-			genesys: { criticalInjury?: CriticalInjuryFlag; recovery?: Recovery; recoveryApplied?: boolean; check?: CheckFlag };
+			genesys: {
+				criticalInjury?: CriticalInjuryFlag;
+				recovery?: Recovery;
+				recoveryApplied?: boolean;
+				check?: CheckFlag;
+			};
 		};
 	}
 
