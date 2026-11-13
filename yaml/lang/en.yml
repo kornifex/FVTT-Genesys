@@ -274,9 +274,12 @@ Genesys:
     Aim:
       Name: Aim
       Hint: A Boost on the next combat check, two after two Aim maneuvers in a row.
+      HintAgain: Aim again, for a second Boost on the next combat check.
+      TakeBack: Take back Aim.
     GuardedStance:
       Name: Guarded Stance
       Hint: A Setback on combat checks and melee defense 1, until the end of the next turn.
+      TakeBack: Take back Guarded Stance.
 
   # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
   ThresholdStates:

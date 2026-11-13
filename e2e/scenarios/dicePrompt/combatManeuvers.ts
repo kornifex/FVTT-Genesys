@@ -20,6 +20,18 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 				defense: ada.system.totalDefense,
 			};
 		});
+	// The maneuver buttons of Ada's open sheet, as its last render shows them: their text, whether they show pressed, and
+	// the localization key of their tooltip.
+	const maneuverButtons = () =>
+		gm.evaluate(async () => {
+			await window.e2e.settle();
+			const root = game.actors.getName('E2E Ada').sheet.element as HTMLElement;
+			return [...root.querySelectorAll<HTMLElement>('.tab-combat .maneuvers button')].map((button) => ({
+				text: window.e2e.text(button),
+				pressed: button.getAttribute('aria-pressed'),
+				tooltip: button.dataset.tooltip ?? null,
+			}));
+		});
 	const setMarkState = (id: string, active: boolean) =>
 		gm.evaluate((args) => window.e2e.token('Mark').actor.toggleStatusEffect(args.id, { active: args.active }), { id, active });
 
@@ -76,12 +88,28 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 
 	// Aim, then attacks.
 	await e2e.step("#683 M1 GM clicks Aim on Ada's Combat tab", maneuver('Aim'));
+	const aimButtons = await maneuverButtons();
 	const cool = await opened(gm, skillRoll('Cool'));
 	const aimed = await opened(gm, attack('Spear'));
 	const boosted = await toggle('Aim');
 	const aimedRoll = await roll();
 	const usedUp = await adaState();
+	const usedUpButtons = await maneuverButtons();
 	const next = await opened(gm, attack('Spear'));
+	e2e.expect(
+		'#763 M1 the Aim button shows pressed with its Boost while Ada aims, and no longer once her attack used Aim up',
+		{ aiming: aimButtons, usedUp: usedUpButtons },
+		{
+			aiming: [
+				{ text: 'AimB', pressed: 'true', tooltip: 'Genesys.Maneuvers.Aim.HintAgain' },
+				{ text: 'Guarded Stance', pressed: 'false', tooltip: 'Genesys.Maneuvers.GuardedStance.Hint' },
+			],
+			usedUp: [
+				{ text: 'Aim', pressed: 'false', tooltip: 'Genesys.Maneuvers.Aim.Hint' },
+				{ text: 'Guarded Stance', pressed: 'false', tooltip: 'Genesys.Maneuvers.GuardedStance.Hint' },
+			],
+		},
+	);
 	e2e.expect(
 		'#683 M1 after Aim, the next melee attack lists its Boost and rolls it; the attack uses it up, and the one after lists none',
 		{
@@ -102,29 +130,30 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 		},
 	);
 
-	await e2e.step('#683 M2 GM clicks Aim three times', async () => {
-		for (let time = 0; time < 3; time++) await maneuver('Aim')();
+	await e2e.step('#683 M2 GM clicks Aim twice', async () => {
+		for (let time = 0; time < 2; time++) await maneuver('Aim')();
 	});
 	const twice = await opened(gm, attack('Pistol'));
 	e2e.expect(
-		'#683 M2 two Aim maneuvers in a row give two Boosts to the next ranged attack, a third none more, on one effect',
-		{ rows: maneuverRows(twice), effects: (await adaState()).effects },
+		'#683 M2 two Aim maneuvers in a row give two Boosts to the next ranged attack, on one effect',
+		{ rows: maneuverRows(twice), effects: (await adaState()).effects, buttons: await maneuverButtons() },
 		{
 			rows: [{ name: 'From Self: Aim', enabled: false, mods: 'B+ B+' }],
 			effects: [{ name: 'Aim', statuses: ['aim'], rounds: null }],
+			buttons: [
+				{ text: 'AimBB', pressed: 'true', tooltip: 'Genesys.Maneuvers.Aim.TakeBack' },
+				{ text: 'Guarded Stance', pressed: 'false', tooltip: 'Genesys.Maneuvers.GuardedStance.Hint' },
+			],
 		},
 	);
 
 	// Guarded Stance.
-	await e2e.step("#683 M3 GM clicks Guarded Stance on Ada's Combat tab, twice", async () => {
-		await maneuver('Guarded Stance')();
-		await maneuver('Guarded Stance')();
-	});
+	await e2e.step("#683 M3 GM clicks Guarded Stance on Ada's Combat tab", maneuver('Guarded Stance'));
 	const guarded = await opened(gm, attack('Spear'));
 	const guardedCool = await opened(gm, skillRoll('Cool'));
 	e2e.expect(
 		"#683 M3 Guarded Stance lasts 1 round, brings a Setback to Ada's attacks but not to her other checks, and raises her melee defense",
-		{ rows: maneuverRows(guarded), cool: maneuverRows(guardedCool), state: await adaState() },
+		{ rows: maneuverRows(guarded), cool: maneuverRows(guardedCool), state: await adaState(), buttons: await maneuverButtons() },
 		{
 			rows: [
 				{ name: 'From Self: Aim', enabled: false, mods: 'B+ B+' },
@@ -138,6 +167,27 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 				],
 				defense: { melee: 1, ranged: 0 },
 			},
+			buttons: [
+				{ text: 'AimBB', pressed: 'true', tooltip: 'Genesys.Maneuvers.Aim.TakeBack' },
+				{ text: 'Guarded Stance', pressed: 'true', tooltip: 'Genesys.Maneuvers.GuardedStance.TakeBack' },
+			],
+		},
+	);
+
+	// A click on a maneuver that is on takes it back, Aim once it gives its two Boosts.
+	await e2e.step('#763 M3 GM clicks Aim a third time, and Guarded Stance a second time', async () => {
+		await maneuver('Aim')();
+		await maneuver('Guarded Stance')();
+	});
+	e2e.expect(
+		"#763 M3 the third Aim and the second Guarded Stance take them back: Ada's effects are gone, and her buttons no longer pressed",
+		{ state: await adaState(), buttons: await maneuverButtons() },
+		{
+			state: { effects: [], defense: { melee: 0, ranged: 0 } },
+			buttons: [
+				{ text: 'Aim', pressed: 'false', tooltip: 'Genesys.Maneuvers.Aim.Hint' },
+				{ text: 'Guarded Stance', pressed: 'false', tooltip: 'Genesys.Maneuvers.GuardedStance.Hint' },
+			],
 		},
 	);
 

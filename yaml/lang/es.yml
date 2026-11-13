@@ -273,9 +273,12 @@ Genesys:
     Aim:
       Name: Apuntar
       Hint: Un dado de Beneficio en la próxima tirada de combate, dos tras dos maniobras de Apuntar seguidas.
+      HintAgain: Apuntar de nuevo, para un segundo dado de Beneficio en la próxima tirada de combate.
+      TakeBack: Anular Apuntar.
     GuardedStance:
       Name: Postura defensiva
       Hint: Un dado de Complicación en las tiradas de combate y defensa cuerpo a cuerpo 1, hasta el final del próximo turno.
+      TakeBack: Anular la postura defensiva.
 
   # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
   ThresholdStates:

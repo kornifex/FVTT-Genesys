@@ -273,9 +273,12 @@ Genesys:
     Aim:
       Name: Viser
       Hint: Un dé de fortune au prochain test de combat, deux après deux manœuvres Viser d'affilée.
+      HintAgain: Viser encore, pour un second dé de fortune au prochain test de combat.
+      TakeBack: Annuler Viser.
     GuardedStance:
       Name: Posture défensive
       Hint: Un dé d'infortune aux tests de combat et défense de mêlée 1, jusqu'à la fin du prochain tour.
+      TakeBack: Annuler la posture défensive.
 
   # Threshold States: what wounds or strain past their threshold do (CRB pp. 112–113)
   ThresholdStates:

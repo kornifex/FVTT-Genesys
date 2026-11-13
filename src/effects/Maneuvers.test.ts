@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
-import { aimAfter, aimBoosts, effectsUsedUp, GUARDED_STANCE, type ManeuverEffect } from '@/effects/Maneuvers';
+import {
+	aimBoosts,
+	aimBoostsAfterClick,
+	aimGiving,
+	aimHint,
+	effectsUsedUp,
+	GUARDED_STANCE,
+	type ManeuverEffect,
+} from '@/effects/Maneuvers';
 import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
 
 const BOOST = DieTypes.Boost.GLYPH;
@@ -33,7 +41,7 @@ const stealth = { characteristic: Characteristic.Agility, skillName: 'Stealth' }
 
 describe('Aim', () => {
 	it('brings a Boost to the next combat check, melee or ranged (CRB p. 98)', () => {
-		const aiming = characterWith(aimAfter(0));
+		const aiming = characterWith(aimGiving(1));
 		for (const attack of [melee, ranged]) {
 			expect(poolModificationsForCheck(aiming, undefined, attack)).toEqual([
 				{ source: 'self', from: { effect: 'Genesys.Maneuvers.Aim.Name', uuid: 'Actor.hero.ActiveEffect.aim' }, mods: [BOOST] },
@@ -41,20 +49,33 @@ describe('Aim', () => {
 		}
 	});
 
-	it('brings two Boosts after two Aim maneuvers in a row, and no more after a third (CRB p. 98)', () => {
-		const twice = aimAfter(aimBoosts(aimAfter(0).changes));
+	it('brings two Boosts after two Aim maneuvers in a row (CRB p. 98)', () => {
+		const twice = aimGiving(aimBoostsAfterClick(aimBoosts(aimGiving(aimBoostsAfterClick(0)).changes)));
 		expect(poolModificationsForCheck(characterWith(twice), undefined, melee)[0].mods).toEqual([BOOST, BOOST]);
 		expect(aimBoosts(twice.changes)).toBe(2);
-		expect(aimBoosts(aimAfter(aimBoosts(twice.changes)).changes)).toBe(2);
 	});
 
 	it('brings nothing to a check that is no combat check (CRB p. 98)', () => {
-		expect(poolModificationsForCheck(characterWith(aimAfter(0)), undefined, stealth)).toEqual([]);
+		expect(poolModificationsForCheck(characterWith(aimGiving(1)), undefined, stealth)).toEqual([]);
 	});
 
 	it('counts no Boost on changes that hold none', () => {
 		expect(aimBoosts([])).toBe(0);
 		expect(aimBoosts([{ key: 'system.soak', value: '1' }])).toBe(0);
+	});
+});
+
+describe('the Aim button', () => {
+	it('gives one Boost, then two, then takes Aim back, one click after the other', () => {
+		expect([0, 1, 2].map(aimBoostsAfterClick)).toEqual([1, 2, 0]);
+	});
+
+	it('says what its next click does', () => {
+		expect([0, 1, 2].map(aimHint)).toEqual([
+			'Genesys.Maneuvers.Aim.Hint',
+			'Genesys.Maneuvers.Aim.HintAgain',
+			'Genesys.Maneuvers.Aim.TakeBack',
+		]);
 	});
 });
 

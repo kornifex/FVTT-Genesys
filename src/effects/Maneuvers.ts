@@ -28,17 +28,39 @@ const AIM_ID = 'aim';
 const MAX_AIM_BOOSTS = 2;
 
 /**
- * The Aim effect of a character who performs the Aim maneuver while their Aim already gives some Boosts, none when they
- * haven't aimed: one more Boost on their next combat check, up to two after two Aim maneuvers in a row (CRB p. 98).
+ * The Aim effect that gives a number of Boosts to its character's next combat check (CRB p. 98).
  */
-export function aimAfter(boosts: number): ManeuverEffect {
-	const count = Math.min(boosts + 1, MAX_AIM_BOOSTS);
+export function aimGiving(boosts: number): ManeuverEffect {
 	return {
 		id: AIM_ID,
 		name: 'Genesys.Maneuvers.Aim.Name',
 		img: 'icons/svg/dice-target.svg',
-		changes: [{ key: COMBAT_CHECK_KEY, value: DieTypes.Boost.GLYPH.repeat(count), type: 'custom' }],
+		changes: [{ key: COMBAT_CHECK_KEY, value: DieTypes.Boost.GLYPH.repeat(boosts), type: 'custom' }],
 	};
+}
+
+/**
+ * The Boosts a character's Aim gives after a click on the Aim button, from those it gives before, none when they haven't
+ * aimed: each click is an Aim maneuver, one Boost more, up to two after two in a row (CRB p. 98); a click once Aim gives
+ * two takes it back, which leaves none.
+ */
+export function aimBoostsAfterClick(boosts: number): number {
+	return boosts >= MAX_AIM_BOOSTS ? 0 : boosts + 1;
+}
+
+// The tooltip of the Aim button, by the Boosts its next click gives.
+const AIM_HINTS = {
+	0: 'Genesys.Maneuvers.Aim.TakeBack',
+	1: 'Genesys.Maneuvers.Aim.Hint',
+	2: 'Genesys.Maneuvers.Aim.HintAgain',
+} as const;
+
+/**
+ * The localization key of what a click on the Aim button does, from the Boosts the character's Aim gives.
+ */
+export function aimHint(boosts: number): string {
+	// `aimBoostsAfterClick` gives no more than MAX_AIM_BOOSTS.
+	return AIM_HINTS[aimBoostsAfterClick(boosts) as keyof typeof AIM_HINTS];
 }
 
 /**

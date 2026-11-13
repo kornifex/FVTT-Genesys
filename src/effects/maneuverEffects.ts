@@ -1,11 +1,19 @@
 /**
- * @file The effects of the maneuvers a character performs from their sheet, put on their actor, and those a check uses up, removed once it is rolled by whoever may write the actor: the roller, else the Acting GM.
+ * @file The effects of the maneuvers a character performs from their sheet, put on their actor or taken back, and those a check uses up, removed once it is rolled by whoever may write the actor: the roller, else the Acting GM.
  */
 
 import { isFoundryV13 } from '@/foundryGeneration';
 import type { CheckPurpose } from '@/dice/Check';
 import { changesPath, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
-import { aimAfter, aimBoosts, effectsUsedUp, GUARDED_STANCE, MANEUVER_IDS, type ManeuverEffect } from '@/effects/Maneuvers';
+import {
+	aimBoosts,
+	aimBoostsAfterClick,
+	aimGiving,
+	effectsUsedUp,
+	GUARDED_STANCE,
+	MANEUVER_IDS,
+	type ManeuverEffect,
+} from '@/effects/Maneuvers';
 import { queriedCheck } from '@/dice/RolledCheck';
 import { askActingGm, handleQuery, QueryName } from '@/queries';
 
@@ -54,32 +62,57 @@ function perform(actor: Actor.Implementation, maneuver: () => Promise<void>) {
 }
 
 /**
- * The Aim maneuver: the character's Aim effect gets one more Boost, up to two after two Aim maneuvers in a row, or is put
- * on them with one (CRB p. 98).
+ * The Boosts an Aim effect gives.
+ */
+function boostsOf(effect: ActiveEffect.Implementation) {
+	// The effect's changes, which v14 keeps in its system, as v14 shims them.
+	const { changes } = effect as unknown as { changes: { key?: string; value: unknown }[] };
+	return aimBoosts(changes);
+}
+
+/**
+ * The Boosts the Aim of a character gives their next combat check, none when they haven't aimed.
+ */
+export function aimBoostsOf(actor: Actor.Implementation): number {
+	const [current] = effectsWith(actor, MANEUVER_IDS.aim);
+	return current ? boostsOf(current) : 0;
+}
+
+/**
+ * Whether a character is in Guarded Stance.
+ */
+export function hasGuardedStance(actor: Actor.Implementation): boolean {
+	return effectsWith(actor, MANEUVER_IDS.guardedStance).length > 0;
+}
+
+/**
+ * A click on the Aim button: the Aim maneuver, which puts Aim on the character with one Boost, or gives their Aim one
+ * Boost more, up to two after two Aim maneuvers in a row (CRB p. 98); once it gives two, the click takes it back.
  */
 export function aim(actor: Actor.Implementation) {
 	return perform(actor, async () => {
 		const [current] = effectsWith(actor, MANEUVER_IDS.aim);
+		const boosts = aimBoostsAfterClick(current ? boostsOf(current) : 0);
 		if (!current) {
-			await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimAfter(0)) as ActiveEffect.CreateData]);
-			return;
+			await actor.createEmbeddedDocuments('ActiveEffect', [effectData(aimGiving(boosts)) as ActiveEffect.CreateData]);
+		} else if (boosts === 0) {
+			await current.delete();
+		} else {
+			await current.update({ [changesPath()]: aimGiving(boosts).changes.map(foundryChange) });
 		}
-
-		// The effect's changes, which v14 keeps in its system, as v14 shims them.
-		const { changes } = current as unknown as { changes: { key?: string; value: unknown }[] };
-		await current.update({ [changesPath()]: aimAfter(aimBoosts(changes)).changes.map(foundryChange) });
 	});
 }
 
 /**
- * The Guarded Stance maneuver: the character's Guarded Stance effect, put on them until the end of their next turn, a
- * Lapsing Effect of one round (CRB p. 99). Taken again, it starts again from the current turn.
+ * A click on the Guarded Stance button: the Guarded Stance maneuver, which puts its effect on the character until the end
+ * of their next turn, a Lapsing Effect of one round (CRB p. 99), or takes back the one they are in.
  */
-export function takeGuardedStance(actor: Actor.Implementation) {
+export function toggleGuardedStance(actor: Actor.Implementation) {
 	return perform(actor, async () => {
 		const current = effectsWith(actor, MANEUVER_IDS.guardedStance).map((effect) => effect.id);
 		if (current.length > 0) {
 			await actor.deleteEmbeddedDocuments('ActiveEffect', current);
+			return;
 		}
 
 		const data = foundry.utils.mergeObject(effectData(GUARDED_STANCE), lapsingFor(1));
