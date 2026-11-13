@@ -24,43 +24,73 @@ describe('totalSoak', () => {
 	});
 });
 
+const NONE = { melee: 0, ranged: 0 };
+// What cover provides: ranged defense 1 (CRB p. 99).
+const COVER = { melee: 0, ranged: 1 };
+
 describe('totalDefense', () => {
 	it("is the character's own melee and ranged defense without armor (CRB p. 31, 46)", () => {
-		expect(totalDefense({ melee: 0, ranged: 0 }, [])).toEqual({ melee: 0, ranged: 0 });
-		expect(totalDefense({ melee: 1, ranged: 0 }, [])).toEqual({ melee: 1, ranged: 0 });
+		expect(totalDefense({ melee: 0, ranged: 0 }, [], NONE)).toEqual({ melee: 0, ranged: 0 });
+		expect(totalDefense({ melee: 1, ranged: 0 }, [], NONE)).toEqual({ melee: 1, ranged: 0 });
 	});
 
 	it("adds the defense of the worn armor to both of the character's own defenses (CRB p. 92, 105)", () => {
-		expect(totalDefense({ melee: 0, ranged: 1 }, [{ soak: 1, defense: 1 }])).toEqual({ melee: 1, ranged: 2 });
+		expect(totalDefense({ melee: 0, ranged: 1 }, [{ soak: 1, defense: 1 }], NONE)).toEqual({ melee: 1, ranged: 2 });
 	});
 
 	it('counts the same armor as soak when the character wears several: the best soak, then the best defense (CRB p. 92)', () => {
-		const none = { melee: 0, ranged: 0 };
-
 		expect(
-			totalDefense(none, [
-				{ soak: 1, defense: 1 },
-				{ soak: 2, defense: 0 },
-			]),
+			totalDefense(
+				NONE,
+				[
+					{ soak: 1, defense: 1 },
+					{ soak: 2, defense: 0 },
+				],
+				NONE,
+			),
 		).toEqual({ melee: 0, ranged: 0 });
 		expect(
-			totalDefense(none, [
-				{ soak: 1, defense: 0 },
-				{ soak: 1, defense: 2 },
-			]),
+			totalDefense(
+				NONE,
+				[
+					{ soak: 1, defense: 0 },
+					{ soak: 1, defense: 2 },
+				],
+				NONE,
+			),
 		).toEqual({ melee: 2, ranged: 2 });
 	});
 
+	it("keeps the best of the defense the armor provides and the one cover provides, which don't stack (CRB p. 106)", () => {
+		expect(totalDefense(NONE, [{ soak: 1, defense: 1 }], COVER)).toEqual({ melee: 1, ranged: 1 });
+		expect(totalDefense(NONE, [], COVER)).toEqual({ melee: 0, ranged: 1 });
+		expect(totalDefense(NONE, [{ soak: 1, defense: 2 }], COVER)).toEqual({ melee: 2, ranged: 2 });
+	});
+
+	it('adds the defense a talent increases to the best one provided (CRB p. 106)', () => {
+		expect(totalDefense({ melee: 1, ranged: 1 }, [{ soak: 1, defense: 2 }], COVER)).toEqual({ melee: 3, ranged: 3 });
+	});
+
 	it('never goes above 4 (CRB p. 104-105)', () => {
-		expect(totalDefense({ melee: 4, ranged: 2 }, [{ soak: 1, defense: 3 }])).toEqual({ melee: 4, ranged: 4 });
+		expect(totalDefense({ melee: 4, ranged: 2 }, [{ soak: 1, defense: 3 }], NONE)).toEqual({ melee: 4, ranged: 4 });
+		expect(totalDefense({ melee: 3, ranged: 3 }, [], { melee: 2, ranged: 2 })).toEqual({ melee: 4, ranged: 4 });
 	});
 });
 
 describe('adversaryDefense', () => {
 	it("is the adversary's stat block defense, melee and ranged each, up to 4 (CRB p. 104-105)", () => {
-		expect(adversaryDefense({ melee: 1, ranged: 2 })).toEqual({ melee: 1, ranged: 2 });
-		expect(adversaryDefense({ melee: 4, ranged: 4 })).toEqual({ melee: 4, ranged: 4 });
-		expect(adversaryDefense({ melee: 5, ranged: 6 })).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 1, ranged: 2 }, NONE)).toEqual({ melee: 1, ranged: 2 });
+		expect(adversaryDefense({ melee: 4, ranged: 4 }, NONE)).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 5, ranged: 6 }, NONE)).toEqual({ melee: 4, ranged: 4 });
+	});
+
+	it('keeps the best of its stat block defense, which counts its armor, and the one cover provides (CRB p. 106)', () => {
+		expect(adversaryDefense({ melee: 1, ranged: 1 }, COVER)).toEqual({ melee: 1, ranged: 1 });
+		expect(adversaryDefense({ melee: 0, ranged: 0 }, COVER)).toEqual({ melee: 0, ranged: 1 });
+	});
+
+	it('never goes above 4 (CRB p. 104-105)', () => {
+		expect(adversaryDefense({ melee: 3, ranged: 3 }, { melee: 5, ranged: 5 })).toEqual({ melee: 4, ranged: 4 });
 	});
 });
 

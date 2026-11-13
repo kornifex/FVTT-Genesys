@@ -228,6 +228,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier
+      ProvideDefense: Défense fournie (la meilleure compte)
       ModifyDicePool:
         GroupLabel: Réserve de dés à modifier
         Options:

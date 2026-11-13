@@ -89,17 +89,18 @@ describe('Immobilized and Staggered', () => {
 
 describe('In cover', () => {
 	/**
-	 * A target in cover, its defense raised by the state's changes as Foundry adds them to its own (0 by default).
+	 * A target in cover, the defense it provides written by the state's changes as Foundry's Upgrade mode writes them, over
+	 * its stat block's (0 by default).
 	 */
-	function inCover(own: Defense = { melee: 0, ranged: 0 }): PoolModificationActor {
-		const defense = { ...own };
+	function inCover(statBlock: Defense = { melee: 0, ranged: 0 }): PoolModificationActor {
+		const provided = { melee: 0, ranged: 0 };
 		for (const { key, value, type } of tokenState('cover')!.changes) {
-			const rating = key.match(/^system\.defense\.(melee|ranged)$/)?.[1] as keyof Defense | undefined;
-			if (type === 'add' && rating) {
-				defense[rating] += Number(value);
+			const rating = key.match(/^system\.providedDefense\.(melee|ranged)$/)?.[1] as keyof Defense | undefined;
+			if (type === 'upgrade' && rating) {
+				provided[rating] = Math.max(provided[rating], Number(value));
 			}
 		}
-		return { type: 'rival', system: { totalDefense: adversaryDefense(defense) }, allApplicableEffects: () => [] };
+		return { type: 'rival', system: { totalDefense: adversaryDefense(statBlock, provided) }, allApplicableEffects: () => [] };
 	}
 
 	const attacker = characterWith('immobilized');
@@ -116,12 +117,11 @@ describe('In cover', () => {
 		expect(poolModificationsForCheck(attacker, inCover(), { attackRange: 'engaged' })).toEqual([]);
 	});
 
-	it('raises the ranged defense its actor has already, up to 4 (CRB p. 99, 104)', () => {
+	it("doesn't stack with the ranged defense its actor's stat block provides, the best one being kept (CRB p. 106)", () => {
 		expect(poolModificationsForCheck(attacker, inCover({ melee: 1, ranged: 1 }), { attackRange: 'short' })[0].mods).toEqual([
 			DieTypes.Setback.GLYPH,
-			DieTypes.Setback.GLYPH,
 		]);
-		expect(poolModificationsForCheck(attacker, inCover({ melee: 0, ranged: 4 }), { attackRange: 'short' })[0].mods).toHaveLength(4);
+		expect(poolModificationsForCheck(attacker, inCover({ melee: 0, ranged: 2 }), { attackRange: 'short' })[0].mods).toHaveLength(2);
 	});
 });
 

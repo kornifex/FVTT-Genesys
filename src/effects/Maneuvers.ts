@@ -52,7 +52,8 @@ export function aimBoosts(changes: readonly { key?: string; value: unknown }[]):
 
 /**
  * The effect of the Guarded Stance maneuver: a Setback on the character's combat checks and melee defense 1, until the
- * end of their next turn (CRB p. 99), which the effect lasts as a Lapsing Effect of one round.
+ * end of their next turn (CRB p. 99), which the effect lasts as a Lapsing Effect of one round. The maneuver provides that
+ * defense: it doesn't stack with their armor's (CRB p. 106).
  */
 export const GUARDED_STANCE: ManeuverEffect = {
 	id: 'guardedStance',
@@ -60,7 +61,7 @@ export const GUARDED_STANCE: ManeuverEffect = {
 	img: 'icons/svg/shield.svg',
 	changes: [
 		{ key: COMBAT_CHECK_KEY, value: DieTypes.Setback.GLYPH, type: 'custom' },
-		{ key: 'system.defense.melee', value: '1', type: 'add' },
+		{ key: 'system.providedDefense.melee', value: '1', type: 'upgrade' },
 	],
 };
 

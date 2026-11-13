@@ -228,6 +228,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada
+      ProvideDefense: Defensa proporcionada (cuenta la mejor)
       ModifyDicePool:
         GroupLabel: Modificar reserva de dados
         Options:
