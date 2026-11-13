@@ -6,12 +6,14 @@ import path from 'node:path';
 /**
  * The `e2e/.env` the harness loads: the checkout's own, else that of the repo's main checkout, the parent of the git
  * dir its worktrees share (`gitCommonDir`, asked only then), since git ignores the file and a new worktree has none.
- * None when neither has one.
+ * None when neither has one, or when the checkout is no git repo (`gitCommonDir` gives none).
  */
-export function envFile(root: string, gitCommonDir: () => string): string | undefined {
+export function envFile(root: string, gitCommonDir: () => string | undefined): string | undefined {
 	const own = path.join(root, 'e2e', '.env');
 	if (fs.existsSync(own)) return own;
-	const main = path.join(path.dirname(gitCommonDir()), 'e2e', '.env');
+	const common = gitCommonDir();
+	if (common === undefined) return undefined;
+	const main = path.join(path.dirname(common), 'e2e', '.env');
 	return fs.existsSync(main) ? main : undefined;
 }
 

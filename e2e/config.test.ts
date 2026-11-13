@@ -44,6 +44,10 @@ describe('envFile', () => {
 	it('finds none when neither checkout has one', () => {
 		expect(envFile(worktree, gitCommonDir)).toBeUndefined();
 	});
+
+	it('finds none in a checkout that is no git repo', () => {
+		expect(envFile(worktree, () => undefined)).toBeUndefined();
+	});
 });
 
 const v13 = {

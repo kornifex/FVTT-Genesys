@@ -18,9 +18,18 @@ import { type FoundryServer, launchFoundry, prepareDataDir } from './server.ts';
 import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine, type StepLog, stopped } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
-const env = envFile(root, () =>
-	execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: root, encoding: 'utf8' }).trim(),
-);
+const env = envFile(root, () => {
+	try {
+		return execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+			cwd: root,
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		}).trim();
+	} catch {
+		// Not a git checkout: readConfig then says which settings are missing.
+		return undefined;
+	}
+});
 if (env) process.loadEnvFile(env);
 
 const usage =
