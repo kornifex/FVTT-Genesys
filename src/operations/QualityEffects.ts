@@ -27,9 +27,12 @@ export async function copyQualityEffects(item: GenesysItem, dropped: GenesysItem
 }
 
 /**
- * Adds an effect to a quality of a weapon or an armor, named after the quality, which applies while the item does.
+ * Adds an effect to a quality of a weapon or an armor, named after the quality, which applies while the item does, and
+ * opens its sheet: the item's Effects tab lists it, out of sight of the quality.
  */
 export async function addQualityEffect(item: GenesysItem, quality: Pick<ContainedItemQuality, 'id' | 'name'>) {
 	const data = { ...newEffectData(quality.name, 'passive'), flags: { genesys: { [QUALITY_FLAG]: quality.id } } };
-	await item.createEmbeddedDocuments('ActiveEffect', [data as ActiveEffect.CreateData]);
+	// A module's preCreate hook may refuse the effect, which Foundry returns no effect for.
+	const [effect] = await item.createEmbeddedDocuments('ActiveEffect', [data as ActiveEffect.CreateData]);
+	await effect?.sheet?.render(true);
 }
