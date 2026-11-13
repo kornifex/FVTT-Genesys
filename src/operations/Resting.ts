@@ -30,7 +30,7 @@ export async function recoverAtEndOfEncounter(character: Character) {
 		);
 	});
 
-	// Without a skill marked, the check is a Willpower Characteristic Check, as Discipline's is for a character who can't roll it.
+	// Without a skill marked, the check is a Willpower Characteristic Check, Discipline's characteristic.
 	await DicePrompt.promptForRoll(character, skillName ?? '', {
 		difficulty: difficultyGlyphs({ level: 0, upgrades: 0 }),
 		// Discipline's characteristic, for a world whose Skills Compendium marks no skill.

@@ -185,10 +185,14 @@ export function strainRecoverySkill(skills: readonly string[], poolOf: (name: st
 
 /**
  * The names of the skills of the Skills Compendium marked as recovering strain at the end of an encounter (Discipline
- * and Cool, CRB p. 117), in the compendium's order.
+ * and Cool, CRB p. 117), sorted by name: the compendium's own order is the order its documents load in, which no one
+ * chose, and a tie between them must not change with it.
  */
 export function strainRecoverySkillNames(compendiumSkills: { name: string; system: { recoversStrain: boolean } }[]) {
-	return compendiumSkills.filter((skill) => skill.system.recoversStrain).map((skill) => skill.name);
+	return compendiumSkills
+		.filter((skill) => skill.system.recoversStrain)
+		.map((skill) => skill.name)
+		.sort((left, right) => left.localeCompare(right));
 }
 
 /**

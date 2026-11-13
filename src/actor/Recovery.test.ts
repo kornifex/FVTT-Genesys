@@ -153,7 +153,7 @@ describe('strainRecoverySkill', () => {
 		expect(strainRecoverySkill(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [2, 1] }))).toBe('Discipline');
 	});
 
-	it('picks between the two skills the world names, the first winning a tie and answering when neither can be rolled', () => {
+	it('picks among skills of any name, the first winning a tie and answering when neither can be rolled', () => {
 		const french = ['Discipline (fr)', 'Calme'] as const;
 
 		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [3, 1] }))).toBe('Calme');
@@ -251,11 +251,11 @@ describe('isHealingSkill', () => {
 });
 
 describe('strainRecoverySkillNames', () => {
-	it('lists the skills the Skills Compendium marks as recovering strain, in its order', () => {
+	it('lists the skills the Skills Compendium marks as recovering strain, sorted by name whatever its order', () => {
 		const skills = [
-			{ name: 'Cool', system: { recoversStrain: true } },
-			{ name: 'Brawl', system: { recoversStrain: false } },
 			{ name: 'Discipline', system: { recoversStrain: true } },
+			{ name: 'Brawl', system: { recoversStrain: false } },
+			{ name: 'Cool', system: { recoversStrain: true } },
 		];
 
 		expect(strainRecoverySkillNames(skills)).toEqual(['Cool', 'Discipline']);
