@@ -6,7 +6,7 @@
 import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
 import { type DicePool, parsePoolModifications } from '@/dice/DicePool';
 import { upgradeDie } from '@/dice/DieGrades';
-import { skillNamesMatch } from '@/data/Skills';
+import { compendiumSkill } from '@/data/Skills';
 
 /**
  * The localization keys of the difficulty levels' names, by their number of Difficulty dice, then Impossible (CRB p. 18,
@@ -84,7 +84,7 @@ export function openingDifficulty(
 		return callerDifficulty;
 	}
 
-	const skill = skillName ? compendiumSkills.find((candidate) => skillNamesMatch(candidate.name, skillName)) : undefined;
+	const skill = skillName ? compendiumSkill(compendiumSkills, skillName) : undefined;
 	return skill?.system.difficulty || worldDifficulty;
 }
 

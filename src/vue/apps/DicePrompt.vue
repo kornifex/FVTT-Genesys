@@ -171,7 +171,10 @@ const SOURCE_ICONS: Record<string, string> = { Item: 'fa-solid fa-suitcase', Act
 
 // The Pool Modifications of the check, each turned on or off by the roller. The origin is the actor or the target, the
 // name what the modification comes from.
-const effects = ref<{ key: string; origin: string; name: string; link?: SourceLink; enabled: boolean; mods: string[] }[]>([]);
+// A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
+const effects = ref<
+	{ key: string; origin: string; name: string; link?: SourceLink; description?: string; enabled: boolean; mods: string[] }[]
+>([]);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
 const weaponSkills = shallowRef<PromptSkill[]>([]);
@@ -242,7 +245,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		key: modification.key,
 		origin: game.i18n.localize(poolModificationOriginLabel(modification.source)),
 		name: poolModificationName(modification),
-		link: sourceLink(modification),
+		...rowSource(modification),
 		enabled: modification.enabled,
 		mods: modification.mods,
 	}));
@@ -280,26 +283,33 @@ function poolModificationName({ from }: CheckPoolModification) {
 }
 
 /**
- * The link to the document the roller opens to read a Pool Modification's conditions: the item its effect comes from, or
- * the effect when it comes from none, or the damaged weapon. None when the user may not see that document, as a player on a target's item.
+ * What a Pool Modification's row offers to read its conditions: the description of the quality or the attachment its
+ * effect belongs to, which no document holds, or else a link to the document, the item its effect comes from, or the
+ * effect when it comes from none, or the damaged weapon. Neither when the user may not see that document, as a player on
+ * a target's item.
  */
-function sourceLink({ from }: CheckPoolModification): SourceLink | undefined {
-	const uuid = matchOrigin(from, {
-		effect: (_name, uuid, item) => item?.uuid ?? uuid,
-		defense: () => undefined,
-		silhouette: () => undefined,
-		encumbrance: () => undefined,
-		itemDamage: ({ uuid }) => uuid ?? undefined,
+function rowSource({ from }: CheckPoolModification): { link?: SourceLink; description?: string } {
+	const { uuid, described } = matchOrigin<{ uuid?: string; described?: { description: string } }>(from, {
+		effect: (_name, uuid, item, described) => ({ uuid: item?.uuid ?? uuid, described }),
+		defense: () => ({}),
+		silhouette: () => ({}),
+		encumbrance: () => ({}),
+		itemDamage: ({ uuid }) => ({ uuid: uuid ?? undefined }),
 	});
 	const document = sourceDocument(uuid);
 	if (!uuid || !document?.testUserPermission(game.user, 'OBSERVER')) {
-		return undefined;
+		return {};
+	}
+	if (described) {
+		return { description: described.description };
 	}
 
 	return {
-		uuid,
-		tooltip: game.i18n.format('Genesys.DicePrompt.PoolModifications.OpenSource', { name: document.name }),
-		icon: SOURCE_ICONS[document.documentName],
+		link: {
+			uuid,
+			tooltip: game.i18n.format('Genesys.DicePrompt.PoolModifications.OpenSource', { name: document.name }),
+			icon: SOURCE_ICONS[document.documentName],
+		},
 	};
 }
 
@@ -582,7 +592,7 @@ const spendId = useId();
 							<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
 						the checkbox alone turns the modification on. -->
 							<!-- prettier-ignore -->
-							<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><template v-else>{{ effect.name }}</template></span>
+							<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
 						</span>
 						<div>
 							<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />

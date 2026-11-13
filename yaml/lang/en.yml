@@ -87,6 +87,8 @@ Genesys:
     NoDescription: No Description Available
     SkillDifficulty: >-
       The difficulty the Dice Pool opens at for this skill, as dice pool modification glyphs (DD for Average). Leave it empty for the world's Default Difficulty. Only the skill of the Skills Compendium counts.
+    SkillRulesFromCompendium: >-
+      A character's skill takes its Default Difficulty and Initiative from the skill of the same name in the Skills Compendium. Set them there.
     HardPoints: >-
       Half the base encumbrance, rounded up (CRB p. 206). Change it for an item that is an exception; empty it to go back to the computed value.
     IsInitiative: Whether the skill is commonly used for Initiative or not. Setting this to true will make it appear as an option in the combat tracker for mass rolls.

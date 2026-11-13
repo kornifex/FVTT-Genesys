@@ -59,6 +59,28 @@ export function skillNamesMatch(left: string, right: string) {
 }
 
 /**
+ * The skill of the Skills Compendium with a name, whatever its case: the one the system reads a skill's rules from, never
+ * an actor's copy.
+ */
+export function compendiumSkill<S extends { name: string }>(compendiumSkills: S[], name: string): S | undefined {
+	return compendiumSkills.find((skill) => skillNamesMatch(skill.name, name));
+}
+
+/**
+ * The Default Difficulty and Initiative of a skill as the system uses them, read from the Skills Compendium's skill of the
+ * same name: the Dice Prompt and the combat tracker never read an actor's copy. Without such a skill, the difficulty is
+ * the world's and the skill is no Initiative Skill. A skill with no difficulty takes the world's too.
+ */
+export function displayedSkillRules(
+	compendiumSkills: { name: string; system: { difficulty: string; initiative: boolean } }[],
+	name: string,
+	worldDifficulty: string,
+) {
+	const defined = compendiumSkill(compendiumSkills, name);
+	return { difficulty: defined?.system.difficulty || worldDifficulty, initiative: defined?.system.initiative ?? false };
+}
+
+/**
  * The owned skill with a name. An actor may own several skills whose names only differ by case: the one with the
  * highest rank wins, then the first in item order.
  */
@@ -91,7 +113,7 @@ export function skillToRoll<S extends Skill>(ownedSkills: S[], compendiumSkills:
 		return { skill: owned, unranked: false };
 	}
 
-	const defined = compendiumSkills.find((skill) => skillNamesMatch(skill.name, name));
+	const defined = compendiumSkill(compendiumSkills, name);
 	return defined && { skill: defined, unranked: true };
 }
 

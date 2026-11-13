@@ -33,6 +33,7 @@ import { medicineHealPart } from './dicePrompt/medicineHeal.ts';
 import { recoveryPart } from './dicePrompt/recovery.ts';
 import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
+import { qualityAttachmentDescriptionsPart } from './dicePrompt/qualityAttachmentDescriptions.ts';
 import { spellCastingPart } from './dicePrompt/spellCasting.ts';
 import { repeatableEffectsPart } from './dicePrompt/repeatableEffects.ts';
 import { magicAttackPart } from './dicePrompt/magicAttack.ts';
@@ -307,6 +308,10 @@ export async function run(e2e: ScenarioContext) {
 	await part('qualityEffects', () => qualityEffectsPart(context));
 
 	await part('attachments', () => attachmentsPart(context));
+
+	// D: a Pool Modification of a quality or an attachment shows its description, where an effect written on the weapon
+	// links to it (§#768).
+	await part('qualityAttachmentDescriptions', () => qualityAttachmentDescriptionsPart(context));
 
 	// S: casting a spell from the Magic tab, with its magic skill, at its difficulty raised by the Additional Effects
 	// checked in the Dice Prompt, never beyond Formidable, and the 2 strain it costs (§#705, CRB pp. 210–217).

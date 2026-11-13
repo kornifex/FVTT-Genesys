@@ -87,6 +87,8 @@ Genesys:
     NoDescription: Descripción no disponible
     SkillDifficulty: >-
       La dificultad con la que se abre la reserva de dados para esta habilidad, en símbolos de modificación de reserva (DD para Medio). Déjalo vacío para la dificultad por defecto del mundo. Solo cuenta la habilidad del compendio de habilidades.
+    SkillRulesFromCompendium: >-
+      La habilidad de un personaje toma su dificultad por defecto y su Iniciativa de la habilidad del mismo nombre en el compendio de habilidades. Defínelas allí.
     HardPoints: >-
       La mitad del impedimento base, redondeada hacia arriba (manual básico, p. 206). Cámbialo para un objeto que sea una excepción; vacíalo para volver al valor calculado.
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.

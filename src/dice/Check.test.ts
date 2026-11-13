@@ -335,7 +335,10 @@ describe('resolveCheck', () => {
 			type: 'weapon',
 			name: 'Sword',
 			uuid: 'Item.sword',
-			system: { damage: 'undamaged' as const, qualities: [{ id: 'acc', isRated: true, rating: 2 }] },
+			system: {
+				damage: 'undamaged' as const,
+				qualities: [{ id: 'acc', name: 'Accurate', description: 'Aims better.', isRated: true, rating: 2 }],
+			},
 			effects: [] as PoolModificationEffect[],
 		};
 		sword.effects = [
@@ -356,7 +359,12 @@ describe('resolveCheck', () => {
 			{
 				key: 'self.effect.ActiveEffect.accurate',
 				source: 'self',
-				from: { effect: 'Accurate', uuid: 'ActiveEffect.accurate', item: { name: 'Sword', uuid: 'Item.sword' } },
+				from: {
+					effect: 'Accurate',
+					uuid: 'ActiveEffect.accurate',
+					item: { name: 'Sword', uuid: 'Item.sword' },
+					described: { name: 'Accurate', description: 'Aims better.' },
+				},
 				mods: ['B', 'B'],
 			},
 		]);

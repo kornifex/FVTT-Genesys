@@ -32,6 +32,7 @@ import { createdDocumentsPart } from './sheets/createdDocuments.ts';
 import { weaponProfilesPart } from './sheets/weaponProfiles.ts';
 import { weaponDataLayoutPart } from './sheets/weaponDataLayout.ts';
 import { hardPointsPart } from './sheets/hardPoints.ts';
+import { skillRulesPart } from './sheets/skillRules.ts';
 import { magicPart } from './sheets/magic.ts';
 import { detachedWindowsPart } from './sheets/detachedWindows.ts';
 import { sheetHeights } from './sheets/sheetHeights.ts';
@@ -220,6 +221,9 @@ export async function run(e2e: ScenarioContext) {
 	// §#695: a weapon's or an armor's Data tab shows its Hard Points after its encumbrance, worked out from it unless the
 	// item sets its own number. A vehicle weapon has none.
 	await part('hardPoints', () => hardPointsPart(context));
+
+	// §#767: a character's skill shows the Default Difficulty and Initiative of the Skills Compendium's skill, read-only.
+	await part('skillRules', () => skillRulesPart(context));
 
 	// §#704: spells and their Additional Effects, written as items and dropped on each other, and the Magic tab of a
 	// character who practices magic, which the window's menu hides.
