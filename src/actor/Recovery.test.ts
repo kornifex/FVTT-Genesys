@@ -8,7 +8,7 @@ import {
 	canBePatient,
 	healedPools,
 	heals,
-	isMedicine,
+	isHealingSkill,
 	medicineDifficulty,
 	nightsRest,
 	patientChoices,
@@ -120,22 +120,32 @@ describe('strainRecoverySkill', () => {
 		return pool && { characteristic: pool[0], rank: pool[1] };
 	};
 
+	const SKILLS = ['Discipline', 'Cool'] as const;
+
 	it('picks the skill of the larger dice pool between Discipline and Cool (CRB p. 117)', () => {
-		expect(strainRecoverySkill(pools({ Discipline: [2, 1], Cool: [3, 1] }))).toBe('Cool');
-		expect(strainRecoverySkill(pools({ Discipline: [3, 0], Cool: [2, 2] }))).toBe('Discipline');
+		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [2, 1], Cool: [3, 1] }))).toBe('Cool');
+		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [3, 0], Cool: [2, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the pool with more Proficiency dice when both hold as many dice', () => {
-		expect(strainRecoverySkill(pools({ Discipline: [3, 1], Cool: [3, 2] }))).toBe('Cool');
+		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [3, 1], Cool: [3, 2] }))).toBe('Cool');
 	});
 
 	it('picks Discipline, as the rule names it first, when both pools are alike', () => {
-		expect(strainRecoverySkill(pools({ Discipline: [2, 1], Cool: [1, 2] }))).toBe('Discipline');
+		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [2, 1], Cool: [1, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the one the character can roll, and Discipline when they can roll neither', () => {
-		expect(strainRecoverySkill(pools({ Cool: [1, 0] }))).toBe('Cool');
-		expect(strainRecoverySkill(pools({}))).toBe('Discipline');
+		expect(strainRecoverySkill(SKILLS, pools({ Cool: [1, 0] }))).toBe('Cool');
+		expect(strainRecoverySkill(SKILLS, pools({}))).toBe('Discipline');
+	});
+
+	it('picks between the two skills the world names, the first winning a tie and answering when neither can be rolled', () => {
+		const french = ['Discipline (fr)', 'Calme'] as const;
+
+		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [3, 1] }))).toBe('Calme');
+		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [1, 2] }))).toBe('Discipline (fr)');
+		expect(strainRecoverySkill(french, pools({ Discipline: [3, 3], Cool: [3, 3] }))).toBe('Discipline (fr)');
 	});
 });
 
@@ -181,9 +191,17 @@ describe('canBePatient', () => {
 	});
 });
 
-describe('isMedicine', () => {
-	it('matches Medicine whatever its case', () => {
-		expect([isMedicine('Medicine'), isMedicine('medicine'), isMedicine('Mechanics')]).toEqual([true, true, false]);
+describe('isHealingSkill', () => {
+	it('matches the skill the setting names, Medicine by default, whatever its case', () => {
+		expect([
+			isHealingSkill('Medicine', 'Medicine'),
+			isHealingSkill('medicine', 'Medicine'),
+			isHealingSkill('Mechanics', 'Medicine'),
+		]).toEqual([true, true, false]);
+	});
+
+	it('follows the name a world gives the skill', () => {
+		expect([isHealingSkill('médecine', 'Médecine'), isHealingSkill('Medicine', 'Médecine')]).toEqual([true, false]);
 	});
 });
 

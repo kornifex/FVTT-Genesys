@@ -50,13 +50,20 @@ describe('spendOptions', () => {
 		expect(spendOptions([], { ...gm, gmConnected: false }).every(({ refusal }) => !refusal)).toBe(true);
 	});
 
-	it('refuses a second spend from a pool whose last point the first takes, an Impossible task costing a point of its own (CRB p. 18)', () => {
-		const lastPoint = { ...player, storyPoints: { player: 1, gm: 0 }, impossible: true };
-		expect(spendOptions([CheckSpend.Impossible], lastPoint)).toEqual([
+	it('refuses every other spend once the Impossible task\'s point is chosen, even with points to spare (CRB p. 18: "you cannot spend any additional Story Points on the check")', () => {
+		expect(spendOptions([CheckSpend.Impossible], { ...player, impossible: true })).toEqual([
 			{ spend: CheckSpend.Impossible, pool: 'player' },
-			{ spend: CheckSpend.UpgradeAbility, pool: 'player', refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' },
+			{ spend: CheckSpend.UpgradeAbility, pool: 'player', refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' },
 		]);
-		expect(spendOptions([CheckSpend.Impossible], { ...lastPoint, storyPoints: { player: 2, gm: 0 } })[1]?.refusal).toBeUndefined();
+		expect(spendOptions([CheckSpend.Impossible], { ...gm, impossible: true })).toEqual([
+			{ spend: CheckSpend.Impossible, pool: 'gm' },
+			{ spend: CheckSpend.UpgradeAbility, pool: 'gm', refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'player', refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' },
+		]);
+	});
+
+	it("offers the other spends again once the Impossible task's point is unchecked (CRB p. 18)", () => {
+		expect(spendOptions([], { ...gm, impossible: true }).map(({ refusal }) => refusal)).toEqual([undefined, undefined, undefined]);
 	});
 
 	it('leaves a chosen spend open, so that the roller can take it back, even once its pool is empty', () => {
@@ -68,9 +75,16 @@ describe('spendOptions', () => {
 
 describe('chosenSpends', () => {
 	it('keeps each spend once per check, in the order the prompt offers them (CRB p. 28)', () => {
+		expect(chosenSpends([CheckSpend.UpgradeDifficulty, CheckSpend.UpgradeAbility, CheckSpend.UpgradeAbility], gm)).toEqual([
+			CheckSpend.UpgradeAbility,
+			CheckSpend.UpgradeDifficulty,
+		]);
+	});
+
+	it("takes back the other spends once the Impossible task's point is chosen (CRB p. 18)", () => {
 		expect(
-			chosenSpends([CheckSpend.UpgradeAbility, CheckSpend.Impossible, CheckSpend.UpgradeAbility], { ...player, impossible: true }),
-		).toEqual([CheckSpend.Impossible, CheckSpend.UpgradeAbility]);
+			chosenSpends([CheckSpend.UpgradeAbility, CheckSpend.Impossible, CheckSpend.UpgradeDifficulty], { ...gm, impossible: true }),
+		).toEqual([CheckSpend.Impossible]);
 	});
 
 	it("drops the point of a task no longer Impossible, and a player's upgrade of the difficulty a player can't spend", () => {

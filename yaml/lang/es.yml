@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
     SkillForRepairingVehicleHitsHint: Nombre de la habilidad utilizada al recuperarse de Daños críticos.
+    SkillForHealingWounds: Nombre de la habilidad Medicina
+    SkillForHealingWoundsHint: Nombre de la habilidad cuya tirada cura las heridas de un paciente, junto a la cual aparece la acción Curar.
+    SkillForRecoveringStrain: Nombre de la habilidad Disciplina
+    SkillForRecoveringStrainHint: Nombre de la primera de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro; gana en caso de empate.
+    AlternativeSkillForRecoveringStrain: Nombre de la habilidad Sangre fría
+    AlternativeSkillForRecoveringStrainHint: Nombre de la segunda de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro.
     DicePoolCollapseModifications: Colapsar la sección de modificaciones de la reserva
     DicePoolCollapseModificationsHint: Si está activada, la sección "modificaciones de la reserva" de la ventana de dados se colapsará durante la renderización inicial.
     DicePoolAutoApplyModifications: Aplicar automáticamente modificaciones en la reserva
@@ -228,6 +234,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada
+      ModifyItem: Modificar objeto
       ModifyDicePool:
         GroupLabel: Modificar reserva de dados
         Options:
@@ -307,6 +314,7 @@ Genesys:
       UpgradeDifficulty: Gastar un punto de los PJ para mejorar la dificultad
       ImpossibleCost: Una tarea imposible no puede tirarse sin él.
       EmptyPool: La reserva no tiene puntos que gastar.
+      ImpossibleOnly: Una tarea imposible no admite ningún otro Punto de Historia.
       NoGM: Un DJ debe estar conectado para gastar un Punto de Historia.
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
@@ -359,6 +367,7 @@ Genesys:
     Wounds: Heridas
     Strain: Tensión
     Apply: Aplicar
+    Applied: Aplicadas
     # The end of an encounter's check and a night's rest
     EndOfEncounter: Fin del encuentro
     EndOfEncounterCardLabel: '{patient} se recupera'
@@ -420,6 +429,7 @@ Genesys:
     NoGMForClaim: Un DJ debe estar conectado para reclamar un puesto de iniciativa.
     NoGMForUsedUpEffects: Un DJ debe estar conectado para retirar el Apuntar que gastó el ataque de {name}.
     NoGMForCastingStrain: Un DJ debe estar conectado para infligir a {name} la tensión de su hechizo.
+    NoGMForRecovery: Un DJ debe estar conectado para aplicar una curación.
     NotOwnerOfCombatant: No eres propietario de este combatiente.
     ActingGMTimedOut: El DJ no respondió a tiempo. Comprueba si la acción se realizó antes de volver a intentarlo.
     CannotSelectActor: No tienes permiso suficiente para seleccionar este Actor.

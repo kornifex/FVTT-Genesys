@@ -17,7 +17,8 @@ import { type ExtraWeaponProfile, profileUpdate, weaponProfile } from '@/item/We
 export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'> {
 	protected override async receiveItem(droppedItem: GenesysItem, event?: DragEvent): Promise<void> {
 		// The stored data, which an update of an extra profile copies whole: the prepared data holds the damage and Critical
-		// ratings the weapon's Item Changes add to every profile, which the update would store.
+		// ratings the weapon's Item Changes add (an attachment's to every profile, a quality's to the one holding it), which
+		// the update would store.
 		const system = this.item._source.system as WeaponDataModel | VehicleWeaponDataModel;
 		// A vehicle weapon has a single profile: its own fields.
 		const weapon = hasExtraProfiles(system) ? system : undefined;

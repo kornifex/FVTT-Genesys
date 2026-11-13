@@ -148,6 +148,8 @@ export function deleteExtraProfileUpdate(weapon: ProfiledWeapon, index: number) 
 export type AttackProfile = VehicleWeaponProfileData &
 	Partial<Pick<WeaponProfileData, 'damageCharacteristic' | 'attackSkill'>> & {
 		attackName: string;
+		/** The uuid of the weapon the attack is made with, absent for a magic attack. */
+		weaponUuid?: string | null;
 		doublesDamageCharacteristic?: boolean;
 	};
 

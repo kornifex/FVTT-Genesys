@@ -56,9 +56,9 @@ export type DicePromptContext = {
 
 /**
  * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell the
- * ids of the Additional Effects checked.
+ * ids of the Additional Effects checked. The target is the actor's uuid the prompt read as it opened.
  */
-export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[] };
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[]; targetUuid?: string };
 
 /**
  * What a Dice Prompt opens with, besides its actor and skill.
@@ -125,6 +125,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			attack: attackOf(app.roll, checkRoll, actor),
 			recovery: app.recovery,
 			spell: cast,
+			targetUuid: checkRoll.targetUuid,
 		});
 		// A module that prevents the check's message leaves no check made to cost the actor anything.
 		if (!actor || !message) {
@@ -255,7 +256,7 @@ function ranksOf(actor: GenesysActor | undefined) {
  */
 function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswer, actor: GenesysActor | undefined) {
 	if (roll.type === RollType.Attack) {
-		return roll.profile;
+		return { ...roll.profile, weaponUuid: roll.weapon.uuid };
 	}
 
 	if (roll.type !== RollType.Spell || !roll.spell.system.isAttack) {

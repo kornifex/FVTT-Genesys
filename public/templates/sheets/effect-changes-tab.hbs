@@ -23,7 +23,7 @@
 				</select>
 			</div>
 			<div class="mode">
-				{{!-- A Pool Modification of every check of a kind, and a change to Critical Injury rolls, have no subject and no mode. --}}
+				{{!-- A Pool Modification of every check of a kind, a change to Critical Injury rolls and an Item Change have no subject and no mode. --}}
 				<div class="check-selection initial-hide {{#if (eq change.subjectField 'check-selection')}}show-it{{/if}}">—</div>
 				<select name="{{@root.changesPath}}.{{i}}.char" class="characteristic-selection initial-hide {{#if (eq change.subjectField 'characteristic-selection')}}show-it{{/if}}">
 					{{selectOptions @root.characteristics selected=change.char valueAttr="characteristic" labelAttr="label" localize=true sort=true}}

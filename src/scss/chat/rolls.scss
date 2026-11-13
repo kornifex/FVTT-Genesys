@@ -132,9 +132,15 @@ $size: 2rem;
 	}
 
 	// The Apply button of a check that heals, under what it heals.
-	.apply-recovery {
+	.apply-recovery,
+	.recovery-applied {
 		margin-top: 0.25em;
 		font-family: 'Roboto', sans-serif;
+	}
+
+	.recovery-applied {
+		display: block;
+		text-align: center;
 	}
 
 	.net-results {

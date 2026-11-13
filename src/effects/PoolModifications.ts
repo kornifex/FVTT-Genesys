@@ -15,6 +15,7 @@ import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
 import { attachmentIdOf } from '@/item/data/Attachments';
+import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
@@ -566,8 +567,9 @@ export function skillChoices(compendiumSkillNames: string[], changes: EditedChan
  * Which field of the effect sheets edits what a change applies to, given the key picked for it.
  */
 export function subjectFieldForKey(key: string) {
-	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls.
-	if (isCriticalChangeKey(key)) {
+	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls. Nor has an Item
+	// Change, which its item always adds.
+	if (isCriticalChangeKey(key) || isItemChangeKey(key)) {
 		return 'check-selection';
 	}
 
@@ -612,7 +614,8 @@ export function toEditedChange(change: StoredChange): EditedChange {
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
  * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to
  * Critical Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a
- * whole number. Any other change is returned as it is.
+ * whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. Any other change is
+ * returned as it is.
  * @param customMode v13: Foundry's custom effect mode, read only for a change that has a mode, since v14 logs a
  * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
  */
@@ -624,6 +627,10 @@ export function fromEditedChange(change: EditedChange, customMode: () => number)
 
 	if (isCriticalChangeKey(change.key)) {
 		return { ...stored, ...custom(), value: isCriticalChangeValue(value) ? value.trim() : '' };
+	}
+
+	if (isItemChangeKey(change.key)) {
+		return { ...stored, ...custom() };
 	}
 
 	const baseKey = change.key.match(BASE_KEY_PATTERN);

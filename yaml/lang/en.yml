@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: Name of the skill used when recovering from Critical Injuries.
     SkillForRepairingVehicleHits: Mechanics Skill Name
     SkillForRepairingVehicleHitsHint: Name of the skill used when recovering from Critical Hits.
+    SkillForHealingWounds: Medicine Skill Name
+    SkillForHealingWoundsHint: Name of the skill whose check heals a patient's wounds, which shows the Heal action beside it.
+    SkillForRecoveringStrain: Discipline Skill Name
+    SkillForRecoveringStrainHint: Name of the first of the two skills the check that recovers strain at the end of an encounter picks between; it wins a tie.
+    AlternativeSkillForRecoveringStrain: Cool Skill Name
+    AlternativeSkillForRecoveringStrainHint: Name of the second of the two skills the check that recovers strain at the end of an encounter picks between.
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
@@ -228,6 +234,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
+      ModifyItem: Modify Item # The Item Changes, which change the weapon or armor that holds the effect
       ModifyDicePool:
         GroupLabel: Modify Dice Pool
         Options:
@@ -308,6 +315,7 @@ Genesys:
       UpgradeDifficulty: Spend a player's point to upgrade the difficulty
       ImpossibleCost: An Impossible task can't be rolled without it.
       EmptyPool: The pool has no point left to spend.
+      ImpossibleOnly: An Impossible task allows no other Story Point.
       NoGM: A GM must be online to spend a Story Point.
     ChanceToSucceed: 'Chance to Succeed:'
     ChanceToSucceedByPermutationDisclaimer: The displayed probability is exact unless the dice pool includes a super-characteristic.
@@ -365,6 +373,7 @@ Genesys:
     Wounds: Wounds
     Strain: Strain
     Apply: Apply
+    Applied: Applied
     # The end of an encounter's check and a night's rest
     EndOfEncounter: End of encounter
     EndOfEncounterCardLabel: '{patient} recovers'
@@ -428,6 +437,7 @@ Genesys:
     NoGMForClaim: A GM must be online to claim an initiative slot.
     NoGMForUsedUpEffects: A GM must be online to remove the Aim {name}'s attack used up.
     NoGMForCastingStrain: A GM must be online to give {name} the strain of their spell.
+    NoGMForRecovery: A GM must be online to apply a healing.
     NotOwnerOfCombatant: You don't own this combatant.
     ActingGMTimedOut: The GM didn't answer in time. Check whether it went through before trying again.
     CannotSelectActor: You do not have sufficient permission to select this Actor.

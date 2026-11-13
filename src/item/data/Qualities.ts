@@ -113,8 +113,28 @@ export function effectQuality(effect: Pick<TaggedEffect, 'flags'>, system: objec
 	return id && system ? itemQualities(system).find((quality) => quality.id === id) : undefined;
 }
 
-// The rank a quality's effects count for: its rating when it is rated, one otherwise.
-const rankOf = (quality: ContainedItemQuality) => (quality.isRated ? quality.rating : 1);
+/**
+ * What this module reads of a quality to rank it.
+ */
+type RankedQuality = Pick<ContainedItemQuality, 'id' | 'name' | 'isRated' | 'rating'>;
+
+/**
+ * The rank a quality's effects count for: its rating when it is rated, one otherwise.
+ */
+export function qualityRank(quality: Pick<RankedQuality, 'isRated' | 'rating'>) {
+	return quality.isRated ? quality.rating : 1;
+}
+
+/**
+ * Whether a quality is outranked by a copy of it among some qualities, by name: a copy at a higher rank, or at the same
+ * rank earlier in the list.
+ */
+export function isOutrankedQuality(quality: RankedQuality, qualities: readonly RankedQuality[]): boolean {
+	const name = quality.name.toLowerCase();
+	const copies = qualities.filter((other) => other.name.toLowerCase() === name);
+	const highest = Math.max(...copies.map(qualityRank));
+	return copies.find((copy) => qualityRank(copy) === highest)?.id !== quality.id;
+}
 
 /**
  * Whether an effect belongs to a quality whose copy on another Weapon Profile of the item, by name, outranks it: at a
@@ -124,14 +144,7 @@ const rankOf = (quality: ContainedItemQuality) => (quality.isRated ? quality.rat
  */
 export function isOutrankedQualityEffect(effect: Pick<TaggedEffect, 'flags'>, system: object | undefined): boolean {
 	const quality = effectQuality(effect, system);
-	if (!quality || !system) {
-		return false;
-	}
-
-	const name = quality.name.toLowerCase();
-	const copies = itemQualities(system).filter((other) => other.name.toLowerCase() === name);
-	const highest = Math.max(...copies.map(rankOf));
-	return copies.find((copy) => rankOf(copy) === highest)?.id !== quality.id;
+	return !!quality && !!system && isOutrankedQuality(quality, itemQualities(system));
 }
 
 /**

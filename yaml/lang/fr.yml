@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
     SkillForRepairingVehicleHitsHint: Nom de la compétence utilisée pour récupérer des dommages critiques.
+    SkillForHealingWounds: Nom de la compétence Médecine
+    SkillForHealingWoundsHint: "Nom de la compétence dont le jet soigne les blessures d'un patient, et à côté de laquelle s'affiche l'action Soigner."
+    SkillForRecoveringStrain: Nom de la compétence Discipline
+    SkillForRecoveringStrainHint: "Nom de la première des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit ; elle l'emporte en cas d'égalité."
+    AlternativeSkillForRecoveringStrain: Nom de la compétence Sang-froid
+    AlternativeSkillForRecoveringStrainHint: "Nom de la seconde des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit."
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
@@ -228,6 +234,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier
+      ModifyItem: Objet à modifier
       ModifyDicePool:
         GroupLabel: Réserve de dés à modifier
         Options:
@@ -307,6 +314,7 @@ Genesys:
       UpgradeDifficulty: Dépenser un point de Destin pour améliorer la difficulté
       ImpossibleCost: Une tâche impossible ne peut pas être lancée sans lui.
       EmptyPool: Cette réserve n'a plus de point à dépenser.
+      ImpossibleOnly: Une tâche impossible n'admet aucun autre point narratif.
       NoGM: Un MJ doit être connecté pour dépenser un point narratif.
     ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
@@ -361,6 +369,7 @@ Genesys:
     Wounds: Blessures
     Strain: Stress
     Apply: Appliquer
+    Applied: Appliqués
     # The end of an encounter's check and a night's rest
     EndOfEncounter: Fin de rencontre
     EndOfEncounterCardLabel: '{patient} récupère'
@@ -424,6 +433,7 @@ Genesys:
     NoGMForClaim: Un MJ doit être connecté pour réclamer un slot d'initiative.
     NoGMForUsedUpEffects: Un MJ doit être connecté pour retirer la visée que l'attaque de {name} a consommée.
     NoGMForCastingStrain: Un MJ doit être connecté pour infliger à {name} le stress de son sort.
+    NoGMForRecovery: Un MJ doit être connecté pour appliquer des soins.
     NotOwnerOfCombatant: Vous n'êtes pas propriétaire de ce combattant.
     ActingGMTimedOut: Le MJ n'a pas répondu à temps. Vérifiez si l'action a eu lieu avant de réessayer.
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.

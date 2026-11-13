@@ -15,6 +15,8 @@ export const QueryName = {
 	UseUpEffects: 'genesys.useUpEffects',
 	/** A player cast a spell for an actor they can't write, which makes the actor suffer its strain. */
 	SufferCastingStrain: 'genesys.sufferCastingStrain',
+	/** A player applies the healing of the card of a check that heals. */
+	ApplyRecovery: 'genesys.applyRecovery',
 } as const;
 
 export type QueryName = (typeof QueryName)[keyof typeof QueryName];
@@ -55,6 +57,10 @@ export type QueryData = {
 	};
 	[QueryName.UseUpEffects]: RolledCheckQueryData;
 	[QueryName.SufferCastingStrain]: RolledCheckQueryData;
+	[QueryName.ApplyRecovery]: QueryBaseData & {
+		/** The chat message of the card, whose flags hold the recovery. */
+		messageId: string;
+	};
 };
 
 /**
@@ -177,6 +183,7 @@ const NO_ACTING_GM = {
 	[QueryName.WriteExtraSlotInitiative]: 'Genesys.Notifications.NoGMForExtraSlot',
 	[QueryName.UseUpEffects]: 'Genesys.Notifications.NoGMForUsedUpEffects',
 	[QueryName.SufferCastingStrain]: 'Genesys.Notifications.NoGMForCastingStrain',
+	[QueryName.ApplyRecovery]: 'Genesys.Notifications.NoGMForRecovery',
 } as const satisfies Record<QueryName, string>;
 
 /**

@@ -5,6 +5,7 @@ import {
 	castingDifficulty,
 	castingSkillName,
 	castingStrain,
+	difficultyAddedBy,
 	initiallyCheckedEffects,
 	spellAttackProfile,
 	spellCast,
@@ -82,6 +83,27 @@ describe('canCheckEffect', () => {
 
 	it('lets a checked effect always be unchecked', () => {
 		expect(canCheckEffect(5, CURSE_EFFECTS, ['target'], ADDITIONAL_TARGET)).toBe(true);
+	});
+});
+
+describe('difficultyAddedBy', () => {
+	it('adds the effect’s difficulty from a level it fits under Formidable (CRB p. 215)', () => {
+		expect(difficultyAddedBy(AVERAGE, ADDITIONAL_TARGET)).toBe(2);
+	});
+
+	it('adds only what reaches Formidable, so that unchecking gives back as much (CRB p. 215)', () => {
+		expect(difficultyAddedBy(4, ADDITIONAL_TARGET)).toBe(1);
+	});
+
+	it('adds nothing from Formidable, as a check never makes the task Impossible: checking then unchecking leaves it Formidable (CRB p. 215)', () => {
+		const formidable = 5;
+		const added = difficultyAddedBy(formidable, ADDITIONAL_TARGET);
+		expect(formidable + added).toBe(5);
+		expect(formidable + added - added).toBe(5);
+	});
+
+	it('adds nothing from a level beyond Formidable', () => {
+		expect(difficultyAddedBy(6, ADDITIONAL_TARGET)).toBe(0);
 	});
 });
 
