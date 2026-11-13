@@ -11,6 +11,7 @@ import type { StateChange } from '@/effects/TokenStates';
 import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { isItemChangeKey } from '@/item/ItemChanges';
+import * as log from '@/log';
 
 /**
  * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
@@ -321,10 +322,16 @@ export function registerCombatantEffects() {
 }
 
 /**
- * The turn an effect's flag holds, parsed where it is read; undefined when it holds none.
+ * The turn an effect's flag holds, parsed where it is read; undefined when it holds none. A malformed one is logged and
+ * read as none, rather than thrown at every turn end of the combat.
  */
 function turnFlag(effect: GenesysEffect, key: typeof FLAG_APPLIED_DURING | typeof FLAG_LAST_COUNTED) {
-	return parseCombatTurn(effect.getFlag('genesys', key));
+	const flag = effect.getFlag('genesys', key);
+	const turn = parseCombatTurn(flag);
+	if (flag != null && !turn) {
+		log.warn(`The ${key} flag of effect ${effect.uuid} is malformed, and read as none.`, flag);
+	}
+	return turn;
 }
 
 /**

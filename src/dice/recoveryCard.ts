@@ -5,6 +5,7 @@
 
 import { canBePatient, healedPools, parseRecovery, type Patient, type Recovery } from '@/actor/Recovery';
 import type { GenesysActor } from '@/actor/GenesysActor';
+import * as log from '@/log';
 import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
 
 /**
@@ -45,10 +46,16 @@ export function applyingOnce() {
 const applyOnce = applyingOnce();
 
 /**
- * The recovery a card's message carries, parsed where it is read; undefined when it carries none.
+ * The recovery a card's message carries, parsed where it is read; undefined when it carries none, or a malformed one,
+ * which is logged: the card then offers no healing, and never throws inside a render.
  */
 function recoveryOfMessage(message: ChatMessage.Implementation) {
-	return parseRecovery(message.getFlag('genesys', 'recovery'));
+	const flag = message.getFlag('genesys', 'recovery');
+	const recovery = parseRecovery(flag);
+	if (flag !== undefined && !recovery) {
+		log.warn(`The recovery of message ${message.id} is malformed, and heals nothing.`, flag);
+	}
+	return recovery;
 }
 
 /**
