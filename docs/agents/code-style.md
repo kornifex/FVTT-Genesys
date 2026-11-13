@@ -91,6 +91,7 @@ How code, commits and pull requests are written in this repo. A rule a tool can 
   | --- | --- |
   | what a sheet, a row or a prompt renders (headings, labels, menus, counters, buttons) | `accessibility`, which walks every sheet tab, row and prompt |
   | how the system builds a URL or an asset path | `routePrefix`, whose Foundry serves the world under a path |
+  | a field of an actor's or an item's data model | `migrations`, which starts from a pristine world |
 
 - Every behaviour change goes into the release's test checklist issue (labelled `ready-for-human`; #411 for 0.6.0): intended changes, divergences, and what to test. An item a test proves arrives ticked, with a link to it: `src/dice/Check.test.ts › "…"` or `e2e/scenarios/combat.ts › step "…"`. Only an item no test can prove (a look, a feel, an engine-specific bug) arrives unticked.
 - The checklist's body is long: read and edit it with `pnpm checklist <issue> <command>`, never by printing the whole body. A section's heading is `## #<pr> <title> (#<issue>)`.
