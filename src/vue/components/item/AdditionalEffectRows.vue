@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import Editor from '@/vue/components/Editor.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
@@ -50,7 +51,9 @@ async function remove(index: number) {
 <template>
 	<div v-for="(effect, index) in additionalEffects" :key="effect.id" class="additional-effect">
 		<div class="row-heading">
-			<div class="name">{{ effect.name }}</div>
+			<div class="name">
+				<DescriptionTooltip :description="effect.description">{{ effect.name }}</DescriptionTooltip>
+			</div>
 			<Glyphs class="difficulty die die-Difficulty" :glyphs="DIE_GLYPHS.Difficulty.repeat(effect.difficulty)" />
 			<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveAdditionalEffect" edits @click="remove(index)" />
 			<ActionButton

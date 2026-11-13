@@ -6,6 +6,7 @@ import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
 import { applyMessageMode } from '@/dice/messageMode';
 import { CardResults, cardResults, GenesysRollResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
+import { enrich } from '@/enrich';
 import { enrichedQualities } from '@/item/ChatCards';
 import { attackDamage, damageFormula } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
@@ -151,7 +152,11 @@ function recoveryCardData(recovery: Recovery) {
 async function spellCardData({ effects, strain }: SpellCast, showsQualities: boolean) {
 	return {
 		effects: await Promise.all(
-			effects.map(async (effect) => ({ ...effect, qualities: showsQualities ? await enrichedQualities(effect.qualities) : [] })),
+			effects.map(async (effect) => ({
+				...effect,
+				description: await enrich(effect.description),
+				qualities: showsQualities ? await enrichedQualities(effect.qualities) : [],
+			})),
 		),
 		strain,
 	};

@@ -9,6 +9,7 @@ import { castSpell, openSheet } from '@/operations/ItemActions';
 import RollLink from '@/vue/components/RollLink.vue';
 import Localized from '@/vue/components/Localized.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
+import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import ListEmpty from '@/vue/components/ListEmpty.vue';
@@ -46,7 +47,7 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 					<RowActions class="actions" :document="spell" />
 					<ul v-if="spell.system.additionalEffects.length > 0" class="additional-effects qualities">
 						<li v-for="effect in spell.system.additionalEffects" :key="effect.id">
-							{{ effect.name }}
+							<DescriptionTooltip :description="effect.description">{{ effect.name }}</DescriptionTooltip>
 							<Glyphs class="die die-Difficulty" :glyphs="`+${glyphsOf(effect.difficulty)}`" />
 						</li>
 					</ul>
