@@ -1,5 +1,5 @@
 /**
- * @file A character's soak and defense, from their own values, their Brawn and their worn armor, and an adversary's and a vehicle's defense.
+ * @file A character's soak and defense, from their own values, their Brawn, their worn armor and the defense other sources provide, and an adversary's and a vehicle's defense.
  */
 
 import type { Defense } from '@/data/Actors';
@@ -34,23 +34,32 @@ export function totalSoak(ownSoak: number, brawn: number, armor: WornArmor[]) {
 // No character, PC or Adversary, can have a defense rating higher than 4, and a vehicle's defense works the same (CRB p. 223).
 const MAX_DEFENSE = 4;
 
-/**
- * A character's melee and ranged defense: their own, increased by the defense of their worn armor, up to 4.
- */
-export function totalDefense(defense: Defense, armor: WornArmor[]): Defense {
-	const armorDefense = protectingArmor(armor)?.defense ?? 0;
-
-	return {
-		melee: Math.min(MAX_DEFENSE, defense.melee + armorDefense),
-		ranged: Math.min(MAX_DEFENSE, defense.ranged + armorDefense),
-	};
+function capped({ melee, ranged }: Defense): Defense {
+	return { melee: Math.min(MAX_DEFENSE, melee), ranged: Math.min(MAX_DEFENSE, ranged) };
 }
 
 /**
- * An Adversary's melee and ranged defense: their stat block's, which already counts their armor, up to 4.
+ * A character's melee and ranged defense: the best of what their worn armor and other sources, as cover or Guarded
+ * Stance, provide, which don't stack, increased by their own defense, up to 4 (CRB p. 106).
  */
-export function adversaryDefense(defense: Defense): Defense {
-	return totalDefense(defense, []);
+export function totalDefense(own: Defense, armor: WornArmor[], provided: Defense): Defense {
+	const armorDefense = protectingArmor(armor)?.defense ?? 0;
+
+	return capped({
+		melee: Math.max(armorDefense, provided.melee) + own.melee,
+		ranged: Math.max(armorDefense, provided.ranged) + own.ranged,
+	});
+}
+
+/**
+ * An Adversary's melee and ranged defense: the best of their stat block's, which already counts their armor, and the
+ * one other sources provide, up to 4 (CRB p. 106).
+ */
+export function adversaryDefense(statBlock: Defense, provided: Defense): Defense {
+	return capped({
+		melee: Math.max(statBlock.melee, provided.melee),
+		ranged: Math.max(statBlock.ranged, provided.ranged),
+	});
 }
 
 /**
@@ -59,5 +68,5 @@ export function adversaryDefense(defense: Defense): Defense {
  */
 export function vehicleDefense(defense: number, pilotedVehicleDefense: number): Defense {
 	const rating = defense + pilotedVehicleDefense;
-	return totalDefense({ melee: rating, ranged: rating }, []);
+	return capped({ melee: rating, ranged: rating });
 }

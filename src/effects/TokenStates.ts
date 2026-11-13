@@ -7,12 +7,12 @@ import { encodeKey } from '@/effects/PoolModifications';
 
 /**
  * A change a Token State or a maneuver makes, as an Active Effect stores it. A Pool Modification takes Foundry's custom
- * type, which keeps Foundry from applying it; a defense raised takes the add type.
+ * type, which keeps Foundry from applying it; a defense provided takes the upgrade type, which keeps the best one.
  */
 export type StateChange = {
 	key: string;
 	value: string;
-	type: 'custom' | 'add';
+	type: 'custom' | 'upgrade';
 };
 
 // The actors that take cover or drop prone: characters and adversaries, not vehicles, whose single defense has no
@@ -72,12 +72,13 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		reminder: 'Genesys.TokenStates.Staggered.Reminder',
 		lapses: true,
 	},
-	// A character in cover gains ranged defense 1, which they keep while they stay in cover (CRB p. 99).
+	// A character in cover gains ranged defense 1, which they keep while they stay in cover (CRB p. 99). Cover provides it:
+	// it doesn't stack with their armor's (CRB p. 106).
 	{
 		id: 'cover',
 		name: 'Genesys.TokenStates.Cover.Name',
 		img: 'icons/svg/barrel.svg',
-		changes: [{ key: 'system.defense.ranged', value: '1', type: 'add' }],
+		changes: [{ key: 'system.providedDefense.ranged', value: '1', type: 'upgrade' }],
 		actorTypes: CHARACTER_TYPES,
 		lapses: false,
 	},

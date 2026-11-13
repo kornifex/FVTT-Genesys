@@ -73,8 +73,8 @@ describe('Guarded Stance', () => {
 		expect(poolModificationsForCheck(guarded, undefined, stealth)).toEqual([]);
 	});
 
-	it('raises the melee defense by one, which Foundry adds (CRB p. 99)', () => {
-		expect(GUARDED_STANCE.changes).toContainEqual({ key: 'system.defense.melee', value: '1', type: 'add' });
+	it("provides melee defense 1, which Foundry's Upgrade mode keeps only when no other source provides more (CRB p. 99, 106)", () => {
+		expect(GUARDED_STANCE.changes).toContainEqual({ key: 'system.providedDefense.melee', value: '1', type: 'upgrade' });
 	});
 });
 

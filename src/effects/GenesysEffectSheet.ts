@@ -71,6 +71,15 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 		],
 	},
 	{
+		// The defense that sources such as cover provide, of which the actor keeps the best: written with the Upgrade type
+		// (CRB p. 106).
+		group: 'Genesys.ActiveEffects.Types.ProvideDefense',
+		keys: [
+			{ key: 'system.providedDefense.melee', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.MeleeDefense' },
+			{ key: 'system.providedDefense.ranged', appliesTo: ACTOR_GLYPH, label: 'Genesys.Labels.RangedDefense' },
+		],
+	},
+	{
 		group: 'Genesys.ActiveEffects.Types.ModifyDicePool.GroupLabel',
 		keys: [
 			{ key: 'genesys.pool.check.self', appliesTo: SELF_GLYPH, label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Check' },
@@ -257,7 +266,13 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		foundry.utils.setProperty(
 			formDataExpanded,
 			changesPath(),
-			Object.values(changes ?? {}).map((change) => fromEditedChange(change, () => CONST.ACTIVE_EFFECT_MODES.CUSTOM)),
+			Object.values(changes ?? {}).map((change) =>
+				fromEditedChange(
+					change,
+					() => CONST.ACTIVE_EFFECT_MODES.CUSTOM,
+					() => CONST.ACTIVE_EFFECT_MODES.UPGRADE,
+				),
+			),
 		);
 
 		return formDataExpanded;

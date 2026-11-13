@@ -4603,6 +4603,36 @@ export async function run(e2e: ScenarioContext) {
 			{ spear: [{ name: 'From Self: Prone', enabled: false, mods: 'S+' }], pistol: [], melee: [], cool: [] },
 		);
 		await e2e.step('#696 M8 GM takes Prone off Ada', () => setAdaProne(false));
+
+		// Cover and armor both provide defense, which doesn't stack: the target keeps the best (§#724, CRB p. 106).
+		// Mark's armor, replaced by one of a defense, or taken off.
+		const markArmor = (defense: number | null) =>
+			gm.evaluate(async (defense) => {
+				const mark = window.e2e.token('Mark').actor;
+				const worn = mark.items.filter((item: { type: string }) => item.type === 'armor').map((item: { id: string }) => item.id);
+				await mark.deleteEmbeddedDocuments('Item', worn);
+				if (defense !== null) {
+					await mark.createEmbeddedDocuments('Item', [
+						{ name: 'E2E Shield', type: 'armor', system: { state: 'equipped', defense } },
+					]);
+				}
+			}, defense);
+		await e2e.step('#724 M9 GM takes Prone off Mark, in cover, gives him an armor with defense 1, and targets him', async () => {
+			await setMarkState('prone', false);
+			await markArmor(1);
+			await target('Mark');
+		});
+		const coveredArmor = await opened(gm, attack('Pistol'));
+		e2e.expect(
+			'#724 M9 an attack at range against a target in cover with an armor of defense 1 lists one Setback from defense, not two',
+			{ rows: targetRows(coveredArmor), defense: await gm.evaluate(() => window.e2e.token('Mark').actor.system.totalDefense) },
+			{ rows: [{ name: 'From Target: Ranged Defense', enabled: false, mods: 'S+' }], defense: { melee: 1, ranged: 1 } },
+		);
+		await e2e.step('#724 M9 GM takes the armor and cover off Mark, and targets nobody', async () => {
+			await markArmor(null);
+			await setMarkState('cover', false);
+			await target(null);
+		});
 		await e2e.step('combat maneuvers end');
 	});
 

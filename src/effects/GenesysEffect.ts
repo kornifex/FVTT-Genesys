@@ -50,7 +50,7 @@ export function changesPath() {
 const UNINSTALLED_TYPES: readonly string[] = ['quality', 'attachment'];
 
 // v13: the mode of each type of change.
-const V13_MODES = { custom: 'CUSTOM', add: 'ADD' } as const satisfies Record<StateChange['type'], string>;
+const V13_MODES = { custom: 'CUSTOM', upgrade: 'UPGRADE' } as const satisfies Record<StateChange['type'], string>;
 
 /**
  * A change of a Token State or a maneuver, as the version of Foundry stores it.

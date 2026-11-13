@@ -107,10 +107,21 @@ export abstract class CharacterDataModel extends foundry.abstract.TypeDataModel<
 	}
 
 	/**
-	 * Total value for Defense (base defenses + worn armor).
+	 * The defense that sources such as cover and Guarded Stance provide, which effects write with Foundry's Upgrade mode
+	 * so that the best one is kept (CRB p. 106). It is derived, never stored, and reset to none before effects apply.
+	 */
+	declare providedDefense: Defense;
+
+	override prepareBaseData() {
+		super.prepareBaseData();
+		this.providedDefense = { melee: 0, ranged: 0 };
+	}
+
+	/**
+	 * The character's defense: the best of their worn armor's and the provided one, increased by their own, up to 4.
 	 */
 	get totalDefense(): Defense {
-		return totalDefense(this.defense, this.#wornArmor());
+		return totalDefense(this.defense, this.#wornArmor(), this.providedDefense);
 	}
 
 	#wornArmor() {

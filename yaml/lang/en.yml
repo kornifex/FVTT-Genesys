@@ -234,6 +234,8 @@ Genesys:
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
+      # The defense that cover, Guarded Stance and some talents provide, the best of which is kept (CRB p. 106)
+      ProvideDefense: Provide Defense (best kept)
       ModifyItem: Modify Item # The Item Changes, which change the weapon or armor that holds the effect
       ModifyDicePool:
         GroupLabel: Modify Dice Pool
