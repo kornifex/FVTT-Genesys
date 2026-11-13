@@ -134,36 +134,6 @@ export const SETTINGS = {
 		field: { name: 'skillForRepairingHit' },
 	}),
 
-	/** The name of the skill whose check heals a patient's wounds: Medicine, whose Heal action it shows (CRB p. 116). */
-	skillForHealingWounds: setting({
-		scope: 'world',
-		type: textField,
-		default: 'Medicine',
-		name: 'Genesys.Settings.SkillForHealingWounds',
-		hint: 'Genesys.Settings.SkillForHealingWoundsHint',
-		field: { name: 'skillForHealingWounds' },
-	}),
-
-	/** The name of the skill the check that recovers strain at the end of an encounter opens with, in a tie (CRB p. 117). */
-	skillForRecoveringStrain: setting({
-		scope: 'world',
-		type: textField,
-		default: 'Discipline',
-		name: 'Genesys.Settings.SkillForRecoveringStrain',
-		hint: 'Genesys.Settings.SkillForRecoveringStrainHint',
-		field: { name: 'skillForRecoveringStrain' },
-	}),
-
-	/** The name of the other skill the check that recovers strain at the end of an encounter can use (CRB p. 117). */
-	alternativeSkillForRecoveringStrain: setting({
-		scope: 'world',
-		type: textField,
-		default: 'Cool',
-		name: 'Genesys.Settings.AlternativeSkillForRecoveringStrain',
-		hint: 'Genesys.Settings.AlternativeSkillForRecoveringStrainHint',
-		field: { name: 'alternativeSkillForRecoveringStrain' },
-	}),
-
 	/**
 	 * The world's Critical Injury table, by its uuid: a RollTable the GM picks among the world's, whose results are the
 	 * world's Critical Injury items. Empty until the GM picks one: the system ships no table.

@@ -4,6 +4,7 @@ img: icons/magic/light/explosion-star-blue.webp
 system:
   description: ''
   initiative: true
+  recoversStrain: true
   source: Core Rulebook, p.59
   characteristic: presence
   category: general
