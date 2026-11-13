@@ -107,6 +107,21 @@ export async function magicPart(ctx: SheetsContext) {
 		},
 	);
 	e2e.expect(
+		"#757 M4 the difficulty glyphs of the Mage's Magic tab and of the spell's sheet use the dice font, in the Difficulty colour",
+		await gm.evaluate(async () => {
+			const mage = await window.e2e.render(game.actors.getName('E2E Mage').sheet);
+			const spell = await window.e2e.render(game.items.getName('E2E spell').sheet);
+			const looks = (elements: Element[]) => [
+				...new Set(elements.map((element) => `${getComputedStyle(element).fontFamily}|${getComputedStyle(element).color}`)),
+			];
+			return {
+				tab: looks([...mage.querySelectorAll('.tab-magic .spell .difficulty, .tab-magic .additional-effects li .die')]),
+				sheet: looks([...spell.querySelectorAll('.additional-effect .difficulty')]),
+			};
+		}),
+		{ tab: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'], sheet: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'] },
+	);
+	e2e.expect(
 		"#704 M4 the Mage's window offers to hide the Magic tab",
 		{ menu: withSpell.menu, renderedMenu: withSpell.renderedMenu },
 		{ menu: ['hideMagicTab'], renderedMenu: e2e.version < 14 ? ['hideMagicTab'] : [] },

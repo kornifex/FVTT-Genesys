@@ -51,7 +51,7 @@ async function remove(index: number) {
 	<div v-for="(effect, index) in additionalEffects" :key="effect.id" class="additional-effect">
 		<div class="row-heading">
 			<div class="name">{{ effect.name }}</div>
-			<Glyphs class="difficulty" :glyphs="DIE_GLYPHS.Difficulty.repeat(effect.difficulty)" />
+			<Glyphs class="difficulty die die-Difficulty" :glyphs="DIE_GLYPHS.Difficulty.repeat(effect.difficulty)" />
 			<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveAdditionalEffect" edits @click="remove(index)" />
 			<ActionButton
 				:icon="opened.has(effect.id) ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"
