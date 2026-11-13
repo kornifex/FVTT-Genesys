@@ -4,11 +4,11 @@
  */
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
 
 /**
- * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on each of
- * its Weapon Profiles.
+ * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on its
+ * Weapon Profiles: on each for an attachment's changes, on the one that holds it for a quality's.
  */
 const ITEM_CHANGE_FIELDS = ['baseDamage', 'critical', 'defense', 'soak', 'encumbrance'] as const;
 export type ItemChangeField = (typeof ITEM_CHANGE_FIELDS)[number];
@@ -87,14 +87,21 @@ type ItemChangeTarget = Partial<Record<ItemChangeField, number>> &
  * Adds the Item Changes of an item's effects to its prepared data, in place, leaving the fields its type lacks alone. A
  * quality's rating scales its effects' changes, as it does on the actor (CRB pp. 86–89):
  * - on a Weapon Profile, a quality's changes count on the profile that holds it, at that copy's rank; the item's other
- *   effects, as an attachment's, count on every profile;
- * - on the fields of the item itself, a quality held by several profiles counts once, at its highest-ranked copy.
+ *   effects with no quality, as an attachment's, count on every profile;
+ * - on the fields of the item itself, a quality held by several profiles counts once, at its highest-ranked copy, even
+ *   when that copy's effect is disabled, as on the actor (`GenesysEffect.active`);
+ * - an effect tagged with a quality the item no longer holds counts nowhere.
  *
  * A Critical rating of 0 stays 0, since no Advantage triggers a Critical Injury then; any other stays at 1 or more: the
  * attack card counts the Advantage spent on a Critical Injury by it.
  */
 export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<ItemChangeEffect>) {
-	const withQualities = [...effects].map((effect) => ({ effect, quality: effectQuality(effect, system) }));
+	// An effect tagged with a quality the item no longer holds is orphaned: its own deletion hasn't landed yet, and it
+	// counts nowhere.
+	const withQualities = [...effects].map((effect) => {
+		const quality = effectQuality(effect, system);
+		return { effect, quality, orphaned: qualityIdOf(effect) !== undefined && !quality };
+	});
 	const totals = (counted: typeof withQualities) =>
 		itemChangeTotals(
 			// Read field by field: the fields of a document aren't all its own properties.
@@ -116,14 +123,14 @@ export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<Ite
 		}
 	};
 
-	const itemTotals = totals(withQualities.filter(({ effect }) => !isOutrankedQualityEffect(effect, system)));
+	const itemTotals = totals(withQualities.filter(({ effect, orphaned }) => !orphaned && !isOutrankedQualityEffect(effect, system)));
 	for (const field of ['defense', 'soak', 'encumbrance'] as const) {
 		add(system, field, itemTotals[field]);
 	}
 
 	for (const profile of [system, ...(system.extraProfiles ?? [])]) {
 		const held = new Set((profile.qualities ?? []).map(({ id }) => id));
-		const profileTotals = totals(withQualities.filter(({ quality }) => !quality || held.has(quality.id)));
+		const profileTotals = totals(withQualities.filter(({ quality, orphaned }) => !orphaned && (!quality || held.has(quality.id))));
 		add(profile, 'baseDamage', profileTotals.baseDamage);
 		add(profile, 'critical', profileTotals.critical);
 	}

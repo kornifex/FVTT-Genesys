@@ -132,6 +132,14 @@ describe('applyItemChanges', () => {
 		expect([weapon.baseDamage, weapon.extraProfiles[0].baseDamage, weapon.encumbrance]).toEqual([6, 4, 1]);
 	});
 
+	it("counts nowhere an effect of a quality the item no longer holds, whose deletion hasn't landed", () => {
+		const weapon = twoProfileWeapon([], [quality('extra', 'Keen', 1)]);
+
+		applyItemChanges(weapon, [itemEffect({ baseDamage: 1, critical: -1, encumbrance: -1 }, 'deleted')]);
+
+		expect(weapon).toMatchObject({ baseDamage: 5, critical: 3, encumbrance: 3, extraProfiles: [{ baseDamage: 2, critical: 4 }] });
+	});
+
 	it('leaves a Critical rating of 0 at 0, which no Advantage triggers, and keeps any other at 1 or more', () => {
 		const noCritical = { baseDamage: 5, critical: 0 };
 		const critical2 = { baseDamage: 5, critical: 2 };
