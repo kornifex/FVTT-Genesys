@@ -50,24 +50,77 @@ export function tickItem(body: string, text: string, note?: string): { body: str
 }
 
 /**
- * Returns the section whose heading starts with `heading` (`#470` finds `## #470 …`, not `## #4700 …`), or, when no
- * heading starts with it, the one section whose heading contains it; throws when none or several match.
+ * Finds the one section a heading text designates. A section heading is `## #<pr> <title> (#<issue>)`, so `#<n>`
+ * finds a section by its pull request number (a heading that starts with it, so `#470` never finds `## #4700 …`), or,
+ * when none does, by its issue number (a heading that ends with `(#<n>)`). Any other text matches the headings that
+ * contain it. The first of these steps that finds a section decides; throws when it finds none or several.
  */
-export function showSection(body: string, heading: string): string {
-	const lines = body.split('\n');
+function findSection(lines: string[], text: string): Section {
 	const all = sections(lines);
-	const startsWith = all.filter(({ heading: line }) => new RegExp(`^## ${escape(heading)}(\\s|$)`).test(line));
-	const matches = startsWith.length > 0 ? startsWith : all.filter(({ heading: line }) => line.includes(heading));
+	const pattern = escape(text);
+	const startsWith = all.filter(({ heading }) => new RegExp(`^## ${pattern}(\\s|$)`).test(heading));
+	const issueNumber = /^#\d+$/.test(text) ? all.filter(({ heading }) => new RegExp(`\\(${pattern}\\)\\s*$`).test(heading)) : [];
+	const matches = [startsWith, issueNumber, all.filter(({ heading }) => heading.includes(text))].find((found) => found.length > 0) ?? [];
 	if (matches.length !== 1) {
 		throw new Error(
 			matches.length === 0
-				? `No section heading contains "${heading}".`
-				: `${matches.length} section headings match "${heading}":\n${matches.map((section) => section.heading).join('\n')}`,
+				? `No section heading contains "${text}".`
+				: `${matches.length} section headings match "${text}":\n${matches.map((section) => section.heading).join('\n')}`,
 		);
 	}
 
-	const [{ start, end }] = matches;
+	return matches[0];
+}
+
+/** Finds the section that carries the pull request number or, failing that, the issue number of a heading line. */
+function findByNumbers(lines: string[], heading: string): Section {
+	const numbers = [/^## (#\d+)/, /\((#\d+)\)\s*$/].flatMap((pattern) => heading.match(pattern)?.[1] ?? []);
+	let error: unknown = new Error(`No section heading matches "${heading}".`);
+	for (const number of numbers) {
+		try {
+			return findSection(lines, number);
+		} catch (caught) {
+			error = caught;
+		}
+	}
+	throw error;
+}
+
+/** Returns the section designated by `heading` (see `findSection`), up to the next heading. */
+export function showSection(body: string, heading: string): string {
+	const lines = body.split('\n');
+	const { start, end } = findSection(lines, heading);
 	return lines.slice(start, end).join('\n').trimEnd();
+}
+
+/** Every section heading, in order. */
+export function headings(body: string): string[] {
+	return sections(body.split('\n')).map(({ heading }) => heading);
+}
+
+/** The unticked items, each with the heading of its section (an empty one before the first section). */
+export function untickedItems(body: string): { heading: string; item: string }[] {
+	const lines = body.split('\n');
+	const all = sections(lines);
+	return lines.flatMap((line, index) =>
+		UNTICKED.test(line) ? [{ heading: all.findLast((section) => section.start < index)?.heading ?? '', item: line.trim() }] : [],
+	);
+}
+
+/** Replaces the section whose heading is the one of `section` (found as `showSection` does) and returns the body. */
+export function replaceSection(body: string, section: string): string {
+	const text = section.trim();
+	if (!HEADING.test(text)) {
+		throw new Error('The section starts with a "## " heading.');
+	}
+
+	const lines = body.split('\n');
+	const [first] = text.split('\n');
+	const exact = sections(lines).filter(({ heading }) => heading.trimEnd() === first.trimEnd());
+	const { start, end } = exact.length === 1 ? exact[0] : findByNumbers(lines, first);
+	const before = lines.slice(0, start).join('\n').trimEnd();
+	const after = lines.slice(end).join('\n').trimStart();
+	return `${before ? `${before}\n\n` : ''}${text}\n${after ? `\n${after}` : ''}`;
 }
 
 function escape(text: string): string {
