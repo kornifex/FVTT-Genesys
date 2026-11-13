@@ -4956,6 +4956,52 @@ export async function run(e2e: ScenarioContext) {
 			{ bash, defense: await meleeDefense() },
 			{ bash: ['E2E Defensive 1'], defense: 1 },
 		);
+
+		await e2e.step("#722 Q7 GM drops Keen, a quality adding 1 damage to its item, on the second profile of Ada's Glaive", () =>
+			gm.evaluate(async () => {
+				const { ADD } = CONST.ACTIVE_EFFECT_MODES;
+				const [keen] = await Item.createDocuments([
+					{
+						name: 'E2E Keen',
+						type: 'quality',
+						effects: [{ name: 'E2E Keen', changes: [{ key: 'genesys.item.baseDamage', value: '1', mode: ADD }] }],
+					},
+				]);
+				const [glaive] = await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [
+					{
+						name: 'E2E Glaive',
+						type: 'weapon',
+						system: {
+							skills: ['Melee'],
+							range: 'engaged',
+							state: 'equipped',
+							baseDamage: 4,
+							critical: 3,
+							extraProfiles: [{ name: 'E2E Haft', baseDamage: 2, critical: 4 }],
+						},
+					},
+				]);
+				const block = '[data-weapon-profile="1"]';
+				const root = await window.e2e.render(glaive.sheet, (root) => root.querySelector(block));
+				window.e2e.drop(root.querySelector(block)!, { type: 'Item', uuid: keen.uuid });
+				await window.e2e.settle();
+			}),
+		);
+		e2e.expect(
+			"#722 Q7 Keen on the Glaive's second profile adds 1 damage to that profile alone, and its sheet shows it there",
+			await gm.evaluate(() => {
+				const glaive = game.actors.getName('E2E Ada').items.getName('E2E Glaive');
+				return {
+					prepared: [glaive.system, ...glaive.system.extraProfiles].map(
+						(profile: { baseDamage: number; critical: number }) => `${profile.baseDamage}/${profile.critical}`,
+					),
+					effective: [...(window.e2e.htmlOf(glaive.sheet)?.querySelectorAll('.effective-stats') ?? [])].map((stats) =>
+						stats.textContent?.trim(),
+					),
+				};
+			}),
+			{ prepared: ['4/3', '3/4'], effective: ['Damage 3'] },
+		);
 		await e2e.step('quality effects end');
 	});
 

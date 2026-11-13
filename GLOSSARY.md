@@ -163,7 +163,7 @@ Equipment installed on a weapon or an armor that takes some of its Hard Points (
 _Avoid_: Mod, upgrade
 
 **Item Change**:
-A change of a weapon's or an armor's own effect, keyed `genesys.item.<field>`, that adds its value to the item itself rather than to its actor: damage and Critical rating on every Weapon Profile, defense, soak, encumbrance. It applies while its effect is enabled, whatever the item's Equipment State. The item's sheet edits the stored values, and shows the changed ones beside them.
+A change of a weapon's or an armor's own effect, keyed `genesys.item.<field>`, that adds its value to the item itself rather than to its actor: damage and Critical rating on every Weapon Profile (a quality's on the profile that holds it alone), defense, soak, encumbrance (a quality held by several profiles once, at its highest rank). A Critical rating of 0 stays 0. It applies while its effect is enabled, whatever the item's Equipment State. The item's sheet edits the stored values, and shows the changed ones beside them.
 _Avoid_: Item override
 
 ### Vehicles
