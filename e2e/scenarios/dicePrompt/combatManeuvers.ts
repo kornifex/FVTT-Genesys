@@ -27,29 +27,52 @@ export async function combatManeuversPart(ctx: DicePromptContext) {
 	const before = await opened(gm, attack('Pistol'));
 	const beforeRoll = await roll();
 
-	// The status menu of a character's and of a vehicle's token.
+	// The status menu of a character's and of a vehicle's token: its cover and prone states, the ids of its first states,
+	// as many as the system's states it offers, and the statuses offered to every actor type that it leaves out.
 	const menu = await gm.evaluate(async () => {
-		const read = async (name: string) => {
+		const read = async (name: string, states: number) => {
 			const token = window.e2e.token(name);
 			token.control({ releaseOthers: true });
 			await canvas.hud.token.bind(token);
 			const icons = [...canvas.hud.token.element.querySelectorAll('.effect-control')] as HTMLElement[];
+			const ids = icons.map((icon) => icon.dataset.statusId);
 			const shown = icons
 				.filter((icon) => ['cover', 'prone'].includes(icon.dataset.statusId ?? ''))
 				.map((icon) => ({ id: icon.dataset.statusId, title: icon.dataset.tooltipText, img: icon.getAttribute('src') }));
 			await canvas.hud.token.close();
 			token.release();
-			return shown.sort((left, right) => String(left.id).localeCompare(String(right.id)));
+			const missing = CONFIG.statusEffects
+				.filter((status: { hud?: unknown }) => status.hud === undefined || status.hud === true)
+				.map(({ id }: { id: string }) => id)
+				.filter((id: string) => !ids.includes(id));
+			return {
+				shown: shown.sort((left, right) => String(left.id).localeCompare(String(right.id))),
+				first: ids.slice(0, states),
+				missing,
+			};
 		};
-		return { Mark: await read('Mark'), Wagon: await read('Wagon') };
+		// A vehicle takes neither cover nor prone: its menu starts with the four other states.
+		return { Mark: await read('Mark', 6), Wagon: await read('Wagon', 4) };
 	});
-	e2e.expect("#683 M0 a character's status menu offers In Cover and a single Prone, the system's; a vehicle's offers neither", menu, {
-		Mark: [
-			{ id: 'cover', title: 'In Cover', img: 'icons/svg/barrel.svg' },
-			{ id: 'prone', title: 'Prone', img: 'icons/svg/falling.svg' },
-		],
-		Wagon: [],
-	});
+	e2e.expect(
+		"#683 M0 a character's status menu offers In Cover and a single Prone, the system's; a vehicle's offers neither",
+		{ Mark: menu.Mark.shown, Wagon: menu.Wagon.shown },
+		{
+			Mark: [
+				{ id: 'cover', title: 'In Cover', img: 'icons/svg/barrel.svg' },
+				{ id: 'prone', title: 'Prone', img: 'icons/svg/falling.svg' },
+			],
+			Wagon: [],
+		},
+	);
+	e2e.expect(
+		"#765 M0 the status menu lists the system's states first, in their order, and every other status still",
+		{ Mark: { first: menu.Mark.first, missing: menu.Mark.missing }, Wagon: { first: menu.Wagon.first, missing: menu.Wagon.missing } },
+		{
+			Mark: { first: ['immobilized', 'disoriented', 'staggered', 'cover', 'prone', 'incapacitated'], missing: [] },
+			Wagon: { first: ['immobilized', 'disoriented', 'staggered', 'incapacitated'], missing: [] },
+		},
+	);
 
 	// Aim, then attacks.
 	await e2e.step("#683 M1 GM clicks Aim on Ada's Combat tab", maneuver('Aim'));

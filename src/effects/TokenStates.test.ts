@@ -4,7 +4,7 @@ import type { Defense } from '@/data/Actors';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
 import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
-import { stateReminders, TOKEN_STATES, tokenState } from '@/effects/TokenStates';
+import { stateReminders, statusMenu, TOKEN_STATES, tokenState } from '@/effects/TokenStates';
 
 /**
  * A character with a Token State, as the token's status menu applies it: an effect named after the state, holding its
@@ -201,6 +201,30 @@ describe('stateReminders', () => {
 	it('reminds of nothing for Disoriented, whose Setback the Dice Prompt lists, or without a state', () => {
 		expect(stateReminders(['disoriented'])).toEqual([]);
 		expect(stateReminders([])).toEqual([]);
+	});
+});
+
+describe('statusMenu', () => {
+	// Foundry's own status effects, in its order, among them a prone state of its own.
+	const foundry = [
+		{ id: 'dead', name: 'EFFECT.StatusDead' },
+		{ id: 'prone', name: 'EFFECT.StatusProne' },
+		{ id: 'blind', name: 'EFFECT.StatusBlind' },
+	];
+	const states = TOKEN_STATES.map(({ id, name }) => ({ id, name }));
+	const menu = statusMenu(foundry, states);
+
+	it("lists the Token States first, in their order, then Foundry's own, in theirs", () => {
+		expect(menu.map(({ id }) => id)).toEqual([...TOKEN_STATES.map(({ id }) => id), 'dead', 'blind']);
+	});
+
+	it("lists prone once, the system's", () => {
+		expect(menu.filter(({ id }) => id === 'prone')).toEqual([expect.objectContaining({ name: 'Genesys.TokenStates.Prone.Name' })]);
+	});
+
+	it("keeps the Token States first in v14's menu, which sorts its statuses by their order, then by name", () => {
+		const sorted = [...menu].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+		expect(sorted.map(({ id }) => id)).toEqual([...TOKEN_STATES.map(({ id }) => id), 'blind', 'dead']);
 	});
 });
 

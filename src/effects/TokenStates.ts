@@ -109,6 +109,23 @@ export const TOKEN_STATES: readonly TokenState[] = [
 ];
 
 /**
+ * The token's status menu: the statuses of the Token States first, in their order, then Foundry's own that none of them
+ * replaces, in Foundry's order, so that the user finds the system's states without scrolling past Foundry's. v14's menu
+ * sorts its statuses by their `order`, then by name, ignoring their place: the Token States take negative orders, ahead of
+ * Foundry's, which have none.
+ */
+export function statusMenu<Status extends { id: string }>(
+	foundryStatuses: readonly Status[],
+	stateStatuses: readonly Status[],
+): (Status & { order?: number })[] {
+	const replaced = new Set(stateStatuses.map(({ id }) => id));
+	return [
+		...stateStatuses.map((status, index) => ({ ...status, order: index - stateStatuses.length })),
+		...foundryStatuses.filter(({ id }) => !replaced.has(id)),
+	];
+}
+
+/**
  * The Token State of a status id, or undefined when the system adds no such state.
  */
 export function tokenState(id: string): TokenState | undefined {
