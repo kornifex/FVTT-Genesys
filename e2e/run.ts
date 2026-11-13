@@ -15,6 +15,7 @@ import { envFile, type FoundryInstall, readConfig } from './config.ts';
 import { assembleLog, planSlices, type Slice } from './pool.ts';
 import { runScenario, type ScenarioModule } from './scenario.ts';
 import { type FoundryServer, launchFoundry, prepareDataDir } from './server.ts';
+import { staleMessage } from './stale.ts';
 import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine, type StepLog, stopped } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -59,6 +60,13 @@ if (options.part !== undefined && scenarios.length !== 1) throw new Error('--par
 const parts = options.part?.split(',').filter(Boolean);
 if (parts?.length === 0) throw new Error('--part takes the names of parts, separated by commas.');
 if (options.fresh && options.compare === undefined) throw new Error('--fresh goes with --compare, whose cache it ignores.');
+if (options.compare !== undefined) {
+	const stale = staleMessage(options.compare, missingFromHead(options.compare));
+	if (stale) {
+		console.error(stale);
+		process.exit(1);
+	}
+}
 
 const config = readConfig(process.env, options.versions.split(',').map(Number), { launches: options.launches });
 // Each checkout keeps its world copies and results in a folder of its own, so that runs from two worktrees never share
@@ -415,6 +423,17 @@ async function loadScenario(file: string) {
 
 function commitOf(ref: string) {
 	return execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], { cwd: root, encoding: 'utf8' }).trim();
+}
+
+/** How many commits of a ref HEAD lacks. */
+function missingFromHead(ref: string) {
+	const commit = commitOf(ref);
+	try {
+		execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], { cwd: root, stdio: 'ignore' });
+		return 0;
+	} catch {
+		return Number(execFileSync('git', ['rev-list', '--count', `HEAD..${commit}`], { cwd: root, encoding: 'utf8' }).trim());
+	}
 }
 
 /**
