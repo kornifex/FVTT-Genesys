@@ -55,9 +55,9 @@ export type DicePromptContext = {
 
 /**
  * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell the
- * ids of the Additional Effects checked.
+ * ids of the Additional Effects checked. The target is the actor's uuid the prompt read as it opened.
  */
-export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[] };
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[]; targetUuid?: string };
 
 /**
  * What a Dice Prompt opens with, besides its actor and skill.
@@ -124,6 +124,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			attack: attackOf(app.roll, checkRoll, actor),
 			recovery: app.recovery,
 			spell: cast,
+			targetUuid: checkRoll.targetUuid,
 		});
 		// The caster suffers the strain once the check is resolved, whatever its result (CRB p. 210). Past their strain
 		// threshold, the update incapacitates them, as any strain does.

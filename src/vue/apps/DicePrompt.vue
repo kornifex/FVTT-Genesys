@@ -201,12 +201,15 @@ onMounted(() => {
 	resolve({ skillName: context.value.skillName, fallbackCharacteristic: context.value.characteristic });
 });
 
+// The user's single target, read once as the prompt opens: the defense, the attack's Critical Injury and its card all
+// use it, whoever the user targets while the prompt is open.
+const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+
 /**
  * Resolve the check again for the skill and characteristic asked for. The Pool Modifications still listed keep their
  * state, new ones follow the world setting.
  */
 function resolve(request: CheckRequest<PromptSkill>) {
-	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
 	const resolved = resolveCheck(
 		context.value.actor,
 		{
@@ -453,6 +456,7 @@ usePromptAnswer<DicePromptAnswer>(() => ({
 	check: check.value!,
 	dicePool: currentDicePool.value,
 	spends: spends.value,
+	targetUuid: target?.actor?.uuid ?? undefined,
 	...(spell && { spellEffects: [...checkedEffects.value] }),
 }));
 
