@@ -32,7 +32,6 @@ import { promptSkills } from '@/data/Skills';
 import {
 	type Check,
 	type CheckPoolModification,
-	type CheckPurpose,
 	type CheckRequest,
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
@@ -67,7 +66,8 @@ import {
 } from '@/dice/CheckStoryPoints';
 import type { StoryPointPool } from '@/data/StoryPoints';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
-import { canCheckEffect, difficultyAddedBy, MAGIC_ATTACK_RANGE } from '@/item/SpellCasting';
+import { canCheckEffect, difficultyAddedBy } from '@/item/SpellCasting';
+import { attackRangeOf, checkPurposeOf, poolModificationOriginLabel } from '@/dice/PromptCheck';
 
 type AlsoNone<T> = T | undefined;
 
@@ -215,10 +215,9 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		context.value.actor,
 		{
 			...request,
-			purpose: checkPurpose(),
+			purpose: checkPurposeOf(context.value.roll),
 			target,
-			// A magic attack meets the defense of a target at short range (CRB p. 215).
-			attackRange: attack?.profile.range ?? (spell?.system.isAttack ? MAGIC_ATTACK_RANGE : undefined),
+			attackRange: attackRangeOf(context.value.roll),
 			attacker: vehicleAttacker(attack?.weapon),
 			weapon: attack?.weapon,
 			attackQualities: attack?.profile.qualities,
@@ -233,11 +232,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		CONFIG.genesys.settings.autoApplyPoolModifications,
 	).map((modification) => ({
 		key: modification.key,
-		origin: game.i18n.localize(
-			modification.source === 'self'
-				? 'Genesys.DicePrompt.PoolModifications.SelfEffects'
-				: 'Genesys.DicePrompt.PoolModifications.TargetEffects',
-		),
+		origin: game.i18n.localize(poolModificationOriginLabel(modification.source)),
 		name: poolModificationName(modification),
 		link: sourceLink(modification),
 		enabled: modification.enabled,
@@ -249,25 +244,6 @@ function resolve(request: CheckRequest<PromptSkill>) {
 	selectedCharacteristic.value = resolved.characteristic;
 
 	buildDicePool();
-}
-
-/**
- * What the prompt rolls the check for.
- */
-function checkPurpose(): CheckPurpose {
-	switch (context.value.roll.type) {
-		case RollType.Attack:
-			return { kind: 'attack', weaponName: context.value.roll.profile.attackName };
-
-		case RollType.Spell:
-			return { kind: 'spell', spellName: context.value.roll.spell.name, isAttack: context.value.roll.spell.system.isAttack };
-
-		case RollType.Initiative:
-			return { kind: 'initiative' };
-
-		default:
-			return { kind: 'check' };
-	}
 }
 
 /**
