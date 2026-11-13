@@ -14,7 +14,7 @@ import { StoryPointTracker } from '@/app/StoryPointTracker';
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import { useUpEffects } from '@/effects/maneuverEffects';
-import { sufferStrain } from '@/dice/castingStrain';
+import { sufferCastingStrain } from '@/dice/castingStrain';
 import { ownedSkill } from '@/data/Skills';
 import { spellAttackProfile, spellCast } from '@/item/SpellCasting';
 
@@ -121,20 +121,22 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 		}
 
 		const cast = app.roll.type === RollType.Spell && actor ? castOf(actor, app.roll.spell, checkRoll.spellEffects ?? []) : undefined;
-		await rollCheck(checkRoll, {
+		const message = await rollCheck(checkRoll, {
 			attack: attackOf(app.roll, checkRoll, actor),
 			recovery: app.recovery,
 			spell: cast,
 		});
+		// A module that prevents the check's message leaves no check made to cost the actor anything.
+		if (!actor || !message) {
+			return;
+		}
 		// The caster suffers the strain once the check is resolved, whatever its result (CRB p. 210). Past their strain
 		// threshold, the update incapacitates them, as any strain does.
-		if (cast && actor) {
-			await sufferStrain(actor, cast.strain);
+		if (cast) {
+			await sufferCastingStrain(actor, cast.strain, message);
 		}
 		// Once rolled, the check uses up the effects it was the next check for, as an attack the roller's Aim.
-		if (actor) {
-			await useUpEffects(actor, checkRoll.check.purpose);
-		}
+		await useUpEffects(actor, checkRoll.check.purpose, message);
 	}
 
 	/**

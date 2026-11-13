@@ -13,6 +13,7 @@ import { CharacteristicsContainer } from '@/data/Characteristics';
 import { CRITICAL_INJURY_FLAG, type CriticalInjuryFlag, criticalTriggers } from '@/dice/CriticalInjuryRoll';
 import { heals, type Recovery, recoveryCard, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
 import type { SpellCast } from '@/item/SpellCasting';
+import type { CheckFlag } from '@/dice/RolledCheck';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
 const ATTACK_TEMPLATE = 'systems/genesys/templates/chat/rolls/attack.hbs';
@@ -86,10 +87,14 @@ export async function checkMessageData(
 			})
 		: 0;
 	// An attack that triggers a Critical Injury keeps it for the card's button, a check that heals its recovery for the
-	// card's Apply button.
+	// card's Apply button. An actor's check keeps what the Acting GM writes of it for an observer who rolled it.
+	const actorUuid = (check.actor as GenesysActor | undefined)?.uuid;
 	const flags = {
 		...(attack && triggers > 0 && { [CRITICAL_INJURY_FLAG]: criticalInjuryFlag(check, attack, triggers) }),
 		...(recovery && { recovery }),
+		...(actorUuid && {
+			check: { actor: actorUuid, purpose: check.purpose, ...(spell && { strain: spell.strain }) } satisfies CheckFlag,
+		}),
 	};
 	const content = attack
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {
@@ -172,11 +177,11 @@ async function attackCardData(check: Check, profile: AttackProfile, results: Gen
 
 /**
  * Roll a check, an attack with the Weapon Profile it is rolled with, or a check that heals, and post its results to the
- * chat.
+ * chat. It gives the message posted, undefined when a module prevented it.
  */
 export async function rollCheck({ check, dicePool }: CheckRoll, options: CheckRollOptions = {}) {
 	const poolRoll = await rollPool(dicePool);
-	await ChatMessage.create(applyMessageMode(await checkMessageData(check, poolRoll, options)));
+	return ChatMessage.create(applyMessageMode(await checkMessageData(check, poolRoll, options)));
 }
 
 /**

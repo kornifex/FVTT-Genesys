@@ -6,6 +6,7 @@ import { DifficultyDie } from '@/dice/dice/DifficultyDie';
 import { ChallengeDie } from '@/dice/dice/ChallengeDie';
 import { register as registerDiceSoNice } from '@/dice/diceSoNice';
 import { register as registerRecoveryCards } from '@/dice/recoveryCard';
+import { registerCastingStrain } from '@/dice/castingStrain';
 import * as log from '@/log';
 
 /**
@@ -22,8 +23,8 @@ const GenesysDice = {
 };
 
 /**
- * Registers custom dice types, their Dice So Nice dice, the check card as a partial, and the Apply button of the cards of
- * checks that heal.
+ * Registers custom dice types, their Dice So Nice dice, the check card as a partial, the Apply button of the cards of
+ * checks that heal, and the Acting GM's answer to an observer's spell cast.
  */
 export function register() {
 	Object.values(GenesysDice).forEach((dieType) => {
@@ -31,6 +32,7 @@ export function register() {
 	});
 	registerDiceSoNice();
 	registerRecoveryCards();
+	registerCastingStrain();
 
 	// The attack card calls the check card as a partial, which Handlebars only finds once registered.
 	foundry.applications.handlebars

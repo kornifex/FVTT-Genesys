@@ -423,6 +423,7 @@ Genesys:
     CombatantHasNoActivationLeft: "{name} n'a plus d'activation ce round."
     NoGMForClaim: Un MJ doit être connecté pour réclamer un slot d'initiative.
     NoGMForUsedUpEffects: Un MJ doit être connecté pour retirer la visée que l'attaque de {name} a consommée.
+    NoGMForCastingStrain: Un MJ doit être connecté pour infliger à {name} le stress de son sort.
     NotOwnerOfCombatant: Vous n'êtes pas propriétaire de ce combattant.
     ActingGMTimedOut: Le MJ n'a pas répondu à temps. Vérifiez si l'action a eu lieu avant de réessayer.
     CannotSelectActor: Vous n'avez pas assez de droit pour choisir cet Acteur.

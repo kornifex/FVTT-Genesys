@@ -6,7 +6,8 @@ import { isFoundryV13 } from '@/foundryGeneration';
 import type { CheckPurpose } from '@/dice/Check';
 import { changesPath, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
 import { aimAfter, aimBoosts, effectsUsedUp, GUARDED_STANCE, MANEUVER_IDS, type ManeuverEffect } from '@/effects/Maneuvers';
-import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
+import { queriedCheck } from '@/dice/RolledCheck';
+import { askActingGm, handleQuery, QueryName } from '@/queries';
 
 /**
  * The effects of an actor that hold a status.
@@ -84,13 +85,14 @@ export function takeGuardedStance(actor: Actor.Implementation) {
 
 /**
  * Removes the effects of an actor that a check it rolled uses up, as an attack does its Aim (CRB p. 98). A roller who
- * can't write the actor, as a player observing it, asks the Acting GM to.
+ * can't write the actor, as a player observing it, asks the Acting GM to, who reads what the check was rolled for from
+ * its message.
  */
-export async function useUpEffects(actor: Actor.Implementation, purpose: CheckPurpose) {
+export async function useUpEffects(actor: Actor.Implementation, purpose: CheckPurpose, message: ChatMessage.Implementation) {
 	if (!actor.isOwner) {
 		if (effectsUsedUp(purpose, actor.effects).length > 0) {
-			// A check is rolled by an actor of the world or of a scene, which has a uuid.
-			await askActingGm(QueryName.UseUpEffects, { actorUuid: actor.uuid!, purpose }, { name: actor.name });
+			// A check is rolled by an actor of the world or of a scene, which has a uuid, and posts a stored message.
+			await askActingGm(QueryName.UseUpEffects, { actorUuid: actor.uuid!, messageId: message.id! }, { name: actor.name });
 		}
 		return;
 	}
@@ -110,15 +112,11 @@ async function deleteUsedUp(actor: Actor.Implementation, purpose: CheckPurpose) 
 
 /**
  * Answers the players' checks that use up effects of actors they can't write. The Acting GM finds those effects again,
- * for a player who may see the actor, as one who could roll its check.
+ * from what the check's message records it was rolled for.
  */
 export function registerUsedUpEffects() {
-	handleQuery(QueryName.UseUpEffects, async ({ actorUuid, purpose }, querier) => {
-		const actor = fromUuidSync(actorUuid) as Actor.Implementation | null;
-		if (!(actor instanceof Actor) || !actor.testUserPermission(querier, 'OBSERVER')) {
-			refuse('Genesys.Notifications.GenericError');
-		}
-
-		await deleteUsedUp(actor, purpose);
+	handleQuery(QueryName.UseUpEffects, async (data, querier) => {
+		const { actor, check } = queriedCheck(data, querier);
+		await deleteUsedUp(actor, check.purpose);
 	});
 }

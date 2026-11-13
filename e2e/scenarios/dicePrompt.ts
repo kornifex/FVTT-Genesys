@@ -5045,6 +5045,56 @@ export async function run(e2e: ScenarioContext) {
 			await noPrompt(gm, cast('Novice')),
 			{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
 		);
+
+		// §#729: a player who observes the Mage casts their spells; the Acting GM makes the Mage suffer the strain, and uses
+		// up their Aim with an attack spell only.
+		const mage = { actor: 'Mage' };
+		await e2e.step(
+			'#729 S5 GM gives the player the Mage as an observer, empties their strain, gives them a Fireball, and clicks Aim',
+			async () => {
+				await gm.evaluate(async (user) => {
+					const mage = window.e2e.actor('Mage');
+					await window.e2e.setOwnership(mage, user, 'OBSERVER');
+					await mage.update({ 'system.strain.value': 0 });
+					await mage.createEmbeddedDocuments('Item', [
+						{
+							name: 'E2E Fireball',
+							type: 'spell',
+							system: { action: 'attack', difficulty: 1, isAttack: true, skills: ['Arcana'], additionalEffects: [] },
+						},
+					]);
+				}, e2e.playerUser);
+				await click(gm, mage, '.tab-combat .maneuvers button|Aim')();
+			},
+		);
+		const observerCast = async (spell: string) => {
+			await player.evaluate(() => window.dicePromptE2E.clearNotifications());
+			await opened(player, click(player, mage, `.tab-magic .spell .name button|E2E ${spell}`));
+			await player.evaluate(() => window.dicePromptE2E.promptRoll());
+			await e2e.settle();
+			const mageState = await gm.evaluate(() => {
+				const mage = game.actors.getName('E2E Mage');
+				return {
+					strain: mage.system.strain.value,
+					aim: mage.effects.some((effect: { statuses: Set<string> }) => effect.statuses.has('aim')),
+				};
+			});
+			return { ...mageState, notifications: await player.evaluate(() => window.dicePromptE2E.notifications()) };
+		};
+		e2e.expect(
+			"#729 S6 the observer's Curse makes the Mage suffer 2 strain through the GM, and leaves their Aim",
+			await observerCast('Curse'),
+			{
+				strain: 2,
+				aim: true,
+				notifications: [],
+			},
+		);
+		e2e.expect(
+			"#729 S7 the observer's Fireball, an attack, makes the Mage suffer 2 strain more and uses up their Aim",
+			await observerCast('Fireball'),
+			{ strain: 4, aim: false, notifications: [] },
+		);
 		await e2e.step('spellCasting end');
 	});
 
