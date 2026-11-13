@@ -3,6 +3,8 @@
  * Critical rating, defense, soak or encumbrance) rather than its actor, as an attachment's do (CRB pp. 206–209).
  */
 
+import { effectQuality } from '@/item/data/Qualities';
+
 /**
  * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on each of
  * its Weapon Profiles.
@@ -27,22 +29,27 @@ export function isItemChangeKey(key: string | undefined) {
 }
 
 /**
- * What this module reads of an effect of the item: whether it is disabled, its changes, and the rank that scales them,
- * a quality's rating, one by default.
+ * What this module reads of an effect of the item: whether it is disabled, its changes, and its flags, which tag the
+ * effect of a quality.
  */
-export type ItemChangeEffect = {
+type ItemChangeEffect = {
 	disabled: boolean;
 	// v14 lets a change hold a value of any type.
 	changes: readonly { key?: string; value: unknown }[];
-	rank?: number;
+	flags?: object;
 };
+
+/**
+ * An effect of the item with the rank that scales its changes, a quality's rating, one by default.
+ */
+type RankedEffect = Omit<ItemChangeEffect, 'flags'> & { rank?: number };
 
 /**
  * What each field of the item gains from its effects: the sum of the values of their enabled Item Changes, each once
  * per rank. A value that isn't a number, or a key naming no field, changes nothing. The item's Equipment State doesn't
  * matter: an attachment changes its item, carried or equipped.
  */
-export function itemChangeTotals(effects: Iterable<ItemChangeEffect>): Partial<Record<ItemChangeField, number>> {
+export function itemChangeTotals(effects: Iterable<RankedEffect>): Partial<Record<ItemChangeField, number>> {
 	const totals: Partial<Record<ItemChangeField, number>> = {};
 	for (const { disabled, changes, rank = 1 } of effects) {
 		if (disabled) {
@@ -70,10 +77,18 @@ type ItemChangeTarget = Partial<Record<ItemChangeField, number>> & {
 };
 
 /**
- * Adds the totals of an item's Item Changes to its prepared data, in place, leaving the fields its type lacks alone. A
- * Critical rating stays at 1 or more: the attack card counts the Advantage spent on a Critical Injury by it.
+ * Adds the Item Changes of an item's effects to its prepared data, in place, leaving the fields its type lacks alone. A
+ * quality's rating scales its effects' changes, as it does on the actor (CRB pp. 86–89). A Critical rating stays at 1
+ * or more: the attack card counts the Advantage spent on a Critical Injury by it.
  */
-export function applyItemChanges(system: ItemChangeTarget, totals: Partial<Record<ItemChangeField, number>>) {
+export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<ItemChangeEffect>) {
+	const totals = itemChangeTotals(
+		// Read field by field: the fields of a document aren't all its own properties.
+		[...effects].map((effect) => {
+			const quality = effectQuality(effect, system);
+			return { disabled: effect.disabled, changes: effect.changes, rank: quality?.isRated ? quality.rating : 1 };
+		}),
+	);
 	const add = (target: Partial<Record<ItemChangeField, number>>, field: ItemChangeField) => {
 		const total = totals[field];
 		if (total !== undefined && typeof target[field] === 'number') {

@@ -1,8 +1,8 @@
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
-import { effectQuality, orphanedQualityEffects } from '@/item/data/Qualities';
+import { orphanedQualityEffects } from '@/item/data/Qualities';
 import { type ContainedAttachment, orphanedAttachmentEffects } from '@/item/data/Attachments';
-import { applyItemChanges, itemChangeTotals } from '@/item/ItemChanges';
+import { applyItemChanges } from '@/item/ItemChanges';
 
 /**
  * An item of the system, typed by its subtype: its `system` is the DataModel registered for that type.
@@ -17,16 +17,7 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 		super.prepareDerivedData();
 
 		if (this.type === 'weapon' || this.type === 'armor') {
-			const effects = [...this.effects].map((effect) => {
-				const quality = effectQuality(effect, this.system);
-				return {
-					disabled: effect.disabled,
-					changes: effect.changes,
-					// A quality's rating scales its effect's changes, as it does on the actor (CRB pp. 86–89).
-					rank: quality?.isRated ? quality.rating : 1,
-				};
-			});
-			applyItemChanges((this as GenesysItem<'weapon' | 'armor'>).system, itemChangeTotals(effects));
+			applyItemChanges((this as GenesysItem<'weapon' | 'armor'>).system, this.effects);
 		}
 	}
 
