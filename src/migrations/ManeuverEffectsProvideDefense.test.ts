@@ -96,6 +96,40 @@ describe('maneuverEffectsProvideDefense', () => {
 		});
 	});
 
+	it('leaves a change that is not in the Add mode as it is, on both versions', () => {
+		const source = actor([
+			v13Effect('cover', ['cover'], [{ key: 'system.defense.ranged', value: '1', mode: 4 }]),
+			v14Effect('guarded', ['guardedStance'], [{ key: 'system.defense.melee', value: '1', type: 'override' }]),
+		]);
+
+		expect(maneuverEffectsProvideDefense(source)).toBeUndefined();
+	});
+
+	it('rewrites only the change in the Add mode of an effect that holds another on the same key', () => {
+		const source = actor([
+			v13Effect(
+				'cover',
+				['cover'],
+				[
+					{ key: 'system.defense.ranged', value: '1', mode: 5 },
+					{ key: 'system.defense.ranged', value: '1', mode: 2 },
+				],
+			),
+		]);
+
+		expect(maneuverEffectsProvideDefense(source)).toEqual({
+			effects: [
+				{
+					_id: 'cover',
+					changes: [
+						{ key: 'system.defense.ranged', value: '1', mode: 5 },
+						{ key: 'system.providedDefense.ranged', value: '1', mode: 4 },
+					],
+				},
+			],
+		});
+	});
+
 	it("leaves the defense of the actor's other effects, which increases it (CRB p. 106)", () => {
 		const source = actor([
 			v13Effect('talent', [], [{ key: 'system.defense.ranged', value: '1', mode: 2 }]),
