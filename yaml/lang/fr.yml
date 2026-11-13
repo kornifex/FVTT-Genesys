@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
     SkillForRepairingVehicleHitsHint: Nom de la compétence utilisée pour récupérer des dommages critiques.
+    SkillForHealingWounds: Nom de la compétence Médecine
+    SkillForHealingWoundsHint: "Nom de la compétence dont le jet soigne les blessures d'un patient, et à côté de laquelle s'affiche l'action Soigner."
+    SkillForRecoveringStrain: Nom de la compétence Discipline
+    SkillForRecoveringStrainHint: "Nom de la première des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit ; elle l'emporte en cas d'égalité."
+    AlternativeSkillForRecoveringStrain: Nom de la compétence Sang-froid
+    AlternativeSkillForRecoveringStrainHint: "Nom de la seconde des deux compétences entre lesquelles le jet qui récupère du stress à la fin d'une rencontre choisit."
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications

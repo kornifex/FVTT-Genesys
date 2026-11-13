@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
     SkillForRepairingVehicleHitsHint: Nombre de la habilidad utilizada al recuperarse de Daños críticos.
+    SkillForHealingWounds: Nombre de la habilidad Medicina
+    SkillForHealingWoundsHint: Nombre de la habilidad cuya tirada cura las heridas de un paciente, junto a la cual aparece la acción Curar.
+    SkillForRecoveringStrain: Nombre de la habilidad Disciplina
+    SkillForRecoveringStrainHint: Nombre de la primera de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro; gana en caso de empate.
+    AlternativeSkillForRecoveringStrain: Nombre de la habilidad Sangre fría
+    AlternativeSkillForRecoveringStrainHint: Nombre de la segunda de las dos habilidades entre las que elige la tirada que recupera tensión al final de un encuentro.
     DicePoolCollapseModifications: Colapsar la sección de modificaciones de la reserva
     DicePoolCollapseModificationsHint: Si está activada, la sección "modificaciones de la reserva" de la ventana de dados se colapsará durante la renderización inicial.
     DicePoolAutoApplyModifications: Aplicar automáticamente modificaciones en la reserva

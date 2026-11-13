@@ -417,6 +417,9 @@ function installDicePromptHelpers() {
 		'skillsCompendium',
 		'showDamageOnFailure',
 		'dicePoolCollapseModificationsDetails',
+		'skillForHealingWounds',
+		'skillForRecoveringStrain',
+		'alternativeSkillForRecoveringStrain',
 	];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
@@ -4661,6 +4664,32 @@ export async function run(e2e: ScenarioContext) {
 			{ patientPrompts, pool: targeted.pool, shown: markShown, health: await health('Mark') },
 			{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 		);
+		// A world whose compendium names the healing skill otherwise (§#727): the Heal button follows the setting.
+		await setSetting('skillForHealingWounds', 'e2e sanatio');
+		await gm.evaluate(async () => {
+			await window.e2e
+				.actor('Cy')
+				.createEmbeddedDocuments('Item', [
+					{ name: 'E2E Sanatio', type: 'skill', system: { characteristic: 'intellect', rank: 1, category: 'general' } },
+				]);
+			await window.e2e.settle();
+		});
+		const healRows = await gm.evaluate(async () => {
+			const root = await window.e2e.render(window.e2e.actor('Cy').sheet);
+			return [...root.querySelectorAll('.tab-skills .skill')]
+				.filter((row) => row.querySelector('.heal'))
+				.map((row) => window.e2e.text(row.querySelector('.skill-name')));
+		});
+		await gm.evaluate(async () => {
+			await window.e2e.actor('Cy').items.getName('E2E Sanatio').delete();
+			await window.e2e.settle();
+		});
+		await setSetting('skillForHealingWounds', 'Medicine');
+		e2e.expect(
+			'#727 H6 with the healing skill renamed in the settings, the Heal button shows beside it, and no longer beside Medicine',
+			healRows,
+			['E2E Sanatio (Int)'],
+		);
 		await e2e.step('medicineHeal end');
 	});
 
@@ -4715,6 +4744,38 @@ export async function run(e2e: ScenarioContext) {
 				health: { wounds: 3, strain: 0 },
 				message: { speaker: 'Cy', text: 'Rests for the night. Strain recovered: 2. Wounds healed: 1.' },
 			},
+		);
+		// A world whose compendium names the two skills otherwise (§#727): the check picks between those the settings name.
+		await setSetting('skillForRecoveringStrain', 'E2E Serenite');
+		await setSetting('alternativeSkillForRecoveringStrain', 'e2e calme');
+		await gm.evaluate(async () => {
+			const skill = (name: string, characteristic: string) => ({
+				name,
+				type: 'skill',
+				system: { characteristic, rank: 1, category: 'general' },
+			});
+			await window.e2e
+				.actor('Cy')
+				.createEmbeddedDocuments('Item', [skill('E2E Serenite', 'willpower'), skill('E2E Calme', 'presence')]);
+			await window.e2e.settle();
+		});
+		const renamed = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
+		await gm.evaluate(async () => {
+			const cy = window.e2e.actor('Cy');
+			await cy.deleteEmbeddedDocuments(
+				'Item',
+				cy.items
+					.filter((item: { name: string }) => ['E2E Serenite', 'E2E Calme'].includes(item.name))
+					.map((item: { id: string }) => item.id),
+			);
+			await window.e2e.settle();
+		});
+		await setSetting('skillForRecoveringStrain', 'Discipline');
+		await setSetting('alternativeSkillForRecoveringStrain', 'Cool');
+		e2e.expect(
+			'#727 R4 with the two strain recovery skills renamed in the settings, End of encounter opens on the better of those',
+			{ skill: renamed.skill, pool: renamed.pool },
+			{ skill: 'E2E Calme (Pr)', pool: 'PAA|' },
 		);
 		await e2e.step('recovery end');
 	});
