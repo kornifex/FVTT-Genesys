@@ -1,22 +1,36 @@
 /** @file `pnpm e2e`: runs scenarios on each Foundry version and build, on a pool of Foundry launches (see `usage`). */
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import net from 'node:net';
+import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright-core';
 
 import { type Baseline, baselineFile, baselineSteps, cacheable, mergeBaseline, planBase } from './baseline.ts';
-import { type FoundryInstall, readConfig } from './config.ts';
+import { claim, claimPorts } from './claims.ts';
+import { envFile, type FoundryInstall, readConfig } from './config.ts';
 import { assembleLog, planSlices, type Slice } from './pool.ts';
 import { runScenario, type ScenarioModule } from './scenario.ts';
 import { type FoundryServer, launchFoundry, prepareDataDir } from './server.ts';
 import { diffSteps, failsRun, fatalStep, runSummary, type Step, stepLine, type StepLog, stopped } from './steps.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
-const envFile = path.join(import.meta.dirname, '.env');
-if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+const env = envFile(root, () => {
+	try {
+		return execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+			cwd: root,
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		}).trim();
+	} catch {
+		// Not a git checkout: readConfig then says which settings are missing.
+		return undefined;
+	}
+});
+if (env) process.loadEnvFile(env);
 
 const usage =
 	'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref> [--fresh]] [--launches 8] [--verbose]';
@@ -47,14 +61,20 @@ if (parts?.length === 0) throw new Error('--part takes the names of parts, separ
 if (options.fresh && options.compare === undefined) throw new Error('--fresh goes with --compare, whose cache it ignores.');
 
 const config = readConfig(process.env, options.versions.split(',').map(Number), { launches: options.launches });
-// A server a stopped run left on a port of the pool would take this run's clients, silently.
-for (let port = config.port; port < config.port + config.launches; port++) {
-	if (await listening(port)) {
-		throw new Error(
-			`Port ${port} is already listening, as a Foundry server a stopped run left does: stop it, or set E2E_PORT to a free range.`,
-		);
-	}
-}
+// Each checkout keeps its world copies and results in a folder of its own, so that runs from two worktrees never share
+// one. Its build is the checkout's `dist`: two runs of one checkout would share it too.
+const checkout = `${path.basename(root)}-${createHash('sha256').update(root).digest('hex').slice(0, 8)}`;
+const runsDir = path.join(config.workDir, 'runs', checkout);
+const resultsDir = path.join(config.workDir, 'results', checkout);
+const releaseCheckout = claim(path.join(config.workDir, 'runs'), checkout);
+if (!releaseCheckout) throw new Error(`Another run from ${root} is going on: wait for it to end.`);
+// The claims are machine-wide, as the ports are, whatever E2E_WORK_DIR each run has.
+const ports = await claimPorts(config.port, config.launches, { dir: path.join(os.tmpdir(), 'genesys-e2e-ports'), listening });
+process.once('exit', () => {
+	ports.release();
+	releaseCheckout();
+});
+console.log(`Ports ${ports.port}–${ports.port + config.launches - 1}, logs in ${runsDir} and ${resultsDir}`);
 // Without --dist, the working tree is built, so that a stale dist is never tested.
 const headDist = options.dist ? path.resolve(options.dist) : buildWorkingTree();
 if (!fs.existsSync(path.join(headDist, 'system.json'))) throw new Error(`${headDist} holds no build.`);
@@ -143,9 +163,7 @@ for (const install of config.installs) {
 			if (plan.baselineFile && result && cacheable(result)) writeAtomically(plan.baselineFile, JSON.stringify(baseline));
 			const steps = plan.baselineFile ? (baseline ? baselineSteps(baseline, parts) : []) : result?.steps ?? [];
 			logs.set(key, steps);
-			const resultsDir = path.join(config.workDir, 'results', scenario.name);
-			fs.mkdirSync(resultsDir, { recursive: true });
-			fs.writeFileSync(path.join(resultsDir, `${safeFileName(run)}.json`), JSON.stringify(steps, null, '\t'));
+			writeAtomically(path.join(resultsDir, scenario.name, `${safeFileName(run)}.json`), JSON.stringify(steps, null, '\t'));
 		}
 	}
 }
@@ -180,7 +198,7 @@ for (const install of config.installs) {
 	}
 }
 console.log(`\nWall time: ${(wallTime / 1000).toFixed(1)} s on ${config.launches} ${config.launches === 1 ? 'launch' : 'launches'}`);
-console.log(`Step logs and server logs: ${path.join(config.workDir, 'results')}, ${path.join(config.workDir, 'runs')}`);
+console.log(`Step logs and server logs: ${resultsDir}, ${runsDir}`);
 const failed = config.installs.some((install) =>
 	builds.some((build) =>
 		scenarios.some(({ name }) =>
@@ -197,8 +215,8 @@ if (failed) process.exitCode = 1;
  * a slice an error stopped.
  */
 async function runLaunch(index: number) {
-	const port = config.port + index;
-	const dataDir = path.join(config.workDir, 'runs', `launch-${index}`);
+	const port = ports.port + index;
+	const dataDir = path.join(runsDir, `launch-${index}`);
 	let world: { run: string; server: FoundryServer } | undefined;
 	const close = async () => {
 		await world?.server.stop();
@@ -267,12 +285,20 @@ function plannedRun(id: string) {
 }
 
 /**
- * The step log a scenario's run on a version and build left in the results folder last time, whose durations size and
- * order this run's slices; none when it can't be read.
+ * The step log a scenario's run on a version and build left last time, from any checkout, whose durations size and
+ * order this run's slices; none when it can't be read. A new worktree has no results of its own, and a scenario's
+ * durations hardly depend on the checkout.
  */
 function readPreviousLog(scenario: string, run: string): Step[] | undefined {
-	const file = path.join(config.workDir, 'results', scenario, `${safeFileName(run)}.json`);
-	if (!fs.existsSync(file)) return undefined;
+	const allResults = path.join(config.workDir, 'results');
+	const logs = fs.existsSync(allResults)
+		? fs
+				.readdirSync(allResults)
+				.map((dir) => path.join(allResults, dir, scenario, `${safeFileName(run)}.json`))
+				.filter((file) => fs.existsSync(file))
+		: [];
+	const file = logs.sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs)[0];
+	if (!file) return undefined;
 	try {
 		return JSON.parse(fs.readFileSync(file, 'utf8')) as Step[];
 	} catch {
@@ -282,7 +308,8 @@ function readPreviousLog(scenario: string, run: string): Step[] | undefined {
 }
 
 /**
- * Whether a server listens on the port: one the pool can't take.
+ * Whether a server listens on the port: one the pool can't take, as a Foundry server a stopped run left would take this
+ * run's clients, silently.
  */
 function listening(port: number) {
 	return new Promise<boolean>((resolve) => {
@@ -331,12 +358,14 @@ function readBaseline(file: string) {
 }
 
 /**
- * Writes a file through a temporary one, so that a run stopped while writing leaves no half of it.
+ * Writes a file through a temporary one of this process, so that a run stopped while writing leaves no half of it, and
+ * two runs writing it at once (the cache's baseline of one commit) don't mix their content.
  */
 function writeAtomically(file: string, content: string) {
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	fs.writeFileSync(`${file}.tmp`, content);
-	fs.renameSync(`${file}.tmp`, file);
+	const temporary = `${file}.${process.pid}.tmp`;
+	fs.writeFileSync(temporary, content);
+	fs.renameSync(temporary, file);
 }
 
 /**
@@ -389,21 +418,32 @@ function commitOf(ref: string) {
 }
 
 /**
- * Builds a commit of this repo, once, and returns its `dist`.
+ * Builds a commit of this repo, once, and returns its `dist`. The build happens in a folder of this process, renamed
+ * once done: two runs building the same commit at once each build their own, and the first to finish keeps its.
  */
 function buildRef(ref: string, commit: string) {
 	const dir = path.join(config.workDir, 'builds', commit);
 	const dist = path.join(dir, 'dist');
 	if (fs.existsSync(path.join(dist, 'system.json'))) return dist;
 
-	console.error(`Building ${ref} (${commit.slice(0, 7)}) in ${dir}`);
-	fs.rmSync(dir, { recursive: true, force: true });
-	fs.mkdirSync(dir, { recursive: true });
-	const archive = path.join(dir, 'source.tar');
+	const building = `${dir}.${process.pid}.tmp`;
+	console.error(`Building ${ref} (${commit.slice(0, 7)}) in ${building}`);
+	fs.rmSync(building, { recursive: true, force: true });
+	fs.mkdirSync(building, { recursive: true });
+	const archive = path.join(building, 'source.tar');
 	quietly('git', ['archive', `--output=${archive}`, commit], root);
-	quietly('tar', ['-xf', archive, '-C', dir], dir);
-	quietly('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], dir);
-	quietly('pnpm', ['build'], dir);
+	quietly('tar', ['-xf', archive, '-C', building], building);
+	quietly('pnpm', ['install', '--frozen-lockfile', '--prefer-offline'], building);
+	quietly('pnpm', ['build'], building);
+	try {
+		fs.renameSync(building, dir);
+	} catch (error) {
+		// Another run's build of the commit took the place first.
+		if (!['EEXIST', 'ENOTEMPTY'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+		fs.rmSync(building, { recursive: true, force: true });
+		// Only a build stopped halfway by an older harness, which built in place, leaves no system.json there.
+		if (!fs.existsSync(path.join(dist, 'system.json'))) throw new Error(`${dir} holds a broken build: remove it.`, { cause: error });
+	}
 	return dist;
 }
 

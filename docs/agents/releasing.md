@@ -12,7 +12,7 @@ A release is marked latest, the one Foundry offers as an update, unless a higher
 
 ## Before merging the release PR
 
-1. `pnpm e2e:all` passes on every supported Foundry version, on the release PR's head: it runs every scenario of `e2e/scenarios/` and exits with 1 on a failed assertion ([`e2e/README.md`](../../e2e/README.md)). It needs the licensed installs, so it can't run in CI.
+1. `pnpm e2e:all` passes on every supported Foundry version, on the release PR's head: it runs every scenario of `e2e/scenarios/` and exits with 1 on a failed assertion ([`e2e/README.md`](../../e2e/README.md)). It needs the licensed installs, so it can't run in CI; it runs from any worktree, beside other runs.
 2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
 3. For the final version only: the checklist items no test proves, listed atop that issue, are tested at the table, on a release candidate.
 
