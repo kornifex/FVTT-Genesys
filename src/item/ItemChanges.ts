@@ -37,7 +37,7 @@ export function itemChangeKey(field: ItemChangeField) {
 /**
  * Whether a change key is an Item Change's, which never applies to an actor, whatever field it names.
  */
-export function isItemChangeKey(key: string | undefined) {
+export function isItemChangeKey(key: string | undefined): key is `${typeof PREFIX}${string}` {
 	return key?.startsWith(PREFIX) ?? false;
 }
 
@@ -70,7 +70,7 @@ export function itemChangeTotals(effects: Iterable<RankedEffect>): Partial<Recor
 		}
 
 		for (const { key, value } of changes) {
-			const field = isItemChangeKey(key) ? key!.slice(PREFIX.length) : '';
+			const field = isItemChangeKey(key) ? key.slice(PREFIX.length) : '';
 			const amount = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
 			if ((ITEM_CHANGE_FIELDS as readonly string[]).includes(field) && Number.isFinite(amount)) {
 				totals[field as ItemChangeField] = (totals[field as ItemChangeField] ?? 0) + amount * rank;

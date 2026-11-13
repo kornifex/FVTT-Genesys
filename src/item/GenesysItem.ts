@@ -1,9 +1,16 @@
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import { itemQualities, QUALITY_FLAG } from '@/item/data/Qualities';
-import { ATTACHMENT_FLAG, type ContainedAttachment } from '@/item/data/Attachments';
+import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
 import { orphanedTaggedEffects } from '@/item/data/EffectTags';
 import { applyItemChanges } from '@/item/ItemChanges';
+
+/**
+ * Whether an item is one that holds attachments: a weapon or an armor.
+ */
+function hasAttachments(item: Item.Implementation): item is GenesysItem<'weapon' | 'armor'> {
+	return item.type === 'weapon' || item.type === 'armor';
+}
 
 /**
  * An item of the system, typed by its subtype: its `system` is the DataModel registered for that type.
@@ -17,8 +24,8 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 	override prepareDerivedData() {
 		super.prepareDerivedData();
 
-		if (this.type === 'weapon' || this.type === 'armor') {
-			applyItemChanges((this as GenesysItem<'weapon' | 'armor'>).system, this.effects);
+		if (hasAttachments(this)) {
+			applyItemChanges(this.system, this.effects);
 		}
 	}
 
@@ -36,7 +43,6 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 		// The same goes for an attachment.
 		const changesAttachments = foundry.utils.hasProperty(changed, 'system.attachments');
 		if (userId === game.user.id && (changesQualities || changesAttachments)) {
-			const attachments = (this.system as { attachments?: ContainedAttachment[] }).attachments ?? [];
 			const orphaned = [
 				...(changesQualities
 					? orphanedTaggedEffects(
@@ -45,11 +51,12 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 							itemQualities(this.system).map(({ id }) => id),
 						)
 					: []),
-				...(changesAttachments
+				// Only a weapon or an armor holds attachments: another item has none to orphan.
+				...(changesAttachments && hasAttachments(this)
 					? orphanedTaggedEffects(
 							this.effects,
 							ATTACHMENT_FLAG,
-							attachments.map(({ id }) => id),
+							this.system.attachments.map(({ id }) => id),
 						)
 					: []),
 			];

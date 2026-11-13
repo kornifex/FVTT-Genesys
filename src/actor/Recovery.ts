@@ -95,10 +95,13 @@ export function heals({ wounds, strain }: Healed) {
  */
 const PATIENT_TYPES = ['character', 'rival', 'nemesis'] as const;
 
+type PatientType = (typeof PATIENT_TYPES)[number];
+
 /**
  * Whether an actor of a type can be healed by a check: a healer's target can be any of them.
  */
-export function canBePatient(type: string) {
+export function canBePatient(type: string): type is PatientType {
+	// `includes` of a readonly tuple of literals only takes one of them, which a string isn't yet.
 	return (PATIENT_TYPES as readonly string[]).includes(type);
 }
 
