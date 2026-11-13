@@ -3947,6 +3947,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		const UPGRADE = 'Spend a point to upgrade the ability';
 		const EMPTY = 'The pool has no point left to spend.';
+		const IMPOSSIBLE_ONLY = 'An Impossible task allows no other Story Point.';
 		await update({ actor: 'Bo' }, { 'system.characteristics.brawn': 2 });
 		const message = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,2]</p><p>@check[Athletics,6]</p>'));
 		await control(player, ['Bo']);
@@ -4042,7 +4043,7 @@ export async function run(e2e: ScenarioContext) {
 							checked: true,
 							why: "An Impossible task can't be rolled without it.",
 						}),
-						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY }),
+						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: IMPOSSIBLE_ONLY }),
 					],
 					difficulty: 'Difficulty: Impossible',
 					pool: 'AA|DDDDD',
@@ -4050,6 +4051,35 @@ export async function run(e2e: ScenarioContext) {
 				},
 				rolled: { formula: '0dp + 2da + 5di', prompts: 0 },
 				pools: { player: 0, gm: 1 },
+			},
+		);
+
+		await setPools({ player: 2, gm: 0 });
+		await linkPrompt(player, { message }, 'Athletics', 'DDDDD');
+		await spend(player, 'impossible');
+		const closed = await spends(player);
+		const reopened = await spend(player, 'impossible');
+		await spend(player, 'impossible');
+		const attempted = await rollSpending(player);
+		e2e.expect(
+			"#725 X5 the Impossible task's point closes the upgrade even with a point to spare, unchecking it opens it again, and the roll spends one point",
+			{
+				closed: closed.spends.map(({ spend, disabled, why }) => [spend, disabled, why]),
+				reopened: reopened.spends.map(({ spend, checked, disabled }) => [spend, checked, disabled]),
+				storyPointMessages: attempted.storyPointMessages,
+				pools: await pools(),
+			},
+			{
+				closed: [
+					['impossible', false, "An Impossible task can't be rolled without it."],
+					['upgradeAbility', true, IMPOSSIBLE_ONLY],
+				],
+				reopened: [
+					['impossible', false, false],
+					['upgradeAbility', false, false],
+				],
+				storyPointMessages: 1,
+				pools: { player: 1, gm: 1 },
 			},
 		);
 		await control(player, []);

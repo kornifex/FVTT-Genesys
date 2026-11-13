@@ -307,6 +307,7 @@ Genesys:
       UpgradeDifficulty: Gastar un punto de los PJ para mejorar la dificultad
       ImpossibleCost: Una tarea imposible no puede tirarse sin él.
       EmptyPool: La reserva no tiene puntos que gastar.
+      ImpossibleOnly: Una tarea imposible no admite ningún otro Punto de Historia.
       NoGM: Un DJ debe estar conectado para gastar un Punto de Historia.
     ChanceToSucceed: 'Posibilidades de éxito:'
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
