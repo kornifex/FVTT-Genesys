@@ -13,7 +13,7 @@ import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQualityEffect, qualityIdOf, qualityRank } from '@/item/data/Qualities';
 import { attachmentIdOf } from '@/item/data/Attachments';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
@@ -288,17 +288,17 @@ export function scaledChangeValue(
 	{ key, value }: { key: string; value: unknown },
 	quality?: Pick<ContainedItemQuality, 'isRated' | 'rating'>,
 ) {
-	const qualityRank = quality?.isRated ? quality.rating : 1;
+	const rankOfQuality = quality && qualityRank(quality);
 
 	if (decodeKey(key)) {
-		const rank = quality ? qualityRank : item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		const rank = rankOfQuality ?? (item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1);
 		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
 	// A quality of rank 1, rated or not, leaves its value as written: the rewrite below would cut a decimal or a formula to
 	// an integer.
-	if (quality ? qualityRank !== 1 : item?.type === 'talent') {
-		const rank = quality ? qualityRank : item!.system.rank!;
+	if (quality ? rankOfQuality !== 1 : item?.type === 'talent') {
+		const rank = rankOfQuality ?? item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;
 		}
