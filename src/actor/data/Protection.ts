@@ -53,12 +53,13 @@ export function totalDefense(own: Defense, armor: WornArmor[], provided: Defense
 
 /**
  * An Adversary's melee and ranged defense: the best of their stat block's, which already counts their armor, and the
- * one other sources provide, up to 4 (CRB p. 106).
+ * one other sources provide, which don't stack, increased by the sources written with a "+", such as a talent, up to 4
+ * (CRB p. 106).
  */
-export function adversaryDefense(statBlock: Defense, provided: Defense): Defense {
+export function adversaryDefense(statBlock: Defense, provided: Defense, increases: Defense): Defense {
 	return capped({
-		melee: Math.max(statBlock.melee, provided.melee),
-		ranged: Math.max(statBlock.ranged, provided.ranged),
+		melee: Math.max(statBlock.melee, provided.melee) + increases.melee,
+		ranged: Math.max(statBlock.ranged, provided.ranged) + increases.ranged,
 	});
 }
 

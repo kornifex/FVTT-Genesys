@@ -100,7 +100,11 @@ describe('In cover', () => {
 				provided[rating] = Math.max(provided[rating], Number(value));
 			}
 		}
-		return { type: 'rival', system: { totalDefense: adversaryDefense(statBlock, provided) }, allApplicableEffects: () => [] };
+		return {
+			type: 'rival',
+			system: { totalDefense: adversaryDefense(statBlock, provided, { melee: 0, ranged: 0 }) },
+			allApplicableEffects: () => [],
+		};
 	}
 
 	const attacker = characterWith('immobilized');

@@ -40,7 +40,7 @@ import ListEmpty from '@/vue/components/ListEmpty.vue';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
 
-const { document: actor, system, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
+const { document: actor, system, source, editable } = useSheetDocument<GenesysActor<AdversaryType>>();
 
 // The menu of each talent and ability, by id, for a right-click on its description to open it, as one on its name does.
 const rowMenus = new Map<string, ContextMenuHandle>();
@@ -170,15 +170,16 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.totalDefense.melee }"
 						/>
 
+						<!-- The stat block's defense as the GM typed it, without the effects that increase it. -->
 						<CombatStat
 							label="Genesys.Labels.StatBlockDefense"
 							primary-label="Genesys.Labels.DefenseRanged"
-							:value="system.defense.ranged"
+							:value="source.defense.ranged"
 							name="system.defense.ranged"
 							field-label="Genesys.Labels.RangedDefense"
 							:secondary="{
 								label: 'Genesys.Labels.DefenseMelee',
-								value: system.defense.melee,
+								value: source.defense.melee,
 								name: 'system.defense.melee',
 								fieldLabel: 'Genesys.Labels.MeleeDefense',
 							}"
