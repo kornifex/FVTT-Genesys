@@ -5,6 +5,7 @@
  */
 
 import type { AbilityActivation } from '@/data/schemaFields';
+import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
 import { qualityNameKey } from '@/item/data/Qualities';
 
 /**
@@ -41,10 +42,6 @@ export type SpellActionDefaults = {
 	isAttack: boolean;
 	skills: string[];
 };
-
-const EASY = 1;
-const AVERAGE = 2;
-const HARD = 3;
 
 // Table III.2–2 and each action's own section (CRB pp. 214–218). The skills are the CRB's names, as the Skills Compendium
 // it ships names them.

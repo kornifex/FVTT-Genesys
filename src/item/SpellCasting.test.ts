@@ -13,6 +13,7 @@ import {
 import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
 import { Characteristic } from '@/data/Characteristics';
 import { criticalTriggers } from '@/dice/CriticalInjuryRoll';
+import { AVERAGE } from '@/dice/Difficulty';
 import { attackDamage } from '@/item/Weapons';
 
 const skill = (name: string, rank: number) => ({ name, system: { rank } });
@@ -39,7 +40,6 @@ describe('castingSkillName', () => {
 const ENERVATE = { id: 'enervate', difficulty: 1, startsChecked: true };
 const ADDITIONAL_TARGET = { id: 'target', difficulty: 2, startsChecked: false };
 const CURSE_EFFECTS = [ENERVATE, ADDITIONAL_TARGET];
-const AVERAGE = 2;
 
 describe('castingStrain', () => {
 	it('costs a spell cast 2 strain, and any other check none (CRB p. 210)', () => {

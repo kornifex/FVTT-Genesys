@@ -4,7 +4,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import { itemsOfType } from '@/item/ItemTypes';
 import { SPELL_ACTION_LABELS } from '@/item/data/Spells';
-import { DIE_GLYPHS } from '@/dice/GenesysPoolModifications';
+import { difficultyGlyphs } from '@/dice/Difficulty';
 import { castSpell, openSheet } from '@/operations/ItemActions';
 import RollLink from '@/vue/components/RollLink.vue';
 import Localized from '@/vue/components/Localized.vue';
@@ -18,7 +18,7 @@ const { document: actor } = useSheetDocument<GenesysActor<'character'>>();
 
 const spells = computed(() => itemsOfType(actor.value, 'spell'));
 
-const difficultyGlyphs = (difficulty: number) => DIE_GLYPHS.Difficulty.repeat(difficulty);
+const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 </script>
 
 <template>
@@ -44,11 +44,11 @@ const difficultyGlyphs = (difficulty: number) => DIE_GLYPHS.Difficulty.repeat(di
 						}}</RollLink>
 					</DescriptionFold>
 					<div class="action"><Localized :label="SPELL_ACTION_LABELS[spell.system.action]" /></div>
-					<Glyphs class="difficulty" :glyphs="difficultyGlyphs(spell.system.difficulty)" />
+					<Glyphs class="difficulty" :glyphs="glyphsOf(spell.system.difficulty)" />
 					<ul class="additional-effects">
 						<li v-for="effect in spell.system.additionalEffects" :key="effect.id">
 							{{ effect.name }}
-							<Glyphs :glyphs="`+${difficultyGlyphs(effect.difficulty)}`" />
+							<Glyphs :glyphs="`+${glyphsOf(effect.difficulty)}`" />
 						</li>
 					</ul>
 					<RowActions class="actions" :document="spell" />

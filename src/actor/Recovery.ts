@@ -6,6 +6,7 @@
 
 import type { CombatPool } from '@/data/schemaFields';
 import { skillNamesMatch } from '@/data/Skills';
+import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
 
 /**
  * The wounds and strain a check heals.
@@ -164,13 +165,6 @@ export function strainRecoverySkill(skills: readonly [string, string], poolOf: (
 export function isHealingSkill(skillName: string, healingSkill: string) {
 	return skillNamesMatch(skillName, healingSkill);
 }
-
-/**
- * The difficulties of Table I.6–11, by their number of Difficulty dice.
- */
-const EASY = 1;
-const AVERAGE = 2;
-const HARD = 3;
 
 /**
  * How much harder a Medicine check is when the healer heals themselves (CRB p. 116).
