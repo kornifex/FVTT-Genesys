@@ -22,8 +22,8 @@ function targetedPatient() {
 }
 
 /**
- * The patients a healer picks among: the characters of the viewed scene's tokens the user sees, the players'
- * characters, and the healer, who may heal themselves.
+ * The patients a healer picks among: the characters, rivals and nemeses of the viewed scene's tokens the user sees, the
+ * players' characters, and the healer, who may heal themselves.
  */
 function patientsToPick(healer: StoredActor) {
 	const tokens = game.scenes.viewed?.tokens.contents ?? [];
@@ -31,15 +31,22 @@ function patientsToPick(healer: StoredActor) {
 		.filter((token) => game.user.isGM || !token.hidden)
 		.flatMap((token) => (token.actor as StoredActor | null) ?? []);
 	const playerCharacters = game.actors.filter((actor) => actor.hasPlayerOwner) as StoredActor[];
-	return patientChoices([...sceneActors, healer], playerCharacters);
+	return patientChoices([...sceneActors, healer], playerCharacters, (name, type) =>
+		game.i18n.format('Genesys.Recovery.AdversaryPatient', { name, type: game.i18n.localize(`TYPES.Actor.${type}`) }),
+	).map(({ actor, label }) => ({ actor, uuid: actor.uuid, name: label, img: actor.img }));
 }
 
 /**
  * The patient a healer heals: their single target when it can be healed, else the one they pick among the scene's
- * characters, the players' characters and themselves. Undefined when they cancel the pick.
+ * characters, rivals and nemeses, the players' characters and themselves. Undefined when they cancel the pick.
  */
 export async function pickPatient(healer: StoredActor) {
-	return targetedPatient() ?? (await SelectPatientPrompt.promptForPatient(patientsToPick(healer)));
+	const targeted = targetedPatient();
+	if (targeted) {
+		return targeted;
+	}
+
+	return (await SelectPatientPrompt.promptForPatient(patientsToPick(healer)))?.actor;
 }
 
 /**

@@ -367,6 +367,7 @@ Genesys:
   Recovery:
     HealWithMedicine: Heal with Medicine
     PatientPrompt: Select Patient
+    AdversaryPatient: '{name} ({type})'
     CardLabel: Heals {patient}
     Wounds: Wounds
     Strain: Strain
