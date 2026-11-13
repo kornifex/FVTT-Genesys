@@ -1,4 +1,5 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
+import { effectQuality, isOutrankedQuality, qualityIdOf, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
@@ -32,16 +33,24 @@ export const CRITICAL_INJURY_FLAG = 'criticalInjury';
 
 /**
  * What an attack's chat message keeps for the Critical Injury it triggered, in its flags: how many times it triggered one,
- * the uuids of the attacker and of the single target, if any, and the name and qualities of the Weapon Profile, as they
- * were when the attack was rolled.
+ * the uuids of the attacker and of the single target, if any, and the name, uuid and qualities of the Weapon Profile, as
+ * they were when the attack was rolled. A message of 0.7.0-rc.1 has no weapon uuid and no quality ids.
  */
 type AttackCriticalInjuryFlag = {
 	/** How many times the attack triggered a Critical Injury, 1 or more. */
 	triggers: number;
 	attacker: string | null;
 	target: string | null;
-	weapon: { name: string; qualities: AttackQuality[] };
+	weapon: { name: string; uuid?: string | null; qualities: (Omit<AttackQuality, 'id'> & { id?: string })[] };
 };
+
+/**
+ * The weapon of an attack, read from its message's flag: the uuid and the quality ids of a message of 0.7.0-rc.1 are
+ * missing, so none of the weapon's quality effects counts for it.
+ */
+export function attackWeaponOf({ name, uuid, qualities }: AttackCriticalInjuryFlag['weapon']): CriticalAttackWeapon {
+	return { name, uuid: uuid ?? null, qualities: qualities.map((quality) => ({ ...quality, id: quality.id ?? '' })) };
+}
 
 /**
  * What a chat message offering the Critical Injury of a character gone past their wound threshold keeps in its flags: the
@@ -88,13 +97,19 @@ export function existingInjuriesBonus(items: Iterable<{ type: string }>): number
 /**
  * A weapon's quality, as an attack reads it.
  */
-type AttackQuality = { name: string; isRated: boolean; rating: number };
+type AttackQuality = { id: string; name: string; isRated: boolean; rating: number };
+
+/**
+ * The weapon an attack is made with: its Weapon Profile's qualities, and the weapon's uuid, null for an attack that has
+ * no weapon, as a spell's.
+ */
+type CriticalAttackWeapon = { name: string; uuid: string | null; qualities: readonly AttackQuality[] };
 
 /**
  * The Vicious rating of a weapon's qualities, 0 without Vicious (CRB p. 89): a quality is Vicious by its name, in any of
  * the names given, whatever its case, until qualities are items the system recognises otherwise.
  */
-export function viciousRating(qualities: readonly AttackQuality[], names: readonly string[]): number {
+export function viciousRating(qualities: readonly Pick<AttackQuality, 'name' | 'rating'>[], names: readonly string[]): number {
 	const viciousNames = new Set(names.map((name) => name.trim().toLowerCase()));
 	return qualities
 		.filter((quality) => viciousNames.has(quality.name.trim().toLowerCase()))
@@ -132,7 +147,8 @@ export function isCriticalChangeValue(value: string) {
 }
 
 /**
- * What this module needs of the item an effect comes from. A talent scales its effects with its rank when it says so.
+ * What this module needs of the item an effect comes from. A talent scales its effects with its rank when it says so, a
+ * weapon's or an armor's quality with its rating.
  */
 type CriticalSourceItem = {
 	name: string;
@@ -148,6 +164,8 @@ export type CriticalEffect = {
 	name: string;
 	uuid: string;
 	isSuppressed: boolean;
+	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
+	flags?: object;
 	// v14 lets a change hold a value of any type, a number among them.
 	changes: { key?: string; value: unknown }[];
 	originItem?: CriticalSourceItem;
@@ -179,12 +197,47 @@ function changeValue(value: unknown): number | undefined {
 	return typeof value === 'string' && isCriticalChangeValue(value) ? parseInt(value, 10) : undefined;
 }
 
+const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
+
+/**
+ * How many times an effect's change counts, or undefined when the effect doesn't apply to this roll: its quality's rank
+ * for a quality, its talent's rank for a talent that scales with rank, once otherwise.
+ */
+function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: CriticalAttackWeapon | undefined): number | undefined {
+	const item = effect.originItem;
+	const qualityId = qualityIdOf(effect);
+	if (qualityId === undefined || !item) {
+		return item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+	}
+
+	if (!WEAPON_TYPES.includes(item.type)) {
+		const quality = effectQuality(effect, item.system);
+		return quality ? qualityRank(quality) : 1;
+	}
+
+	if (kind !== 'inflicted' || !weapon?.uuid || weapon.uuid !== item.uuid) {
+		return undefined;
+	}
+
+	const quality = weapon.qualities.find(({ id }) => id === qualityId);
+	return quality && !isOutrankedQuality(quality, weapon.qualities) ? qualityRank(quality) : undefined;
+}
+
 /**
  * What the effects of an actor add to the Critical Injury rolls it inflicts or suffers, effect by effect: such an effect
  * comes from a talent such as Lethal Blows, or Durable for a negative value. A change counts once per rank of its talent
- * when the talent scales with rank, as Pool Modifications do.
+ * when the talent scales with rank, and once per rank of a rated quality, as Pool Modifications do.
+ *
+ * A weapon's quality changes only the injuries inflicted by an attack with that weapon, at the highest rank among its
+ * copies on the Weapon Profile; without such a weapon, it changes none. An armor's quality changes the injuries its wearer
+ * suffers or inflicts, as its talents do.
+ * @param weapon The weapon of the attack the injury is inflicted by, if any.
  */
-export function criticalEffectBonuses(actor: CriticalInjuryActor, kind: CriticalChangeKind): CriticalEffectBonus[] {
+export function criticalEffectBonuses(
+	actor: CriticalInjuryActor,
+	kind: CriticalChangeKind,
+	weapon?: CriticalAttackWeapon,
+): CriticalEffectBonus[] {
 	const bonuses: CriticalEffectBonus[] = [];
 
 	for (const effect of actor.allApplicableEffects()) {
@@ -201,7 +254,11 @@ export function criticalEffectBonuses(actor: CriticalInjuryActor, kind: Critical
 		}
 
 		const item = effect.originItem;
-		const ranks = item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		const ranks = effectRanks(effect, kind, weapon);
+		if (ranks === undefined) {
+			continue;
+		}
+
 		bonuses.push({
 			name: effect.name,
 			uuid: effect.uuid,
@@ -219,7 +276,7 @@ export function criticalEffectBonuses(actor: CriticalInjuryActor, kind: Critical
  */
 type CriticalInjuryAttack<A extends CriticalInjuryActor = CriticalInjuryActor> = {
 	triggers: number;
-	weapon?: { name: string; qualities: readonly AttackQuality[] };
+	weapon?: CriticalAttackWeapon;
 	attacker?: A;
 };
 
@@ -250,8 +307,8 @@ export type CriticalInjuryLine =
  */
 export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, viciousNames: readonly string[]): CriticalInjuryLine[] {
 	const lines: CriticalInjuryLine[] = [];
-	const effectLines = (kind: CriticalChangeKind, of: CriticalInjuryActor) =>
-		criticalEffectBonuses(of, kind).map(({ value, ...source }): CriticalInjuryLine => ({ kind, source, value }));
+	const effectLines = (kind: CriticalChangeKind, of: CriticalInjuryActor, weapon?: CriticalAttackWeapon) =>
+		criticalEffectBonuses(of, kind, weapon).map(({ value, ...source }): CriticalInjuryLine => ({ kind, source, value }));
 
 	if (attack) {
 		lines.push({ kind: 'triggers', count: 1, value: extraTriggersBonus(1) });
@@ -262,7 +319,7 @@ export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, vi
 		}
 
 		if (attack.attacker) {
-			lines.push(...effectLines('inflicted', attack.attacker));
+			lines.push(...effectLines('inflicted', attack.attacker, attack.weapon));
 		}
 	}
 

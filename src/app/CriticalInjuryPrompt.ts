@@ -3,7 +3,13 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import VueCriticalInjuryPrompt from '@/vue/apps/CriticalInjuryPrompt.vue';
 import { VuePrompt } from '@/vue/VuePrompt';
-import { CRITICAL_INJURY_FLAG, criticalInjuryFormula, type CriticalInjuryRequest, criticalInjuryResults } from '@/dice/CriticalInjuryRoll';
+import {
+	attackWeaponOf,
+	CRITICAL_INJURY_FLAG,
+	criticalInjuryFormula,
+	type CriticalInjuryRequest,
+	criticalInjuryResults,
+} from '@/dice/CriticalInjuryRoll';
 
 /**
  * What the dialog rolls a Critical Injury for: the actor who suffers it, and the attack that inflicts it, when known.
@@ -144,7 +150,9 @@ async function promptFromMessage(event: MouseEvent) {
 
 	await CriticalInjuryPrompt.promptForCriticalInjury({
 		actor: actorOf(flag.target),
-		...('weapon' in flag && { attack: { triggers: flag.triggers, weapon: flag.weapon, attacker: actorOf(flag.attacker) } }),
+		...('weapon' in flag && {
+			attack: { triggers: flag.triggers, weapon: attackWeaponOf(flag.weapon), attacker: actorOf(flag.attacker) },
+		}),
 	});
 }
 
