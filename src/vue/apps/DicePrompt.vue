@@ -6,6 +6,7 @@ import { chanceComputation, chanceToSucceed, formatChance, simulatedChance } fro
 import { chanceToSucceedInWorker } from '@/dice/chanceToSucceedInWorker';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTICS, Characteristic } from '@/data/Characteristics';
 import { DEFENSE_LABELS } from '@/data/Actors';
+import { singleTargetActor } from '@/app/singleTarget';
 import { rollPool } from '@/dice/CheckRoll';
 import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_DAMAGE_LABELS } from '@/item/data/EquipmentDamage';
@@ -203,7 +204,7 @@ onMounted(() => {
 
 // The user's single target, read once as the prompt opens: the defense, the attack's Critical Injury and its card all
 // use it, whoever the user targets while the prompt is open.
-const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+const target = singleTargetActor();
 
 /**
  * Resolve the check again for the skill and characteristic asked for. The Pool Modifications still listed keep their
@@ -215,7 +216,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		{
 			...request,
 			purpose: checkPurpose(),
-			target: target?.actor ?? undefined,
+			target,
 			// A magic attack meets the defense of a target at short range (CRB p. 215).
 			attackRange: attack?.profile.range ?? (spell?.system.isAttack ? MAGIC_ATTACK_RANGE : undefined),
 			attacker: vehicleAttacker(attack?.weapon),
@@ -456,7 +457,7 @@ usePromptAnswer<DicePromptAnswer>(() => ({
 	check: check.value!,
 	dicePool: currentDicePool.value,
 	spends: spends.value,
-	targetUuid: target?.actor?.uuid ?? undefined,
+	targetUuid: target?.uuid ?? undefined,
 	...(spell && { spellEffects: [...checkedEffects.value] }),
 }));
 

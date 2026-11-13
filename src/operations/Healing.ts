@@ -7,6 +7,7 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { canBePatient, medicineDifficulty, type Patient, patientChoices } from '@/actor/Recovery';
 import { DicePrompt } from '@/app/DicePrompt';
 import { SelectPatientPrompt } from '@/app/SelectPatientPrompt';
+import { singleTargetActor } from '@/app/singleTarget';
 import type { Stored } from '@/data/Stored';
 import { difficultyGlyphs } from '@/dice/Difficulty';
 
@@ -16,8 +17,7 @@ type StoredActor = Stored<GenesysActor>;
  * The actor of the user's single target, as the Dice Prompt reads it, when a check can heal them.
  */
 function targetedPatient() {
-	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
-	const actor = (target?.actor ?? undefined) as StoredActor | undefined;
+	const actor = singleTargetActor() as StoredActor | undefined;
 	return actor && canBePatient(actor.type) ? actor : undefined;
 }
 
