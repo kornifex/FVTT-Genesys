@@ -53,6 +53,23 @@ const states = computed(() =>
 	tokenStatesFor(actor.value.type).map(({ id, name, img }) => ({ id, name, img, on: hasStatusEffect(actor.value, id) })),
 );
 
+// The states a click is putting on or taking off: a second click before the first is written would put a second effect
+// on the character, or ask a Lapsing state's rounds twice, so it is ignored.
+const toggling = new Set<string>();
+
+async function toggleState(id: string) {
+	if (toggling.has(id)) {
+		return;
+	}
+
+	toggling.add(id);
+	try {
+		await actor.value.toggleStatusEffect(id);
+	} finally {
+		toggling.delete(id);
+	}
+}
+
 // The character suffers a Critical Injury outside an attack, or from one whose card the roller doesn't use.
 async function rollCriticalInjury() {
 	await CriticalInjuryPrompt.promptForActor(actor.value);
@@ -168,7 +185,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					:image="state.img"
 					:pressed="state.on"
 					edits
-					@click="actor.toggleStatusEffect(state.id)"
+					@click="toggleState(state.id)"
 				>
 					<Localized :label="state.name" />
 				</ActionButton>
