@@ -7,7 +7,7 @@
  * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on each of
  * its Weapon Profiles.
  */
-const ITEM_CHANGE_FIELDS = ['baseDamage', 'critical', 'defense', 'soak', 'encumbrance'] as const;
+export const ITEM_CHANGE_FIELDS = ['baseDamage', 'critical', 'defense', 'soak', 'encumbrance'] as const;
 export type ItemChangeField = (typeof ITEM_CHANGE_FIELDS)[number];
 
 /**

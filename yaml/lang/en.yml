@@ -228,6 +228,7 @@ Genesys:
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat
+      ModifyItem: Modify Item # The Item Changes, which change the weapon or armor that holds the effect
       ModifyDicePool:
         GroupLabel: Modify Dice Pool
         Options:

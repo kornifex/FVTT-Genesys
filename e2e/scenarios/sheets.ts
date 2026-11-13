@@ -3297,6 +3297,16 @@ export async function run(e2e: ScenarioContext) {
 				label: 'Modify Critical Injuries',
 				options: ['genesys.critical.inflicted=🎯 Inflicted on Others', 'genesys.critical.suffered=👇 Suffered'],
 			},
+			{
+				label: 'Modify Item',
+				options: [
+					'genesys.item.baseDamage=🔧 Damage',
+					'genesys.item.critical=🔧 Critical',
+					'genesys.item.defense=🔧 Defense',
+					'genesys.item.soak=🔧 Soak',
+					'genesys.item.encumbrance=🔧 Encumbrance',
+				],
+			},
 		]);
 		const skillSelect = (index: number, selected: string) => ({
 			index,

@@ -4945,6 +4945,69 @@ export async function run(e2e: ScenarioContext) {
 			{ effects: removed.effects, prepared: removed.prepared, rifle: scopeRows(await opened(gm, attack('Rifle'))) },
 			{ effects: [], prepared: ['5/3', '2/4'], rifle: [] },
 		);
+
+		// The changes of an effect as stored, each with whether it has the custom type (v13: mode), which keeps Foundry from
+		// applying it to the actor.
+		const storedChanges = (effect: { attachment?: string; rifle?: string }) =>
+			gm.evaluate((effect) => {
+				const document = effect.attachment
+					? game.items.getName(effect.attachment).effects.getName(effect.attachment)
+					: game.actors.getName('E2E Ada').items.getName('E2E Rifle').effects.getName(effect.rifle);
+				// v13: an effect keeps its changes in `changes`, with a numeric mode, custom being 0; v14 in `system.changes`, with
+				// a type.
+				const v13 = game.release.generation < 14;
+				const changes = v13 ? document._source.changes : document._source.system.changes;
+				return changes.map((change: { key: string; value: unknown; mode?: number; type?: string }) => {
+					const custom = v13 ? change.mode === 0 : change.type === 'custom';
+					return `${change.key} ${String(change.value)} ${custom ? 'custom' : 'applied'}`;
+				});
+			}, effect);
+		await e2e.step('#721 E1 GM writes "Damage +1" in the Changes tab of the effect of the Edge, an attachment', () =>
+			gm.evaluate(async () => {
+				const { render, settle, waitFor } = window.e2e;
+				const [edge] = await Item.createDocuments([
+					{ name: 'E2E Edge', type: 'attachment', system: { hardPointsRequired: 1 }, effects: [{ name: 'E2E Edge' }] },
+				]);
+				const sheet = edge.effects.getName('E2E Edge').sheet;
+				const root = await render(sheet, (root) => root.querySelector('[data-action="addChange"]'));
+				root.querySelector<HTMLElement>('[data-action="addChange"]')!.click();
+				// Adding a change submits the sheet and renders it again.
+				const key = await waitFor('the added change', () =>
+					window.e2e.htmlOf(sheet)?.querySelector<HTMLSelectElement>('select[name$="changes.0.key"]'),
+				);
+				key.value = 'genesys.item.baseDamage';
+				key.dispatchEvent(new Event('change', { bubbles: true }));
+				const value = window.e2e.htmlOf(sheet)!.querySelector<HTMLInputElement>('input[name$="changes.0.value"]')!;
+				value.value = '+1';
+				value.dispatchEvent(new Event('change', { bubbles: true }));
+				await settle();
+				await sheet.submit();
+				await sheet.close();
+				await settle();
+			}),
+		);
+		await e2e.step("#721 E1 GM drops the Edge on Ada's Rifle", dropAttachment('Edge', 'Rifle'));
+		e2e.expect(
+			'#721 E1 the effect written from the Changes tab keeps its Item Change, which adds 1 damage to every profile of the Rifle the Edge is dropped on',
+			{ edge: await storedChanges({ attachment: 'E2E Edge' }), prepared: (await rifleState()).prepared },
+			{ edge: ['genesys.item.baseDamage +1 custom'], prepared: ['6/3', '3/4'] },
+		);
+
+		await e2e.step("#721 E2 GM saves the Edge's effect on the Rifle from its sheet unchanged", () =>
+			gm.evaluate(async () => {
+				const { render, settle } = window.e2e;
+				const sheet = game.actors.getName('E2E Ada').items.getName('E2E Rifle').effects.getName('E2E Edge').sheet;
+				await render(sheet, (root) => root.querySelector('select[name$="changes.0.key"]'));
+				await sheet.submit();
+				await sheet.close();
+				await settle();
+			}),
+		);
+		e2e.expect(
+			"#721 E2 saving the effect from its sheet keeps its Item Change, and the Rifle's damage",
+			{ rifle: await storedChanges({ rifle: 'E2E Edge' }), prepared: (await rifleState()).prepared },
+			{ rifle: ['genesys.item.baseDamage +1 custom'], prepared: ['6/3', '3/4'] },
+		);
 		await e2e.step('attachments end');
 	});
 
