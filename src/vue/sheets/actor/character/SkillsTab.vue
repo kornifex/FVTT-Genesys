@@ -19,11 +19,13 @@ import { CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Ch
 import { SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
 import { freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
-import { isMedicine } from '@/actor/Recovery';
+import { isHealingSkill } from '@/actor/Recovery';
 import { healWithMedicine } from '@/operations/Healing';
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character'>>();
 const advancement = computed(() => advancementCharacter(actor.value));
+
+const isHealing = (skillName: string) => isHealingSkill(skillName, CONFIG.genesys.settings.skillForHealingWounds);
 
 const skillCategories = computed(() => skillsByCategory(actor.value.skills, game.i18n.lang));
 
@@ -141,7 +143,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							@buy-rank="purchaseSkillRank(skill)"
 						>
 							<!-- Medicine heals a patient's wounds at the difficulty of their state of health (#686). -->
-							<template v-if="isMedicine(skill.name)" #after-name>
+							<template v-if="isHealing(skill.name)" #after-name>
 								<ActionButton
 									class="heal"
 									icon="fas fa-kit-medical"

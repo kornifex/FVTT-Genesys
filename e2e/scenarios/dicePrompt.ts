@@ -422,6 +422,9 @@ function installDicePromptHelpers() {
 		'skillsCompendium',
 		'showDamageOnFailure',
 		'dicePoolCollapseModificationsDetails',
+		'skillForHealingWounds',
+		'skillForRecoveringStrain',
+		'alternativeSkillForRecoveringStrain',
 	];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
@@ -3964,6 +3967,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		const UPGRADE = 'Spend a point to upgrade the ability';
 		const EMPTY = 'The pool has no point left to spend.';
+		const IMPOSSIBLE_ONLY = 'An Impossible task allows no other Story Point.';
 		await update({ actor: 'Bo' }, { 'system.characteristics.brawn': 2 });
 		const message = await gm.evaluate(() => window.dicePromptE2E.chatMessage('<p>@check[Athletics,2]</p><p>@check[Athletics,6]</p>'));
 		await control(player, ['Bo']);
@@ -4059,7 +4063,7 @@ export async function run(e2e: ScenarioContext) {
 							checked: true,
 							why: "An Impossible task can't be rolled without it.",
 						}),
-						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY }),
+						option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: IMPOSSIBLE_ONLY }),
 					],
 					difficulty: 'Difficulty: Impossible',
 					pool: 'AA|DDDDD',
@@ -4067,6 +4071,35 @@ export async function run(e2e: ScenarioContext) {
 				},
 				rolled: { formula: '0dp + 2da + 5di', prompts: 0 },
 				pools: { player: 0, gm: 1 },
+			},
+		);
+
+		await setPools({ player: 2, gm: 0 });
+		await linkPrompt(player, { message }, 'Athletics', 'DDDDD');
+		await spend(player, 'impossible');
+		const closed = await spends(player);
+		const reopened = await spend(player, 'impossible');
+		await spend(player, 'impossible');
+		const attempted = await rollSpending(player);
+		e2e.expect(
+			"#725 X5 the Impossible task's point closes the upgrade even with a point to spare, unchecking it opens it again, and the roll spends one point",
+			{
+				closed: closed.spends.map(({ spend, disabled, why }) => [spend, disabled, why]),
+				reopened: reopened.spends.map(({ spend, checked, disabled }) => [spend, checked, disabled]),
+				storyPointMessages: attempted.storyPointMessages,
+				pools: await pools(),
+			},
+			{
+				closed: [
+					['impossible', false, "An Impossible task can't be rolled without it."],
+					['upgradeAbility', true, IMPOSSIBLE_ONLY],
+				],
+				reopened: [
+					['impossible', false, false],
+					['upgradeAbility', false, false],
+				],
+				storyPointMessages: 1,
+				pools: { player: 1, gm: 1 },
 			},
 		);
 		await control(player, []);
@@ -4231,6 +4264,97 @@ export async function run(e2e: ScenarioContext) {
 					links: ['E2E Scar'],
 				},
 			},
+		);
+
+		// Rival is targeted as the prompt opens, then Bo before the roll: the card keeps the Critical Injury against Rival.
+		await target('Rival');
+		await opened(gm, attack('Pistol'));
+		await target('Bo');
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		await roll();
+		const retargeted = await gm.evaluate(() => {
+			const message = game.messages.contents.at(-1);
+			return {
+				target: fromUuidSync(message.flags.genesys.criticalInjury.target)?.name,
+				button: message.content.includes('roll-critical-injury'),
+			};
+		});
+		await target(null);
+		e2e.expect(
+			'#730 C8 an attack rolled against another target than the one the prompt opened with keeps its Critical Injury against the first',
+			retargeted,
+			{ target: 'E2E Rival', button: true },
+		);
+
+		// The Pistol gets Brutal 2, a quality whose effect adds 10 to the injuries its attacks inflict; the Revolver, which
+		// attacks with the same skill, has none (§#726).
+		await gm.evaluate(async () => {
+			const ada = window.e2e.actor('Ada');
+			const pistol = ada.items.getName('E2E Pistol');
+			await pistol.update({
+				'system.qualities': [
+					...pistol.system.qualities,
+					{ id: 'e2eBrutal', name: 'E2E Brutal', description: '', isRated: true, rating: 2 },
+				],
+			});
+			await pistol.createEmbeddedDocuments('ActiveEffect', [
+				{
+					name: 'E2E Brutal',
+					flags: { genesys: { quality: 'e2eBrutal' } },
+					changes: [{ key: 'genesys.critical.inflicted', value: '10', mode: 0 }],
+				},
+			]);
+			await ada.createEmbeddedDocuments('Item', [
+				{
+					name: 'E2E Revolver',
+					type: 'weapon',
+					system: { skills: ['Ranged (Light)'], range: 'medium', state: 'equipped', critical: 1 },
+				},
+			]);
+			await window.e2e.settle();
+		});
+		const criticalFromAttack = async (weapon: string) => {
+			await target('Rival');
+			await opened(gm, attack(weapon));
+			await gm.fixDice([
+				{ face: 12, faces: 12 },
+				{ face: 10, faces: 12 },
+				{ face: 1, faces: 8 },
+				{ face: 1, faces: 8 },
+			]);
+			await roll();
+			const dialog = await gm.evaluate(() => window.criticalInjuryE2E.openFromCard());
+			await gm.evaluate(() => window.criticalInjuryE2E.closePrompts());
+			return dialog.lines;
+		};
+		e2e.expect(
+			"#726 C8 an attack with a weapon carrying Brutal 2 lists the quality's +10 per rank in the Critical Injury dialog",
+			await criticalFromAttack('Pistol'),
+			[
+				'Extra triggers (+10 each past the first): 0',
+				'Vicious 2: 20',
+				'E2E Brutal (E2E Pistol) (attacker): 20',
+				'E2E Lethal (attacker): 20',
+				'Critical Injuries already suffered (1): 10',
+				'E2E Durable: -10',
+				'Free modifier: 0',
+			],
+		);
+		e2e.expect(
+			"#726 C9 an attack with another weapon of the same attacker doesn't list the quality",
+			await criticalFromAttack('Revolver'),
+			[
+				'Extra triggers (+10 each past the first): 0',
+				'E2E Lethal (attacker): 20',
+				'Critical Injuries already suffered (1): 10',
+				'E2E Durable: -10',
+				'Free modifier: 0',
+			],
 		);
 
 		await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
@@ -4569,6 +4693,33 @@ export async function run(e2e: ScenarioContext) {
 			},
 			{ bo: { player: applied, gm: applied }, mark: applied, health: { wounds: 5, strain: 2 } },
 		);
+
+		// A world whose compendium names the healing skill otherwise (§#727): the Heal button follows the setting.
+		await setSetting('skillForHealingWounds', 'e2e sanatio');
+		await gm.evaluate(async () => {
+			await window.e2e
+				.actor('Cy')
+				.createEmbeddedDocuments('Item', [
+					{ name: 'E2E Sanatio', type: 'skill', system: { characteristic: 'intellect', rank: 1, category: 'general' } },
+				]);
+			await window.e2e.settle();
+		});
+		const healRows = await gm.evaluate(async () => {
+			const root = await window.e2e.render(window.e2e.actor('Cy').sheet);
+			return [...root.querySelectorAll('.tab-skills .skill')]
+				.filter((row) => row.querySelector('.heal'))
+				.map((row) => window.e2e.text(row.querySelector('.skill-name')));
+		});
+		await gm.evaluate(async () => {
+			await window.e2e.actor('Cy').items.getName('E2E Sanatio').delete();
+			await window.e2e.settle();
+		});
+		await setSetting('skillForHealingWounds', 'Medicine');
+		e2e.expect(
+			'#727 H6 with the healing skill renamed in the settings, the Heal button shows beside it, and no longer beside Medicine',
+			healRows,
+			['E2E Sanatio (Int)'],
+		);
 		await e2e.step('medicineHeal end');
 	});
 
@@ -4623,6 +4774,38 @@ export async function run(e2e: ScenarioContext) {
 				health: { wounds: 3, strain: 0 },
 				message: { speaker: 'Cy', text: 'Rests for the night. Strain recovered: 2. Wounds healed: 1.' },
 			},
+		);
+		// A world whose compendium names the two skills otherwise (§#727): the check picks between those the settings name.
+		await setSetting('skillForRecoveringStrain', 'E2E Serenite');
+		await setSetting('alternativeSkillForRecoveringStrain', 'e2e calme');
+		await gm.evaluate(async () => {
+			const skill = (name: string, characteristic: string) => ({
+				name,
+				type: 'skill',
+				system: { characteristic, rank: 1, category: 'general' },
+			});
+			await window.e2e
+				.actor('Cy')
+				.createEmbeddedDocuments('Item', [skill('E2E Serenite', 'willpower'), skill('E2E Calme', 'presence')]);
+			await window.e2e.settle();
+		});
+		const renamed = await opened(player, click(player, cy, '.recovery-actions .end-of-encounter'));
+		await gm.evaluate(async () => {
+			const cy = window.e2e.actor('Cy');
+			await cy.deleteEmbeddedDocuments(
+				'Item',
+				cy.items
+					.filter((item: { name: string }) => ['E2E Serenite', 'E2E Calme'].includes(item.name))
+					.map((item: { id: string }) => item.id),
+			);
+			await window.e2e.settle();
+		});
+		await setSetting('skillForRecoveringStrain', 'Discipline');
+		await setSetting('alternativeSkillForRecoveringStrain', 'Cool');
+		e2e.expect(
+			'#727 R4 with the two strain recovery skills renamed in the settings, End of encounter opens on the better of those',
+			{ skill: renamed.skill, pool: renamed.pool },
+			{ skill: 'E2E Calme (Pr)', pool: 'PAA|' },
 		);
 		await e2e.step('recovery end');
 	});
@@ -5073,6 +5256,21 @@ export async function run(e2e: ScenarioContext) {
 			"#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why",
 			await noPrompt(gm, cast('Novice')),
 			{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
+		);
+		await opened(gm, cast('Mage'));
+		await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([5]));
+		const raised = (await effects()).difficulty;
+		const checkedAtFormidable = (await check('Additional Target')).difficulty;
+		const uncheckedAtFormidable = (await check('Additional Target')).difficulty;
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		e2e.expect(
+			'#728 S5 a Curse raised by hand to Formidable stays Formidable when Additional Target is checked, then unchecked',
+			{ raised, checkedAtFormidable, uncheckedAtFormidable },
+			{
+				raised: 'Difficulty: Formidable',
+				checkedAtFormidable: 'Difficulty: Formidable',
+				uncheckedAtFormidable: 'Difficulty: Formidable',
+			},
 		);
 		await e2e.step('spellCasting end');
 	});

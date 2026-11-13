@@ -36,7 +36,10 @@ export const SPEND_GLYPHS: Record<CheckSpend, string | undefined> = {
 /**
  * Why the roller can't choose a spend, as the localization key the Dice Prompt shows.
  */
-type SpendRefusal = 'Genesys.DicePrompt.StoryPoints.EmptyPool' | 'Genesys.DicePrompt.StoryPoints.NoGM';
+type SpendRefusal =
+	| 'Genesys.DicePrompt.StoryPoints.EmptyPool'
+	| 'Genesys.DicePrompt.StoryPoints.NoGM'
+	| 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly';
 
 /**
  * What the Dice Prompt knows of the roller and the table when it offers the spends.
@@ -74,16 +77,18 @@ function offeredSpends({ isGM, impossible }: Pick<SpendContext, 'isGM' | 'imposs
 
 /**
  * The spends the roller chose that the check still offers, in the order it offers them: the point of a task no longer
- * Impossible is spent no more.
+ * Impossible is spent no more, and once it is spent no other point is (CRB p. 18).
  */
 export function chosenSpends(chosen: readonly CheckSpend[], context: Pick<SpendContext, 'isGM' | 'impossible'>): CheckSpend[] {
-	return offeredSpends(context).filter((spend) => chosen.includes(spend));
+	const spends = offeredSpends(context).filter((spend) => chosen.includes(spend));
+	return spends.includes(CheckSpend.Impossible) ? [CheckSpend.Impossible] : spends;
 }
 
 /**
  * The spends the Dice Prompt offers, each with the reason the roller can't choose it while they haven't: no GM is
- * connected to write a player's spend, or its pool holds no point beyond those the spends already chosen take from it.
- * A chosen spend stays open, so that the roller can take it back.
+ * connected to write a player's spend, its pool holds no point beyond those the spends already chosen take from it, or
+ * the Impossible task's point is chosen, which allows no other. A chosen spend stays open, so that the roller can take
+ * it back.
  */
 export function spendOptions(chosen: readonly CheckSpend[], context: SpendContext): SpendOption[] {
 	const spends = chosenSpends(chosen, context);
@@ -93,6 +98,9 @@ export function spendOptions(chosen: readonly CheckSpend[], context: SpendContex
 		const pool = spendPool(spend, context.isGM);
 		if (spends.includes(spend)) {
 			return { spend, pool };
+		}
+		if (spends.includes(CheckSpend.Impossible)) {
+			return { spend, pool, refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' };
 		}
 		if (!context.isGM && !context.gmConnected) {
 			return { spend, pool, refusal: 'Genesys.DicePrompt.StoryPoints.NoGM' };

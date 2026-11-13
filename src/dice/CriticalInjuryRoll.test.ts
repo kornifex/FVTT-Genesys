@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	attackWeaponOf,
 	type CriticalEffect,
 	type CriticalInjuryActor,
 	criticalEffectBonuses,
@@ -104,8 +105,12 @@ describe('isCriticalChangeKey and isCriticalChangeValue', () => {
 
 type Change = { key: string; value: unknown };
 
-function effect(name: string, changes: Change[], { isSuppressed = false, originItem }: Partial<CriticalEffect> = {}): CriticalEffect {
-	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, changes, originItem };
+function effect(
+	name: string,
+	changes: Change[],
+	{ isSuppressed = false, originItem, flags }: Partial<CriticalEffect> = {},
+): CriticalEffect {
+	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, changes, originItem, flags };
 }
 
 function talent(name: string, rank: number, scalesWithRank: 'yes' | 'no') {
@@ -159,9 +164,71 @@ describe('criticalEffectBonuses', () => {
 	});
 });
 
+describe('criticalEffectBonuses of qualities (#726)', () => {
+	const quality = (id: string, name: string, rating: number, isRated = true) => ({ id, name, isRated, rating });
+	const qualityEffect = (
+		name: string,
+		id: string,
+		item: { type: string; uuid: string; qualities: ReturnType<typeof quality>[] },
+		key = inflicted,
+	) => {
+		// A weapon's or an armor's data holds its qualities, which a talent's has no use for.
+		const system: object = { qualities: item.qualities };
+		return effect(name, [key(10)], {
+			flags: { genesys: { quality: id } },
+			originItem: { name: item.uuid, uuid: item.uuid, type: item.type, system },
+		});
+	};
+
+	const sword = { type: 'weapon', uuid: 'Item.Sword', qualities: [quality('q1', 'Brutal', 2), quality('q2', 'Brutal', 1)] };
+	const dagger = { type: 'weapon', uuid: 'Item.Dagger', qualities: [quality('q3', 'Brutal', 1)] };
+	const attackWith = (item: typeof sword) => ({ name: item.uuid, uuid: item.uuid, qualities: item.qualities });
+	const attacker = actor([
+		qualityEffect('Sword Brutal', 'q1', sword),
+		qualityEffect('Sword Brutal copy', 'q2', sword),
+		qualityEffect('Dagger Brutal', 'q3', dagger),
+	]);
+
+	it("counts a rated quality's change once per rank, for an attack with its weapon only", () => {
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith(sword)).map(({ name, value }) => [name, value])).toEqual([
+			['Sword Brutal', 20],
+		]);
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith(dagger)).map(({ name, value }) => [name, value])).toEqual([
+			['Dagger Brutal', 10],
+		]);
+	});
+
+	it("adds nothing for a weapon's quality without a weapon, or when the weapon has no uuid, as in a message of 0.7.0-rc.1", () => {
+		expect(criticalEffectBonuses(attacker, 'inflicted')).toEqual([]);
+		expect(criticalEffectBonuses(attacker, 'inflicted', { ...attackWith(sword), uuid: null })).toEqual([]);
+	});
+
+	it("leaves a weapon's quality out of the injuries its wielder suffers", () => {
+		expect(criticalEffectBonuses(actor([qualityEffect('Sword Brutal', 'q1', sword, suffered)]), 'suffered', attackWith(sword))).toEqual(
+			[],
+		);
+	});
+
+	it("counts an armor's quality once per rank, whatever the weapon", () => {
+		const armor = { type: 'armor', uuid: 'Item.Mail', qualities: [quality('a1', 'Sturdy', 3)] };
+
+		expect(criticalEffectBonuses(actor([qualityEffect('Sturdy', 'a1', armor, suffered)]), 'suffered')).toMatchObject([{ value: 30 }]);
+	});
+});
+
+describe('attackWeaponOf', () => {
+	it("reads the weapon of a message of 0.7.0-rc.1, which has no uuid and no quality ids, as one that matches no effect's", () => {
+		expect(attackWeaponOf({ name: 'Axe', qualities: [{ name: 'Vicious', isRated: true, rating: 2 }] })).toEqual({
+			name: 'Axe',
+			uuid: null,
+			qualities: [{ id: '', name: 'Vicious', isRated: true, rating: 2 }],
+		});
+	});
+});
+
 describe('criticalInjuryLines', () => {
 	const NAMES = ['Vicious', 'Sanguinaire'];
-	const weapon = { name: 'Axe', qualities: [{ name: 'Vicious', isRated: true, rating: 2 }] };
+	const weapon = { name: 'Axe', uuid: 'Item.Axe', qualities: [{ id: 'v1', name: 'Vicious', isRated: true, rating: 2 }] };
 
 	it('offers only the free modifier when it knows neither the actor nor the attack', () => {
 		expect(criticalInjuryLines({}, NAMES)).toEqual([{ kind: 'free', value: 0 }]);
@@ -193,10 +260,12 @@ describe('criticalInjuryLines', () => {
 	});
 
 	it('leaves out Vicious for a weapon without it', () => {
-		expect(criticalInjuryLines({ attack: { triggers: 1, weapon: { name: 'Club', qualities: [] } } }, NAMES)).toEqual([
-			{ kind: 'triggers', count: 1, value: 0 },
-			{ kind: 'free', value: 0 },
-		]);
+		expect(criticalInjuryLines({ attack: { triggers: 1, weapon: { name: 'Club', uuid: 'Item.Club', qualities: [] } } }, NAMES)).toEqual(
+			[
+				{ kind: 'triggers', count: 1, value: 0 },
+				{ kind: 'free', value: 0 },
+			],
+		);
 	});
 });
 

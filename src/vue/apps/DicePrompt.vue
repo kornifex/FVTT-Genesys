@@ -66,7 +66,7 @@ import {
 } from '@/dice/CheckStoryPoints';
 import type { StoryPointPool } from '@/data/StoryPoints';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
-import { canCheckEffect, MAGIC_ATTACK_RANGE } from '@/item/SpellCasting';
+import { canCheckEffect, difficultyAddedBy, MAGIC_ATTACK_RANGE } from '@/item/SpellCasting';
 
 type AlsoNone<T> = T | undefined;
 
@@ -128,6 +128,11 @@ const canRoll = computed(() => canRollWithSpends(spends.value, impossible.value)
 // counts them already.
 const checkedEffects = ref<string[]>(context.value.roll.type === RollType.Spell ? [...context.value.roll.checkedEffects] : []);
 const spellEffects = spell?.system.additionalEffects ?? [];
+// The levels each checked effect added to the difficulty, which unchecking it gives back. Those checked as the prompt
+// opens added their whole difficulty, as the difficulty received counts them already.
+const addedByEffect = new Map(
+	spellEffects.filter((effect) => checkedEffects.value.includes(effect.id)).map((effect) => [effect.id, effect.difficulty]),
+);
 const canCheck = (effect: ContainedAdditionalEffect) =>
 	!!spell && canCheckEffect(spell.system.difficulty, spellEffects, checkedEffects.value, effect);
 
@@ -196,12 +201,15 @@ onMounted(() => {
 	resolve({ skillName: context.value.skillName, fallbackCharacteristic: context.value.characteristic });
 });
 
+// The user's single target, read once as the prompt opens: the defense, the attack's Critical Injury and its card all
+// use it, whoever the user targets while the prompt is open.
+const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+
 /**
  * Resolve the check again for the skill and characteristic asked for. The Pool Modifications still listed keep their
  * state, new ones follow the world setting.
  */
 function resolve(request: CheckRequest<PromptSkill>) {
-	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
 	const resolved = resolveCheck(
 		context.value.actor,
 		{
@@ -399,7 +407,13 @@ function onEffectChange(effect: ContainedAdditionalEffect, event: Event) {
 	const checked = (event.currentTarget as HTMLInputElement).checked;
 	const others = checkedEffects.value.filter((id) => id !== effect.id);
 	checkedEffects.value = checked ? [...others, effect.id] : others;
-	difficulty.value = withLevel(difficulty.value, difficulty.value.level + (checked ? effect.difficulty : -effect.difficulty));
+	const added = checked ? difficultyAddedBy(difficulty.value.level, effect) : -(addedByEffect.get(effect.id) ?? 0);
+	if (checked) {
+		addedByEffect.set(effect.id, added);
+	} else {
+		addedByEffect.delete(effect.id);
+	}
+	difficulty.value = withLevel(difficulty.value, difficulty.value.level + added);
 	buildDicePool();
 }
 
@@ -442,6 +456,7 @@ usePromptAnswer<DicePromptAnswer>(() => ({
 	check: check.value!,
 	dicePool: currentDicePool.value,
 	spends: spends.value,
+	targetUuid: target?.actor?.uuid ?? undefined,
 	...(spell && { spellEffects: [...checkedEffects.value] }),
 }));
 

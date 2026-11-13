@@ -123,31 +123,27 @@ export function nightsRest({ wounds, strain }: { wounds: CombatPool; strain: Com
 }
 
 /**
- * The skills a character picks between for the check that recovers strain at the end of an encounter (CRB p. 117), the
- * first one winning a tie.
- */
-const STRAIN_RECOVERY_SKILLS = ['Discipline', 'Cool'] as const;
-
-/**
  * What a character rolls a skill with: the value of its characteristic, and their ranks in it.
  */
 type SkillPool = { characteristic: number; rank: number };
 
 /**
  * The skill the check that recovers strain at the end of an encounter opens with, among those the character can roll: the
- * one of the larger dice pool, then of more Proficiency dice, Discipline on a tie or when they can roll neither. The
- * roller can still pick the other in the Dice Prompt.
+ * one of the larger dice pool, then of more Proficiency dice, the first of the skills on a tie or when they can roll
+ * neither (Discipline, in the book). The roller can still pick the other in the Dice Prompt.
  *
+ * @param skills The names of the two skills the world picks between (Discipline and Cool, CRB p. 117), the first
+ * winning a tie.
  * @param poolOf What the character rolls a skill with, by its name; undefined when they can't roll it.
  */
-export function strainRecoverySkill(poolOf: (name: string) => SkillPool | undefined): string {
+export function strainRecoverySkill(skills: readonly [string, string], poolOf: (name: string) => SkillPool | undefined): string {
 	// A skill check rolls as many dice as the higher of the characteristic and the ranks, the lower of them upgraded.
 	const dice = ({ characteristic, rank }: SkillPool) => ({
 		total: Math.max(characteristic, rank),
 		proficiency: Math.min(characteristic, rank),
 	});
 	let best: { name: string; total: number; proficiency: number } | undefined;
-	for (const name of STRAIN_RECOVERY_SKILLS) {
+	for (const name of skills) {
 		const pool = poolOf(name);
 		const candidate = pool && { name, ...dice(pool) };
 		if (
@@ -158,19 +154,15 @@ export function strainRecoverySkill(poolOf: (name: string) => SkillPool | undefi
 		}
 	}
 
-	return best?.name ?? STRAIN_RECOVERY_SKILLS[0];
+	return best?.name ?? skills[0];
 }
 
 /**
- * The name of the skill whose check heals wounds (CRB p. 116).
+ * Whether a skill is the one whose check heals wounds (Medicine, CRB p. 116), whatever the case of its name.
+ * @param healingSkill The name of that skill in the world, from its setting.
  */
-const MEDICINE_SKILL_NAME = 'Medicine';
-
-/**
- * Whether a skill is Medicine, whatever the case of its name.
- */
-export function isMedicine(skillName: string) {
-	return skillNamesMatch(skillName, MEDICINE_SKILL_NAME);
+export function isHealingSkill(skillName: string, healingSkill: string) {
+	return skillNamesMatch(skillName, healingSkill);
 }
 
 /**

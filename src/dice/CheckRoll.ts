@@ -55,6 +55,8 @@ type CheckRollOptions = {
 	attack?: AttackProfile;
 	recovery?: RecoveryRequest;
 	spell?: SpellCast;
+	/** The uuid of the actor the check was resolved against, the target the Dice Prompt read as it opened. */
+	targetUuid?: string;
 };
 
 /**
@@ -65,7 +67,7 @@ type CheckRollOptions = {
 export async function checkMessageData(
 	check: Check,
 	{ roll, results }: PoolRoll,
-	{ attack, recovery: recoveryRequest, spell }: CheckRollOptions = {},
+	{ attack, recovery: recoveryRequest, spell, targetUuid }: CheckRollOptions = {},
 ) {
 	const card = cardResults(results);
 	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results);
@@ -88,7 +90,7 @@ export async function checkMessageData(
 	// An attack that triggers a Critical Injury keeps it for the card's button, a check that heals its recovery for the
 	// card's Apply button.
 	const flags = {
-		...(attack && triggers > 0 && { [CRITICAL_INJURY_FLAG]: criticalInjuryFlag(check, attack, triggers) }),
+		...(attack && triggers > 0 && { [CRITICAL_INJURY_FLAG]: criticalInjuryFlag(check, attack, triggers, targetUuid) }),
 		...(recovery && { recovery }),
 	};
 	const content = attack
@@ -109,18 +111,18 @@ export async function checkMessageData(
 }
 
 /**
- * What an attack's message keeps for the Critical Injury it triggered. The target is the single one the roller targets,
- * as the Dice Prompt reads it.
+ * What an attack's message keeps for the Critical Injury it triggered. The target is the one the Dice Prompt read as it
+ * opened, not the one the roller targets by the time they roll.
  */
-function criticalInjuryFlag(check: Check, attack: AttackProfile, triggers: number): CriticalInjuryFlag {
-	const [target] = game.user.targets.size === 1 ? game.user.targets : [];
+function criticalInjuryFlag(check: Check, attack: AttackProfile, triggers: number, targetUuid: string | undefined): CriticalInjuryFlag {
 	return {
 		triggers,
 		attacker: (check.actor as GenesysActor | undefined)?.uuid ?? null,
-		target: target?.actor?.uuid ?? null,
+		target: targetUuid ?? null,
 		weapon: {
 			name: attack.attackName,
-			qualities: attack.qualities.map(({ name, isRated, rating }) => ({ name, isRated, rating })),
+			uuid: attack.weaponUuid ?? null,
+			qualities: attack.qualities.map(({ id, name, isRated, rating }) => ({ id, name, isRated, rating })),
 		},
 	};
 }
