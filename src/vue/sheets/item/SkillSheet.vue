@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 import { CHARACTERISTICS } from '@/data/Characteristics';
-import { SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
+import { displayedSkillRules, SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -9,7 +9,15 @@ import Localized from '@/vue/components/Localized.vue';
 import DataRow from '@/vue/components/DataRow.vue';
 import Tooltip from '@/vue/components/Tooltip.vue';
 
-const { system } = useSheetDocument<GenesysItem<'skill'>>();
+const { document, system } = useSheetDocument<GenesysItem<'skill'>>();
+// The system reads a character's skill from the Skills Compendium's skill of the same name, never from the character's copy,
+// so the copy's fields show what is read and can't be edited.
+const fromCompendium = computed(() => document.value.actor !== null);
+const rules = computed(() =>
+	fromCompendium.value
+		? displayedSkillRules(CONFIG.genesys.skills, document.value.name, CONFIG.genesys.settings.defaultDifficulty)
+		: { difficulty: system.value.difficulty, initiative: system.value.initiative },
+);
 const initiativeId = useId();
 const healsWoundsId = useId();
 const recoversStrainId = useId();
@@ -42,7 +50,10 @@ const difficultyId = useId();
 							><Localized label="Genesys.Labels.IsInitiative"
 						/></Tooltip>
 					</label>
-					<input :id="initiativeId" type="checkbox" name="system.initiative" :checked="system.initiative" />
+					<Tooltip v-if="fromCompendium" content="Genesys.Tooltips.SkillRulesFromCompendium" localized>
+						<input :id="initiativeId" type="checkbox" disabled :checked="rules.initiative" />
+					</Tooltip>
+					<input v-else :id="initiativeId" type="checkbox" name="system.initiative" :checked="rules.initiative" />
 				</div>
 
 				<div class="row">
@@ -67,7 +78,10 @@ const difficultyId = useId();
 							><Localized label="Genesys.Labels.SkillDifficulty"
 						/></Tooltip>
 					</label>
-					<input :id="difficultyId" type="text" name="system.difficulty" :value="system.difficulty" />
+					<Tooltip v-if="fromCompendium" content="Genesys.Tooltips.SkillRulesFromCompendium" localized>
+						<input :id="difficultyId" type="text" disabled :value="rules.difficulty" />
+					</Tooltip>
+					<input v-else :id="difficultyId" type="text" name="system.difficulty" :value="rules.difficulty" />
 				</div>
 
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
