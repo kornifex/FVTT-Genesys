@@ -212,6 +212,11 @@ type DicePromptHelpers = {
 	promptSpends(): PromptSpends;
 	/** Clicks a Story Point spend's checkbox, by the spend's name. */
 	promptSpend(spend: string): Promise<PromptSpends>;
+	/**
+	 * How the dice of the Pool Modification icons look, by the row they sit in: a Story Point spend, or a manual change
+	 * (the Pool Modifications' rows). The glyph with its operator, its font and colour, and its operator's size.
+	 */
+	promptModificationLooks(): { row: 'spend' | 'manual'; modification: string; font: string; color: string; arrow: string }[];
 	/** The Additional Effects of a spell's prompt, its difficulty's label and its pool. */
 	promptSpellEffects(): PromptSpellEffects;
 	/** Clicks an Additional Effect's checkbox, by its label. */
@@ -955,6 +960,25 @@ export function installDicePromptHelpers() {
 			htmlOf(thePrompt())!.querySelector<HTMLInputElement>(`.story-point-spend input[name=spend-${spend}]`)!.click();
 			await settle();
 			return window.dicePromptE2E.promptSpends();
+		},
+
+		promptModificationLooks() {
+			const root = htmlOf(thePrompt())!;
+			const rows = { spend: '.story-point-spend', manual: '.pool-modifications-manual' } as const;
+			return Object.entries(rows).flatMap(([row, selector]) =>
+				[...root.querySelectorAll<HTMLElement>(`${selector} .pool-modification`)].map((icon) => {
+					const { fontFamily, color, webkitTextStroke } = getComputedStyle(icon);
+					const arrow = getComputedStyle(icon.querySelector('i')!);
+					return {
+						row: row as keyof typeof rows,
+						modification: poolModification(icon),
+						font: fontFamily,
+						color: `${color}, outline ${webkitTextStroke}`,
+						// Its size as a share of the glyph's, which the two rows don't set to the same size.
+						arrow: `${Math.round((parseFloat(arrow.fontSize) / parseFloat(getComputedStyle(icon).fontSize)) * 100) / 100} of the glyph, ${arrow.color}`,
+					};
+				}),
+			);
 		},
 
 		promptSpellEffects() {

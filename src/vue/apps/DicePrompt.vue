@@ -849,7 +849,6 @@ $target-size: 24px;
 			flex-direction: row;
 			flex-wrap: nowrap;
 			align-items: flex-start;
-			font-family: 'Genesys Symbols', sans-serif;
 			margin-right: 0.2rem;
 			cursor: default;
 
@@ -858,47 +857,6 @@ $target-size: 24px;
 				vertical-align: onto-capitals(1);
 				// A box no taller than the glyph, so that lowering it doesn't make the row taller.
 				line-height: 1;
-			}
-
-			&[data-pool-entity] > :deep(i.fas) {
-				-webkit-text-stroke: 0 transparent;
-				text-stroke: 0 transparent;
-			}
-
-			&[data-pool-entity='Ability'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-ability;
-			}
-
-			&[data-pool-entity='Proficiency'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-proficiency;
-			}
-
-			&[data-pool-entity='Boost'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-boost;
-			}
-
-			&[data-pool-entity='Difficulty'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-difficulty;
-			}
-
-			&[data-pool-entity='Challenge'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-challenge;
-			}
-
-			&[data-pool-entity='Setback'] {
-				-webkit-text-stroke: 0.5px colors.$die-outline;
-				text-stroke: 0.5px colors.$die-outline;
-				color: colors.$die-setback;
 			}
 		}
 
@@ -915,7 +873,8 @@ $target-size: 24px;
 			}
 		}
 
-		:deep(i) {
+		// The icon of a row's source link; a modification's arrow is styled with the modification.
+		.source-link :deep(i) {
 			color: colors.$ink;
 			position: relative;
 			font-size: 0.5em;
@@ -1188,19 +1147,9 @@ $target-size: 24px;
 				flex-direction: row;
 				flex-wrap: nowrap;
 				align-items: flex-start;
-				font-family: 'Genesys Symbols', sans-serif;
-
-				&[data-pool-entity='Ability'] {
-					color: colors.$die-ability;
-				}
-
-				&[data-pool-entity='Proficiency'] {
-					color: colors.$die-proficiency;
-				}
-
-				&[data-pool-entity='Boost'] {
-					color: colors.$die-boost;
-				}
+				// The Ability, Proficiency and Boost dice have no outline on the dark box, which the icon's own style would draw.
+				-webkit-text-stroke: 0 transparent;
+				text-stroke: 0 transparent;
 
 				&[data-pool-entity='Difficulty'] {
 					-webkit-text-stroke: 0.5px colors.$text-on-dark;
