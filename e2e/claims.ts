@@ -28,8 +28,9 @@ export function claim(dir: string, name: string): (() => void) | undefined {
 }
 
 /**
- * Claims `count` ports in a row, from the first at or above `from` that no other run claimed and nothing listens on, and
- * returns the first with the function that gives them all up.
+ * Claims `count` ports in a row, from the first at or above `from` that no other run claimed, and returns the first
+ * with the function that gives them all up. Throws on a port that nothing claims but something listens on: a Foundry
+ * server a killed run left keeps writing into the data dirs the next run of its checkout copies afresh.
  */
 export async function claimPorts(
 	from: number,
@@ -40,13 +41,17 @@ export async function claimPorts(
 	const releaseAll = () => releases.forEach((release) => release());
 	for (let port = from; port <= 65535; port++) {
 		const release = claim(dir, String(port));
-		// A server this harness didn't start, or one a stopped run left, holds the port without a claim.
-		const free = release !== undefined && !(await listening(port));
-		if (!free) {
-			release?.();
+		if (release === undefined) {
 			releaseAll();
 			releases = [];
 			continue;
+		}
+		if (await listening(port)) {
+			release();
+			releaseAll();
+			throw new Error(
+				`Port ${port} is listening, but no run claims it: a Foundry server a stopped run left, or another program. Stop it, or set E2E_PORT above it.`,
+			);
 		}
 		releases.push(release);
 		if (releases.length === count) return { port: port - count + 1, release: releaseAll };

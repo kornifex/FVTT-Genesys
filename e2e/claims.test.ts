@@ -74,10 +74,11 @@ describe('claimPorts', () => {
 		]);
 	});
 
-	it('starts after a port something listens on', async () => {
-		const { port } = await claimPorts(30100, 2, { dir, listening: (candidate) => Promise.resolve(candidate === 30100) });
-
-		expect(port).toBe(30101);
+	it('refuses a port something listens on without a claim, as a server a killed run left does', async () => {
+		await expect(claimPorts(30100, 2, { dir, listening: (candidate) => Promise.resolve(candidate === 30101) })).rejects.toThrow(
+			'Port 30101 is listening, but no run claims it',
+		);
+		expect(fs.readdirSync(dir)).toEqual([]);
 	});
 
 	it('takes the ports of a run that has ended', async () => {
@@ -95,12 +96,17 @@ describe('claimPorts', () => {
 	});
 
 	it('gives two runs started together ranges apart', async () => {
-		// Each run claims, prints its first port, and holds its claims a while, as a run does while its launches go on.
+		// Each run claims, prints its first port, and holds its claims until the other run holds its own too (10 s at
+		// most), as a run does while its launches go on: one that ended early would leave its ports to the other.
 		const script = `
+			const fs = await import('node:fs');
 			const { claimPorts } = await import(${JSON.stringify(pathToFileURL(path.join(import.meta.dirname, 'claims.ts')).href)});
 			const { port } = await claimPorts(30100, 4, { dir: ${JSON.stringify(dir)}, listening: () => Promise.resolve(false) });
 			console.log(port);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			const deadline = Date.now() + 10_000;
+			while (fs.readdirSync(${JSON.stringify(dir)}).length < 8 && Date.now() < deadline) {
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
 		`;
 		const run = () => execFileAsync(process.execPath, ['--input-type=module', '--eval', script]).then(({ stdout }) => Number(stdout));
 
