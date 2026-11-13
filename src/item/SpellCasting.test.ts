@@ -20,19 +20,23 @@ const skill = (name: string, rank: number) => ({ name, system: { rank } });
 
 describe('castingSkillName', () => {
 	it("casts with the spell's skill the character has the most ranks in (CRB p. 211)", () => {
-		expect(castingSkillName([skill('Arcana', 1), skill('Divine', 3)], ['Arcana', 'Divine'])).toBe('Divine');
+		expect(castingSkillName([skill('Arcana', 1), skill('Divine', 3)], ['Arcana', 'Divine'])).toEqual({ ok: true, skill: 'Divine' });
 	});
 
 	it("casts with the first of the spell's skills between two of the same rank", () => {
-		expect(castingSkillName([skill('Divine', 2), skill('Arcana', 2)], ['Arcana', 'Divine'])).toBe('Arcana');
+		expect(castingSkillName([skill('Divine', 2), skill('Arcana', 2)], ['Arcana', 'Divine'])).toEqual({ ok: true, skill: 'Arcana' });
 	});
 
 	it("names the skill as the character owns it, whatever the case of the spell's", () => {
-		expect(castingSkillName([skill('Arcana', 1)], ['arcana'])).toBe('Arcana');
+		expect(castingSkillName([skill('Arcana', 1)], ['arcana'])).toEqual({ ok: true, skill: 'Arcana' });
 	});
 
 	it("refuses a character without a rank in any of the spell's skills, even one they own at rank 0 (CRB p. 210)", () => {
-		expect(castingSkillName([skill('Arcana', 0), skill('Primal', 2)], ['Arcana', 'Divine'])).toBeUndefined();
+		expect(castingSkillName([skill('Arcana', 0), skill('Primal', 2)], ['Arcana', 'Divine'])).toEqual({ ok: false, reason: 'noRank' });
+	});
+
+	it('refuses a spell that lists no skill, whatever the character owns', () => {
+		expect(castingSkillName([skill('Arcana', 2)], [])).toEqual({ ok: false, reason: 'noSkillListed' });
 	});
 });
 

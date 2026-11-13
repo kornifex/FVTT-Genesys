@@ -438,6 +438,7 @@ Genesys:
     TooManySuperCharacteristics: Un actor no puede tener más de dos supercaracterísticas. Desmarca una primero.
     UnusableWeapon: '{name} no puede atacar: tiene {damage}.'
     NoRankInSpellSkills: '{name} necesita un rango en una de sus habilidades para lanzarse: {skills}.'
+    SpellListsNoSkill: '{name} no indica ninguna habilidad con la que lanzarse.'
 
   # Dialogs Prompts
   Dialogs:

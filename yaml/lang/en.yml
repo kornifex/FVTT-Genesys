@@ -447,6 +447,7 @@ Genesys:
     TooManySuperCharacteristics: An actor can't have more than two super-characteristics. Unmark one first.
     UnusableWeapon: "{name} can't attack: it has {damage}." # e.g. Pistol can't attack: it has Major Damage.
     NoRankInSpellSkills: '{name} needs a rank in one of its skills to be cast: {skills}.' # e.g. Curse needs a rank in one of its skills to be cast: Arcana, Divine.
+    SpellListsNoSkill: '{name} lists no skill to be cast with.' # e.g. Curse lists no skill to be cast with.
 
   # Dialogs Prompts
   Dialogs:

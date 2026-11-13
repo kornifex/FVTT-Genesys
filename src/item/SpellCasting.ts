@@ -31,10 +31,18 @@ export function castingStrain(purpose: CheckPurpose) {
 export const MAGIC_ATTACK_RANGE = 'short' satisfies RangeBand;
 
 /**
- * The name of the magic skill a character casts a spell with: of the spell's skills, the one they have the most ranks
- * in, then the first in the spell's order. Undefined when they have no rank in any, and can't cast it (CRB p. 210).
+ * The magic skill a character casts a spell with, or why they can't: of the spell's skills, the one they have the most
+ * ranks in, then the first in the spell's order. They can't cast a spell that lists no skill, nor one whose skills they
+ * have no rank in (CRB p. 210).
  */
-export function castingSkillName(ownedSkills: Skill[], spellSkills: string[]): string | undefined {
+export function castingSkillName(
+	ownedSkills: Skill[],
+	spellSkills: string[],
+): { ok: true; skill: string } | { ok: false; reason: 'noSkillListed' | 'noRank' } {
+	if (spellSkills.length === 0) {
+		return { ok: false, reason: 'noSkillListed' };
+	}
+
 	let best: Skill | undefined;
 
 	for (const name of spellSkills) {
@@ -44,7 +52,7 @@ export function castingSkillName(ownedSkills: Skill[], spellSkills: string[]): s
 		}
 	}
 
-	return best?.name;
+	return best ? { ok: true, skill: best.name } : { ok: false, reason: 'noRank' };
 }
 
 /**
