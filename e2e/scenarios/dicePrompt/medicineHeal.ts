@@ -23,7 +23,12 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 		"#686 H1 with no target, Heal offers the scene's and the players' characters; healing Bo, past half his wound threshold, opens Medicine at Average",
 		{ patients, actor: other.actor, skill: other.skill, pool: other.pool },
 		// Hero and Mark have a token on the scene; Bo, Cy and Seeker are the player's.
-		{ patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Seeker'], actor: 'Cy', skill: 'Medicine (Int)', pool: 'AA|DD' },
+		{
+			patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Seeker', 'Foe (Rival)', 'Rival (Rival)', 'Veiled (Rival)'],
+			actor: 'Cy',
+			skill: 'Medicine (Int)',
+			pool: 'AA|DD',
+		},
 	);
 
 	// Ability dice on two Successes, then a Success and an Advantage; Difficulty dice on blank faces.

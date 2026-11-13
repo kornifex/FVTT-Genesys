@@ -60,7 +60,7 @@ export async function healSpellPart(ctx: DicePromptContext) {
 	e2e.expect(
 		'#707 HS3 without a target, the Priest picks Bo among the patients Medicine offers, and Heal opens at Easy',
 		{ patients, pool: picked.pool },
-		{ patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Priest', 'Seeker'], pool: 'PA|D' },
+		{ patients: ['Bo', 'Cy', 'Hero', 'Mark', 'Priest', 'Seeker', 'Foe (Rival)', 'Rival (Rival)', 'Veiled (Rival)'], pool: 'PA|D' },
 	);
 
 	e2e.expect(
@@ -70,6 +70,32 @@ export async function healSpellPart(ctx: DicePromptContext) {
 			await patientPrompt(null);
 		}),
 		{ prompts: 0, notifications: [] },
+	);
+	// The Rival's token is unlinked: its wounds live on the token's own actor, not on the world's.
+	const rivalWounds = () =>
+		gm.evaluate(() => {
+			const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+			return (token.actor.system as { wounds: { value: number } }).wounds.value;
+		});
+	await gm.evaluate(() => {
+		const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+		return token.actor.update({ 'system.wounds': { value: 8, max: 12 } });
+	});
+	await gm.fixDice([
+		{ face: 4, faces: 12 },
+		{ face: 7, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const rivalPicked = await opened(gm, async () => {
+		await cast();
+		await patientPrompt('Rival (Rival)');
+	});
+	const rivalRolled = await roll();
+	await recoveryButton(gm, rivalRolled.id, true);
+	e2e.expect(
+		"#766 HS5 the Priest picks the scene's unlinked Rival, and Apply heals the token's wounds by the Successes",
+		{ pool: rivalPicked.pool, wounds: await rivalWounds() },
+		{ pool: 'PA|D', wounds: 5 },
 	);
 	await e2e.step('healSpell end');
 }
