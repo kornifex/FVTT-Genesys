@@ -551,7 +551,7 @@ describe('poolModificationsForCheck', () => {
 		const copy = ({ id, name, rating, activation = 'passive' }: QualitySpec) => ({
 			id,
 			name,
-			description: '',
+			description: `The ${name} quality.`,
 			activation,
 			advantageCost: 2,
 			isRated: true,
@@ -582,7 +582,12 @@ describe('poolModificationsForCheck', () => {
 
 		const fromQuality = (name: string, weapon: string, mods: string[], startsOff = false) => ({
 			source: 'self',
-			from: { effect: name, uuid: `ActiveEffect.${name}`, item: { name: weapon, uuid: `Item.${weapon}` } },
+			from: {
+				effect: name,
+				uuid: `ActiveEffect.${name}`,
+				item: { name: weapon, uuid: `Item.${weapon}` },
+				described: { name, description: `The ${name} quality.` },
+			},
 			mods,
 			...(startsOff && { startsOff }),
 		});
@@ -697,7 +702,12 @@ describe('poolModificationsForCheck', () => {
 				type,
 				name,
 				uuid: `Item.${name}`,
-				system: { damage: 'undamaged' as const, qualities: [], extraProfiles: [{ qualities: [] }] },
+				system: {
+					damage: 'undamaged' as const,
+					qualities: [],
+					extraProfiles: [{ qualities: [] }],
+					attachments: [{ id: 'scope', name: 'Scope', description: 'Sights the target.', hardPointsRequired: 1 }],
+				},
 				effects: [] as PoolModificationEffect[],
 			};
 			item.effects = [effect(changes, { name: 'Scope', parent: item, isSuppressed: disabled, attachment: 'scope' })];
@@ -706,7 +716,12 @@ describe('poolModificationsForCheck', () => {
 
 		const fromAttachment = (item: string, mods: string[]) => ({
 			source: 'self',
-			from: { effect: 'Scope', uuid: 'ActiveEffect.Scope', item: { name: item, uuid: `Item.${item}` } },
+			from: {
+				effect: 'Scope',
+				uuid: 'ActiveEffect.Scope',
+				item: { name: item, uuid: `Item.${item}` },
+				described: { name: 'Scope', description: 'Sights the target.' },
+			},
 			mods,
 		});
 		const boost = [{ key: 'genesys.pool.combat.self.', value: 'B' }];
@@ -726,6 +741,21 @@ describe('poolModificationsForCheck', () => {
 			expect(poolModificationsForCheck(holder, undefined, attackWith(rifle, rifle.system.extraProfiles[0].qualities))).toEqual([
 				fromAttachment('Rifle', ['B']),
 			]);
+		});
+
+		it('carries no description for an effect written on the item, or tagged with an attachment the item no longer holds', () => {
+			const rifle = equipment('weapon', 'Rifle', boost);
+			rifle.system.attachments = [];
+			const written = effect(boost, { name: 'Custom', parent: rifle });
+			const holder = actor('character', [...rifle.effects, written]);
+
+			expect(poolModificationsForCheck(holder, undefined, attackWith(rifle)).map(({ from }) => from)).toEqual(
+				['Custom', 'Scope'].map((name) => ({
+					effect: name,
+					uuid: `ActiveEffect.${name}`,
+					item: { name: 'Rifle', uuid: 'Item.Rifle' },
+				})),
+			);
 		});
 
 		it("leaves a weapon's attachment out of an attack made with another weapon, and out of any check that is no attack", () => {

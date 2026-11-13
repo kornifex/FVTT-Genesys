@@ -3,6 +3,8 @@
  * removed with them, and the Hard Points they take.
  */
 
+import { effectTag } from '@/item/data/EffectTags';
+
 /**
  * An attachment as a weapon or an armor holds it: a copy of the attachment item. Its effects are the item's own, tagged
  * with its id.
@@ -42,4 +44,14 @@ export function attachmentCopy(
  */
 export function hardPointsTaken(attachments: readonly Pick<ContainedAttachment, 'hardPointsRequired'>[]) {
 	return attachments.reduce((total, attachment) => total + attachment.hardPointsRequired, 0);
+}
+
+/**
+ * The attachment of an item that an effect belongs to, or undefined when it belongs to none of the item's.
+ */
+export function effectAttachment(effect: { flags?: object }, system: object | undefined): ContainedAttachment | undefined {
+	const id = effectTag(effect, ATTACHMENT_FLAG);
+	// The data of an item that holds no attachments has none.
+	const attachments = (system as { attachments?: readonly ContainedAttachment[] } | undefined)?.attachments;
+	return id ? attachments?.find((attachment) => attachment.id === id) : undefined;
 }

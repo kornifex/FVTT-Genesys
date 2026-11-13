@@ -15,7 +15,7 @@ import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectTag } from '@/item/data/EffectTags';
 import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
-import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
+import { ATTACHMENT_FLAG, effectAttachment } from '@/item/data/Attachments';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
@@ -150,10 +150,11 @@ type DamagedItem = { name: string; uuid: string | null; damage: HinderingDamage 
  * difference between the target and its attacker, the roller's encumbrance, or the damage of the weapon they attack
  * with. An effect is named for the roller, and told apart by its uuid: effects often share a name, as the sheets name a
  * new effect after its item. An effect that comes from an item, such as a talent or a piece of equipment, carries that
- * item, which the roller opens to read the effect's conditions, as they open a damaged weapon.
+ * item, which the roller opens to read the effect's conditions, as they open a damaged weapon. An effect of a quality or
+ * an attachment of its item carries that part's description too.
  */
 type PoolModificationOrigin =
-	| { effect: string; uuid: string; item?: EffectItem }
+	| { effect: string; uuid: string; item?: EffectItem; described?: DescribedPart }
 	| { defense: keyof Defense }
 	| { silhouette: Silhouettes }
 	| { encumbrance: Encumbrance }
@@ -163,6 +164,13 @@ type PoolModificationOrigin =
  * The item an effect comes from, by its name and its uuid.
  */
 type EffectItem = { name: string; uuid: string };
+
+/**
+ * The quality or the attachment of its item that an effect belongs to, by its name and its description. The Dice Prompt
+ * shows the description in place of a link to the item, which holds a copy of the quality or the attachment, not a
+ * document of its own.
+ */
+type DescribedPart = { name: string; description: string };
 
 /**
  * A Pool Modification that comes from outside the dice prompt: from an effect of the actor or of their target, from the
@@ -186,7 +194,7 @@ export type ExternalPoolModification = {
 export function matchOrigin<T>(
 	from: PoolModificationOrigin,
 	cases: {
-		effect(name: string, uuid: string, item: EffectItem | undefined): T;
+		effect(name: string, uuid: string, item: EffectItem | undefined, described: DescribedPart | undefined): T;
 		defense(defense: keyof Defense): T;
 		silhouette(silhouettes: Silhouettes): T;
 		encumbrance(encumbrance: Encumbrance): T;
@@ -194,7 +202,7 @@ export function matchOrigin<T>(
 	},
 ): T {
 	if ('effect' in from) {
-		return cases.effect(from.effect, from.uuid, from.item);
+		return cases.effect(from.effect, from.uuid, from.item, from.described);
 	}
 
 	if ('defense' in from) {
@@ -510,6 +518,7 @@ function effectModifications(
 
 		const item = sourceItem<SourceItem & { name: string; uuid: string | null }>(effect);
 		const quality = effectQuality(effect, item?.system);
+		const described = quality ?? effectAttachment(effect, item?.system);
 		const mods = effect.changes.flatMap(({ key = '', value }) =>
 			appliesToCheck(decodeKey(key)) && typeof value === 'string'
 				? parsePoolModifications(scaledChangeValue(item, { key, value }, quality))
@@ -519,7 +528,12 @@ function effectModifications(
 		if (mods.length > 0) {
 			modifications.push({
 				source,
-				from: { effect: effect.name, uuid: effect.uuid, ...(item?.uuid && { item: { name: item.name, uuid: item.uuid } }) },
+				from: {
+					effect: effect.name,
+					uuid: effect.uuid,
+					...(item?.uuid && { item: { name: item.name, uuid: item.uuid } }),
+					...(described && { described: { name: described.name, description: described.description } }),
+				},
 				mods: mods.sort(sortPoolModifications),
 				// An active quality applies only once the roller triggers it, by spending Advantage (CRB p. 86).
 				...(quality?.activation === 'active' && { startsOff: true }),
