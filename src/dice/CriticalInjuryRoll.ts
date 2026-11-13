@@ -1,5 +1,5 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
-import { effectQuality, isOutrankedQuality, qualityIdOf, qualityRank } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQuality, qualityIdOf, qualityNameKey, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
@@ -110,9 +110,9 @@ type CriticalAttackWeapon = { name: string; uuid: string | null; qualities: read
  * the names given, whatever its case, until qualities are items the system recognises otherwise.
  */
 export function viciousRating(qualities: readonly Pick<AttackQuality, 'name' | 'rating'>[], names: readonly string[]): number {
-	const viciousNames = new Set(names.map((name) => name.trim().toLowerCase()));
+	const viciousNames = new Set(names.map(qualityNameKey));
 	return qualities
-		.filter((quality) => viciousNames.has(quality.name.trim().toLowerCase()))
+		.filter((quality) => viciousNames.has(qualityNameKey(quality.name)))
 		.reduce((rating, quality) => Math.max(rating, quality.rating), 0);
 }
 

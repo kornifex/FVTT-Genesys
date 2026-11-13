@@ -7,6 +7,14 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { withoutIndex } from '@/arrays';
 
 /**
+ * What identifies a quality by its name: the name without its surrounding spaces, whatever its case. Two qualities with
+ * the same key are the same quality.
+ */
+export function qualityNameKey(name: string) {
+	return name.trim().toLowerCase();
+}
+
+/**
  * The qualities with a quality item dropped on the weapon or armor: added at rating 1, or, when the item already has a
  * quality of that name, that quality's rating raised by 1. `undefined` when nothing changes, as dropping a quality
  * that isn't rated on an item that has it.
@@ -15,7 +23,7 @@ export function withQualityAdded(
 	qualities: readonly ContainedItemQuality[],
 	added: Omit<ContainedItemQuality, 'rating'>,
 ): ContainedItemQuality[] | undefined {
-	const index = qualities.findIndex((quality) => quality.name.toLowerCase() === added.name.toLowerCase());
+	const index = qualities.findIndex((quality) => qualityNameKey(quality.name) === qualityNameKey(added.name));
 	if (index < 0) {
 		return [...qualities, { ...added, rating: 1 }];
 	}
@@ -130,8 +138,8 @@ export function qualityRank(quality: Pick<RankedQuality, 'isRated' | 'rating'>) 
  * rank earlier in the list.
  */
 export function isOutrankedQuality(quality: RankedQuality, qualities: readonly RankedQuality[]): boolean {
-	const name = quality.name.toLowerCase();
-	const copies = qualities.filter((other) => other.name.toLowerCase() === name);
+	const key = qualityNameKey(quality.name);
+	const copies = qualities.filter((other) => qualityNameKey(other.name) === key);
 	const highest = Math.max(...copies.map(qualityRank));
 	return copies.find((copy) => qualityRank(copy) === highest)?.id !== quality.id;
 }

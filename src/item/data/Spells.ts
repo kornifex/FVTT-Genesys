@@ -5,6 +5,7 @@
  */
 
 import type { AbilityActivation } from '@/data/schemaFields';
+import { qualityNameKey } from '@/item/data/Qualities';
 
 /**
  * The magic actions of the Core Rulebook (CRB pp. 214–218), and Custom, a spell the table writes outside them.
@@ -120,7 +121,7 @@ export function withSpellQualityAdded(
 		system,
 	}: { name: string; system: { description: string; activation: AbilityActivation['type']; advantageCost: number; isRated: boolean } },
 ): SpellQuality[] | undefined {
-	if (qualities.some((quality) => quality.name.toLowerCase() === name.toLowerCase())) {
+	if (qualities.some((quality) => qualityNameKey(quality.name) === qualityNameKey(name))) {
 		return undefined;
 	}
 

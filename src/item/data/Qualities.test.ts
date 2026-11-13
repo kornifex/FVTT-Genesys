@@ -15,6 +15,7 @@ import {
 	qualityEffectsData,
 	qualityIdOf,
 	qualityLabel,
+	qualityNameKey,
 	withQualityAdded,
 	withQualityChanged,
 	withQualityRating,
@@ -42,6 +43,13 @@ const dropped = (name: string, isRated = true, description = `<p>${name}.</p>`):
 
 // An effect tagged with the id of the quality it belongs to.
 const tagged = (id: string | null, quality: string) => ({ id, flags: { genesys: { quality } } });
+
+describe('qualityNameKey', () => {
+	it('names the same quality whatever the case and the surrounding spaces of its name', () => {
+		expect(qualityNameKey(' Vicious ')).toBe(qualityNameKey('vicious'));
+		expect(qualityNameKey('Pierce')).not.toBe(qualityNameKey('Vicious'));
+	});
+});
 
 describe('withQualityAdded', () => {
 	it('adds a quality the item lacks at rating 1, after the ones it has', () => {
