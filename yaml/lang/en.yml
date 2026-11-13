@@ -55,6 +55,12 @@ Genesys:
     SkillForInjuriesHint: Name of the skill used when recovering from Critical Injuries.
     SkillForRepairingVehicleHits: Mechanics Skill Name
     SkillForRepairingVehicleHitsHint: Name of the skill used when recovering from Critical Hits.
+    SkillForHealingWounds: Medicine Skill Name
+    SkillForHealingWoundsHint: Name of the skill whose check heals a patient's wounds, which shows the Heal action beside it.
+    SkillForRecoveringStrain: Discipline Skill Name
+    SkillForRecoveringStrainHint: Name of the first of the two skills the check that recovers strain at the end of an encounter picks between; it wins a tie.
+    AlternativeSkillForRecoveringStrain: Cool Skill Name
+    AlternativeSkillForRecoveringStrainHint: Name of the second of the two skills the check that recovers strain at the end of an encounter picks between.
     DicePoolCollapseModifications: Collapse the Pool Modifications Section
     DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
