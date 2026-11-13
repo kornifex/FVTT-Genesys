@@ -307,6 +307,7 @@ Genesys:
       UpgradeDifficulty: Dépenser un point de Destin pour améliorer la difficulté
       ImpossibleCost: Une tâche impossible ne peut pas être lancée sans lui.
       EmptyPool: Cette réserve n'a plus de point à dépenser.
+      ImpossibleOnly: Une tâche impossible n'admet aucun autre point narratif.
       NoGM: Un MJ doit être connecté pour dépenser un point narratif.
     ChanceToSucceed: 'Chance de réussite :'
     ChanceToSucceedByPermutationDisclaimer: "Affiche la probabilité exacte à moins qu'un dé dans le pool soit une super-caractéristique."
