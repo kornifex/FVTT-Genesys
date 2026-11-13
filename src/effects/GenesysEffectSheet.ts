@@ -4,6 +4,7 @@ import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEdi
 import { isFoundryV13 } from '@/foundryGeneration';
 import { changesPath } from '@/effects/GenesysEffect';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
+import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
 import '@/effects/GenesysEffectSheet.scss';
 
 /**
@@ -20,12 +21,13 @@ type RenderOptions = DeepPartial<foundry.applications.sheets.ActiveEffectConfig.
 type ChangesSchema = { fields: { changes: { element: { fields: Record<string, unknown> } } } };
 
 // What a key applies to, shown before its label: characters and adversaries, vehicles, both, the checks of the
-// effect's actor, and the checks that target it.
+// effect's actor, the checks that target it, and the weapon or armor that holds the effect.
 const ACTOR_GLYPH = '\u{1F9D1}';
 const VEHICLE_GLYPH = '\u{1F697}';
 const ANY_ACTOR_GLYPH = '\u{1F310}';
 const SELF_GLYPH = '\u{1F447}';
 const TARGET_GLYPH = '\u{1F3AF}';
+const ITEM_GLYPH = '\u{1F527}';
 
 /**
  * A key the Changes tab offers: the glyph of what it applies to, and the localization key of its label.
@@ -137,6 +139,10 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 			{ key: CRITICAL_CHANGE_KEYS.inflicted, appliesTo: TARGET_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Inflicted' },
 			{ key: CRITICAL_CHANGE_KEYS.suffered, appliesTo: SELF_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Suffered' },
 		],
+	},
+	{
+		group: 'Genesys.ActiveEffects.Types.ModifyItem',
+		keys: ITEM_CHANGE_FIELDS.map((field) => ({ key: itemChangeKey(field), appliesTo: ITEM_GLYPH, label: ITEM_CHANGE_LABELS[field] })),
 	},
 ];
 

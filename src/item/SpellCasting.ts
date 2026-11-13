@@ -61,6 +61,15 @@ export function canCheckEffect(spellDifficulty: number, effects: readonly CastEf
 }
 
 /**
+ * The levels of difficulty checking an Additional Effect adds to the level the roller has now: its own, as far as
+ * Formidable lets it, and none from a level already at or beyond it (CRB p. 215). Unchecking the effect gives back
+ * exactly these.
+ */
+export function difficultyAddedBy(level: number, effect: Pick<CastEffect, 'difficulty'>) {
+	return Math.max(0, Math.min(level + effect.difficulty, FORMIDABLE) - level);
+}
+
+/**
  * The Additional Effects checked as the Dice Prompt opens: each that starts checked, in the spell's order, as long as it
  * keeps the difficulty within Formidable.
  */

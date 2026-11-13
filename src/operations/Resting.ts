@@ -19,7 +19,8 @@ type Character = Stored<GenesysActor<'character'>>;
  * in the Dice Prompt.
  */
 export async function recoverAtEndOfEncounter(character: Character) {
-	const skillName = strainRecoverySkill((name) => {
+	const { skillForRecoveringStrain, alternativeSkillForRecoveringStrain } = CONFIG.genesys.settings;
+	const skillName = strainRecoverySkill([skillForRecoveringStrain, alternativeSkillForRecoveringStrain], (name) => {
 		const rolled = skillToRoll(character.skills, CONFIG.genesys.skills, name);
 		return (
 			rolled && {

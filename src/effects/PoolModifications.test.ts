@@ -896,6 +896,16 @@ describe('editing changes in the effect sheets', () => {
 			);
 		}
 	});
+
+	it('shows no mode for an Item Change, which the item always adds', () => {
+		expect(subjectFieldForKey('genesys.item.baseDamage')).toBe('check-selection');
+	});
+
+	it('keeps the key and value of an Item Change, with the custom mode', () => {
+		expect(
+			fromEditedChange(toEditedChange(editedChange('genesys.item.baseDamage', '+1', { mode: 2 })), customMode, upgradeMode),
+		).toEqual(editedChange('genesys.item.baseDamage', '+1'));
+	});
 });
 
 /**
@@ -951,6 +961,12 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 		expect(fromEditedChange(v14EditedChange('system.providedDefense.ranged', '1', { type: 'add' }), unreadMode, unreadMode)).toEqual(
 			v14EditedChange('system.providedDefense.ranged', '1', { type: 'upgrade' }),
 		);
+	});
+
+	it('keeps the key and value of an Item Change, with the custom type', () => {
+		expect(
+			fromEditedChange(toEditedChange(v14EditedChange('genesys.item.critical', -1, { type: 'add' })), unreadMode, unreadMode),
+		).toEqual(v14EditedChange('genesys.item.critical', '-1'));
 	});
 
 	it('round-trips every kind of key, with the custom type', () => {
