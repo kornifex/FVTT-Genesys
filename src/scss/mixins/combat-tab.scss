@@ -56,6 +56,15 @@
 	padding-right: 0.5em;
 }
 
+// A tag under a row's columns: a quality of a weapon or an armor, an Additional Effect of a spell.
+@mixin tag {
+	background: colors.alpha(colors.$gold, 0.3);
+	border: 1px dashed colors.$gold;
+	border-radius: 0.25em;
+	padding: 0.25em;
+	@include headings.font;
+}
+
 // A row of a weapon or an armor: its columns are the tab's, its qualities then its description go below them. The name and
 // the fold of a row are the roots of its `DescriptionFold`, which take no scope attribute from the row: :deep() reaches
 // them.
