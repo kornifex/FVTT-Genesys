@@ -162,8 +162,16 @@ async function toggleSuper(characteristic: CharacteristicType) {
 					<div class="stats-row">
 						<slot name="stats" />
 
+						<!-- The defense in play, which counts cover and Guarded Stance, beside the stat block's, which the GM edits. -->
 						<CombatStat
 							label="Genesys.Labels.Defense"
+							primary-label="Genesys.Labels.DefenseRanged"
+							:value="system.totalDefense.ranged"
+							:secondary="{ label: 'Genesys.Labels.DefenseMelee', value: system.totalDefense.melee }"
+						/>
+
+						<CombatStat
+							label="Genesys.Labels.StatBlockDefense"
 							primary-label="Genesys.Labels.DefenseRanged"
 							:value="system.defense.ranged"
 							name="system.defense.ranged"

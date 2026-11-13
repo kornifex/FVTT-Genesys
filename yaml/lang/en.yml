@@ -693,6 +693,8 @@ Genesys:
     Strain: Strain
     StrainThreshold: Strain Threshold
     Defense: Defense
+    # An adversary's defense as its stat block gives it, before cover or Guarded Stance
+    StatBlockDefense: Stat Block Defense
     Threshold: Threshold
     Current: Current
     DefenseMelee: Melee

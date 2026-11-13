@@ -680,6 +680,7 @@ Genesys:
     Strain: Tensión
     StrainThreshold: Umbral de Tensión
     Defense: Defensa
+    StatBlockDefense: Defensa base
     Threshold: Umbral
     Current: Actual
     DefenseMelee: Cuerpo a cuerpo

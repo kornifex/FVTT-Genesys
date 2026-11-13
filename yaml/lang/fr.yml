@@ -691,6 +691,7 @@ Genesys:
     Strain: Stress
     StrainThreshold: Seuil de stress
     Defense: Défense
+    StatBlockDefense: Défense de base
     Threshold: Seuil
     Current: Actuel
     DefenseMelee: Mêlée
