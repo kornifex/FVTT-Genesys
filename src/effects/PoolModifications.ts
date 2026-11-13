@@ -562,12 +562,22 @@ export function skillChoices(compendiumSkillNames: string[], changes: EditedChan
 	return Object.fromEntries(names.map((name) => [name, name]));
 }
 
+const PROVIDED_DEFENSE_KEYS: readonly string[] = ['system.providedDefense.melee', 'system.providedDefense.ranged'];
+
+/**
+ * Whether a change provides defense, of which the actor keeps the best (CRB p. 106).
+ */
+function isProvidedDefenseKey(key: string) {
+	return PROVIDED_DEFENSE_KEYS.includes(key);
+}
+
 /**
  * Which field of the effect sheets edits what a change applies to, given the key picked for it.
  */
 export function subjectFieldForKey(key: string) {
-	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls.
-	if (isCriticalChangeKey(key)) {
+	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls. A change to the
+	// defense a source provides has none either, as it is always an Upgrade.
+	if (isCriticalChangeKey(key) || isProvidedDefenseKey(key)) {
 		return 'check-selection';
 	}
 
@@ -612,15 +622,21 @@ export function toEditedChange(change: StoredChange): EditedChange {
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
  * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to
  * Critical Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a
- * whole number. Any other change is returned as it is.
+ * whole number. A change to the defense a source provides gets the Upgrade type, so that two such effects don't stack.
+ * Any other change is returned as it is.
  * @param customMode v13: Foundry's custom effect mode, read only for a change that has a mode, since v14 logs a
  * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
+ * @param upgradeMode v13: Foundry's upgrade effect mode, read under the same condition.
  */
-export function fromEditedChange(change: EditedChange, customMode: () => number): EditedChange {
+export function fromEditedChange(change: EditedChange, customMode: () => number, upgradeMode: () => number): EditedChange {
 	const { char, skill, ...stored } = change;
 	// v13: a change has a numeric mode, which v14 replaced with a type.
 	const custom = () => ('type' in change ? { type: 'custom' } : { mode: customMode() });
 	const value = typeof change.value === 'string' ? change.value : '';
+
+	if (isProvidedDefenseKey(change.key)) {
+		return { ...stored, ...('type' in change ? { type: 'upgrade' } : { mode: upgradeMode() }) };
+	}
 
 	if (isCriticalChangeKey(change.key)) {
 		return { ...stored, ...custom(), value: isCriticalChangeValue(value) ? value.trim() : '' };

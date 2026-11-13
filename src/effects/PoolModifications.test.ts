@@ -778,6 +778,7 @@ function editedChange(
 
 // v13: Foundry's custom effect mode, which an edited Pool Modification gets.
 const customMode = () => 0;
+const upgradeMode = () => 4;
 
 describe('editing changes in the effect sheets', () => {
 	it('splits the subject of a Pool Modification off its key', () => {
@@ -793,7 +794,7 @@ describe('editing changes in the effect sheets', () => {
 
 	it('leaves other changes as they are', () => {
 		expect(toEditedChange(editedChange('system.soak', '1', { mode: 2 }))).toEqual(editedChange('system.soak', '1', { mode: 2 }));
-		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }), customMode)).toEqual(
+		expect(fromEditedChange(editedChange('system.soak', '1', { mode: 2, char: 'brawn' }), customMode, upgradeMode)).toEqual(
 			editedChange('system.soak', '1', { mode: 2, char: 'brawn' }),
 		);
 	});
@@ -801,13 +802,15 @@ describe('editing changes in the effect sheets', () => {
 	it('puts the subject back into the key of a Pool Modification', () => {
 		const subjects = { mode: 2, skill: 'Stealth', char: 'brawn' };
 
-		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects), customMode)).toEqual(
+		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects), customMode, upgradeMode)).toEqual(
 			editedChange('genesys.pool.skill.target.Stealth', 'S'),
 		);
-		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects), customMode).key).toBe(
+		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects), customMode, upgradeMode).key).toBe(
 			'genesys.pool.char.self.brawn',
 		);
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects), customMode).key).toBe('genesys.pool.check.self.');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects), customMode, upgradeMode).key).toBe(
+			'genesys.pool.check.self.',
+		);
 	});
 
 	it('round-trips every kind of key', () => {
@@ -819,18 +822,18 @@ describe('editing changes in the effect sheets', () => {
 			'genesys.pool.melee.target.',
 			'genesys.pool.ranged.target.',
 		]) {
-			expect(fromEditedChange(toEditedChange(editedChange(key, 'B')), customMode).key).toBe(key);
+			expect(fromEditedChange(toEditedChange(editedChange(key, 'B')), customMode, upgradeMode).key).toBe(key);
 		}
 	});
 
 	it('empties the value of a Pool Modification unless it only holds glyphs', () => {
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2'), customMode).value).toBe('');
-		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB'), customMode).value).toBe('BB');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', '2'), customMode, upgradeMode).value).toBe('');
+		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'BB'), customMode, upgradeMode).value).toBe('BB');
 	});
 
 	it('leaves the edited change as it is', () => {
 		const change = editedChange('genesys.pool.skill.target', '2', { mode: 2, skill: 'Stealth' });
-		fromEditedChange(change, customMode);
+		fromEditedChange(change, customMode, upgradeMode);
 
 		expect(change).toEqual(editedChange('genesys.pool.skill.target', '2', { mode: 2, skill: 'Stealth' }));
 	});
@@ -873,12 +876,25 @@ describe('editing changes in the effect sheets', () => {
 	});
 
 	it('gives a change to Critical Injury rolls the custom mode, and empties its value unless it is a whole number', () => {
-		expect(fromEditedChange(editedChange('genesys.critical.inflicted', '10', { mode: 2 }), customMode)).toEqual(
+		expect(fromEditedChange(editedChange('genesys.critical.inflicted', '10', { mode: 2 }), customMode, upgradeMode)).toEqual(
 			editedChange('genesys.critical.inflicted', '10'),
 		);
-		expect(fromEditedChange(editedChange('genesys.critical.suffered', '-10'), customMode).value).toBe('-10');
-		expect(fromEditedChange(editedChange('genesys.critical.suffered', 'BB'), customMode).value).toBe('');
+		expect(fromEditedChange(editedChange('genesys.critical.suffered', '-10'), customMode, upgradeMode).value).toBe('-10');
+		expect(fromEditedChange(editedChange('genesys.critical.suffered', 'BB'), customMode, upgradeMode).value).toBe('');
 		expect(toEditedChange(editedChange('genesys.critical.inflicted', '10'))).toEqual(editedChange('genesys.critical.inflicted', '10'));
+	});
+
+	it('shows no mode for a change to the defense a source provides, which is always an Upgrade', () => {
+		expect(subjectFieldForKey('system.providedDefense.melee')).toBe('check-selection');
+		expect(subjectFieldForKey('system.providedDefense.ranged')).toBe('check-selection');
+	});
+
+	it('gives a change to the defense a source provides the Upgrade mode, so that two such effects do not stack', () => {
+		for (const key of ['system.providedDefense.melee', 'system.providedDefense.ranged']) {
+			expect(fromEditedChange(editedChange(key, '1', { mode: 2 }), customMode, upgradeMode)).toEqual(
+				editedChange(key, '1', { mode: 4 }),
+			);
+		}
 	});
 });
 
@@ -907,9 +923,9 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 	};
 
 	it('gives a Pool Modification the custom type, which keeps Foundry from applying it', () => {
-		expect(fromEditedChange(v14EditedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }), unreadMode)).toEqual(
-			v14EditedChange('genesys.pool.skill.self.Cool', 'B'),
-		);
+		expect(
+			fromEditedChange(v14EditedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }), unreadMode, unreadMode),
+		).toEqual(v14EditedChange('genesys.pool.skill.self.Cool', 'B'));
 	});
 
 	it('splits the subject of a Pool Modification off its key, and keeps its type and phase', () => {
@@ -926,14 +942,20 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 	});
 
 	it('gives a change to Critical Injury rolls the custom type', () => {
-		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', '10', { type: 'add' }), unreadMode)).toEqual(
+		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', '10', { type: 'add' }), unreadMode, unreadMode)).toEqual(
 			v14EditedChange('genesys.critical.inflicted', '10'),
+		);
+	});
+
+	it('gives a change to the defense a source provides the Upgrade type, so that two such effects do not stack', () => {
+		expect(fromEditedChange(v14EditedChange('system.providedDefense.ranged', '1', { type: 'add' }), unreadMode, unreadMode)).toEqual(
+			v14EditedChange('system.providedDefense.ranged', '1', { type: 'upgrade' }),
 		);
 	});
 
 	it('round-trips every kind of key, with the custom type', () => {
 		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
-			expect(fromEditedChange(toEditedChange(v14EditedChange(key, 'B')), unreadMode)).toEqual(v14EditedChange(key, 'B'));
+			expect(fromEditedChange(toEditedChange(v14EditedChange(key, 'B')), unreadMode, unreadMode)).toEqual(v14EditedChange(key, 'B'));
 		}
 	});
 });

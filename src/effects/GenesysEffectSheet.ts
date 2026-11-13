@@ -260,7 +260,13 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		foundry.utils.setProperty(
 			formDataExpanded,
 			changesPath(),
-			Object.values(changes ?? {}).map((change) => fromEditedChange(change, () => CONST.ACTIVE_EFFECT_MODES.CUSTOM)),
+			Object.values(changes ?? {}).map((change) =>
+				fromEditedChange(
+					change,
+					() => CONST.ACTIVE_EFFECT_MODES.CUSTOM,
+					() => CONST.ACTIVE_EFFECT_MODES.UPGRADE,
+				),
+			),
 		);
 
 		return formDataExpanded;
