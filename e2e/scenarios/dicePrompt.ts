@@ -5075,6 +5075,21 @@ export async function run(e2e: ScenarioContext) {
 			await noPrompt(gm, cast('Novice')),
 			{ prompts: 0, notifications: ['warning: E2E Curse needs a rank in one of its skills to be cast: Arcana, Divine.'] },
 		);
+		await opened(gm, cast('Mage'));
+		await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([5]));
+		const raised = (await effects()).difficulty;
+		const checkedAtFormidable = (await check('Additional Target')).difficulty;
+		const uncheckedAtFormidable = (await check('Additional Target')).difficulty;
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+		e2e.expect(
+			'#728 S5 a Curse raised by hand to Formidable stays Formidable when Additional Target is checked, then unchecked',
+			{ raised, checkedAtFormidable, uncheckedAtFormidable },
+			{
+				raised: 'Difficulty: Formidable',
+				checkedAtFormidable: 'Difficulty: Formidable',
+				uncheckedAtFormidable: 'Difficulty: Formidable',
+			},
+		);
 		await e2e.step('spellCasting end');
 	});
 
