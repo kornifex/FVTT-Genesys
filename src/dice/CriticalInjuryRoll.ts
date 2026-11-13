@@ -1,5 +1,6 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
 import { effectTag } from '@/item/data/EffectTags';
+import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityNameKey, qualityRank } from '@/item/data/Qualities';
 
 /**
@@ -155,7 +156,7 @@ type CriticalSourceItem = {
 	name: string;
 	uuid: string | null;
 	type: string;
-	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+	system: RankedSystem;
 };
 
 /**
@@ -208,7 +209,7 @@ function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: C
 	const item = effect.originItem;
 	const qualityId = effectTag(effect, QUALITY_FLAG);
 	if (qualityId === undefined || !item) {
-		return item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		return scalingRank(item);
 	}
 
 	if (!WEAPON_TYPES.includes(item.type)) {

@@ -1,7 +1,17 @@
 /** @file Tests for the tier a talent's ranks are bought at, and for the groups the Talents tab lists talents in. */
 
 import { describe, expect, it } from 'vitest';
-import { effectiveNextTier, effectiveTier, talentGroups, TIERS } from '@/item/data/Talents';
+import { effectiveNextTier, effectiveTier, scalingRank, talentGroups, TIERS } from '@/item/data/Talents';
+
+describe('scalingRank', () => {
+	it('counts once per rank for a talent that scales with rank, and once for any other item', () => {
+		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'yes' } })).toBe(3);
+		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'no' } })).toBe(1);
+		expect(scalingRank({ system: { scalesWithRank: 'yes' } })).toBe(1);
+		expect(scalingRank({ system: {} })).toBe(1);
+		expect(scalingRank(undefined)).toBe(1);
+	});
+});
 
 describe('effectiveTier (CRB p. 72)', () => {
 	it("is the talent's tier at rank 1", () => {

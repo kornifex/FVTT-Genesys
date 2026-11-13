@@ -16,6 +16,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectTag } from '@/item/data/EffectTags';
 import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
 import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
+import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
@@ -55,8 +56,7 @@ export type PoolModificationKey = {
  */
 export type SourceItem = {
 	type: string;
-	// The data of an item of any type, which only talents fill these fields of.
-	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+	system: RankedSystem;
 };
 
 /**
@@ -292,7 +292,7 @@ export function scaledChangeValue(
 	const rankOfQuality = quality && qualityRank(quality);
 
 	if (decodeKey(key)) {
-		const rank = rankOfQuality ?? (item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1);
+		const rank = rankOfQuality ?? scalingRank(item);
 		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
