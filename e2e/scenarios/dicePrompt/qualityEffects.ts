@@ -1,4 +1,4 @@
-import type { PromptState, DicePromptContext } from './shared.ts';
+import { installDicePromptHelpers, type PromptState, type DicePromptContext } from './shared.ts';
 
 export async function qualityEffectsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, setSetting, update, attack } = ctx;
@@ -220,6 +220,89 @@ export async function qualityEffectsPart(ctx: DicePromptContext) {
 			};
 		}),
 		{ prepared: ['4/3', '3/4'], effective: ['Damage 3'] },
+	);
+
+	await e2e.step("#755 Q8 GM opens Vicious, stored as 0.6.0 stored it, on Ada's Mace, and adds an effect to it", async () => {
+		await gm.evaluate(async () => {
+			const ada = game.actors.getName('E2E Ada');
+			const [mace] = await ada.createEmbeddedDocuments('Item', [
+				{ name: 'E2E Mace', type: 'weapon', system: { skills: ['Melee'], range: 'engaged', state: 'equipped', baseDamage: 4 } },
+			]);
+			// 0.6.0 stored a quality without an id, an activation or an Advantage cost. The client's DataModel would fill them
+			// in, so the update goes to the server as is, through the socket the client's own updates take: the server
+			// stores a system's data as it gets it. The GM's client doesn't apply it: it loads it with the world, below.
+			await new Promise((resolve) =>
+				game.socket.emit(
+					'modifyDocument',
+					{
+						type: 'Item',
+						action: 'update',
+						operation: {
+							parentUuid: ada.uuid,
+							updates: [
+								{
+									_id: mace.id,
+									system: { qualities: [{ name: 'E2E Vicious', description: '', isRated: true, rating: 1 }] },
+								},
+							],
+							diff: false,
+							recursive: true,
+							render: true,
+							modifiedTime: Date.now(),
+						},
+					},
+					resolve,
+				),
+			);
+		});
+		await gm.reload();
+		await gm.evaluate(installDicePromptHelpers);
+		await gm.evaluate(async () => {
+			const { render, settle, waitFor } = window.e2e;
+			const mace = game.actors.getName('E2E Ada').items.getName('E2E Mace');
+			const root = await render(mace.sheet, (root) => root.querySelector('.profile-qualities .data-rated'));
+			const row = root.querySelector('.profile-qualities .quality')!;
+			[...row.querySelectorAll<HTMLElement>('.data-rated button')].at(-1)!.click();
+			const add = await waitFor('the Add an Effect button', () => row.querySelector<HTMLElement>('.details .add-effect'));
+			add.click();
+			await settle();
+		});
+	});
+	e2e.expect(
+		'#755 Q8 Vicious stored without an id gets one, and the new effect, tagged with it, opens its sheet',
+		{
+			mace: await weaponState('Mace'),
+			sheet: await gm.evaluate(() => {
+				const effect = game.actors.getName('E2E Ada').items.getName('E2E Mace').effects.contents.at(-1);
+				return effect?.sheet.rendered ?? null;
+			}),
+		},
+		{ mace: { qualities: ['E2E Vicious 1 (passive, 2)'], effects: [{ name: 'E2E Vicious', tagged: true }] }, sheet: true },
+	);
+
+	await e2e.step("#755 Q9 GM gives Vicious's effect 1 damage, and raises Vicious to 2 on the Mace's sheet", () =>
+		gm.evaluate(async () => {
+			const { settle, htmlOf } = window.e2e;
+			const mace = game.actors.getName('E2E Ada').items.getName('E2E Mace');
+			const key = 'genesys.item.baseDamage';
+			// v13: an effect keeps its changes in `changes`, with a numeric mode; v14 in `system.changes`, with a type.
+			await mace.effects.contents
+				.at(-1)
+				?.update(
+					game.release.generation === 13
+						? { changes: [{ key, value: '1', mode: CONST.ACTIVE_EFFECT_MODES.ADD }] }
+						: { 'system.changes': [{ key, value: '1', type: 'add' }] },
+				);
+			const rating = htmlOf(mace.sheet)!.querySelector<HTMLInputElement>('.profile-qualities .data-rated input')!;
+			rating.value = '2';
+			rating.dispatchEvent(new Event('blur'));
+			await settle();
+		}),
+	);
+	e2e.expect(
+		"#755 Q9 Vicious's effect adds 1 damage per rating: the Mace's 4 damage reads 6",
+		await gm.evaluate(() => game.actors.getName('E2E Ada').items.getName('E2E Mace').system.baseDamage),
+		6,
 	);
 	await e2e.step('quality effects end');
 }
