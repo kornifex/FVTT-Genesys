@@ -67,10 +67,18 @@ export abstract class AdversaryDataModel extends foundry.abstract.TypeDataModel<
 	}
 
 	/**
-	 * The adversary's defense: the best of their stat block's and the provided one, up to 4.
+	 * The adversary's defense: the best of their stat block's and the provided one, increased by the effects that add to
+	 * `system.defense`, up to 4.
 	 */
 	get totalDefense(): Defense {
-		return adversaryDefense(this.defense, this.providedDefense);
+		// The stat block is the defense the GM typed, stored before effects: what they add to it is an increase, which
+		// stacks with cover rather than vying with it (CRB p. 106). The class's schema type is the generic one, so
+		// `_source` doesn't know its fields.
+		const statBlock = (this._source as { defense: Defense }).defense;
+		return adversaryDefense(statBlock, this.providedDefense, {
+			melee: this.defense.melee - statBlock.melee,
+			ranged: this.defense.ranged - statBlock.ranged,
+		});
 	}
 
 	static override defineSchema() {

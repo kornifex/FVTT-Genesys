@@ -854,7 +854,7 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 		e2e.expect(
-			'#194 D2 the adversary sheet shows the defense above 4 that the attack counts as 4',
+			"#194 D2 the adversary sheet shows the stat block defense as typed, above 4 that the attack counts as 4, without an Active Effect's increase",
 			await byAdversary(adversaries, (actor) =>
 				gm.evaluate((args) => window.adversariesE2E.sheetInputs(args), {
 					actor,
@@ -863,10 +863,37 @@ export async function run(e2e: ScenarioContext) {
 			),
 			{
 				Grunts: { 'system.defense.melee': '6', 'system.defense.ranged': '5' },
-				Rival: { 'system.defense.melee': '5', 'system.defense.ranged': '5' },
+				Rival: { 'system.defense.melee': '2', 'system.defense.ranged': '1' },
 				Nemesis: { 'system.defense.melee': '5', 'system.defense.ranged': '3' },
 			},
 		);
+
+		// §#737: an increase stacks on top of the best of the stat block's defense and the one cover provides.
+		await update('Rival', { 'system.defense': { melee: 0, ranged: 0 } });
+		await gm.evaluate(() =>
+			window.e2e
+				.actor('Rival')
+				.effects.getName('E2E Shield')
+				?.update({
+					changes: [
+						{ key: 'system.defense.melee', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' },
+						{ key: 'system.defense.ranged', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' },
+					],
+				}),
+		);
+		await gm.evaluate(() => window.e2e.actor('Rival').toggleStatusEffect('cover', { active: true }));
+		const increasedRows: Record<string, PromptState['modifications']> = {};
+		for (const weapon of ['Knife', 'Bow']) {
+			increasedRows[weapon] = (
+				await gm.evaluate((args) => window.adversariesE2E.attack(args), { actor: 'Attacker', weapon, target: 'Rival' })
+			).modifications.filter(({ name }) => name.endsWith('Defense'));
+		}
+		e2e.expect(
+			'#737 D3 an attack against a Rival of stat block defense 0 with a +1 increase, in cover, counts melee defense 1 and ranged defense 2',
+			increasedRows,
+			{ Knife: defenseRow('Melee', 1), Bow: defenseRow('Ranged', 2) },
+		);
+		await gm.evaluate(() => window.e2e.actor('Rival').toggleStatusEffect('cover', { active: false }));
 	});
 
 	// E: token bar changes from the Token HUD (§#195).

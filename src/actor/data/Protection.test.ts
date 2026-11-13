@@ -78,19 +78,29 @@ describe('totalDefense', () => {
 });
 
 describe('adversaryDefense', () => {
+	// What a talent written with a "+" adds to melee and ranged defense.
+	const PLUS_ONE = { melee: 1, ranged: 1 };
+
 	it("is the adversary's stat block defense, melee and ranged each, up to 4 (CRB p. 104-105)", () => {
-		expect(adversaryDefense({ melee: 1, ranged: 2 }, NONE)).toEqual({ melee: 1, ranged: 2 });
-		expect(adversaryDefense({ melee: 4, ranged: 4 }, NONE)).toEqual({ melee: 4, ranged: 4 });
-		expect(adversaryDefense({ melee: 5, ranged: 6 }, NONE)).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 1, ranged: 2 }, NONE, NONE)).toEqual({ melee: 1, ranged: 2 });
+		expect(adversaryDefense({ melee: 4, ranged: 4 }, NONE, NONE)).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 5, ranged: 6 }, NONE, NONE)).toEqual({ melee: 4, ranged: 4 });
 	});
 
 	it('keeps the best of its stat block defense, which counts its armor, and the one cover provides (CRB p. 106)', () => {
-		expect(adversaryDefense({ melee: 1, ranged: 1 }, COVER)).toEqual({ melee: 1, ranged: 1 });
-		expect(adversaryDefense({ melee: 0, ranged: 0 }, COVER)).toEqual({ melee: 0, ranged: 1 });
+		expect(adversaryDefense({ melee: 1, ranged: 1 }, COVER, NONE)).toEqual({ melee: 1, ranged: 1 });
+		expect(adversaryDefense({ melee: 0, ranged: 0 }, COVER, NONE)).toEqual({ melee: 0, ranged: 1 });
+	});
+
+	it('adds the increases written with a "+" to the best of its stat block defense and the one provided (CRB p. 106)', () => {
+		expect(adversaryDefense({ melee: 0, ranged: 0 }, NONE, PLUS_ONE)).toEqual({ melee: 1, ranged: 1 });
+		expect(adversaryDefense({ melee: 0, ranged: 0 }, COVER, PLUS_ONE)).toEqual({ melee: 1, ranged: 2 });
+		expect(adversaryDefense({ melee: 1, ranged: 1 }, COVER, PLUS_ONE)).toEqual({ melee: 2, ranged: 2 });
 	});
 
 	it('never goes above 4 (CRB p. 104-105)', () => {
-		expect(adversaryDefense({ melee: 3, ranged: 3 }, { melee: 5, ranged: 5 })).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 3, ranged: 3 }, { melee: 5, ranged: 5 }, NONE)).toEqual({ melee: 4, ranged: 4 });
+		expect(adversaryDefense({ melee: 3, ranged: 3 }, COVER, { melee: 2, ranged: 2 })).toEqual({ melee: 4, ranged: 4 });
 	});
 });
 
