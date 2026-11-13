@@ -4216,6 +4216,31 @@ export async function run(e2e: ScenarioContext) {
 			},
 		);
 
+		// Rival is targeted as the prompt opens, then Bo before the roll: the card keeps the Critical Injury against Rival.
+		await target('Rival');
+		await opened(gm, attack('Pistol'));
+		await target('Bo');
+		await gm.fixDice([
+			{ face: 12, faces: 12 },
+			{ face: 10, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		await roll();
+		const retargeted = await gm.evaluate(() => {
+			const message = game.messages.contents.at(-1);
+			return {
+				target: fromUuidSync(message.flags.genesys.criticalInjury.target)?.name,
+				button: message.content.includes('roll-critical-injury'),
+			};
+		});
+		await target(null);
+		e2e.expect(
+			'#730 C8 an attack rolled against another target than the one the prompt opened with keeps its Critical Injury against the first',
+			retargeted,
+			{ target: 'E2E Rival', button: true },
+		);
+
 		await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
 		await e2e.step('Critical Injuries end');
 	});
