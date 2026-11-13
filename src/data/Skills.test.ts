@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	attackSkillChoices,
 	attackSkillName,
+	displayedSkillRules,
 	freeRank,
 	isOwnedSkill,
 	ownedSkill,
@@ -25,6 +26,25 @@ function skill(name: string, rank = 0) {
 }
 
 const compendium = [skill('Athletics'), skill('Cool'), skill('Ranged (Light)'), skill('Resilience')];
+
+describe('displayedSkillRules', () => {
+	const rules = [
+		{ name: 'Vigilance', system: { difficulty: 'D', initiative: true } },
+		{ name: 'Athletics', system: { difficulty: '', initiative: false } },
+	];
+
+	it("shows the compendium skill's difficulty and initiative, whatever the case of the name", () => {
+		expect(displayedSkillRules(rules, 'vigilance', 'DD')).toEqual({ difficulty: 'D', initiative: true });
+	});
+
+	it("shows the world's difficulty for a compendium skill with none", () => {
+		expect(displayedSkillRules(rules, 'Athletics', 'DD')).toEqual({ difficulty: 'DD', initiative: false });
+	});
+
+	it("shows the world's difficulty and no initiative without a compendium skill of that name", () => {
+		expect(displayedSkillRules(rules, 'Streetwise', 'DD')).toEqual({ difficulty: 'DD', initiative: false });
+	});
+});
 
 describe('skillNamesMatch', () => {
 	it('matches names whatever their case', () => {
