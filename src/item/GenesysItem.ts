@@ -1,7 +1,8 @@
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
-import { orphanedQualityEffects } from '@/item/data/Qualities';
-import { type ContainedAttachment, orphanedAttachmentEffects } from '@/item/data/Attachments';
+import { itemQualities, QUALITY_FLAG } from '@/item/data/Qualities';
+import { ATTACHMENT_FLAG, type ContainedAttachment } from '@/item/data/Attachments';
+import { orphanedTaggedEffects } from '@/item/data/EffectTags';
 import { applyItemChanges } from '@/item/ItemChanges';
 
 /**
@@ -37,8 +38,20 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 		if (userId === game.user.id && (changesQualities || changesAttachments)) {
 			const attachments = (this.system as { attachments?: ContainedAttachment[] }).attachments ?? [];
 			const orphaned = [
-				...(changesQualities ? orphanedQualityEffects(this.effects, this.system) : []),
-				...(changesAttachments ? orphanedAttachmentEffects(this.effects, attachments) : []),
+				...(changesQualities
+					? orphanedTaggedEffects(
+							this.effects,
+							QUALITY_FLAG,
+							itemQualities(this.system).map(({ id }) => id),
+						)
+					: []),
+				...(changesAttachments
+					? orphanedTaggedEffects(
+							this.effects,
+							ATTACHMENT_FLAG,
+							attachments.map(({ id }) => id),
+						)
+					: []),
 			];
 			if (orphaned.length > 0) {
 				void this.deleteEmbeddedDocuments('ActiveEffect', orphaned);

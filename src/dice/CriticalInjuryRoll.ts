@@ -1,5 +1,7 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
-import { effectQuality, isOutrankedQuality, qualityIdOf, qualityRank } from '@/item/data/Qualities';
+import { effectTag } from '@/item/data/EffectTags';
+import { type RankedSystem, scalingRank } from '@/item/data/Talents';
+import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityNameKey, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
@@ -110,9 +112,9 @@ type CriticalAttackWeapon = { name: string; uuid: string | null; qualities: read
  * the names given, whatever its case, until qualities are items the system recognises otherwise.
  */
 export function viciousRating(qualities: readonly Pick<AttackQuality, 'name' | 'rating'>[], names: readonly string[]): number {
-	const viciousNames = new Set(names.map((name) => name.trim().toLowerCase()));
+	const viciousNames = new Set(names.map(qualityNameKey));
 	return qualities
-		.filter((quality) => viciousNames.has(quality.name.trim().toLowerCase()))
+		.filter((quality) => viciousNames.has(qualityNameKey(quality.name)))
 		.reduce((rating, quality) => Math.max(rating, quality.rating), 0);
 }
 
@@ -154,7 +156,7 @@ type CriticalSourceItem = {
 	name: string;
 	uuid: string | null;
 	type: string;
-	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+	system: RankedSystem;
 };
 
 /**
@@ -205,9 +207,9 @@ const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
  */
 function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: CriticalAttackWeapon | undefined): number | undefined {
 	const item = effect.originItem;
-	const qualityId = qualityIdOf(effect);
+	const qualityId = effectTag(effect, QUALITY_FLAG);
 	if (qualityId === undefined || !item) {
-		return item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		return scalingRank(item);
 	}
 
 	if (!WEAPON_TYPES.includes(item.type)) {

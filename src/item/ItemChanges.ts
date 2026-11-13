@@ -4,7 +4,8 @@
  */
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
+import { effectTag } from '@/item/data/EffectTags';
 
 /**
  * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on its
@@ -111,7 +112,7 @@ export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<Ite
 	// counts nowhere.
 	const withQualities = [...effects].map((effect) => {
 		const quality = effectQuality(effect, system);
-		return { effect, quality, orphaned: qualityIdOf(effect) !== undefined && !quality };
+		return { effect, quality, orphaned: effectTag(effect, QUALITY_FLAG) !== undefined && !quality };
 	});
 	const totals = (counted: typeof withQualities) =>
 		itemChangeTotals(
@@ -119,7 +120,7 @@ export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<Ite
 			counted.map(({ effect, quality }) => ({
 				disabled: effect.disabled,
 				changes: effect.changes,
-				rank: quality?.isRated ? quality.rating : 1,
+				rank: quality ? qualityRank(quality) : 1,
 			})),
 		);
 	const add = (target: Partial<Record<ItemChangeField, number>>, field: ItemChangeField, total: number | undefined) => {

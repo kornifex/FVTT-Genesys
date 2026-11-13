@@ -5,6 +5,8 @@
  */
 
 import type { AbilityActivation } from '@/data/schemaFields';
+import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
+import { qualityNameKey } from '@/item/data/Qualities';
 
 /**
  * The magic actions of the Core Rulebook (CRB pp. 214–218), and Custom, a spell the table writes outside them.
@@ -40,10 +42,6 @@ export type SpellActionDefaults = {
 	isAttack: boolean;
 	skills: string[];
 };
-
-const EASY = 1;
-const AVERAGE = 2;
-const HARD = 3;
 
 // Table III.2–2 and each action's own section (CRB pp. 214–218). The skills are the CRB's names, as the Skills Compendium
 // it ships names them.
@@ -120,7 +118,7 @@ export function withSpellQualityAdded(
 		system,
 	}: { name: string; system: { description: string; activation: AbilityActivation['type']; advantageCost: number; isRated: boolean } },
 ): SpellQuality[] | undefined {
-	if (qualities.some((quality) => quality.name.toLowerCase() === name.toLowerCase())) {
+	if (qualities.some((quality) => qualityNameKey(quality.name) === qualityNameKey(name))) {
 		return undefined;
 	}
 

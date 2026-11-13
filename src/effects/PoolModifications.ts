@@ -13,8 +13,10 @@ import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { effectQuality, isOutrankedQualityEffect, qualityIdOf } from '@/item/data/Qualities';
-import { attachmentIdOf } from '@/item/data/Attachments';
+import { effectTag } from '@/item/data/EffectTags';
+import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
+import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
+import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
@@ -54,8 +56,7 @@ export type PoolModificationKey = {
  */
 export type SourceItem = {
 	type: string;
-	// The data of an item of any type, which only talents fill these fields of.
-	system: object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+	system: RankedSystem;
 };
 
 /**
@@ -288,17 +289,17 @@ export function scaledChangeValue(
 	{ key, value }: { key: string; value: unknown },
 	quality?: Pick<ContainedItemQuality, 'isRated' | 'rating'>,
 ) {
-	const qualityRank = quality?.isRated ? quality.rating : 1;
+	const rankOfQuality = quality && qualityRank(quality);
 
 	if (decodeKey(key)) {
-		const rank = quality ? qualityRank : item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+		const rank = rankOfQuality ?? scalingRank(item);
 		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
 	// A quality of rank 1, rated or not, leaves its value as written: the rewrite below would cut a decimal or a formula to
 	// an integer.
-	if (quality ? qualityRank !== 1 : item?.type === 'talent') {
-		const rank = quality ? qualityRank : item!.system.rank!;
+	if (quality ? rankOfQuality !== 1 : item?.type === 'talent') {
+		const rank = rankOfQuality ?? item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;
 		}
@@ -445,7 +446,8 @@ const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 // with that weapon, rather than every check its keys name, as an armor's do (#694, #702).
 function isWeaponAttackEffect(effect: PoolModificationEffect) {
 	return (
-		(qualityIdOf(effect) !== undefined || attachmentIdOf(effect) !== undefined) && WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
+		(effectTag(effect, QUALITY_FLAG) !== undefined || effectTag(effect, ATTACHMENT_FLAG) !== undefined) &&
+		WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
 	);
 }
 
@@ -467,7 +469,9 @@ function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (ef
 // change every profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
 function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
 	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
-	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(qualityIdOf(effect) ?? '') || attachmentIdOf(effect) !== undefined);
+	return [...(weapon?.effects ?? [])].filter(
+		(effect) => ids.has(effectTag(effect, QUALITY_FLAG) ?? '') || effectTag(effect, ATTACHMENT_FLAG) !== undefined,
+	);
 }
 
 function effectModifications(

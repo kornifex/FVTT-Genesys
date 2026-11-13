@@ -23,6 +23,13 @@ export const DIFFICULTY_LABELS = [
 ];
 
 /**
+ * The difficulty levels of one, two and three Difficulty dice (CRB p. 18, Table I.1–3).
+ */
+export const EASY = 1;
+export const AVERAGE = 2;
+export const HARD = 3;
+
+/**
  * The difficulty level of five Difficulty dice, Formidable: the most dice a difficulty rolls.
  */
 export const FORMIDABLE = 5;

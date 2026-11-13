@@ -10,11 +10,9 @@ import {
 	effectQuality,
 	isOutrankedQualityEffect,
 	itemQualities,
-	orphanedQualityEffects,
 	qualityCopy,
-	qualityEffectsData,
-	qualityIdOf,
 	qualityLabel,
+	qualityNameKey,
 	withQualityAdded,
 	withQualityChanged,
 	withQualityRating,
@@ -42,6 +40,13 @@ const dropped = (name: string, isRated = true, description = `<p>${name}.</p>`):
 
 // An effect tagged with the id of the quality it belongs to.
 const tagged = (id: string | null, quality: string) => ({ id, flags: { genesys: { quality } } });
+
+describe('qualityNameKey', () => {
+	it('names the same quality whatever the case and the surrounding spaces of its name', () => {
+		expect(qualityNameKey(' Vicious ')).toBe(qualityNameKey('vicious'));
+		expect(qualityNameKey('Pierce')).not.toBe(qualityNameKey('Vicious'));
+	});
+});
 
 describe('withQualityAdded', () => {
 	it('adds a quality the item lacks at rating 1, after the ones it has', () => {
@@ -123,15 +128,6 @@ describe('itemQualities', () => {
 	});
 });
 
-describe('qualityIdOf', () => {
-	it('reads the id of the quality an effect is tagged with, and none for an effect without the tag', () => {
-		expect(qualityIdOf(tagged('e1', 'accurate'))).toBe('accurate');
-		expect(qualityIdOf({ flags: { genesys: { quality: '' } } })).toBeUndefined();
-		expect(qualityIdOf({ flags: { genesys: {} } })).toBeUndefined();
-		expect(qualityIdOf({})).toBeUndefined();
-	});
-});
-
 describe('effectQuality', () => {
 	it("finds the quality of an item an effect is tagged with, in any of a weapon's profiles", () => {
 		const system = { qualities: [quality('Accurate')], extraProfiles: [{ qualities: [quality('Inaccurate', 2)] }] };
@@ -181,21 +177,6 @@ describe('isOutrankedQualityEffect (CRB pp. 86–89)', () => {
 	});
 });
 
-describe('orphanedQualityEffects', () => {
-	it("lists the effects tagged with a quality the item no longer holds, and leaves the item's other effects", () => {
-		const system = { qualities: [quality('Accurate')], extraProfiles: [{ qualities: [quality('Defensive')] }] };
-		const effects = [
-			tagged('e1', 'accurate'),
-			tagged('e2', 'vicious'),
-			tagged('e3', 'defensive'),
-			{ id: 'e4', flags: {} },
-			tagged('e5', 'vicious'),
-		];
-
-		expect(orphanedQualityEffects(effects, system)).toEqual(['e2', 'e5']);
-	});
-});
-
 describe('qualityCopy', () => {
 	it('copies what a quality item holds, but its rating, under the id given', () => {
 		const item = {
@@ -211,23 +192,5 @@ describe('qualityCopy', () => {
 			advantageCost: 2,
 			isRated: false,
 		});
-	});
-});
-
-describe('qualityEffectsData', () => {
-	it("copies a quality item's effects without their ids, tagged with the quality's id, keeping their other flags", () => {
-		const effects = [
-			{ _id: 'a', name: 'Accurate', changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }], flags: { core: { x: 1 } } },
-			{ _id: 'b', name: 'Other', flags: { genesys: { lapses: true } } },
-		];
-
-		expect(qualityEffectsData(effects, 'q1')).toEqual([
-			{
-				name: 'Accurate',
-				changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }],
-				flags: { core: { x: 1 }, genesys: { quality: 'q1' } },
-			},
-			{ name: 'Other', flags: { genesys: { lapses: true, quality: 'q1' } } },
-		]);
 	});
 });

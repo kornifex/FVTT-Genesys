@@ -6,7 +6,7 @@ import Localized from '@/vue/components/Localized.vue';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { withQualityChanged, withQualityRating } from '@/item/data/Qualities';
+import { qualityNameKey, withQualityChanged, withQualityRating } from '@/item/data/Qualities';
 import { ACTIVATION_TYPES } from '@/data/schemaFields';
 import { withoutIndex } from '@/arrays';
 import { confirmDelete } from '@/operations/ItemActions';
@@ -41,7 +41,7 @@ const ACTIVATION_LABELS = { passive: 'Genesys.Labels.Passive', active: 'Genesys.
 
 // The qualities shown in full, by their name, which is unique in the list whatever its case.
 const opened = ref(new Set<string>());
-const keyOf = (quality: ContainedItemQuality) => quality.name.toLowerCase();
+const keyOf = (quality: ContainedItemQuality) => qualityNameKey(quality.name);
 
 function toggle(quality: ContainedItemQuality) {
 	const key = keyOf(quality);

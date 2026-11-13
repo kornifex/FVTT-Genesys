@@ -11,6 +11,19 @@ export const MAX_TIER = 5;
 export const TIERS = Array.from({ length: MAX_TIER }, (_, index) => index + 1);
 
 /**
+ * The data of an item of any type, which only a talent fills the rank fields of.
+ */
+export type RankedSystem = object & { rank?: number; scalesWithRank?: 'yes' | 'no' };
+
+/**
+ * How many times a talent's Pool Modifications and Critical Injury changes count: once per rank when the talent scales
+ * with rank, once otherwise, and for an item that is no talent.
+ */
+export function scalingRank(item: { system: RankedSystem } | undefined) {
+	return item?.system.scalesWithRank === 'yes' ? item.system.rank ?? 1 : 1;
+}
+
+/**
  * What this module reads of a talent: its own tier and its rank.
  */
 type TieredTalent = { tier: number; rank: number };
