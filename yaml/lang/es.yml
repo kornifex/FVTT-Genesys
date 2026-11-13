@@ -500,7 +500,20 @@ Genesys:
       ¡Hola, y gracias por probar el sistema Genesys! Ten en cuenta que este sistema está todavía en fase alfa: está listo para
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
+    Feature: NOVEDAD
     Fix: CORRECCIÓN
+    CombatTabStates: >-
+      La pestaña Combate activa y quita los estados de la ficha, y anula Apuntar y Postura defensiva; los estados de Genesys
+      aparecen primero en el menú de la ficha
+    RepeatableEffects: Un efecto adicional como Alcance puede añadirse más de una vez a un hechizo
+    SpellRows: >-
+      La fila de un hechizo en la pestaña Magia se lee como la de un arma, con la descripción de sus efectos como información
+      emergente
+    QualityDescriptions: La descripción de una propiedad o de un accesorio aparece en su fila de la reserva de dados
+    PatientWindow: La ventana del paciente lista los rivales y antagonistas de la escena
+    CompendiumSkills: >-
+      La habilidad de un personaje muestra la dificultad por defecto y la iniciativa del compendio de habilidades, solo
+      lectura
     RecoverySkills: >-
       Las habilidades que curan heridas y recuperan tensión se marcan en la habilidad: márcalas en un compendio de
       habilidades copiado
