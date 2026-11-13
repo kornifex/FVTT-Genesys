@@ -37,20 +37,6 @@ const { system } = useSheetDocument<GenesysActor<'nemesis'>>();
 					counter: { attribute: 'strain', label: 'Genesys.Counter.CurrentStrain' },
 				}"
 			/>
-
-			<CombatStat
-				label="Genesys.Labels.Defense"
-				primary-label="Genesys.Labels.DefenseRanged"
-				:value="system.defense.ranged"
-				name="system.defense.ranged"
-				field-label="Genesys.Labels.RangedDefense"
-				:secondary="{
-					label: 'Genesys.Labels.DefenseMelee',
-					value: system.defense.melee,
-					name: 'system.defense.melee',
-					fieldLabel: 'Genesys.Labels.MeleeDefense',
-				}"
-			/>
 		</template>
 	</AdversarySheet>
 </template>

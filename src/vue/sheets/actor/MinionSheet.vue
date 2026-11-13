@@ -41,20 +41,6 @@ const isIndependent = computed(() => actor.value.getFlag('genesys', 'independent
 			/>
 
 			<CombatStat v-else label="Genesys.Labels.WoundThreshold" name="system.wounds.threshold" :value="system.wounds.threshold" />
-
-			<CombatStat
-				label="Genesys.Labels.Defense"
-				primary-label="Genesys.Labels.DefenseRanged"
-				:value="system.defense.ranged"
-				name="system.defense.ranged"
-				field-label="Genesys.Labels.RangedDefense"
-				:secondary="{
-					label: 'Genesys.Labels.DefenseMelee',
-					value: system.defense.melee,
-					name: 'system.defense.melee',
-					fieldLabel: 'Genesys.Labels.MeleeDefense',
-				}"
-			/>
 		</template>
 
 		<template v-slot:skills>

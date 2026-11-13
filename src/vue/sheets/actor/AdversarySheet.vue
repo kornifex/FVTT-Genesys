@@ -5,6 +5,7 @@ import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysActor } from '@/actor/GenesysActor';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
+import CombatStat from '@/vue/components/character/CombatStat.vue';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import QualityList from '@/vue/components/QualityList.vue';
@@ -160,6 +161,20 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 					<div class="stats-row">
 						<slot name="stats" />
+
+						<CombatStat
+							label="Genesys.Labels.Defense"
+							primary-label="Genesys.Labels.DefenseRanged"
+							:value="system.defense.ranged"
+							name="system.defense.ranged"
+							field-label="Genesys.Labels.RangedDefense"
+							:secondary="{
+								label: 'Genesys.Labels.DefenseMelee',
+								value: system.defense.melee,
+								name: 'system.defense.melee',
+								fieldLabel: 'Genesys.Labels.MeleeDefense',
+							}"
+						/>
 					</div>
 
 					<div class="adversary-items">
