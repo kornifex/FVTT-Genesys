@@ -1,6 +1,19 @@
 /** @file The harness's settings, read from the environment (`e2e/.env`), so that licensed installs stay out of the repo. */
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+/**
+ * The `e2e/.env` the harness loads: the checkout's own, else that of the repo's main checkout, the parent of the git
+ * dir its worktrees share (`gitCommonDir`, asked only then), since git ignores the file and a new worktree has none.
+ * None when neither has one.
+ */
+export function envFile(root: string, gitCommonDir: () => string): string | undefined {
+	const own = path.join(root, 'e2e', '.env');
+	if (fs.existsSync(own)) return own;
+	const main = path.join(path.dirname(gitCommonDir()), 'e2e', '.env');
+	return fs.existsSync(main) ? main : undefined;
+}
 
 /**
  * A licensed Foundry install the harness can launch.
@@ -23,12 +36,12 @@ type HarnessConfig = {
 	chromium: string | undefined;
 	/** The ANGLE backend Chromium draws with (`--use-angle`), such as `vulkan` for the GPU; SwiftShader, on the CPU, when undefined. */
 	angle: string | undefined;
-	/** Where the world copies, builds and results go. */
+	/** Where the world copies, builds and results go: the copies and results under each checkout's own folder. */
 	workDir: string;
 	gmUser: string;
 	/** Created by the GM when the world lacks it. */
 	playerUser: string;
-	/** The port of the pool's first launch: launch `i` listens on `port + i`. */
+	/** The lowest port the pool may take: the run claims the first free range of `launches` ports from it. */
 	port: number;
 	/** How many Foundry launches run at once. */
 	launches: number;

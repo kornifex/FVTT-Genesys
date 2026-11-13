@@ -1,8 +1,50 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { readConfig } from './config.ts';
+import { envFile, readConfig } from './config.ts';
+
+describe('envFile', () => {
+	let main: string;
+	let worktree: string;
+	const gitCommonDir = () => path.join(main, '.git');
+	const writeEnv = (root: string) => {
+		fs.mkdirSync(path.join(root, 'e2e'), { recursive: true });
+		fs.writeFileSync(path.join(root, 'e2e', '.env'), '');
+	};
+
+	beforeEach(() => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'genesys-env-'));
+		main = path.join(dir, 'main');
+		worktree = path.join(main, '.claude', 'worktrees', 'agent');
+		fs.mkdirSync(path.join(main, '.git'), { recursive: true });
+		fs.mkdirSync(worktree, { recursive: true });
+	});
+
+	afterEach(() => fs.rmSync(path.dirname(main), { recursive: true, force: true }));
+
+	it("takes the checkout's own e2e/.env, without asking git", () => {
+		writeEnv(main);
+		writeEnv(worktree);
+
+		expect(
+			envFile(worktree, () => {
+				throw new Error('git asked');
+			}),
+		).toBe(path.join(worktree, 'e2e', '.env'));
+	});
+
+	it("takes the main checkout's e2e/.env from a worktree that has none", () => {
+		writeEnv(main);
+
+		expect(envFile(worktree, gitCommonDir)).toBe(path.join(main, 'e2e', '.env'));
+	});
+
+	it('finds none when neither checkout has one', () => {
+		expect(envFile(worktree, gitCommonDir)).toBeUndefined();
+	});
+});
 
 const v13 = {
 	E2E_V13_NODE: '/node22/bin/node',
