@@ -5,6 +5,7 @@
 import { NAMESPACE as SETTINGS_NAMESPACE } from '@/settings';
 import { KEY_STORY_POINTS, type StoryPointData } from '@/settings/storyPoints';
 import {
+	onePoint,
 	serialStoryPointWrites,
 	sessionStoryPoints,
 	SPEND_MESSAGES,
@@ -105,7 +106,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	 * Spends a Story Point of a pool for the current user.
 	 */
 	static async spendStoryPoint(pool: StoryPointPool) {
-		await StoryPointTracker.spendStoryPoints({ [pool]: 1 });
+		await StoryPointTracker.spendStoryPoints(onePoint(pool));
 	}
 
 	/**
@@ -131,7 +132,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return true;
 		}
 
-		if (spend.gm) {
+		if (spend.gm > 0) {
 			ui.notifications.error(game.i18n.localize('Genesys.Notifications.GenericError'));
 			return false;
 		}
@@ -166,7 +167,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 			return false;
 		}
 
-		const pools = (['player', 'gm'] as const).flatMap((pool) => Array<StoryPointPool>(spend[pool] ?? 0).fill(pool));
+		const pools = (['player', 'gm'] as const).flatMap((pool) => Array<StoryPointPool>(spend[pool]).fill(pool));
 		for (const pool of pools) {
 			const chatTemplate = await foundry.applications.handlebars.renderTemplate('systems/genesys/templates/chat/storypoint.hbs', {
 				type: pool,
@@ -194,7 +195,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 		}
 
 		// Another spend may have emptied the pool since the player's client checked it.
-		if (!(await StoryPointTracker.#spend({ player: count }, player))) {
+		if (!(await StoryPointTracker.#spend({ player: count, gm: 0 }, player))) {
 			refuse('Genesys.Notifications.NotEnoughStoryPoints');
 		}
 	}

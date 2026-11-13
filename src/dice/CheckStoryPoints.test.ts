@@ -94,7 +94,7 @@ describe('chosenSpends', () => {
 
 describe('spentPoints', () => {
 	it("takes a player's points from the player pool, an Impossible task's and the upgrade's (CRB pp. 18, 28)", () => {
-		expect(spentPoints([CheckSpend.Impossible, CheckSpend.UpgradeAbility], false)).toEqual({ player: 2 });
+		expect(spentPoints([CheckSpend.Impossible, CheckSpend.UpgradeAbility], false)).toEqual({ player: 2, gm: 0 });
 	});
 
 	it("takes a GM's points from the GM pool, and the player's upgrade of the difficulty from the player pool (CRB pp. 28–29)", () => {
@@ -102,7 +102,7 @@ describe('spentPoints', () => {
 	});
 
 	it('takes no point without a spend', () => {
-		expect(spentPoints([], true)).toEqual({});
+		expect(spentPoints([], true)).toEqual({ player: 0, gm: 0 });
 	});
 });
 

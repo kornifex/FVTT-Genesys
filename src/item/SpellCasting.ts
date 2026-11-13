@@ -7,7 +7,7 @@
 import { ownedSkill, type Skill } from '@/data/Skills';
 import type { CheckPurpose } from '@/dice/Check';
 import { FORMIDABLE } from '@/dice/Difficulty';
-import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
+import { type ContainedAdditionalEffect, type SpellQuality, spellQualityRating } from '@/item/data/Spells';
 import type { DamageCharacteristic, RangeBand } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 
@@ -166,13 +166,15 @@ export function spellAttackProfile(
 	};
 }
 
-function castQuality({ name, description, ratingSource, rating, ratingSkill }: SpellQuality, ranksIn: (skill: string) => number) {
-	switch (ratingSource) {
+function castQuality(quality: SpellQuality, ranksIn: (skill: string) => number): CastQuality {
+	const { name, description } = quality;
+	const source = spellQualityRating(quality);
+	switch (source.ratingSource) {
 		case 'unrated':
 			return { name, description, isRated: false, rating: 0 };
 		case 'fixed':
-			return { name, description, isRated: true, rating };
+			return { name, description, isRated: true, rating: source.rating };
 		case 'skillRanks':
-			return { name, description, isRated: true, rating: ranksIn(ratingSkill) };
+			return { name, description, isRated: true, rating: ranksIn(source.ratingSkill) };
 	}
 }

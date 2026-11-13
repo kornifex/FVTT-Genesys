@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+	onePoint,
 	serialStoryPointWrites,
 	sessionStoryPoints,
 	type StoryPointPool,
@@ -19,22 +20,22 @@ describe('sessionStoryPoints', () => {
 
 describe('storyPointsAfterSpending', () => {
 	it('moves a point the players spend into the GM pool, and a point the GM spends into the player pool (CRB p. 28)', () => {
-		expect(storyPointsAfterSpending({ player: 3, gm: 1 }, { player: 1 })).toEqual({ player: 2, gm: 2 });
-		expect(storyPointsAfterSpending({ player: 3, gm: 1 }, { gm: 1 })).toEqual({ player: 4, gm: 0 });
+		expect(storyPointsAfterSpending({ player: 3, gm: 1 }, { player: 1, gm: 0 })).toEqual({ player: 2, gm: 2 });
+		expect(storyPointsAfterSpending({ player: 3, gm: 1 }, { player: 0, gm: 1 })).toEqual({ player: 4, gm: 0 });
 	});
 
 	it('spends nothing from an empty pool (CRB p. 28)', () => {
-		expect(storyPointsAfterSpending({ player: 0, gm: 2 }, { player: 1 })).toBeUndefined();
-		expect(storyPointsAfterSpending({ player: 2, gm: 0 }, { gm: 1 })).toBeUndefined();
+		expect(storyPointsAfterSpending({ player: 0, gm: 2 }, { player: 1, gm: 0 })).toBeUndefined();
+		expect(storyPointsAfterSpending({ player: 2, gm: 0 }, { player: 0, gm: 1 })).toBeUndefined();
 	});
 
 	it('moves the points a check spends together from both pools, each to the other (CRB pp. 18, 28–30, #671)', () => {
 		expect(storyPointsAfterSpending({ player: 3, gm: 2 }, { player: 1, gm: 2 })).toEqual({ player: 4, gm: 1 });
-		expect(storyPointsAfterSpending({ player: 3, gm: 2 }, { player: 2 })).toEqual({ player: 1, gm: 4 });
+		expect(storyPointsAfterSpending({ player: 3, gm: 2 }, { player: 2, gm: 0 })).toEqual({ player: 1, gm: 4 });
 	});
 
 	it("spends none of them when a pool holds fewer points than the check spends from it, even those the other pool's spend brings it", () => {
-		expect(storyPointsAfterSpending({ player: 1, gm: 2 }, { player: 2 })).toBeUndefined();
+		expect(storyPointsAfterSpending({ player: 1, gm: 2 }, { player: 2, gm: 0 })).toBeUndefined();
 		expect(storyPointsAfterSpending({ player: 0, gm: 1 }, { player: 1, gm: 1 })).toBeUndefined();
 	});
 });
@@ -60,7 +61,7 @@ describe('serialStoryPointWrites', () => {
 	}
 	const type = (pool: StoryPointPool, count: number) => (storyPoints: StoryPointData) =>
 		storyPointsAfterSetting(storyPoints, pool, count);
-	const spend = (pool: StoryPointPool) => (storyPoints: StoryPointData) => storyPointsAfterSpending(storyPoints, { [pool]: 1 });
+	const spend = (pool: StoryPointPool) => (storyPoints: StoryPointData) => storyPointsAfterSpending(storyPoints, onePoint(pool));
 
 	it('counts changes made together, each from the pools the previous one wrote: two spends, then a typed count', async () => {
 		const pools = storedPools({ player: 2, gm: 1 });

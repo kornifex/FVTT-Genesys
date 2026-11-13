@@ -453,13 +453,16 @@ function cancelName(glyph: string) {
 
 // The prompt answers with the check, the pool built for it and the Story Points spent on it; it spends them, and its
 // caller rolls the check.
-usePromptAnswer<DicePromptAnswer>(() => ({
-	check: check.value!,
-	dicePool: currentDicePool.value,
-	spends: spends.value,
-	targetUuid: target?.uuid ?? undefined,
-	...(spell && { spellEffects: [...checkedEffects.value] }),
-}));
+usePromptAnswer<DicePromptAnswer>(() => {
+	const answered = {
+		// The check is resolved as the prompt mounts, before the roller can answer.
+		check: check.value!,
+		dicePool: currentDicePool.value,
+		spends: spends.value,
+		targetUuid: target?.uuid ?? undefined,
+	};
+	return spell ? { ...answered, type: RollType.Spell, spellEffects: [...checkedEffects.value] } : { ...answered, type: 'check' };
+});
 
 const superCharacteristicId = useId();
 const effectId = useId();

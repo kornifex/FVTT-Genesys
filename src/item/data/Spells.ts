@@ -107,6 +107,29 @@ export type SpellQuality = {
 };
 
 /**
+ * Where a quality's rating comes from, as casting reads it: only the field its source uses, the fixed rating or the skill
+ * whose ranks it counts, and none other.
+ */
+type SpellQualityRating =
+	| { ratingSource: 'unrated' }
+	| { ratingSource: 'fixed'; rating: number }
+	| { ratingSource: 'skillRanks'; ratingSkill: string };
+
+/**
+ * The rating of a stored quality, parsed: the stored shape keeps all its fields, whichever the source reads.
+ */
+export function spellQualityRating({ ratingSource, rating, ratingSkill }: SpellQuality): SpellQualityRating {
+	switch (ratingSource) {
+		case 'unrated':
+			return { ratingSource };
+		case 'fixed':
+			return { ratingSource, rating };
+		case 'skillRanks':
+			return { ratingSource, ratingSkill };
+	}
+}
+
+/**
  * The qualities of an Additional Effect with a quality item dropped on it: a rated quality counts the caster's ranks in
  * Knowledge, as Table III.2–5 does, an unrated one has no rating. `undefined` when the effect already gives a quality of
  * that name, whatever its case: an attack has each quality once.
