@@ -105,5 +105,26 @@ export async function repeatableEffectsPart(ctx: DicePromptContext) {
 		{ difficulty: cast.difficulty, effects: card.spellEffects },
 		{ difficulty: 'Difficulty: Formidable', effects: ['Range ×4'] },
 	);
+
+	// #790: the Veil at Easy, raised to Hard by hand; Range added at Formidable adds nothing then, but counts once
+	// Additional Target is taken off.
+	await opened(gm, click(gm, { actor: 'Illusionist' }, '.tab-magic .spell .name button|E2E Veil'));
+	await step('Range', -1);
+	await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([3]));
+	await check('Additional Target');
+	const rangeAtFormidable = (await step('Range', 1)).difficulty;
+	const targetOff = (await check('Additional Target')).difficulty;
+	await gm.evaluate(() => window.dicePromptE2E.setPromptDifficulty([6]));
+	const impossibleRangeOff = (await step('Range', -1)).difficulty;
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	e2e.expect(
+		'#790 S1 an Easy Veil raised by hand to Hard, with Additional Target then Range added, is Daunting once Additional Target is taken off, and an Impossible one stays Impossible as Range is taken off',
+		{ rangeAtFormidable, targetOff, impossibleRangeOff },
+		{
+			rangeAtFormidable: 'Difficulty: Formidable',
+			targetOff: 'Difficulty: Daunting',
+			impossibleRangeOff: 'Difficulty: Impossible',
+		},
+	);
 	await e2e.step('repeatableEffects end');
 }

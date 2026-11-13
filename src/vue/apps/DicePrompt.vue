@@ -68,7 +68,7 @@ import {
 import type { StoryPointPool } from '@/data/StoryPoints';
 import DescriptionTooltip from '@/vue/components/DescriptionTooltip.vue';
 import type { ContainedAdditionalEffect } from '@/item/data/Spells';
-import { difficultyAddedBy, type EffectCounts, maxEffectCount } from '@/item/SpellCasting';
+import { type EffectCounts, maxEffectCount, type RollerChange, rollerChange, spellCheckLevel } from '@/item/SpellCasting';
 import { attackRangeOf, checkPurposeOf, poolModificationOriginLabel } from '@/dice/PromptCheck';
 
 type AlsoNone<T> = T | undefined;
@@ -131,12 +131,11 @@ const canRoll = computed(() => canRollWithSpends(spends.value, impossible.value)
 // received counts them already.
 const effectCounts = ref<EffectCounts>(context.value.roll.type === RollType.Spell ? { ...context.value.roll.effectCounts } : {});
 const spellEffects = spell?.system.additionalEffects ?? [];
-// The levels each time an effect was added added to the difficulty, the last one last: taking the effect off once gives
-// back the last one's. Those added as the prompt opens added their whole difficulty, as the difficulty received counts
-// them already.
-const addedByEffect = new Map(
-	spellEffects.map((effect) => [effect.id, Array.from({ length: effectCounts.value[effect.id] ?? 0 }, () => effect.difficulty)]),
-);
+// How far the roller's clicks on the difficulty dice moved a spell's difficulty from what the spell and its effects
+// give; adding or taking off an effect leaves it alone. It starts at what the received difficulty holds beyond them.
+let spellRollerChange: RollerChange = spell
+	? rollerChange(received.difficulty.level, spell.system.difficulty, spellEffects, effectCounts.value)
+	: 0;
 const countOf = (effect: ContainedAdditionalEffect) => effectCounts.value[effect.id] ?? 0;
 const maxCount = (effect: ContainedAdditionalEffect) =>
 	spell ? maxEffectCount(spell.system.difficulty, spellEffects, effectCounts.value, effect) : 0;
@@ -391,30 +390,22 @@ function skillLabel(skill: { name: string; system: { characteristic: Characteris
 
 function onDifficultyDieClick(die: number) {
 	difficulty.value = withLevel(difficulty.value, clickedLevel(difficulty.value.level, die));
+	if (spell) {
+		spellRollerChange = rollerChange(difficulty.value.level, spell.system.difficulty, spellEffects, effectCounts.value);
+	}
 	buildDicePool();
 }
 
 /**
- * Add one of the spell's Additional Effects as many times as the count given, within what Formidable allows. Each time
- * it is added raises the difficulty by its own (CRB p. 215), from whatever level the roller left it at; each time it is
- * taken off gives back what the last one added.
+ * Add one of the spell's Additional Effects as many times as the count given, within what Formidable allows. The
+ * difficulty is then the spell's, raised by each effect added (CRB p. 215) and moved by the roller's change.
  */
 function setEffectCount(effect: ContainedAdditionalEffect, count: number) {
 	const target = Math.max(0, Math.min(count, maxCount(effect)));
-	const added = addedByEffect.get(effect.id) ?? [];
-	let level = difficulty.value.level;
-	while (added.length < target) {
-		const levels = difficultyAddedBy(level, effect);
-		added.push(levels);
-		level += levels;
-	}
-	while (added.length > target) {
-		// The loop runs while the list holds an entry.
-		level -= added.pop()!;
-	}
-	addedByEffect.set(effect.id, added);
 	effectCounts.value = { ...effectCounts.value, [effect.id]: target };
-	difficulty.value = withLevel(difficulty.value, level);
+	// Only a spell's check has Additional Effects to add.
+	const spellDifficulty = spell!.system.difficulty;
+	difficulty.value = withLevel(difficulty.value, spellCheckLevel(spellDifficulty, spellEffects, effectCounts.value, spellRollerChange));
 	buildDicePool();
 }
 
