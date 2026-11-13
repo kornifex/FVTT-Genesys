@@ -3,7 +3,8 @@
  * Critical rating, defense, soak or encumbrance) rather than its actor, as an attachment's do (CRB pp. 206–209).
  */
 
-import { effectQuality } from '@/item/data/Qualities';
+import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
 
 /**
  * The fields of a weapon or an armor an Item Change can change. A weapon's damage and Critical rating change on each of
@@ -69,38 +70,61 @@ export function itemChangeTotals(effects: Iterable<RankedEffect>): Partial<Recor
 }
 
 /**
- * The data of a weapon or an armor that Item Changes change: the fields of its type, and a weapon's extra Weapon
- * Profiles.
+ * The fields of a Weapon Profile, which change on each profile, and the qualities it holds.
  */
-type ItemChangeTarget = Partial<Record<ItemChangeField, number>> & {
-	extraProfiles?: Partial<Record<'baseDamage' | 'critical', number>>[];
-};
+type ProfileTarget = Partial<Record<'baseDamage' | 'critical', number>> & { qualities?: readonly Pick<ContainedItemQuality, 'id'>[] };
+
+/**
+ * The data of a weapon or an armor that Item Changes change: the fields of its type, its qualities (a weapon's main
+ * profile's), and a weapon's extra Weapon Profiles.
+ */
+type ItemChangeTarget = Partial<Record<ItemChangeField, number>> &
+	ProfileTarget & {
+		extraProfiles?: ProfileTarget[];
+	};
 
 /**
  * Adds the Item Changes of an item's effects to its prepared data, in place, leaving the fields its type lacks alone. A
- * quality's rating scales its effects' changes, as it does on the actor (CRB pp. 86–89). A Critical rating stays at 1
- * or more: the attack card counts the Advantage spent on a Critical Injury by it.
+ * quality's rating scales its effects' changes, as it does on the actor (CRB pp. 86–89):
+ * - on a Weapon Profile, a quality's changes count on the profile that holds it, at that copy's rank; the item's other
+ *   effects, as an attachment's, count on every profile;
+ * - on the fields of the item itself, a quality held by several profiles counts once, at its highest-ranked copy.
+ *
+ * A Critical rating of 0 stays 0, since no Advantage triggers a Critical Injury then; any other stays at 1 or more: the
+ * attack card counts the Advantage spent on a Critical Injury by it.
  */
 export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<ItemChangeEffect>) {
-	const totals = itemChangeTotals(
-		// Read field by field: the fields of a document aren't all its own properties.
-		[...effects].map((effect) => {
-			const quality = effectQuality(effect, system);
-			return { disabled: effect.disabled, changes: effect.changes, rank: quality?.isRated ? quality.rating : 1 };
-		}),
-	);
-	const add = (target: Partial<Record<ItemChangeField, number>>, field: ItemChangeField) => {
-		const total = totals[field];
-		if (total !== undefined && typeof target[field] === 'number') {
-			target[field] = field === 'critical' ? Math.max(1, target[field] + total) : target[field] + total;
+	const withQualities = [...effects].map((effect) => ({ effect, quality: effectQuality(effect, system) }));
+	const totals = (counted: typeof withQualities) =>
+		itemChangeTotals(
+			// Read field by field: the fields of a document aren't all its own properties.
+			counted.map(({ effect, quality }) => ({
+				disabled: effect.disabled,
+				changes: effect.changes,
+				rank: quality?.isRated ? quality.rating : 1,
+			})),
+		);
+	const add = (target: Partial<Record<ItemChangeField, number>>, field: ItemChangeField, total: number | undefined) => {
+		const value = target[field];
+		if (total === undefined || typeof value !== 'number') {
+			return;
+		}
+		if (field !== 'critical') {
+			target[field] = value + total;
+		} else if (value !== 0) {
+			target[field] = Math.max(1, value + total);
 		}
 	};
 
-	for (const field of ITEM_CHANGE_FIELDS) {
-		add(system, field);
+	const itemTotals = totals(withQualities.filter(({ effect }) => !isOutrankedQualityEffect(effect, system)));
+	for (const field of ['defense', 'soak', 'encumbrance'] as const) {
+		add(system, field, itemTotals[field]);
 	}
-	for (const profile of system.extraProfiles ?? []) {
-		add(profile, 'baseDamage');
-		add(profile, 'critical');
+
+	for (const profile of [system, ...(system.extraProfiles ?? [])]) {
+		const held = new Set((profile.qualities ?? []).map(({ id }) => id));
+		const profileTotals = totals(withQualities.filter(({ quality }) => !quality || held.has(quality.id)));
+		add(profile, 'baseDamage', profileTotals.baseDamage);
+		add(profile, 'critical', profileTotals.critical);
 	}
 }

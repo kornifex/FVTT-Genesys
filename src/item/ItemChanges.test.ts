@@ -95,4 +95,50 @@ describe('applyItemChanges', () => {
 
 		expect(armor.soak).toBe(3);
 	});
+
+	// A weapon whose main profile and extra profile hold the qualities given, with an effect per quality.
+	const twoProfileWeapon = (main: ContainedItemQuality[], extra: ContainedItemQuality[]) => ({
+		baseDamage: 5,
+		critical: 3,
+		encumbrance: 3,
+		qualities: main,
+		extraProfiles: [{ baseDamage: 2, critical: 4, qualities: extra }],
+	});
+
+	it('counts a quality held by two Weapon Profiles once on each, not twice (CRB pp. 86–89)', () => {
+		const weapon = twoProfileWeapon([quality('main', 'Keen', 1)], [quality('extra', 'Keen', 1)]);
+
+		applyItemChanges(weapon, [itemEffect({ baseDamage: 1 }, 'main'), itemEffect({ baseDamage: 1 }, 'extra')]);
+
+		expect([weapon.baseDamage, weapon.extraProfiles[0].baseDamage]).toEqual([6, 3]);
+	});
+
+	it('changes only the Weapon Profile that holds a quality, while an attachment changes every profile', () => {
+		const weapon = twoProfileWeapon([], [quality('extra', 'Keen', 1)]);
+
+		applyItemChanges(weapon, [itemEffect({ baseDamage: 1 }, 'extra'), itemEffect({ critical: -1 })]);
+
+		expect(weapon).toMatchObject({ baseDamage: 5, critical: 2, extraProfiles: [{ baseDamage: 3, critical: 3 }] });
+	});
+
+	it("counts each profile's copy of a quality at its own rank, and the item's own fields once, at the highest", () => {
+		const weapon = twoProfileWeapon([quality('main', 'Keen', 1)], [quality('extra', 'Keen', 2)]);
+
+		applyItemChanges(weapon, [
+			itemEffect({ baseDamage: 1, encumbrance: -1 }, 'main'),
+			itemEffect({ baseDamage: 1, encumbrance: -1 }, 'extra'),
+		]);
+
+		expect([weapon.baseDamage, weapon.extraProfiles[0].baseDamage, weapon.encumbrance]).toEqual([6, 4, 1]);
+	});
+
+	it('leaves a Critical rating of 0 at 0, which no Advantage triggers, and keeps any other at 1 or more', () => {
+		const noCritical = { baseDamage: 5, critical: 0 };
+		const critical2 = { baseDamage: 5, critical: 2 };
+
+		applyItemChanges(noCritical, [itemEffect({ critical: -1 })]);
+		applyItemChanges(critical2, [itemEffect({ critical: -2 })]);
+
+		expect([noCritical.critical, critical2.critical]).toEqual([0, 1]);
+	});
 });
