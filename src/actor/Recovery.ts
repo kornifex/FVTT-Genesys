@@ -224,17 +224,51 @@ export function medicineDifficulty({ value, max }: CombatPool, healingOneself: b
 type PatientCandidate = { uuid: string; name: string; type: string };
 
 /**
- * The patients a healer picks among, when they target none: the characters of the scene's tokens and the players'
- * characters, each once, sorted by name. A rival or a nemesis is healed as the healer's target only, as #686 offers the
- * characters alone to pick from.
+ * A patient to pick, with the label the pick shows.
  */
-export function patientChoices<A extends PatientCandidate>(sceneActors: A[], playerCharacters: A[]): A[] {
-	const choices = new Map<string, A>();
+export type PatientChoice<A extends PatientCandidate> = { actor: A; label: string };
+
+/**
+ * The patients a healer picks among, when they target none: the characters of the scene's tokens and the players'
+ * characters, then the scene's rivals and nemeses, each once and each group sorted by name. A rival or a nemesis is
+ * labelled with its type (`adversaryLabel`), and a label that repeats is numbered in token order, so that three goblins
+ * tell apart. A Minion Group or a vehicle cannot be healed by a check, so is not offered.
+ */
+export function patientChoices<A extends PatientCandidate>(
+	sceneActors: A[],
+	playerCharacters: A[],
+	adversaryLabel: (name: string, type: string) => string,
+): PatientChoice<A>[] {
+	const characters = new Map<string, A>();
+	const adversaries = new Map<string, A>();
 	for (const actor of [...sceneActors, ...playerCharacters]) {
-		if (actor.type === 'character' && !choices.has(actor.uuid)) {
-			choices.set(actor.uuid, actor);
+		const isScene = sceneActors.includes(actor);
+		if (actor.type === 'character') {
+			characters.set(actor.uuid, characters.get(actor.uuid) ?? actor);
+		} else if (isScene && (actor.type === 'rival' || actor.type === 'nemesis')) {
+			adversaries.set(actor.uuid, adversaries.get(actor.uuid) ?? actor);
 		}
 	}
 
-	return [...choices.values()].sort((left, right) => left.name.localeCompare(right.name));
+	const byName = (left: A, right: A) => left.name.localeCompare(right.name);
+	const choices = [
+		...[...characters.values()].sort(byName).map((actor) => ({ actor, label: actor.name })),
+		...[...adversaries.values()].sort(byName).map((actor) => ({ actor, label: adversaryLabel(actor.name, actor.type) })),
+	];
+
+	const total = new Map<string, number>();
+	for (const { label } of choices) {
+		total.set(label, (total.get(label) ?? 0) + 1);
+	}
+
+	const seen = new Map<string, number>();
+	return choices.map(({ actor, label }) => {
+		if (total.get(label) === 1) {
+			return { actor, label };
+		}
+
+		const rank = (seen.get(label) ?? 0) + 1;
+		seen.set(label, rank);
+		return { actor, label: `${label} ${rank}` };
+	});
 }

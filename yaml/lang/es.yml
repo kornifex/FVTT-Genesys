@@ -360,6 +360,7 @@ Genesys:
   Recovery:
     HealWithMedicine: Curar con Medicina
     PatientPrompt: Seleccionar paciente
+    AdversaryPatient: '{name} ({type})'
     CardLabel: Cura a {patient}
     Wounds: Heridas
     Strain: Tensión

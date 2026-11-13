@@ -265,14 +265,42 @@ describe('strainRecoverySkillNames', () => {
 describe('patientChoices', () => {
 	const actor = (name: string, type = 'character') => ({ uuid: `Actor.${name}`, name, type });
 
+	const adversaryLabel = (name: string, type: string) => `${name} (${type})`;
+	const labels = (...args: Parameters<typeof patientChoices>) => patientChoices(...args).map(({ label }) => label);
+
 	it("offers the scene's characters and the players' characters, each once, sorted by name", () => {
 		const cy = actor('Cy');
-		expect(patientChoices([cy, actor('Ada')], [actor('Bo'), cy]).map(({ name }) => name)).toEqual(['Ada', 'Bo', 'Cy']);
+		expect(labels([cy, actor('Ada')], [actor('Bo'), cy], adversaryLabel)).toEqual(['Ada', 'Bo', 'Cy']);
 	});
 
-	it("leaves the scene's other actors out", () => {
-		expect(patientChoices([actor('Foe', 'rival'), actor('Grunts', 'minion'), actor('Wagon', 'vehicle')], [actor('Bo')])).toEqual([
-			actor('Bo'),
-		]);
+	it("leaves the scene's minions and vehicles out", () => {
+		expect(
+			patientChoices([actor('Grunts', 'minion'), actor('Wagon', 'vehicle')], [actor('Bo')], adversaryLabel).map(({ actor }) => actor),
+		).toEqual([actor('Bo')]);
+	});
+
+	it("lists the scene's rivals and nemeses after the characters, each group sorted by name, with their type", () => {
+		const scene = [actor('Zed', 'nemesis'), actor('Ada', 'rival'), actor('Yan'), actor('Bo', 'rival')];
+		expect(labels(scene, [actor('Cy')], adversaryLabel)).toEqual(['Cy', 'Yan', 'Ada (rival)', 'Bo (rival)', 'Zed (nemesis)']);
+	});
+
+	it('does not list the players’ rivals or nemeses, only the scene’s', () => {
+		expect(labels([], [actor('Foe', 'rival')], adversaryLabel)).toEqual([]);
+	});
+
+	it('numbers the entries of a label that repeats, in token order, and only those', () => {
+		const scene = [
+			{ ...actor('Goblin', 'rival'), uuid: 'T.b' },
+			{ ...actor('Goblin', 'rival'), uuid: 'T.a' },
+			{ ...actor('Goblin', 'nemesis'), uuid: 'T.c' },
+		];
+		const choices = patientChoices(scene, [], adversaryLabel);
+		expect(choices.map(({ label }) => label)).toEqual(['Goblin (rival) 1', 'Goblin (rival) 2', 'Goblin (nemesis)']);
+		expect(choices.map(({ actor }) => actor.uuid)).toEqual(['T.b', 'T.a', 'T.c']);
+	});
+
+	it('lists an actor once when several tokens share it', () => {
+		const foe = actor('Foe', 'rival');
+		expect(labels([foe, foe], [], adversaryLabel)).toEqual(['Foe (rival)']);
 	});
 });
