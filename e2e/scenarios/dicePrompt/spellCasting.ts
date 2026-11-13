@@ -6,6 +6,7 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 		const effect = (id: string, name: string, difficulty: number, startsChecked: boolean) => ({
 			id,
 			name,
+			description: id === 'enervate' ? '<p>Weakens the target.</p>' : '',
 			difficulty,
 			startsChecked,
 			qualities: [],
@@ -59,6 +60,22 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 		},
 	);
 
+	// What hovering an element with the mouse shows as a tooltip.
+	const hovered = async (selector: string, index: number) => {
+		await gm.page.locator(selector).nth(index).hover();
+		const text = await gm.evaluate(async () => {
+			await window.e2e.waitFor('the tooltip', () => game.tooltip.tooltip.textContent.trim() !== '');
+			return game.tooltip.tooltip.textContent.trim();
+		});
+		await gm.page.mouse.move(0, 0);
+		return text;
+	};
+	e2e.expect(
+		'#760 S1 hovering an Additional Effect in the Dice Prompt shows its description, or that it has none',
+		[await hovered('.dice-prompt .spell-effect label', 0), await hovered('.dice-prompt .spell-effect label', 1)],
+		['Weakens the target.', 'No Description Available'],
+	);
+
 	const formidable = await check('Additional Target');
 	e2e.expect(
 		"#705 S2 checking Additional Target takes the Curse to Formidable, and Range, which would take it beyond, can't be checked",
@@ -89,6 +106,18 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 			health: { wounds: 0, strain: 11 },
 			incapacitated: true,
 		},
+	);
+
+	e2e.expect(
+		'#760 S3 the card shows the description of each checked Additional Effect as its tooltip, or that it has none',
+		await gm.evaluate(() => {
+			const content = document.createElement('div');
+			content.innerHTML = game.messages.contents.at(-1).content;
+			return [...content.querySelectorAll('.spell-effect .name')].map((name) =>
+				name.getAttribute('data-tooltip')?.replace(/<[^>]*>/g, ''),
+			);
+		}),
+		['Weakens the target.', 'Genesys.Tooltips.NoDescription'],
 	);
 
 	e2e.expect("#705 S4 the Novice, without a rank in the Curse's skills, is refused, and told why", await noPrompt(gm, cast('Novice')), {

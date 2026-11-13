@@ -138,6 +138,43 @@ export async function magicPart(ctx: SheetsContext) {
 		}),
 		{ belowSpell: true, sameLine: true, fromLeft: true },
 	);
+	await e2e.step("#760 M4 GM gives the first of the E2E spell's effects a description", () =>
+		gm.evaluate(async () => {
+			// The world's spell and the Mage's copy of it.
+			for (const spell of [game.items.getName('E2E spell'), game.actors.getName('E2E Mage').items.getName('E2E spell')]) {
+				const [first, ...others] = spell.system.additionalEffects;
+				await spell.update({ 'system.additionalEffects': [{ ...first, description: '<p>Weakens the target.</p>' }, ...others] });
+			}
+			// The drops opened the effect's sheet, which would cover the Mage's; the Mage's comes to the front.
+			await game.items.getName('E2E additionalEffect').sheet.close();
+			await game.actors.getName('E2E Mage').sheet.bringToFront();
+			await window.e2e.settle();
+		}),
+	);
+	// What hovering an element with the mouse shows as a tooltip.
+	const hovered = async (selector: string, index: number) => {
+		await gm.page.locator(selector).nth(index).hover();
+		const text = await gm.evaluate(async () => {
+			await window.e2e.waitFor('the tooltip', () => game.tooltip.tooltip.textContent.trim() !== '');
+			return game.tooltip.tooltip.textContent.trim();
+		});
+		await gm.page.mouse.move(0, 0);
+		return text;
+	};
+	e2e.expect(
+		"#760 M4 hovering an Additional Effect in the Mage's Magic tab shows its description, or that it has none",
+		[await hovered('.tab-magic .additional-effects li', 0), await hovered('.tab-magic .additional-effects li', 1)],
+		['Weakens the target.', 'No Description Available'],
+	);
+	await gm.evaluate(async () => {
+		await window.sheetsE2E.open('spell');
+		await game.items.getName('E2E spell').sheet.bringToFront();
+	});
+	e2e.expect(
+		"#760 M4 hovering an Additional Effect's name on the spell's sheet shows its description, or that it has none",
+		[await hovered('.additional-effect .name', 0), await hovered('.additional-effect .name', 1)],
+		['Weakens the target.', 'No Description Available'],
+	);
 	e2e.expect(
 		"#704 M4 the Mage's window offers to hide the Magic tab",
 		{ menu: withSpell.menu, renderedMenu: withSpell.renderedMenu },
