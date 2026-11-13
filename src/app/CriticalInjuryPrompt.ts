@@ -3,12 +3,13 @@
 import { GenesysActor } from '@/actor/GenesysActor';
 import VueCriticalInjuryPrompt from '@/vue/apps/CriticalInjuryPrompt.vue';
 import { VuePrompt } from '@/vue/VuePrompt';
+import * as log from '@/log';
 import {
-	attackWeaponOf,
 	CRITICAL_INJURY_FLAG,
 	criticalInjuryFormula,
 	type CriticalInjuryRequest,
 	criticalInjuryResults,
+	parseCriticalInjuryFlag,
 } from '@/dice/CriticalInjuryRoll';
 
 /**
@@ -143,15 +144,23 @@ function actorOf(uuid: string | null): GenesysActor | undefined {
 async function promptFromMessage(event: MouseEvent) {
 	const button = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-message-id] button.roll-critical-injury');
 	const messageId = button?.closest<HTMLElement>('[data-message-id]')?.dataset.messageId;
-	const flag = messageId ? game.messages.get(messageId)?.getFlag('genesys', CRITICAL_INJURY_FLAG) : undefined;
+	if (!messageId) {
+		return;
+	}
+
+	const stored = game.messages.get(messageId)?.getFlag('genesys', CRITICAL_INJURY_FLAG);
+	const flag = parseCriticalInjuryFlag(stored);
 	if (!flag) {
+		// The button of a message that offers none to roll, or whose flag another version or a hand wrote wrong.
+		log.warn(`The Critical Injury of message ${messageId} is missing or malformed.`, stored);
+		ui.notifications.error('Genesys.Notifications.GenericError', { localize: true });
 		return;
 	}
 
 	await CriticalInjuryPrompt.promptForCriticalInjury({
 		actor: actorOf(flag.target),
-		...('weapon' in flag && {
-			attack: { triggers: flag.triggers, weapon: attackWeaponOf(flag.weapon), attacker: actorOf(flag.attacker) },
+		...(flag.kind === 'attack' && {
+			attack: { triggers: flag.triggers, weapon: flag.weapon, attacker: actorOf(flag.attacker) },
 		}),
 	});
 }

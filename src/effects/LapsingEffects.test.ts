@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type CombatTurn, enteredRounds, lapseAtTurnEnd } from '@/effects/LapsingEffects';
+import { type CombatTurn, enteredRounds, lapseAtTurnEnd, parseCombatTurn } from '@/effects/LapsingEffects';
 
 // The attacker's slot comes first in a round, the actor's second; with an Extra Slot, an ally's comes next, then the
 // actor's Extra Slot.
@@ -111,6 +111,24 @@ describe('lapseAtTurnEnd', () => {
 	it("counts the actor's first turn of a round, whichever slot it is", () => {
 		// The actor took only the ally's slot this round, as a PC Claiming another slot of their side.
 		expect(lapseAtTurnEnd({ rounds: 2 }, turn(1, 'ally'), [PLACES.ally])).toEqual({ kind: 'shorten', rounds: 1 });
+	});
+});
+
+describe('parseCombatTurn', () => {
+	it("reads a turn an effect's flag holds", () => {
+		expect(parseCombatTurn(turn(2, 'actor'))).toEqual(turn(2, 'actor'));
+	});
+
+	it.each([
+		['no object', 'combat'],
+		['no value', undefined],
+		['a turn without its combat', { ...turn(1, 'actor'), combat: undefined }],
+		['a turn whose round is no number', { ...turn(1, 'actor'), round: '1' }],
+		['a turn of a negative round', { ...turn(1, 'actor'), round: -1 }],
+		['a turn without its place', { ...turn(1, 'actor'), turn: undefined }],
+		['a turn without its slot', { ...turn(1, 'actor'), slot: undefined }],
+	])('refuses %s', (_, flag) => {
+		expect(parseCombatTurn(flag)).toBeUndefined();
 	});
 });
 

@@ -1,4 +1,5 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
+import { isCount, isRecord } from '@/data/parsing';
 import { effectTag } from '@/item/data/EffectTags';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityNameKey, qualityRank } from '@/item/data/Qualities';
@@ -47,11 +48,67 @@ type AttackCriticalInjuryFlag = {
 };
 
 /**
- * The weapon of an attack, read from its message's flag: the uuid and the quality ids of a message of 0.7.0-rc.1 are
- * missing, so none of the weapon's quality effects counts for it.
+ * What a chat message's Critical Injury flag offers, parsed: the Critical Injury an attack triggered, with the weapon as
+ * it was rolled, or the one of a character gone past their wound threshold, without an attack.
  */
-export function attackWeaponOf({ name, uuid, qualities }: AttackCriticalInjuryFlag['weapon']): CriticalAttackWeapon {
-	return { name, uuid: uuid ?? null, qualities: qualities.map((quality) => ({ ...quality, id: quality.id ?? '' })) };
+export type ParsedCriticalInjury =
+	| { kind: 'attack'; triggers: number; attacker: string | null; target: string | null; weapon: CriticalAttackWeapon }
+	| { kind: 'threshold'; target: string };
+
+/**
+ * The Critical Injury a chat message's flag offers, told apart by the weapon only an attack's holds, or undefined when
+ * the flag is malformed: a message of another version or edited by hand is refused, not read. The uuid and the quality
+ * ids of a message of 0.7.0-rc.1's weapon are missing, so none of the weapon's quality effects counts for it.
+ */
+export function parseCriticalInjuryFlag(value: unknown): ParsedCriticalInjury | undefined {
+	if (!isRecord(value)) {
+		return undefined;
+	}
+
+	if (!('weapon' in value)) {
+		return typeof value.target === 'string' ? { kind: 'threshold', target: value.target } : undefined;
+	}
+
+	const { triggers, attacker, target } = value;
+	const weapon = parseAttackWeapon(value.weapon);
+	if (!isCount(triggers) || triggers < 1 || !isUuidOrNull(attacker) || !isUuidOrNull(target) || !weapon) {
+		return undefined;
+	}
+	return { kind: 'attack', triggers, attacker, target, weapon };
+}
+
+function isUuidOrNull(value: unknown): value is string | null {
+	return value === null || typeof value === 'string';
+}
+
+function parseAttackWeapon(value: unknown): CriticalAttackWeapon | undefined {
+	if (!isRecord(value) || typeof value.name !== 'string' || !isUuidOrUndefined(value.uuid) || !Array.isArray(value.qualities)) {
+		return undefined;
+	}
+
+	const qualities: AttackQuality[] = [];
+	for (const entry of value.qualities) {
+		const quality = parseAttackQuality(entry);
+		if (!quality) {
+			return undefined;
+		}
+		qualities.push(quality);
+	}
+	return { name: value.name, uuid: value.uuid ?? null, qualities };
+}
+
+function isUuidOrUndefined(value: unknown): value is string | null | undefined {
+	return value === undefined || isUuidOrNull(value);
+}
+
+function parseAttackQuality(value: unknown): AttackQuality | undefined {
+	if (!isRecord(value) || typeof value.name !== 'string' || typeof value.isRated !== 'boolean' || typeof value.rating !== 'number') {
+		return undefined;
+	}
+	if (value.id !== undefined && typeof value.id !== 'string') {
+		return undefined;
+	}
+	return { id: value.id ?? '', name: value.name, isRated: value.isRated, rating: value.rating };
 }
 
 /**

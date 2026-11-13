@@ -75,13 +75,16 @@ export async function attackWith(actor: GenesysActor, weapon: GenesysItem<'weapo
  */
 export async function castSpell(actor: Stored<GenesysActor>, spell: GenesysItem<'spell'>) {
 	const { difficulty, skills, additionalEffects } = spell.system;
-	const skillName = castingSkillName(actor.skills, skills);
-	if (!skillName) {
+	const casting = castingSkillName(actor.skills, skills);
+	if (!casting.ok) {
 		ui.notifications.warn(
-			game.i18n.format('Genesys.Notifications.NoRankInSpellSkills', { name: spell.name, skills: skills.join(', ') }),
+			casting.reason === 'noSkillListed'
+				? game.i18n.format('Genesys.Notifications.SpellListsNoSkill', { name: spell.name })
+				: game.i18n.format('Genesys.Notifications.NoRankInSpellSkills', { name: spell.name, skills: skills.join(', ') }),
 		);
 		return;
 	}
+	const skillName = casting.skill;
 
 	// A Heal spell is cast in place of a Medicine check, on a patient picked as Medicine's is, and at the spell's own
 	// difficulty rather than the patient's state of health (CRB p. 217). Cancelling the pick casts nothing.

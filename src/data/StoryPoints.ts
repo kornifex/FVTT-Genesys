@@ -23,17 +23,23 @@ export function sessionStoryPoints(playerCount: number): StoryPointData {
 }
 
 /**
- * The points spent together from each pool, as one check may spend them from both.
+ * The points spent together from each pool, as one check may spend them from both: zero from a pool it spends none from.
  */
-export type StoryPointSpend = Partial<StoryPointData>;
+export type StoryPointSpend = StoryPointData;
+
+/**
+ * The spend of one point from a pool.
+ */
+export function onePoint(pool: StoryPointPool): StoryPointSpend {
+	return { player: pool === 'player' ? 1 : 0, gm: pool === 'gm' ? 1 : 0 };
+}
 
 /**
  * The pools once points of them are spent together: each goes to the other pool. Undefined when a pool holds fewer
  * points than are spent from it: a point that reaches a pool by the spend can't be spent by it too.
  */
 export function storyPointsAfterSpending(storyPoints: StoryPointData, spend: StoryPointSpend): StoryPointData | undefined {
-	const player = spend.player ?? 0;
-	const gm = spend.gm ?? 0;
+	const { player, gm } = spend;
 	if (storyPoints.player < player || storyPoints.gm < gm) {
 		return undefined;
 	}

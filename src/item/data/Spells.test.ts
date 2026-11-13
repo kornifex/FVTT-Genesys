@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { additionalEffectCopy, type AdditionalEffectData, withAction, withSpellQualityAdded } from '@/item/data/Spells';
+import {
+	additionalEffectCopy,
+	type AdditionalEffectData,
+	type SpellQuality,
+	spellQualityRating,
+	withAction,
+	withSpellQualityAdded,
+} from '@/item/data/Spells';
+
+describe('spellQualityRating', () => {
+	const stored: SpellQuality = {
+		name: 'Pierce',
+		description: '',
+		activation: 'passive',
+		advantageCost: 0,
+		ratingSource: 'unrated',
+		rating: 3,
+		ratingSkill: 'Knowledge',
+	};
+
+	it('keeps of the rating only what its source reads', () => {
+		expect(spellQualityRating(stored)).toEqual({ ratingSource: 'unrated' });
+		expect(spellQualityRating({ ...stored, ratingSource: 'fixed' })).toEqual({ ratingSource: 'fixed', rating: 3 });
+		expect(spellQualityRating({ ...stored, ratingSource: 'skillRanks' })).toEqual({
+			ratingSource: 'skillRanks',
+			ratingSkill: 'Knowledge',
+		});
+	});
+});
 
 describe('withAction', () => {
 	// Table III.2–2 and each action's section (CRB pp. 214–218): its difficulty in Difficulty dice, whether it is an

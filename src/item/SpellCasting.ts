@@ -7,7 +7,7 @@
 import { ownedSkill, type Skill } from '@/data/Skills';
 import type { CheckPurpose } from '@/dice/Check';
 import { FORMIDABLE } from '@/dice/Difficulty';
-import type { ContainedAdditionalEffect, SpellQuality } from '@/item/data/Spells';
+import { type ContainedAdditionalEffect, type SpellQuality, spellQualityRating } from '@/item/data/Spells';
 import type { DamageCharacteristic, RangeBand } from '@/item/Weapons';
 import type { AttackProfile } from '@/item/WeaponProfiles';
 
@@ -31,10 +31,18 @@ export function castingStrain(purpose: CheckPurpose) {
 export const MAGIC_ATTACK_RANGE = 'short' satisfies RangeBand;
 
 /**
- * The name of the magic skill a character casts a spell with: of the spell's skills, the one they have the most ranks
- * in, then the first in the spell's order. Undefined when they have no rank in any, and can't cast it (CRB p. 210).
+ * The magic skill a character casts a spell with, or why they can't: of the spell's skills, the one they have the most
+ * ranks in, then the first in the spell's order. They can't cast a spell that lists no skill, nor one whose skills they
+ * have no rank in (CRB p. 210).
  */
-export function castingSkillName(ownedSkills: Skill[], spellSkills: string[]): string | undefined {
+export function castingSkillName(
+	ownedSkills: Skill[],
+	spellSkills: string[],
+): { ok: true; skill: string } | { ok: false; reason: 'noSkillListed' | 'noRank' } {
+	if (spellSkills.length === 0) {
+		return { ok: false, reason: 'noSkillListed' };
+	}
+
 	let best: Skill | undefined;
 
 	for (const name of spellSkills) {
@@ -44,7 +52,7 @@ export function castingSkillName(ownedSkills: Skill[], spellSkills: string[]): s
 		}
 	}
 
-	return best?.name;
+	return best ? { ok: true, skill: best.name } : { ok: false, reason: 'noRank' };
 }
 
 /**
@@ -166,13 +174,15 @@ export function spellAttackProfile(
 	};
 }
 
-function castQuality({ name, description, ratingSource, rating, ratingSkill }: SpellQuality, ranksIn: (skill: string) => number) {
-	switch (ratingSource) {
+function castQuality(quality: SpellQuality, ranksIn: (skill: string) => number): CastQuality {
+	const { name, description } = quality;
+	const source = spellQualityRating(quality);
+	switch (source.ratingSource) {
 		case 'unrated':
 			return { name, description, isRated: false, rating: 0 };
 		case 'fixed':
-			return { name, description, isRated: true, rating };
+			return { name, description, isRated: true, rating: source.rating };
 		case 'skillRanks':
-			return { name, description, isRated: true, rating: ranksIn(ratingSkill) };
+			return { name, description, isRated: true, rating: ranksIn(source.ratingSkill) };
 	}
 }

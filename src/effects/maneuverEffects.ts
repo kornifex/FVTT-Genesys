@@ -39,7 +39,11 @@ const performing = new Map<string, Promise<void>>();
  * the previous one writes, and a second click on Aim before the first is written would put another Aim on the actor.
  */
 function perform(actor: Actor.Implementation, maneuver: () => Promise<void>) {
-	const key = actor.uuid ?? '';
+	// An unsaved actor performs no maneuver: a document that is none of the world's has no uuid.
+	const key = actor.uuid;
+	if (!key) {
+		throw new Error(`The actor ${actor.name} has no uuid, and performs no maneuver.`);
+	}
 	const done = (performing.get(key) ?? Promise.resolve()).then(maneuver);
 	// A maneuver that failed doesn't stop the next one: its own caller gets the error.
 	performing.set(

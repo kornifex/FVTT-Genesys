@@ -442,6 +442,7 @@ Genesys:
     TooManySuperCharacteristics: Un acteur ne peut pas avoir plus de deux super-caractéristiques. Retirez-en une d'abord.
     UnusableWeapon: "Impossible d'attaquer avec {name} : {damage}."
     NoRankInSpellSkills: 'Lancer {name} demande un rang dans une de ses compétences : {skills}.'
+    SpellListsNoSkill: "{name} n'indique aucune compétence pour être lancé."
 
   # Dialogs Prompts
   Dialogs:

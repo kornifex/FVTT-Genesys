@@ -58,7 +58,10 @@ export type DicePromptContext = {
  * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell the
  * ids of the Additional Effects checked. The target is the actor's uuid the prompt read as it opened.
  */
-export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; spellEffects?: string[]; targetUuid?: string };
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; targetUuid?: string } & (
+		| { type: typeof RollType.Spell; spellEffects: string[] }
+		| { type: 'check' }
+	);
 
 /**
  * What a Dice Prompt opens with, besides its actor and skill.
@@ -120,7 +123,10 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 			return;
 		}
 
-		const cast = app.roll.type === RollType.Spell && actor ? castOf(actor, app.roll.spell, checkRoll.spellEffects ?? []) : undefined;
+		const cast =
+			app.roll.type === RollType.Spell && actor
+				? spellCast(app.roll.spell.system.additionalEffects, checkedEffectsOf(checkRoll), ranksOf(actor))
+				: undefined;
 		const message = await rollCheck(checkRoll, {
 			attack: attackOf(app.roll, checkRoll, actor),
 			recovery: app.recovery,
@@ -235,11 +241,10 @@ export function refuseUnusableWeapon(weapon: Pick<GenesysItem<'weapon' | 'vehicl
 }
 
 /**
- * What a spell's card shows of its casting by an actor, with the Additional Effects checked: a quality rated by the
- * caster's ranks counts those they own.
+ * The ids of the Additional Effects an answer checked: those of a spell's casting, none for any other check.
  */
-function castOf(actor: GenesysActor, spell: GenesysItem<'spell'>, checked: string[]) {
-	return spellCast(spell.system.additionalEffects, checked, ranksOf(actor));
+function checkedEffectsOf(answer: DicePromptAnswer) {
+	return answer.type === RollType.Spell ? answer.spellEffects : [];
 }
 
 /**
@@ -254,7 +259,7 @@ function ranksOf(actor: GenesysActor | undefined) {
  * Effects checked. Its damage adds the characteristic linked to the skill rolled (CRB p. 215), the characteristic rolled
  * without one.
  */
-function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswer, actor: GenesysActor | undefined) {
+function attackOf(roll: DicePromptRoll, answer: DicePromptAnswer, actor: GenesysActor | undefined) {
 	if (roll.type === RollType.Attack) {
 		return { ...roll.profile, weaponUuid: roll.weapon.uuid };
 	}
@@ -263,8 +268,13 @@ function attackOf(roll: DicePromptRoll, { check, spellEffects }: DicePromptAnswe
 		return undefined;
 	}
 
-	const characteristic = check.skill?.system.characteristic ?? check.characteristic ?? '-';
-	return spellAttackProfile(roll.spell, spellEffects ?? [], characteristic, ranksOf(actor));
+	const { check } = answer;
+	const characteristic = check.skill?.system.characteristic ?? check.characteristic;
+	if (characteristic === undefined) {
+		// Called before any die is rolled or message written, so that a bug here loses no roll.
+		throw new Error(`The magic attack of ${roll.spell.name} is rolled with neither a skill nor a characteristic.`);
+	}
+	return spellAttackProfile(roll.spell, checkedEffectsOf(answer), characteristic, ranksOf(actor));
 }
 
 /**

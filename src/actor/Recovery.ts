@@ -5,6 +5,7 @@
  */
 
 import type { CombatPool } from '@/data/schemaFields';
+import { isCount, isRecord } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
 
@@ -76,6 +77,26 @@ export type RecoveryRequest = { patient: string; rule: RecoveryRule };
 export type Recovery = RecoveryRequest & Healed;
 
 /**
+ * The recovery a chat message's flag holds, or undefined when it holds anything else: a message of another version or
+ * edited by hand is refused, not read.
+ */
+export function parseRecovery(value: unknown): Recovery | undefined {
+	if (!isRecord(value)) {
+		return undefined;
+	}
+
+	const { patient, rule, wounds, strain } = value;
+	if (typeof patient !== 'string' || typeof rule !== 'string' || !isRecoveryRule(rule) || !isCount(wounds) || !isCount(strain)) {
+		return undefined;
+	}
+	return { patient, rule, wounds, strain };
+}
+
+function isRecoveryRule(rule: string): rule is RecoveryRule {
+	return Object.hasOwn(RECOVERY_RULES, rule);
+}
+
+/**
  * The recovery a check's results give: what they heal by the rule it is rolled for.
  */
 export function recoveryOf(request: RecoveryRequest, results: RecoveryResults): Recovery {
@@ -95,10 +116,13 @@ export function heals({ wounds, strain }: Healed) {
  */
 const PATIENT_TYPES = ['character', 'rival', 'nemesis'] as const;
 
+type PatientType = (typeof PATIENT_TYPES)[number];
+
 /**
  * Whether an actor of a type can be healed by a check: a healer's target can be any of them.
  */
-export function canBePatient(type: string) {
+export function canBePatient(type: string): type is PatientType {
+	// `includes` of a readonly tuple of literals only takes one of them, which a string isn't yet.
 	return (PATIENT_TYPES as readonly string[]).includes(type);
 }
 

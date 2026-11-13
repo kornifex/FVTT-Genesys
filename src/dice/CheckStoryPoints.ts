@@ -105,7 +105,7 @@ export function spendOptions(chosen: readonly CheckSpend[], context: SpendContex
 		if (!context.isGM && !context.gmConnected) {
 			return { spend, pool, refusal: 'Genesys.DicePrompt.StoryPoints.NoGM' };
 		}
-		return context.storyPoints[pool] > (spent[pool] ?? 0)
+		return context.storyPoints[pool] > spent[pool]
 			? { spend, pool }
 			: { spend, pool, refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' };
 	});
@@ -115,10 +115,9 @@ export function spendOptions(chosen: readonly CheckSpend[], context: SpendContex
  * The points the chosen spends take from each pool, one each.
  */
 export function spentPoints(spends: readonly CheckSpend[], isGM: boolean): StoryPointSpend {
-	const spent: StoryPointSpend = {};
+	const spent: StoryPointSpend = { player: 0, gm: 0 };
 	for (const spend of spends) {
-		const pool = spendPool(spend, isGM);
-		spent[pool] = (spent[pool] ?? 0) + 1;
+		spent[spendPool(spend, isGM)] += 1;
 	}
 	return spent;
 }
