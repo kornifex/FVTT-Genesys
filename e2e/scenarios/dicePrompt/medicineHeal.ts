@@ -1,5 +1,5 @@
 import type { Client } from '../../scenario.ts';
-import type { DicePromptContext } from './shared.ts';
+import { type DicePromptContext, installDicePromptHelpers } from './shared.ts';
 
 export async function medicineHealPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, roll, setSetting, update, target, recoveryButton, recoveryCard, health } = ctx;
@@ -91,6 +91,54 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 			health: await health('Bo'),
 		},
 		{ bo: { player: applied, gm: applied }, mark: applied, health: { wounds: 5, strain: 2 } },
+	);
+
+	// §#795: Apply, clicked with no GM online, warns and stays clickable, so that it applies once a GM is back.
+	await update({ actor: 'Bo' }, { system: { wounds: { value: 5, max: 12 }, strain: { value: 2, max: 10 } } });
+	await opened(player, async () => {
+		await heal(player)();
+		await patientPrompt(player, 'Bo');
+	});
+	// Ability dice on two Successes each; the Difficulty die on a blank face.
+	await player.fixDice([
+		{ face: 4, faces: 8 },
+		{ face: 4, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const unapplied = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+	// Whether the card's Apply is disabled once clicked and its request answered.
+	const clickApply = () =>
+		player.evaluate(async (id) => {
+			const state = await window.dicePromptE2E.showMessage(id);
+			const button = document.querySelector<HTMLButtonElement>('[data-e2e="glyph-message"] button.apply-recovery')!;
+			button.click();
+			await window.e2e.settle();
+			const disabled = button.disabled;
+			window.dicePromptE2E.restoreSidebar(state);
+			return disabled;
+		}, unapplied.id);
+	const noGMWarning = await player.evaluate(() => `warning: ${game.i18n.localize('Genesys.Notifications.NoGMForRecovery')}`);
+	await e2e.step('#795 GM leaves', () => gm.leave());
+	await player.evaluate(() => window.dicePromptE2E.clearNotifications());
+	const alone = await clickApply();
+	e2e.expect(
+		"#795 H8 with no GM online, the player's Apply warns, heals nothing, and is enabled again",
+		{
+			disabled: alone,
+			notifications: await player.evaluate(() => window.dicePromptE2E.notifications()),
+			health: await player.evaluate(() => window.dicePromptE2E.health('Bo')),
+		},
+		{ disabled: false, notifications: [noGMWarning], health: { wounds: 5, strain: 2 } },
+	);
+	await e2e.step('#795 GM joins again', async () => {
+		await gm.join();
+		await gm.evaluate(installDicePromptHelpers);
+	});
+	await clickApply();
+	e2e.expect(
+		"#795 H9 once a GM is online, the player's second click applies the card, once",
+		{ card: await recoveryCard(player, unapplied.id), health: await health('Bo') },
+		{ card: applied, health: { wounds: 1, strain: 2 } },
 	);
 
 	// A world whose Skills Compendium names the healing skill otherwise (§#756): the Heal button follows its « Heals wounds » box.

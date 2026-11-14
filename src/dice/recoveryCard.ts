@@ -124,7 +124,7 @@ export function register() {
 		button.addEventListener('click', () => {
 			button.disabled = true;
 			void apply().then((applied) => {
-				button.disabled = !applied;
+				button.disabled = applied;
 			});
 		});
 	});
