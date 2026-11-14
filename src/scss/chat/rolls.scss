@@ -183,9 +183,12 @@ $size: 2rem;
 			font-weight: bold;
 		}
 
+		// Foundry's `word-break: break-word` on a message's content lets a number break between its digits, which a long
+		// label would then do by squeezing this column.
 		.count {
 			justify-self: right;
 			padding-right: 0.5em;
+			white-space: nowrap;
 		}
 
 		.symbol {

@@ -238,6 +238,8 @@ type DicePromptHelpers = {
 	/** The last message's speaker, without its `E2E ` prefix, and its text, for a message that shows no roll. */
 	lastMessageText(): { speaker: string | null; text: string };
 	lastCard(): CardSummary;
+	/** The values of the last card's summary tables that span more than one line, once rendered in a column so wide. */
+	lastCardBrokenValues(width: number): Promise<string[]>;
 	/** Clicks the element at a path of a document's sheet, which it renders if needed. */
 	click(args: { doc: Doc; path: string }): Promise<void>;
 	change(args: { doc: Doc; path: string; value: string }): Promise<void>;
@@ -1162,6 +1164,24 @@ export function installDicePromptHelpers() {
 				}),
 				dice: text(content.querySelector('.dice')),
 			};
+		},
+
+		async lastCardBrokenValues(width) {
+			// A rendering of its own, since the sidebar's may sit on another tab, where nothing is laid out.
+			const column = document.createElement('ol');
+			column.style.cssText = `position: fixed; top: 0; left: 0; width: ${width}px;`;
+			column.append(await game.messages.contents.at(-1).renderHTML());
+			document.body.append(column);
+			try {
+				const lineCount = (value: Element) => {
+					const range = document.createRange();
+					range.selectNodeContents(value);
+					return new Set([...range.getClientRects()].map(({ top }) => Math.round(top))).size;
+				};
+				return [...column.querySelectorAll('.summary-table .count')].filter((value) => lineCount(value) > 1).map(text);
+			} finally {
+				column.remove();
+			}
 		},
 
 		async click({ doc, path }) {

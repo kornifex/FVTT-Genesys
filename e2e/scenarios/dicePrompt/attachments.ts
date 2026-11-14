@@ -1,7 +1,7 @@
 import type { PromptState, DicePromptContext } from './shared.ts';
 
 export async function attachmentsPart(ctx: DicePromptContext) {
-	const { e2e, gm, opened, update, attack } = ctx;
+	const { e2e, gm, opened, roll, update, attack } = ctx;
 	// The world's attachments: a scope adding 1 damage, with a modification option adding a Boost to the weapon's attacks,
 	// off until installed; plating adding 1 soak, which takes 2 Hard Points.
 	await gm.evaluate(async () => {
@@ -231,6 +231,33 @@ export async function attachmentsPart(ctx: DicePromptContext) {
 		"#721 E2 saving the effect from its sheet keeps its Item Change, and the Rifle's damage",
 		{ rifle: await storedChanges({ rifle: 'E2E Edge' }), prepared: (await rifleState()).prepared },
 		{ rifle: ['genesys.item.baseDamage +1 custom'], prepared: ['6/3', '3/4'] },
+	);
+	// The Edge adds 1 damage to the Rifle (5), which adds no characteristic: the card's formula reads 6, its total 6 plus
+	// the net Successes.
+	await e2e.step('#793 A1 GM attacks with the Rifle carrying the Edge, and rolls six Successes', async () => {
+		await opened(gm, attack('Rifle'));
+		// Proficiency faces: 4 two Successes; Difficulty: 1 blank.
+		await gm.fixDice([
+			{ face: 4, faces: 12 },
+			{ face: 4, faces: 12 },
+			{ face: 4, faces: 12 },
+			{ face: 1, faces: 8 },
+			{ face: 1, faces: 8 },
+		]);
+		await roll();
+	});
+	e2e.expect(
+		"#793 A1 the attack card of a weapon with an attachment's Item Change to its damage shows the added damage in its formula and total, with the Successes",
+		(await gm.evaluate(() => window.dicePromptE2E.lastCard())).summaries,
+		['Damage (6) 12 Critical 3', 's Successes 6'],
+	);
+	// A label too long for the chat column (the French « Blessures critiques déclenchées » in the sidebar) squeezed the
+	// values' column, and Foundry's `word-break: break-word` on a message's content let a total break between its digits:
+	// the card read « 1 » over « 5 » for 15. A narrow column squeezes the English labels the same way.
+	e2e.expect(
+		'#793 A2 in a narrow chat column, every value of the attack card stays on one line',
+		await gm.evaluate(() => window.dicePromptE2E.lastCardBrokenValues(100)),
+		[],
 	);
 	await e2e.step('attachments end');
 }
