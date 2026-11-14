@@ -205,6 +205,17 @@ export function isHealingSkill(skillName: string, compendiumSkills: { name: stri
 }
 
 /**
+ * The names of the skills of the Skills Compendium marked as healing wounds (Medicine, CRB p. 116), sorted by name, so
+ * that a tie between them doesn't follow the order the compendium loads in.
+ */
+export function healingSkillNames(compendiumSkills: { name: string; system: { healsWounds: boolean } }[]) {
+	return compendiumSkills
+		.filter((skill) => skill.system.healsWounds)
+		.map((skill) => skill.name)
+		.sort((left, right) => left.localeCompare(right));
+}
+
+/**
  * How much harder a Medicine check is when the healer heals themselves (CRB p. 116).
  */
 const HEALING_ONESELF = 2;

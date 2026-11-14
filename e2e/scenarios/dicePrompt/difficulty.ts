@@ -83,11 +83,12 @@ export async function difficultyPart(ctx: DicePromptContext) {
 		},
 	);
 	await setSetting('defaultDifficulty', 'DDD');
-	// A world that heals Critical Injuries with Medicine rather than with the weekly Resilience check (#49 E1).
-	await setSetting('skillForInjuries', 'Medicine');
-	await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));
+	// The injury's name rolls the world's weekly Resilience check, at its severity; the button beside it treats it with
+	// Medicine, two levels harder (#818).
+	const rested = await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));
+	const restedDifficulty = shown(await difficultyState());
+	const treated = await opened(gm, click(gm, ada, '.tab-combat .injury .name .treat'));
 	const injury = shown(await difficultyState());
-	await setSetting('skillForInjuries', 'Resilience');
 	await control(gm, ['Bo']);
 	await linkPrompt(gm, journal, 'Athletics', 'CDD');
 	const upgradedLink = shown(await difficultyState());
@@ -124,10 +125,16 @@ export async function difficultyPart(ctx: DicePromptContext) {
 	);
 	await control(gm, []);
 	e2e.expect(
-		"#450 P7 a character healing their own Average Critical Injury with Medicine opens at Daunting, two levels above its severity (#799, #809), a check link's difficulty sets the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
-		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
+		"#450 P7 an Average Critical Injury's name rolls Resilience at Average, its button Medicine at Daunting, two levels above its severity (#799, #809, #818), a check link's difficulty sets the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
 		{
-			injury: difficultyOf('Daunting', 'DDDD·'),
+			rested: { skill: rested.skill, difficulty: restedDifficulty },
+			treated: { skill: treated.skill, difficulty: injury },
+			upgradedLink,
+			impossible: { pool: impossible.pool, difficulty: impossibleDifficulty },
+		},
+		{
+			rested: { skill: 'Resilience (Br)', difficulty: difficultyOf('Average', 'DD···') },
+			treated: { skill: 'Medicine (Int)', difficulty: difficultyOf('Daunting', 'DDDD·') },
 			upgradedLink: difficultyOf('Hard', 'CDD··'),
 			impossible: { pool: '|CCCCC', difficulty: difficultyOf('Impossible', 'CCCCC') },
 		},

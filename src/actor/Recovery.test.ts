@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	canBePatient,
 	healedPools,
+	healingSkillNames,
 	heals,
 	isHealingSkill,
 	medicineDifficulty,
@@ -269,6 +270,22 @@ describe('isHealingSkill', () => {
 
 	it('matches no skill when the Skills Compendium marks none', () => {
 		expect(isHealingSkill('Medicine', [compendium('Medicine', false)])).toBe(false);
+	});
+});
+
+describe('healingSkillNames', () => {
+	it('lists the skills the Skills Compendium marks as healing wounds, sorted by name whatever its order', () => {
+		const skills = [
+			{ name: 'Survival', system: { healsWounds: true } },
+			{ name: 'Mechanics', system: { healsWounds: false } },
+			{ name: 'Medicine', system: { healsWounds: true } },
+		];
+
+		expect(healingSkillNames(skills)).toEqual(['Medicine', 'Survival']);
+	});
+
+	it('lists none when the Skills Compendium marks none', () => {
+		expect(healingSkillNames([{ name: 'Medicine', system: { healsWounds: false } }])).toEqual([]);
 	});
 });
 
