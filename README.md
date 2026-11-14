@@ -13,6 +13,10 @@ Since release 0.2.19 of the original system, this fork has:
 
 - moved the sheets to Foundry's ApplicationV2 and added support for Foundry v13 and v14;
 - made every sheet usable from the keyboard and with a screen reader, with text at WCAG contrast in both Styles, a ⋮ menu of actions on every row, and compact counters;
+- added magic: spells and their Additional Effects, cast from a Magic tab, with magic attacks and the Heal spell;
+- added attachments and complete qualities, whose effects can change their weapon or armor;
+- added healing and recovery: Medicine checks with a healing card to apply, rest at the end of an encounter and overnight, and Critical Injuries rolled on the world's table;
+- added Story Point spends in the Dice Prompt, and maneuvers and states (Aim, Guarded Stance, cover, prone, incapacitated) that apply to checks;
 - added Weapon Profiles, a choice of Attack Skill for each weapon, and Silhouettes that change a targeted attack's difficulty;
 - let the roller set a check's Difficulty in the Dice Prompt, roll skills they lack as Unranked Skill Checks, and roll check links from journals, chat messages and item sheets;
 - fixed initiative, so Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots;
