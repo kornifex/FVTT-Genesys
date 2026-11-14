@@ -514,9 +514,10 @@ Genesys:
     SpellEffectNames: A spell's row in the Magic tab lists its Additional Effects by name, without their difficulty
     HealerApplies: The healer who rolled can apply their healing card, even to a patient they don't own
     ApplyAgain: A healing card's Apply comes back when no GM was online to apply it
-    OwnCriticalInjury: Healing one's own Critical Injury adds two difficulty, as for wounds
+    OwnCriticalInjury: Healing one's own Critical Injury with Medicine adds two difficulty, as for wounds
     DiceBox: The Dice Prompt's dice box is back to its size
     ImpossibleSkull: The Impossible skull lines up with the difficulty dice
+    CardValues: A roll card's damage and other values no longer break across two lines
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

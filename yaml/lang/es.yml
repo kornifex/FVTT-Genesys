@@ -507,9 +507,10 @@ Genesys:
     HealerApplies: >-
       El sanador que tiró los dados puede aplicar su tarjeta de curación, aunque el paciente no sea suyo
     ApplyAgain: El botón Aplicar de una tarjeta de curación vuelve cuando ningún DJ estaba conectado para aplicarla
-    OwnCriticalInjury: Curar la propia herida crítica añade dos de dificultad, como con las heridas
+    OwnCriticalInjury: Curar la propia herida crítica con Medicina añade dos de dificultad, como con las heridas
     DiceBox: La zona de dados de la reserva de dados recupera su tamaño
     ImpossibleSkull: La calavera de la tarea imposible se alinea con los dados de dificultad
+    CardValues: El daño y los demás valores de una tarjeta de tirada ya no se parten en dos líneas
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
