@@ -509,15 +509,12 @@ Genesys:
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
     Fix: CORRECTIF
-    SpellEffectNames: >-
-      La ligne d'un sort dans l'onglet Magie liste ses effets supplémentaires par leur nom, sans leur difficulté
-    HealerApplies: >-
-      Le soigneur qui a lancé les dés peut appliquer sa carte de soin, même à un patient qui n'est pas le sien
-    ApplyAgain: Le bouton Appliquer d'une carte de soin revient quand aucun MJ n'était connecté pour l'appliquer
-    OwnCriticalInjury: Soigner sa propre blessure critique avec Médecine ajoute deux de difficulté, comme pour les blessures
-    DiceBox: La zone des dés de la réserve de dés retrouve sa taille
-    ImpossibleSkull: Le crâne de la tâche impossible s'aligne sur les dés de difficulté
-    CardValues: Les dégâts et les autres valeurs d'une carte de jet ne se coupent plus sur deux lignes
+    TreatOwnInjury: >-
+      La ligne d'une blessure critique propose de la soigner soi-même avec Médecine, à deux de difficulté de plus, à côté du
+      test de Résilience de la semaine
+    SummarySpacing: Les lignes du résumé d'une carte de jet sont espacées également autour des pointillés
+    SummaryIcons: Les icônes et les symboles du résumé d'une carte de jet s'alignent sur leur libellé
+    SpellEffectHeight: Le dernier effet supplémentaire d'un sort dans l'onglet Magie a la même hauteur que les autres
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
