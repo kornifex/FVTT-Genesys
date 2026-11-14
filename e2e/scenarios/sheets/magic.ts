@@ -115,11 +115,24 @@ export async function magicPart(ctx: SheetsContext) {
 				...new Set(elements.map((element) => `${getComputedStyle(element).fontFamily}|${getComputedStyle(element).color}`)),
 			];
 			return {
-				tab: looks([...mage.querySelectorAll('.tab-magic .spell .difficulty, .tab-magic .additional-effects li .die')]),
+				tab: looks([...mage.querySelectorAll('.tab-magic .spell .difficulty')]),
 				sheet: looks([...spell.querySelectorAll('.additional-effect .difficulty')]),
 			};
 		}),
 		{ tab: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'], sheet: ['"Genesys Symbols", sans-serif|rgb(82, 35, 128)'] },
+	);
+	e2e.expect(
+		"#798 M4 a spell's row on the Magic tab lists its Additional Effects by name, without the difficulty each adds, which the spell's sheet shows",
+		await gm.evaluate(async () => {
+			const mage = await window.e2e.render(game.actors.getName('E2E Mage').sheet);
+			const spell = await window.e2e.render(game.items.getName('E2E spell').sheet);
+			return {
+				row: [...mage.querySelectorAll('.tab-magic .additional-effects li')].map((effect) => effect.textContent?.trim()),
+				glyphs: mage.querySelectorAll('.tab-magic .additional-effects .die').length,
+				sheet: spell.querySelectorAll('.additional-effect .difficulty').length,
+			};
+		}),
+		{ row: ['E2E additionalEffect', 'E2E additionalEffect'], glyphs: 0, sheet: 2 },
 	);
 	e2e.expect(
 		"#762 M4 a spell's Additional Effects sit side by side on a line under the spell, from the row's left edge",

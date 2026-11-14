@@ -48,7 +48,6 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 					<ul v-if="spell.system.additionalEffects.length > 0" class="additional-effects qualities">
 						<li v-for="effect in spell.system.additionalEffects" :key="effect.id">
 							<DescriptionTooltip :description="effect.description">{{ effect.name }}</DescriptionTooltip>
-							<Glyphs class="die die-Difficulty" :glyphs="`+${glyphsOf(effect.difficulty)}`" />
 						</li>
 					</ul>
 				</div>
