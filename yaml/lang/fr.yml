@@ -508,30 +508,15 @@ Genesys:
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
     Fix: CORRECTIF
-    CombatTabStates: >-
-      L'onglet Combat active et retire les états du jeton, et annule Viser et Posture défensive ; les états de Genesys
-      viennent en premier dans le menu du jeton
-    RepeatableEffects: Un effet supplémentaire comme Portée peut être ajouté plusieurs fois à un sort
-    SpellRows: >-
-      La ligne d'un sort dans l'onglet Magie se lit comme celle d'une arme, avec la description de ses effets en infobulle
-    QualityDescriptions: La description d'un attribut d'objet ou d'un accessoire s'affiche sur sa ligne de la réserve de dés
-    PatientWindow: La fenêtre du patient liste les rivaux et les némésis de la scène
-    CompendiumSkills: >-
-      La compétence d'un personnage montre la difficulté par défaut et l'initiative du compendium des compétences, en lecture
-      seule
-    RecoverySkills: >-
-      Les compétences qui soignent les blessures et récupèrent du stress se cochent sur la compétence : cochez-les dans un
-      compendium de compétences copié
-    ProvidedDefense: >-
-      Abrité et Posture défensive ne s'ajoutent plus à la défense d'une armure : la plus haute des deux compte
-    AdversaryDefense: La fiche d'un adversaire montre sa défense en jeu, couvert compris, à côté de celle de son profil
-    ItemEffects: La fiche d'effet garde les modifications d'objet, et ajouter un effet à un attribut l'ouvre
-    CriticalBonus: Le bonus de blessure critique d'un attribut suit son rang, sur sa propre arme seulement
-    DicePrompt: >-
-      Dans la réserve de dés, un effet supplémentaire décoché rend sa difficulté, et une tâche impossible ne prend aucun
-      autre point narratif
-    HealingCard: Une carte de soin ne s'applique qu'une fois
-    DiceColours: Les lignes de points narratifs et les difficultés des sorts montrent leurs dés en couleur
+    SpellEffectNames: >-
+      La ligne d'un sort dans l'onglet Magie liste ses effets supplémentaires par leur nom, sans leur difficulté
+    HealerApplies: >-
+      Le soigneur qui a lancé les dés peut appliquer sa carte de soin, même à un patient qui n'est pas le sien
+    ApplyAgain: Le bouton Appliquer d'une carte de soin revient quand aucun MJ n'était connecté pour l'appliquer
+    OwnCriticalInjury: Soigner sa propre blessure critique avec Médecine ajoute deux de difficulté, comme pour les blessures
+    DiceBox: La zone des dés de la réserve de dés retrouve sa taille
+    ImpossibleSkull: Le crâne de la tâche impossible s'aligne sur les dés de difficulté
+    CardValues: Les dégâts et les autres valeurs d'une carte de jet ne se coupent plus sur deux lignes
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
