@@ -990,7 +990,9 @@ $target-size: 24px;
 				top: 0;
 				font-size: 0.7em;
 				line-height: inherit;
-				vertical-align: baseline;
+				// The dice font's ink is centred 0.5em above the baseline, the skull's 0.375em of its own, smaller size above it:
+				// raised to the dice's middle.
+				vertical-align: calc(0.5 / 0.7 * 1em - 0.375em);
 				color: colors.$die-difficulty;
 				opacity: 0.25;
 			}
