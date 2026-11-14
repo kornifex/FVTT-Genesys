@@ -502,13 +502,18 @@ Genesys:
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
     Feature: NOVEDAD
-    Fix: CORRECCIÓN
-    TreatOwnInjury: >-
-      La fila de una herida crítica ofrece curarla uno mismo con Medicina, con dos de dificultad más, además de la tirada de
-      Aguante semanal
-    SummarySpacing: Las filas del resumen de una tarjeta de tirada quedan espaciadas por igual alrededor de las líneas de puntos
-    SummaryIcons: Los iconos y los símbolos del resumen de una tarjeta de tirada se alinean con su etiqueta
-    SpellEffectHeight: El último efecto adicional de un hechizo en la pestaña Magia tiene la misma altura que los demás
+    Spells: Escribir hechizos y lanzarlos desde la pestaña Magia, eligiendo sus efectos adicionales en la reserva de dados
+    MagicAttackHeal: Atacar con un hechizo, y curar con el hechizo de Curación
+    Attachments: Instalar accesorios en armas y armaduras, cuyos efectos pueden cambiar el propio objeto
+    Qualities: Una propiedad está completa en su objeto, con efectos según su rango
+    Medicine: Curar a un paciente con Medicina, y luego aplicar la tarjeta de curación
+    Rest: Recuperar tensión al final de un encuentro, y tensión y una herida tras una noche de descanso
+    CriticalTable: Las heridas críticas se tiran en la tabla del mundo
+    StoryPoints: Gastar Puntos de Historia desde la reserva de dados
+    CombatStates: >-
+      Apuntar, la postura defensiva, A cubierto y Tumbado se aplican a las tiradas, y se ponen y se quitan desde la pestaña
+      Combate
+    Thresholds: Un actor que supera sus umbrales queda marcado como incapacitado o derrotado
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

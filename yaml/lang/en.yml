@@ -511,13 +511,17 @@ Genesys:
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
     Feature: FEATURE
-    Fix: FIX
-    TreatOwnInjury: >-
-      A Critical Injury's row offers to treat it yourself with Medicine, two difficulty higher, besides the weekly Resilience
-      check
-    SummarySpacing: A roll card's summary rows sit evenly around the dashed lines between them
-    SummaryIcons: A roll card's summary icons and symbols line up with their labels
-    SpellEffectHeight: A spell's last Additional Effect on the Magic tab is as tall as the others
+    Spells: Write spells and cast them from the Magic tab, their Additional Effects picked in the Dice Prompt
+    MagicAttackHeal: Attack with a spell, and heal with the Heal spell
+    Attachments: Install attachments on weapons and armor, whose effects can change the item itself
+    Qualities: A quality is complete on its item, its effects scaled by its rank
+    Medicine: Heal a patient with Medicine, then apply the healing card
+    Rest: Recover strain at the end of an encounter, and strain and a wound after a night's rest
+    CriticalTable: Critical Injuries are rolled on the world's table
+    StoryPoints: Spend Story Points from the Dice Prompt
+    CombatStates: >-
+      Aim, Guarded Stance, cover and prone apply to checks, and are put on and taken off from the Combat tab
+    Thresholds: An actor past their thresholds is marked incapacitated or defeated
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

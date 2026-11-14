@@ -508,13 +508,18 @@ Genesys:
       sont possibles !
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
-    Fix: CORRECTIF
-    TreatOwnInjury: >-
-      La ligne d'une blessure critique propose de la soigner soi-même avec Médecine, à deux de difficulté de plus, à côté du
-      test de Résilience de la semaine
-    SummarySpacing: Les lignes du résumé d'une carte de jet sont espacées également autour des pointillés
-    SummaryIcons: Les icônes et les symboles du résumé d'une carte de jet s'alignent sur leur libellé
-    SpellEffectHeight: Le dernier effet supplémentaire d'un sort dans l'onglet Magie a la même hauteur que les autres
+    Spells: >-
+      Écrire des sorts et les lancer depuis l'onglet Magie, leurs effets supplémentaires choisis dans la réserve de dés
+    MagicAttackHeal: Attaquer avec un sort, et soigner avec un sort de Guérison
+    Attachments: Installer des améliorations sur les armes et les armures, dont les effets peuvent modifier l'objet lui-même
+    Qualities: Un attribut est complet sur son objet, ses effets suivant son rang
+    Medicine: Soigner un patient avec Médecine, puis appliquer la carte de soin
+    Rest: Récupérer du stress en fin de rencontre, et du stress et une blessure après une nuit de repos
+    CriticalTable: Les blessures critiques sont tirées sur la table du monde
+    StoryPoints: Dépenser les points narratifs depuis la réserve de dés
+    CombatStates: >-
+      Viser, la posture défensive, Abrité et À terre s'appliquent aux tests, et se mettent et s'enlèvent depuis l'onglet Combat
+    Thresholds: Un acteur au-delà de ses seuils est marqué neutralisé ou vaincu
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
