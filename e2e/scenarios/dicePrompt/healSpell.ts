@@ -1,4 +1,4 @@
-import type { DicePromptContext } from './shared.ts';
+import { type DicePromptContext, rivalWounds, setRivalWounds } from './shared.ts';
 
 export async function healSpellPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, noPrompt, click, roll, update, target, recoveryButton, health } = ctx;
@@ -71,16 +71,7 @@ export async function healSpellPart(ctx: DicePromptContext) {
 		}),
 		{ prompts: 0, notifications: [] },
 	);
-	// The Rival's token is unlinked: its wounds live on the token's own actor, not on the world's.
-	const rivalWounds = () =>
-		gm.evaluate(() => {
-			const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
-			return (token.actor.system as { wounds: { value: number } }).wounds.value;
-		});
-	await gm.evaluate(() => {
-		const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
-		return token.actor.update({ 'system.wounds': { value: 8, max: 12 } });
-	});
+	await setRivalWounds(gm, 8);
 	await gm.fixDice([
 		{ face: 4, faces: 12 },
 		{ face: 7, faces: 8 },
@@ -94,7 +85,7 @@ export async function healSpellPart(ctx: DicePromptContext) {
 	await recoveryButton(gm, rivalRolled.id, true);
 	e2e.expect(
 		"#766 HS5 the Priest picks the scene's unlinked Rival, and Apply heals the token's wounds by the Successes",
-		{ pool: rivalPicked.pool, wounds: await rivalWounds() },
+		{ pool: rivalPicked.pool, wounds: await rivalWounds(gm) },
 		{ pool: 'PA|D', wounds: 5 },
 	);
 	await e2e.step('healSpell end');

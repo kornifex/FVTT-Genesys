@@ -1794,6 +1794,25 @@ export function installCriticalInjuryHelpers() {
 	};
 }
 
+/**
+ * The wounds of the scene's Rival, as the GM reads them. Its token is unlinked: its wounds live on the token's own
+ * actor, not on the world's.
+ */
+export function rivalWounds(gm: Client) {
+	return gm.evaluate(() => {
+		const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+		return (token.actor.system as { wounds: { value: number } }).wounds.value;
+	});
+}
+
+/** Set the wounds of the scene's Rival, out of 12, on its token's own actor. */
+export async function setRivalWounds(gm: Client, value: number) {
+	await gm.evaluate(async (wounds) => {
+		const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+		await token.actor.update({ 'system.wounds': { value: wounds, max: 12 } });
+	}, value);
+}
+
 /** What the parts of the scenario share: its clients and the helpers `run` builds on them. */
 export type DicePromptContext = {
 	e2e: ScenarioContext;
