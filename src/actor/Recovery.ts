@@ -220,11 +220,12 @@ export function medicineDifficulty({ value, max }: CombatPool, healingOneself: b
 }
 
 /**
- * The difficulty glyphs of the Medicine check with which a character heals one of their own Critical Injuries: its
- * severity, two more since they heal themselves (CRB p. 116), up to the five dice of Formidable.
+ * The difficulty glyphs of the check with which a character heals one of their own Critical Injuries: its severity
+ * (CRB p. 116), up to the five dice of Formidable. A check of a skill that heals wounds is Medicine, two levels harder
+ * since they heal themselves; any other is the weekly Resilience check of a resting character, which isn't.
  */
-export function ownInjuryDifficulty(severity: Severity) {
-	return difficultyGlyphs({ level: SEVERITIES.indexOf(severity) + HEALING_ONESELF, upgrades: 0 });
+export function ownInjuryDifficulty(severity: Severity, healingSkill: boolean) {
+	return difficultyGlyphs({ level: SEVERITIES.indexOf(severity) + (healingSkill ? HEALING_ONESELF : 0), upgrades: 0 });
 }
 
 /**

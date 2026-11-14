@@ -83,8 +83,11 @@ export async function difficultyPart(ctx: DicePromptContext) {
 		},
 	);
 	await setSetting('defaultDifficulty', 'DDD');
+	// A world that heals Critical Injuries with Medicine rather than with the weekly Resilience check (#49 E1).
+	await setSetting('skillForInjuries', 'Medicine');
 	await opened(gm, click(gm, ada, '.tab-combat .injury .name .roll-link'));
 	const injury = shown(await difficultyState());
+	await setSetting('skillForInjuries', 'Resilience');
 	await control(gm, ['Bo']);
 	await linkPrompt(gm, journal, 'Athletics', 'CDD');
 	const upgradedLink = shown(await difficultyState());
@@ -121,7 +124,7 @@ export async function difficultyPart(ctx: DicePromptContext) {
 	);
 	await control(gm, []);
 	e2e.expect(
-		"#450 P7 a character healing their own Average Critical Injury opens at Daunting, two levels above its severity (#799), a check link's difficulty sets the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
+		"#450 P7 a character healing their own Average Critical Injury with Medicine opens at Daunting, two levels above its severity (#799, #809), a check link's difficulty sets the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
 		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
 		{
 			injury: difficultyOf('Daunting', 'DDDD·'),

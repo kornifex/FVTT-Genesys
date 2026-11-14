@@ -51,16 +51,23 @@ describe('medicineDifficulty', () => {
 });
 
 describe('ownInjuryDifficulty', () => {
-	it("is the injury's severity and two more, the character healing themselves (CRB p. 116)", () => {
-		expect(ownInjuryDifficulty('-')).toBe('DD');
-		expect(ownInjuryDifficulty('easy')).toBe('DDD');
-		expect(ownInjuryDifficulty('average')).toBe('DDDD');
-		expect(ownInjuryDifficulty('hard')).toBe('DDDDD');
+	it("is the injury's severity and two more with Medicine, the character healing themselves (CRB p. 116)", () => {
+		expect(ownInjuryDifficulty('-', true)).toBe('DD');
+		expect(ownInjuryDifficulty('easy', true)).toBe('DDD');
+		expect(ownInjuryDifficulty('average', true)).toBe('DDDD');
+		expect(ownInjuryDifficulty('hard', true)).toBe('DDDDD');
+	});
+
+	it("is the injury's severity alone with Resilience, the weekly check of a resting character (CRB p. 116)", () => {
+		expect(ownInjuryDifficulty('-', false)).toBe('');
+		expect(ownInjuryDifficulty('easy', false)).toBe('D');
+		expect(ownInjuryDifficulty('average', false)).toBe('DD');
+		expect(ownInjuryDifficulty('formidable', false)).toBe('DDDDD');
 	});
 
 	it('stops at the five dice of Formidable, which an Impossible task rolls too', () => {
-		expect(ownInjuryDifficulty('daunting')).toBe('DDDDD');
-		expect(ownInjuryDifficulty('formidable')).toBe('DDDDD');
+		expect(ownInjuryDifficulty('daunting', true)).toBe('DDDDD');
+		expect(ownInjuryDifficulty('formidable', true)).toBe('DDDDD');
 	});
 });
 
