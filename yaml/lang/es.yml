@@ -502,15 +502,12 @@ Genesys:
     Updates: Correcciones y novedades
     Feature: NOVEDAD
     Fix: CORRECCIÓN
-    SpellEffectNames: >-
-      La fila de un hechizo en la pestaña Magia lista sus efectos adicionales por su nombre, sin su dificultad
-    HealerApplies: >-
-      El sanador que tiró los dados puede aplicar su tarjeta de curación, aunque el paciente no sea suyo
-    ApplyAgain: El botón Aplicar de una tarjeta de curación vuelve cuando ningún DJ estaba conectado para aplicarla
-    OwnCriticalInjury: Curar la propia herida crítica con Medicina añade dos de dificultad, como con las heridas
-    DiceBox: La zona de dados de la reserva de dados recupera su tamaño
-    ImpossibleSkull: La calavera de la tarea imposible se alinea con los dados de dificultad
-    CardValues: El daño y los demás valores de una tarjeta de tirada ya no se parten en dos líneas
+    TreatOwnInjury: >-
+      La fila de una herida crítica ofrece curarla uno mismo con Medicina, con dos de dificultad más, además de la tirada de
+      Aguante semanal
+    SummarySpacing: Las filas del resumen de una tarjeta de tirada quedan espaciadas por igual alrededor de las líneas de puntos
+    SummaryIcons: Los iconos y los símbolos del resumen de una tarjeta de tirada se alinean con su etiqueta
+    SpellEffectHeight: El último efecto adicional de un hechizo en la pestaña Magia tiene la misma altura que los demás
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
