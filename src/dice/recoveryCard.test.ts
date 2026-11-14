@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyingOnce, recoveryCardState } from '@/dice/recoveryCard';
+import { applyingOnce, mayApplyRecovery, recoveryCardState } from '@/dice/recoveryCard';
+
+describe('mayApplyRecovery', () => {
+	it('lets an owner of the patient apply the healing, whoever rolled and whatever the message carries', () => {
+		expect(mayApplyRecovery({ ownsPatient: true, isAuthor: false, hasRoll: false })).toBe(true);
+	});
+
+	it("lets the healer who rolled apply the healing of a patient they don't own", () => {
+		expect(mayApplyRecovery({ ownsPatient: false, isAuthor: true, hasRoll: true })).toBe(true);
+	});
+
+	it("refuses the author of a message without a roll, which proves no check, if they don't own the patient", () => {
+		expect(mayApplyRecovery({ ownsPatient: false, isAuthor: true, hasRoll: false })).toBe(false);
+	});
+
+	it('refuses a user who neither owns the patient nor rolled the check', () => {
+		expect(mayApplyRecovery({ ownsPatient: false, isAuthor: false, hasRoll: true })).toBe(false);
+	});
+});
 
 describe('recoveryCardState', () => {
 	it('offers Apply to a user who may heal the patient while the healing is not applied', () => {

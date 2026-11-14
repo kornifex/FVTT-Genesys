@@ -1,6 +1,6 @@
 /**
  * @file The Apply button of the card of a check that heals: it heals the patient by the recovery its message carries,
- * once, for the GM and the patient's owners.
+ * once, for the GM, the healer who rolled the check and the patient's owners.
  */
 
 import { canBePatient, healedPools, parseRecovery, type Patient, type Recovery } from '@/actor/Recovery';
@@ -17,6 +17,15 @@ export function recoveryCardState({ applied, mayHeal }: { applied: boolean; mayH
 		return 'applied';
 	}
 	return mayHeal ? 'apply' : 'none';
+}
+
+/**
+ * Whether a user may apply a card's healing: an owner of the patient, as a GM is of every actor, or the healer who rolled
+ * the check, even of a patient they don't own. Authorship counts only on a message that carries the roll, as for the
+ * other checks a player asks the Acting GM about (`rolledCheck`): a message without one proves no check.
+ */
+export function mayApplyRecovery({ ownsPatient, isAuthor, hasRoll }: { ownsPatient: boolean; isAuthor: boolean; hasRoll: boolean }) {
+	return ownsPatient || (isAuthor && hasRoll);
 }
 
 /**
@@ -67,6 +76,17 @@ function patientOf(recovery: Recovery) {
 }
 
 /**
+ * Whether a user may apply the healing of a card's message, by `mayApplyRecovery`.
+ */
+function mayApply(user: User.Implementation, message: ChatMessage.Implementation, patient: GenesysActor) {
+	return mayApplyRecovery({
+		ownsPatient: patient.testUserPermission(user, 'OWNER'),
+		isAuthor: message.author?.id === user.id,
+		hasRoll: message.rolls.length > 0,
+	});
+}
+
+/**
  * Heal a patient by a recovery: their wounds and strain go down by what it heals, never below zero.
  */
 async function applyRecovery(patient: GenesysActor, recovery: Recovery) {
@@ -91,9 +111,9 @@ function applyCard(message: ChatMessage.Implementation, patient: GenesysActor, r
 
 /**
  * Wire the Apply button of each card of a check that heals as Foundry renders it, in the chat log and its notifications:
- * it shows only to the users who may heal the patient, the GM and the patient's owners, until the healing is applied,
- * which the card then shows to everyone. A GM applies it; a player asks the Acting GM to, so that two clicks at once heal
- * the patient once.
+ * it shows only to the users who may heal the patient, the GM, the healer who rolled and the patient's owners, until the
+ * healing is applied, which the card then shows to everyone. A GM applies it; a player asks the Acting GM to, who checks
+ * the same rule, so that two clicks at once heal the patient once.
  */
 export function register() {
 	Hooks.on('renderChatMessageHTML', (message, html) => {
@@ -106,7 +126,7 @@ export function register() {
 		const patient = recovery && patientOf(recovery);
 		const state = recoveryCardState({
 			applied: message.getFlag('genesys', 'recoveryApplied') === true,
-			mayHeal: !!patient?.isOwner,
+			mayHeal: !!patient && mayApply(game.user, message, patient),
 		});
 		if (state === 'applied') {
 			button.replaceWith(appliedLabel());
@@ -133,7 +153,7 @@ export function register() {
 		const message = game.messages.get(messageId);
 		const recovery = message && recoveryOfMessage(message);
 		const patient = recovery && patientOf(recovery);
-		if (!message || !recovery || !patient?.testUserPermission(querier, 'OWNER')) {
+		if (!message || !recovery || !patient || !mayApply(querier, message, patient)) {
 			refuse('Genesys.Notifications.GenericError');
 		}
 
