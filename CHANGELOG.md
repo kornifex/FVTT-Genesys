@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.3...v0.7.0) (2026-11-14)
+
+
+### Features
+
+* **actor:** treat one's own Critical Injury with Medicine from the Combat tab ([#821](https://github.com/kornifex/FVTT-Genesys/issues/821)) ([6aef1fd](https://github.com/kornifex/FVTT-Genesys/commit/6aef1fdfebeb02fad4778a6e87d5520e0d3b426d))
+
+
+### Bug Fixes
+
+* **dice:** line a summary row's icon and symbol up with its label ([#817](https://github.com/kornifex/FVTT-Genesys/issues/817)) ([262feeb](https://github.com/kornifex/FVTT-Genesys/commit/262feeb09e87e4ca14bdcecd7028431f23651344))
+* **dice:** space a roll card's summary rows evenly around their dashes ([#814](https://github.com/kornifex/FVTT-Genesys/issues/814)) ([5850cd4](https://github.com/kornifex/FVTT-Genesys/commit/5850cd43fbc6a691a968d30f1b5e45fda499eb62))
+* **i18n:** summarize 0.7.0-rc.4's changes in the welcome message ([#822](https://github.com/kornifex/FVTT-Genesys/issues/822)) ([59b6ce9](https://github.com/kornifex/FVTT-Genesys/commit/59b6ce9e8ac79028d2a737c602102eae131c4d7e))
+* **i18n:** summarize 0.7.0's changes since 0.6.0 in the welcome message ([#824](https://github.com/kornifex/FVTT-Genesys/issues/824)) ([d2180c0](https://github.com/kornifex/FVTT-Genesys/commit/d2180c0c7949d92908627ca025efd391c47e42e3))
+* **i18n:** use the French Genesys names of attachments and spell actions ([#826](https://github.com/kornifex/FVTT-Genesys/issues/826)) ([ea7d62f](https://github.com/kornifex/FVTT-Genesys/commit/ea7d62f7e0a095fd43b32661a4ce4b3cb5bd9139))
+* **ui:** give a spell's last Additional Effect the height of the others ([#820](https://github.com/kornifex/FVTT-Genesys/issues/820)) ([6f98f68](https://github.com/kornifex/FVTT-Genesys/commit/6f98f68bef1633a1aeef6593a1abcdca90b1e8a1))
+
+
+### Continuous Integration
+
+* set the next release to 0.7.0 ([#825](https://github.com/kornifex/FVTT-Genesys/issues/825)) ([ff537e9](https://github.com/kornifex/FVTT-Genesys/commit/ff537e94f0e9c78d7e6bb39c3d540e85012571c8))
+* set the next release to 0.7.0-rc.4 ([#823](https://github.com/kornifex/FVTT-Genesys/issues/823)) ([36407d1](https://github.com/kornifex/FVTT-Genesys/commit/36407d1745f21d1bb8db34d8aa7b0efe065688c0))
+
 ## [0.7.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.2...v0.7.0-rc.3) (2026-11-14)
 
 
