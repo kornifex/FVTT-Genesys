@@ -71,6 +71,21 @@ export async function glyphLabelsPart(ctx: DicePromptContext) {
 		},
 	);
 
+	// The pool's dice are drawn larger than the dice box's glyphs, which the pool's rules must not reach.
+	const sizes = await gm.evaluate(() => {
+		const size = (selector: string) => getComputedStyle(document.querySelector(selector)!).fontSize;
+		return {
+			poolDie: size('.app-dice-prompt .preview .positive .die'),
+			boxGlyph: size('.app-dice-prompt .dice-box .pool-modification.die'),
+			box: size('.app-dice-prompt .dice-box'),
+		};
+	});
+	e2e.expect(
+		"#796 A2b a dice-box glyph keeps the box's font size, not the 2.5rem of the pool's dice",
+		[sizes.boxGlyph === sizes.box, sizes.poolDie !== sizes.boxGlyph],
+		[true, true],
+	);
+
 	// 1dp+1da+2di and a Success: the Proficiency die lands on a Triumph, the Ability die on a blank face, the Difficulty
 	// dice on a Failure and a Threat, then a Threat.
 	await gm.fixDice([

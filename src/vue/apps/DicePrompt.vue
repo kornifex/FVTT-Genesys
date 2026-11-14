@@ -1237,8 +1237,9 @@ $target-size: 24px;
 			}
 		}
 
-		.die,
-		.symbol {
+		// The pool's own dice and symbols only: the dice box and the Pool Modification rows hold dice glyphs of the same classes.
+		:is(.positive, .negative) .die,
+		:is(.positive, .negative) .symbol {
 			display: inline;
 			font-family: 'Genesys Symbols', sans-serif;
 			font-size: 2rem;
@@ -1257,7 +1258,7 @@ $target-size: 24px;
 			}
 		}
 
-		.die {
+		:is(.positive, .negative) .die {
 			margin-left: -0.1em;
 			margin-right: -0.05em;
 			margin-top: 0.1em;
