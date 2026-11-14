@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0...v0.7.1) (2026-11-14)
+
+
+### Continuous Integration
+
+* let release-please compute the next version again ([#828](https://github.com/kornifex/FVTT-Genesys/issues/828)) ([a318072](https://github.com/kornifex/FVTT-Genesys/commit/a3180724a2eacc8f362f3e331c2b83f6b5364b5f))
+
 ## [0.7.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.3...v0.7.0) (2026-11-14)
 
 
