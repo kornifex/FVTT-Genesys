@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.2...v0.7.0-rc.3) (2026-11-14)
+
+
+### Features
+
+* **item:** list a spell's Additional Effects by name on the Magic tab ([#800](https://github.com/kornifex/FVTT-Genesys/issues/800)) ([178c7e0](https://github.com/kornifex/FVTT-Genesys/commit/178c7e00320b86eb8f58e6d0960f0c5a8d2b4ca3))
+
+
+### Bug Fixes
+
+* **actor:** add two difficulty to healing one's own Critical Injury only with Medicine ([#812](https://github.com/kornifex/FVTT-Genesys/issues/812)) ([b87fb77](https://github.com/kornifex/FVTT-Genesys/commit/b87fb77df896849d50311a57bf3057bf8a34f670))
+* **actor:** add two difficulty when a character heals their own Critical Injury ([#801](https://github.com/kornifex/FVTT-Genesys/issues/801)) ([9d3ae5a](https://github.com/kornifex/FVTT-Genesys/commit/9d3ae5a0fee7342a4c19c25d66b9de3471a70f25))
+* **dice:** enable a healing card's Apply again when it didn't apply ([#802](https://github.com/kornifex/FVTT-Genesys/issues/802)) ([063b8e6](https://github.com/kornifex/FVTT-Genesys/commit/063b8e606760c7d7abef17b85d8b4ed656bf923e))
+* **dice:** keep a value of a roll card's summary on one line ([#811](https://github.com/kornifex/FVTT-Genesys/issues/811)) ([fa88432](https://github.com/kornifex/FVTT-Genesys/commit/fa884327af615805ad80f01cd254388b77793a36))
+* **dice:** let the healer who rolled apply their healing card ([#806](https://github.com/kornifex/FVTT-Genesys/issues/806)) ([0419fff](https://github.com/kornifex/FVTT-Genesys/commit/0419fffd062ec84ef8a37355a39b147f31b11004))
+* **i18n:** summarize 0.7.0-rc.3's changes in the welcome message ([#807](https://github.com/kornifex/FVTT-Genesys/issues/807)) ([bfea344](https://github.com/kornifex/FVTT-Genesys/commit/bfea344880455639aebb5d524f6125eb8beb1954))
+* **ui:** keep the Dice Prompt's dice box at its size ([#804](https://github.com/kornifex/FVTT-Genesys/issues/804)) ([2725ef1](https://github.com/kornifex/FVTT-Genesys/commit/2725ef169410ce9b8bd4823298812bebf24da411))
+* **ui:** line the Impossible skull up with the Difficulty dice ([#805](https://github.com/kornifex/FVTT-Genesys/issues/805)) ([53e580d](https://github.com/kornifex/FVTT-Genesys/commit/53e580d9f02395455b3ea40c5de7d45147a6ea59))
+
+
+### Continuous Integration
+
+* set the next release to 0.7.0-rc.3 ([#808](https://github.com/kornifex/FVTT-Genesys/issues/808)) ([93c8f9c](https://github.com/kornifex/FVTT-Genesys/commit/93c8f9caa9862662177e24b14ad89ce8a4120c4d))
+
 ## [0.7.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.1...v0.7.0-rc.2) (2026-11-13)
 
 
