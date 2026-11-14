@@ -1,5 +1,5 @@
 import type { Client } from '../../scenario.ts';
-import type { DicePromptContext } from './shared.ts';
+import { type DicePromptContext, installDicePromptHelpers } from './shared.ts';
 
 export async function medicineHealPart(ctx: DicePromptContext) {
 	const { e2e, gm, player, opened, click, roll, setSetting, update, target, recoveryButton, recoveryCard, health } = ctx;
@@ -76,10 +76,47 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 	await recoveryButton(gm, marked.id, true);
 	await target(null);
 	e2e.expect(
-		"#686 H5 healing the GM's target Mark, past his wound threshold, asks for no patient and opens at Hard; Apply shows to the GM alone, and heals Mark",
+		"#686 H5 healing the GM's target Mark, past his wound threshold, asks for no patient and opens at Hard; Apply shows to the GM, who rolled, not to the player, who neither rolled nor owns Mark, and heals Mark",
 		{ patientPrompts, pool: targeted.pool, shown: markShown, health: await health('Mark') },
 		{ patientPrompts: 0, pool: 'AA|DDD', shown: { gm: true, player: false }, health: { wounds: 9, strain: 0 } },
 	);
+
+	// §#794: the healer who rolled applies their card, whoever owns the patient: here the scene's Rival, whose token is
+	// unlinked, so its wounds live on the token's own actor. A player who neither rolled nor owns the Rival sees no Apply.
+	const rivalWounds = () =>
+		gm.evaluate(() => {
+			const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+			return (token.actor.system as { wounds: { value: number } }).wounds.value;
+		});
+	await gm.evaluate(() => {
+		const token = canvas.scene.tokens.find((candidate: { name: string }) => candidate.name === 'E2E Rival');
+		return token.actor.update({ 'system.wounds': { value: 6, max: 12 } });
+	});
+	const second = await e2e.secondPlayer();
+	await second.evaluate(installDicePromptHelpers);
+	const rivalPicked = await opened(player, async () => {
+		await heal(player)();
+		await patientPrompt(player, 'Rival (Rival)');
+	});
+	// Ability dice on two Successes each; the Difficulty die on a blank face.
+	await player.fixDice([
+		{ face: 4, faces: 8 },
+		{ face: 4, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const rivalRolled = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+	const rivalShown = {
+		gm: await recoveryButton(gm, rivalRolled.id),
+		player: await recoveryButton(player, rivalRolled.id),
+		second: await recoveryButton(second, rivalRolled.id),
+	};
+	await recoveryButton(player, rivalRolled.id, true);
+	e2e.expect(
+		"#794 H7 the player heals the scene's Rival, whom they don't own, at Easy; Apply shows to the GM and the healer who rolled, not to a player who is neither, and the healer's Apply heals the Rival",
+		{ pool: rivalPicked.pool, shown: rivalShown, wounds: await rivalWounds() },
+		{ pool: 'AA|D', shown: { gm: true, player: true, second: false }, wounds: 2 },
+	);
+	await e2e.step('#794 second player leaves', () => second.leave());
 
 	// §#723: an applied card records it on its message, so that no re-render, reload or other owner heals again.
 	const applied = { button: false, applied: 'Applied' };
