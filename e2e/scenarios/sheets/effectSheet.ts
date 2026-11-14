@@ -197,6 +197,18 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')),
 		editedChanges,
 	);
+	await e2e.step('#832 GM types 10 as the value of a change to the Critical Injuries the actor suffers', () =>
+		gm.evaluate(async () => {
+			const effectSheet = window.sheetsE2E.effectSheet;
+			await effectSheet.setChange('Hero', 5, 'genesys.critical.suffered', '10');
+			await effectSheet.submit('Hero');
+		}),
+	);
+	e2e.expect(
+		'#832 A1 the value of a change to Critical Injury rolls is saved, though v14 parses it as a number',
+		(await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')))[5],
+		['genesys.critical.suffered', e2e.version < 14 ? 0 : 'custom', '10'],
+	);
 	await e2e.step('#140 GM opens the effect sheet in French', () =>
 		gm.evaluate(async () => {
 			await window.sheetsE2E.closeAll();
