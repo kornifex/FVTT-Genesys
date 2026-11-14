@@ -135,7 +135,7 @@ export async function magicPart(ctx: SheetsContext) {
 		{ row: ['E2E additionalEffect', 'E2E additionalEffect'], glyphs: 0, sheet: 2 },
 	);
 	e2e.expect(
-		"#762 M4 a spell's Additional Effects sit side by side on a line under the spell, from the row's left edge",
+		"#762 M4 a spell's Additional Effects sit side by side on a line under the spell, from the row's left edge, the last as tall as the others",
 		await gm.evaluate(async () => {
 			await window.sheetsE2E.open('Mage');
 			await window.sheetsE2E.clickTab('Mage', 'magic');
@@ -147,9 +147,10 @@ export async function magicPart(ctx: SheetsContext) {
 				belowSpell: effects.top >= box('.name').bottom,
 				sameLine: Math.abs(first.top - second.top) < 1 && second.left > first.right,
 				fromLeft: Math.abs(effects.left - row.getBoundingClientRect().left) < 32,
+				sameHeight: Math.abs(first.height - second.height) < 0.5,
 			};
 		}),
-		{ belowSpell: true, sameLine: true, fromLeft: true },
+		{ belowSpell: true, sameLine: true, fromLeft: true, sameHeight: true },
 	);
 	await e2e.step("#760 M4 GM gives the first of the E2E spell's effects a description", () =>
 		gm.evaluate(async () => {
