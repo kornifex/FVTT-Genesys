@@ -113,6 +113,9 @@ const glyphsOf = (level: number) => difficultyGlyphs({ level, upgrades: 0 });
 
 			li {
 				@include combat-tab.tag;
+				// Foundry spaces a list's items with a bottom margin, but not its last: in a flex line, which stretches each tag to
+				// the tallest margin box, the last one would come out taller than the others. The gap spaces them instead.
+				margin: 0;
 			}
 		}
 	}
