@@ -652,7 +652,8 @@ export function fromEditedChange(change: EditedChange, customMode: () => number,
 	const { char, skill, ...stored } = change;
 	// v13: a change has a numeric mode, which v14 replaced with a type.
 	const custom = () => ('type' in change ? { type: 'custom' } : { mode: customMode() });
-	const value = typeof change.value === 'string' ? change.value : '';
+	// v14: Foundry's sheet parses the value typed as JSON, which turns a number into one.
+	const value = typeof change.value === 'string' ? change.value : typeof change.value === 'number' ? String(change.value) : '';
 
 	if (isProvidedDefenseKey(change.key)) {
 		return { ...stored, ...('type' in change ? { type: 'upgrade' } : { mode: upgradeMode() }) };

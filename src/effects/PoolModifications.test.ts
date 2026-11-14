@@ -987,6 +987,12 @@ describe('editing changes in the effect sheets on Foundry v14', () => {
 		);
 	});
 
+	it('keeps the value of a change to Critical Injury rolls that Foundry parsed as a number', () => {
+		expect(fromEditedChange(v14EditedChange('genesys.critical.suffered', 10), unreadMode, unreadMode).value).toBe('10');
+		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', -10), unreadMode, unreadMode).value).toBe('-10');
+		expect(fromEditedChange(v14EditedChange('genesys.critical.inflicted', 1.5), unreadMode, unreadMode).value).toBe('');
+	});
+
 	it('gives a change to the defense a source provides the Upgrade type, so that two such effects do not stack', () => {
 		expect(fromEditedChange(v14EditedChange('system.providedDefense.ranged', '1', { type: 'add' }), unreadMode, unreadMode)).toEqual(
 			v14EditedChange('system.providedDefense.ranged', '1', { type: 'upgrade' }),

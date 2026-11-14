@@ -215,6 +215,8 @@ export type SheetsHelpers = {
 			skillSelects: { index: number; selected: string; custom: boolean; changeCase: boolean; compendiumCase: boolean }[];
 		}>;
 		edit(owner: string): Promise<void>;
+		/** Picks the key of a change and types its value, as a user does. */
+		setChange(owner: string, index: number, key: string, value: string): Promise<void>;
 		submit(owner: string): Promise<void>;
 		/** Each change's key, mode (v14: type) and value, as stored. */
 		changes(owner: string): ChangeRow[];
@@ -1090,6 +1092,14 @@ export function installSheetsHelpers() {
 				await settle();
 				find(element(), 'li[data-index="5"] [data-action="deleteChange"]').click();
 				await waitFor('deleted change', () => !element()?.querySelector('[name$="changes.6.key"]'));
+				await settle();
+			},
+
+			async setChange(owner, index, key, value) {
+				const element = () => htmlOf(editedEffect(owner).sheet)!;
+				setSelect(element(), `select[name$="changes.${index}.key"]`, key);
+				await settle();
+				setSelect(element(), `input[name$="changes.${index}.value"]`, value);
 				await settle();
 			},
 
