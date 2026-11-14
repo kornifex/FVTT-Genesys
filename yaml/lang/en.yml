@@ -511,26 +511,12 @@ Genesys:
     Updates: Bug Fixes & Updates
     Feature: FEATURE
     Fix: FIX
-    CombatTabStates: >-
-      The Combat tab toggles the Token States and takes back Aim and Guarded Stance; Genesys's states come first in the
-      token's menu
-    RepeatableEffects: An Additional Effect such as Range can be added more than once to a spell
-    SpellRows: A spell's row in the Magic tab reads like a weapon's, with its effects' descriptions as tooltips
-    QualityDescriptions: A quality's or an attachment's description shows on its Dice Prompt row
-    PatientWindow: The patient window lists the scene's rivals and nemeses
-    CompendiumSkills: A character's skill shows the Skills Compendium's Default Difficulty and Initiative, read-only
-    RecoverySkills: >-
-      The skills that heal wounds and recover strain are ticked on the skill: tick them in a copied skills compendium
-    ProvidedDefense: >-
-      Cover and Guarded Stance no longer add to an armor's defense: the higher of the two counts
-    AdversaryDefense: An adversary's sheet shows its defense in play, cover included, beside its stat block's
-    ItemEffects: The effect sheet keeps an item's changes, and adding an effect to a quality opens it
-    CriticalBonus: A quality's Critical Injury bonus follows its rank, on its own weapon only
-    DicePrompt: >-
-      In the Dice Prompt, an unchecked Additional Effect gives back its difficulty, and an Impossible task takes no other
-      Story Point
-    HealingCard: A healing card applies once
-    DiceColours: Story Point rows and spell difficulties show their dice in colour
+    SpellEffectNames: A spell's row in the Magic tab lists its Additional Effects by name, without their difficulty
+    HealerApplies: The healer who rolled can apply their healing card, even to a patient they don't own
+    ApplyAgain: A healing card's Apply comes back when no GM was online to apply it
+    OwnCriticalInjury: Healing one's own Critical Injury adds two difficulty, as for wounds
+    DiceBox: The Dice Prompt's dice box is back to its size
+    ImpossibleSkull: The Impossible skull lines up with the difficulty dice
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

@@ -502,31 +502,14 @@ Genesys:
     Updates: Correcciones y novedades
     Feature: NOVEDAD
     Fix: CORRECCIÓN
-    CombatTabStates: >-
-      La pestaña Combate activa y quita los estados de la ficha, y anula Apuntar y Postura defensiva; los estados de Genesys
-      aparecen primero en el menú de la ficha
-    RepeatableEffects: Un efecto adicional como Alcance puede añadirse más de una vez a un hechizo
-    SpellRows: >-
-      La fila de un hechizo en la pestaña Magia se lee como la de un arma, con la descripción de sus efectos como información
-      emergente
-    QualityDescriptions: La descripción de una propiedad o de un accesorio aparece en su fila de la reserva de dados
-    PatientWindow: La ventana del paciente lista los rivales y antagonistas de la escena
-    CompendiumSkills: >-
-      La habilidad de un personaje muestra la dificultad por defecto y la iniciativa del compendio de habilidades, solo
-      lectura
-    RecoverySkills: >-
-      Las habilidades que curan heridas y recuperan tensión se marcan en la habilidad: márcalas en un compendio de
-      habilidades copiado
-    ProvidedDefense: >-
-      A cubierto y Postura defensiva ya no se suman a la defensa de una armadura: cuenta la mayor de las dos
-    AdversaryDefense: La hoja de un adversario muestra su defensa en juego, cobertura incluida, junto a la de su perfil
-    ItemEffects: La hoja de efecto conserva los cambios de objeto, y añadir un efecto a una propiedad lo abre
-    CriticalBonus: La bonificación de herida crítica de una propiedad sigue su rango, solo en su propia arma
-    DicePrompt: >-
-      En la reserva de dados, un efecto adicional desmarcado devuelve su dificultad, y una tarea imposible no admite otro
-      Punto de Historia
-    HealingCard: Una tarjeta de curación solo se aplica una vez
-    DiceColours: Las filas de Puntos de Historia y las dificultades de los hechizos muestran sus dados en color
+    SpellEffectNames: >-
+      La fila de un hechizo en la pestaña Magia lista sus efectos adicionales por su nombre, sin su dificultad
+    HealerApplies: >-
+      El sanador que tiró los dados puede aplicar su tarjeta de curación, aunque el paciente no sea suyo
+    ApplyAgain: El botón Aplicar de una tarjeta de curación vuelve cuando ningún DJ estaba conectado para aplicarla
+    OwnCriticalInjury: Curar la propia herida crítica añade dos de dificultad, como con las heridas
+    DiceBox: La zona de dados de la reserva de dados recupera su tamaño
+    ImpossibleSkull: La calavera de la tarea imposible se alinea con los dados de dificultad
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
