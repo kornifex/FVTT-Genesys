@@ -91,6 +91,34 @@ export async function difficultyPart(ctx: DicePromptContext) {
 	const upgradedLinkClicks = { easy: await setDifficulty([1]), daunting: await setDifficulty([4]) };
 	const impossible = await linkPrompt(gm, journal, 'Athletics', 'CCCCCD');
 	const impossibleDifficulty = shown(await difficultyState());
+	// The middle of each mark's ink, on the page: its baseline (where a zero-height probe sits) less the middle of the ink
+	// above it, which the canvas measures from the glyph and its font.
+	const marks = await gm.evaluate(() => {
+		const inkCentre = (element: Element, glyph: string, style: CSSStyleDeclaration) => {
+			const probe = document.createElement('span');
+			probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+			element.prepend(probe);
+			const baseline = probe.getBoundingClientRect().top;
+			probe.remove();
+			const context = document.createElement('canvas').getContext('2d')!;
+			context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+			const { actualBoundingBoxAscent, actualBoundingBoxDescent } = context.measureText(glyph);
+			return baseline - (actualBoundingBoxAscent - actualBoundingBoxDescent) / 2;
+		};
+		const dice = [...document.querySelectorAll('.app-dice-prompt .difficulty-die')].map((die) =>
+			inkCentre(die, die.textContent!.trim(), getComputedStyle(die)),
+		);
+		const skull = document.querySelector('.app-dice-prompt .difficulty-impossible i')!;
+		return { dice, skull: inkCentre(skull, getComputedStyle(skull, '::before').content.match(/"(.)"/u)![1], getComputedStyle(skull)) };
+	});
+	e2e.expect(
+		"#797 P7b the Impossible skull's middle is within a pixel and a half of a Difficulty die's",
+		{
+			diceAlign: new Set(marks.dice.map((centre) => Math.round(centre))).size,
+			skullOffBy: Math.abs(marks.skull - marks.dice[0]) <= 1.5,
+		},
+		{ diceAlign: 1, skullOffBy: true },
+	);
 	await control(gm, []);
 	e2e.expect(
 		"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
