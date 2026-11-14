@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.3...v0.7.0-rc.3) (2026-11-14)
+
+
+### Bug Fixes
+
+* **dice:** line a summary row's icon and symbol up with its label ([#817](https://github.com/kornifex/FVTT-Genesys/issues/817)) ([262feeb](https://github.com/kornifex/FVTT-Genesys/commit/262feeb09e87e4ca14bdcecd7028431f23651344))
+* **dice:** space a roll card's summary rows evenly around their dashes ([#814](https://github.com/kornifex/FVTT-Genesys/issues/814)) ([5850cd4](https://github.com/kornifex/FVTT-Genesys/commit/5850cd43fbc6a691a968d30f1b5e45fda499eb62))
+
 ## [0.7.0-rc.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.2...v0.7.0-rc.3) (2026-11-14)
 
 
