@@ -21,7 +21,7 @@ TYPES:
 
     # Equipment Items
     armor: Armure
-    attachment: Accessoire
+    attachment: Amélioration
     consumable: Consommable
     container: Conteneur
     gear: Equipement
@@ -601,12 +601,12 @@ Genesys:
   # The magic action a spell performs (CRB pp. 214–218)
   SpellAction:
     Attack: Attaque
-    Augment: Amélioration
+    Augment: Augmentation
     Barrier: Barrière
     Conjure: Invocation
     Curse: Malédiction
     Dispel: Dissipation
-    Heal: Soin
+    Heal: Guérison
     Utility: Utilitaire
     Custom: Personnalisée
 
@@ -750,8 +750,8 @@ Genesys:
     HardPoints: Points d'emplacement
     HardPointsRequired: Points d'emplacement requis
     HardPointsOver: '{taken} points d’emplacement pris, sur {total} !'
-    Attachments: Accessoires
-    RemoveAttachment: Retirer l'accessoire
+    Attachments: Améliorations
+    RemoveAttachment: Retirer l'amélioration
     AttachmentDetails: 'Détails de {attachment}'
     WithEffects: Avec ses effets
     Spells: Sorts
