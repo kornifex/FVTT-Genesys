@@ -7,7 +7,8 @@
 import type { CombatPool } from '@/data/schemaFields';
 import { isCount, isRecord } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
-import { AVERAGE, EASY, HARD } from '@/dice/Difficulty';
+import { AVERAGE, EASY, HARD, difficultyGlyphs } from '@/dice/Difficulty';
+import { SEVERITIES, type Severity } from '@/item/data/Injuries';
 
 /**
  * The wounds and strain a check heals.
@@ -216,6 +217,14 @@ const HEALING_ONESELF = 2;
 export function medicineDifficulty({ value, max }: CombatPool, healingOneself: boolean) {
 	const state = value > max ? HARD : 2 * value > max ? AVERAGE : EASY;
 	return state + (healingOneself ? HEALING_ONESELF : 0);
+}
+
+/**
+ * The difficulty glyphs of the Medicine check with which a character heals one of their own Critical Injuries: its
+ * severity, two more since they heal themselves (CRB p. 116), up to the five dice of Formidable.
+ */
+export function ownInjuryDifficulty(severity: Severity) {
+	return difficultyGlyphs({ level: SEVERITIES.indexOf(severity) + HEALING_ONESELF, upgrades: 0 });
 }
 
 /**

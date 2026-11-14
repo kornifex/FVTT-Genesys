@@ -93,10 +93,10 @@ export async function difficultyPart(ctx: DicePromptContext) {
 	const impossibleDifficulty = shown(await difficultyState());
 	await control(gm, []);
 	e2e.expect(
-		"#450 P7 an injury's and a check link's difficulty set the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
+		"#450 P7 a character healing their own Average Critical Injury opens at Daunting, two levels above its severity (#799), a check link's difficulty sets the level and the upgrades, a difficulty above Formidable is an Impossible one, of a Formidable one's dice (§#671)",
 		{ injury, upgradedLink, impossible: { pool: impossible.pool, difficulty: impossibleDifficulty } },
 		{
-			injury: difficultyOf('Average', 'DD···'),
+			injury: difficultyOf('Daunting', 'DDDD·'),
 			upgradedLink: difficultyOf('Hard', 'CDD··'),
 			impossible: { pool: '|CCCCC', difficulty: difficultyOf('Impossible', 'CCCCC') },
 		},

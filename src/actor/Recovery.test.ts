@@ -11,6 +11,7 @@ import {
 	isHealingSkill,
 	medicineDifficulty,
 	nightsRest,
+	ownInjuryDifficulty,
 	parseRecovery,
 	patientChoices,
 	recoveryCard,
@@ -46,6 +47,20 @@ describe('medicineDifficulty', () => {
 		expect(medicineDifficulty(wounds(0), true)).toBe(3);
 		expect(medicineDifficulty(wounds(7), true)).toBe(4);
 		expect(medicineDifficulty(wounds(13), true)).toBe(5);
+	});
+});
+
+describe('ownInjuryDifficulty', () => {
+	it("is the injury's severity and two more, the character healing themselves (CRB p. 116)", () => {
+		expect(ownInjuryDifficulty('-')).toBe('DD');
+		expect(ownInjuryDifficulty('easy')).toBe('DDD');
+		expect(ownInjuryDifficulty('average')).toBe('DDDD');
+		expect(ownInjuryDifficulty('hard')).toBe('DDDDD');
+	});
+
+	it('stops at the five dice of Formidable, which an Impossible task rolls too', () => {
+		expect(ownInjuryDifficulty('daunting')).toBe('DDDDD');
+		expect(ownInjuryDifficulty('formidable')).toBe('DDDDD');
 	});
 });
 
