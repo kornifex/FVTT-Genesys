@@ -4,7 +4,7 @@
  */
 
 import type { GenesysActor } from '@/actor/GenesysActor';
-import { healedPools, nightsRest, strainRecoverySkill, strainRecoverySkillNames } from '@/actor/Recovery';
+import { healedPools, nightsRest, skillOfLargestPool, strainRecoverySkillNames } from '@/actor/Recovery';
 import { DicePrompt } from '@/app/DicePrompt';
 import { Characteristic } from '@/data/Characteristics';
 import { skillToRoll } from '@/data/Skills';
@@ -19,7 +19,7 @@ type Character = Stored<GenesysActor<'character'>>;
  * in the Dice Prompt.
  */
 export async function recoverAtEndOfEncounter(character: Character) {
-	const skillName = strainRecoverySkill(strainRecoverySkillNames(CONFIG.genesys.skills), (name) => {
+	const skillName = skillOfLargestPool(strainRecoverySkillNames(CONFIG.genesys.skills), (name) => {
 		const rolled = skillToRoll(character.skills, CONFIG.genesys.skills, name);
 		return (
 			rolled && {

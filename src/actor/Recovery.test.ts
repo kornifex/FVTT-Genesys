@@ -16,7 +16,7 @@ import {
 	patientChoices,
 	recoveryCard,
 	recoveryOf,
-	strainRecoverySkill,
+	skillOfLargestPool,
 	strainRecoverySkillNames,
 } from '@/actor/Recovery';
 
@@ -137,7 +137,7 @@ describe('nightsRest', () => {
 	});
 });
 
-describe('strainRecoverySkill', () => {
+describe('skillOfLargestPool', () => {
 	// What the character rolls each skill with, as [characteristic, rank], by name.
 	const pools = (skills: Record<string, [number, number]>) => (name: string) => {
 		const pool = skills[name];
@@ -147,40 +147,40 @@ describe('strainRecoverySkill', () => {
 	const SKILLS = ['Discipline', 'Cool'] as const;
 
 	it('picks the skill of the larger dice pool between Discipline and Cool (CRB p. 117)', () => {
-		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [2, 1], Cool: [3, 1] }))).toBe('Cool');
-		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [3, 0], Cool: [2, 2] }))).toBe('Discipline');
+		expect(skillOfLargestPool(SKILLS, pools({ Discipline: [2, 1], Cool: [3, 1] }))).toBe('Cool');
+		expect(skillOfLargestPool(SKILLS, pools({ Discipline: [3, 0], Cool: [2, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the pool with more Proficiency dice when both hold as many dice', () => {
-		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [3, 1], Cool: [3, 2] }))).toBe('Cool');
+		expect(skillOfLargestPool(SKILLS, pools({ Discipline: [3, 1], Cool: [3, 2] }))).toBe('Cool');
 	});
 
 	it('picks Discipline, as the rule names it first, when both pools are alike', () => {
-		expect(strainRecoverySkill(SKILLS, pools({ Discipline: [2, 1], Cool: [1, 2] }))).toBe('Discipline');
+		expect(skillOfLargestPool(SKILLS, pools({ Discipline: [2, 1], Cool: [1, 2] }))).toBe('Discipline');
 	});
 
 	it('picks the one the character can roll, and Discipline when they can roll neither', () => {
-		expect(strainRecoverySkill(SKILLS, pools({ Cool: [1, 0] }))).toBe('Cool');
-		expect(strainRecoverySkill(SKILLS, pools({}))).toBe('Discipline');
+		expect(skillOfLargestPool(SKILLS, pools({ Cool: [1, 0] }))).toBe('Cool');
+		expect(skillOfLargestPool(SKILLS, pools({}))).toBe('Discipline');
 	});
 
 	it('answers nothing when no skill is marked', () => {
-		expect(strainRecoverySkill([], pools({ Cool: [1, 0] }))).toBeUndefined();
+		expect(skillOfLargestPool([], pools({ Cool: [1, 0] }))).toBeUndefined();
 	});
 
 	it('picks among any number of skills the world marks, the first winning a tie', () => {
 		const three = ['Discipline', 'Cool', 'Faith'];
 
-		expect(strainRecoverySkill(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [3, 1] }))).toBe('Faith');
-		expect(strainRecoverySkill(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [2, 1] }))).toBe('Discipline');
+		expect(skillOfLargestPool(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [3, 1] }))).toBe('Faith');
+		expect(skillOfLargestPool(three, pools({ Discipline: [2, 1], Cool: [2, 1], Faith: [2, 1] }))).toBe('Discipline');
 	});
 
 	it('picks among skills of any name, the first winning a tie and answering when neither can be rolled', () => {
 		const french = ['Discipline (fr)', 'Calme'] as const;
 
-		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [3, 1] }))).toBe('Calme');
-		expect(strainRecoverySkill(french, pools({ 'Discipline (fr)': [2, 1], Calme: [1, 2] }))).toBe('Discipline (fr)');
-		expect(strainRecoverySkill(french, pools({ Discipline: [3, 3], Cool: [3, 3] }))).toBe('Discipline (fr)');
+		expect(skillOfLargestPool(french, pools({ 'Discipline (fr)': [2, 1], Calme: [3, 1] }))).toBe('Calme');
+		expect(skillOfLargestPool(french, pools({ 'Discipline (fr)': [2, 1], Calme: [1, 2] }))).toBe('Discipline (fr)');
+		expect(skillOfLargestPool(french, pools({ Discipline: [3, 3], Cool: [3, 3] }))).toBe('Discipline (fr)');
 	});
 });
 
