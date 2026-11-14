@@ -106,7 +106,7 @@ export async function difficultyPart(ctx: DicePromptContext) {
 			return baseline - (actualBoundingBoxAscent - actualBoundingBoxDescent) / 2;
 		};
 		const dice = [...document.querySelectorAll('.app-dice-prompt .difficulty-die')].map((die) =>
-			inkCentre(die, die.textContent!.trim(), getComputedStyle(die)),
+			inkCentre(die, die.textContent.trim(), getComputedStyle(die)),
 		);
 		const skull = document.querySelector('.app-dice-prompt .difficulty-impossible i')!;
 		return { dice, skull: inkCentre(skull, getComputedStyle(skull, '::before').content.match(/"(.)"/u)![1], getComputedStyle(skull)) };
