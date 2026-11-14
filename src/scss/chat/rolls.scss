@@ -153,7 +153,9 @@ $size: 2rem;
 		display: grid;
 		grid-template-columns: /* Symbol */ auto /* Label */ auto /* Value */ 1fr;
 		grid-auto-rows: auto 1px;
-		align-items: center;
+		// An icon or a Genesys symbol has neither the box nor the baseline of the text: centring their boxes sets them
+		// higher or lower than the label, where the baseline sets them as in a sentence.
+		align-items: baseline;
 		column-gap: 0.3em;
 
 		font-family: 'Roboto Serif', serif;
@@ -171,12 +173,13 @@ $size: 2rem;
 			}
 		}
 
-		// The same space above and below every row, whatever its font or its number of lines, so that the dashes sit
-		// halfway between two rows.
+		// The same padding on every row, whatever its font or its number of lines. Roboto Serif keeps more room above its
+		// capitals (for the accents) than under its baseline: more padding above sets the dashes halfway between two rows'
+		// capitals.
 		.symbol,
 		.label,
 		.count {
-			padding-block: 0.2em;
+			padding-block: 0.25em 0.15em;
 			line-height: 1.2;
 		}
 
@@ -194,6 +197,14 @@ $size: 2rem;
 
 		.symbol {
 			font-family: 'Genesys Symbols', sans-serif;
+
+			// Genesys Symbols draws its symbols with the middle of their ink 0.5em above the baseline, where the capitals
+			// have theirs about 0.355em above (see `onto-capitals` in DicePrompt.vue): lowered onto the capitals' middle.
+			// An icon's own font sits right on the baseline.
+			&:not(:has(i)) {
+				position: relative;
+				top: 0.145em;
+			}
 		}
 	}
 }
