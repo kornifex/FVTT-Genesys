@@ -154,16 +154,16 @@ export function nightsRest({ wounds, strain }: { wounds: CombatPool; strain: Com
 type SkillPool = { characteristic: number; rank: number };
 
 /**
- * The skill the check that recovers strain at the end of an encounter opens with, among those the character can roll: the
- * one of the larger dice pool, then of more Proficiency dice, the first of the skills on a tie or when they can roll
- * neither. The roller can still pick another in the Dice Prompt.
+ * The skill a recovery check opens with, among those the character can roll: the one of the larger dice pool, then of
+ * more Proficiency dice, the first of the skills on a tie or when they can roll none. The roller can still pick another
+ * in the Dice Prompt.
  *
- * @param skills The names of the skills the Skills Compendium marks as recovering strain (Discipline and Cool, CRB
- * p. 117), the first winning a tie.
+ * @param skills The names of the skills the Skills Compendium marks for the check, such as those recovering strain
+ * (Discipline and Cool, CRB p. 117), the first winning a tie.
  * @param poolOf What the character rolls a skill with, by its name; undefined when they can't roll it.
  * @returns Undefined when the Skills Compendium marks none.
  */
-export function strainRecoverySkill(skills: readonly string[], poolOf: (name: string) => SkillPool | undefined): string | undefined {
+export function skillOfLargestPool(skills: readonly string[], poolOf: (name: string) => SkillPool | undefined): string | undefined {
 	// A skill check rolls as many dice as the higher of the characteristic and the ranks, the lower of them upgraded.
 	const dice = ({ characteristic, rank }: SkillPool) => ({
 		total: Math.max(characteristic, rank),
@@ -202,6 +202,17 @@ export function strainRecoverySkillNames(compendiumSkills: { name: string; syste
  */
 export function isHealingSkill(skillName: string, compendiumSkills: { name: string; system: { healsWounds: boolean } }[]) {
 	return compendiumSkills.some((skill) => skill.system.healsWounds && skillNamesMatch(skill.name, skillName));
+}
+
+/**
+ * The names of the skills of the Skills Compendium marked as healing wounds (Medicine, CRB p. 116), sorted by name, so
+ * that a tie between them doesn't follow the order the compendium loads in.
+ */
+export function healingSkillNames(compendiumSkills: { name: string; system: { healsWounds: boolean } }[]) {
+	return compendiumSkills
+		.filter((skill) => skill.system.healsWounds)
+		.map((skill) => skill.name)
+		.sort((left, right) => left.localeCompare(right));
 }
 
 /**

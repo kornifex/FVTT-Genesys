@@ -33,6 +33,11 @@ const KINDS = {
 const props = defineProps<{
 	kind: keyof typeof KINDS;
 	injuries: Stored<GenesysItem<'injury'>>[];
+
+	/**
+	 * Whether each row offers the character to treat the injury themselves with Medicine, besides the roll of its name.
+	 */
+	treatable?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +45,11 @@ const emit = defineEmits<{
 	 * The name of an injury was clicked, to heal or repair it.
 	 */
 	(e: 'roll', injury: Stored<GenesysItem<'injury'>>): void;
+
+	/**
+	 * The button of an injury was clicked, for the character to treat it themselves.
+	 */
+	(e: 'treat', injury: Stored<GenesysItem<'injury'>>): void;
 }>();
 
 const kind = KINDS[props.kind];
@@ -61,6 +71,13 @@ const kind = KINDS[props.kind];
 				<RollLink :label="kind.rollLabel" :label-data="kind.rollData(injury.name)" @roll="emit('roll', injury)">{{
 					injury.name
 				}}</RollLink>
+				<ActionButton
+					v-if="treatable"
+					class="treat"
+					icon="fas fa-kit-medical"
+					label="Genesys.Recovery.TreatYourself"
+					@click="emit('treat', injury)"
+				/>
 			</DescriptionFold>
 		</RowActions>
 	</div>
@@ -114,7 +131,12 @@ const kind = KINDS[props.kind];
 		font-family: inherit;
 	}
 
-	// The icon opens the injury's sheet; the name heals or repairs it.
+	// The icon opens the injury's sheet; the name heals or repairs it, and the button after it treats it with Medicine.
+	.treat {
+		margin-left: 0.5em;
+		font-size: 0.8em;
+	}
+
 	.item-icon {
 		padding: 2px;
 

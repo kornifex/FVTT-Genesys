@@ -1,17 +1,29 @@
 /**
  * @file The Heal action: a healer's Medicine check for a patient, at the difficulty of the patient's state of health;
- * and the patient a Heal spell heals, picked as Medicine's is.
+ * the patient a Heal spell heals, picked as Medicine's is; and the Medicine check with which a character treats one of
+ * their own Critical Injuries.
  */
 
 import { GenesysActor } from '@/actor/GenesysActor';
-import { canBePatient, medicineDifficulty, type Patient, patientChoices } from '@/actor/Recovery';
+import {
+	canBePatient,
+	healingSkillNames,
+	medicineDifficulty,
+	ownInjuryDifficulty,
+	type Patient,
+	patientChoices,
+	skillOfLargestPool,
+} from '@/actor/Recovery';
 import { DicePrompt } from '@/app/DicePrompt';
 import { SelectPatientPrompt } from '@/app/SelectPatientPrompt';
 import { singleTargetActor } from '@/app/singleTarget';
+import { skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { difficultyGlyphs } from '@/dice/Difficulty';
+import type { GenesysItem } from '@/item/GenesysItem';
 
 type StoredActor = Stored<GenesysActor>;
+type Character = Stored<GenesysActor<'character'>>;
 
 /**
  * The actor of the user's single target, as the Dice Prompt reads it, when a check can heal them.
@@ -67,4 +79,32 @@ export async function healWithMedicine(healer: StoredActor, skillName: string) {
 		difficulty: difficultyGlyphs({ level, upgrades: 0 }),
 		recovery: { patient: patient.uuid, rule: 'medicine' },
 	});
+}
+
+/**
+ * The skill a character treats their own Critical Injuries with: among those the Skills Compendium marks as healing
+ * wounds, the one of the larger pool. Undefined when the compendium marks none, and the character can't treat them.
+ */
+export function ownTreatmentSkill(character: Character) {
+	return skillOfLargestPool(healingSkillNames(CONFIG.genesys.skills), (name) => {
+		const rolled = skillToRoll(character.skills, CONFIG.genesys.skills, name);
+		return (
+			rolled && {
+				characteristic: character.system.characteristics[rolled.skill.system.characteristic],
+				// An Unranked Skill Check rolls the Skills Compendium's skill, at no rank.
+				rank: rolled.unranked ? 0 : rolled.skill.system.rank,
+			}
+		);
+	});
+}
+
+/**
+ * Open the Medicine check with which a character treats one of their own Critical Injuries, rather than wait for the
+ * weekly Resilience check of a rest: at the injury's severity, two levels harder since they treat themselves (CRB
+ * p. 116).
+ *
+ * @param skillName The character's healing skill, as `ownTreatmentSkill` picks it.
+ */
+export async function treatOwnInjury(character: Character, skillName: string, injury: Stored<GenesysItem<'injury'>>) {
+	await DicePrompt.promptForRoll(character, skillName, { difficulty: ownInjuryDifficulty(injury.system.severity, true) });
 }

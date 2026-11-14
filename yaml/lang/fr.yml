@@ -368,6 +368,7 @@ Genesys:
   # Recovery: the checks that heal a patient, and their cards
   Recovery:
     HealWithMedicine: Soigner avec Médecine
+    TreatYourself: Se soigner avec Médecine (deux crans plus difficile)
     PatientPrompt: Choisir le patient
     AdversaryPatient: '{name} ({type})'
     CardLabel: Soigne {patient}

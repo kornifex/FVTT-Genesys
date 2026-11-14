@@ -28,6 +28,8 @@ import { DieTypes } from '@/dice/DieTypes';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import { tokenStatesFor } from '@/effects/TokenStates';
 import { hasStatusEffect } from '@/effects/tokenStateMenu';
+import { ownTreatmentSkill, treatOwnInjury } from '@/operations/Healing';
+import type { Stored } from '@/data/Stored';
 
 const { document: actor, editable } = useSheetDocument<GenesysActor<'character'>>();
 
@@ -80,6 +82,14 @@ async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, skill, {
 		difficulty: ownInjuryDifficulty(injury.system.severity, isHealingSkill(skill, CONFIG.genesys.skills)),
 	});
+}
+
+// Besides the world's weekly check, a character may treat their own injuries with Medicine (CRB p. 116).
+const treatmentSkill = computed(() => ownTreatmentSkill(actor.value));
+
+async function treatInjury(injury: Stored<GenesysItem<'injury'>>) {
+	// The button shows only while there is a skill to treat with.
+	await treatOwnInjury(actor.value, treatmentSkill.value!, injury);
 }
 
 /**
@@ -227,7 +237,7 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 					><Localized label="Genesys.CriticalInjuryPrompt.Open"
 				/></ActionButton>
 			</div>
-			<CriticalInjuryList kind="injury" :injuries="injuries" @roll="healInjury" />
+			<CriticalInjuryList kind="injury" :injuries="injuries" :treatable="!!treatmentSkill" @roll="healInjury" @treat="treatInjury" />
 		</div>
 	</section>
 </template>
