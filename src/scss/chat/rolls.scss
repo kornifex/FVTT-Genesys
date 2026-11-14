@@ -161,8 +161,6 @@ $size: 2rem;
 		padding-left: 0.5em;
 
 		.separator {
-			position: relative;
-			top: -2px;
 			grid-column: 1 / span all;
 			width: 100%;
 			height: 1px;
@@ -173,10 +171,13 @@ $size: 2rem;
 			}
 		}
 
+		// The same space above and below every row, whatever its font or its number of lines, so that the dashes sit
+		// halfway between two rows.
+		.symbol,
 		.label,
 		.count {
-			position: relative;
-			top: -0.25em;
+			padding-block: 0.2em;
+			line-height: 1.2;
 		}
 
 		.label {
