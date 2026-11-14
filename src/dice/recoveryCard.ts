@@ -20,6 +20,15 @@ export function recoveryCardState({ applied, mayHeal }: { applied: boolean; mayH
 }
 
 /**
+ * Whether a user may apply a card's healing: an owner of the patient, as a GM is of every actor, or the healer who rolled
+ * the check, even of a patient they don't own. Authorship counts only on a message that carries the roll, as for the
+ * other checks a player asks the Acting GM about (`rolledCheck`): a message without one proves no check.
+ */
+export function mayApplyRecovery({ ownsPatient, isAuthor, hasRoll }: { ownsPatient: boolean; isAuthor: boolean; hasRoll: boolean }) {
+	return ownsPatient || (isAuthor && hasRoll);
+}
+
+/**
  * Applies the healing of each card once, on the client that writes it: a card already applied, or that this client is
  * applying still, isn't applied again. Two clicks reach it at once, as a GM's and a player's query, before the first
  * application is written.
@@ -67,11 +76,14 @@ function patientOf(recovery: Recovery) {
 }
 
 /**
- * Whether a user may apply a card's healing: its author, the healer who rolled the check, even of a patient they don't
- * own, or an owner of the patient, as a GM is of every actor.
+ * Whether a user may apply the healing of a card's message, by `mayApplyRecovery`.
  */
 function mayApply(user: User.Implementation, message: ChatMessage.Implementation, patient: GenesysActor) {
-	return message.author?.id === user.id || patient.testUserPermission(user, 'OWNER');
+	return mayApplyRecovery({
+		ownsPatient: patient.testUserPermission(user, 'OWNER'),
+		isAuthor: message.author?.id === user.id,
+		hasRoll: message.rolls.length > 0,
+	});
 }
 
 /**
