@@ -9,7 +9,7 @@ import { itemsOfType } from '@/item/ItemTypes';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Localized from '@/vue/components/Localized.vue';
 import DescriptionFold from '@/vue/components/DescriptionFold.vue';
-import { severityDifficulty } from '@/item/data/Injuries';
+import { ownInjuryDifficulty } from '@/actor/Recovery';
 import CriticalInjuryList from '@/vue/components/CriticalInjuryList.vue';
 import { DicePrompt } from '@/app/DicePrompt';
 import { CriticalInjuryPrompt } from '@/app/CriticalInjuryPrompt';
@@ -77,7 +77,7 @@ async function rollCriticalInjury() {
 
 async function healInjury(injury: GenesysItem<'injury'>) {
 	await DicePrompt.promptForRoll(actor.value, CONFIG.genesys.settings.skillForHealingInjury, {
-		difficulty: severityDifficulty(injury.system.severity),
+		difficulty: ownInjuryDifficulty(injury.system.severity),
 	});
 }
 
