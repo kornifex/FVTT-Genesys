@@ -1,17 +1,9 @@
 <section class="tab changes{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
 	<header>
-		{{!-- v13: the labels of v13's sheet. --}}
-		{{#if v13}}
-		<div class="key">{{localize "EFFECT.ChangeKey"}}</div>
-		<div class="mode">{{localize "EFFECT.ChangeMode"}}</div>
-		<div class="value">{{localize "EFFECT.ChangeValue"}}</div>
-		<div class="priority">{{localize "EFFECT.ChangePriority"}}</div>
-		{{else}}
 		<div class="key">{{localize "EFFECT.FIELDS.changes.element.key.label"}}</div>
 		<div class="mode">{{localize "EFFECT.FIELDS.changes.element.type.label"}}</div>
 		<div class="value">{{localize "EFFECT.FIELDS.changes.element.value.label"}}</div>
 		<div class="priority">{{localize "EFFECT.FIELDS.changes.element.priority.label"}}</div>
-		{{/if}}
 		<div class="controls"><a data-action="addChange"><i class="fa-regular fa-square-plus"></i></a></div>
 	</header>
 	<ol class="scrollable">
@@ -31,25 +23,18 @@
 				<select name="{{@root.changesPath}}.{{i}}.skill" class="skill-selection initial-hide {{#if (eq change.subjectField 'skill-selection')}}show-it{{/if}}">
 					{{selectOptions @root.skills selected=change.skill sort=true}}
 				</select>
-				{{!-- v13: a change has a numeric mode, which v14 replaced with a type and a phase. --}}
-				{{#if @root.v13}}
-				<select name="changes.{{i}}.mode" data-dtype="Number" class="effect-mode initial-hide {{#if (eq change.subjectField 'effect-mode')}}show-it{{/if}}">
-					{{selectOptions @root.modes selected=change.mode}}
-				</select>
-				{{else}}
 				<select name="system.changes.{{i}}.type" class="effect-mode initial-hide {{#if (eq change.subjectField 'effect-mode')}}show-it{{/if}}">
 					{{selectOptions @root.changeTypes selected=change.type}}
 				</select>
 				<input type="hidden" name="system.changes.{{i}}.phase" value="{{change.phase}}">
-				{{/if}}
 			</div>
 			<div class="value">
 				{{formInput @root.changeFields.value name=(concat @root.changesPath "." i ".value") value=change.value elementType="input"}}
 			</div>
-			{{!-- v13: a change's default priority depends on its mode, which v14 replaced with its type. --}}
+			{{!-- A change's default priority depends on its type. --}}
 			<div class="priority">
 				{{formInput @root.changeFields.priority name=(concat @root.changesPath "." i ".priority") value=change.priority
-				placeholder=(lookup @root.priorities (ifThen @root.v13 change.mode change.type))}}
+				placeholder=(lookup @root.priorities change.type)}}
 			</div>
 			<div class="controls"><a data-action="deleteChange"><i class="fa-solid fa-trash"></i></a></div>
 		</li>

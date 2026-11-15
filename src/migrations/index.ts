@@ -19,7 +19,8 @@ import { effectsFollowEquipmentState } from '@/migrations/4-effects-follow-equip
 import { linkTalentPurchases } from '@/migrations/5-link-talent-purchases';
 import { CombatSource, combatSystemData } from '@/migrations/6-combat-system-data';
 import { maneuverEffectsProvideDefense } from '@/migrations/7-maneuver-effects-provide-defense';
-import { keyDeletion } from '@/foundryGeneration';
+import { expiredEffectsInDuration } from '@/migrations/8-expired-effects-in-duration';
+import { keyDeletion } from '@/data/keyDeletion';
 import * as log from '@/log';
 import { isActingGm } from '@/queries';
 
@@ -121,6 +122,7 @@ const migrations: readonly (() => Promise<boolean>)[] = [
 	() => migrateEveryActor(linkTalentPurchases),
 	migrateCombats,
 	() => migrateEveryActor(maneuverEffectsProvideDefense),
+	() => migrateEveryActor(expiredEffectsInDuration(_del)),
 ];
 
 /**

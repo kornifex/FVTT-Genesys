@@ -56,10 +56,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('skillMenus', () => skillMenus(e2e, page));
 		await e2e.part('talentPyramidSummary', () => talentPyramidSummary(e2e, page));
 		await e2e.part('talentRanks', () => talentRanks(e2e, page));
-		// v13 has no token changes. The part is met on every version, so that `--part` finds it on both.
-		await e2e.part('talentTokenChanges', async () => {
-			if (e2e.version >= 14) await talentTokenChanges(e2e, page);
-		});
+		await e2e.part('talentTokenChanges', () => talentTokenChanges(e2e, page));
 		await e2e.part('talentsTab', () => talentsTab(e2e, page));
 		await e2e.part('injuries', () => injuries(e2e, page));
 		await e2e.part('weaponProfiles', () => weaponProfiles(e2e, page));

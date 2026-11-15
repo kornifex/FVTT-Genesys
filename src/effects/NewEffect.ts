@@ -15,6 +15,6 @@ export function newEffectData(documentName: string, category: EffectCategory) {
 		name: documentName,
 		img: 'icons/svg/aura.svg',
 		disabled: category === 'suppressed',
-		duration: category === 'temporary' ? { rounds: 1 } : undefined,
+		duration: category === 'temporary' ? { value: 1, units: 'rounds' as const } : undefined,
 	};
 }

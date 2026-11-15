@@ -2,22 +2,16 @@ import type { SheetsContext } from './shared.ts';
 
 export async function magicPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
-	// The Mage's sheet: its tabs, and the Magic tab entries of its window's menu, as v13 renders them and as either
-	// version builds them; the Magic tab's rows.
+	// The Mage's sheet: its tabs, and the Magic tab entries of its window's menu; the Magic tab's rows.
 	const mageSheet = () =>
 		gm.evaluate(async () => {
 			const mage = game.actors.getName('E2E Mage');
 			const root = await window.e2e.render(mage.sheet);
 			const text = (element: Element | null) => element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
 			const magicEntries = (actions: string[]) => actions.filter((action) => action.endsWith('MagicTab'));
-			const frame: HTMLElement = mage.sheet.element;
 			return {
 				tabs: [...root.querySelectorAll<HTMLElement>('nav.sheet-tabs [data-tab]')].map((tab) => tab.dataset.tab),
 				menu: magicEntries([...mage.sheet._headerControlButtons()].map((control: { action: string }) => control.action)),
-				// v13 renders the menu in the window's header; v14 builds it each time it opens.
-				renderedMenu: magicEntries(
-					[...frame.querySelectorAll<HTMLElement>('.controls-dropdown [data-action]')].map((entry) => entry.dataset.action!),
-				),
 				spells: [...root.querySelectorAll('.tab-magic .spell:not(.header)')].map((row) => ({
 					name: text(row.querySelector('.name')),
 					action: text(row.querySelector('.action')),
@@ -189,13 +183,9 @@ export async function magicPart(ctx: SheetsContext) {
 		[await hovered('.additional-effect .name', 0), await hovered('.additional-effect .name', 1)],
 		['Weakens the target.', 'No Description Available'],
 	);
-	e2e.expect(
-		"#704 M4 the Mage's window offers to hide the Magic tab",
-		{ menu: withSpell.menu, renderedMenu: withSpell.renderedMenu },
-		{ menu: ['hideMagicTab'], renderedMenu: e2e.version < 14 ? ['hideMagicTab'] : [] },
-	);
+	e2e.expect("#704 M4 the Mage's window offers to hide the Magic tab", { menu: withSpell.menu }, { menu: ['hideMagicTab'] });
 
-	// The entry's own click, as the menu's item calls it on either version.
+	// The entry's own click, as the menu's item calls it.
 	const clickMenuEntry = (action: string) =>
 		gm.evaluate(async (action) => {
 			const sheet = game.actors.getName('E2E Mage').sheet;
@@ -208,8 +198,8 @@ export async function magicPart(ctx: SheetsContext) {
 	const hidden = await mageSheet();
 	e2e.expect(
 		'#704 M5 the Magic tab is hidden, and the menu offers to show it again',
-		{ magicTab: hidden.tabs.includes('magic'), menu: hidden.menu, renderedMenu: hidden.renderedMenu },
-		{ magicTab: false, menu: ['showMagicTab'], renderedMenu: e2e.version < 14 ? ['showMagicTab'] : [] },
+		{ magicTab: hidden.tabs.includes('magic'), menu: hidden.menu },
+		{ magicTab: false, menu: ['showMagicTab'] },
 	);
 	await e2e.step("#704 M6 GM clicks Show the Magic Tab in the Mage's window menu", () => clickMenuEntry('showMagicTab'));
 	e2e.expect('#704 M6 the Magic tab is back', (await mageSheet()).tabs.includes('magic'), true);

@@ -1,24 +1,13 @@
 import { GenesysItem } from '@/item/GenesysItem';
-import { isFoundryV13 } from '@/foundryGeneration';
 import { isSuppressedAsConsumable, isSuppressedByContainer, isSuppressedByEquipmentState } from '@/actor/data/EquipmentEffects';
 import { scaledChangeValue, sourceItem } from '@/effects/PoolModifications';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
-import { hasTimeLeft, isExpired } from '@/effects/EffectExpiry';
-import { extendsExpiredEffect as extendsExpiredEffectOnV13, type V13Duration } from '@/effects/EffectExpiry.v13';
 import { type CombatTurn, lapseAtTurnEnd, parseCombatTurn } from '@/effects/LapsingEffects';
-import { worldGlyphLocalizer } from '@/dice/GenesysPoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
 import { effectQuality, isOutrankedQualityEffect } from '@/item/data/Qualities';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { isItemChangeKey } from '@/item/ItemChanges';
 import * as log from '@/log';
-
-/**
- * The flag that marks an Expired Effect on Foundry v13, whose effect duration has no `expired` field: the Acting GM writes
- * it. It outlives v13 support: v14 still reads it and clears it when the duration is extended, so that an effect that
- * expired on v13 stays expired once the world runs v14.
- */
-export const FLAG_EXPIRED = 'expired';
 
 /**
  * The flag that makes an effect a Lapsing Effect: its duration in rounds counts its actor's turns, and it is removed
@@ -43,30 +32,24 @@ const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys
  * Where an effect keeps its changes, in its data and in the effect sheet's form.
  */
 export function changesPath() {
-	// v13: an effect keeps its changes in `changes`, which v14 moved to `system.changes`.
-	return isFoundryV13() ? 'changes' : 'system.changes';
+	return 'system.changes';
 }
 
 // The item types whose effects a weapon or an armor copies, and which change nothing until then.
 const UNINSTALLED_TYPES: readonly string[] = ['quality', 'attachment'];
 
-// v13: the mode of each type of change.
-const V13_MODES = { custom: 'CUSTOM', upgrade: 'UPGRADE' } as const satisfies Record<StateChange['type'], string>;
-
 /**
- * A change of a Token State or a maneuver, as the version of Foundry stores it.
+ * A change of a Token State or a maneuver, as Foundry stores it.
  */
 export function foundryChange({ key, value, type }: StateChange) {
-	// v13: a change has a numeric mode, which v14 replaced with a type, and logs a deprecation warning for.
-	return { key, value, ...(isFoundryV13() ? { mode: CONST.ACTIVE_EFFECT_MODES[V13_MODES[type]] } : { type }) };
+	return { key, value, type };
 }
 
 /**
- * A duration in rounds, as the version of Foundry stores it.
+ * A duration in rounds, as Foundry stores it.
  */
 export function durationInRounds(rounds: number) {
-	// v13: a duration holds its rounds; from v14 on, a value and its units.
-	return isFoundryV13() ? { rounds } : { value: rounds, units: 'rounds' as const };
+	return { value: rounds, units: 'rounds' as const };
 }
 
 /**
@@ -112,9 +95,9 @@ export class GenesysEffect extends ActiveEffect {
 	 * Whether this effect is an Expired Effect: its duration in rounds or turns has run out.
 	 */
 	get isExpired() {
-		// v14 reads the stored `expired`: its prepared duration may be a copy counted as time-based, once the combat is
-		// deleted in a world whose rounds last some seconds, which sets `expired` back to false.
-		return isExpired({ flag: this.getFlag('genesys', FLAG_EXPIRED), durationExpired: this._source.duration.expired });
+		// The stored `expired`, which Foundry's Active Effect registry writes: the prepared duration may be a copy counted as
+		// time-based, once the combat is deleted in a world whose rounds last some seconds, which sets `expired` back to false.
+		return this._source.duration.expired === true;
 	}
 
 	/**
@@ -126,15 +109,13 @@ export class GenesysEffect extends ActiveEffect {
 			return undefined;
 		}
 
-		// v13: a duration holds its rounds; from v14 on, a value and its units.
-		const duration = this._source.duration as { rounds?: number | null; value?: number | null; units?: string };
-		const rounds = isFoundryV13() ? duration.rounds : duration.units === 'rounds' ? duration.value : undefined;
-		return typeof rounds === 'number' ? rounds : undefined;
+		const { value, units } = this._source.duration;
+		return units === 'rounds' && typeof value === 'number' ? value : undefined;
 	}
 
 	/**
-	 * Foundry v14's Active Effect registry expires the temporary effects it tracks: a Lapsing Effect counts its rounds
-	 * itself, in its actor's turns, and is removed rather than expired. v13 has no registry.
+	 * Foundry's Active Effect registry expires the temporary effects it tracks: a Lapsing Effect counts its rounds itself,
+	 * in its actor's turns, and is removed rather than expired.
 	 */
 	override get isExpiryTrackable() {
 		return super.isExpiryTrackable && this.lapsingRounds === undefined;
@@ -150,17 +131,15 @@ export class GenesysEffect extends ActiveEffect {
 			return this.duration.label;
 		}
 
-		// v13: Localization has no plural rules of its own, which the localizer of the glyphs makes up for.
-		const i18n = worldGlyphLocalizer();
-		const key = i18n.pluralRules.select(rounds) === 'one' ? ROUNDS_LEFT.one : ROUNDS_LEFT.other;
-		return i18n.format(key, { rounds: String(rounds) });
+		const key = game.i18n.pluralRules.select(rounds) === 'one' ? ROUNDS_LEFT.one : ROUNDS_LEFT.other;
+		return game.i18n.format(key, { rounds: String(rounds) });
 	}
 
 	/**
 	 * Records the turn a Lapsing Effect is applied during, in its actor's combat, whose end doesn't count.
 	 */
 	protected override async _preCreate(data: ActiveEffect.CreateData, options: ActiveEffect.Database.PreCreateOptions, user: User.Stored) {
-		// v13: an effect has no `actor`. A state lives on its actor, in the world or the synthetic actor of a token in a scene.
+		// A state lives on its actor, in the world or the synthetic actor of a token in a scene, never on an item.
 		const actor = this.parent?.documentName === 'Actor' ? (this.parent as Actor.Stored) : undefined;
 		if (this.getFlag('genesys', FLAG_LAPSES) === true && actor) {
 			// The combat the user views first: the actor may be in another, which the user doesn't view.
@@ -185,24 +164,10 @@ export class GenesysEffect extends ActiveEffect {
 		options: ActiveEffect.Database.PreUpdateOptions,
 		user: User.Stored,
 	) {
-		// Foundry never sets an expired effect back, but for a duration in seconds on v14: an update that extends its
-		// duration, so that it has time left again, makes it apply again.
-		if (this.isExpired && (changed.duration || changed.start)) {
-			if (isFoundryV13()) {
-				// v13: the duration holds its start, and Foundry counts it against the combat the user views.
-				const duration = this._source.duration as V13Duration;
-				const newDuration = foundry.utils.mergeObject(duration, (changed.duration ?? {}) as V13Duration, { inplace: false });
-				const combat = game.combat;
-				if (extendsExpiredEffectOnV13({ expired: true, duration }, newDuration, combat?.combatClock)) {
-					foundry.utils.setProperty(changed, `flags.genesys.${FLAG_EXPIRED}`, false);
-				}
-			} else if (extendsExpiredEffectOnV14(this, changed)) {
-				foundry.utils.setProperty(changed, 'duration.expired', false);
-				// An effect that expired on v13 keeps its flag.
-				if (this.getFlag('genesys', FLAG_EXPIRED)) {
-					foundry.utils.setProperty(changed, `flags.genesys.${FLAG_EXPIRED}`, false);
-				}
-			}
+		// Foundry never sets an expired effect back, but for a duration in seconds: an update that extends its duration, so
+		// that it has time left again, makes it apply again.
+		if (this.isExpired && (changed.duration || changed.start) && extendsExpiredEffect(this, changed)) {
+			foundry.utils.setProperty(changed, 'duration.expired', false);
 		}
 
 		return super._preUpdate(changed, options, user);
@@ -252,10 +217,10 @@ export class GenesysEffect extends ActiveEffect {
 	}
 
 	/**
-	 * Applies a change scaled by the rank of the talent its effect comes from. Foundry v14's `Actor#applyActiveEffects`
-	 * and `TokenDocument#applyActiveEffects` call this method, with the effect in `change.effect`.
+	 * Applies a change scaled by the rank of the talent its effect comes from. Foundry's `Actor#applyActiveEffects` and
+	 * `TokenDocument#applyActiveEffects` call this method, with the effect in `change.effect`.
 	 *
-	 * The change is scaled on a copy: Foundry v14 keeps an actor's token changes in `actor.tokenActiveEffectChanges` and
+	 * The change is scaled on a copy: Foundry keeps an actor's token changes in `actor.tokenActiveEffectChanges` and
 	 * applies those same objects at every preparation of its tokens, so a change scaled in place would be scaled again
 	 * each time.
 	 */
@@ -274,35 +239,22 @@ export class GenesysEffect extends ActiveEffect {
 
 		return super.applyChange(targetDoc, { ...change, value }, options);
 	}
-
-	// v13: `Actor#applyActiveEffects` calls the instance `apply`. On v14 it is a deprecated shim that calls the static
-	// `applyChange`, which scales the change itself.
-	override apply(actor: Actor.Implementation, change: ActiveEffect.ChangeData) {
-		if (isItemChangeKey(change.key)) {
-			return {};
-		}
-
-		if (isFoundryV13()) {
-			change.value = scaledChangeValue(this.originItem, { key: change.key ?? '', value: change.value }, this.quality);
-		}
-
-		return super.apply(actor, change);
-	}
 }
 
 /**
- * Whether an update extends an Expired Effect on Foundry v14: it changes its duration or start, so that Foundry,
- * counting the updated effect as it counts every effect, finds time left in it.
+ * Whether an update extends an Expired Effect: it changes its duration or start, so that Foundry, counting the updated
+ * effect as it counts every effect, finds time left in it. Foundry's remaining duration is infinite when no combat
+ * counts it or it has no end, and negative once it ran out rounds ago.
  */
-function extendsExpiredEffectOnV14(effect: GenesysEffect, changed: ActiveEffect.UpdateData) {
+function extendsExpiredEffect(effect: GenesysEffect, changed: ActiveEffect.UpdateData) {
 	const updated = effect.clone(foundry.utils.deepClone(changed), { keepId: true });
 	const timing = ({ _source: { duration, start } }: GenesysEffect) => ({ duration: { ...duration, expired: false }, start });
 
-	return !foundry.utils.objectsEqual(timing(effect), timing(updated)) && hasTimeLeft(updated.duration.remaining);
+	return !foundry.utils.objectsEqual(timing(effect), timing(updated)) && updated.duration.remaining > 0;
 }
 
 /**
- * Registers the effects of the combatants' actors with Foundry v14's Active Effect registry, which expires them, once the
+ * Registers the effects of the combatants' actors with Foundry's Active Effect registry, which expires them, once the
  * world is ready.
  *
  * Foundry misses those of an unlinked token in combat when the world loads: preparing the combatant reads its actor

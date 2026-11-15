@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type ActingGm, queryActingGm, failureNotification, QueryName, querierOf, refuse } from '@/queries/ActingGmQuery';
+import { type ActingGm, queryActingGm, failureNotification, QueryName, refuse } from '@/queries/ActingGmQuery';
 
 /**
  * The in-memory adapter: an Acting GM answering as Foundry's server relays the answer, which keeps only the message of
@@ -22,7 +22,7 @@ function actingGm(handler: (name: string, data: unknown) => unknown): ActingGm &
 	};
 }
 
-const spend = { userId: 'player' };
+const spend = { count: 1 };
 
 describe('queryActingGm', () => {
 	it('asks the Acting GM, and tells of no failure once it answers', async () => {
@@ -64,26 +64,6 @@ describe('queryActingGm', () => {
 		const failure = await queryActingGm(gm, QueryName.SpendStoryPoint, spend);
 
 		expect(failure).toEqual({ cause: 'failed', error: new Error("Cannot read properties of undefined (reading 'id')") });
-	});
-});
-
-describe('querierOf', () => {
-	const users = new Map([
-		['player', { name: 'Player' }],
-		['other', { name: 'Other' }],
-	]);
-	const findUser = (id: string) => users.get(id);
-
-	it('is the user Foundry v14 names as the sender, whatever user the data names', () => {
-		expect(querierOf({ userId: 'other' }, { timeout: 10_000, user: users.get('player') }, findUser)).toEqual({ name: 'Player' });
-	});
-
-	it('is the user the data names on Foundry v13, which names no sender', () => {
-		expect(querierOf({ userId: 'other' }, { timeout: 10_000 }, findUser)).toEqual({ name: 'Other' });
-	});
-
-	it('fails on Foundry v13 when the data names an unknown user', () => {
-		expect(() => querierOf({ userId: 'gone' }, { timeout: 10_000 }, findUser)).toThrow('unknown user gone');
 	});
 });
 

@@ -34,12 +34,12 @@ const env = envFile(root, () => {
 if (env) process.loadEnvFile(env);
 
 const usage =
-	'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 13,14] [--dist dist] [--compare <git ref> [--fresh]] [--launches 8] [--verbose]';
+	'Usage: pnpm e2e <scenario.ts or folder>... [--part a,b] [--versions 14] [--dist dist] [--compare <git ref> [--fresh]] [--launches 8] [--verbose]';
 const { values: options, positionals } = parseArgs({
 	allowPositionals: true,
 	options: {
 		part: { type: 'string' },
-		versions: { type: 'string', default: '13,14' },
+		versions: { type: 'string', default: '14' },
 		dist: { type: 'string' },
 		compare: { type: 'string' },
 		fresh: { type: 'boolean', default: false },

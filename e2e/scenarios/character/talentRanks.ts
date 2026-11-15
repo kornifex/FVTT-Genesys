@@ -19,7 +19,7 @@ export async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 							{
 								name: 'E2E Hardened',
 								transfer: true,
-								// v14 keeps a number as a number, where v13 turns it into a string.
+								// A number stays a number.
 								changes: [
 									{ key: 'system.soak', mode: 2, value: '1' },
 									{ key: 'system.soak', mode: 2, value: 2 },

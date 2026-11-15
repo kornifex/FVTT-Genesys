@@ -13,6 +13,7 @@ describe('SkillRanks', () => {
 				lang: 'en',
 				localize: (key: string) => key,
 				format: (key: string, data: Record<string, string>) => `${data['count']} ${key.split('.').slice(-2).join('.')}`,
+				pluralRules: new Intl.PluralRules('en'),
 				getListFormatter: (options: Intl.ListFormatOptions) => new Intl.ListFormat('en', options),
 			},
 		});

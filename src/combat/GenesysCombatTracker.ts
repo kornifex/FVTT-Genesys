@@ -4,7 +4,6 @@
 
 import type { DeepPartial } from 'fvtt-types/utils';
 
-import { isFoundryV13 } from '@/foundryGeneration';
 import { warn } from '@/log';
 
 type RenderContext = foundry.applications.sidebar.tabs.CombatTracker.RenderContext;
@@ -17,19 +16,9 @@ function slotIdOf(element: HTMLElement) {
 }
 
 /**
- * The keys of core's labels for the controls of a combatant's row, which v14 renamed.
+ * The keys of core's labels for the controls of a combatant's row.
  */
 function controlLabels({ hidden, isDefeated }: { hidden: boolean; isDefeated: boolean }) {
-	// v13: its keys name each toggle, whatever the combatant's state.
-	if (isFoundryV13()) {
-		return {
-			hidden: 'COMBAT.ToggleVis',
-			defeated: 'COMBAT.ToggleDead',
-			ping: 'COMBAT.PingCombatant',
-			panTo: 'COMBAT.PanToCombatant',
-		};
-	}
-
 	return {
 		hidden: hidden ? 'COMBATANT.Show' : 'COMBATANT.Hide',
 		defeated: isDefeated ? 'COMBATANT.UnmarkDefeated' : 'COMBATANT.MarkDefeated',
@@ -168,22 +157,6 @@ export class GenesysCombatTracker extends foundry.applications.sidebar.tabs.Comb
 				await combat.revokeSlot(combat.round, slotId);
 			}
 		};
-
-		// v13: the entries name their fields `name`, `condition` and `callback`, and core's reroll entry has another key.
-		if (isFoundryV13()) {
-			const v13RerollEntry = baseEntries.find((e) => e.name === 'COMBAT.CombatantReroll');
-			if (v13RerollEntry) {
-				v13RerollEntry.callback = (li) => void rerollSlot(li);
-			}
-			const v13RevokeEntry = {
-				name: 'Genesys.CombatTracker.RevokeInitiativeClaim',
-				icon: '<i class="fas fa-broom"></i>',
-				condition: canRevokeClaim,
-				callback: revokeClaim,
-			};
-			// v13: its entries have no `label`, which v14's require.
-			return [...baseEntries, v13RevokeEntry] as ContextMenuEntry[];
-		}
 
 		const rerollEntry = baseEntries.find((e) => e.label === 'COMBATANT.ACTIONS.Reroll');
 		if (rerollEntry) {

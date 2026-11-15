@@ -132,7 +132,7 @@ export async function storyPointSpendsPart(
 	let emptyPoolAnswer = '';
 	await e2e.step('#412 player asks the Acting GM to spend a Story Point from the empty player pool', async () => {
 		emptyPoolAnswer = await player.evaluate(() =>
-			game.users.activeGM.query('genesys.spendStoryPoint', { userId: game.user.id }, { timeout: 10_000 }).then(
+			game.users.activeGM.query('genesys.spendStoryPoint', {}, { timeout: 10_000 }).then(
 				() => 'written',
 				(error: Error) => error.message,
 			),

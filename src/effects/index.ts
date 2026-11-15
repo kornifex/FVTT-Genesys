@@ -1,5 +1,4 @@
 import { GenesysEffect, registerCombatantEffects } from '@/effects/GenesysEffect';
-import { isFoundryV13 } from '@/foundryGeneration';
 import { GenesysEffectSheetV2 } from '@/effects/GenesysEffectSheet';
 import { registerTokenStates } from '@/effects/tokenStateMenu';
 import { registerUsedUpEffects } from '@/effects/maneuverEffects';
@@ -17,10 +16,5 @@ export function register() {
 		makeDefault: true,
 	});
 
-	// v13 has no Active Effect registry: the Acting GM marks the expired effects itself.
-	Hooks.once('ready', () => {
-		if (!isFoundryV13()) {
-			registerCombatantEffects();
-		}
-	});
+	Hooks.once('ready', registerCombatantEffects);
 }

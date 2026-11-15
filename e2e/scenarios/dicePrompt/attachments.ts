@@ -69,7 +69,7 @@ export async function attachmentsPart(ctx: DicePromptContext) {
 				attachments: rifle.system.attachments.map(
 					(attachment: { name: string; hardPointsRequired: number }) => `${attachment.name} ${attachment.hardPointsRequired}`,
 				),
-				// By name: v13 doesn't keep the effects in the order they were created.
+				// By name, so that the order the effects were created in doesn't matter.
 				effects: rifle.effects
 					.map((effect: { name: string; disabled: boolean; flags: { genesys?: { attachment?: string } } }) => ({
 						name: effect.name,
@@ -170,20 +170,15 @@ export async function attachmentsPart(ctx: DicePromptContext) {
 		{ effects: [], prepared: ['5/3', '2/4'], rifle: [] },
 	);
 
-	// The changes of an effect as stored, each with whether it has the custom type (v13: mode), which keeps Foundry from
-	// applying it to the actor.
+	// The changes of an effect as stored, each with whether it has the custom type, which keeps Foundry from applying it
+	// to the actor.
 	const storedChanges = (effect: { attachment?: string; rifle?: string }) =>
 		gm.evaluate((effect) => {
 			const document = effect.attachment
 				? game.items.getName(effect.attachment).effects.getName(effect.attachment)
 				: game.actors.getName('E2E Ada').items.getName('E2E Rifle').effects.getName(effect.rifle);
-			// v13: an effect keeps its changes in `changes`, with a numeric mode, custom being 0; v14 in `system.changes`, with
-			// a type.
-			const v13 = game.release.generation < 14;
-			const changes = v13 ? document._source.changes : document._source.system.changes;
-			return changes.map((change: { key: string; value: unknown; mode?: number; type?: string }) => {
-				const custom = v13 ? change.mode === 0 : change.type === 'custom';
-				return `${change.key} ${String(change.value)} ${custom ? 'custom' : 'applied'}`;
+			return document._source.system.changes.map((change: { key: string; value: unknown; type: string }) => {
+				return `${change.key} ${String(change.value)} ${change.type === 'custom' ? 'custom' : 'applied'}`;
 			});
 		}, effect);
 	await e2e.step('#721 E1 GM writes "Damage +1" in the Changes tab of the effect of the Edge, an attachment', () =>

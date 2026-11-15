@@ -531,9 +531,7 @@ export function installHelpers() {
 		},
 
 		durationRounds({ duration }) {
-			// v13: a duration holds its rounds. From v14 on it holds a value and its units, and the legacy `rounds` it shims
-			// reads null once the client prepared the duration.
-			if (game.release.generation < 14) return typeof duration.rounds === 'number' ? duration.rounds : null;
+			// A duration holds a value and its units; the legacy `rounds` it shims reads null once the client prepared it.
 			return duration.units === 'rounds' && typeof duration.value === 'number' ? duration.value : null;
 		},
 

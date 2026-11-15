@@ -1,7 +1,6 @@
 import { CHARACTERISTICS } from '@/data/Characteristics';
 import type { DeepPartial } from 'fvtt-types/utils';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
-import { isFoundryV13 } from '@/foundryGeneration';
 import { changesPath } from '@/effects/GenesysEffect';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
@@ -213,17 +212,9 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 					changes,
 				),
 				characteristics: CHARACTERISTICS,
-				// v13: a change has a mode, whose choices and default priorities Foundry's context holds.
-				v13: isFoundryV13(),
+				changeTypes: changeTypeChoices(changes),
+				priorities: Object.fromEntries(Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority])),
 			});
-			if (!isFoundryV13()) {
-				Object.assign(partContext, {
-					changeTypes: changeTypeChoices(changes),
-					priorities: Object.fromEntries(
-						Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority]),
-					),
-				});
-			}
 		}
 
 		return partContext;
@@ -233,9 +224,9 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 	 * The fields of a change, which the tab's inputs render.
 	 */
 	#changeFields() {
-		// v13: the document's own schema holds the changes, which v14 moved to the schema of its system.
-		const document = this.document as unknown as { schema: ChangesSchema; system: { schema: ChangesSchema } };
-		return (isFoundryV13() ? document.schema : document.system.schema).fields.changes.element.fields;
+		// The types don't declare the schema of the effect's system, which holds the changes.
+		const document = this.document as unknown as { system: { schema: ChangesSchema } };
+		return document.system.schema.fields.changes.element.fields;
 	}
 
 	override _onChangeForm(formConfig: foundry.applications.api.ApplicationV2.FormConfiguration, event: Event) {
@@ -260,20 +251,9 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 	override _processFormData(event: SubmitEvent | null, form: HTMLFormElement, formData: foundry.applications.ux.FormDataExtended) {
 		const formDataExpanded = super._processFormData(event, form, formData);
 
-		// v14's actions that add and delete a change read the changes from the processed form data too.
+		// Foundry's actions that add and delete a change read the changes from the processed form data too.
 		const changes = foundry.utils.getProperty(formDataExpanded, changesPath()) as Record<string, EditedChange> | undefined;
-		// v13: only a change with a mode, which v14 replaced with a type, reads Foundry's custom mode.
-		foundry.utils.setProperty(
-			formDataExpanded,
-			changesPath(),
-			Object.values(changes ?? {}).map((change) =>
-				fromEditedChange(
-					change,
-					() => CONST.ACTIVE_EFFECT_MODES.CUSTOM,
-					() => CONST.ACTIVE_EFFECT_MODES.UPGRADE,
-				),
-			),
-		);
+		foundry.utils.setProperty(formDataExpanded, changesPath(), Object.values(changes ?? {}).map(fromEditedChange));
 
 		return formDataExpanded;
 	}

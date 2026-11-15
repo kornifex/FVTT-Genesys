@@ -1074,7 +1074,7 @@ export function installDicePromptHelpers() {
 
 		async showMessage(id) {
 			const state = { expanded: ui.sidebar.expanded, tab: ui.sidebar.tabGroups.primary };
-			// v13: the sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
+			// The sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
 			ui.sidebar.expand();
 			ui.sidebar.changeTab('chat', 'primary');
 			const message = await waitFor('the message in the chat log', () =>

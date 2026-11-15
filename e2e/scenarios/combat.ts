@@ -169,35 +169,25 @@ function installCombatHelpers() {
 		if (!header) throw new Error('No tracker header');
 		return header;
 	};
-	// v13: core's reroll entry has another key, and an entry names its fields `name`, `condition` and `callback`, which v14
-	// renamed `label`, `visible` and `onClick` and reads first. The page can't import the system's types, so the shape is
-	// declared again here.
+	// The page can't import the system's types, so the shape of a context menu entry is declared again here.
 	type ContextMenuEntry = {
-		label?: string;
-		name?: string;
+		label: string;
 		visible?: boolean | ((target: HTMLElement) => boolean);
-		condition?: boolean | ((target: HTMLElement) => boolean);
-		onClick?: (event: PointerEvent, target: HTMLElement) => unknown;
-		callback?: (target: HTMLElement) => unknown;
+		onClick: (event: PointerEvent, target: HTMLElement) => unknown;
 	};
 	const menuKeys: Record<MenuEntry, string> = {
-		// v13: core's reroll entry has another key.
-		reroll: game.release.generation < 14 ? 'COMBAT.CombatantReroll' : 'COMBATANT.ACTIONS.Reroll',
+		reroll: 'COMBATANT.ACTIONS.Reroll',
 		revokeClaim: 'Genesys.CombatTracker.RevokeInitiativeClaim',
 	};
 	const findMenuEntry = (key: MenuEntry) => {
-		const entry = (ui.combat._getEntryContextOptions() as ContextMenuEntry[]).find(
-			(candidate) => ('label' in candidate ? candidate.label : candidate.name) === menuKeys[key],
-		);
+		const entry = (ui.combat._getEntryContextOptions() as ContextMenuEntry[]).find((candidate) => candidate.label === menuKeys[key]);
 		if (!entry) throw new Error(`No context menu entry ${menuKeys[key]}`);
 		return entry;
 	};
-	const shows = (entry: ContextMenuEntry, target: HTMLElement) => {
-		const visible = 'visible' in entry ? entry.visible : entry.condition;
-		return typeof visible === 'function' ? !!visible(target) : visible ?? true;
-	};
+	const shows = (entry: ContextMenuEntry, target: HTMLElement) =>
+		typeof entry.visible === 'function' ? !!entry.visible(target) : entry.visible ?? true;
 	const click = async (entry: ContextMenuEntry, target: HTMLElement) => {
-		await (entry.onClick ? entry.onClick(new PointerEvent('click'), target) : entry.callback?.(target));
+		await entry.onClick(new PointerEvent('click'), target);
 	};
 	const answered = new Set<unknown>();
 	const prompts = () => apps('app-dice-prompt').filter((app: { rendered: boolean }) => app.rendered);
@@ -332,21 +322,12 @@ function installCombatHelpers() {
 		},
 
 		coreControlLabels({ hidden }) {
-			// v13: core's keys before v14 renamed them and worded its toggles after the combatant's state.
-			const keys: Record<string, string> =
-				game.release.generation < 14
-					? {
-							toggleHidden: 'COMBAT.ToggleVis',
-							toggleDefeated: 'COMBAT.ToggleDead',
-							pingCombatant: 'COMBAT.PingCombatant',
-							panToCombatant: 'COMBAT.PanToCombatant',
-						}
-					: {
-							toggleHidden: hidden ? 'COMBATANT.Show' : 'COMBATANT.Hide',
-							toggleDefeated: 'COMBATANT.MarkDefeated',
-							pingCombatant: 'COMBATANT.Ping',
-							panToCombatant: 'COMBATANT.PanTo',
-						};
+			const keys: Record<string, string> = {
+				toggleHidden: hidden ? 'COMBATANT.Show' : 'COMBATANT.Hide',
+				toggleDefeated: 'COMBATANT.MarkDefeated',
+				pingCombatant: 'COMBATANT.Ping',
+				panToCombatant: 'COMBATANT.PanTo',
+			};
 			// A key core lacks would localize to itself.
 			return Object.fromEntries(
 				Object.entries(keys).map(([action, key]) => [action, game.i18n.has(key) ? game.i18n.localize(key) : `missing ${key}`]),
@@ -585,9 +566,8 @@ export async function run(e2e: ScenarioContext) {
 	/** §#417: the tracker keeps core's header, in which the GM's button adds an Extra Slot for the controlled token. */
 	async function header() {
 		await setUp({ Hero: 1, Boss: 2 }, { turnOn: 'Boss:-1' });
-		// v13: an encounter has no name, and the update leaves it out.
 		await e2e.step('#417 GM names the encounter', () => gm.evaluate(() => game.combat.update({ name: 'E2E Ambush' })));
-		const name = e2e.version >= 14 ? 'E2E Ambush' : null;
+		const name = 'E2E Ambush';
 		const extraSlotButton = {
 			label: await gm.evaluate(() => game.i18n.localize('Genesys.Tooltips.AddExtraInitiativeSlot')),
 			tooltip: 'Genesys.Tooltips.AddExtraInitiativeSlot',
@@ -695,7 +675,7 @@ export async function run(e2e: ScenarioContext) {
 			{ before: effectBefore, after: await effectState() },
 			{ before: 'running', after: 'expired' },
 		);
-		// §#357: it expires at that same turn change: the Acting GM marks it on v13, Foundry's registry on v14.
+		// §#357: it expires at that same turn change: Foundry's registry marks it.
 		e2e.expect(
 			"#357 A3 a one-turn effect on Boss is marked expired from Boss's own slot to its Extra Slot, as #96 A2 sees it run out",
 			{ before: expiredBefore, after: await expired() },
@@ -759,8 +739,7 @@ export async function run(e2e: ScenarioContext) {
 		});
 		e2e.expect("#357 B3 turning an expired effect on doesn't make it apply", await expiry(), expired);
 
-		// v13: a duration holds its rounds; from v14 on, a value and its units.
-		const extended = e2e.version >= 14 ? { 'duration.value': 2 } : { 'duration.rounds': 2 };
+		const extended = { 'duration.value': 2 };
 		await e2e.step('#357 B4 GM extends the effect by one round, from round 2', () =>
 			gm.evaluate((update) => window.e2e.token('Boss').actor.effects.getName('E2E Guarded').update(update), extended),
 		);
@@ -792,8 +771,8 @@ export async function run(e2e: ScenarioContext) {
 			{ expiry: expired, rows: [{ section: 'suppressed', name: 'E2E Guarded', duration: expiredLabel }] },
 		);
 
-		// Only the Acting GM writes an expiry, on v13 as the system's flag, on v14 as Foundry's `duration.expired`, which its
-		// registry writes through the active GM: with no GM online, nobody does; the next turn change with one does.
+		// Only the active GM writes an expiry, as Foundry's `duration.expired`, through its registry: with no GM online,
+		// nobody does; the next turn change with one does.
 		await setUp({ Hero: 2, Boss: 1 }, { turnOn: 'Hero:-1' });
 		await gm.evaluate(() => window.combatE2E.addDefenseEffect('Boss', 'E2E Guarded', { turns: 1 }));
 		await e2e.step('#357 C0 GM leaves', () => gm.leave());
@@ -853,7 +832,7 @@ export async function run(e2e: ScenarioContext) {
 			const token = window.e2e.token('Boss');
 			token.control({ releaseOthers: true });
 			await canvas.hud.token.bind(token);
-			// v14's menu sorts the states by name, v13's keeps their order: by id, in the order given.
+			// By id, in the order given, whatever the order of the menu, which sorts the states by name.
 			return ids
 				.map((id: string) => canvas.hud.token.element.querySelector(`.effect-control[data-status-id="${id}"]`))
 				.filter((icon: HTMLElement | null) => icon !== null)
@@ -1039,7 +1018,7 @@ export async function run(e2e: ScenarioContext) {
 								candidate.getFlag('genesys', 'criticalInjury')?.target === actor.uuid,
 						)
 						.at(-1);
-					// The message as the chat log renders it, which v13's headless window collapses.
+					// The message as the chat log renders it, on the page.
 					const html = await message.renderHTML();
 					document.body.append(html);
 					html.querySelector('button.roll-critical-injury').click();
@@ -1541,8 +1520,8 @@ export async function run(e2e: ScenarioContext) {
 			bothClients({ 'Hero:-1': 'ssaaa', 'Ally:-1': 'aa', 'Boss:-1': '' }),
 		);
 
-		// §#582: in words, as an image's name to a screen reader and as its tooltip, on the combat tab shown: v13's headless
-		// window collapses the sidebar, whose hidden tabs read as nothing.
+		// §#582: in words, as an image's name to a screen reader and as its tooltip, on the combat tab shown, since the
+		// accessibility snapshot holds only what shows.
 		const sidebar = await e2e.gm.evaluate(() => {
 			const state = { expanded: ui.sidebar.expanded as boolean, tab: ui.sidebar.tabGroups.primary as string };
 			ui.sidebar.expand();
@@ -1843,9 +1822,8 @@ export async function run(e2e: ScenarioContext) {
 				current: bothClients('Boss:-1'),
 			},
 		);
-		// v13: the entries name their fields `name`, `condition` and `callback`, which v14 still reads, with a deprecation
-		// warning, until v16.
-		const fields = e2e.version < 14 ? ['callback', 'condition', 'icon', 'name'] : ['icon', 'label', 'onClick', 'visible'];
+		// The legacy field names `name`, `condition` and `callback` are still read, with a deprecation warning, until v16.
+		const fields = ['icon', 'label', 'onClick', 'visible'];
 		e2e.expect(
 			"#244 A1 the tracker's menu entries the system writes or rewrites use the field names of the Foundry version",
 			await gm.evaluate(() => window.combatE2E.menuFields()),
@@ -2004,7 +1982,6 @@ export async function run(e2e: ScenarioContext) {
 				{ name, data },
 			);
 		const ids = await player.evaluate(() => ({
-			player: game.user.id,
 			gm: game.users.activeGM.id,
 			combat: game.combat.id,
 			round: game.combat.round,
@@ -2037,7 +2014,6 @@ export async function run(e2e: ScenarioContext) {
 		let extraSlotAnswer = '';
 		await e2e.step("#412 player asks the Acting GM to write the initiative of Boss's Extra Slot", async () => {
 			extraSlotAnswer = await query('genesys.writeExtraSlotInitiative', {
-				userId: ids.player,
 				combatId: ids.combat,
 				updates: [{ index: 0, initiative: 3 }],
 				updateTurn: false,
@@ -2062,9 +2038,7 @@ export async function run(e2e: ScenarioContext) {
 		e2e.expect(
 			'#412 A4 on v14, the Acting GM checks the user Foundry names as the sender, not the one the data names; v13 names none, so it trusts the data',
 			{ answer: namingGmAnswer, claims: (await stored()).claims },
-			e2e.version >= 14
-				? { answer: 'Genesys.Notifications.NotOwnerOfCombatant', claims: { 'Hero:-1': 'Hero' } }
-				: { answer: 'written', claims: { 'Hero:-1': 'Hero', 'Boss:-1': 'Boss' } },
+			{ answer: 'Genesys.Notifications.NotOwnerOfCombatant', claims: { 'Hero:-1': 'Hero' } },
 		);
 
 		// The GM's client holds the Claim's query, as a GM whose client hangs: its answer never comes.
@@ -2133,7 +2107,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 	}
 
-	/** §#94: on v13, the tracker's slot actions and menu entries do nothing without a slot or a combat, and hovering a text node doesn't throw. */
+	/** §#94: the tracker's slot actions and menu entries do nothing without a slot or a combat, and hovering a text node doesn't throw. */
 	async function trackerGuards() {
 		await setUp({ Hero: null, Boss: null });
 		const tryAll = () =>

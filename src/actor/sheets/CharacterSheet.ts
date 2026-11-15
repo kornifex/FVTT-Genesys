@@ -1,10 +1,8 @@
-import type { DeepPartial } from 'fvtt-types/utils';
 import VueCharacterSheet from '@/vue/sheets/actor/CharacterSheet.vue';
 import { GenesysItem } from '@/item/GenesysItem';
 import { GenesysActorSheet } from '@/actor/GenesysActorSheet';
 import { receiveCharacterDrop } from '@/operations/CharacterDrop';
 import { HIDE_MAGIC_TAB_FLAG, practicesMagic } from '@/actor/data/character/MagicTab';
-import { isFoundryV13 } from '@/foundryGeneration';
 
 /**
  * Actor sheet used for Player Characters
@@ -55,16 +53,5 @@ export class CharacterSheet extends GenesysActorSheet<'character'> {
 				onClick: toggle,
 			},
 		];
-	}
-
-	/**
-	 * v13: the window builds its menu at its first render only, unless a render is given window options: each render gets
-	 * them, so that the menu follows the flag and the character's magic. v14 builds the menu each time it opens.
-	 */
-	protected override _configureRenderOptions(options: DeepPartial<foundry.applications.api.ApplicationV2.RenderOptions>) {
-		super._configureRenderOptions(options);
-		if (isFoundryV13()) {
-			options.window ??= {};
-		}
 	}
 }

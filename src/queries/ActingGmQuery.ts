@@ -21,18 +21,7 @@ export const QueryName = {
 
 export type QueryName = (typeof QueryName)[keyof typeof QueryName];
 
-/**
- * What every query carries.
- */
-type QueryBaseData = {
-	/**
-	 * v13: the user who asks. Foundry v13 doesn't tell the handler who sent a query; v14 does, and the handler trusts
-	 * Foundry rather than this.
-	 */
-	userId: string;
-};
-
-type CombatQueryData = QueryBaseData & {
+type CombatQueryData = {
 	/** The combat the query is for. */
 	combatId: string;
 };
@@ -41,7 +30,7 @@ type CombatQueryData = QueryBaseData & {
  * The data each query carries.
  */
 export type QueryData = {
-	[QueryName.SpendStoryPoint]: QueryBaseData & {
+	[QueryName.SpendStoryPoint]: {
 		/** How many points are spent together: one when left out, as from the tracker; up to two for a check. */
 		count?: number;
 	};
@@ -57,7 +46,7 @@ export type QueryData = {
 	};
 	[QueryName.UseUpEffects]: RolledCheckQueryData;
 	[QueryName.SufferCastingStrain]: RolledCheckQueryData;
-	[QueryName.ApplyRecovery]: QueryBaseData & {
+	[QueryName.ApplyRecovery]: {
 		/** The chat message of the card, whose flags hold the recovery. */
 		messageId: string;
 	};
@@ -67,7 +56,7 @@ export type QueryData = {
  * What a query about a check a player rolled carries: the Acting GM reads what the check was rolled for from its chat
  * message rather than from the query, and the strain of a spell from the rules.
  */
-type RolledCheckQueryData = QueryBaseData & {
+type RolledCheckQueryData = {
 	/** The actor that made the check. */
 	actorUuid: string;
 	/** The chat message of the check. */
@@ -154,25 +143,9 @@ export async function queryActingGm<N extends QueryName>(
 }
 
 /**
- * What a query's handler receives besides its data: Foundry v14 adds the user who sent it, v13 only the timeout.
+ * What a query's handler receives besides its data: the timeout, and the user who sent it, whom Foundry checks exists.
  */
-export type QueryContext<User> = { timeout?: number; user?: User };
-
-/**
- * The user who sent a query, whom its handler checks may ask it: the sender Foundry names on v14.
- */
-export function querierOf<User>(data: QueryBaseData, context: QueryContext<User> | undefined, findUser: (id: string) => User | undefined) {
-	if (context?.user) {
-		return context.user;
-	}
-
-	// v13: Foundry doesn't name the sender, so the handler trusts the user the data names.
-	const user = findUser(data.userId);
-	if (!user) {
-		throw new Error(`A query was received from an unknown user ${data.userId}`);
-	}
-	return user;
-}
+export type QueryContext<User> = { timeout?: number; user: User };
 
 /**
  * Each query's warning that no GM is connected to write it.

@@ -43,7 +43,7 @@ describe('sufferCastingStrain', () => {
 
 		expect(query).toHaveBeenCalledExactlyOnceWith(
 			'genesys.sufferCastingStrain',
-			{ actorUuid: 'Actor.mage', messageId: 'message', userId: 'player' },
+			{ actorUuid: 'Actor.mage', messageId: 'message' },
 			expect.anything(),
 		);
 		expect(update).not.toHaveBeenCalled();

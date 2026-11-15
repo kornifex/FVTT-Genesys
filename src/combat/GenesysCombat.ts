@@ -5,13 +5,10 @@ import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
 import { applyMessageMode, initiativeMessageMode, initiativeModes, requestedInitiativeMode } from '@/dice/messageMode';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
-// v13: the Acting GM marks the Expired Effects, which Foundry v13 never expires.
-import { expireEffectsOfCombat } from '@/effects/GenesysEffect.v13';
-import type { CombatClock } from '@/effects/EffectExpiry.v13';
 import { lapseEffectsAtTurnEnd } from '@/effects/GenesysEffect';
 import { CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
-import { askActingGm, handleQuery, isActingGm, QueryName, refuse } from '@/queries';
-import { isFoundryV13, keyDeletion } from '@/foundryGeneration';
+import { askActingGm, handleQuery, QueryName, refuse } from '@/queries';
+import { keyDeletion } from '@/data/keyDeletion';
 import {
 	claimQueryRefusal,
 	claimRefusal,
@@ -109,14 +106,6 @@ export class GenesysCombat extends Combat {
 	 */
 	get slots() {
 		return this.slotsForRound(this.round);
-	}
-
-	/**
-	 * v13: the point the combat has reached, against which the system counts effect durations in rounds and turns. v14's
-	 * Active Effect registry counts them itself.
-	 */
-	get combatClock(): CombatClock {
-		return { round: this.round, turn: this.turn, turnCount: this.turns.length };
 	}
 
 	/**
@@ -559,12 +548,6 @@ export class GenesysCombat extends Combat {
 			// v14: Foundry numbers the turns by their place once the combat starts.
 			this.numberTurns();
 		}
-
-		// v13: Foundry never expires an effect, so the Acting GM marks those whose duration ran out at this turn. v14's
-		// Active Effect registry does it at the turn events.
-		if (isFoundryV13() && ('round' in changed || 'turn' in changed) && isActingGm()) {
-			expireEffectsOfCombat(this).catch((error: unknown) => log.error('Marking the expired effects failed', error));
-		}
 	}
 
 	/**
@@ -629,7 +612,7 @@ export class GenesysCombat extends Combat {
 	/**
 	 * Number each combatant's turn by its first Initiative Slot of the round, once the combat has started. Foundry v14
 	 * numbers them by their place in the turns, which gives a combatant with an Extra Slot the number of its last slot,
-	 * and counts an effect created out of this combat from the turn after it. v13 doesn't read them. Not private, as
+	 * and counts an effect created out of this combat from the turn after it. Not private, as
 	 * {@link turnOrderState}.
 	 */
 	numberTurns() {

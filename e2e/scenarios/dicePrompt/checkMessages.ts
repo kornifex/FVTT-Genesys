@@ -89,14 +89,11 @@ export async function checkMessagesPart(ctx: DicePromptContext) {
 	);
 
 	// §#414: a check's message and an initiative's take the mode the GM picks in the chat.
-	// v13: the chat's mode is the roll mode (`blindroll`); v14 replaced it with the message mode (`blind`).
-	const chatModeKey = await gm.evaluate(() => (game.release.generation < 14 ? 'rollMode' : 'messageMode'));
-	const chatModeBefore = await gm.evaluate((key) => game.settings.get('core', key), chatModeKey);
-	const setChatMode = (value: unknown) =>
-		gm.evaluate(({ key, value }) => game.settings.set('core', key, value), { key: chatModeKey, value });
+	const chatModeBefore = await gm.evaluate(() => game.settings.get('core', 'messageMode'));
+	const setChatMode = (value: unknown) => gm.evaluate((value) => game.settings.set('core', 'messageMode', value), value);
 	const visibility = ({ whisper, blind }: MessageSummary) => ({ whisper, blind });
 	const rolledInChatMode = async (mode: string) => {
-		await setChatMode(chatModeKey === 'rollMode' ? `${mode}roll` : mode);
+		await setChatMode(mode);
 		await opened(gm, skillRoll('Cool'));
 		const check = visibility(await roll());
 		// The Hero rolls the initiative they hold, so that the turns stay as they were.

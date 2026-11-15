@@ -280,7 +280,7 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  * The effect of a weapon's or an armor's quality, given that quality, counts both kinds once per rank of a rated quality
  * (CRB pp. 86–89): Accurate 2, written as one Boost, gives two.
  *
- * The value keeps its type: v13 stores every value as a string, v14 stores a number as one.
+ * The value keeps its type: Foundry stores a number as one, and a value it can't parse as a string.
  */
 export function scaledChangeValue(
 	item: SourceItem | undefined,
@@ -545,8 +545,7 @@ function effectModifications(
 }
 
 /**
- * A change as an effect stores it. Foundry v14 gives it a string `type` and a `phase` where v13 gave it a numeric
- * `mode`, and a value of any type.
+ * A change as an effect stores it: a string `type`, a `phase`, and a value of any type.
  */
 type StoredChange = {
 	key: string;
@@ -554,8 +553,6 @@ type StoredChange = {
 	priority?: number | null;
 	type?: string;
 	phase?: string;
-	// v13: the mode v14 replaced with `type`.
-	mode?: number;
 };
 
 /**
@@ -616,8 +613,8 @@ export function subjectFieldForKey(key: string) {
 }
 
 /**
- * A copy of a change, as the effect sheets edit it. A value of another type than a string, which v14 stores, is edited as
- * its JSON, as Foundry's own sheet does.
+ * A copy of a change, as the effect sheets edit it. A value of another type than a string is edited as its JSON, as
+ * Foundry's own sheet does.
  */
 export function toEditedChange(change: StoredChange): EditedChange {
 	const value = typeof change.value === 'string' ? change.value : JSON.stringify(change.value);
@@ -639,32 +636,26 @@ export function toEditedChange(change: StoredChange): EditedChange {
 
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
- * type (v13: mode) that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to
- * Critical Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a
- * whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the
- * defense a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as
- * it is.
- * @param customMode v13: Foundry's custom effect mode, read only for a change that has a mode, since v14 logs a
- * deprecation warning when `CONST.ACTIVE_EFFECT_MODES` is read.
- * @param upgradeMode v13: Foundry's upgrade effect mode, read under the same condition.
+ * type that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to Critical
+ * Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a whole
+ * number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
+ * a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
  */
-export function fromEditedChange(change: EditedChange, customMode: () => number, upgradeMode: () => number): EditedChange {
+export function fromEditedChange(change: EditedChange): EditedChange {
 	const { char, skill, ...stored } = change;
-	// v13: a change has a numeric mode, which v14 replaced with a type.
-	const custom = () => ('type' in change ? { type: 'custom' } : { mode: customMode() });
-	// v14: Foundry's sheet parses the value typed as JSON, which turns a number into one.
+	// Foundry's sheet parses the value typed as JSON, which turns a number into one.
 	const value = typeof change.value === 'string' ? change.value : typeof change.value === 'number' ? String(change.value) : '';
 
 	if (isProvidedDefenseKey(change.key)) {
-		return { ...stored, ...('type' in change ? { type: 'upgrade' } : { mode: upgradeMode() }) };
+		return { ...stored, type: 'upgrade' };
 	}
 
 	if (isCriticalChangeKey(change.key)) {
-		return { ...stored, ...custom(), value: isCriticalChangeValue(value) ? value.trim() : '' };
+		return { ...stored, type: 'custom', value: isCriticalChangeValue(value) ? value.trim() : '' };
 	}
 
 	if (isItemChangeKey(change.key)) {
-		return { ...stored, ...custom() };
+		return { ...stored, type: 'custom' };
 	}
 
 	const baseKey = change.key.match(BASE_KEY_PATTERN);
@@ -676,7 +667,7 @@ export function fromEditedChange(change: EditedChange, customMode: () => number,
 	return {
 		...stored,
 		key: encodeKey({ kind, source: baseKey[2] as PoolModificationSource, subject: (kind === 'char' ? char : skill) ?? '' }),
-		...custom(),
+		type: 'custom',
 		value: isPoolModificationValue(value) ? value : '',
 	};
 }

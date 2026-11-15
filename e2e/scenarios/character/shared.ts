@@ -19,8 +19,8 @@ type CharacterHelpers = {
 	/**
 	 * Drops the world Archetype `E2E <archetype>` on the character, and waits until the character holds it alone and its
 	 * Starting XP, the character's update coming last; or removes the character's from its menu, answers the dialog
-	 * confirming it, and on Yes waits until the Archetype item is deleted, which comes last. A removal can take longer than
-	 * a step's wait on v13. The removal gives the dialog read.
+	 * confirming it, and on Yes waits until the Archetype item is deleted, which comes last. The removal gives the dialog
+	 * read.
 	 */
 	applyArchetype(actor: string, archetype: string): Promise<void>;
 	removeArchetype(actor: string, answer?: 'yes' | 'no'): Promise<ConfirmDialog | null>;

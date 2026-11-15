@@ -1,5 +1,7 @@
 # Support Foundry v12 on a maintenance branch once main moves to v14
 
+Superseded by ADR 0009 for when a version leaves `main`: v13 left with no maintenance line.
+
 Our own table's host runs Foundry v12, and its modules gate the upgrade, which goes v12 → v13 → v14, one step at a time. The system follows the table on two release lines:
 
 -   **`0.4.x`** keeps v12 and v13. It was cut from the code of `0.4.0-rc.1`, while the table tested that candidate, so 0.4.0 ships from it with its fixes. It only takes the fixes the table needs, and is retired once the table runs v13.

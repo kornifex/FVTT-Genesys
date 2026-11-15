@@ -1037,7 +1037,7 @@ export function installSheetsHelpers() {
 			async state(owner) {
 				const app = editedEffect(owner).sheet;
 				const element = htmlOf(app)!;
-				// v14 names the fields `system.changes.N.…`, v13 `changes.N.…`.
+				// The sheet names the fields `system.changes.N.…`.
 				const select = (name: string) => element.querySelector<HTMLSelectElement>(`select[name$="${name}"]`)!;
 				const options = (parent: Element) => [...parent.querySelectorAll('option')];
 				const charSelect = select('changes.1.char');
@@ -1076,9 +1076,7 @@ export function installSheetsHelpers() {
 			async edit(owner) {
 				const element = () => htmlOf(editedEffect(owner).sheet)!;
 				setSelect(element(), 'select[name$="changes.0.key"]', 'system.characteristics.presence');
-				// v13: a change has a numeric mode, which v14 replaced with a type.
-				if (game.release.generation < 14) setSelect(element(), 'select[name="changes.0.mode"]', '5');
-				else setSelect(element(), 'select[name="system.changes.0.type"]', 'override');
+				setSelect(element(), 'select[name="system.changes.0.type"]', 'override');
 				setSelect(element(), 'select[name$="changes.1.char"]', 'presence');
 				setSelect(element(), 'input[name$="changes.2.value"]', 'SS');
 				setSelect(element(), 'select[name$="changes.3.skill"]', 'Cool');
@@ -1111,14 +1109,6 @@ export function installSheetsHelpers() {
 
 			changes(owner) {
 				const source = editedEffect(owner)._source;
-				// v13: an effect keeps its changes in `changes`, with a numeric mode; v14 in `system.changes`, with a type.
-				if (game.release.generation < 14) {
-					return source.changes.map((change: { key: string; mode: number; value: string }) => [
-						change.key,
-						change.mode,
-						change.value,
-					]);
-				}
 				return source.system.changes.map((change: { key: string; type: string; value: unknown }) => [
 					change.key,
 					change.type,
@@ -1626,7 +1616,7 @@ export function installSheetsHelpers() {
 					candidate.speaker.actor === speakerId && candidate.rolls.length > 0 === attack && candidate.content.includes('quality'),
 			);
 			if (!message) return false;
-			// v13: the sidebar is collapsed in the headless window.
+			// The sidebar is collapsed in the headless window.
 			ui.sidebar.expand();
 			ui.sidebar.changeTab('chat', 'primary');
 			const quality = await waitFor('the quality in the chat log', () =>
