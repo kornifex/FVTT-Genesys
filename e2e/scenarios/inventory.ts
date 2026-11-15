@@ -1461,6 +1461,9 @@ function installInventoryHelpers() {
 	window.inventoryE2E = helpers;
 }
 
+// The scenario puts a token on the viewed scene, which Foundry only views with its canvas.
+export const needsCanvas = true;
+
 /** The steps' calls of the inventory helpers in a client's page. */
 function inventorySteps(page: Client) {
 	return {
