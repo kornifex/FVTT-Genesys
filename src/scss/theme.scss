@@ -1,9 +1,27 @@
+@use 'sass:list';
+@use 'sass:map';
 @use '@scss/vars/colors.scss';
+
+// The colors the dark theme redefines, in any Style.
+$themed: map.keys(colors.$dark);
+@each $style, $palette in colors.$dark-styles {
+	@each $name in map.keys($palette) {
+		@if not list.index($themed, $name) {
+			$themed: list.append($themed, $name);
+		}
+	}
+}
 
 // Zero specificity, so that worlds and modules can override any color on `:root`, whatever the Style.
 :where(:root) {
 	@each $name, $value in colors.$defaults {
 		--genesys-#{$name}: #{$value};
+	}
+
+	// The light value of each color the dark theme redefines, as the document root computes it: after the Style and a
+	// world's override on `:root`, which the light theme restores below.
+	@each $name in $themed {
+		--genesys-theme-light-#{$name}: var(--genesys-#{$name});
 	}
 }
 
@@ -12,5 +30,32 @@
 		@each $name, $value in $palette {
 			--genesys-#{$name}: #{$value};
 		}
+	}
+}
+
+// Foundry puts the theme's class on `body` for the applications, on `#interface` and the sidebar for the interface, and
+// on a sheet whose user picked a theme for it. Declared on that element, the variant reaches what it holds, up to an
+// element of the other theme. A world styles the dark theme by overriding these colors on `.theme-dark`.
+:where(.theme-dark) {
+	@each $name, $value in colors.$dark {
+		--genesys-#{$name}: #{$value};
+	}
+}
+
+@each $style, $palette in colors.$dark-styles {
+	:where([data-genesys-style='#{$style}'] .theme-dark) {
+		@each $name, $value in $palette {
+			--genesys-#{$name}: #{$value};
+		}
+	}
+}
+
+// A light element inside a dark one, such as a sheet forcing the light theme in Foundry's dark applications, takes the
+// light values back. Declared last, so that it also wins on an element that Foundry made dark: the chat cards (until
+// #853), the Genesys tooltip, which Foundry always makes dark, and the Combat Tracker keep the light Palette until they
+// follow the theme of the interface.
+:where(.theme-light, .chat-message, #tooltip.genesys, #combat) {
+	@each $name in $themed {
+		--genesys-#{$name}: var(--genesys-theme-light-#{$name});
 	}
 }

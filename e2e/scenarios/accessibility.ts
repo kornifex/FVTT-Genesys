@@ -674,9 +674,11 @@ function installAccessibilityHelpers() {
 		for (const marked of document.querySelectorAll<HTMLElement>('[data-e2e-pointer]')) delete marked.dataset.e2ePointer;
 		target.dataset.e2ePointer = '';
 	};
-	// A Palette colour's name, when a computed colour is one of those the focus ring draws with.
-	const colourName = (colour: string) => {
-		const probe = document.body.appendChild(document.createElement('span'));
+	// A Palette colour's name, when a computed colour is one of those the focus ring draws with. The probe sits beside the
+	// element, since the Palette depends on the theme around it: `body` may be dark while a sheet is light. A focused element of a
+	// sheet always has a parent.
+	const colourName = (colour: string, element: Element) => {
+		const probe = element.parentElement!.appendChild(document.createElement('span'));
 		try {
 			for (const name of ['blue', 'paper']) {
 				probe.style.color = `var(--genesys-${name})`;
@@ -691,10 +693,10 @@ function installAccessibilityHelpers() {
 	const ringOf = (element: Element) => {
 		const style = getComputedStyle(element);
 		if (style.outlineStyle === 'none' || parseFloat(style.outlineWidth) === 0) return 'no outline';
-		const outline = `${style.outlineWidth} ${style.outlineStyle} ${colourName(style.outlineColor)} outline`;
+		const outline = `${style.outlineWidth} ${style.outlineStyle} ${colourName(style.outlineColor, element)} outline`;
 		// A box shadow computes to its colour, then its offsets, blur and spread: `rgb(…) 0px 0px 0px 2px`.
 		const shadow = /^(rgba?\([^)]*\)) 0px 0px 0px (\S+)$/.exec(style.boxShadow);
-		return shadow ? `${outline}, ${shadow[2]} ${colourName(shadow[1])} gap` : `${outline}, box shadow ${style.boxShadow}`;
+		return shadow ? `${outline}, ${shadow[2]} ${colourName(shadow[1], element)} gap` : `${outline}, box shadow ${style.boxShadow}`;
 	};
 	// The window of the tab steps.
 	let tabSteps: string | undefined;

@@ -35,6 +35,21 @@ function declarations(selector: string): Record<string, string> {
 
 const DEFAULTS = ':where(:root)';
 const TERRINOTH = ':where(:root[data-genesys-style=terrinoth])';
+const DARK = ':where(.theme-dark)';
+const TERRINOTH_DARK = ':where([data-genesys-style=terrinoth] .theme-dark)';
+const LIGHT = ':where(.theme-light, .chat-message, #tooltip.genesys, #combat)';
+
+// The colors of each pair of Style and theme, as an element of that pair inherits them.
+const PAIRS = [
+	['Genesys', 'light', () => declarations(DEFAULTS)],
+	['Realms of Terrinoth', 'light', () => ({ ...declarations(DEFAULTS), ...declarations(TERRINOTH) })],
+	['Genesys', 'dark', () => ({ ...declarations(DEFAULTS), ...declarations(DARK) })],
+	[
+		'Realms of Terrinoth',
+		'dark',
+		() => ({ ...declarations(DEFAULTS), ...declarations(TERRINOTH), ...declarations(DARK), ...declarations(TERRINOTH_DARK) }),
+	],
+] satisfies [string, string, () => Record<string, string>][];
 
 type Rgb = [number, number, number];
 
@@ -202,6 +217,56 @@ describe('Realms of Terrinoth Style', () => {
 	});
 });
 
+describe('Dark theme', () => {
+	const themed = () => [...new Set([...Object.keys(declarations(DARK)), ...Object.keys(declarations(TERRINOTH_DARK))])];
+
+	it('darkens the paper and lightens the ink', () => {
+		expect(declarations(DARK)).toMatchObject({
+			'--genesys-paper': '#24211e',
+			'--genesys-paper-pattern': '#2c2925',
+			'--genesys-ink': '#ebe6de',
+			'--genesys-die-outline': '#fff',
+		});
+	});
+
+	// A world's override of these on `:root` still applies in the dark theme.
+	it('keeps the published colors other than the surfaces, and the dice', () => {
+		const kept = ['red', 'light-blue', 'blue', 'dark-blue', 'gold', 'orange', 'alert', 'glow-core', 'glow'].concat(
+			['ability', 'difficulty', 'proficiency', 'challenge', 'boost', 'setback'].map((die) => `die-${die}`),
+		);
+
+		for (const name of kept) {
+			expect(themed(), name).not.toContain(`--genesys-${name}`);
+		}
+	});
+
+	it('derives its text blue from the blue of the Style', () => {
+		expect(declarations(DARK)['--genesys-text-blue']).toBe('color-mix(in srgb, var(--genesys-blue), white 55%)');
+		expect(declarations(TERRINOTH_DARK)['--genesys-text-blue']).toBe('color-mix(in srgb, var(--genesys-blue), white 40%)');
+	});
+
+	it('declares the Style after the Genesys dark theme, and the light theme after both', () => {
+		const start = (selector: string) => css.indexOf(`${selector} {`);
+
+		expect(start(DARK)).toBeGreaterThan(start(TERRINOTH));
+		expect(start(TERRINOTH_DARK)).toBeGreaterThan(start(DARK));
+		expect(start(LIGHT)).toBeGreaterThan(start(TERRINOTH_DARK));
+	});
+
+	// A sheet forcing the light theme inside Foundry's dark applications takes back the colors the document root computed,
+	// with the Style and a world's override on `:root`.
+	it('lets a light element inside a dark one take back the light colors of the document root', () => {
+		const names = themed().map((property) => property.slice('--genesys-'.length));
+
+		expect(declarations(LIGHT)).toEqual(
+			Object.fromEntries(names.map((name) => [`--genesys-${name}`, `var(--genesys-theme-light-${name})`])),
+		);
+		expect(declarations(DEFAULTS)).toMatchObject(
+			Object.fromEntries(names.map((name) => [`--genesys-theme-light-${name}`, `var(--genesys-${name})`])),
+		);
+	});
+});
+
 /**
  * A Palette color as a browser computes it in a Style: a hex color, another color of the Palette, or a `color-mix()` of
  * one with black or white, whose percentage is black's or white's share.
@@ -259,6 +324,8 @@ const TEXT_ON = {
 // Each color for icons, and the backgrounds it is drawn on.
 const ICON_ON = {
 	'icon-gold': ['paper', 'paper-pattern'],
+	// The outline sets each die's glyph apart from the paper, whatever the die's own color.
+	'die-outline': ['paper', 'paper-pattern'],
 } satisfies Record<string, string[]>;
 
 // Text drawn on a translucent tint of the Palette: the tint, its opacity, and what it lies over.
@@ -295,10 +362,7 @@ function resolveOver(name: string, over: string, style: Record<string, string>):
 	return composite([red, green, blue], opacity, resolve(over, style));
 }
 
-describe.each([
-	['Genesys', () => declarations(DEFAULTS)],
-	['Realms of Terrinoth', () => ({ ...declarations(DEFAULTS), ...declarations(TERRINOTH) })],
-])('Text in the %s Style', (_, style) => {
+describe.each(PAIRS)('Text in the %s Style and the %s theme', (_, _theme, style) => {
 	it.each(Object.entries(TEXT_ON).flatMap(([text, backgrounds]) => backgrounds.map((background) => [text, background])))(
 		'draws %s on %s at 4.5:1 or more',
 		(text, background) => {

@@ -221,9 +221,13 @@ _Avoid_: Destiny Point, narrative point
 ### Presentation
 
 **Palette**:
-The set of colors the system draws with, exposed as `--genesys-<name>` CSS custom properties that worlds and modules may override. The names published before 0.6.0 describe the Genesys color they started from (blue, gold, paper…); the names added since name a role (ink, text-blue, field…). Each keeps its meaning whatever the Style, and its color unless a Style overrides it: a color whose role changes gets a new name rather than a new value.
-_Avoid_: Theme, color scheme
+The set of colors the system draws with, exposed as `--genesys-<name>` CSS custom properties that worlds and modules may override. The names published before 0.6.0 describe the Genesys color they started from (blue, gold, paper…); the names added since name a role (ink, text-blue, field…). Each keeps its meaning whatever the Style and the Theme, and its color unless a Style or the dark Theme overrides it: a color whose role changes gets a new name rather than a new value.
+_Avoid_: color scheme
 
 **Style**:
 The palette variant chosen by the GM in the world settings ("Genesys" by default, or "Realms of Terrinoth"). A Style only changes colors, never the sheets' layout.
 _Avoid_: Theme, skin
+
+**Theme**:
+Foundry's light or dark theme, which each user chooses for themselves, for the applications and for the interface apart, or for one sheet. The dark Theme darkens the paper and lightens the ink of the Palette, in each Style; the published colors such as blue and gold, and the dice, keep theirs. Unlike a Style, chosen by the GM for the whole table, two users at one table may see different Themes.
+_Avoid_: color scheme, mode, Style
