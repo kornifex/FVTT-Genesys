@@ -144,7 +144,9 @@ function installMigrationHelpers() {
 
 	type EffectData = Record<string, unknown> & { _id: string; name: string };
 	type ItemData = { _id: string; name: string; type: string; system: Record<string, unknown>; effects: EffectData[] };
-	const change = (key: string, value: number) => [{ key: `system.${key}`, mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: String(value) }];
+	// The changes of the effects that legacy transferral copied, as the worlds of those versions stored them: a numeric
+	// mode, Add's, and a string value, which Foundry v14 migrates as it loads them.
+	const change = (key: string, value: number) => [{ key: `system.${key}`, mode: 2, value: String(value) }];
 	const effect = (name: string, key: string, value: number, more: Record<string, unknown> = {}): EffectData => ({
 		_id: randomID(),
 		name,

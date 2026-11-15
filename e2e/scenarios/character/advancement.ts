@@ -535,7 +535,7 @@ export async function advancement(
 				game.actors
 					.getName('E2E Effect')
 					.createEmbeddedDocuments('ActiveEffect', [
-						{ name: 'E2E +1 Brawn', changes: [{ key: 'system.characteristics.brawn', mode: 2, value: '1' }] },
+						{ name: 'E2E +1 Brawn', system: { changes: [{ key: 'system.characteristics.brawn', type: 'add', value: 1 }] } },
 					]),
 			undefined,
 		);

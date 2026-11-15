@@ -4,20 +4,20 @@ export async function effectsTabsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	await e2e.step('#102 GM gives a character, an adversary and a vehicle an effect of their own and an item with an effect', () =>
 		gm.evaluate(async () => {
-			const change = { key: 'system.soak', mode: 2, value: '1' };
+			const changes = { changes: [{ key: 'system.soak', type: 'add', value: 1 }] };
 			for (const [name, type, state] of [
 				['Bearer', 'gear', 'carried'],
 				['Rival', 'gear', 'carried'],
 				['Vehicle', 'vehicleWeapon', 'equipped'],
 			]) {
 				const owner = game.actors.getName(`E2E ${name}`);
-				await owner.createEmbeddedDocuments('ActiveEffect', [{ name: 'E2E Own', changes: [change] }]);
+				await owner.createEmbeddedDocuments('ActiveEffect', [{ name: 'E2E Own', system: changes }]);
 				await owner.createEmbeddedDocuments('Item', [
 					{
 						name: 'E2E Kit',
 						type,
 						system: { state },
-						effects: [{ name: 'E2E Kit effect', changes: [change], transfer: true }],
+						effects: [{ name: 'E2E Kit effect', system: changes, transfer: true }],
 					},
 				]);
 			}
@@ -26,7 +26,7 @@ export async function effectsTabsPart(ctx: SheetsContext) {
 					name: 'E2E Mail',
 					type: 'armor',
 					system: { state: 'carried' },
-					effects: [{ name: 'E2E Mail effect', changes: [change], transfer: true }],
+					effects: [{ name: 'E2E Mail effect', system: changes, transfer: true }],
 				},
 			]);
 		}),

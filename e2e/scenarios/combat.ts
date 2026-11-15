@@ -367,7 +367,7 @@ function installCombatHelpers() {
 			await combatant(name).actor.createEmbeddedDocuments('ActiveEffect', [
 				{
 					name: effect,
-					changes: [{ key: 'system.defense.melee', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' }],
+					system: { changes: [{ key: 'system.defense.melee', type: 'add', value: 1 }] },
 					duration: { ...duration, combat: combat.id, startRound: combat.round, startTurn: combat.turn },
 				},
 			]);
@@ -1641,7 +1641,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(async () => {
 			const effect = (skill: string) => ({
 				name: 'E2E Focus',
-				changes: [{ key: `genesys.pool.skill.self.${skill}`, mode: CONST.ACTIVE_EFFECT_MODES.CUSTOM, value: 'B' }],
+				system: { changes: [{ key: `genesys.pool.skill.self.${skill}`, type: 'custom', value: 'B' }] },
 			});
 			const hero = game.combat.combatants.getName('Hero');
 			await hero.setInitiativeSkill(game.combat.initiativeSkills.find((skill: { skillName: string }) => skill.skillName === 'Cool'));

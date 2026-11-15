@@ -44,4 +44,21 @@ export async function diceRollerPart(ctx: DicePromptContext) {
 		diceRoller,
 		{ button: diceRollerCases, gendr: diceRollerCases },
 	);
+	// §#841: a chat command of the system, which the chat log runs instead of posting the text.
+	const commands = await gm.evaluate(async () => {
+		const results: Record<string, { message: unknown; posted: number; prompts: number }> = {};
+		for (const command of ['/gendr', '/GENDROLL']) {
+			const before = game.messages.size;
+			const message = (await ui.chat.processMessage(command)) ?? null;
+			await window.e2e.settle();
+			results[command] = { message, posted: game.messages.size - before, prompts: window.dicePromptE2E.openPrompts() };
+			await window.dicePromptE2E.closePrompts();
+		}
+		return results;
+	});
+	const runsTheCommand = { message: null, posted: 0, prompts: 1 };
+	e2e.expect('#841 A1 /gendr and /gendroll, in any case, open the Dice Roller and post no message', commands, {
+		'/gendr': runsTheCommand,
+		'/GENDROLL': runsTheCommand,
+	});
 }

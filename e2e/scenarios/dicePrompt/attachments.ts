@@ -5,18 +5,17 @@ export async function attachmentsPart(ctx: DicePromptContext) {
 	// The world's attachments: a scope adding 1 damage, with a modification option adding a Boost to the weapon's attacks,
 	// off until installed; plating adding 1 soak, which takes 2 Hard Points.
 	await gm.evaluate(async () => {
-		const { ADD, CUSTOM } = CONST.ACTIVE_EFFECT_MODES;
 		await Item.createDocuments([
 			{
 				name: 'E2E Scope',
 				type: 'attachment',
 				system: { hardPointsRequired: 1 },
 				effects: [
-					{ name: 'E2E Scope', changes: [{ key: 'genesys.item.baseDamage', value: '1', mode: ADD }] },
+					{ name: 'E2E Scope', system: { changes: [{ key: 'genesys.item.baseDamage', value: 1, type: 'add' }] } },
 					{
 						name: 'E2E Scope Boost',
 						disabled: true,
-						changes: [{ key: 'genesys.pool.combat.self.', value: 'B', mode: CUSTOM }],
+						system: { changes: [{ key: 'genesys.pool.combat.self.', value: 'B', type: 'custom' }] },
 					},
 				],
 			},
@@ -24,7 +23,7 @@ export async function attachmentsPart(ctx: DicePromptContext) {
 				name: 'E2E Plating',
 				type: 'attachment',
 				system: { hardPointsRequired: 2 },
-				effects: [{ name: 'E2E Plating', changes: [{ key: 'genesys.item.soak', value: '1', mode: ADD }] }],
+				effects: [{ name: 'E2E Plating', system: { changes: [{ key: 'genesys.item.soak', value: 1, type: 'add' }] } }],
 			},
 		]);
 		await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [

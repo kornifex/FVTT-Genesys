@@ -12,13 +12,12 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 		await client.fixDice([{ face: d100, faces: 100 }]);
 		return client.evaluate(() => window.criticalInjuryE2E.roll());
 	};
-	// A talent of rank 2 whose effect changes Critical Injury rolls, scaled by its rank or not. Mode 0 is Foundry's custom
-	// mode, which v14 reads as the custom type.
-	const talent = (name: string, key: string, value: string, scalesWithRank: 'yes' | 'no') => ({
+	// A talent of rank 2 whose effect changes Critical Injury rolls, scaled by its rank or not.
+	const talent = (name: string, key: string, value: number, scalesWithRank: 'yes' | 'no') => ({
 		name: `E2E ${name}`,
 		type: 'talent',
 		system: { ranked: 'yes', rank: 2, scalesWithRank },
-		effects: [{ name: `E2E ${name}`, changes: [{ key, value, mode: 0 }] }],
+		effects: [{ name: `E2E ${name}`, system: { changes: [{ key, value, type: 'custom' }] } }],
 	});
 	// The attacker's talent adds 10 per rank to the injuries it inflicts; the target already has an injury, and a talent
 	// that takes 10 off those it suffers, whatever its rank.
@@ -31,8 +30,8 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 			await window.e2e.settle();
 		},
 		{
-			inflicted: talent('Lethal', 'genesys.critical.inflicted', '10', 'yes'),
-			suffered: talent('Durable', 'genesys.critical.suffered', '-10', 'no'),
+			inflicted: talent('Lethal', 'genesys.critical.inflicted', 10, 'yes'),
+			suffered: talent('Durable', 'genesys.critical.suffered', -10, 'no'),
 		},
 	);
 	await update(
@@ -199,7 +198,7 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 			{
 				name: 'E2E Brutal',
 				flags: { genesys: { quality: 'e2eBrutal' } },
-				changes: [{ key: 'genesys.critical.inflicted', value: '10', mode: 0 }],
+				system: { changes: [{ key: 'genesys.critical.inflicted', value: 10, type: 'custom' }] },
 			},
 		]);
 		await ada.createEmbeddedDocuments('Item', [
