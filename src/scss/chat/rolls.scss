@@ -1,9 +1,34 @@
+@use 'sass:math';
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
-$size: 2rem;
+// A card is one column of headings, each over its blocks, all on the card's left edge. The gaps are set here rather than
+// by each block's margins, in rem so that a block's own font size doesn't change them.
+$heading-gap: 0;
+$block-gap: 0.5rem;
+
+// A die's glyph, in a box sized on its ink: Genesys Symbols draws a die at most 0.74em wide (the Proficiency and
+// Challenge dice) and 0.85em tall (the Ability and Difficulty dice), so that the box holds what the die draws.
+$die-glyph: 3em;
+$die-face: 1.5em;
+$die-width: 0.74 * $die-glyph;
+$die-height: 0.86 * $die-glyph;
+// Centring a glyph centres its line, whose middle is 0.4em above the baseline, where the middle of a die's ink is 0.5em
+// above: the die moves down by the difference, in the em of its glyph, and its face by as many pixels.
+$die-shift: 0.1em;
 
 .roll {
+	& > * + *,
+	.dice-row > * + *,
+	.results-row > * + * {
+		margin-top: $block-gap;
+	}
+
+	.dice-row > label + *,
+	.results-row > label + * {
+		margin-top: $heading-gap;
+	}
+
 	.dice-row,
 	.results-row {
 		display: flex;
@@ -14,11 +39,6 @@ $size: 2rem;
 		label {
 			font-size: 1.5em;
 			color: colors.$text-blue;
-		}
-
-		// An attack's button that rolls the Critical Injury it triggered, under its results.
-		.roll-critical-injury {
-			margin: 0.25em 0 0.5em;
 		}
 	}
 
@@ -41,14 +61,11 @@ $size: 2rem;
 	}
 
 	.dice {
-		margin-top: 0.25em;
 		display: flex;
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.25em;
-		padding-left: 0.5em;
-		padding-right: 0.5em;
 
 		.symbol {
 			position: relative;
@@ -59,10 +76,10 @@ $size: 2rem;
 
 		.result {
 			display: grid;
-			grid-template-columns: $size;
-			grid-template-rows: $size;
-			width: $size;
-			height: $size;
+			grid-template-columns: $die-width;
+			grid-template-rows: $die-height;
+			width: $die-width;
+			height: $die-height;
 			font-family: 'Genesys Symbols', sans-serif;
 			align-items: center;
 			justify-items: center;
@@ -81,7 +98,8 @@ $size: 2rem;
 			}
 
 			.type {
-				font-size: 3em;
+				font-size: $die-glyph;
+				translate: 0 $die-shift;
 				-webkit-text-stroke: 1px colors.$die-outline;
 				text-stroke: 1px colors.$die-outline;
 
@@ -119,7 +137,8 @@ $size: 2rem;
 			.face {
 				position: relative;
 				top: -0.25em;
-				font-size: 1.5em;
+				font-size: $die-face;
+				translate: 0 ($die-shift * math.div($die-glyph, $die-face));
 				font-variant-ligatures: common-ligatures;
 
 				&[data-type='S'],
@@ -134,7 +153,6 @@ $size: 2rem;
 	// The Apply button of a check that heals, under what it heals.
 	.apply-recovery,
 	.recovery-applied {
-		margin-top: 0.25em;
 		font-family: 'Roboto', sans-serif;
 	}
 
@@ -146,7 +164,6 @@ $size: 2rem;
 	.net-results {
 		font-family: 'Genesys Symbols', sans-serif;
 		font-size: 1.25em;
-		padding-left: 0.5em;
 	}
 
 	.summary-table {
@@ -160,7 +177,6 @@ $size: 2rem;
 
 		font-family: 'Roboto Serif', serif;
 		font-size: 1em;
-		padding-left: 0.5em;
 
 		.separator {
 			grid-column: 1 / span all;
@@ -191,7 +207,6 @@ $size: 2rem;
 		// label would then do by squeezing this column.
 		.count {
 			justify-self: right;
-			padding-right: 0.5em;
 			white-space: nowrap;
 		}
 
