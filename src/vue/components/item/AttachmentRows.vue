@@ -91,7 +91,7 @@ async function remove(index: number) {
 @use '@scss/vars/colors.scss';
 
 .attachment {
-	border-bottom: 1px dashed colors.$blue;
+	border-bottom: 1px dashed colors.$text-blue;
 
 	&:last-of-type {
 		border-bottom: none;

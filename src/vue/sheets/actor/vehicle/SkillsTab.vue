@@ -356,7 +356,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 					display: grid;
 					width: 100%;
 					grid-template-columns: 1.5rem 2fr 1.5fr 1.5em 80px;
-					border-top: 1px dashed colors.$blue;
+					border-top: 1px dashed colors.$text-blue;
 					align-items: center;
 					justify-items: center;
 					padding: 2px 0;

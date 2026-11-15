@@ -138,7 +138,7 @@ function numberOf(event: Event) {
 	display: grid;
 	grid-template-columns: /* Name */ 1fr /* Delete Button */ auto;
 	align-items: center;
-	border-bottom: 1px dashed colors.$blue;
+	border-bottom: 1px dashed colors.$text-blue;
 	padding: 2px;
 
 	&:last-child {

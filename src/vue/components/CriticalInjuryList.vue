@@ -116,7 +116,7 @@ const kind = KINDS[props.kind];
 	grid-template-columns: /* Severity */ 70px /* Icon */ 1.5rem /* Name */ 1fr /* Actions */ auto;
 	grid-template-rows: auto auto;
 	align-items: center;
-	border-bottom: 1px dashed colors.$blue;
+	border-bottom: 1px dashed colors.$text-blue;
 	column-gap: 0.5em;
 
 	// The name and the fold are the roots of the row's `DescriptionFold`, which take no scope attribute from the row: :deep()

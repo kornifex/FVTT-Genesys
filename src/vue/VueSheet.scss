@@ -53,11 +53,21 @@
 }
 
 .vue-app :where(textarea) {
+	// Foundry's dark theme draws its text areas and checkboxes in its own cool colors, and fills an unchecked box: they
+	// take the Palette's, which keeps Foundry's light ones. Foundry's rules sit in a cascade layer, which these outweigh.
+	--input-background-color: #{colors.$textarea};
+	--input-border-color: #{colors.$control};
+	--input-text-color: #{colors.$text};
 	padding: 5px;
 	border-radius: 3px;
 	outline: revert;
 	color: revert;
 	font-size: revert;
+}
+
+.vue-app :where(input[type='checkbox'], input[type='radio']) {
+	--checkbox-background-color: #{colors.$control};
+	--checkbox-font-weight: unset;
 }
 
 // Foundry styles every button as a block with a size, a background, a border and a hover. An action button
