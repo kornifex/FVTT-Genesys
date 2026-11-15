@@ -2,7 +2,7 @@
 import { isCount, isRecord } from '@/data/parsing';
 import { effectTag } from '@/item/data/EffectTags';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
-import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityNameKey, qualityRank } from '@/item/data/Qualities';
+import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What the number of times an attack triggers a Critical Injury depends on.
@@ -124,7 +124,7 @@ type ThresholdCriticalInjuryFlag = { target: string };
 export type CriticalInjuryFlag = AttackCriticalInjuryFlag | ThresholdCriticalInjuryFlag;
 
 /**
- * What each extra trigger, each existing injury and each point of Vicious adds to the roll (CRB pp. 89, 103, 114).
+ * What each extra trigger and each existing injury adds to the roll (CRB pp. 103, 114).
  */
 const STEP = 10;
 
@@ -163,17 +163,6 @@ type AttackQuality = { id: string; name: string; isRated: boolean; rating: numbe
  * no weapon, as a spell's.
  */
 type CriticalAttackWeapon = { name: string; uuid: string | null; qualities: readonly AttackQuality[] };
-
-/**
- * The Vicious rating of a weapon's qualities, 0 without Vicious (CRB p. 89): a quality is Vicious by its name, in any of
- * the names given, whatever its case, until qualities are items the system recognises otherwise.
- */
-export function viciousRating(qualities: readonly Pick<AttackQuality, 'name' | 'rating'>[], names: readonly string[]): number {
-	const viciousNames = new Set(names.map(qualityNameKey));
-	return qualities
-		.filter((quality) => viciousNames.has(qualityNameKey(quality.name)))
-		.reduce((rating, quality) => Math.max(rating, quality.rating), 0);
-}
 
 /**
  * The keys of the effect changes to Critical Injury rolls: those the effect's actor inflicts on others, and those it
@@ -284,7 +273,7 @@ function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: C
 
 /**
  * What the effects of an actor add to the Critical Injury rolls it inflicts or suffers, effect by effect: such an effect
- * comes from a talent such as Lethal Blows, or Durable for a negative value. A change counts once per rank of its talent
+ * comes from a talent such as Lethal Blows, Durable for a negative value, or a quality such as Vicious. A change counts once per rank of its talent
  * when the talent scales with rank, and once per rank of a rated quality, as Pool Modifications do.
  *
  * A weapon's quality changes only the injuries inflicted by an attack with that weapon, at the highest rank among its
@@ -331,7 +320,7 @@ export function criticalEffectBonuses(
 
 /**
  * The attack a Critical Injury is rolled for: how many times it triggered one, the weapon it was made with, whose
- * qualities may hold Vicious, and the attacker, whose effects modify the injuries they inflict.
+ * qualities' effects count for it, and the attacker, whose effects modify the injuries they inflict.
  */
 type CriticalInjuryAttack<A extends CriticalInjuryActor = CriticalInjuryActor> = {
 	triggers: number;
@@ -350,32 +339,25 @@ export type CriticalInjuryRequest<A extends CriticalInjuryActor = CriticalInjury
 
 /**
  * A line of a Critical Injury roll's modifier, which the roller can change in the dialog: the triggers spent past the
- * first, the weapon's Vicious rating, the actor's existing injuries, a talent of the attacker or of the actor, and the
- * roller's free modifier. `count` is what the value was computed from: the triggers spent, the Vicious rating, the
- * injuries.
+ * first, the actor's existing injuries, an effect of the attacker or of the actor, and the roller's free modifier.
+ * `count` is what the value was computed from: the triggers spent, the injuries.
  */
 export type CriticalInjuryLine =
-	| { kind: 'triggers' | 'vicious' | 'injuries'; count: number; value: number }
+	| { kind: 'triggers' | 'injuries'; count: number; value: number }
 	| { kind: CriticalChangeKind; source: CriticalBonusSource; value: number }
 	| { kind: 'free'; value: number };
 
 /**
  * The lines a Critical Injury roll's modifier starts with. An attack starts with one trigger spent, which the roller
  * raises up to the attack's triggers.
- * @param viciousNames The names Vicious goes by: its English name and the world language's.
  */
-export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest, viciousNames: readonly string[]): CriticalInjuryLine[] {
+export function criticalInjuryLines({ actor, attack }: CriticalInjuryRequest): CriticalInjuryLine[] {
 	const lines: CriticalInjuryLine[] = [];
 	const effectLines = (kind: CriticalChangeKind, of: CriticalInjuryActor, weapon?: CriticalAttackWeapon) =>
 		criticalEffectBonuses(of, kind, weapon).map(({ value, ...source }): CriticalInjuryLine => ({ kind, source, value }));
 
 	if (attack) {
 		lines.push({ kind: 'triggers', count: 1, value: extraTriggersBonus(1) });
-
-		const vicious = viciousRating(attack.weapon?.qualities ?? [], viciousNames);
-		if (vicious > 0) {
-			lines.push({ kind: 'vicious', count: vicious, value: STEP * vicious });
-		}
 
 		if (attack.attacker) {
 			lines.push(...effectLines('inflicted', attack.attacker, attack.weapon));

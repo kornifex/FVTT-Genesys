@@ -324,7 +324,7 @@ Genesys:
     ChanceToSucceedByPermutationDisclaimer: La probabilidad mostrada es exacta a menos que la reserva de dados incluya una supercaracterística.
     ChanceToSucceedBySimulationDisclaimer: La probabilidad mostrada es una aproximación que utiliza el método Monte Carlo.
 
-  # Rolling a Critical Injury on the world's table (#685). The Vicious quality keeps its English name.
+  # Rolling a Critical Injury on the world's table (#685).
   CriticalInjuryPrompt:
     Setting: Tabla de heridas críticas
     SettingHint: >-

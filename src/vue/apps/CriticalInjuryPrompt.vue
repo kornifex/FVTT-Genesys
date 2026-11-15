@@ -18,7 +18,7 @@ const context = useSheetContext<CriticalInjuryPromptContext>();
 const { actor, attack } = context.value.request;
 
 // Each line keeps the value the roller types in, which starts at the one the rules give.
-const lines = ref(criticalInjuryLines(context.value.request, context.value.viciousNames));
+const lines = ref(criticalInjuryLines(context.value.request));
 const spent = ref(1);
 const modifier = computed(() => criticalModifier(lines.value.map(({ value }) => ({ value: Number(value) }))));
 const formula = computed(() => criticalInjuryFormula(modifier.value));
@@ -41,8 +41,6 @@ function lineLabel(line: CriticalInjuryLine) {
 	switch (line.kind) {
 		case 'triggers':
 			return game.i18n.localize('Genesys.CriticalInjuryPrompt.Lines.Triggers');
-		case 'vicious':
-			return game.i18n.format('Genesys.CriticalInjuryPrompt.Lines.Vicious', { rating: String(line.count) });
 		case 'injuries':
 			return game.i18n.format('Genesys.CriticalInjuryPrompt.Lines.Injuries', { count: String(line.count) });
 		case 'inflicted':

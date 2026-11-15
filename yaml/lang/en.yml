@@ -344,16 +344,12 @@ Genesys:
     Spent: Triggers spent (of {triggers})
     Lines:
       Triggers: Extra triggers (+10 each past the first)
-      Vicious: Vicious {rating}
       Injuries: Critical Injuries already suffered ({count})
       Inflicted: '{source} (attacker)'
       Suffered: '{source}'
       Free: Free modifier
     Formula: 'Roll:'
     Roll: Roll
-    # The name of the Vicious quality in the world's language, which a weapon's quality is recognised by, as by its
-    # English name.
-    ViciousQuality: Vicious
     Message: Critical Injury
     MessageFor: 'Critical Injury: {actor}'
     Effects:
@@ -502,6 +498,9 @@ Genesys:
     UnpairedEffectCopies: >-
       {actor}: the effects of '{item}' don't match their copies on the actor. The copies were deleted, but the edits made to
       them from the actor's Effects tab weren't kept on the item.
+    # The name of the Vicious quality in the world's language: migration 9 gives its effect to the qualities of that name,
+    # and of its English name.
+    ViciousQuality: Vicious
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:

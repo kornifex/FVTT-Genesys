@@ -26,12 +26,16 @@ export type ActorSource = {
 };
 
 /**
- * The changes to make to an actor: an update of the actor itself, updates of its own effects, updates of the effects of
- * its items by item id, and the ids of its own effects to delete.
+ * The changes to make to an actor: an update of the actor itself, updates of its own effects, updates of its items,
+ * effects to create on its items and updates of the effects of its items, both by item id, and the ids of its own effects
+ * to delete. The items are updated before their effects are created, so that an effect can be tagged with an id the
+ * update gives.
  */
 export type ActorChanges = {
 	update?: Record<string, unknown>;
 	effects?: EmbeddedUpdate[];
+	items?: EmbeddedUpdate[];
+	createdItemEffects?: Record<string, object[]>;
 	itemEffects?: Record<string, EmbeddedUpdate[]>;
 	deletedEffects?: string[];
 };
@@ -52,11 +56,17 @@ export type WalkedActor = {
 };
 
 /**
- * What the walk needs of an actor compendium.
+ * What a walk needs of a compendium to write into it: whether it is locked, and a way to lock or unlock it.
  */
-export type ActorPack = {
+export type LockablePack = {
 	locked: boolean;
 	setLocked(locked: boolean): Promise<unknown>;
+};
+
+/**
+ * What the walk needs of an actor compendium.
+ */
+export type ActorPack = LockablePack & {
 	actors(): Promise<WalkedActor[]>;
 };
 
@@ -79,6 +89,25 @@ export function isWorldActorPack(metadata: { type: string; packageType: string }
 }
 
 /**
+ * Run something that writes into a compendium: a locked one is unlocked for it and locked again afterwards, whatever
+ * happens.
+ */
+export async function whileUnlocked(pack: LockablePack, run: () => Promise<void>) {
+	const wasLocked = pack.locked;
+	if (wasLocked) {
+		await pack.setLocked(false);
+	}
+
+	try {
+		await run();
+	} finally {
+		if (wasLocked) {
+			await pack.setLocked(true);
+		}
+	}
+}
+
+/**
  * Visit every actor of a world, its world actors first so that the tokens' synthetic actors see their migrated base. A
  * locked pack is unlocked for the visit and locked again afterwards, whatever happens.
  */
@@ -92,20 +121,11 @@ export async function walkActors(world: ActorWorld, visit: (actor: WalkedActor) 
 	}
 
 	for (const pack of world.actorPacks()) {
-		const wasLocked = pack.locked;
-		if (wasLocked) {
-			await pack.setLocked(false);
-		}
-
-		try {
+		await whileUnlocked(pack, async () => {
 			for (const actor of await pack.actors()) {
 				await visit(actor);
 			}
-		} finally {
-			if (wasLocked) {
-				await pack.setLocked(true);
-			}
-		}
+		});
 	}
 }
 
