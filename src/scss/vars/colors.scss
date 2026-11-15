@@ -53,6 +53,35 @@ $defaults: (
 	'heading-rule': #782e22,
 );
 
+// The dark variant of the Palette, for the dark theme Foundry lets a user choose (see `scss/theme.scss`). The paper
+// darkens and the ink lightens, so a dark sheet keeps the books' look. It only redefines the surface and text roles: the
+// published colors (blue, gold, the dice…) keep their value, and the roles derived from them follow those of the Style.
+$dark: (
+	'paper': #24211e,
+	'paper-pattern': #2c2925,
+	'field': #171513,
+	'hint': #bcb7af,
+	'ink': #ebe6de,
+	'ink-muted': color-mix(in srgb, var(--genesys-blue-gray), white 40%),
+	'text-blue': color-mix(in srgb, var(--genesys-blue), white 55%),
+	'icon-gold': var(--genesys-gold),
+	// The dice keep their colors, which are the game's: their light outline sets them apart from the dark paper.
+	'die-outline': #fff,
+	'text': #e3ddd3,
+	'text-muted': #b3ada3,
+	'input': rgba(255, 255, 255, 0.05),
+	'heading-rule': #a7776f,
+);
+
+// The dark variant of each Style, over the dark Palette.
+$dark-styles: (
+	// Its blue is lighter than Genesys's: with as much white, its orange would turn pink.
+	'terrinoth':
+		(
+			'text-blue': color-mix(in srgb, var(--genesys-blue), white 40%),
+		)
+);
+
 // Styles the GM can choose in the world settings, each overriding some colors of the Palette. The Palette keeps its
 // names whatever the Style, since worlds and modules rely on them.
 $styles: (
