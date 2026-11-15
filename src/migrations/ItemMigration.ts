@@ -18,10 +18,11 @@ export type ItemSource = {
 };
 
 /**
- * The changes to make to an item: an update of the item itself, then effects to create on it.
+ * The changes to make to an item: an update of the item itself, updates of its effects, then effects to create on it.
  */
 export type ItemChanges = {
 	update?: Record<string, unknown>;
+	effects?: EmbeddedUpdate[];
 	createdEffects?: object[];
 };
 
@@ -37,23 +38,33 @@ export type ItemPlanner = (source: ItemSource) => ItemChanges | undefined;
 export function actorItemsPlanner(plan: ItemPlanner): ActorPlanner {
 	return (source) => {
 		const items: EmbeddedUpdate[] = [];
+		const itemEffects: Record<string, EmbeddedUpdate[]> = {};
 		const createdItemEffects: Record<string, object[]> = {};
 		// The type system can't see the shape of a stored item, which ActorSource leaves open.
 		for (const item of source.items as ItemSource[]) {
-			const { update, createdEffects = [] } = plan(item) ?? {};
+			const { update, effects = [], createdEffects = [] } = plan(item) ?? {};
 			if (update) {
 				items.push({ _id: item._id, ...update });
+			}
+			if (effects.length > 0) {
+				itemEffects[item._id] = effects;
 			}
 			if (createdEffects.length > 0) {
 				createdItemEffects[item._id] = createdEffects;
 			}
 		}
 
-		if (items.length === 0 && Object.keys(createdItemEffects).length === 0) {
+		const hasItemEffects = Object.keys(itemEffects).length > 0;
+		const hasCreatedItemEffects = Object.keys(createdItemEffects).length > 0;
+		if (items.length === 0 && !hasItemEffects && !hasCreatedItemEffects) {
 			return undefined;
 		}
 
-		return { ...(items.length > 0 && { items }), ...(Object.keys(createdItemEffects).length > 0 && { createdItemEffects }) };
+		return {
+			...(items.length > 0 && { items }),
+			...(hasItemEffects && { itemEffects }),
+			...(hasCreatedItemEffects && { createdItemEffects }),
+		};
 	};
 }
 

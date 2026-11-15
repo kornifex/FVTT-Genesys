@@ -22,6 +22,7 @@ import { CombatSource, combatSystemData } from '@/migrations/6-combat-system-dat
 import { maneuverEffectsProvideDefense } from '@/migrations/7-maneuver-effects-provide-defense';
 import { expiredEffectsInDuration } from '@/migrations/8-expired-effects-in-duration';
 import { viciousThroughItsEffect } from '@/migrations/9-vicious-through-its-effect';
+import { poolModificationsTypeOfActor, poolModificationsTypeOfItem } from '@/migrations/10-pool-modifications-change-type';
 import {
 	actorItemsPlanner,
 	isWorldItemPack,
@@ -100,9 +101,13 @@ async function migrateEveryActor(plan: ActorPlanner) {
 	return failures.length === 0;
 }
 
-async function applyItemChanges(item: GenesysItem, { update, createdEffects = [] }: ItemChanges) {
+async function applyItemChanges(item: GenesysItem, { update, effects = [], createdEffects = [] }: ItemChanges) {
 	if (update) {
 		await item.update(update);
+	}
+
+	if (effects.length > 0) {
+		await item.updateEmbeddedDocuments('ActiveEffect', effects);
 	}
 
 	if (createdEffects.length > 0) {
@@ -202,6 +207,10 @@ const migrations: readonly (() => Promise<boolean>)[] = [
 		migrateEveryItem(
 			viciousThroughItsEffect([VICIOUS, game.i18n.localize('Genesys.Migration.ViciousQuality')], () => foundry.utils.randomID()),
 		),
+	async () => {
+		const actorsMigrated = await migrateEveryActor(poolModificationsTypeOfActor);
+		return (await migrateEveryItem(poolModificationsTypeOfItem)) && actorsMigrated;
+	},
 ];
 
 /**

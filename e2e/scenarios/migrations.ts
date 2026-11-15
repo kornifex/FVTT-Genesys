@@ -32,6 +32,8 @@ type WorldState = {
 	/** The changes of an actor's effects that hold a status, as `<status>: <key> <type> <value>`, and its total defense. */
 	provided: Record<'Sentry' | 'Lookout token' | 'Lookout base' | 'Scout pack', ProvidedDefense>;
 	vicious: Record<'Axe' | 'Cleaver' | 'Vicious pack', QualityEffects>;
+	/** The changes of the effects that hold Pool Modifications, sorted, as `<key> <type> <value>`. */
+	pool: Record<'Marksman' | 'Marksman talent' | 'World talent', string[]>;
 };
 
 /**
@@ -256,6 +258,19 @@ function installMigrationHelpers() {
 		};
 	};
 
+	// #294: the changes of an effect that 0.7.0 wrote on Foundry v13, with the custom mode, which Foundry v14 migrates to
+	// the custom type as it loads them.
+	const customEffect = (name: string, ...changes: [string, string][]) => ({
+		_id: randomID(),
+		name,
+		img: 'icons/svg/aura.svg',
+		changes: changes.map(([key, value]) => ({ key, mode: 0, value })),
+		transfer: true,
+		disabled: false,
+	});
+	const changesOf = (effects: Iterable<{ system: { changes: StatusChange[] } }>) =>
+		[...effects].flatMap(({ system }) => system.changes.map(({ key, type, value }) => `${key} ${type} ${value}`)).sort();
+
 	type Purchase = { type: string; data: { name: string; id?: string } };
 	type Journaled = { system: { experienceJournal: { entries: Purchase[] } }; items: { get(id: string): { name: string } | undefined } };
 	const talent = (name: string) => item(name, 'talent', [], { tier: 1, rank: 1 });
@@ -447,6 +462,20 @@ function installMigrationHelpers() {
 			const qualities = await window.e2e.createCompendium({ label: 'E2E Qualities', type: 'Item' });
 			await Item.create({ name: 'Vicious', type: 'quality', system: { isRated: true } }, { pack: qualities.collection });
 			await packNamed('E2E Qualities').configure({ locked: true });
+
+			// #294: Pool Modifications with the custom type, beside a change to Critical Injury rolls, which keeps it: on a
+			// character's own effect, on the effect of its talent, and on the effect of a world talent.
+			await Actor.create({
+				name: 'E2E Marksman',
+				type: 'character',
+				effects: [customEffect('E2E Steady Aim', ['genesys.pool.combat.self.', 'B'], ['genesys.critical.suffered', '10'])],
+				items: [item('E2E Eagle Eye', 'talent', [customEffect('E2E Eagle Eye', ['genesys.pool.skill.self.Perception', 'B'])])],
+			});
+			await Item.create({
+				name: 'E2E Keen Senses',
+				type: 'talent',
+				effects: [customEffect('E2E Keen Senses', ['genesys.pool.check.target.', 'S'])],
+			});
 		},
 
 		async createWithCopies() {
@@ -604,6 +633,11 @@ function installMigrationHelpers() {
 					Axe: qualityEffectsOf(game.items.getName('E2E Axe')),
 					Cleaver: qualityEffectsOf(actorNamed('Brute').items.getName('E2E Cleaver')),
 					'Vicious pack': qualityEffectsOf((await packNamed('E2E Qualities').getDocuments())[0]),
+				},
+				pool: {
+					Marksman: changesOf(actorNamed('Marksman').effects),
+					'Marksman talent': changesOf(actorNamed('Marksman').items.getName('E2E Eagle Eye').effects),
+					'World talent': changesOf(game.items.getName('E2E Keen Senses').effects),
 				},
 			};
 		},
@@ -800,7 +834,21 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 9);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 10);
+	e2e.expect('#294 A1 before the migration, the Pool Modifications have the custom type', legacy.pool, {
+		Marksman: ['genesys.critical.suffered custom 10', 'genesys.pool.combat.self. custom B'],
+		'Marksman talent': ['genesys.pool.skill.self.Perception custom B'],
+		'World talent': ['genesys.pool.check.target. custom S'],
+	});
+	e2e.expect(
+		"#294 A2 the Pool Modifications of an actor's effect, of its talent's and of a world talent's get their own type, their values kept, a change to Critical Injury rolls left custom",
+		migrated.pool,
+		{
+			Marksman: ['genesys.critical.suffered custom 10', 'genesys.pool.combat.self. genesys.poolModification B'],
+			'Marksman talent': ['genesys.pool.skill.self.Perception genesys.poolModification B'],
+			'World talent': ['genesys.pool.check.target. genesys.poolModification S'],
+		},
+	);
 	e2e.expect('#842 A1 before the migration, Vicious has no effect, on weapons or as a quality item', legacy.vicious, {
 		Axe: { qualities: ['Vicious 2 (no id)'], effects: [] },
 		Cleaver: { qualities: ['Vicious 1'], effects: [] },

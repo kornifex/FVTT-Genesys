@@ -43,6 +43,15 @@ describe('actorItemsPlanner', () => {
 		expect(actorItemsPlanner(effectOnly)(actor([source('axe')]))).toEqual({ createdItemEffects: { axe: [{ name: 'axe' }] } });
 	});
 
+	it("gathers the updates of the items' effects by item id", () => {
+		const effectUpdates: ItemPlanner = (item) =>
+			item.type === 'weapon' ? { effects: [{ _id: `${item._id}-keen`, disabled: true }] } : undefined;
+
+		expect(actorItemsPlanner(effectUpdates)(actor([source('axe'), source('rope', 'gear')]))).toEqual({
+			itemEffects: { axe: [{ _id: 'axe-keen', disabled: true }] },
+		});
+	});
+
 	it('plans nothing for an actor whose items need nothing', () => {
 		expect(actorItemsPlanner(plan)(actor([source('rope', 'gear')]))).toBeUndefined();
 		expect(actorItemsPlanner(plan)(actor([]))).toBeUndefined();

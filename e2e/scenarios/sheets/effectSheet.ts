@@ -146,17 +146,18 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		[skillSelect(0, state.skillSelects[0]?.selected ?? ''), skillSelect(3, 'E2E Custom Skill'), skillSelect(4, 'ranged (light)')],
 	);
 
-	// The changes are written with a mode, which v14 replaced with a type; v14 also parses a value that holds JSON.
-	const v14Types: Record<number, string> = { 0: 'custom', 2: 'add', 5: 'override' };
-	const asStored = (changes: [string, number, string][]): ChangeRow[] =>
-		changes.map(([key, mode, value]) => [key, v14Types[mode], /^\d+$/.test(value) ? Number(value) : value]);
+	// v14 parses a value that holds JSON. #294: the sheet gives a Pool Modification its own type, which the system
+	// registers, in place of the custom type it was set up with.
+	const POOL = 'genesys.poolModification';
+	const asStored = (changes: [string, string, string][]): ChangeRow[] =>
+		changes.map(([key, type, value]) => [key, type, /^\d+$/.test(value) ? Number(value) : value]);
 	const savedChanges = asStored([
-		['system.characteristics.cunning', 2, '1'],
-		['genesys.pool.char.self.willpower', 0, 'B'],
-		['genesys.pool.check.self.', 0, 'S'],
-		['genesys.pool.skill.self.E2E Custom Skill', 0, 'A'],
-		['genesys.pool.skill.target.ranged (light)', 0, 'D'],
-		['genesys.pool.check.target.', 0, ''],
+		['system.characteristics.cunning', 'add', '1'],
+		['genesys.pool.char.self.willpower', POOL, 'B'],
+		['genesys.pool.check.self.', POOL, 'S'],
+		['genesys.pool.skill.self.E2E Custom Skill', POOL, 'A'],
+		['genesys.pool.skill.target.ranged (light)', POOL, 'D'],
+		['genesys.pool.check.target.', POOL, ''],
 	]);
 	await e2e.step('#32 GM saves the effect sheets of an actor and an item unchanged', () =>
 		gm.evaluate(async () => {
@@ -175,12 +176,12 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		{ actor: savedChanges, item: savedChanges },
 	);
 	const editedChanges = asStored([
-		['system.characteristics.presence', 5, '1'],
-		['genesys.pool.char.self.presence', 0, 'B'],
-		['genesys.pool.check.self.', 0, 'SS'],
-		['genesys.pool.skill.self.Cool', 0, 'A'],
-		['genesys.pool.skill.target.ranged (light)', 0, 'D'],
-		['genesys.pool.check.target.', 0, 'B'],
+		['system.characteristics.presence', 'override', '1'],
+		['genesys.pool.char.self.presence', POOL, 'B'],
+		['genesys.pool.check.self.', POOL, 'SS'],
+		['genesys.pool.skill.self.Cool', POOL, 'A'],
+		['genesys.pool.skill.target.ranged (light)', POOL, 'D'],
+		['genesys.pool.check.target.', POOL, 'B'],
 	]);
 	await e2e.step('#85 GM edits the key, mode, characteristic, skill and value of changes, adds one and deletes one', () =>
 		gm.evaluate(async () => {

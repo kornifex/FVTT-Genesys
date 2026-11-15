@@ -3,16 +3,16 @@
  */
 
 import { DieTypes } from '@/dice/DieTypes';
-import { encodeKey } from '@/effects/PoolModifications';
+import { encodeKey, POOL_MODIFICATION_TYPE } from '@/effects/PoolModifications';
 
 /**
- * A change a Token State or a maneuver makes, as an Active Effect stores it. A Pool Modification takes Foundry's custom
- * type, which keeps Foundry from applying it; a defense provided takes the upgrade type, which keeps the best one.
+ * A change a Token State or a maneuver makes, as an Active Effect stores it. A Pool Modification takes its own type,
+ * which Foundry applies to nothing; a defense provided takes the upgrade type, which keeps the best one.
  */
 export type StateChange = {
 	key: string;
 	value: string;
-	type: 'custom' | 'upgrade';
+	type: typeof POOL_MODIFICATION_TYPE | 'upgrade';
 };
 
 // The actors that take cover or drop prone: characters and adversaries, not vehicles, whose single defense has no
@@ -60,7 +60,9 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		id: 'disoriented',
 		name: 'Genesys.TokenStates.Disoriented.Name',
 		img: 'icons/svg/stoned.svg',
-		changes: [{ key: encodeKey({ kind: 'check', source: 'self', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' }],
+		changes: [
+			{ key: encodeKey({ kind: 'check', source: 'self', subject: '' }), value: DieTypes.Setback.GLYPH, type: POOL_MODIFICATION_TYPE },
+		],
 		lapses: true,
 	},
 	// A staggered character cannot perform actions (CRB p. 114).
@@ -90,9 +92,13 @@ export const TOKEN_STATES: readonly TokenState[] = [
 		name: 'Genesys.TokenStates.Prone.Name',
 		img: 'icons/svg/falling.svg',
 		changes: [
-			{ key: encodeKey({ kind: 'ranged', source: 'target', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' },
-			{ key: encodeKey({ kind: 'melee', source: 'target', subject: '' }), value: DieTypes.Boost.GLYPH, type: 'custom' },
-			{ key: encodeKey({ kind: 'melee', source: 'self', subject: '' }), value: DieTypes.Setback.GLYPH, type: 'custom' },
+			{
+				key: encodeKey({ kind: 'ranged', source: 'target', subject: '' }),
+				value: DieTypes.Setback.GLYPH,
+				type: POOL_MODIFICATION_TYPE,
+			},
+			{ key: encodeKey({ kind: 'melee', source: 'target', subject: '' }), value: DieTypes.Boost.GLYPH, type: POOL_MODIFICATION_TYPE },
+			{ key: encodeKey({ kind: 'melee', source: 'self', subject: '' }), value: DieTypes.Setback.GLYPH, type: POOL_MODIFICATION_TYPE },
 		],
 		actorTypes: CHARACTER_TYPES,
 		lapses: false,

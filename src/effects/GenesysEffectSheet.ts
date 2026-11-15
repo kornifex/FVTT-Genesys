@@ -1,6 +1,13 @@
 import { CHARACTERISTICS } from '@/data/Characteristics';
 import type { DeepPartial } from 'fvtt-types/utils';
-import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
+import {
+	EditedChange,
+	fromEditedChange,
+	POOL_MODIFICATION_TYPE,
+	skillChoices,
+	subjectFieldForKey,
+	toEditedChange,
+} from '@/effects/PoolModifications';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
 import '@/effects/GenesysEffectSheet.scss';
@@ -164,9 +171,12 @@ function changeTypes() {
 /**
  * The change types the type selects offer, sorted by label as Foundry's sheet lists them. A change keeps a type no
  * module registers anymore, which Foundry's form processing then leaves as stored, rather than taking the first one.
+ * The type of Pool Modifications is left out: their key gives it, and it would leave any other change unapplied.
  */
 function changeTypeChoices(changes: EditedChange[]) {
-	const labels = Object.entries(changeTypes()).map(([type, { label }]): [string, string] => [type, game.i18n.localize(label)]);
+	const labels = Object.entries(changeTypes())
+		.filter(([type]) => type !== POOL_MODIFICATION_TYPE)
+		.map(([type, { label }]): [string, string] => [type, game.i18n.localize(label)]);
 	const unregistered = changes.flatMap(({ type }): [string, string][] => (type && !(type in changeTypes()) ? [[type, type]] : []));
 	return Object.fromEntries([...labels.sort(([, a], [, b]) => a.localeCompare(b, game.i18n.lang)), ...unregistered]);
 }
