@@ -4,7 +4,6 @@ import { GenesysActor } from '@/actor/GenesysActor';
 import { GenesysDie } from '@/dice/dice/GenesysDie';
 import { Check, checkDescription } from '@/dice/Check';
 import { compileDiceFormula, compileSymbolsData, DicePool } from '@/dice/DicePool';
-import { applyMessageMode } from '@/dice/messageMode';
 import { CardResults, cardResults, GenesysRollResults, rollResults, showsAttackDetails } from '@/dice/RollResults';
 import { enrich } from '@/enrich';
 import { enrichedQualities } from '@/item/ChatCards';
@@ -187,7 +186,7 @@ async function attackCardData(check: Check, profile: AttackProfile, results: Gen
  */
 export async function rollCheck({ check, dicePool }: CheckRoll, options: CheckRollOptions = {}) {
 	const poolRoll = await rollPool(dicePool);
-	return ChatMessage.create(applyMessageMode(await checkMessageData(check, poolRoll, options)));
+	return ChatMessage.create(ChatMessage.applyMode(await checkMessageData(check, poolRoll, options)));
 }
 
 /**

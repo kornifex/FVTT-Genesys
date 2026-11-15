@@ -47,15 +47,18 @@ export function isItemChangeKey(key: string | undefined): key is `${typeof PREFI
  */
 type ItemChangeEffect = {
 	disabled: boolean;
-	// v14 lets a change hold a value of any type.
-	changes: readonly { key?: string; value: unknown }[];
+	system: { changes: readonly Change[] };
 	flags?: object;
 };
 
+// v14 lets a change hold a value of any type.
+type Change = { key?: string; value: unknown };
+
 /**
- * An effect of the item with the rank that scales its changes, a quality's rating, one by default.
+ * An effect of the item, by whether it is disabled and its changes, with the rank that scales them, a quality's rating,
+ * one by default.
  */
-type RankedEffect = Omit<ItemChangeEffect, 'flags'> & { rank?: number };
+type RankedEffect = { disabled: boolean; changes: readonly Change[]; rank?: number };
 
 /**
  * What each field of the item gains from its effects: the sum of the values of their enabled Item Changes, each once
@@ -119,7 +122,7 @@ export function applyItemChanges(system: ItemChangeTarget, effects: Iterable<Ite
 			// Read field by field: the fields of a document aren't all its own properties.
 			counted.map(({ effect, quality }) => ({
 				disabled: effect.disabled,
-				changes: effect.changes,
+				changes: effect.system.changes,
 				rank: quality ? qualityRank(quality) : 1,
 			})),
 		);

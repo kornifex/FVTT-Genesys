@@ -50,52 +50,52 @@ describe('envFile', () => {
 	});
 });
 
-const v13 = {
-	E2E_V13_NODE: '/node22/bin/node',
-	E2E_V13_FOUNDRY: '/foundry-13/main.js',
-	E2E_V13_DATA: '/foundrydata-13',
-	E2E_V13_WORLD: 'genesys-248',
-};
-
 const v14 = {
-	E2E_V14_NODE: '/usr/bin/node',
+	E2E_V14_NODE: '/node22/bin/node',
 	E2E_V14_FOUNDRY: '/foundry-14/main.js',
 	E2E_V14_DATA: '/foundrydata-14',
-	E2E_V14_WORLD: 'genesys-14',
+	E2E_V14_WORLD: 'genesys-248',
+};
+
+const v15 = {
+	E2E_V15_NODE: '/usr/bin/node',
+	E2E_V15_FOUNDRY: '/foundry-15/main.js',
+	E2E_V15_DATA: '/foundrydata-15',
+	E2E_V15_WORLD: 'genesys-15',
 };
 
 describe('readConfig', () => {
 	it('reads each requested version from its own variables', () => {
-		const config = readConfig({ ...v13, ...v14 }, [13, 14]);
+		const config = readConfig({ ...v14, ...v15 }, [14, 15]);
 
 		expect(config.installs).toEqual([
 			{
-				version: 13,
+				version: 14,
 				node: '/node22/bin/node',
-				foundry: '/foundry-13/main.js',
-				data: '/foundrydata-13',
+				foundry: '/foundry-14/main.js',
+				data: '/foundrydata-14',
 				world: 'genesys-248',
 			},
 			{
-				version: 14,
+				version: 15,
 				node: '/usr/bin/node',
-				foundry: '/foundry-14/main.js',
-				data: '/foundrydata-14',
-				world: 'genesys-14',
+				foundry: '/foundry-15/main.js',
+				data: '/foundrydata-15',
+				world: 'genesys-15',
 			},
 		]);
 	});
 
 	it('names every missing variable of the requested versions at once', () => {
-		const { E2E_V13_WORLD: _, ...v13WithoutWorld } = v13;
+		const { E2E_V14_WORLD: _, ...v14WithoutWorld } = v14;
 
-		expect(() => readConfig({ ...v13WithoutWorld, E2E_V14_NODE: '/usr/bin/node', E2E_V14_DATA: '' }, [13, 14])).toThrow(
-			'Missing E2E_V13_WORLD, E2E_V14_FOUNDRY, E2E_V14_DATA, E2E_V14_WORLD: set them in e2e/.env (see e2e/README.md).',
+		expect(() => readConfig({ ...v14WithoutWorld, E2E_V15_NODE: '/usr/bin/node', E2E_V15_DATA: '' }, [14, 15])).toThrow(
+			'Missing E2E_V14_WORLD, E2E_V15_FOUNDRY, E2E_V15_DATA, E2E_V15_WORLD: set them in e2e/.env (see e2e/README.md).',
 		);
 	});
 
 	it('defaults the optional settings', () => {
-		const { installs: _, ...settings } = readConfig(v13, [13]);
+		const { installs: _, ...settings } = readConfig(v14, [14]);
 
 		expect(settings).toEqual({
 			chromium: undefined,
@@ -111,7 +111,7 @@ describe('readConfig', () => {
 	it('reads the optional settings', () => {
 		const { installs: _, ...settings } = readConfig(
 			{
-				...v13,
+				...v14,
 				E2E_CHROMIUM: '/chrome-headless-shell',
 				E2E_ANGLE: 'vulkan',
 				E2E_WORK_DIR: '/scratch/e2e',
@@ -120,7 +120,7 @@ describe('readConfig', () => {
 				E2E_PORT: '30012',
 				E2E_LAUNCHES: '3',
 			},
-			[13],
+			[14],
 		);
 
 		expect(settings).toEqual({
@@ -135,16 +135,16 @@ describe('readConfig', () => {
 	});
 
 	it('takes the launches given on the command line over E2E_LAUNCHES', () => {
-		expect(readConfig({ ...v13, E2E_LAUNCHES: '3' }, [13], { launches: '1' }).launches).toBe(1);
+		expect(readConfig({ ...v14, E2E_LAUNCHES: '3' }, [14], { launches: '1' }).launches).toBe(1);
 	});
 
 	it.each(['0', '-2', '1.5', 'eight'])('refuses %s launches', (launches) => {
-		expect(() => readConfig({ ...v13, E2E_LAUNCHES: launches }, [13])).toThrow(
+		expect(() => readConfig({ ...v14, E2E_LAUNCHES: launches }, [14])).toThrow(
 			`The launches (--launches or E2E_LAUNCHES) are a whole number from 1, not ${launches}.`,
 		);
 	});
 
 	it('ignores the versions not requested', () => {
-		expect(readConfig(v13, [13]).installs.map((install) => install.version)).toEqual([13]);
+		expect(readConfig({ ...v14, ...v15 }, [14]).installs.map((install) => install.version)).toEqual([14]);
 	});
 });

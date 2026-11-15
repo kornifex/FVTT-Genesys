@@ -662,7 +662,7 @@ export async function run(e2e: ScenarioContext) {
 		turnOn('A3', a3, 'Boss:1');
 		// §#96: Foundry sees a turn change when the turn stays with the same combatant.
 		e2e.expect(
-			"#96 A1 Next Turn from Boss's own slot to its Extra Slot fires turn events on v13 only",
+			"#96 A1 Next Turn from Boss's own slot to its Extra Slot fires turn events",
 			Object.fromEntries(Object.entries(a3).map(([user, state]) => [user, state?.events])),
 			{
 				[gm.user]: ['_onEndTurn Boss', '_onStartTurn Boss', 'combatTurnChange 2->3'],
@@ -671,7 +671,7 @@ export async function run(e2e: ScenarioContext) {
 		);
 		// Foundry counts a turn-based duration from the combat's round and turn, not from the turn events.
 		e2e.expect(
-			"#96 A2 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot on v12 and v13 alike",
+			"#96 A2 a one-turn effect on Boss expires from Boss's own slot to its Extra Slot",
 			{ before: effectBefore, after: await effectState() },
 			{ before: 'running', after: 'expired' },
 		);
@@ -2036,7 +2036,7 @@ export async function run(e2e: ScenarioContext) {
 			});
 		});
 		e2e.expect(
-			'#412 A4 on v14, the Acting GM checks the user Foundry names as the sender, not the one the data names; v13 names none, so it trusts the data',
+			'#412 A4 the Acting GM checks the user Foundry names as the sender, not the one the data names',
 			{ answer: namingGmAnswer, claims: (await stored()).claims },
 			{ answer: 'Genesys.Notifications.NotOwnerOfCombatant', claims: { 'Hero:-1': 'Hero' } },
 		);

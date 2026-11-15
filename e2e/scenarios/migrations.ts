@@ -193,7 +193,7 @@ function installMigrationHelpers() {
 		name: string;
 		img: string;
 		disabled: boolean;
-		changes: { key: string; value: string }[];
+		system: { changes: { key: string; value: unknown }[] };
 		duration: Record<string, unknown>;
 	};
 	const shownEffect = (effect: Effect) => {
@@ -201,7 +201,7 @@ function installMigrationHelpers() {
 		return [
 			effect.name,
 			effect.img,
-			effect.changes.map(({ key, value }) => `${key.replace(/^system\./, '')} +${value}`).join(', '),
+			effect.system.changes.map(({ key, value }) => `${key.replace(/^system\./, '')} +${String(value)}`).join(', '),
 			...(rounds ? [`${rounds} rounds`] : []),
 			...(effect.disabled ? ['disabled'] : []),
 		].join(' | ');

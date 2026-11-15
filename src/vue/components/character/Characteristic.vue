@@ -185,7 +185,7 @@ const allowSuperCharacteristics = CONFIG.genesys.settings.useSuperCharacteristic
 		@include reset.input;
 		input {
 			z-index: 3;
-			// An input doesn't inherit text-align, and Foundry v13's field styles leave it at the browser's start.
+			// An input doesn't inherit text-align, and Foundry's field styles leave it at the browser's start.
 			text-align: center;
 		}
 

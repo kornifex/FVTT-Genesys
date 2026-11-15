@@ -29,7 +29,7 @@ function characterWith(maneuver: ManeuverEffect): PoolModificationActor {
 				isSuppressed: false,
 				origin: null,
 				parent: null,
-				changes: maneuver.changes,
+				system: { changes: maneuver.changes },
 			},
 		],
 	};

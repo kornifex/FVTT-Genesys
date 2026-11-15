@@ -26,8 +26,8 @@ type RenderOptions = DeepPartial<foundry.applications.api.ApplicationV2.RenderOp
  */
 export function VueSheet<TBase extends ApplicationConstructor, ContextType extends object | undefined = object>(base: TBase) {
 	return class extends base {
-		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which v13 gives AppV1
-		// windows while ApplicationV2 ones follow the interface's theme.
+		// The Vue components are styled for AppV1 windows: rendered in a form, and in the light theme, which Foundry gives
+		// AppV1 windows while ApplicationV2 ones follow the interface's theme.
 		static DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 			tag: 'form',
 			classes: ['themed', 'theme-light'],

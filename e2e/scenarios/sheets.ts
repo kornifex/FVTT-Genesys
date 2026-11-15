@@ -258,7 +258,7 @@ export async function run(e2e: ScenarioContext) {
 		compatibilityWarnings.filter((warning) => replacedGlobals.some((name) => new RegExp(`\\b${name}\\b`).test(warning))),
 		[],
 	);
-	// A global deprecated since v13 that no step reads shows that the console's warnings are read at all.
+	// A global Foundry deprecates, which no step reads, shows that the console's warnings are read at all.
 	await e2e.step('#349 GM reads the deprecated global SortingHelpers', async () => {
 		await gm.evaluate(() => void (globalThis as unknown as Record<string, unknown>).SortingHelpers);
 	});

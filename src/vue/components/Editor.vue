@@ -131,7 +131,7 @@ async function show() {
 
 	// Foundry shows the toggle button under the pointer as a block, where its base `button` is a centring flex box. As a
 	// block, the button's padding leaves its icon less room than the icon's width, and the icon overflows to the right:
-	// 2px off-centre on v13, 4px on v14's wider icon. A flex box centres it over the padding.
+	// 4px off-centre. A flex box centres it over the padding.
 	&:hover > button.toggle:enabled {
 		display: flex;
 	}
@@ -162,8 +162,8 @@ async function show() {
 		}
 	}
 
-	// The HTML source mode's <code-mirror> grows with its HTML, as the rich text does: v14 positions its scroller in a box of
-	// the element's height, at least 150px, which then scrolls, where v13's flows. The scroller stays positioned as
+	// The HTML source mode's <code-mirror> grows with its HTML, as the rich text does: Foundry positions its scroller in a
+	// box of the element's height, at least 150px, which then scrolls. The scroller stays positioned as
 	// CodeMirror's base theme sets it, the containing block and stacking context of its cursor and selection layers.
 	code-mirror.source-editor .cm-scroller {
 		position: relative;

@@ -226,7 +226,7 @@ export type CriticalEffect = {
 	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
 	flags?: object;
 	// v14 lets a change hold a value of any type, a number among them.
-	changes: { key?: string; value: unknown }[];
+	system: { changes: { key?: string; value: unknown }[] };
 	originItem?: CriticalSourceItem;
 };
 
@@ -304,7 +304,7 @@ export function criticalEffectBonuses(
 			continue;
 		}
 
-		const values = effect.changes.flatMap(({ key, value }) => {
+		const values = effect.system.changes.flatMap(({ key, value }) => {
 			const parsed = key === CRITICAL_CHANGE_KEYS[kind] ? changeValue(value) : undefined;
 			return parsed === undefined ? [] : [parsed];
 		});

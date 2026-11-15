@@ -28,13 +28,6 @@ const FLAG_LAST_COUNTED = 'lastCounted';
 // The rounds left of a Lapsing Effect, by plural category.
 const ROUNDS_LEFT = { one: 'Genesys.TokenStates.RoundsLeft.one', other: 'Genesys.TokenStates.RoundsLeft.other' };
 
-/**
- * Where an effect keeps its changes, in its data and in the effect sheet's form.
- */
-export function changesPath() {
-	return 'system.changes';
-}
-
 // The item types whose effects a weapon or an armor copies, and which change nothing until then.
 const UNINSTALLED_TYPES: readonly string[] = ['quality', 'attachment'];
 

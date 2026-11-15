@@ -110,7 +110,7 @@ function effect(
 	changes: Change[],
 	{ isSuppressed = false, originItem, flags }: Partial<CriticalEffect> = {},
 ): CriticalEffect {
-	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, changes, originItem, flags };
+	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, system: { changes }, originItem, flags };
 }
 
 function talent(name: string, rank: number, scalesWithRank: 'yes' | 'no') {

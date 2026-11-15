@@ -600,9 +600,6 @@ const characteristics = (values: Partial<Record<string, number>> = {}) => ({
 });
 const skill = (name: string, characteristic: string, rank: number) => ({ name, type: 'skill', system: { characteristic, rank } });
 
-// Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
-export const needsCanvas = true;
-
 export async function run(e2e: ScenarioContext) {
 	const { gm } = e2e;
 	await gm.evaluate(installVehicleHelpers);

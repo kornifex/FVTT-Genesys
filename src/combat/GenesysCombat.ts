@@ -2,7 +2,7 @@ import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { InitiativeSkill, initiativeSkillsOf } from '@/combat/InitiativeSkills';
 import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
 import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
-import { applyMessageMode, initiativeMessageMode, initiativeModes, requestedInitiativeMode } from '@/dice/messageMode';
+import { initiativeMessageMode, requestedInitiativeMode } from '@/dice/messageMode';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
 import { lapseEffectsAtTurnEnd } from '@/effects/GenesysEffect';
@@ -408,7 +408,6 @@ export class GenesysCombat extends Combat {
 
 		const currentSlotId = this.currentSlotId;
 		const requestedMode = requestedInitiativeMode(modeOptions);
-		const modes = initiativeModes();
 
 		const rolls: { slot: InitiativeSlot; initiative: number }[] = [];
 		const messages: object[] = [];
@@ -454,7 +453,7 @@ export class GenesysCombat extends Combat {
 				speaker: { actor: combatant.actorId },
 				sound: messages.length > 0 ? null : CONFIG.sounds.dice,
 			};
-			messages.push(applyMessageMode(chatData, initiativeMessageMode({ requested: requestedMode, hidden: combatant.hidden }, modes)));
+			messages.push(ChatMessage.applyMode(chatData, initiativeMessageMode({ requested: requestedMode, hidden: combatant.hidden })));
 		}
 
 		if (!messages.length) {

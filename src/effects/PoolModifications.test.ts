@@ -48,7 +48,15 @@ function effect(
 		attachment = undefined,
 	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown; quality?: string; attachment?: string } = {},
 ): PoolModificationEffect {
-	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, origin, parent, changes, flags: { genesys: { quality, attachment } } };
+	return {
+		name,
+		uuid: `ActiveEffect.${name}`,
+		isSuppressed,
+		origin,
+		parent,
+		system: { changes },
+		flags: { genesys: { quality, attachment } },
+	};
 }
 
 /**

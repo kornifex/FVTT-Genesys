@@ -90,7 +90,7 @@ export function VueDocumentSheet<TBase extends ApplicationConstructor<DocumentSh
 
 		/**
 		 * Disable the sheet's fields when the user can't edit its document, but its action buttons (`ActionButton`).
-		 * Foundry disables every element of the form, buttons included, on v13 and v14 alike. An action that edits the
+		 * Foundry disables every element of the form, buttons included. An action that edits the
 		 * document isn't rendered on such a sheet (`ActionButton`'s `edits`): the buttons left open a sheet, roll, send to
 		 * chat or fold, which a user who only observes the document may do; a counter shows its value alone there
 		 * (`Counter`). Foundry's and modules' buttons, as a `<prose-mirror>`'s toggle, stay disabled.
