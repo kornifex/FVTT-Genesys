@@ -481,7 +481,7 @@ export function installDicePromptHelpers() {
 			});
 			const effect = (name: string, key: string, value: string) => ({
 				name: `E2E ${name}`,
-				changes: [{ key: `genesys.pool.${key}`, value, mode: CONST.ACTIVE_EFFECT_MODES.CUSTOM }],
+				system: { changes: [{ key: `genesys.pool.${key}`, value, type: 'custom' }] },
 			});
 			const characteristics = (values: number[]) =>
 				Object.fromEntries(
@@ -634,7 +634,7 @@ export function installDicePromptHelpers() {
 								{
 									name: 'E2E Steady Hands',
 									transfer: true,
-									changes: [{ key: 'system.pilotedVehicleDefense', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' }],
+									system: { changes: [{ key: 'system.pilotedVehicleDefense', type: 'add', value: 1 }] },
 								},
 							],
 						},

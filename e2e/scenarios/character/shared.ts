@@ -380,7 +380,11 @@ export function installCharacterHelpers() {
 				talent(
 					'Steady',
 					{ tier: 1 },
-					{ effects: [{ name: 'E2E Steady', transfer: true, changes: [{ key: 'system.soak', mode: 2, value: '1' }] }] },
+					{
+						effects: [
+							{ name: 'E2E Steady', transfer: true, system: { changes: [{ key: 'system.soak', type: 'add', value: 1 }] } },
+						],
+					},
 				),
 				talent('Old Talent', { tier: 5 }),
 			]);

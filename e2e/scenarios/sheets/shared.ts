@@ -401,12 +401,12 @@ export function installSheetsHelpers() {
 	});
 
 	const effectChanges = [
-		{ key: 'system.characteristics.cunning', mode: 2, value: '1' },
-		{ key: 'genesys.pool.char.self.willpower', mode: 0, value: 'B' },
-		{ key: 'genesys.pool.check.self.', mode: 0, value: 'S' },
-		{ key: 'genesys.pool.skill.self.E2E Custom Skill', mode: 0, value: 'A' },
-		{ key: 'genesys.pool.skill.target.ranged (light)', mode: 0, value: 'D' },
-		{ key: 'genesys.pool.check.target.', mode: 0, value: 'hello' },
+		{ key: 'system.characteristics.cunning', type: 'add', value: 1 },
+		{ key: 'genesys.pool.char.self.willpower', type: 'custom', value: 'B' },
+		{ key: 'genesys.pool.check.self.', type: 'custom', value: 'S' },
+		{ key: 'genesys.pool.skill.self.E2E Custom Skill', type: 'custom', value: 'A' },
+		{ key: 'genesys.pool.skill.target.ranged (light)', type: 'custom', value: 'D' },
+		{ key: 'genesys.pool.check.target.', type: 'custom', value: 'hello' },
 	];
 	// The effect edited in the effect sheet: on an actor, or on an item the actor owns.
 	const editedEffect = (owner: string) => {
@@ -1022,7 +1022,7 @@ export function installSheetsHelpers() {
 
 		effectSheet: {
 			async create() {
-				const effect = { name: 'E2E Edited', changes: effectChanges, transfer: true };
+				const effect = { name: 'E2E Edited', system: { changes: effectChanges }, transfer: true };
 				await actor('Hero').createEmbeddedDocuments('ActiveEffect', [effect]);
 				await actor('Bearer').createEmbeddedDocuments('Item', [{ name: 'E2E Charm', type: 'gear', effects: [effect] }]);
 			},

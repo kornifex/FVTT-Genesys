@@ -408,7 +408,7 @@ function installInventoryHelpers() {
 		name: full(name),
 		img: 'icons/svg/aura.svg',
 		transfer: true,
-		changes: [{ key, mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: String(value) }],
+		system: { changes: [{ key, type: 'add', value }] },
 	});
 	// Effects that change nothing the scenario reads: only whether they apply is asserted.
 	const marker = (name: string) => effect(name, 'flags.genesys.e2eInventory', 1);

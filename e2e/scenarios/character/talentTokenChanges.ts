@@ -35,10 +35,12 @@ export async function talentTokenChanges(e2e: ScenarioContext, page: Evaluate) {
 							{
 								name: 'E2E Glowing',
 								transfer: true,
-								changes: [
-									{ key: 'token.light.dim', mode: 2, value: 2 },
-									{ key: 'token.light.bright', mode: 2, value: '1' },
-								],
+								system: {
+									changes: [
+										{ key: 'token.light.dim', type: 'add', value: 2 },
+										{ key: 'token.light.bright', type: 'add', value: 1 },
+									],
+								},
 							},
 						],
 					},

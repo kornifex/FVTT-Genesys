@@ -4,16 +4,15 @@ export async function qualityEffectsPart(ctx: DicePromptContext) {
 	const { e2e, gm, opened, setSetting, update, attack } = ctx;
 	// The world's qualities, each with one effect: Accurate as one Boost on combat checks, Defensive as melee defense 1.
 	await gm.evaluate(async () => {
-		const { ADD, CUSTOM } = CONST.ACTIVE_EFFECT_MODES;
-		const quality = (name: string, change: { key: string; value: string; mode: number }) => ({
+		const quality = (name: string, change: { key: string; value: unknown; type: string }) => ({
 			name: `E2E ${name}`,
 			type: 'quality',
 			system: { isRated: true },
-			effects: [{ name: `E2E ${name}`, changes: [change] }],
+			effects: [{ name: `E2E ${name}`, system: { changes: [change] } }],
 		});
 		await Item.createDocuments([
-			quality('Accurate', { key: 'genesys.pool.combat.self.', value: 'B', mode: CUSTOM }),
-			quality('Defensive', { key: 'system.defense.melee', value: '1', mode: ADD }),
+			quality('Accurate', { key: 'genesys.pool.combat.self.', value: 'B', type: 'custom' }),
+			quality('Defensive', { key: 'system.defense.melee', value: 1, type: 'add' }),
 		]);
 		await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [
 			{ name: 'E2E Sword', type: 'weapon', system: { skills: ['Melee'], range: 'engaged', state: 'equipped', baseDamage: 5 } },
@@ -173,12 +172,11 @@ export async function qualityEffectsPart(ctx: DicePromptContext) {
 
 	await e2e.step("#722 Q7 GM drops Keen, a quality adding 1 damage to its item, on the second profile of Ada's Glaive", () =>
 		gm.evaluate(async () => {
-			const { ADD } = CONST.ACTIVE_EFFECT_MODES;
 			const [keen] = await Item.createDocuments([
 				{
 					name: 'E2E Keen',
 					type: 'quality',
-					effects: [{ name: 'E2E Keen', changes: [{ key: 'genesys.item.baseDamage', value: '1', mode: ADD }] }],
+					effects: [{ name: 'E2E Keen', system: { changes: [{ key: 'genesys.item.baseDamage', value: 1, type: 'add' }] } }],
 				},
 			]);
 			const [glaive] = await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [

@@ -1,7 +1,7 @@
 import type { ScenarioContext } from '../../scenario.ts';
 import type { Evaluate } from './shared.ts';
 
-/** §#242: a talent's numeric changes count once per rank, on every Foundry version. */
+/** §#242: a talent's numeric changes count once per rank. */
 export async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 	const R = 'Ranked';
 	const soak = async () => (await page((name) => window.characterE2E.appliedEffects(name), R)).soak;
@@ -19,11 +19,12 @@ export async function talentRanks(e2e: ScenarioContext, page: Evaluate) {
 							{
 								name: 'E2E Hardened',
 								transfer: true,
-								// A number stays a number.
-								changes: [
-									{ key: 'system.soak', mode: 2, value: '1' },
-									{ key: 'system.soak', mode: 2, value: 2 },
-								],
+								system: {
+									changes: [
+										{ key: 'system.soak', type: 'add', value: 1 },
+										{ key: 'system.soak', type: 'add', value: 2 },
+									],
+								},
 							},
 						],
 					},

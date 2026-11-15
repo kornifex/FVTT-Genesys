@@ -5,8 +5,7 @@ export async function qualityAttachmentDescriptionsPart(ctx: DicePromptContext) 
 	// A Lance holding a quality with a description, an attachment with none, and an effect written on it, each adding a
 	// Boost to its attacks.
 	await gm.evaluate(async () => {
-		const { CUSTOM } = CONST.ACTIVE_EFFECT_MODES;
-		const boost = [{ key: 'genesys.pool.combat.self.', value: 'B', mode: CUSTOM }];
+		const boost = { changes: [{ key: 'genesys.pool.combat.self.', value: 'B', type: 'custom' }] };
 		await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [
 			{
 				name: 'E2E Lance',
@@ -30,9 +29,9 @@ export async function qualityAttachmentDescriptionsPart(ctx: DicePromptContext) 
 					attachments: [{ id: 'lancea', name: 'Enchanted', description: '', hardPointsRequired: 1 }],
 				},
 				effects: [
-					{ name: 'E2E Keen', changes: boost, flags: { genesys: { quality: 'lanceq' } } },
-					{ name: 'E2E Enchanted', changes: boost, flags: { genesys: { attachment: 'lancea' } } },
-					{ name: 'E2E Mounted', changes: boost },
+					{ name: 'E2E Keen', system: boost, flags: { genesys: { quality: 'lanceq' } } },
+					{ name: 'E2E Enchanted', system: boost, flags: { genesys: { attachment: 'lancea' } } },
+					{ name: 'E2E Mounted', system: boost },
 				],
 			},
 		]);

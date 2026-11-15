@@ -112,7 +112,7 @@ export async function silhouettesPart(ctx: DicePromptContext) {
 		game.actors
 			.getName('E2E Mark')
 			.createEmbeddedDocuments('ActiveEffect', [
-				{ name: 'E2E Giant', changes: [{ key: 'system.silhouette', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '2' }] },
+				{ name: 'E2E Giant', system: { changes: [{ key: 'system.silhouette', type: 'add', value: 2 }] } },
 			]),
 	);
 	const markSilhouette = () =>

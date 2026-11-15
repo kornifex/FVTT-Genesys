@@ -351,7 +351,7 @@ function installAdversariesHelpers() {
 		async cleanUp() {
 			await closePrompts();
 			await window.e2e.closeSetUp();
-			canvas.hud?.token?.clear();
+			await canvas.hud?.token?.close();
 			target(null);
 			await window.e2e.deleteSetUp('Token', 'Actor', 'Item');
 		},
@@ -503,7 +503,7 @@ function installAdversariesHelpers() {
 
 		async hud({ actor: name, bar, input: change, path }) {
 			const hud = canvas.hud.token;
-			hud.clear();
+			await hud.close();
 			await settle();
 			const bound = token(name);
 			const current = String(bound.document.getBarAttribute(bar).value);
@@ -517,7 +517,7 @@ function installAdversariesHelpers() {
 			// The HUD submits a bar's input when it changes.
 			input.dispatchEvent(new Event('change', { bubbles: true }));
 			await settle();
-			hud.clear();
+			await hud.close();
 			return foundry.utils.getProperty(actor(name), path);
 		},
 
@@ -842,10 +842,12 @@ export async function run(e2e: ScenarioContext) {
 			game.actors.getName('E2E Rival').createEmbeddedDocuments('ActiveEffect', [
 				{
 					name: 'E2E Shield',
-					changes: [
-						{ key: 'system.defense.melee', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '3' },
-						{ key: 'system.defense.ranged', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '4' },
-					],
+					system: {
+						changes: [
+							{ key: 'system.defense.melee', type: 'add', value: 3 },
+							{ key: 'system.defense.ranged', type: 'add', value: 4 },
+						],
+					},
 				},
 			]),
 		);
@@ -893,10 +895,12 @@ export async function run(e2e: ScenarioContext) {
 				.actor('Rival')
 				.effects.getName('E2E Shield')
 				?.update({
-					changes: [
-						{ key: 'system.defense.melee', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' },
-						{ key: 'system.defense.ranged', mode: CONST.ACTIVE_EFFECT_MODES.ADD, value: '1' },
-					],
+					system: {
+						changes: [
+							{ key: 'system.defense.melee', type: 'add', value: 1 },
+							{ key: 'system.defense.ranged', type: 'add', value: 1 },
+						],
+					},
 				}),
 		);
 		await gm.evaluate(() => window.e2e.actor('Rival').toggleStatusEffect('cover', { active: true }));
