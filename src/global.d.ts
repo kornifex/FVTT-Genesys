@@ -79,6 +79,9 @@ declare module 'fvtt-types/configuration' {
 		// On the `base` type, as `src/combat/index.ts` registers them.
 		Combat: { base: typeof CombatDataModel };
 		Combatant: { base: typeof CombatantDataModel };
+		// Foundry's own, which holds an effect's changes. Its class is generic over its schema, whose bare constraint lacks a
+		// change's key and value: its instance on the default schema has them.
+		ActiveEffect: { base: abstract new (...args: never[]) => foundry.data.ActiveEffectTypeDataModel };
 	}
 
 	interface FlagConfig {

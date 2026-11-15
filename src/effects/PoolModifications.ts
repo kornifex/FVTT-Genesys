@@ -69,7 +69,7 @@ export type PoolModificationEffect = {
 	origin: string | null;
 	parent: unknown;
 	// v14 lets a change hold a value of any type, which a Pool Modification never is.
-	changes: { key?: string; value: unknown }[];
+	system: { changes: { key?: string; value: unknown }[] };
 	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
 	flags?: object;
 };
@@ -519,7 +519,7 @@ function effectModifications(
 		const item = sourceItem<SourceItem & { name: string; uuid: string | null }>(effect);
 		const quality = effectQuality(effect, item?.system);
 		const described = quality ?? effectAttachment(effect, item?.system);
-		const mods = effect.changes.flatMap(({ key = '', value }) =>
+		const mods = effect.system.changes.flatMap(({ key = '', value }) =>
 			appliesToCheck(decodeKey(key)) && typeof value === 'string'
 				? parsePoolModifications(scaledChangeValue(item, { key, value }, quality))
 				: [],

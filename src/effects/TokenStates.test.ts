@@ -22,7 +22,7 @@ function characterWith(stateId: string): PoolModificationActor {
 				isSuppressed: false,
 				origin: null,
 				parent: null,
-				changes: state.changes,
+				system: { changes: state.changes },
 			},
 		],
 	};

@@ -13,11 +13,6 @@ type ChangeType = { label: string; defaultPriority: number };
 type RenderContext = foundry.applications.api.ApplicationV2.RenderContextOf<GenesysEffectSheetV2>;
 type RenderOptions = DeepPartial<foundry.applications.sheets.ActiveEffectConfig.RenderOptions>;
 
-/**
- * What the sheet reads of the schema that holds the changes: the fields of a change, which its inputs render.
- */
-type ChangesSchema = { fields: { changes: { element: { fields: Record<string, unknown> } } } };
-
 // What a key applies to, shown before its label: characters and adversaries, vehicles, both, the checks of the
 // effect's actor, the checks that target it, and the weapon or armor that holds the effect.
 const ACTOR_GLYPH = '\u{1F9D1}';
@@ -222,9 +217,7 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 	 * The fields of a change, which the tab's inputs render.
 	 */
 	#changeFields() {
-		// The types don't declare the schema of the effect's system, which holds the changes.
-		const document = this.document as unknown as { system: { schema: ChangesSchema } };
-		return document.system.schema.fields.changes.element.fields;
+		return this.document.system.schema.fields.changes.element.fields;
 	}
 
 	override _onChangeForm(formConfig: foundry.applications.api.ApplicationV2.FormConfiguration, event: Event) {

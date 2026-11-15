@@ -58,7 +58,7 @@ function actor(
 }
 
 function effect(name: string, changes: { key: string; value: string }[], uuid = `ActiveEffect.${name}`): PoolModificationEffect {
-	return { name, uuid, isSuppressed: false, origin: null, parent: null, changes };
+	return { name, uuid, isSuppressed: false, origin: null, parent: null, system: { changes } };
 }
 
 /**
@@ -348,7 +348,7 @@ describe('resolveCheck', () => {
 				isSuppressed: false,
 				origin: null,
 				parent: sword,
-				changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }],
+				system: { changes: [{ key: 'genesys.pool.combat.self.', value: 'B' }] },
 				flags: { genesys: { quality: 'acc' } },
 			},
 		];

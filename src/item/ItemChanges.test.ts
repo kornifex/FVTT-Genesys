@@ -53,7 +53,7 @@ describe('isItemChangeKey', () => {
 function itemEffect(values: Partial<Record<ItemChangeField, number>>, quality?: string) {
 	return {
 		disabled: false,
-		changes: Object.entries(values).map(([field, value]) => ({ key: itemChangeKey(field as ItemChangeField), value })),
+		system: { changes: Object.entries(values).map(([field, value]) => ({ key: itemChangeKey(field as ItemChangeField), value })) },
 		...(quality && { flags: { genesys: { quality } } }),
 	};
 }

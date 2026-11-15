@@ -1431,7 +1431,10 @@ export function installDicePromptHelpers() {
 			await app.submit();
 			await settle();
 			if (app.rendered) await app.close();
-			return { selected, changes: doc.changes.map((change: { key: string; value: string }) => `${change.key}=${change.value}`) };
+			return {
+				selected,
+				changes: doc.system.changes.map((change: { key: string; value: string }) => `${change.key}=${change.value}`),
+			};
 		},
 
 		storyPoints() {

@@ -63,9 +63,7 @@ function perform(actor: Actor.Implementation, maneuver: () => Promise<void>) {
  * The Boosts an Aim effect gives.
  */
 function boostsOf(effect: ActiveEffect.Implementation) {
-	// The effect's changes, which v14 keeps in its system, as v14 shims them.
-	const { changes } = effect as unknown as { changes: { key?: string; value: unknown }[] };
-	return aimBoosts(changes);
+	return aimBoosts(effect.system.changes);
 }
 
 /**
