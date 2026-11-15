@@ -18,8 +18,6 @@ function registerSheet(
  * Register the actor sheets in place of Foundry's own.
  */
 export function register() {
-	foundry.documents.collections.Actors.unregisterSheet('core', foundry.appv1.sheets.ActorSheet);
-
 	registerSheet(CharacterSheet, {
 		types: ['character'],
 		makeDefault: true,

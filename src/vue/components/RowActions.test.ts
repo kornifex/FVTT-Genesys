@@ -151,7 +151,7 @@ describe('RowActions', () => {
 		const wrapper = mountActions({ document: sword as never });
 		await openEntries(wrapper);
 		await clickEntry(wrapper, 'Genesys.Labels.Edit');
-		expect(sword.render).toHaveBeenCalledExactlyOnceWith(true);
+		expect(sword.render).toHaveBeenCalledExactlyOnceWith({ force: true });
 		wrapper.unmount();
 
 		const hidden = mountActions({ document: rowDocument('Item', 'skill', { canOpen: false }) as never });

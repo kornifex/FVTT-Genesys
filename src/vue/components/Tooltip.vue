@@ -26,7 +26,7 @@ async function showTooltip(event: Event) {
 
 	game.tooltip.activate(event.currentTarget as HTMLElement, {
 		// Foundry appends a fragment as it does an element, which the types don't take.
-		content: content as unknown as HTMLElement,
+		html: content as unknown as HTMLElement,
 		direction: props.direction,
 		cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys',
 	});

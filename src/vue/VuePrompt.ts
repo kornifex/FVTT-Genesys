@@ -106,7 +106,7 @@ export function VuePrompt<T>(fallback: T) {
 			} else {
 				this.#opener = focused instanceof HTMLElement && focused !== document.body ? focused : undefined;
 			}
-			await this.render(true);
+			await this.render({ force: true });
 
 			return answer;
 		}

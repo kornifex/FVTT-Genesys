@@ -56,6 +56,9 @@ export default defineConfig(
 			// Foundry and the sheets declare async hooks (getVueContext, enrichers) that some overrides fill without awaiting;
 			// no-floating-promises and await-thenable catch the mistakes this rule aims at.
 			'@typescript-eslint/require-await': 'off',
+			// What fvtt-types marks `@deprecated` (#836): what Foundry deprecates goes away in a later version, and the
+			// message names its replacement. It sees only typed code: a deprecated option or key passed as data is not seen.
+			'@typescript-eslint/no-deprecated': 'error',
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 			'vue/no-unused-vars': ['error', { ignorePattern: '^_' }],
 			'vue/multi-word-component-names': 'off',

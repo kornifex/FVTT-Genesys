@@ -34,5 +34,6 @@ export async function addQualityEffect(item: GenesysItem, quality: Pick<Containe
 	const data = { ...newEffectData(quality.name, 'passive'), flags: { genesys: { [QUALITY_FLAG]: quality.id } } };
 	// A module's preCreate hook may refuse the effect, which Foundry returns no effect for.
 	const [effect] = await item.createEmbeddedDocuments('ActiveEffect', [data as ActiveEffect.CreateData]);
-	await effect?.sheet?.render(true);
+	// The system's effect sheet is an ApplicationV2.
+	await (effect?.sheet as foundry.applications.api.DocumentSheetV2.Any | null | undefined)?.render({ force: true });
 }

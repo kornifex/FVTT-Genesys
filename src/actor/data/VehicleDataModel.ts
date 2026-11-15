@@ -252,7 +252,7 @@ function renderVehiclesCrewedBy(actor: GenesysActor) {
 		if (app instanceof foundry.applications.sheets.ActorSheetV2 && app.rendered) {
 			const vehicle = app.actor;
 			if (isVehicle(vehicle) && vehicle.system.hasCrew(uuid)) {
-				void app.render(true);
+				void app.render({ force: true });
 			}
 		}
 	}

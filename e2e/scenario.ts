@@ -319,6 +319,17 @@ async function settle(clients: Client[]) {
 	}
 }
 
+// The first line of the warnings `foundry.utils.logCompatibilityWarning` logs, and of those of the deprecated globals.
+const COMPATIBILITY_WARNING = /Deprecated since Version|You are accessing the global|You are assigning globalThis/;
+
+/**
+ * Whether a console warning is a compatibility warning the system's own code caused: its stack, which Foundry logs with
+ * it, passes through the system's module.
+ */
+function isSystemCompatibilityWarning(text: string) {
+	return COMPATIBILITY_WARNING.test(text) && /\/systems\/genesys\//.test(text);
+}
+
 async function join(browser: Browser, url: string, user: string, withCanvas: boolean): Promise<Client> {
 	const errors: string[] = [];
 
@@ -343,9 +354,16 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 			(withCanvas) => localStorage.setItem(withCanvas ? 'core.maxFPS' : 'core.noCanvas', withCanvas ? '10' : 'true'),
 			withCanvas,
 		);
+		// A compatibility warning is told apart by the system's frames in its stack, which Foundry's own frames can push
+		// past V8's default limit of 10.
+		await context.addInitScript(() => (Error.stackTraceLimit = 100));
 		const page = await context.newPage();
 		page.on('console', (message) => {
-			if (message.type() === 'error') errors.push(message.text().slice(0, 300));
+			const text = message.text();
+			if (message.type() === 'error') errors.push(text.slice(0, 300));
+			else if (message.type() === 'warning' && isSystemCompatibilityWarning(text)) {
+				errors.push(`compatibility warning: ${text.split('\n')[0]}`.slice(0, 300));
+			}
 		});
 		page.on('pageerror', (error) => errors.push(`${error.name}: ${error.message}`.slice(0, 300)));
 

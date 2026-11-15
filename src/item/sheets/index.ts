@@ -43,8 +43,6 @@ function registerSheet(
  * Registers Item sheets used by the system.
  */
 export function register() {
-	foundry.documents.collections.Items.unregisterSheet('core', foundry.appv1.sheets.ItemSheet);
-
 	registerSheet(basicSheet(AbilitySheet), {
 		types: ['ability'],
 		makeDefault: true,

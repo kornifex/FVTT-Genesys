@@ -84,7 +84,7 @@ export class StoryPointTracker extends VueSheet(foundry.applications.api.Applica
 	 * Render the tracker again on this client. The pools' setting does at each write.
 	 */
 	static forceRender() {
-		void StoryPointTracker.#instance?.render(true);
+		void StoryPointTracker.#instance?.render({ force: true });
 	}
 
 	/**
