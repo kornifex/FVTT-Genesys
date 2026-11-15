@@ -162,6 +162,7 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 	await spend(gm, 'upgradeDifficulty');
 	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A^', 'D^']));
 	const looks = await gm.evaluate(() => window.dicePromptE2E.promptModificationLooks());
+	const theme = await gm.evaluate(() => window.dicePromptE2E.promptTheme());
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await control(gm, []);
 	const looksOf = (row: string) =>
@@ -171,12 +172,14 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 		looksOf('spend'),
 		looksOf('manual'),
 	);
+	// The Palette's `die-outline`: black on light paper, white on dark.
+	const outline = { light: 'rgb(0, 0, 0)', dark: 'rgb(255, 255, 255)' }[theme];
 	e2e.expect(
 		'#758 X6 the ability upgrade shows the Ability die and the difficulty upgrade the Difficulty die, each with its outline',
 		looksOf('spend').map(({ modification, color }) => [modification, color]),
 		[
-			['A^', 'rgb(65, 173, 73), outline 0.5px rgb(0, 0, 0)'],
-			['D^', 'rgb(82, 35, 128), outline 0.5px rgb(0, 0, 0)'],
+			['A^', `rgb(65, 173, 73), outline 0.5px ${outline}`],
+			['D^', `rgb(82, 35, 128), outline 0.5px ${outline}`],
 		],
 	);
 	await control(player, []);
