@@ -45,6 +45,12 @@ $defaults: (
 	'field': #fff,
 	'shadow': #000,
 	'die-outline': #000,
+	// The colors of Foundry's AppV1 windows, which the sheets and prompts were first drawn with.
+	'text': #191813,
+	'text-muted': #4b4a44,
+	'input': rgba(0, 0, 0, 0.05),
+	'input-border': #7a7971,
+	'heading-rule': #782e22,
 );
 
 // Styles the GM can choose in the world settings, each overriding some colors of the Palette. The Palette keeps its
@@ -114,6 +120,16 @@ $field: var(--genesys-field);
 $shadow: var(--genesys-shadow);
 // The outline of the dice's and symbols' glyphs.
 $die-outline: var(--genesys-die-outline);
+// The text of the sheets and prompts, on paper and in their fields.
+$text: var(--genesys-text);
+// The hints and secondary text of the sheets and prompts, on paper.
+$text-muted: var(--genesys-text-muted);
+// The background of the text fields and selects, a tint over what they lie on.
+$input: var(--genesys-input);
+// The border of the text fields and selects.
+$input-border: var(--genesys-input-border);
+// The rule under a heading of rich text, such as a description's.
+$heading-rule: var(--genesys-heading-rule);
 
 // Same as `transparentize`, but also works with the colors above since they reference CSS custom properties.
 @function alpha($color, $opacity) {

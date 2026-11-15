@@ -714,7 +714,6 @@ const spendId = useId();
 <style lang="scss" scoped>
 @use 'sass:math';
 @use '@scss/vars/colors.scss';
-@use '@scss/vars/appv1.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/mixins/headings.scss';
 
@@ -759,8 +758,7 @@ $target-size: 24px;
 		.hint {
 			font-family: 'Roboto', serif;
 			font-size: 1rem;
-			// Foundry's colour for the hints of a form, which it only gives AppV1 windows.
-			color: appv1.$text-secondary;
+			color: colors.$text-muted;
 		}
 
 		.state-reminders {
@@ -1083,7 +1081,7 @@ $target-size: 24px;
 			}
 
 			.pool {
-				color: appv1.$text-secondary;
+				color: colors.$text-muted;
 			}
 
 			.glyph {
@@ -1098,7 +1096,7 @@ $target-size: 24px;
 			.why {
 				grid-column: 2 / span 2;
 				font-size: 0.9em;
-				color: appv1.$text-secondary;
+				color: colors.$text-muted;
 			}
 		}
 	}

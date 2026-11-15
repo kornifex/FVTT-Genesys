@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '..');
 
-// `vars/colors.scss` defines the Palette; `vars/appv1.scss` copies Foundry's AppV1 colors, which follow Foundry.
-const COLOR_FILES = ['scss/vars/colors.scss', 'scss/vars/appv1.scss'];
+// `vars/colors.scss` defines the Palette.
+const COLOR_FILES = ['scss/vars/colors.scss'];
 
 // The CSS named colors (CSS Color 4), without the keywords that name no color, such as `transparent` or `currentColor`.
 const NAMED_COLORS = [
