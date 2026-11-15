@@ -107,7 +107,7 @@ async function deleteProfile(profile: WeaponProfile) {
 
 .weapon-profile {
 	margin-top: 0.5rem;
-	border-top: 2px solid colors.$dark-blue;
+	border-top: 2px solid colors.$text-dark-blue;
 
 	// The profile's heading, then its delete button at the other end.
 	.heading-row {

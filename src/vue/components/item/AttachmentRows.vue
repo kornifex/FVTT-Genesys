@@ -115,7 +115,7 @@ async function remove(index: number) {
 }
 
 .over-hard-points {
-	color: colors.$red;
+	color: colors.$text-red;
 	padding: 2px;
 }
 </style>

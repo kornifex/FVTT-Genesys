@@ -228,7 +228,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 
 				font-family: 'Roboto Serif', serif;
 				font-size: 0.9em;
-				color: colors.$dark-blue;
+				color: colors.$text-dark-blue;
 				margin-left: 0.5em;
 			}
 

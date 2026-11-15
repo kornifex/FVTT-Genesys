@@ -51,6 +51,8 @@ $defaults: (
 	'input': rgba(0, 0, 0, 0.05),
 	'input-border': #7a7971,
 	'heading-rule': #782e22,
+	'text-dark-blue': var(--genesys-dark-blue),
+	'text-red': var(--genesys-red),
 );
 
 // The dark variant of the Palette, for the dark theme Foundry lets a user choose (see `scss/theme.scss`). The paper
@@ -71,6 +73,8 @@ $dark: (
 	'text-muted': #b3ada3,
 	'input': rgba(255, 255, 255, 0.05),
 	'heading-rule': #a7776f,
+	'text-dark-blue': color-mix(in srgb, var(--genesys-dark-blue), white 60%),
+	'text-red': color-mix(in srgb, var(--genesys-red), white 55%),
 );
 
 // The dark variant of each Style, over the dark Palette.
@@ -135,6 +139,10 @@ $ink: var(--genesys-ink);
 $ink-muted: var(--genesys-ink-muted);
 // Blue text on paper.
 $text-blue: var(--genesys-text-blue);
+// Dark blue text on paper, such as a group's heading, and the rules drawn with it.
+$text-dark-blue: var(--genesys-text-dark-blue);
+// Red text on paper, such as a warning.
+$text-red: var(--genesys-text-red);
 // Gold text on dark blue.
 $text-gold: var(--genesys-text-gold);
 // Text on blue, dark blue, red, and the Dice Prompt's preview.

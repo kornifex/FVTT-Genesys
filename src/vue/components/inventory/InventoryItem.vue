@@ -547,7 +547,7 @@ function openMenu(event: MouseEvent) {
 			grid-row: 2 / span 1;
 			justify-self: start;
 			font-size: 0.9em;
-			color: colors.$dark-blue;
+			color: colors.$text-dark-blue;
 		}
 	}
 
@@ -567,7 +567,7 @@ function openMenu(event: MouseEvent) {
 			display: flex;
 			flex-wrap: wrap;
 			font-size: 0.9em;
-			color: colors.$dark-blue;
+			color: colors.$text-dark-blue;
 			gap: 0.25em;
 			margin-left: 0.5em;
 
@@ -625,7 +625,7 @@ function openMenu(event: MouseEvent) {
 		@include headings.font;
 		font-size: 1.25em;
 		text-align: center;
-		color: colors.$dark-blue;
+		color: colors.$text-dark-blue;
 		width: 100%;
 		justify-content: flex-end;
 

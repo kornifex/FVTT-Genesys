@@ -135,7 +135,7 @@ const TABS = [
 
 			&,
 			&:focus {
-				border-bottom: 1px solid colors.$dark-blue;
+				border-bottom: 1px solid colors.$text-dark-blue;
 			}
 
 			&:focus {
