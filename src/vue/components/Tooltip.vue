@@ -20,16 +20,24 @@ const props = withDefaults(
 );
 
 async function showTooltip(event: Event) {
+	// Read before the enrichment: the event loses its current target once dispatched.
+	const target = event.currentTarget as HTMLElement;
 	const sourceText = props.localized ? game.i18n.localize(props.content) : props.content;
 	const enriched = await enrich(sourceText);
 	const content = document.createRange().createContextualFragment(enriched);
 
-	game.tooltip.activate(event.currentTarget as HTMLElement, {
+	game.tooltip.activate(target, {
 		// Foundry appends a fragment as it does an element, which the types don't take.
 		html: content as unknown as HTMLElement,
 		direction: props.direction,
 		cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys',
 	});
+
+	// Foundry always makes its tooltip dark, and resets its classes on the next activation. The Genesys tooltip takes the
+	// theme of what it describes instead, as Foundry's context menus do: light unless it lies in a dark element.
+	if (!target.closest('.theme-dark, .theme-light')?.classList.contains('theme-dark')) {
+		game.tooltip.tooltip.classList.replace('theme-dark', 'theme-light');
+	}
 }
 
 async function hideTooltip() {
