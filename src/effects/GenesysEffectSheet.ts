@@ -1,7 +1,6 @@
 import { CHARACTERISTICS } from '@/data/Characteristics';
 import type { DeepPartial } from 'fvtt-types/utils';
 import { EditedChange, fromEditedChange, skillChoices, subjectFieldForKey, toEditedChange } from '@/effects/PoolModifications';
-import { changesPath } from '@/effects/GenesysEffect';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
 import '@/effects/GenesysEffectSheet.scss';
@@ -196,14 +195,13 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 
 		if (partId === 'changes') {
 			// Each change shows the field that edits what its key applies to.
-			const changes = (foundry.utils.getProperty(partContext.source, changesPath()) as EditedChange[]).map((change) => {
+			const changes = (foundry.utils.getProperty(partContext.source, 'system.changes') as EditedChange[]).map((change) => {
 				const edited = toEditedChange(change);
 				return { ...edited, subjectField: subjectFieldForKey(edited.key) };
 			});
 
 			// The template reads the system's own entries, which the types of Foundry's context lack.
 			Object.assign(partContext, {
-				changesPath: changesPath(),
 				changeFields: this.#changeFields(),
 				changes,
 				keys: keyOptions(),
@@ -233,7 +231,7 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		super._onChangeForm(formConfig, event);
 
 		const target = event.target as HTMLElement;
-		if (target?.matches(`select[name^="${changesPath()}."][name$=".key"]`)) {
+		if (target?.matches('select[name^="system.changes."][name$=".key"]')) {
 			const targetSelect = target as HTMLSelectElement;
 			const targetOptionType = subjectFieldForKey(targetSelect.value);
 
@@ -252,8 +250,8 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 		const formDataExpanded = super._processFormData(event, form, formData);
 
 		// Foundry's actions that add and delete a change read the changes from the processed form data too.
-		const changes = foundry.utils.getProperty(formDataExpanded, changesPath()) as Record<string, EditedChange> | undefined;
-		foundry.utils.setProperty(formDataExpanded, changesPath(), Object.values(changes ?? {}).map(fromEditedChange));
+		const changes = foundry.utils.getProperty(formDataExpanded, 'system.changes') as Record<string, EditedChange> | undefined;
+		foundry.utils.setProperty(formDataExpanded, 'system.changes', Object.values(changes ?? {}).map(fromEditedChange));
 
 		return formDataExpanded;
 	}

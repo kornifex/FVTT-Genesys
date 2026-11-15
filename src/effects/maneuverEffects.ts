@@ -3,7 +3,7 @@
  */
 
 import type { CheckPurpose } from '@/dice/Check';
-import { changesPath, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
+import { foundryChange, lapsingFor } from '@/effects/GenesysEffect';
 import {
 	aimBoosts,
 	aimBoostsAfterClick,
@@ -27,15 +27,14 @@ function effectsWith(actor: Actor.Implementation, status: string) {
  * The data of a maneuver's effect, as Foundry stores it.
  */
 function effectData(maneuver: ManeuverEffect) {
-	const data = {
+	return {
 		name: game.i18n.localize(maneuver.name),
 		img: maneuver.img,
 		statuses: [maneuver.id],
 		// A token shows the icon of a temporary effect only, unless told to.
 		showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.ALWAYS,
+		system: { changes: maneuver.changes.map(foundryChange) },
 	};
-	foundry.utils.setProperty(data, changesPath(), maneuver.changes.map(foundryChange));
-	return data;
 }
 
 // The maneuver each actor performs, by its uuid, after which the next one waits.
@@ -102,7 +101,7 @@ export function aim(actor: Actor.Implementation) {
 				aims.map((effect) => effect.id),
 			);
 		} else {
-			await current.update({ [changesPath()]: aimGiving(boosts).changes.map(foundryChange) });
+			await current.update({ system: { changes: aimGiving(boosts).changes.map(foundryChange) } });
 		}
 	});
 }

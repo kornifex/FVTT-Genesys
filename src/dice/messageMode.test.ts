@@ -13,19 +13,17 @@ describe('requestedInitiativeMode', () => {
 	});
 });
 
-const modes = { private: 'gm', chat: 'blind' };
-
 describe('initiativeMessageMode', () => {
 	it('gives the mode a caller asks for, even for a hidden combatant', () => {
-		expect(initiativeMessageMode({ requested: 'self', hidden: true }, modes)).toBe('self');
-		expect(initiativeMessageMode({ requested: 'public', hidden: false }, modes)).toBe('public');
+		expect(initiativeMessageMode({ requested: 'self', hidden: true })).toBe('self');
+		expect(initiativeMessageMode({ requested: 'public', hidden: false })).toBe('public');
 	});
 
 	it("hides a hidden combatant's initiative from the players when no mode is asked for", () => {
-		expect(initiativeMessageMode({ hidden: true }, modes)).toBe('gm');
+		expect(initiativeMessageMode({ hidden: true })).toBe('gm');
 	});
 
-	it("gives a shown combatant's initiative the chat's mode when no mode is asked for", () => {
-		expect(initiativeMessageMode({ hidden: false }, modes)).toBe('blind');
+	it("leaves a shown combatant's initiative to the chat's mode when no mode is asked for", () => {
+		expect(initiativeMessageMode({ hidden: false })).toBeUndefined();
 	});
 });

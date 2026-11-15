@@ -165,9 +165,6 @@ type SourceDocument = {
 // The link to a source document: the row holds its uuid, not the document, which Vue would wrap in a reactive proxy.
 type SourceLink = { uuid: string; tooltip: string; icon: string };
 
-// The icons Foundry's content links show for these types of documents. v13's config gives effects none.
-const SOURCE_ICONS: Record<string, string> = { Item: 'fa-solid fa-suitcase', ActiveEffect: 'fa-solid fa-person-rays' };
-
 // The Pool Modifications of the check, each turned on or off by the roller. The origin is the actor or the target, the
 // name what the modification comes from.
 // A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
@@ -307,7 +304,8 @@ function rowSource({ from }: CheckPoolModification): { link?: SourceLink; descri
 		link: {
 			uuid,
 			tooltip: game.i18n.format('Genesys.DicePrompt.PoolModifications.OpenSource', { name: document.name }),
-			icon: SOURCE_ICONS[document.documentName],
+			// The icon Foundry's content links show for the document's type. A source is an item or an effect.
+			icon: CONFIG[document.documentName as 'Item' | 'ActiveEffect'].sidebarIcon,
 		},
 	};
 }
@@ -761,7 +759,7 @@ $target-size: 24px;
 		.hint {
 			font-family: 'Roboto', serif;
 			font-size: 1rem;
-			// Foundry's colour for the hints of a form, which v13 only gives AppV1 windows.
+			// Foundry's colour for the hints of a form, which it only gives AppV1 windows.
 			color: appv1.$text-secondary;
 		}
 

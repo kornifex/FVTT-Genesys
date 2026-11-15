@@ -10,17 +10,17 @@
 		{{#each changes as |change i|}}
 		<li data-index="{{i}}">
 			<div class="key">
-				<select name="{{@root.changesPath}}.{{i}}.key">
+				<select name="system.changes.{{i}}.key">
 					{{selectOptions @root.keys selected=change.key blank="—"}}
 				</select>
 			</div>
 			<div class="mode">
 				{{!-- A Pool Modification of every check of a kind, a change to Critical Injury rolls and an Item Change have no subject and no mode. --}}
 				<div class="check-selection initial-hide {{#if (eq change.subjectField 'check-selection')}}show-it{{/if}}">—</div>
-				<select name="{{@root.changesPath}}.{{i}}.char" class="characteristic-selection initial-hide {{#if (eq change.subjectField 'characteristic-selection')}}show-it{{/if}}">
+				<select name="system.changes.{{i}}.char" class="characteristic-selection initial-hide {{#if (eq change.subjectField 'characteristic-selection')}}show-it{{/if}}">
 					{{selectOptions @root.characteristics selected=change.char valueAttr="characteristic" labelAttr="label" localize=true sort=true}}
 				</select>
-				<select name="{{@root.changesPath}}.{{i}}.skill" class="skill-selection initial-hide {{#if (eq change.subjectField 'skill-selection')}}show-it{{/if}}">
+				<select name="system.changes.{{i}}.skill" class="skill-selection initial-hide {{#if (eq change.subjectField 'skill-selection')}}show-it{{/if}}">
 					{{selectOptions @root.skills selected=change.skill sort=true}}
 				</select>
 				<select name="system.changes.{{i}}.type" class="effect-mode initial-hide {{#if (eq change.subjectField 'effect-mode')}}show-it{{/if}}">
@@ -29,11 +29,11 @@
 				<input type="hidden" name="system.changes.{{i}}.phase" value="{{change.phase}}">
 			</div>
 			<div class="value">
-				{{formInput @root.changeFields.value name=(concat @root.changesPath "." i ".value") value=change.value elementType="input"}}
+				{{formInput @root.changeFields.value name=(concat "system.changes." i ".value") value=change.value elementType="input"}}
 			</div>
 			{{!-- A change's default priority depends on its type. --}}
 			<div class="priority">
-				{{formInput @root.changeFields.priority name=(concat @root.changesPath "." i ".priority") value=change.priority
+				{{formInput @root.changeFields.priority name=(concat "system.changes." i ".priority") value=change.priority
 				placeholder=(lookup @root.priorities change.type)}}
 			</div>
 			<div class="controls"><a data-action="deleteChange"><i class="fa-solid fa-trash"></i></a></div>
