@@ -340,14 +340,12 @@ Genesys:
     Spent: Déclenchements dépensés (sur {triggers})
     Lines:
       Triggers: Déclenchements supplémentaires (+10 chacun après le premier)
-      Vicious: Sanguinaire {rating}
       Injuries: Blessures critiques déjà subies ({count})
       Inflicted: '{source} (attaquant)'
       Suffered: '{source}'
       Free: Modificateur libre
     Formula: 'Jet :'
     Roll: Tirer
-    ViciousQuality: Sanguinaire
     Message: Blessure critique
     MessageFor: 'Blessure critique : {actor}'
     Effects:
@@ -498,6 +496,7 @@ Genesys:
     UnpairedEffectCopies: >-
       {actor} : les effets de « {item} » ne correspondent pas à leurs copies sur l'acteur. Les copies ont été supprimées,
       mais les modifications qui leur avaient été apportées depuis l'onglet Effets de l'acteur n'ont pas été reportées sur l'objet.
+    ViciousQuality: Sanguinaire
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:

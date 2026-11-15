@@ -1,4 +1,5 @@
 import type { GenesysActor } from '@/actor/GenesysActor';
+import type { GenesysItem } from '@/item/GenesysItem';
 import { unlinkedTokenActors } from '@/actor/tokenActors';
 import { NAMESPACE } from '@/settings';
 import { isNewWorld, KEY_MIGRATION_VERSION } from '@/settings/alpha';
@@ -20,17 +21,40 @@ import { linkTalentPurchases } from '@/migrations/5-link-talent-purchases';
 import { CombatSource, combatSystemData } from '@/migrations/6-combat-system-data';
 import { maneuverEffectsProvideDefense } from '@/migrations/7-maneuver-effects-provide-defense';
 import { expiredEffectsInDuration } from '@/migrations/8-expired-effects-in-duration';
+import { viciousThroughItsEffect } from '@/migrations/9-vicious-through-its-effect';
+import {
+	actorItemsPlanner,
+	isWorldItemPack,
+	ItemChanges,
+	ItemPlanner,
+	ItemSource,
+	ItemWorld,
+	migrateItems,
+	WalkedItem,
+} from '@/migrations/ItemMigration';
 import { keyDeletion } from '@/data/keyDeletion';
 import * as log from '@/log';
 import { isActingGm } from '@/queries';
 
-async function applyChanges(actor: GenesysActor, { update, effects = [], itemEffects = {}, deletedEffects = [] }: ActorChanges) {
+async function applyChanges(
+	actor: GenesysActor,
+	{ update, effects = [], items = [], createdItemEffects = {}, itemEffects = {}, deletedEffects = [] }: ActorChanges,
+) {
 	if (update) {
 		await actor.update(update);
 	}
 
 	if (effects.length > 0) {
 		await actor.updateEmbeddedDocuments('ActiveEffect', effects);
+	}
+
+	if (items.length > 0) {
+		await actor.updateEmbeddedDocuments('Item', items);
+	}
+
+	for (const [itemId, created] of Object.entries(createdItemEffects)) {
+		// A planner writes an effect's data as the world stores it, which the type system can't check.
+		await actor.items.get(itemId)?.createEmbeddedDocuments('ActiveEffect', created as ActiveEffect.CreateData[]);
 	}
 
 	for (const [itemId, updates] of Object.entries(itemEffects)) {
@@ -75,6 +99,57 @@ async function migrateEveryActor(plan: ActorPlanner) {
 
 	return failures.length === 0;
 }
+
+async function applyItemChanges(item: GenesysItem, { update, createdEffects = [] }: ItemChanges) {
+	if (update) {
+		await item.update(update);
+	}
+
+	if (createdEffects.length > 0) {
+		// A planner writes an effect's data as the world stores it, which the type system can't check.
+		await item.createEmbeddedDocuments('ActiveEffect', createdEffects as ActiveEffect.CreateData[]);
+	}
+}
+
+function walkedItem(item: GenesysItem): WalkedItem {
+	// Every item the world holds outside an actor has a uuid.
+	return { uuid: item.uuid!, source: item.toObject() as ItemSource, apply: (changes) => applyItemChanges(item, changes) };
+}
+
+/**
+ * The items of the running world outside its actors: its items, and the items of its own item compendiums. Module and
+ * system compendiums are left alone.
+ */
+const foundryItemWorld: ItemWorld = {
+	worldItems: () => game.items.map(walkedItem),
+	itemPacks: () =>
+		game.packs
+			.filter((pack) => isWorldItemPack(pack.metadata))
+			.map((pack) => ({
+				locked: pack.locked,
+				setLocked: (locked) => pack.configure({ locked }),
+				items: async () => ((await pack.getDocuments()) as Item.Stored[]).map(walkedItem),
+			})),
+};
+
+/**
+ * Migrate every item with a planner: the items of every actor, then the world's own. It fails if any actor or item
+ * couldn't be migrated.
+ */
+async function migrateEveryItem(plan: ItemPlanner) {
+	const actorsMigrated = await migrateEveryActor(actorItemsPlanner(plan));
+	const failures = await migrateItems(foundryItemWorld, plan);
+	if (failures.length > 0) {
+		log.error('Unable to migrate these items:', failures);
+	}
+
+	return actorsMigrated && failures.length === 0;
+}
+
+/**
+ * The English name of the Vicious quality, which a world's quality may have whatever the world's language.
+ */
+const VICIOUS = 'Vicious';
 
 /**
  * Move the Initiative Slots' state of every combat of the world, and of its combatants, from flags into system data. It
@@ -123,6 +198,10 @@ const migrations: readonly (() => Promise<boolean>)[] = [
 	migrateCombats,
 	() => migrateEveryActor(maneuverEffectsProvideDefense),
 	() => migrateEveryActor(expiredEffectsInDuration(_del)),
+	() =>
+		migrateEveryItem(
+			viciousThroughItsEffect([VICIOUS, game.i18n.localize('Genesys.Migration.ViciousQuality')], () => foundry.utils.randomID()),
+		),
 ];
 
 /**

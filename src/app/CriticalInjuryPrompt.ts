@@ -18,24 +18,17 @@ import {
 type CriticalInjuryPromptRequest = CriticalInjuryRequest<GenesysActor>;
 
 /**
- * What the dialog shows: what it rolls for, the name of the table it draws from, and the names Vicious goes by, in
- * English and in the world's language.
+ * What the dialog shows: what it rolls for, and the name of the table it draws from.
  */
 export type CriticalInjuryPromptContext = {
 	request: CriticalInjuryPromptRequest;
 	tableName: string;
-	viciousNames: string[];
 };
 
 /**
  * The dialog's answer: the modifier added to the d100.
  */
 export type CriticalInjuryAnswer = { modifier: number };
-
-/**
- * The English name of the Vicious quality, which a weapon's quality may have whatever the world's language.
- */
-const VICIOUS = 'Vicious';
 
 /**
  * The world's Critical Injury table, or undefined when the GM has picked none, or it was deleted.
@@ -96,11 +89,7 @@ export class CriticalInjuryPrompt extends VuePrompt<CriticalInjuryAnswer | undef
 	}
 
 	override async getVueContext(): Promise<CriticalInjuryPromptContext> {
-		return {
-			request: this.request,
-			tableName: this.tableName,
-			viciousNames: [VICIOUS, game.i18n.localize('Genesys.CriticalInjuryPrompt.ViciousQuality')],
-		};
+		return { request: this.request, tableName: this.tableName };
 	}
 }
 

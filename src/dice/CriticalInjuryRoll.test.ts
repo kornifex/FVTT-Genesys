@@ -18,7 +18,6 @@ import {
 	isCriticalChangeKey,
 	isCriticalChangeValue,
 	parseCriticalInjuryFlag,
-	viciousRating,
 } from '@/dice/CriticalInjuryRoll';
 
 describe('criticalTriggers', () => {
@@ -66,26 +65,6 @@ describe('existingInjuriesBonus', () => {
 		const items = [{ type: 'injury' }, { type: 'weapon' }, { type: 'injury' }, { type: 'talent' }];
 		expect(existingInjuriesBonus(items)).toBe(20);
 		expect(existingInjuriesBonus([{ type: 'weapon' }])).toBe(0);
-	});
-});
-
-describe('viciousRating', () => {
-	const quality = (name: string, rating: number) => ({ name, isRated: true, rating });
-	const NAMES = ['Vicious', 'Sanguinaire'];
-
-	it("finds Vicious under its English name, or the world's language's (CRB p. 89)", () => {
-		expect(viciousRating([quality('Pierce', 2), quality('Vicious', 3)], NAMES)).toBe(3);
-		expect(viciousRating([quality('Sanguinaire', 2)], NAMES)).toBe(2);
-	});
-
-	it('matches the name whatever its case and its surrounding spaces', () => {
-		expect(viciousRating([quality(' vicious ', 1)], NAMES)).toBe(1);
-		expect(viciousRating([quality('SANGUINAIRE', 4)], NAMES)).toBe(4);
-	});
-
-	it('is 0 for a weapon without Vicious', () => {
-		expect(viciousRating([quality('Pierce', 2)], NAMES)).toBe(0);
-		expect(viciousRating([], NAMES)).toBe(0);
 	});
 });
 
@@ -259,20 +238,42 @@ describe('parseCriticalInjuryFlag', () => {
 });
 
 describe('criticalInjuryLines', () => {
-	const NAMES = ['Vicious', 'Sanguinaire'];
-	const weapon = { name: 'Axe', uuid: 'Item.Axe', qualities: [{ id: 'v1', name: 'Vicious', isRated: true, rating: 2 }] };
+	const vicious = { id: 'v1', name: 'Vicious', isRated: true, rating: 2 };
+	const weapon = { name: 'Axe', uuid: 'Item.Axe', qualities: [vicious] };
+	// The axe's quality, under any name, whose effect adds 10 to the injuries inflicted, as Vicious does (CRB p. 89).
+	const qualityEffect = (name: string) => {
+		// A weapon's data holds its qualities, which a talent's has no use for.
+		const system: object = { qualities: [{ ...vicious, name }] };
+		return effect(name, [inflicted(10)], {
+			flags: { genesys: { quality: 'v1' } },
+			originItem: { name: 'Axe', uuid: 'Item.Axe', type: 'weapon', system },
+		});
+	};
 
 	it('offers only the free modifier when it knows neither the actor nor the attack', () => {
-		expect(criticalInjuryLines({}, NAMES)).toEqual([{ kind: 'free', value: 0 }]);
+		expect(criticalInjuryLines({})).toEqual([{ kind: 'free', value: 0 }]);
 	});
 
-	it("starts an attack's lines with one trigger spent, then its Vicious and the attacker's talents", () => {
-		const attacker = actor([effect('Lethal Blows', [inflicted('10')])]);
+	it("starts an attack's lines with one trigger spent, then the attacker's effects, its weapon's qualities' by rating", () => {
+		const attacker = actor([qualityEffect('Cruel'), effect('Lethal Blows', [inflicted('10')])]);
 
-		expect(criticalInjuryLines({ attack: { triggers: 3, weapon, attacker } }, NAMES)).toEqual([
+		expect(
+			criticalInjuryLines({ attack: { triggers: 3, weapon: { ...weapon, qualities: [{ ...vicious, name: 'Cruel' }] }, attacker } }),
+		).toEqual([
 			{ kind: 'triggers', count: 1, value: 0 },
-			{ kind: 'vicious', count: 2, value: 20 },
+			{
+				kind: 'inflicted',
+				source: { name: 'Cruel', uuid: 'ActiveEffect.Cruel', item: { name: 'Axe', uuid: 'Item.Axe' } },
+				value: 20,
+			},
 			{ kind: 'inflicted', source: { name: 'Lethal Blows', uuid: 'ActiveEffect.Lethal Blows' }, value: 10 },
+			{ kind: 'free', value: 0 },
+		]);
+	});
+
+	it('adds nothing for a quality named Vicious without an effect (#842)', () => {
+		expect(criticalInjuryLines({ attack: { triggers: 1, weapon, attacker: actor([]) } })).toEqual([
+			{ kind: 'triggers', count: 1, value: 0 },
 			{ kind: 'free', value: 0 },
 		]);
 	});
@@ -280,24 +281,15 @@ describe('criticalInjuryLines', () => {
 	it("adds the actor's existing injuries, even none, and their own talents", () => {
 		const target = actor([effect('Durable', [suffered('-10')])], [{ type: 'injury' }]);
 
-		expect(criticalInjuryLines({ actor: target }, NAMES)).toEqual([
+		expect(criticalInjuryLines({ actor: target })).toEqual([
 			{ kind: 'injuries', count: 1, value: 10 },
 			{ kind: 'suffered', source: { name: 'Durable', uuid: 'ActiveEffect.Durable' }, value: -10 },
 			{ kind: 'free', value: 0 },
 		]);
-		expect(criticalInjuryLines({ actor: actor([]) }, NAMES)).toEqual([
+		expect(criticalInjuryLines({ actor: actor([]) })).toEqual([
 			{ kind: 'injuries', count: 0, value: 0 },
 			{ kind: 'free', value: 0 },
 		]);
-	});
-
-	it('leaves out Vicious for a weapon without it', () => {
-		expect(criticalInjuryLines({ attack: { triggers: 1, weapon: { name: 'Club', uuid: 'Item.Club', qualities: [] } } }, NAMES)).toEqual(
-			[
-				{ kind: 'triggers', count: 1, value: 0 },
-				{ kind: 'free', value: 0 },
-			],
-		);
 	});
 });
 

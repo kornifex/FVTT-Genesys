@@ -22,7 +22,7 @@ type ActorEffects = { own: string[]; items: string[] };
 type WorldState = {
 	version: number;
 	crew: Record<'V1' | 'V2 token' | 'V2 base' | 'V3 pack', Crew>;
-	locked: Record<'E2E Migrations' | 'E2E Old Actors', boolean>;
+	locked: Record<'E2E Migrations' | 'E2E Old Actors' | 'E2E Qualities', boolean>;
 	effects: Record<'Mira' | 'Recent' | 'Odd' | 'Raider token' | 'Raider base' | 'Packed pack' | 'Veteran pack', ActorEffects>;
 	/** The values the effects' changes add to, from 0: each effect that applies once adds its change once. */
 	applied: Record<'Mira' | 'Raider token' | 'Raider base', Record<string, number>>;
@@ -31,7 +31,14 @@ type WorldState = {
 	combat: CombatState;
 	/** The changes of an actor's effects that hold a status, as `<status>: <key> <type> <value>`, and its total defense. */
 	provided: Record<'Sentry' | 'Lookout token' | 'Lookout base' | 'Scout pack', ProvidedDefense>;
+	vicious: Record<'Axe' | 'Cleaver' | 'Vicious pack', QualityEffects>;
 };
+
+/**
+ * An item's qualities, as `<name> <rating>` with ` (no id)` for a copy stored without one, and its effects, as
+ * `<effect> ← <the quality it is tagged with, or ->: <key> <type> <value>`.
+ */
+type QualityEffects = { qualities: string[]; effects: string[] };
 
 type ProvidedDefense = { changes: string[]; defense: { melee: number; ranged: number } };
 
@@ -233,6 +240,22 @@ function installMigrationHelpers() {
 		defense: { melee: actor.system.totalDefense.melee, ranged: actor.system.totalDefense.ranged },
 	});
 
+	type Quality = { id: string; name: string; rating: number };
+	type TaggedEffect = { name: string; flags: { genesys?: { quality?: string } }; system: { changes: StatusChange[] } };
+	const qualityEffectsOf = (item: { system: { qualities?: Quality[] }; effects: TaggedEffect[] }): QualityEffects => {
+		const qualities = item.system.qualities ?? [];
+		return {
+			qualities: qualities.map(({ id, name, rating }) => `${name} ${rating}${id ? '' : ' (no id)'}`),
+			effects: [...item.effects]
+				.map(({ name, flags, system }) => {
+					const tag = flags.genesys?.quality;
+					const owner = tag ? qualities.find(({ id }) => id === tag)?.name ?? 'orphaned' : '-';
+					return `${name} ← ${owner}: ${system.changes.map(({ key, type, value }) => `${key} ${type} ${value}`).join(', ')}`;
+				})
+				.sort(),
+		};
+	};
+
 	type Purchase = { type: string; data: { name: string; id?: string } };
 	type Journaled = { system: { experienceJournal: { entries: Purchase[] } }; items: { get(id: string): { name: string } | undefined } };
 	const talent = (name: string) => item(name, 'talent', [], { tier: 1, rank: 1 });
@@ -274,7 +297,7 @@ function installMigrationHelpers() {
 
 	window.migrationsE2E = {
 		async setUp() {
-			await window.e2e.deleteSetUp('Actor', 'Scene');
+			await window.e2e.deleteSetUp('Actor', 'Item', 'Scene');
 			for (const pack of game.packs.filter(
 				(pack: { metadata: { label: string; packageType: string } }) =>
 					pack.metadata.packageType === 'world' && pack.metadata.label.startsWith('E2E '),
@@ -411,6 +434,19 @@ function installMigrationHelpers() {
 					...['E2E Stalwart', 'E2E Twin', 'E2E Lost'].map(unlinkedPurchase),
 				],
 			});
+
+			// #842: Vicious without its effect, as 0.7.1 recognised it by its name: on a world weapon, stored without an id as
+			// 0.6.0 stored it; on a character's weapon; and the quality item in a locked world compendium.
+			const vicious = (id: string, rating: number) => ({ id, name: 'Vicious', description: '', isRated: true, rating });
+			await Item.create({ name: 'E2E Axe', type: 'weapon', system: { qualities: [vicious('', 2)] } });
+			await Actor.create({
+				name: 'E2E Brute',
+				type: 'character',
+				items: [item('E2E Cleaver', 'weapon', [], { qualities: [vicious(randomID(), 1)] })],
+			});
+			const qualities = await window.e2e.createCompendium({ label: 'E2E Qualities', type: 'Item' });
+			await Item.create({ name: 'Vicious', type: 'quality', system: { isRated: true } }, { pack: qualities.collection });
+			await packNamed('E2E Qualities').configure({ locked: true });
 		},
 
 		async createWithCopies() {
@@ -531,7 +567,11 @@ function installMigrationHelpers() {
 					'V2 base': crewOf(actorNamed('V2')),
 					'V3 pack': crewOf(v3),
 				},
-				locked: { 'E2E Migrations': packNamed('E2E Migrations').locked, 'E2E Old Actors': packNamed('E2E Old Actors').locked },
+				locked: {
+					'E2E Migrations': packNamed('E2E Migrations').locked,
+					'E2E Old Actors': packNamed('E2E Old Actors').locked,
+					'E2E Qualities': packNamed('E2E Qualities').locked,
+				},
 				effects: {
 					Mira: effectsOf(mira),
 					Recent: effectsOf(actorNamed('Recent')),
@@ -559,6 +599,11 @@ function installMigrationHelpers() {
 					'Lookout token': providedOf(tokenActor('Lookout')),
 					'Lookout base': providedOf(actorNamed('Lookout')),
 					'Scout pack': providedOf(await packActor('E2E Migrations', 'Scout')),
+				},
+				vicious: {
+					Axe: qualityEffectsOf(game.items.getName('E2E Axe')),
+					Cleaver: qualityEffectsOf(actorNamed('Brute').items.getName('E2E Cleaver')),
+					'Vicious pack': qualityEffectsOf((await packNamed('E2E Qualities').getDocuments())[0]),
 				},
 			};
 		},
@@ -613,9 +658,9 @@ function installMigrationHelpers() {
 
 		async cleanUp() {
 			// The scene first: deleting a crew member must not reach the unlinked vehicle token of a deleted scene (#219).
-			await window.e2e.deleteSetUp('Scene', 'Actor');
+			await window.e2e.deleteSetUp('Scene', 'Actor', 'Item');
 			await Combat.deleteDocuments(game.combats.map((combat: { id: string }) => combat.id));
-			for (const label of ['E2E Migrations', 'E2E Old Actors']) {
+			for (const label of ['E2E Migrations', 'E2E Old Actors', 'E2E Qualities']) {
 				await packNamed(label).configure({ locked: false });
 				await packNamed(label).deleteCompendium();
 			}
@@ -755,7 +800,24 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 8);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 9);
+	e2e.expect('#842 A1 before the migration, Vicious has no effect, on weapons or as a quality item', legacy.vicious, {
+		Axe: { qualities: ['Vicious 2 (no id)'], effects: [] },
+		Cleaver: { qualities: ['Vicious 1'], effects: [] },
+		'Vicious pack': { qualities: [], effects: [] },
+	});
+	e2e.expect(
+		"#842 A2 Vicious gets its effect adding 10 to the injuries inflicted: on a world weapon, given an id, on a character's weapon, and as a quality item of a locked compendium, locked again",
+		[migrated.vicious, migrated.locked['E2E Qualities']],
+		[
+			{
+				Axe: { qualities: ['Vicious 2'], effects: ['Vicious ← Vicious: genesys.critical.inflicted custom 10'] },
+				Cleaver: { qualities: ['Vicious 1'], effects: ['Vicious ← Vicious: genesys.critical.inflicted custom 10'] },
+				'Vicious pack': { qualities: [], effects: ['Vicious ← -: genesys.critical.inflicted custom 10'] },
+			},
+			true,
+		],
+	);
 	e2e.expect(
 		'#724 A2 cover and Guarded Stance of a world actor, an unlinked token and a locked compendium provide their defense, the best kept',
 		migrated.provided,

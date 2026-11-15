@@ -26,12 +26,16 @@ export type ActorSource = {
 };
 
 /**
- * The changes to make to an actor: an update of the actor itself, updates of its own effects, updates of the effects of
- * its items by item id, and the ids of its own effects to delete.
+ * The changes to make to an actor: an update of the actor itself, updates of its own effects, updates of its items,
+ * effects to create on its items and updates of the effects of its items, both by item id, and the ids of its own effects
+ * to delete. The items are updated before their effects are created, so that an effect can be tagged with an id the
+ * update gives.
  */
 export type ActorChanges = {
 	update?: Record<string, unknown>;
 	effects?: EmbeddedUpdate[];
+	items?: EmbeddedUpdate[];
+	createdItemEffects?: Record<string, object[]>;
 	itemEffects?: Record<string, EmbeddedUpdate[]>;
 	deletedEffects?: string[];
 };

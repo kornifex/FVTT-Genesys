@@ -49,7 +49,7 @@ An abstract of an actor's size: 0 is smaller than a human, 1 is about human-size
 _Avoid_: Size, scale
 
 **Critical Injury**:
-A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle. A successful attack **triggers** one each time its net Advantage reaches the Critical rating, and once per Triumph; it is rolled on the world's **Critical Injury table**, the Roll Table the GM picks in the settings, with a d100 plus a modifier: +10 per trigger spent past the first, per point of Vicious and per Critical Injury the actor already has, and what talents add.
+A lasting harm suffered by an actor, which a vehicle calls a Critical Hit. Its severity, from Easy to Formidable, sets the difficulty of the check that heals it, or that repairs it on a vehicle. A successful attack **triggers** one each time its net Advantage reaches the Critical rating, and once per Triumph; it is rolled on the world's **Critical Injury table**, the Roll Table the GM picks in the settings, with a d100 plus a modifier: +10 per trigger spent past the first and per Critical Injury the actor already has, and what the effects of talents and qualities add, such as Vicious's +10 per rating.
 _Avoid_: Crit, wound
 
 **Recovery**:

@@ -34,10 +34,24 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 			suffered: talent('Durable', 'genesys.critical.suffered', -10, 'no'),
 		},
 	);
+	// The Pistol has Vicious 2, whose effect adds 10 to the injuries its attacks inflict, as migration 9 gives it (§#842).
 	await update(
 		{ actor: 'Ada', item: 'Pistol' },
-		{ 'system.critical': 1, 'system.qualities': [{ name: 'Vicious', description: '', isRated: true, rating: 2 }] },
+		{ 'system.critical': 1, 'system.qualities': [{ id: 'e2eVicious', name: 'Vicious', description: '', isRated: true, rating: 2 }] },
 	);
+	await gm.evaluate(async () => {
+		await window.e2e
+			.actor('Ada')
+			.items.getName('E2E Pistol')
+			.createEmbeddedDocuments('ActiveEffect', [
+				{
+					name: 'Vicious',
+					flags: { genesys: { quality: 'e2eVicious' } },
+					system: { changes: [{ key: 'genesys.critical.inflicted', value: 10, type: 'custom' }] },
+				},
+			]);
+		await window.e2e.settle();
+	});
 	await target('Rival');
 
 	await opened(gm, attack('Pistol'));
@@ -65,7 +79,7 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 			spent: { value: '1', max: '3' },
 			lines: [
 				'Extra triggers (+10 each past the first): 0',
-				'Vicious 2: 20',
+				'Vicious (E2E Pistol) (attacker): 20',
 				'E2E Lethal (attacker): 20',
 				'Critical Injuries already suffered (1): 10',
 				'E2E Durable: -10',
@@ -229,7 +243,7 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 		await criticalFromAttack('Pistol'),
 		[
 			'Extra triggers (+10 each past the first): 0',
-			'Vicious 2: 20',
+			'Vicious (E2E Pistol) (attacker): 20',
 			'E2E Brutal (E2E Pistol) (attacker): 20',
 			'E2E Lethal (attacker): 20',
 			'Critical Injuries already suffered (1): 10',
@@ -237,16 +251,28 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 			'Free modifier: 0',
 		],
 	);
+	const withoutQualities = [
+		'Extra triggers (+10 each past the first): 0',
+		'E2E Lethal (attacker): 20',
+		'Critical Injuries already suffered (1): 10',
+		'E2E Durable: -10',
+		'Free modifier: 0',
+	];
 	e2e.expect(
 		"#726 C9 an attack with another weapon of the same attacker doesn't list the quality",
 		await criticalFromAttack('Revolver'),
-		[
-			'Extra triggers (+10 each past the first): 0',
-			'E2E Lethal (attacker): 20',
-			'Critical Injuries already suffered (1): 10',
-			'E2E Durable: -10',
-			'Free modifier: 0',
-		],
+		withoutQualities,
+	);
+
+	// §#842: Vicious adds to the roll through its quality's effect only, not by its name.
+	await update(
+		{ actor: 'Ada', item: 'Revolver' },
+		{ 'system.qualities': [{ id: 'e2eBareVicious', name: 'Vicious', description: '', isRated: true, rating: 2 }] },
+	);
+	e2e.expect(
+		'#842 C10 an attack with a weapon whose Vicious 2 has no effect lists nothing for it',
+		await criticalFromAttack('Revolver'),
+		withoutQualities,
 	);
 
 	await gm.evaluate((previous) => window.criticalInjuryE2E.tearDown(previous), previous);
