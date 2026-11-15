@@ -1461,9 +1461,6 @@ function installInventoryHelpers() {
 	window.inventoryE2E = helpers;
 }
 
-// Foundry v13 throws in no-canvas mode when a token is deleted (CanvasDocument#_onDelete reads its layer's clipboard).
-export const needsCanvas = true;
-
 /** The steps' calls of the inventory helpers in a client's page. */
 function inventorySteps(page: Client) {
 	return {

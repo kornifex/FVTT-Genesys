@@ -179,12 +179,12 @@ describe('runSummary', () => {
 		const failed = assertionStep('A2 turn kept', 'Boss:-1', 'Hero:-1');
 
 		expect(
-			runSummary('v13 head', [
+			runSummary('v14 head', [
 				{ scenario: 'combat', steps: [{ name: 'A0 before', value: { expected: 1, actual: 1 } }, passed, failed] },
 				{ scenario: 'vehicle', steps: [passed] },
 			]),
 		).toEqual([
-			'v13 head: 1 failed of 3 assertions',
+			'v14 head: 1 failed of 3 assertions',
 			'  combat 0.0 s',
 			'  vehicle 0.0 s',
 			'  combat › A2 turn kept',
@@ -202,16 +202,16 @@ describe('runSummary', () => {
 
 	it("gives each scenario's time", () => {
 		expect(
-			runSummary('v13 head', [
+			runSummary('v14 head', [
 				{ scenario: 'combat', steps: timed },
 				{ scenario: 'vehicle', steps: [{ name: 'setup', value: 1, ms: 4321 }] },
 			]),
-		).toEqual(['v13 head: 0 failed of 0 assertions', '  combat 33.8 s', '  vehicle 4.3 s']);
+		).toEqual(['v14 head: 0 failed of 0 assertions', '  combat 33.8 s', '  vehicle 4.3 s']);
 	});
 
 	it("gives each part's time, and the time outside parts, when asked", () => {
-		expect(runSummary('v13 head', [{ scenario: 'combat', steps: timed }], { partTimes: true })).toEqual([
-			'v13 head: 0 failed of 0 assertions',
+		expect(runSummary('v14 head', [{ scenario: 'combat', steps: timed }], { partTimes: true })).toEqual([
+			'v14 head: 0 failed of 0 assertions',
 			'  combat 33.8 s',
 			'    trackerClass 1.8 s',
 			'    claims 30.0 s',
@@ -221,8 +221,8 @@ describe('runSummary', () => {
 
 	it('lists a scenario that stopped on an error', () => {
 		expect(
-			runSummary('v13 head', [{ scenario: 'combat', steps: [assertionStep('A1 turn kept', 1, 1), fatalStep(new Error('Timeout'))] }]),
-		).toEqual(['v13 head: 1 scenario stopped, 0 failed of 1 assertion', '  combat 0.0 s', '  combat › FATAL', '    Error: Timeout']);
+			runSummary('v14 head', [{ scenario: 'combat', steps: [assertionStep('A1 turn kept', 1, 1), fatalStep(new Error('Timeout'))] }]),
+		).toEqual(['v14 head: 1 scenario stopped, 0 failed of 1 assertion', '  combat 0.0 s', '  combat › FATAL', '    Error: Timeout']);
 	});
 });
 
@@ -231,33 +231,33 @@ describe('stepLine', () => {
 	const longState = { ...combatState, Joueur: combatState.Gamemaster };
 
 	it('prints a step with its run and a short value', () => {
-		expect(stepLine('v13 head', { name: 'A0 before', value: { turn: 1 } })).toBe('[v13 head] A0 before {"turn":1}');
+		expect(stepLine('v14 head', { name: 'A0 before', value: { turn: 1 } })).toBe('[v14 head] A0 before {"turn":1}');
 	});
 
 	it('leaves out a long value, which the saved step log holds', () => {
-		expect(stepLine('v13 head', { name: 'A0 set up', value: longState })).toBe('[v13 head] A0 set up');
+		expect(stepLine('v14 head', { name: 'A0 set up', value: longState })).toBe('[v14 head] A0 set up');
 	});
 
 	it('prints the client errors of a long value, which fail no assertion', () => {
 		const value = { ...longState, 'Gamemaster errors': ['TypeError: x is undefined'] };
-		expect(stepLine('v13 head', { name: 'A2 drop', value })).toBe(
-			'[v13 head] A2 drop {"Gamemaster errors":["TypeError: x is undefined"]}',
+		expect(stepLine('v14 head', { name: 'A2 drop', value })).toBe(
+			'[v14 head] A2 drop {"Gamemaster errors":["TypeError: x is undefined"]}',
 		);
 	});
 
 	it('marks a passed assertion without its value', () => {
-		expect(stepLine('v13 head', assertionStep('A1 turn kept', longState, longState))).toBe('[v13 head] A1 turn kept ✓');
+		expect(stepLine('v14 head', assertionStep('A1 turn kept', longState, longState))).toBe('[v14 head] A1 turn kept ✓');
 	});
 
 	it('prints every value with verbose', () => {
-		expect(stepLine('v13 head', assertionStep('A1 turn kept', 'Hero:-1', 'Hero:-1'), { verbose: true })).toBe(
-			'[v13 head] A1 turn kept "Hero:-1"',
+		expect(stepLine('v14 head', assertionStep('A1 turn kept', 'Hero:-1', 'Hero:-1'), { verbose: true })).toBe(
+			'[v14 head] A1 turn kept "Hero:-1"',
 		);
 	});
 
 	it('marks a failed assertion and gives the value it expected', () => {
-		expect(stepLine('v13 head combat', assertionStep('A1 turn kept', 'Boss:-1', 'Hero:-1'))).toBe(
-			'FAILED [v13 head combat] A1 turn kept "Boss:-1" (expected "Hero:-1")',
+		expect(stepLine('v14 head combat', assertionStep('A1 turn kept', 'Boss:-1', 'Hero:-1'))).toBe(
+			'FAILED [v14 head combat] A1 turn kept "Boss:-1" (expected "Hero:-1")',
 		);
 	});
 });

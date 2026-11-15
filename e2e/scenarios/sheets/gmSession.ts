@@ -84,11 +84,10 @@ export async function gmSessionPart(ctx: SheetsContext) {
 			return { calls, qualities };
 		});
 	});
-	e2e.expect(
-		'#414 A3 on v14, a dropItemSheetData hook that returns false keeps the item off the item sheet; v13 has no such hook',
-		refusedDrop,
-		{ calls: [{ item: 'E2E weapon', type: 'Item' }], qualities: [] },
-	);
+	e2e.expect('#414 A3 a dropItemSheetData hook that returns false keeps the item off the item sheet', refusedDrop, {
+		calls: [{ item: 'E2E weapon', type: 'Item' }],
+		qualities: [],
+	});
 	await e2e.step('#95 GM drops items on a weapon, an armor, an archetype and a career sheet', () =>
 		gm.evaluate(async () => {
 			const sheets = window.sheetsE2E;

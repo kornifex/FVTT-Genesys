@@ -90,10 +90,10 @@ describe('baselineSteps', () => {
 });
 
 describe('baselineFile', () => {
-	const key = { commit: 'dda7e26ab', version: 13, scenario: 'combat', sources: ['scenario source', 'harness source'] };
+	const key = { commit: 'dda7e26ab', version: 14, scenario: 'combat', sources: ['scenario source', 'harness source'] };
 
 	it('keeps the baseline of a commit, version and scenario in its own folder', () => {
-		expect(path.dirname(baselineFile('/work', key))).toBe('/work/baselines/dda7e26ab/v13/combat');
+		expect(path.dirname(baselineFile('/work', key))).toBe('/work/baselines/dda7e26ab/v14/combat');
 	});
 
 	it('finds the same file while the scenario and the harness stay the same', () => {
