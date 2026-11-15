@@ -2,15 +2,19 @@
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
+// Every chat message, whispered or not, is drawn on the paper, with text that follows its theme rather than Foundry's
+// dark text, which its layers keep below these rules.
 .chat-message {
 	@include backgrounds.crossboxes();
+	color: colors.$text;
 
 	.message-header {
+		color: colors.$text-muted;
 		border-bottom: 1px dashed colors.$blue !important;
 	}
 
 	.message-sender {
-		color: colors.$dark-blue;
+		color: colors.$text-dark-blue;
 		@include headings.font;
 		font-size: 1.5em;
 	}
@@ -32,7 +36,7 @@
 		color: colors.$text-blue;
 
 		&.gm {
-			color: colors.$red;
+			color: colors.$text-red;
 		}
 	}
 

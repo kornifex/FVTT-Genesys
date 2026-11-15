@@ -51,12 +51,14 @@ type AccessibilityHelpers = {
 	/** Shows the pages in a Style, by its key, as the world setting does, without writing the setting. */
 	setStyle(style: string): Promise<void>;
 	/**
-	 * Shows the windows in a Foundry theme, as the applications' theme setting does, without writing the setting; null
-	 * gives none, as Foundry does when neither the setting nor the browser names one.
+	 * Shows the windows and the interface in a Foundry theme, as the applications' and the interface's theme settings do,
+	 * without writing the settings.
 	 */
-	setTheme(theme: 'light' | 'dark' | null): Promise<void>;
-	/** The theme the applications' setting gave the page, from `body`'s class; null when it gave none. */
-	theme(): 'light' | 'dark' | null;
+	setTheme(theme: 'light' | 'dark'): Promise<void>;
+	/** Shows the themes the world's settings give, as Foundry did on loading the page. */
+	restoreTheme(): Promise<void>;
+	/** Posts a roll from the Hero's Dice Prompt, shows its card in the chat log, and returns the card's selector. */
+	showRollCard(): Promise<string>;
 	/**
 	 * Readies a keyboard step on an action of a sheet (#574), by the sheet's name: renders the sheet on the action's tab,
 	 * and focuses the control before the action's button in Tab order, so that one Tab reaches it.
@@ -1124,15 +1126,43 @@ function installAccessibilityHelpers() {
 		},
 
 		async setTheme(theme) {
-			// Foundry puts the applications' theme on `body` (`Game#configureUI`), which the sheets follow.
-			document.body.classList.remove('theme-light', 'theme-dark');
-			if (theme) document.body.classList.add(`theme-${theme}`);
+			// Foundry puts the applications' theme on `body`, which the sheets follow, and the interface's on `#interface` and
+			// on each sidebar tab, which the chat cards and the Combat Tracker follow (`Game#configureUI`).
+			const sidebarTabs = [...foundry.applications.instances.values()].filter(
+				(app) => app instanceof foundry.applications.sidebar.AbstractSidebarTab && !app.options.classes.includes('themed'),
+			);
+			for (const element of [document.body, document.getElementById('interface'), ...sidebarTabs.map((app) => app.element)]) {
+				element?.classList.remove('theme-light', 'theme-dark');
+				element?.classList.add(`theme-${theme}`);
+			}
 			await settle();
 		},
 
-		theme() {
-			if (document.body.classList.contains('theme-dark')) return 'dark';
-			return document.body.classList.contains('theme-light') ? 'light' : null;
+		async restoreTheme() {
+			game.configureUI(game.settings.get('core', 'uiConfig'));
+			await settle();
+		},
+
+		async showRollCard() {
+			const before = game.messages.size;
+			const prompt = find(document, await helpers.openPrompt('dice'));
+			find(prompt, '.roll-button').click();
+			await waitFor('the roll', () => game.messages.size > before);
+			await helpers.closeAll();
+			// The roll above has just posted the last message.
+			const id = game.messages.contents.at(-1)!.id;
+
+			// The sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
+			ui.sidebar.expand();
+			ui.sidebar.changeTab('chat', 'primary');
+			const card = await waitFor('the roll card in the chat log', () =>
+				[...document.querySelectorAll<HTMLElement>(`#chat [data-message-id="${id}"]`)].find(
+					(element) => element.getBoundingClientRect().width > 0,
+				),
+			);
+			card.scrollIntoView({ block: 'center' });
+			await settle();
+			return `#chat [data-message-id="${id}"]`;
 		},
 
 		async readyKeyboardAction(sheet) {
@@ -2415,7 +2445,6 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(installAccessibilityHelpers);
 	await e2e.step('setup', () => gm.evaluate(() => window.accessibilityE2E.setUp()));
 	const worldStyle = await gm.evaluate(() => document.documentElement.dataset.genesysStyle ?? 'genesys');
-	const worldTheme = await gm.evaluate(() => window.accessibilityE2E.theme());
 
 	// The checks of the running part that found a button without a name (#574), which every action has since.
 	let unnamedButtons: string[] = [];
@@ -2719,8 +2748,19 @@ export async function run(e2e: ScenarioContext) {
 
 		// Last: the rolls it posts pop chat notifications, whose buttons would sit beside the Story Point tracker's.
 		await e2e.part('promptKeys', () => promptKeys(e2e));
+
+		// §#853: a roll card in the chat log, which follows the interface's theme.
+		await e2e.part('rollCard', async () => {
+			await e2e.step('#853 R1 a roll card checked in the chat log', async () => {
+				const selector = await gm.evaluate(() => window.accessibilityE2E.showRollCard());
+				await check('roll card', selector);
+				await gm.evaluate(() => ui.sidebar.collapse());
+			});
+			expectNamedButtons('#853 R2 a roll card has no button without a name');
+			expectContrasts('#853 R3 a roll card has no text under 4.5:1, in each Style and theme');
+		});
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
-		await gm.evaluate((theme) => window.accessibilityE2E.setTheme(theme), worldTheme);
+		await gm.evaluate(() => window.accessibilityE2E.restoreTheme());
 	}
 }

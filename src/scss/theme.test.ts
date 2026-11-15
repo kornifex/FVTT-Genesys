@@ -37,7 +37,12 @@ const DEFAULTS = ':where(:root)';
 const TERRINOTH = ':where(:root[data-genesys-style=terrinoth])';
 const DARK = ':where(.theme-dark)';
 const TERRINOTH_DARK = ':where([data-genesys-style=terrinoth] .theme-dark)';
-const LIGHT = ':where(.theme-light, .chat-message, #tooltip.genesys, #combat)';
+const LIGHT = ':where(.theme-light)';
+const CHAT_LOGS = '.sidebar-tab.theme-dark .chat-log, #interface.theme-dark #chat-notifications .chat-log';
+const DARK_CHAT_LOGS = `:where(${CHAT_LOGS})`;
+const TERRINOTH_DARK_CHAT_LOGS = `:where(${CHAT_LOGS.split(', ')
+	.map((logs) => `[data-genesys-style=terrinoth] ${logs}`)
+	.join(', ')})`;
 
 // The colors of each pair of Style and theme, as an element of that pair inherits them.
 const PAIRS = [
@@ -266,6 +271,16 @@ describe('Dark theme', () => {
 		expect(declarations(DEFAULTS)).toMatchObject(
 			Object.fromEntries(names.map((name) => [`--genesys-theme-light-${name}`, `var(--genesys-${name})`])),
 		);
+	});
+
+	// Foundry marks each chat log `theme-light`, whatever the interface's theme.
+	it('gives the dark variant back to the chat log of a dark interface, after the light theme', () => {
+		const start = (selector: string) => css.indexOf(`${selector} {`);
+
+		expect(declarations(DARK_CHAT_LOGS)).toEqual(declarations(DARK));
+		expect(declarations(TERRINOTH_DARK_CHAT_LOGS)).toEqual(declarations(TERRINOTH_DARK));
+		expect(start(DARK_CHAT_LOGS)).toBeGreaterThan(start(LIGHT));
+		expect(start(TERRINOTH_DARK_CHAT_LOGS)).toBeGreaterThan(start(DARK_CHAT_LOGS));
 	});
 });
 

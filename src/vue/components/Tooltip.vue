@@ -32,6 +32,12 @@ async function showTooltip(event: Event) {
 		direction: props.direction,
 		cssClass: props.cssClass ? `${props.cssClass} genesys` : 'genesys',
 	});
+
+	// Foundry always makes its tooltip dark, and resets its classes on the next activation. The Genesys tooltip takes the
+	// theme of what it describes instead, as Foundry's context menus do: light unless it lies in a dark element.
+	if (!target.closest('.theme-dark, .theme-light')?.classList.contains('theme-dark')) {
+		game.tooltip.tooltip.classList.replace('theme-dark', 'theme-light');
+	}
 }
 
 async function hideTooltip() {

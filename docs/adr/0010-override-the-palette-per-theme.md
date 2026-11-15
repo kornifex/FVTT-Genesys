@@ -18,6 +18,8 @@ Since 0.3.0, worlds and modules restyle the system by overriding a `--genesys-<n
 
 ## Consequences
 
--   Until a surface follows the Theme, it keeps the light Palette from the light rule's selector: the chat cards until #853, the Genesys tooltip, which Foundry always makes dark, and the Combat Tracker.
+-   Every surface follows the Theme of the element that holds it: the Combat Tracker the interface's, a chat message popped out the light Theme Foundry gives its window.
+-   Foundry marks each chat log `theme-light` whatever the interface's Theme. The chat cards follow the interface all the same: the dark variant is declared again on the log of a dark sidebar tab and of the dark interface's notifications, after the light rule. Foundry's own controls in a card (buttons, links, inline rolls) keep its light Theme.
+-   Foundry always makes its tooltip dark: the Genesys tooltip swaps that class for the Theme of what it describes.
 -   Foundry's effect sheet, which already follows the Theme, gets the dark roles at once.
 -   `theme.test.ts` checks the contrasts in the four pairs of Style and Theme.
