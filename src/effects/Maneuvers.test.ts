@@ -10,7 +10,7 @@ import {
 	GUARDED_STANCE,
 	type ManeuverEffect,
 } from '@/effects/Maneuvers';
-import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
+import { decodeKey, POOL_MODIFICATION_TYPE, type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
 
 const BOOST = DieTypes.Boost.GLYPH;
 const SETBACK = DieTypes.Setback.GLYPH;
@@ -96,6 +96,14 @@ describe('Guarded Stance', () => {
 
 	it("provides melee defense 1, which Foundry's Upgrade mode keeps only when no other source provides more (CRB p. 99, 106)", () => {
 		expect(GUARDED_STANCE.changes).toContainEqual({ key: 'system.providedDefense.melee', value: '1', type: 'upgrade' });
+	});
+});
+
+describe('the Pool Modifications of the maneuvers', () => {
+	it('have their own type, which Foundry applies to nothing', () => {
+		const poolChanges = [...aimGiving(2).changes, ...GUARDED_STANCE.changes].filter(({ key }) => decodeKey(key));
+
+		expect(poolChanges.map(({ type }) => type)).toEqual([POOL_MODIFICATION_TYPE, POOL_MODIFICATION_TYPE]);
 	});
 });
 

@@ -3,7 +3,7 @@ import { adversaryDefense } from '@/actor/data/Protection';
 import type { Defense } from '@/data/Actors';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
-import { type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
+import { decodeKey, POOL_MODIFICATION_TYPE, type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
 import { stateReminders, statusMenu, TOKEN_STATES, tokenState, tokenStatesFor } from '@/effects/TokenStates';
 
 /**
@@ -49,6 +49,13 @@ describe('TOKEN_STATES', () => {
 
 	it('gives each state its own icon', () => {
 		expect(new Set(TOKEN_STATES.map(({ img }) => img)).size).toBe(TOKEN_STATES.length);
+	});
+
+	it('gives the Pool Modifications of the states their own type, which Foundry applies to nothing', () => {
+		const poolChanges = TOKEN_STATES.flatMap(({ changes }) => changes).filter(({ key }) => decodeKey(key));
+
+		expect(poolChanges.length).toBeGreaterThan(0);
+		expect(poolChanges.every(({ type }) => type === POOL_MODIFICATION_TYPE)).toBe(true);
 	});
 });
 
