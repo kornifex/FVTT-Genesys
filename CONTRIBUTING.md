@@ -67,7 +67,7 @@ pnpm build
 ```
 
 ## Pull requests
-- Branch from `main`, and name the branch `type/<issue>-slug`, such as `fix/58-roll-turn-events`. Foundry v12 and v13 are no longer supported: their last releases, 0.4.0 and 0.7.1, take no more fixes.
+- Branch from `main`, and name the branch `type/<issue>-slug`, such as `fix/58-roll-turn-events`. Foundry v12 and v13 are no longer supported: their last releases, 0.4.0 and 0.7.0, take no more fixes.
 - One issue, one branch, one pull request.
 - Pull requests are squash-merged, so the title becomes the commit on `main` and the changelog entry. It follows [Conventional Commits](https://www.conventionalcommits.org/), `type(scope): summary`, starting with a lowercase letter and ending without a period: `fix(combat): keep the turn on its slot when an Extra Slot is added`. The scopes are `combat`, `dice`, `actor`, `item`, `effects`, `vehicle`, `migration`, `i18n` and `ui`. A check enforces it.
 - A change that breaks a macro, a module or world data adds `!` to the type and a `BREAKING CHANGE:` paragraph.
