@@ -236,6 +236,8 @@ type DicePromptHelpers = {
 	 * (the Pool Modifications' rows). The glyph with its operator, its font and colour, and its operator's size.
 	 */
 	promptModificationLooks(): { row: 'spend' | 'manual'; modification: string; font: string; color: string; arrow: string }[];
+	/** The theme the prompt is shown in: the nearest one Foundry set on it or on an ancestor. */
+	promptTheme(): 'light' | 'dark';
 	/** The Additional Effects of a spell's prompt, its difficulty's label and its pool. */
 	promptSpellEffects(): PromptSpellEffects;
 	/** Clicks an Additional Effect's checkbox, by its label. */
@@ -1004,6 +1006,12 @@ export function installDicePromptHelpers() {
 					};
 				}),
 			);
+		},
+
+		promptTheme() {
+			// Foundry always sets a theme on `body` (`Game#configureUI`), so an ancestor carries one.
+			const themed = htmlOf(thePrompt())!.closest('.theme-light, .theme-dark')!;
+			return themed.classList.contains('theme-dark') ? 'dark' : 'light';
 		},
 
 		promptSpellEffects() {
