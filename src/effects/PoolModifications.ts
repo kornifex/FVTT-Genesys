@@ -220,6 +220,12 @@ export function matchOrigin<T>(
 // character's (CRB p. 223).
 const TARGET_TYPES = ['character', 'minion', 'rival', 'nemesis', 'vehicle'];
 
+/**
+ * The change type of a Pool Modification. The system registers it with a handler that applies nothing, since a Pool
+ * Modification changes no data of its actor: the system reads it when it builds a dice pool.
+ */
+export const POOL_MODIFICATION_TYPE = 'genesys.poolModification';
+
 const KEY_PREFIX = 'genesys.pool';
 const KEY_PATTERN = new RegExp(`^genesys\\.pool\\.(${KINDS.join('|')})\\.(self|target)\\.(.*)$`);
 const BASE_KEY_PATTERN = new RegExp(`^genesys\\.pool\\.(${KINDS.join('|')})\\.(self|target)$`);
@@ -635,8 +641,8 @@ export function toEditedChange(change: StoredChange): EditedChange {
 }
 
 /**
- * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, the custom
- * type that keeps Foundry from applying them, and lose their value unless it only holds glyphs. A change to Critical
+ * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
+ * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
  * Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a whole
  * number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
  * a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
@@ -667,7 +673,7 @@ export function fromEditedChange(change: EditedChange): EditedChange {
 	return {
 		...stored,
 		key: encodeKey({ kind, source: baseKey[2] as PoolModificationSource, subject: (kind === 'char' ? char : skill) ?? '' }),
-		type: 'custom',
+		type: POOL_MODIFICATION_TYPE,
 		value: isPoolModificationValue(value) ? value : '',
 	};
 }

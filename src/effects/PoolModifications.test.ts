@@ -12,6 +12,7 @@ import {
 	encodeKey,
 	fromEditedChange,
 	isPoolModificationValue,
+	POOL_MODIFICATION_TYPE,
 	PoolModificationActor,
 	PoolModificationEffect,
 	poolModificationsForCheck,
@@ -839,7 +840,7 @@ describe('editing changes in the effect sheets', () => {
 		const subjects = { type: 'add', skill: 'Stealth', char: 'brawn' };
 
 		expect(fromEditedChange(editedChange('genesys.pool.skill.target', 'S', subjects))).toEqual(
-			editedChange('genesys.pool.skill.target.Stealth', 'S'),
+			editedChange('genesys.pool.skill.target.Stealth', 'S', { type: POOL_MODIFICATION_TYPE }),
 		);
 		expect(fromEditedChange(editedChange('genesys.pool.char.self', 'S', subjects)).key).toBe('genesys.pool.char.self.brawn');
 		expect(fromEditedChange(editedChange('genesys.pool.check.self', 'S', subjects)).key).toBe('genesys.pool.check.self.');
@@ -939,10 +940,12 @@ describe('editing changes in the effect sheets', () => {
 });
 
 describe('editing the types and values Foundry stores in the effect sheets', () => {
-	it('gives a Pool Modification the custom type, which keeps Foundry from applying it', () => {
-		expect(fromEditedChange(editedChange('genesys.pool.skill.self', 'B', { type: 'add', skill: 'Cool' }))).toEqual(
-			editedChange('genesys.pool.skill.self.Cool', 'B'),
-		);
+	it('gives a Pool Modification its own type, which Foundry applies to nothing', () => {
+		for (const type of ['add', 'custom']) {
+			expect(fromEditedChange(editedChange('genesys.pool.skill.self', 'B', { type, skill: 'Cool' }))).toEqual(
+				editedChange('genesys.pool.skill.self.Cool', 'B', { type: POOL_MODIFICATION_TYPE }),
+			);
+		}
 	});
 
 	it('splits the subject of a Pool Modification off its key, and keeps its type and phase', () => {
@@ -980,9 +983,10 @@ describe('editing the types and values Foundry stores in the effect sheets', () 
 		);
 	});
 
-	it('round-trips every kind of key, with the custom type', () => {
+	it('round-trips every kind of key, with the type of Pool Modifications', () => {
 		for (const key of ['genesys.pool.check.self.', 'genesys.pool.char.target.cunning', 'genesys.pool.skill.self.Cool']) {
-			expect(fromEditedChange(toEditedChange(editedChange(key, 'B')))).toEqual(editedChange(key, 'B'));
+			const change = editedChange(key, 'B', { type: POOL_MODIFICATION_TYPE });
+			expect(fromEditedChange(toEditedChange(change))).toEqual(change);
 		}
 	});
 });

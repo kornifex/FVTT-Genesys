@@ -160,6 +160,13 @@ declare global {
 			'genesys.sufferCastingStrain': QueryHandlers['genesys.sufferCastingStrain'];
 			'genesys.applyRecovery': QueryHandlers['genesys.applyRecovery'];
 		}
+
+		namespace ActiveEffect {
+			// The change type of Pool Modifications, which `src/effects` registers.
+			interface ChangeTypes {
+				'genesys.poolModification': foundry.documents.ActiveEffect.ChangeTypeConfig;
+			}
+		}
 	}
 
 	// The actors' standings before an update, which `src/effects/thresholdStateSync.ts` keeps in the update's options.

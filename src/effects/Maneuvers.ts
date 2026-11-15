@@ -4,7 +4,7 @@
 
 import { DieTypes } from '@/dice/DieTypes';
 import { type CheckPurpose, isCombatCheck } from '@/dice/Check';
-import { encodeKey } from '@/effects/PoolModifications';
+import { encodeKey, POOL_MODIFICATION_TYPE } from '@/effects/PoolModifications';
 import type { StateChange } from '@/effects/TokenStates';
 
 /**
@@ -35,7 +35,7 @@ export function aimGiving(boosts: number): ManeuverEffect {
 		id: AIM_ID,
 		name: 'Genesys.Maneuvers.Aim.Name',
 		img: 'icons/svg/dice-target.svg',
-		changes: [{ key: COMBAT_CHECK_KEY, value: DieTypes.Boost.GLYPH.repeat(boosts), type: 'custom' }],
+		changes: [{ key: COMBAT_CHECK_KEY, value: DieTypes.Boost.GLYPH.repeat(boosts), type: POOL_MODIFICATION_TYPE }],
 	};
 }
 
@@ -82,7 +82,7 @@ export const GUARDED_STANCE: ManeuverEffect = {
 	name: 'Genesys.Maneuvers.GuardedStance.Name',
 	img: 'icons/svg/shield.svg',
 	changes: [
-		{ key: COMBAT_CHECK_KEY, value: DieTypes.Setback.GLYPH, type: 'custom' },
+		{ key: COMBAT_CHECK_KEY, value: DieTypes.Setback.GLYPH, type: POOL_MODIFICATION_TYPE },
 		{ key: 'system.providedDefense.melee', value: '1', type: 'upgrade' },
 	],
 };
