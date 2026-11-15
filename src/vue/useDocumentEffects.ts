@@ -24,7 +24,6 @@ export function useDocumentEffects() {
 
 	async function addEffect(category: EffectCategory) {
 		const target = document.value;
-		// v13: an effect's duration counts its `rounds`, which v14 migrates into the `value` and `units` the types declare.
 		const effectData = [newEffectData(target.name, category) as ActiveEffect.CreateData];
 		// An actor and an item create their effects alike, which the types declare apart.
 		if (target instanceof GenesysActor) {

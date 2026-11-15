@@ -13,7 +13,7 @@ describe('newEffectData', () => {
 	});
 
 	it('gives a temporary effect a duration of one round', () => {
-		expect(newEffectData('Kira', 'temporary')).toMatchObject({ disabled: false, duration: { rounds: 1 } });
+		expect(newEffectData('Kira', 'temporary')).toMatchObject({ disabled: false, duration: { value: 1, units: 'rounds' } });
 	});
 
 	it('creates a suppressed effect disabled and without duration', () => {

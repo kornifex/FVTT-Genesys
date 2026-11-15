@@ -18,6 +18,7 @@ describe('glyphAttributes', () => {
 				localize: (key: string) => key.split('.').pop(),
 				format: (key: string, data: Record<string, string>) =>
 					`${key.split('.').slice(-2).join('.')} ${Object.values(data).join(' ')}`,
+				pluralRules: new Intl.PluralRules('en'),
 				getListFormatter: (options: Intl.ListFormatOptions) => new Intl.ListFormat('en', options),
 			},
 		});

@@ -374,18 +374,6 @@ export function dieResultLabel(die: DieName, face: string, i18n: GlyphLocalizer)
 	return i18n.format('Genesys.Glyphs.DieResult', { die: i18n.localize(DIE_KEYS[die]), face: glyphLabel(face, i18n) });
 }
 
-// v13: Localization has no plural rules of its own; one is kept per language, as v14 keeps its own.
-const pluralRulesByLanguage = new Map<string, Intl.PluralRules>();
-
-function languagePluralRules(lang: string) {
-	let rules = pluralRulesByLanguage.get(lang);
-	if (!rules) {
-		rules = new Intl.PluralRules(lang);
-		pluralRulesByLanguage.set(lang, rules);
-	}
-	return rules;
-}
-
 /**
  * The localization functions of the user's language.
  */
@@ -393,7 +381,7 @@ export function worldGlyphLocalizer(): GlyphLocalizer {
 	return {
 		localize: (key) => game.i18n.localize(key),
 		format: (key, data) => game.i18n.format(key, data),
-		pluralRules: (game.i18n as { pluralRules?: Intl.PluralRules }).pluralRules ?? languagePluralRules(game.i18n.lang),
+		pluralRules: game.i18n.pluralRules,
 		// Foundry's narrow list separates the items with commas, without the closing "and" of English and French (Spanish
 		// keeps its "y").
 		listFormatter: game.i18n.getListFormatter({ style: 'narrow' }),

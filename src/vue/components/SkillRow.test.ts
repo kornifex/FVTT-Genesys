@@ -16,6 +16,7 @@ beforeEach(() => {
 			lang: 'en',
 			localize: (key: string) => key,
 			format: (key: string, data: Record<string, string>) => `${key} ${Object.values(data).join(', ')}`,
+			pluralRules: new Intl.PluralRules('en'),
 			getListFormatter: (options: Intl.ListFormatOptions) => new Intl.ListFormat('en', options),
 		},
 	});

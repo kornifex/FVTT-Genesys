@@ -11,7 +11,7 @@ import Glyphs from '@/vue/components/Glyphs.vue';
 
 describe('Glyphs', () => {
 	beforeEach(() => {
-		// Foundry v13's localization, in English: it has no plural rules of its own.
+		// Foundry's localization, in English.
 		const en = load(readFileSync('yaml/lang/en.yml', 'utf8'));
 		const localize = (key: string) =>
 			key.split('.').reduce((node: unknown, part) => (node as Record<string, unknown>)[part], en) as string;
@@ -20,6 +20,7 @@ describe('Glyphs', () => {
 				lang: 'en',
 				localize,
 				format: (key: string, data: Record<string, string>) => localize(key).replace(/{(\w+)}/g, (_, name: string) => data[name]),
+				pluralRules: new Intl.PluralRules('en'),
 				getListFormatter: (options: Intl.ListFormatOptions) => new Intl.ListFormat('en', options),
 			},
 		});

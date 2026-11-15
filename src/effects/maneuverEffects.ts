@@ -2,7 +2,6 @@
  * @file The effects of the maneuvers a character performs from their sheet, put on their actor or taken back, and those a check uses up, removed once it is rolled by whoever may write the actor: the roller, else the Acting GM.
  */
 
-import { isFoundryV13 } from '@/foundryGeneration';
 import type { CheckPurpose } from '@/dice/Check';
 import { changesPath, foundryChange, lapsingFor } from '@/effects/GenesysEffect';
 import {
@@ -25,15 +24,15 @@ function effectsWith(actor: Actor.Implementation, status: string) {
 }
 
 /**
- * The data of a maneuver's effect, as the version of Foundry stores it.
+ * The data of a maneuver's effect, as Foundry stores it.
  */
 function effectData(maneuver: ManeuverEffect) {
 	const data = {
 		name: game.i18n.localize(maneuver.name),
 		img: maneuver.img,
 		statuses: [maneuver.id],
-		// v13: a token shows the icon of every effect that holds a status; v14 only of a temporary one, unless told to.
-		...(!isFoundryV13() && { showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.ALWAYS }),
+		// A token shows the icon of a temporary effect only, unless told to.
+		showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.ALWAYS,
 	};
 	foundry.utils.setProperty(data, changesPath(), maneuver.changes.map(foundryChange));
 	return data;
