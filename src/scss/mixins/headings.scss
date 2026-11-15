@@ -32,10 +32,11 @@
 	}
 }
 
-// AppV1's rich-text headings, which the descriptions were written for. Their sizes are in em, so that they follow the
-// text around them. AppV1 left the h4 at the text's size and relied on its bold weight; with every heading at a normal
-// weight, the h4 takes a size and a rule of its own so that it still reads as a heading.
-@mixin appv1 {
+// The headings of rich text, such as a description's, in the look of Foundry's AppV1 sheets, which the descriptions were
+// written for. Their sizes are in em, so that they follow the text around them. AppV1 left the h4 at the text's size and
+// relied on its bold weight; with every heading at a normal weight, the h4 takes a size and a rule of its own so that it
+// still reads as a heading.
+@mixin rich-text {
 	margin: 0 0 0.5rem;
 	padding: 0;
 	font-family: inherit;

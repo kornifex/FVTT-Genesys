@@ -126,7 +126,7 @@
 	@include headings.section;
 }
 
-// The rich text's headings, such as a description's, keep AppV1's look, which the descriptions were written for.
+// The rich text's headings, such as a description's, keep the look the descriptions were written for.
 .application .vue-app :is(.enriched, prose-mirror) :is(h1, h2, h3, h4) {
-	@include headings.appv1;
+	@include headings.rich-text;
 }
