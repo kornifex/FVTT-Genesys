@@ -250,7 +250,7 @@ function extendsExpiredEffect(effect: GenesysEffect, changed: ActiveEffect.Updat
 	const updated = effect.clone(foundry.utils.deepClone(changed), { keepId: true });
 	const timing = ({ _source: { duration, start } }: GenesysEffect) => ({ duration: { ...duration, expired: false }, start });
 
-	return !foundry.utils.objectsEqual(timing(effect), timing(updated)) && updated.duration.remaining > 0;
+	return !foundry.utils.equals(timing(effect), timing(updated)) && updated.duration.remaining > 0;
 }
 
 /**

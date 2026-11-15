@@ -158,7 +158,7 @@ const POOL_LABELS: Record<StoryPointPool, string> = {
 type SourceDocument = {
 	name: string;
 	documentName: string;
-	sheet: { render(force: boolean): unknown } | null;
+	sheet: { render(options: { force: boolean }): unknown } | null;
 	testUserPermission(user: User, level: 'OBSERVER'): boolean;
 };
 
@@ -317,7 +317,7 @@ function sourceDocument(uuid: string | undefined) {
 }
 
 function openSource(link: SourceLink) {
-	void sourceDocument(link.uuid)?.sheet?.render(true);
+	void sourceDocument(link.uuid)?.sheet?.render({ force: true });
 }
 
 function buildDicePool() {

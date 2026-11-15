@@ -130,7 +130,9 @@ export function canOpenSheet(document: RowDocument) {
  * Open the sheet of any document: an item, an actor, or an Active Effect.
  */
 export async function openSheet(document: RowDocument) {
-	await document.sheet?.render(true);
+	// The system's sheets are ApplicationV2s. A module's ApplicationV1 sheet, which v14 still renders, reads the options
+	// as a truthy `force` and opens too.
+	await (document.sheet as foundry.applications.api.DocumentSheetV2.Any | null)?.render({ force: true });
 }
 
 /**

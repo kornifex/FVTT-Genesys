@@ -302,7 +302,7 @@ export function register() {
 		if (user.isGM) DicePrompt.renderOpen();
 	});
 
-	Hooks.on('chatMessage', (_chatLog: ChatLog, message: string, _chatData: unknown) => {
+	Hooks.on('chatMessage', (_chatLog: foundry.applications.sidebar.tabs.ChatLog, message: string, _chatData: unknown) => {
 		if (/^\/gendr(?:oll)?/i.test(message)) {
 			openDiceRoller();
 			return false;
