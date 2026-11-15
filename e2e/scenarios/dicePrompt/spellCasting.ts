@@ -141,6 +141,39 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 		},
 	);
 
+	await e2e.step("#843 S6 GM renames Range, in the details of the Mage's Curse on its sheet, Far Range", () =>
+		gm.evaluate(async () => {
+			const curse = game.actors.getName('E2E Mage').items.getName('E2E Curse');
+			const range = (await window.e2e.render(curse.sheet)).querySelectorAll('.additional-effect')[2];
+			range.querySelector<HTMLElement>('button[aria-expanded]')!.click();
+			await window.e2e.settle();
+			const input = range.querySelector<HTMLInputElement>('.effect-name input')!;
+			input.value = 'Far Range';
+			input.dispatchEvent(new Event('change'));
+			await window.e2e.settle();
+		}),
+	);
+	const renamed = await gm.evaluate(async () => {
+		const curse = (actor: string) => game.actors.getName(actor).items.getName('E2E Curse');
+		const names = (actor: string) => curse(actor).system.additionalEffects.map(({ name }: { name: string }) => name);
+		const row = curse('E2E Mage').sheet.element.querySelectorAll('.additional-effect .name')[2].textContent.trim();
+		await curse('E2E Mage').sheet.close();
+		return { mage: names('E2E Mage'), novice: names('E2E Novice'), row };
+	});
+	await opened(gm, cast('Mage'));
+	const prompted = (await effects()).effects.map(({ name }) => name);
+	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	e2e.expect(
+		"#843 S6 the Mage's Curse saves the new name, which its row and the Dice Prompt show; the Novice's Curse keeps Range",
+		{ ...renamed, prompted },
+		{
+			mage: ['Enervate', 'Additional Target', 'Far Range'],
+			novice: ['Enervate', 'Additional Target', 'Range'],
+			row: 'Far Range',
+			prompted: ['Enervate', 'Additional Target', 'Far Range'],
+		},
+	);
+
 	// §#729: a player who observes the Mage casts their spells; the Acting GM makes the Mage suffer the strain, and uses
 	// up their Aim with an attack spell only.
 	const mage = { actor: 'Mage' };

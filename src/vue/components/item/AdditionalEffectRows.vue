@@ -38,6 +38,16 @@ function detailsLabel(effect: string) {
 	return game.i18n.format('Genesys.Labels.AdditionalEffectDetails', { effect });
 }
 
+// A copy keeps a name, which its row, its removal and the Dice Prompt show: a cleared field restores it.
+function rename(index: number, input: HTMLInputElement) {
+	const name = input.value.trim();
+	if (!name) {
+		input.value = props.additionalEffects[index].name;
+		return;
+	}
+	return props.onChange(props.additionalEffects.map((effect, i) => (i === index ? { ...effect, name } : effect)));
+}
+
 function changeDescription(index: number, description: string) {
 	return props.onChange(props.additionalEffects.map((effect, i) => (i === index ? { ...effect, description } : effect)));
 }
@@ -73,7 +83,16 @@ async function remove(index: number) {
 		</div>
 
 		<div v-if="opened.has(effect.id)" class="details">
-			<!-- The copy's own setting, so that an effect already on the spell needs no new drop to change it. -->
+			<!-- The copy's own settings, so that an effect already on the spell needs no new drop to change them. -->
+			<label class="effect-name">
+				<Localized label="Genesys.Labels.Name" />
+				<input
+					type="text"
+					:value="effect.name"
+					:disabled="!editable"
+					@change="rename(index, $event.currentTarget as HTMLInputElement)"
+				/>
+			</label>
 			<label class="repeatable">
 				<input
 					type="checkbox"
@@ -113,6 +132,7 @@ async function remove(index: number) {
 .details {
 	padding: 0.25rem 0 0.5rem 0.5rem;
 
+	.effect-name,
 	.repeatable {
 		display: flex;
 		align-items: center;

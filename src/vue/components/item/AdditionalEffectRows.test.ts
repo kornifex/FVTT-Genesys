@@ -81,4 +81,29 @@ describe('AdditionalEffectRows', () => {
 
 		expect(onChange).toHaveBeenCalledExactlyOnceWith([range('r1'), { ...range('r2'), repeatable: true }]);
 	});
+
+	it('renames the copy on the spell from its details, without touching its twin', async () => {
+		const onChange = vi.fn();
+		const rows = mountRows([range('r1'), range('r2')], onChange);
+		const second = rows.findAll('.additional-effect')[1];
+
+		await second.get('button[aria-expanded]').trigger('click');
+		const name = second.get<HTMLInputElement>('.effect-name input');
+		expect([second.get('.effect-name').text(), name.element.value]).toEqual(['Genesys.Labels.Name', 'Range']);
+		await name.setValue('  Far Range ');
+
+		expect(onChange).toHaveBeenCalledExactlyOnceWith([range('r1'), { ...range('r2'), name: 'Far Range' }]);
+	});
+
+	it('keeps the name of a copy whose name is cleared', async () => {
+		const onChange = vi.fn();
+		const rows = mountRows([range('r1')], onChange);
+
+		await rows.get('button[aria-expanded]').trigger('click');
+		const name = rows.get<HTMLInputElement>('.effect-name input');
+		await name.setValue(' ');
+
+		expect(onChange).not.toHaveBeenCalled();
+		expect(name.element.value).toBe('Range');
+	});
 });
