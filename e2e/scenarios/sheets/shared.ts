@@ -1752,3 +1752,16 @@ export type SheetsContext = {
 	page: () => Page;
 	recordCompatibilityWarnings: (client: Client) => void;
 };
+
+/**
+ * Runs `steps` with the client's windows in Foundry's light theme, the one AppV1's look belongs to, then gives back the
+ * theme it had: Foundry v14 gives its applications the dark theme by default, which the sheets follow (#852).
+ */
+export async function inLightTheme<T>(client: Client, steps: () => Promise<T>): Promise<T> {
+	const wasDark = await client.evaluate(() => document.body.classList.replace('theme-dark', 'theme-light'));
+	try {
+		return await steps();
+	} finally {
+		if (wasDark) await client.evaluate(() => document.body.classList.replace('theme-light', 'theme-dark'));
+	}
+}

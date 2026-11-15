@@ -1,4 +1,4 @@
-/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles: its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584), and the Talents tab's bars (#623); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622), and shown where the mouse goes, a right-click on the + taking nothing off (#645). */
+/** @file The accessibility check of #534, axe-core on each tab of each sheet type and on each prompt, in both Styles and, for the colours, both Foundry themes (#852): its findings are logged, and those a slice of #534 fixed asserted (#574: button names; #576: an open actions menu; #581: labels, the prompts' target sizes; #583: text contrast, in both Styles), with a keyboard step per sheet type and per prompt (#581); the tabs, the focus ring and reduced motion of each sheet type (#575); the headings each tab of each sheet type starts its sections with (#584), and the Talents tab's bars (#623); each kind of row that rolls, from the keyboard: its name rolls, its icon opens its sheet (#578); and each kind of row's ⋮ menu, from the keyboard, its entries in their order (#577); and each counter's − and +, whole (#622), and shown where the mouse goes, a right-click on the + taking nothing off (#645). */
 import type { ScenarioContext } from '../scenario.ts';
 
 /**
@@ -6,9 +6,22 @@ import type { ScenarioContext } from '../scenario.ts';
  * the rules that read them, and the WCAG 2.2 AA ones run in Genesys.
  */
 type Style = { key: string; name: string; checks: string; rules?: string[] };
+const COLOUR_RULES = ['color-contrast', 'link-in-text-block'];
 const STYLES: Style[] = [
 	{ key: 'genesys', name: 'Genesys', checks: 'WCAG 2.2 AA' },
-	{ key: 'terrinoth', name: 'Realms of Terrinoth', checks: 'colours', rules: ['color-contrast', 'link-in-text-block'] },
+	{ key: 'terrinoth', name: 'Realms of Terrinoth', checks: 'colours', rules: COLOUR_RULES },
+];
+
+/**
+ * A pair of Style and Foundry theme the colour checks run in. The dark theme only changes colours too, so it runs the
+ * colour rules alone; the light pairs keep their Style's name, as before the dark theme.
+ */
+type Look = Style & { theme: 'light' | 'dark' };
+const LOOKS: Look[] = [
+	...STYLES.map((style): Look => ({ ...style, theme: 'light' })),
+	...STYLES.map(
+		(style): Look => ({ ...style, name: `${style.name}, dark theme`, checks: 'colours', rules: COLOUR_RULES, theme: 'dark' }),
+	),
 ];
 
 /** A point of the page, in the viewport's pixels, as the mouse of Playwright takes it. */
@@ -37,6 +50,13 @@ type AccessibilityHelpers = {
 	openRowMenu(): Promise<string>;
 	/** Shows the pages in a Style, by its key, as the world setting does, without writing the setting. */
 	setStyle(style: string): Promise<void>;
+	/**
+	 * Shows the windows in a Foundry theme, as the applications' theme setting does, without writing the setting; null
+	 * gives none, as Foundry does when neither the setting nor the browser names one.
+	 */
+	setTheme(theme: 'light' | 'dark' | null): Promise<void>;
+	/** The theme the applications' setting gave the page, from `body`'s class; null when it gave none. */
+	theme(): 'light' | 'dark' | null;
 	/**
 	 * Readies a keyboard step on an action of a sheet (#574), by the sheet's name: renders the sheet on the action's tab,
 	 * and focuses the control before the action's button in Tab order, so that one Tab reaches it.
@@ -1101,6 +1121,18 @@ function installAccessibilityHelpers() {
 			document.documentElement.dataset.genesysStyle = style;
 			// The colours change through the sheets' transitions, which a check reading them mid-way would get wrong.
 			await settle();
+		},
+
+		async setTheme(theme) {
+			// Foundry puts the applications' theme on `body` (`Game#configureUI`), which the sheets follow.
+			document.body.classList.remove('theme-light', 'theme-dark');
+			if (theme) document.body.classList.add(`theme-${theme}`);
+			await settle();
+		},
+
+		theme() {
+			if (document.body.classList.contains('theme-dark')) return 'dark';
+			return document.body.classList.contains('theme-light') ? 'light' : null;
 		},
 
 		async readyKeyboardAction(sheet) {
@@ -2383,22 +2415,27 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(installAccessibilityHelpers);
 	await e2e.step('setup', () => gm.evaluate(() => window.accessibilityE2E.setUp()));
 	const worldStyle = await gm.evaluate(() => document.documentElement.dataset.genesysStyle ?? 'genesys');
+	const worldTheme = await gm.evaluate(() => window.accessibilityE2E.theme());
 
 	// The checks of the running part that found a button without a name (#574), which every action has since.
 	let unnamedButtons: string[] = [];
 	// The violations of the running part's checks of a field without a label (#581) and of a target under 24 px, by check.
 	let unlabelledFields: Record<string, string[]> = {};
 	let smallTargets: Record<string, string[]> = {};
-	// The running part's checks that found text under 4.5:1 (#583), in either Style.
+	// The running part's checks that found text under 4.5:1 (#583), in each Style and theme.
 	let lowContrasts: Record<string, string[]> = {};
 	const violated = (findings: Record<string, unknown>, rules: string[]) =>
 		Object.keys(findings).filter(
 			(finding) => rules.some((rule) => finding.startsWith(`${rule} (`)) && !finding.endsWith('(needs review)'),
 		);
-	// Checks an element in each Style, and logs what each check finds.
+	const show = async (look: Look) => {
+		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), look.key);
+		await gm.evaluate((theme) => window.accessibilityE2E.setTheme(theme), look.theme);
+	};
+	// Checks an element in each Style and theme, and logs what each check finds.
 	const check = async (label: string, selector: string) => {
-		for (const style of STYLES) {
-			await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
+		for (const style of LOOKS) {
+			await show(style);
 			const checked = `axe ${label}, ${style.checks} in ${style.name}`;
 			const findings = await gm.axe(selector, style.rules);
 			e2e.log(checked, findings);
@@ -2423,8 +2460,8 @@ export async function run(e2e: ScenarioContext) {
 	// can't decide, such as the tabs' contrast over the nav's gradient (#583), is logged alone.
 	const tabListViolations: string[] = [];
 	const checkTabList = async (name: string, selector: string) => {
-		for (const style of STYLES) {
-			await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), style.key);
+		for (const style of LOOKS) {
+			await show(style);
 			const findings = await gm.axe(`${selector} nav.sheet-tabs`, style.rules);
 			e2e.log(`axe ${name} sheet's tab list, ${style.checks} in ${style.name}`, findings);
 			for (const rule of Object.keys(findings).filter((rule) => !rule.endsWith('(needs review)'))) {
@@ -2463,7 +2500,7 @@ export async function run(e2e: ScenarioContext) {
 			expectNamedButtons('#574 A1 no tab of any sheet type has a button without a name');
 			e2e.expect("#575 A1 no sheet type's tab list violates an accessibility rule", tabListViolations, []);
 			expectLabelledFields('#581 L1 no tab of any sheet type has a field or a select without a label');
-			expectContrasts('#583 C1 no tab of any sheet type has text under 4.5:1, in either Style');
+			expectContrasts('#583 C1 no tab of any sheet type has text under 4.5:1, in each Style and theme');
 			// The sheets' small targets go to #577 and #579, which rewrite their buttons.
 			smallTargets = {};
 		});
@@ -2479,7 +2516,7 @@ export async function run(e2e: ScenarioContext) {
 			expectNamedButtons('#574 A2 no prompt has a button without a name');
 			expectLabelledFields('#581 L2 no prompt has a field or a select without a label');
 			expectTargetSizes('#581 L3 no prompt has a target under 24 px, the Difficulty dice included');
-			expectContrasts('#583 C2 no prompt has text under 4.5:1, in either Style');
+			expectContrasts('#583 C2 no prompt has text under 4.5:1, in each Style and theme');
 		});
 
 		// §#576: an open actions menu, which its sheet's check never finds open.
@@ -2502,7 +2539,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('storyPointTracker', async () => {
 			await e2e.step('Story Point tracker checked', () => check('Story Point tracker', '#story-point-tracker'));
 			expectNamedButtons('#574 A3 the Story Point tracker has no button without a name');
-			expectContrasts('#583 C3 the Story Point tracker has no text under 4.5:1, in either Style');
+			expectContrasts('#583 C3 the Story Point tracker has no text under 4.5:1, in each Style and theme');
 		});
 
 		// §#574: an action of each sheet type is reached with Tab and run with Enter.
@@ -2669,7 +2706,7 @@ export async function run(e2e: ScenarioContext) {
 				'h5 out of turn: bar',
 				'h4 Passive: bar',
 			]);
-			expectContrasts("#623 B2 the Talents tab's bars keep their text at 4.5:1, in either Style");
+			expectContrasts("#623 B2 the Talents tab's bars keep their text at 4.5:1, in each Style and theme");
 		});
 
 		await e2e.part('rollLinks', () => rollLinks(e2e));
@@ -2684,5 +2721,6 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('promptKeys', () => promptKeys(e2e));
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);
+		await gm.evaluate((theme) => window.accessibilityE2E.setTheme(theme), worldTheme);
 	}
 }

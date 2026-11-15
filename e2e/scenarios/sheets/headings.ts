@@ -1,10 +1,11 @@
-import type { HeadingStyle, SheetsHelpers, SheetsContext } from './shared.ts';
+import { type HeadingStyle, inLightTheme, type SheetsHelpers, type SheetsContext } from './shared.ts';
 
 export async function headingsPart(ctx: SheetsContext) {
 	const { e2e, gm } = ctx;
 	let headings: Record<string, HeadingStyle> | undefined;
+	// AppV1's look, which the headings keep, is its light theme's.
 	await e2e.step('#346 GM opens a skill whose description holds headings', async () => {
-		headings = await gm.evaluate(() => window.sheetsE2E.descriptionHeadings('skill'));
+		headings = await inLightTheme(gm, () => gm.evaluate(() => window.sheetsE2E.descriptionHeadings('skill')));
 	});
 	const appV1Heading = (size: number, border: string) => ({
 		size,

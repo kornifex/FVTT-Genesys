@@ -22,12 +22,12 @@
 
 	&:is(h4) {
 		font-size: 1.1em;
-		color: colors.$dark-blue;
+		color: colors.$text-dark-blue;
 	}
 
 	&:is(h5) {
 		font-size: 1em;
-		color: colors.$dark-blue;
+		color: colors.$text-dark-blue;
 	}
 }
 

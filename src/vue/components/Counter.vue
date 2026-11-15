@@ -305,7 +305,7 @@ input.value {
 	font-size: 0.6em;
 	line-height: 1;
 	background: colors.$paper;
-	color: colors.$dark-blue;
+	color: colors.$text-dark-blue;
 	border: 1px solid colors.$gold;
 	border-radius: 50%;
 	transform: translateY(-50%);

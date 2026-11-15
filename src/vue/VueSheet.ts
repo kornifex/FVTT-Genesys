@@ -26,11 +26,10 @@ type RenderOptions = DeepPartial<foundry.applications.api.ApplicationV2.RenderOp
  */
 export function VueSheet<TBase extends ApplicationConstructor, ContextType extends object | undefined = object>(base: TBase) {
 	return class extends base {
-		// The document sheets submit through the form. The components draw with the Palette, whose colors are light, so the
-		// window keeps Foundry's light theme rather than following the interface's.
+		// The document sheets submit through the form. The window takes no theme class, so it follows the theme of the
+		// applications on `body`, or the one a user picks for a document sheet, which Foundry then adds.
 		static DEFAULT_OPTIONS: foundry.applications.api.ApplicationV2.DefaultOptions = {
 			tag: 'form',
-			classes: ['themed', 'theme-light'],
 		};
 
 		/**

@@ -51,6 +51,12 @@ $defaults: (
 	'input': rgba(0, 0, 0, 0.05),
 	'input-border': #7a7971,
 	'heading-rule': #782e22,
+	'text-dark-blue': var(--genesys-dark-blue),
+	'text-red': var(--genesys-red),
+	// The colors Foundry's light theme gives its checkboxes, radios and text areas, which the sheets and prompts keep.
+	'control': #666,
+	'textarea': rgba(0, 0, 0, 0.1),
+	'die-outline-off': rgba(0, 0, 0, 0.25),
 );
 
 // The dark variant of the Palette, for the dark theme Foundry lets a user choose (see `scss/theme.scss`). The paper
@@ -71,6 +77,11 @@ $dark: (
 	'text-muted': #b3ada3,
 	'input': rgba(255, 255, 255, 0.05),
 	'heading-rule': #a7776f,
+	'text-dark-blue': color-mix(in srgb, var(--genesys-dark-blue), white 60%),
+	'text-red': color-mix(in srgb, var(--genesys-red), white 55%),
+	'control': #a8a39a,
+	'textarea': rgba(255, 255, 255, 0.08),
+	'die-outline-off': rgba(255, 255, 255, 0.6),
 );
 
 // The dark variant of each Style, over the dark Palette.
@@ -133,8 +144,18 @@ $die-setback: var(--genesys-die-setback);
 $ink: var(--genesys-ink);
 // Secondary text on paper.
 $ink-muted: var(--genesys-ink-muted);
-// Blue text on paper.
+// Blue text on paper, and the dashed rules between rows.
 $text-blue: var(--genesys-text-blue);
+// Dark blue text on paper, such as a group's heading, and the rules drawn with it.
+$text-dark-blue: var(--genesys-text-dark-blue);
+// Red text on paper, such as a warning.
+$text-red: var(--genesys-text-red);
+// An unchecked checkbox or radio, and the border of a text area.
+$control: var(--genesys-control);
+// The background of a text area, a tint over what it lies on.
+$textarea: var(--genesys-textarea);
+// The outline of a die's slot the check leaves out, such as the Dice Prompt's unused Difficulty dice.
+$die-outline-off: var(--genesys-die-outline-off);
 // Gold text on dark blue.
 $text-gold: var(--genesys-text-gold);
 // Text on blue, dark blue, red, and the Dice Prompt's preview.

@@ -184,7 +184,7 @@ async function resetStoryPoints() {
 	// The two sides of Genesys' Story Point token: the GM's dark, the players' light.
 	.gm {
 		background: colors.$dark-blue;
-		color: colors.$paper;
+		color: colors.$text-on-dark;
 
 		header {
 			color: colors.$text-gold;
@@ -195,7 +195,7 @@ async function resetStoryPoints() {
 		@include backgrounds.crossboxes;
 
 		border-left: 1px solid colors.$gold;
-		color: var(--color-dark-1);
+		color: colors.$text;
 	}
 
 	header {

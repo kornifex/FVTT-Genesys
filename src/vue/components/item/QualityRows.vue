@@ -178,7 +178,7 @@ async function addEffect(index: number) {
 @use '@scss/vars/colors.scss';
 
 .quality {
-	border-bottom: 1px dashed colors.$blue;
+	border-bottom: 1px dashed colors.$text-blue;
 
 	&:last-child {
 		border-bottom: none;

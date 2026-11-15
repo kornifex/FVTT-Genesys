@@ -71,7 +71,7 @@
 @mixin item-row {
 	display: grid;
 	grid-template-rows: repeat(3, auto);
-	border-bottom: 1px dashed colors.$blue;
+	border-bottom: 1px dashed colors.$text-blue;
 	align-items: center;
 	justify-items: center;
 

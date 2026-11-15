@@ -969,9 +969,11 @@ $target-size: 24px;
 				color: colors.$die-challenge;
 			}
 
+			// The slot of a die the check doesn't roll: its color faded, and an outline that the dark theme keeps visible.
 			&.difficulty-die-Off {
-				color: colors.$die-difficulty;
-				opacity: 0.25;
+				color: colors.alpha(colors.$die-difficulty, 0.25);
+				-webkit-text-stroke-color: colors.$die-outline-off;
+				text-stroke-color: colors.$die-outline-off;
 			}
 
 			&:hover {

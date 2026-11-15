@@ -201,7 +201,7 @@ const removal: RowRemoval = { label: 'Genesys.Labels.RemoveFromCrew', icon: 'fas
 			display: flex;
 			flex-wrap: wrap;
 			font-size: 0.9em;
-			color: colors.$dark-blue;
+			color: colors.$text-dark-blue;
 			gap: 0.25em;
 
 			&:not([data-item-type='container']) {

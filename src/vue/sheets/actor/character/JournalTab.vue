@@ -179,6 +179,11 @@ function journalEntryFormatArgs(entry: JournalEntry): Record<string, string | nu
 		&[src=''] {
 			background: colors.alpha(colors.$gold, 0.5);
 		}
+
+		// Foundry's default silhouette is white, which glares on the dark paper.
+		:where(.theme-dark) &[src$='mystery-man.svg']:not(:where(.theme-light) *) {
+			opacity: 0.4;
+		}
 	}
 
 	.motivations {

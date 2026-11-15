@@ -228,7 +228,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 
 				font-family: 'Roboto Serif', serif;
 				font-size: 0.9em;
-				color: colors.$dark-blue;
+				color: colors.$text-dark-blue;
 				margin-left: 0.5em;
 			}
 
@@ -356,7 +356,7 @@ async function showCrewSkills(vehicle: GenesysActor<'vehicle'>, isStale: () => b
 					display: grid;
 					width: 100%;
 					grid-template-columns: 1.5rem 2fr 1.5fr 1.5em 80px;
-					border-top: 1px dashed colors.$blue;
+					border-top: 1px dashed colors.$text-blue;
 					align-items: center;
 					justify-items: center;
 					padding: 2px 0;

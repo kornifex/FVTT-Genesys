@@ -1,6 +1,6 @@
 /** @file The sheet and chat card items of the test checklist (#37), each step named after its section: `#95 A1 …` for §#95. */
 import type { Client, ScenarioContext } from '../scenario.ts';
-import { installSheetsHelpers, type SheetsContext } from './sheets/shared.ts';
+import { inLightTheme, installSheetsHelpers, type SheetsContext } from './sheets/shared.ts';
 import { welcomePart } from './sheets/welcome.ts';
 import { tokenLabelsPart } from './sheets/tokenLabels.ts';
 import { appV2WindowsPart } from './sheets/appV2Windows.ts';
@@ -103,8 +103,8 @@ export async function run(e2e: ScenarioContext) {
 	await part('appV2Windows', () => appV2WindowsPart(context, actorTypes, itemTypes));
 
 	// §#95: ApplicationV2 gives text fields and selects Foundry's look, with an inset shadow in a light theme. The sheets
-	// give them the flat look of AppV1's fields, which the components are written over.
-	await part('fieldLooks', () => fieldLooksPart(context, actorTypes, itemTypes));
+	// give them the flat look of AppV1's fields, which the components are written over, in the light theme.
+	await part('fieldLooks', () => inLightTheme(context.gm, () => fieldLooksPart(context, actorTypes, itemTypes)));
 
 	// #304: a minimized sheet collapses to its header, as wide as Foundry's --minimized-width (200px), and keeps its
 	// minimum size while open.

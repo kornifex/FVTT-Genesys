@@ -469,7 +469,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 
 			&,
 			&:focus {
-				border-bottom: 1px solid colors.$dark-blue;
+				border-bottom: 1px solid colors.$text-dark-blue;
 			}
 
 			&:focus {
@@ -489,7 +489,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 				width: 3em;
 				text-align: center;
 				font-family: 'Roboto', sans-serif;
-				border-bottom: 1px solid colors.$dark-blue;
+				border-bottom: 1px solid colors.$text-dark-blue;
 			}
 		}
 	}
