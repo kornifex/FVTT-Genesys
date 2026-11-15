@@ -190,7 +190,7 @@ export async function run(e2e: ScenarioContext) {
 	await part('chatCards', () => chatCardsPart(context));
 
 	// §#262: the directories' create dialogs. Foundry's `createDialog` gets the position the directory asks for, so the
-	// dialog opens there, and the system doesn't pass a dialog option where v13 reads a database option. §#258: the
+	// dialog opens there. §#258: the
 	// defaults of a created document. §#97: a setting's hint.
 	await part('createdDocuments', () => createdDocumentsPart(context));
 

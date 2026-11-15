@@ -34,11 +34,14 @@ export async function appV2WindowsPart(ctx: SheetsContext, actorTypes: string[],
 	);
 	e2e.log('item type labels', itemLabels);
 
-	// v13: core's header has no ownership or detach entry, which v14's ApplicationV2 header adds to the controls menu.
-	const headerControls =
-		e2e.version < 14
-			? ['configurePrototypeToken', 'configureSheet', 'showPortraitArtwork', 'showTokenArtwork']
-			: ['configureOwnership', 'configurePrototypeToken', 'configureSheet', 'detach', 'showPortraitArtwork', 'showTokenArtwork'];
+	const headerControls = [
+		'configureOwnership',
+		'configurePrototypeToken',
+		'configureSheet',
+		'detach',
+		'showPortraitArtwork',
+		'showTokenArtwork',
+	];
 	e2e.expect(
 		'#95 A3 the AppV2 header holds the controls menu, with the prototype token and artwork entries, and the copy-UUID and sheet-config buttons',
 		header,

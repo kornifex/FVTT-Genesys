@@ -1,6 +1,6 @@
 # Foundry e2e harness
 
-Runs scenarios in real Foundry, on v13 and v14 by default: each version is launched on a fresh copy of a world with a copy of a system build, a GM and a player join with headless Chromium (playwright-core), and each scenario's step log is printed, with its assertions. With `--compare`, the same scenarios run on another git ref's build too, and the steps that differ are listed.
+Runs scenarios in real Foundry, on v14 by default (`--versions` takes others): each version is launched on a fresh copy of a world with a copy of a system build, a GM and a player join with headless Chromium (playwright-core), and each scenario's step log is printed, with its assertions. With `--compare`, the same scenarios run on another git ref's build too, and the steps that differ are listed.
 
 It needs licensed Foundry installs, so it never runs in CI. It backs the "Testing a change" rule of [`docs/agents/code-style.md`](../docs/agents/code-style.md): a Foundry-dependent PR adds or extends its domain's scenario with `expect` steps, and `pnpm e2e:all` is the release gate of [`docs/agents/releasing.md`](../docs/agents/releasing.md).
 
@@ -9,11 +9,8 @@ It needs licensed Foundry installs, so it never runs in CI. It backs the "Testin
 Licensed installs, data dirs and worlds stay outside the repo. Give them in `e2e/.env` (ignored by git), or in the environment, which wins. A git worktree without an `e2e/.env` of its own loads the main checkout's, found through `git rev-parse --git-common-dir`, so a run works from any worktree:
 
 ```sh
-# For each version: the Node binary it runs on, Foundry's main.js, a data dir holding Config/license.json and the world.
-E2E_V13_NODE=/path/to/node22/bin/node
-E2E_V13_FOUNDRY=/path/to/foundryvtt-13/main.js
-E2E_V13_DATA=/path/to/foundrydata-13
-E2E_V13_WORLD=my-world
+# For v14, the default: the Node binary it runs on, Foundry's main.js, a data dir holding Config/license.json and the world.
+# Another version's E2E_V<n>_* variables are only needed to run it with --versions.
 E2E_V14_NODE=/path/to/node24/bin/node
 E2E_V14_FOUNDRY=/path/to/foundryvtt-14/main.js
 E2E_V14_DATA=/path/to/foundrydata-14
@@ -29,7 +26,7 @@ E2E_LAUNCHES=8                               # the Foundry launches that run at 
 E2E_WORK_DIR=/tmp/genesys-e2e                # default: genesys-e2e in the system's temp dir
 ```
 
-Node versions: Foundry v13 needs Node 22, v14 Node 24. Any version given as `E2E_V<n>_*` can run; without a v14 install, pass `--versions 13`.
+Foundry v14 needs Node 24. A run takes the versions of `--versions`, `14` by default, and needs the `E2E_V<n>_*` variables of each.
 
 The harness only reads the installs and data dirs: each launch copies the licence and the world into `E2E_WORK_DIR/runs/<checkout>/launch-<i>/`, `<checkout>` being the checkout's folder name and a hash of its path. The world needs a scene, or the first combat setup creates one. Several Foundry servers run on one licence at once, which its terms allow while only the licence owner reaches them.
 
@@ -38,11 +35,11 @@ Runs from several worktrees go on side by side, on one install and data dir per 
 ## Running
 
 ```sh
-pnpm e2e:all                                                  # the suite: every e2e/scenarios/*.ts, on v13 and v14
-pnpm e2e e2e/scenarios/combat.ts                              # builds the working tree, runs one scenario on v13 and v14
+pnpm e2e:all                                                  # the suite: every e2e/scenarios/*.ts, on v14
+pnpm e2e e2e/scenarios/combat.ts                              # builds the working tree, runs one scenario on v14
 pnpm e2e e2e/scenarios/combat.ts --part claims,noGM           # only those parts of the scenario, after its setup
 pnpm e2e e2e/scenarios/combat.ts --compare origin/main        # also on origin/main's build, then the differing steps
-pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14 only
+pnpm e2e path/to/scenario.ts --versions 14 --dist path/to/dist # an existing build, on v14
 pnpm e2e e2e/scenarios/combat.ts --verbose                    # prints every step's value, as the saved step logs hold them
 pnpm e2e:all --launches 1                                     # the slices one after the other, on one launch
 ```
@@ -51,7 +48,7 @@ pnpm e2e:all --launches 1                                     # the slices one a
 -   `--part a,b` runs only the [parts](#parts) given, of a single scenario file: its setup and the steps outside parts run, the other parts are skipped. The run fails at the end of the scenario when a name given met no part, its message listing the parts the scenario has.
 -   `--compare <ref>` builds the ref once per commit, from `git archive`, in `E2E_WORK_DIR/builds/`. Compare against `origin/main`: a local `main` may lag behind. The run stops, before building anything, when HEAD lacks commits of the ref, as their changes would show as differences: it says how many, and to merge the ref into the branch or compare against `git merge-base HEAD <ref>`.
 -   The ref's step logs are cached per part in `E2E_WORK_DIR/baselines/<commit>/v<version>/<scenario>/<hash>.json`, the hash covering the scenario file and every `e2e/*.ts` but the unit tests: a comparison runs the ref only for the parts its cache lacks, and launches nothing for it, nor builds it, when the cache holds them all, so a whole run fills the cache for every `--part` run after it. The run says which parts came from the cache, and its summary marks a build whose steps did. Editing the scenario or the harness starts a new cache; a run an error stopped is never cached; `--fresh` ignores the cache and overwrites it with this run's parts alone. The differing steps are those outside parts and those of the parts both builds ran.
--   Each step prints as `[v13 head] <step>`, `[v13 head <scenario>] …` when several scenarios run. A passed assertion ends with `✓`; a value of up to 120 characters (an `e2e.log`) prints in full; a longer one (a combat state) prints only the client errors it holds, which fail no assertion. A failed step starts with `FAILED` and prints its value and the value expected. `--verbose` prints every value. The step logs are saved in full as JSON in `E2E_WORK_DIR/results/<checkout>/<scenario>/`, and the `server.log` of each launch's last world in `E2E_WORK_DIR/runs/<checkout>/launch-<i>/`: the run prints both folders as it starts and ends.
+-   Each step prints as `[v14 head] <step>`, `[v14 head <scenario>] …` when several scenarios run. A passed assertion ends with `✓`; a value of up to 120 characters (an `e2e.log`) prints in full; a longer one (a combat state) prints only the client errors it holds, which fail no assertion. A failed step starts with `FAILED` and prints its value and the value expected. `--verbose` prints every value. The step logs are saved in full as JSON in `E2E_WORK_DIR/results/<checkout>/<scenario>/`, and the `server.log` of each launch's last world in `E2E_WORK_DIR/runs/<checkout>/launch-<i>/`: the run prints both folders as it starts and ends.
 -   A launch stops at once when Foundry refuses the world, as when the system's `compatibility` excludes that version. A client's join stops when the system didn't load, as when its module throws on a global that version removed: its message quotes the page's first error.
 -   The run ends with a summary per version and build: its assertion count, each scenario's time (with `--part` or `--verbose`, each part's, and the time outside parts), then each failed assertion with both values, and each scenario an error stopped (a `FATAL` step). The times add up the steps' `ms`, which the step logs hold with each step's `part`, so a scenario's time is the work it took on all its slices. The run's wall time comes last.
 -   The exit code is 1 when an assertion failed on the working tree's build, or an error stopped a scenario on any build. An assertion failing on the build compared against doesn't count: it may lack the change under test.
@@ -109,7 +106,7 @@ export async function run(e2e: ScenarioContext) {
 -   `client.leave()` closes the client's page, so that its user is no longer connected (a game with no GM online), and `client.join()` brings it back in a new page. Steps skip a client that left; evaluating in its page, or `setUpCombat` while the GM is away, stops the scenario with an error.
 -   `client.fixDice(dice)` makes the next dice rolled in that page land on chosen faces, until the end of the step: `{ face: 3, faces: 8 }` is the third face of an Ability die, in the order of `src/dice/DieFaces.ts`. Fixing dice for another die type logs an error in the page, and a setup or a step's end makes the dice random again: fix them right before the roll. Fix dice only when a roll's result is under test: a scenario asserts a dice pool (the prompt's state, the Roll formula, the listed Pool Modifications) without needing its result.
 -   `client.axe(selector, rules?)` checks the element a selector finds in that page with [axe-core](https://github.com/dequelabs/axe-core), against WCAG 2.2 AA or only the rules given, and returns its violations: for each rule, `<rule> (<impact>)`, how many elements of each kind violate it, then as `<rule> (needs review)` those axe-core couldn't decide on (a contrast over a background image), but for what lies around the window (the elements under it, the viewport), which changes from one run to the next, a kind being an element's tag and classes after its parent's (`div.name > a`), which stay the same from one run to the next where ids don't. Log them with `log`, or assert the rules a change fixes with `expect`.
--   `client.glyphNames(selector)` reads each element a selector finds holding glyphs of the dice and symbols, in the order of the page: its text, its name as an image to a screen reader (from Playwright's accessibility snapshot, null when it is no image), and the tooltip Foundry shows on hovering it (null without one). The snapshot holds only what shows: show a sidebar tab or a window before reading it (v13's headless window collapses the sidebar).
+-   `client.glyphNames(selector)` reads each element a selector finds holding glyphs of the dice and symbols, in the order of the page: its text, its name as an image to a screen reader (from Playwright's accessibility snapshot, null when it is no image), and the tooltip Foundry shows on hovering it (null without one). The snapshot holds only what shows: show a sidebar tab or a window before reading it.
 -   `setUpCombat(setup)`: as the GM, deletes every combat and the previous setup's actors, then creates the combatants (actors and tokens named `E2E <name>`), their extra slots and the combat, starts it and puts the turn on a slot.
 -   `step(name, action?)`: runs the action, waits for every client to settle (see [How steps wait](#how-steps-wait)), then logs each connected client's combat state with the turn events, notifications and errors since the previous step, and returns the states by user name.
 -   `expect(name, actual, expected)`: logs an assertion as a step holding both values. Deep equality, strict on types and missing keys: compare a plain object built in the page with `evaluate`. A failed assertion doesn't stop the scenario.
@@ -131,7 +128,6 @@ Pitfalls:
 
 -   Playwright sends the source of an evaluated function to the page: it can't use the scenario's variables. Pass them as the argument.
 -   The Foundry globals are untyped in the harness ([`foundry.d.ts`](foundry.d.ts)), since one scenario runs on both versions.
--   On v13 the sidebar is collapsed in the headless window, so clicks on the combat tracker time out: call the method, or dispatch the event from `evaluate`.
 
 ### Parts
 

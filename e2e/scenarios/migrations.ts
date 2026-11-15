@@ -214,22 +214,16 @@ function installMigrationHelpers() {
 	// #724: the In Cover state and the Guarded Stance maneuver as 0.7.0-rc.1 put them on an actor, adding to its own defense.
 	const rc1Cover = () => ({ ...effect('In Cover', 'defense.ranged', 1), img: 'icons/svg/barrel.svg', statuses: ['cover'] });
 	const rc1GuardedStance = () => ({ ...effect('Guarded Stance', 'defense.melee', 1), statuses: ['guardedStance'] });
-	type StatusChange = { key: string; value: string; type?: string; mode?: number };
-	// v13: a change has a numeric mode, which v14 replaced with a type, and warns of when read.
-	const changeType = (change: StatusChange) => {
-		if (change.type) return change.type;
-		const { ADD, UPGRADE } = CONST.ACTIVE_EFFECT_MODES;
-		return change.mode === ADD ? 'add' : change.mode === UPGRADE ? 'upgrade' : String(change.mode);
-	};
+	type StatusChange = { key: string; value: string; type: string };
 	const providedOf = (actor: {
-		effects: { statuses: Set<string>; changes: StatusChange[] }[];
+		effects: { statuses: Set<string>; system: { changes: StatusChange[] } }[];
 		system: { totalDefense: { melee: number; ranged: number } };
 	}): ProvidedDefense => ({
 		changes: [...actor.effects]
 			.flatMap((statusEffect) =>
 				[...statusEffect.statuses].flatMap((status) =>
-					statusEffect.changes.map(
-						(change) => `${status}: ${change.key.replace(/^system\./, '')} ${changeType(change)} ${change.value}`,
+					statusEffect.system.changes.map(
+						(change) => `${status}: ${change.key.replace(/^system\./, '')} ${change.type} ${change.value}`,
 					),
 				),
 			)
@@ -759,7 +753,7 @@ export async function run(e2e: ScenarioContext) {
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 7);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 8);
 	e2e.expect(
 		'#724 A2 cover and Guarded Stance of a world actor, an unlinked token and a locked compendium provide their defense, the best kept',
 		migrated.provided,

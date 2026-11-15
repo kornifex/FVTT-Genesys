@@ -351,8 +351,7 @@ async function join(browser: Browser, url: string, user: string, withCanvas: boo
 
 		const since = errors.length;
 		await page.goto(`${url}/join`, { waitUntil: 'domcontentloaded' });
-		// v13: the join form names its user select userid; v14 names it userId.
-		await page.selectOption('select[name=userid i]', { label: user }, { timeout: 60_000 });
+		await page.selectOption('select[name=userId]', { label: user }, { timeout: 60_000 });
 		await page.click('button[name=join]');
 		await ready(page, since);
 		return page;

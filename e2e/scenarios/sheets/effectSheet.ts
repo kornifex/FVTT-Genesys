@@ -146,12 +146,10 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		[skillSelect(0, state.skillSelects[0]?.selected ?? ''), skillSelect(3, 'E2E Custom Skill'), skillSelect(4, 'ranged (light)')],
 	);
 
-	// v13: a change has a mode, which v14 replaced with a type; v14 also parses a value that holds JSON.
+	// The changes are written with a mode, which v14 replaced with a type; v14 also parses a value that holds JSON.
 	const v14Types: Record<number, string> = { 0: 'custom', 2: 'add', 5: 'override' };
 	const asStored = (changes: [string, number, string][]): ChangeRow[] =>
-		e2e.version < 14
-			? changes
-			: changes.map(([key, mode, value]) => [key, v14Types[mode], /^\d+$/.test(value) ? Number(value) : value]);
+		changes.map(([key, mode, value]) => [key, v14Types[mode], /^\d+$/.test(value) ? Number(value) : value]);
 	const savedChanges = asStored([
 		['system.characteristics.cunning', 2, '1'],
 		['genesys.pool.char.self.willpower', 0, 'B'],
@@ -207,7 +205,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 	e2e.expect(
 		'#832 A1 the value of a change to Critical Injury rolls is saved, though v14 parses it as a number',
 		(await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')))[5],
-		['genesys.critical.suffered', e2e.version < 14 ? 0 : 'custom', '10'],
+		['genesys.critical.suffered', 'custom', '10'],
 	);
 	await e2e.step('#140 GM opens the effect sheet in French', () =>
 		gm.evaluate(async () => {

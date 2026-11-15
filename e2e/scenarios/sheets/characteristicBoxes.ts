@@ -155,7 +155,7 @@ export async function characteristicBoxesPart(ctx: SheetsContext) {
 			const observed = game.actors.getName('E2E Observed');
 			try {
 				await observed.update({ 'system.experienceJournal.entries': [{ amount: 0, type: 'Starting' }] });
-				// On v13 the sheet is briefly not rendered while the update renders it again.
+				// The sheet may be briefly not rendered while the update renders it again.
 				await window.e2e.waitFor(
 					'the ↑ gone',
 					() => observed.sheet.rendered && window.sheetsE2E.characteristicRow('Observed').raises === 0,

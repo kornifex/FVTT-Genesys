@@ -123,13 +123,8 @@ export async function qualityEffectsPart(ctx: DicePromptContext) {
 	await gm.evaluate(async () => {
 		const shield = game.actors.getName('E2E Ada').items.getName('E2E Shield');
 		const added = shield.effects.contents.at(-1);
-		// v13: an effect keeps its changes in `changes`, with a numeric mode; v14 in `system.changes`, with a type.
 		const key = 'genesys.pool.combat.self.';
-		await added.update(
-			game.release.generation === 13
-				? { changes: [{ key, value: 'D', mode: CONST.ACTIVE_EFFECT_MODES.CUSTOM }] }
-				: { 'system.changes': [{ key, value: 'D', type: 'custom' }] },
-		);
+		await added.update({ 'system.changes': [{ key, value: 'D', type: 'custom' }] });
 	});
 	await setSetting('dicePoolAutoApplyModifications', true);
 	const activeRows = (state: PromptState) => state.modifications.filter(({ name }) => /Accurate|Defensive/.test(name));
@@ -285,14 +280,7 @@ export async function qualityEffectsPart(ctx: DicePromptContext) {
 			const { settle, htmlOf } = window.e2e;
 			const mace = game.actors.getName('E2E Ada').items.getName('E2E Mace');
 			const key = 'genesys.item.baseDamage';
-			// v13: an effect keeps its changes in `changes`, with a numeric mode; v14 in `system.changes`, with a type.
-			await mace.effects.contents
-				.at(-1)
-				?.update(
-					game.release.generation === 13
-						? { changes: [{ key, value: '1', mode: CONST.ACTIVE_EFFECT_MODES.ADD }] }
-						: { 'system.changes': [{ key, value: '1', type: 'add' }] },
-				);
+			await mace.effects.contents.at(-1)?.update({ 'system.changes': [{ key, value: '1', type: 'add' }] });
 			const rating = htmlOf(mace.sheet)!.querySelector<HTMLInputElement>('.profile-qualities .data-rated input')!;
 			rating.value = '2';
 			rating.dispatchEvent(new Event('blur'));
