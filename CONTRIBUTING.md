@@ -11,7 +11,7 @@ Open an [issue](https://github.com/kornifex/FVTT-Genesys/issues/new/choose) with
 - The system keeps the id `genesys`, so existing worlds must keep working: a change to how data is stored keeps older data readable, with a migration in `src/migrations/` when it needs one.
 
 ## Setting up
-You need Node 24 (see `.nvmrc`), pnpm (the version in `package.json`'s `packageManager`, which `corepack enable` provides), and a Foundry v13 or v14 install.
+You need Node 24 (see `.nvmrc`), pnpm (the version in `package.json`'s `packageManager`, which `corepack enable` provides), and a Foundry v14 install.
 
 ```sh
 corepack enable
@@ -47,7 +47,7 @@ To work with live reload, start Foundry on its default port (30000), run `pnpm d
 - A pull request does what its issue asks, nothing more. Data from outside the code is checked once, where it enters; an error is handled where it can be, never hidden behind a default value.
 - Every user-visible string goes through a localization key in `yaml/lang/en.yml`. Add the French one too if you can; otherwise say so in the pull request.
 - Comments are in English, and explain why: the Genesys rule, or the Foundry constraint.
-- Code for a single Foundry version is marked with that version ([ADR 0003](docs/adr/0003-supported-foundry-versions.md)), so it can be removed in one go.
+- Code for a single Foundry version is marked with that version ([ADR 0009](docs/adr/0009-support-only-foundry-v14.md)), so it can be removed in one go.
 
 ### Testing
 - Module logic gets unit tests, beside its source as `X.test.ts` (Vitest).
@@ -67,7 +67,7 @@ pnpm build
 ```
 
 ## Pull requests
-- Branch from `main`, and name the branch `type/<issue>-slug`, such as `fix/58-roll-turn-events`. Foundry v12 is no longer supported: its `0.4.x` line takes no more fixes.
+- Branch from `main`, and name the branch `type/<issue>-slug`, such as `fix/58-roll-turn-events`. Foundry v12 and v13 are no longer supported: their last releases, 0.4.0 and 0.7.1, take no more fixes.
 - One issue, one branch, one pull request.
 - Pull requests are squash-merged, so the title becomes the commit on `main` and the changelog entry. It follows [Conventional Commits](https://www.conventionalcommits.org/), `type(scope): summary`, starting with a lowercase letter and ending without a period: `fix(combat): keep the turn on its slot when an Extra Slot is added`. The scopes are `combat`, `dice`, `actor`, `item`, `effects`, `vehicle`, `migration`, `i18n` and `ui`. A check enforces it.
 - A change that breaks a macro, a module or world data adds `!` to the type and a `BREAKING CHANGE:` paragraph.
