@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.7.1-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0...v0.7.1-rc.1) (2026-11-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* Foundry v13 is no longer supported. A world on v13 keeps 0.7.0, installable from `releases/download/v0.7.0/manifest.json`.
+
+### Features
+
+* **dice:** add Vicious to Critical Injury rolls through its quality's effect ([#854](https://github.com/kornifex/FVTT-Genesys/issues/854)) ([d5fe707](https://github.com/kornifex/FVTT-Genesys/commit/d5fe7072ff667450846fd0b209c59f8ddc4f5df8))
+* **dice:** register /gendr as a Foundry v14 chat command ([7ffbdee](https://github.com/kornifex/FVTT-Genesys/commit/7ffbdee07795ac91246fa534a90708213bc22065))
+* drop Foundry v13 support ([#839](https://github.com/kornifex/FVTT-Genesys/issues/839)) ([da73be8](https://github.com/kornifex/FVTT-Genesys/commit/da73be896446bb588a220c6bf70a25b1945b700f))
+* **effects:** store Pool Modifications as a Genesys change type ([#862](https://github.com/kornifex/FVTT-Genesys/issues/862)) ([270b245](https://github.com/kornifex/FVTT-Genesys/commit/270b2458ba17bd3bfdd8528e27227ee386fc14c9))
+* **item:** edit the name of a spell's Additional Effect on its sheet ([#849](https://github.com/kornifex/FVTT-Genesys/issues/849)) ([d26044f](https://github.com/kornifex/FVTT-Genesys/commit/d26044f162a6dd74f9975027810f259dceddc4aa))
+* **ui:** add a dark variant of the Palette ([#856](https://github.com/kornifex/FVTT-Genesys/issues/856)) ([67e29dc](https://github.com/kornifex/FVTT-Genesys/commit/67e29dc78284c2a4fa6880680acf88eecacdd7b7))
+* **ui:** draw the AppV1 colours of the Vue sheets from the Palette ([#855](https://github.com/kornifex/FVTT-Genesys/issues/855)) ([f77a27e](https://github.com/kornifex/FVTT-Genesys/commit/f77a27e0c7a2f2f8b365b4144a6bf8cfde1e080f))
+* **ui:** let the chat cards, the Combat Tracker and the tooltip follow the theme ([#858](https://github.com/kornifex/FVTT-Genesys/issues/858)) ([9626b70](https://github.com/kornifex/FVTT-Genesys/commit/9626b704ec03effb1850328346326f1821ff83e8))
+* **ui:** let the sheets and prompts follow the theme of the applications ([#857](https://github.com/kornifex/FVTT-Genesys/issues/857)) ([acad813](https://github.com/kornifex/FVTT-Genesys/commit/acad8139e37d7f188176622a34c495a967edb4c3))
+* **ui:** line up the roll cards' blocks and even out their spacing ([#859](https://github.com/kornifex/FVTT-Genesys/issues/859)) ([04f92e2](https://github.com/kornifex/FVTT-Genesys/commit/04f92e2abd20a8b8c2377c7b5df2e0603e8457ff))
+
+
+### Bug Fixes
+
+* call the APIs that replace those Foundry v14 deprecates ([#845](https://github.com/kornifex/FVTT-Genesys/issues/845)) ([4ae3ba4](https://github.com/kornifex/FVTT-Genesys/commit/4ae3ba4ffc27045b51c4905d31b03737f8764111))
+* **effects:** keep the value of a change to Critical Injury rolls on Foundry v14 ([#833](https://github.com/kornifex/FVTT-Genesys/issues/833)) ([61bf92f](https://github.com/kornifex/FVTT-Genesys/commit/61bf92f97c14086017494ada8ddecd0821dd9ee0))
+* **i18n:** summarize 0.7.1-rc.1's changes since 0.7.0 in the welcome message ([#863](https://github.com/kornifex/FVTT-Genesys/issues/863)) ([a662bf8](https://github.com/kornifex/FVTT-Genesys/commit/a662bf867657922b918b6b4399bf7f9add79cd78))
+
+
+### Code Refactoring
+
+* collapse the code that bridged Foundry v13 and v14 ([#846](https://github.com/kornifex/FVTT-Genesys/issues/846)) ([c79030e](https://github.com/kornifex/FVTT-Genesys/commit/c79030e8529d71c6e2f5e72a843454fec2ace14d))
+
+
+### Documentation
+
+* add 0.7.0's changes to the README's What's new since the fork ([#830](https://github.com/kornifex/FVTT-Genesys/issues/830)) ([a9f56b0](https://github.com/kornifex/FVTT-Genesys/commit/a9f56b00c9f2bedb88026021c96f9970e9ab3b6d))
+
+
+### Continuous Integration
+
+* let release-please compute the next version again ([#828](https://github.com/kornifex/FVTT-Genesys/issues/828)) ([a318072](https://github.com/kornifex/FVTT-Genesys/commit/a3180724a2eacc8f362f3e331c2b83f6b5364b5f))
+* set the next release to 0.7.1-rc.1 ([#844](https://github.com/kornifex/FVTT-Genesys/issues/844)) ([b5d5a45](https://github.com/kornifex/FVTT-Genesys/commit/b5d5a45e8d1df0546cb270172330b8c4e7b0e71d))
+
+
+### Tests
+
+* **dice:** expect the Dice Prompt's die outline of the theme in step [#758](https://github.com/kornifex/FVTT-Genesys/issues/758) X6 ([#861](https://github.com/kornifex/FVTT-Genesys/issues/861)) ([52dc489](https://github.com/kornifex/FVTT-Genesys/commit/52dc489efc2740ef159b829250efb9f93e9649a3))
+* stop calling the APIs Foundry v14 deprecates in the e2e scenarios ([7ffbdee](https://github.com/kornifex/FVTT-Genesys/commit/7ffbdee07795ac91246fa534a90708213bc22065))
+* **ui:** expect the Palette's text colour of a card's headings in step [#430](https://github.com/kornifex/FVTT-Genesys/issues/430) A1 and A2 ([#864](https://github.com/kornifex/FVTT-Genesys/issues/864)) ([6564057](https://github.com/kornifex/FVTT-Genesys/commit/65640575cdcc68b0ce1d1a77aabe98678fb94ac1))
+
 ## [0.7.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0-rc.3...v0.7.0) (2026-11-14)
 
 
