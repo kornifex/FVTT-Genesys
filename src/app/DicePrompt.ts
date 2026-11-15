@@ -302,13 +302,14 @@ export function register() {
 		if (user.isGM) DicePrompt.renderOpen();
 	});
 
-	Hooks.on('chatMessage', (_chatLog: foundry.applications.sidebar.tabs.ChatLog, message: string, _chatData: unknown) => {
-		if (/^\/gendr(?:oll)?/i.test(message)) {
+	// A chat command whose function returns false posts no message.
+	foundry.applications.sidebar.tabs.ChatLog.CHAT_COMMANDS.gendr = {
+		rgx: /^\/gendr(?:oll)?/i,
+		fn: () => {
 			openDiceRoller();
 			return false;
-		}
-		return true;
-	});
+		},
+	};
 
 	// The chat log moves its controls between the notifications, while the sidebar is collapsed, and the chat form, and
 	// fires this hook on each move: the button is added once, and moves with them.
