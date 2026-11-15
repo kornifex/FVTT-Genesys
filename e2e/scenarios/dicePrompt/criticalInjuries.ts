@@ -70,6 +70,15 @@ export async function criticalInjuriesPart(ctx: DicePromptContext) {
 		{ results: 'a a t', card: { triggers: 'Critical Injury Triggers 3', button: true } },
 	);
 
+	// The card holds every kind of block: net results, summary tables, a button, qualities and dice.
+	const layout = await gm.evaluate((id) => window.dicePromptE2E.rollCardLayout(id), attackMessage.id);
+	const same = <T>(values: Record<string, T>) => Object.fromEntries(Object.keys(values).map((key) => [key, Object.values(values)[0]]));
+	e2e.expect(
+		"#810 L1 an attack card's blocks share their left edge, the gaps under its headings are equal, and so are those between its blocks",
+		layout,
+		{ edges: same(layout.edges), headingGaps: same(layout.headingGaps), blockGaps: same(layout.blockGaps) },
+	);
+
 	const fromCard = await gm.evaluate(() => window.criticalInjuryE2E.openFromCard());
 	e2e.expect(
 		"#685 C2 the card's dialog rolls for the target: one trigger spent, the weapon's Vicious, the attacker's talent by rank, the target's injury and talent",

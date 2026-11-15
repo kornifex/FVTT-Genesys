@@ -57,6 +57,19 @@ export type CardSummary = Pick<MessageSummary, 'results' | 'summaries'> & {
 };
 
 /**
+ * How a roll card lays out its blocks in the chat log (§#810), in pixels rounded to a tenth. A block is named by the
+ * heading above it and its class: `Attack summary-table`, `Attack roll-critical-injury`.
+ */
+type RollCardLayout = {
+	/** The left edge of what each block draws first (a glyph, a symbol, a quality, a die, a button), from the card's. */
+	edges: Record<string, number>;
+	/** The gap under each heading, by its text. */
+	headingGaps: Record<string, number>;
+	/** The gap between each block and what follows it, a block or a heading: `Attack summary-table → Summary`. */
+	blockGaps: Record<string, number>;
+};
+
+/**
  * The Additional Effects of a spell's Dice Prompt (§#705), as the caster reads them.
  */
 type PromptSpellEffects = {
@@ -288,6 +301,8 @@ type DicePromptHelpers = {
 	 */
 	showMessage(id: string): Promise<SidebarState>;
 	restoreSidebar(state: SidebarState): void;
+	/** Shows a roll's message in the chat log, then gives how its card lays out its blocks (§#810). */
+	rollCardLayout(id: string): Promise<RollCardLayout>;
 	/**
 	 * Waits for the patient prompt, and gives the patients it offers, without their `E2E ` prefix, leaving out the world's
 	 * other actors; then picks the one given and selects it, or closes the prompt.
@@ -1095,6 +1110,36 @@ export function installDicePromptHelpers() {
 			ui.sidebar.changeTab(tab, 'primary');
 			if (expanded) ui.sidebar.expand();
 			else ui.sidebar.collapse();
+		},
+
+		async rollCardLayout(id) {
+			const state = await window.dicePromptE2E.showMessage(id);
+			// showMessage marked the message, whose content is a roll card.
+			const card = document.querySelector('[data-e2e="glyph-message"] .roll')!;
+			const box = (element: Element) => element.getBoundingClientRect();
+			const round = (pixels: number) => Math.round(pixels * 10) / 10;
+			const layout: RollCardLayout = { edges: {}, headingGaps: {}, blockGaps: {} };
+			// The headings and blocks of the card's rows, in order.
+			const parts = [...card.querySelectorAll(':scope > div > *')];
+			let heading = '';
+			const isHeading = (part: Element) => part.tagName === 'LABEL';
+			const nameOf = (part: Element) => (isHeading(part) ? text(part) : `${heading} ${part.classList[0]}`.trim());
+			for (const [index, part] of parts.entries()) {
+				if (isHeading(part)) {
+					heading = text(part);
+				} else {
+					// A block other than a button or a description draws children: a glyph, a symbol, a quality, a die.
+					const first = part.matches('button, .roll-description') ? part : part.firstElementChild!;
+					layout.edges[nameOf(part)] = round(box(first).left - box(card).left);
+				}
+				const next = parts[index + 1];
+				if (!next) continue;
+				const gap = round(box(next).top - box(part).bottom);
+				if (isHeading(part)) layout.headingGaps[heading] = gap;
+				else layout.blockGaps[`${nameOf(part)} → ${nameOf(next)}`] = gap;
+			}
+			window.dicePromptE2E.restoreSidebar(state);
+			return layout;
 		},
 
 		async patientPrompt(pick) {
