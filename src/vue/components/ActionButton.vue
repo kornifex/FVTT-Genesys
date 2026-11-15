@@ -73,7 +73,7 @@ provideNamedButton(computed(() => name.value !== undefined));
 
 /**
  * Release the focus a click with a pointer gives the button. Foundry skips every keybinding while a button of a form has
- * focus (`KeyboardManager#hasFocus`, on v13 and v14): Escape, the GM's Space pause, the token controls… and Space would
+ * focus (`KeyboardManager#hasFocus`): Escape, the GM's Space pause, the token controls… and Space would
  * press the button again. An activation from the keyboard keeps the focus where the user put it.
  */
 function releasePointerFocus(event: MouseEvent) {

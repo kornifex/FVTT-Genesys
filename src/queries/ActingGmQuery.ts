@@ -68,8 +68,7 @@ type RolledCheckQueryData = {
  */
 const QUERY_TIMEOUT = 10_000;
 
-// The reason Foundry's server gives once a query's timeout elapsed: the message of socket.io's timeout error, on v13
-// and v14 alike.
+// The reason Foundry's server gives once a query's timeout elapsed: the message of socket.io's timeout error.
 const TIMEOUT_REASON = 'operation has timed out';
 
 /**
