@@ -192,7 +192,9 @@
 			background: colors.alpha(colors.$gold, 0.1);
 			border: 1px dashed colors.$gold;
 			border-radius: 0.25em;
-			padding: 0.25em;
+			// The line of Bebas Neue keeps about 0.2em more room under its capitals than above them, as measured in Chrome:
+			// less padding below centres them.
+			padding: 0.25em 0.25em 0.05em;
 		}
 	}
 }
