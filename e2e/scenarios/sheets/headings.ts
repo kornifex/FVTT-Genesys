@@ -61,8 +61,8 @@ export async function headingsPart(ctx: SheetsContext) {
 			cardHeadings = await gm.evaluate(() => window.sheetsE2E.cardHeadings());
 		},
 	);
-	// The card's text colour, which its headings take as a sheet's do.
-	const cardHeading = (size: number, border: string) => ({ ...appV1Heading(size, border), color: 'rgb(17, 17, 17)' });
+	// The card's text colour, which its headings take as a sheet's do: since #858, the Palette's text, as in a sheet.
+	const cardHeading = appV1Heading;
 	e2e.expect(
 		"#430 A1 a gear card's description headings look as in its sheet: the card's text colour, AppV1's sizes, margins and rules",
 		cardHeadings?.gear,
