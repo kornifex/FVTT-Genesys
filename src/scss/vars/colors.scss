@@ -56,6 +56,7 @@ $defaults: (
 	// The colors Foundry's light theme gives its checkboxes, radios and text areas, which the sheets and prompts keep.
 	'control': #666,
 	'textarea': rgba(0, 0, 0, 0.1),
+	'die-outline-off': rgba(0, 0, 0, 0.25),
 );
 
 // The dark variant of the Palette, for the dark theme Foundry lets a user choose (see `scss/theme.scss`). The paper
@@ -80,6 +81,7 @@ $dark: (
 	'text-red': color-mix(in srgb, var(--genesys-red), white 55%),
 	'control': #a8a39a,
 	'textarea': rgba(255, 255, 255, 0.08),
+	'die-outline-off': rgba(255, 255, 255, 0.6),
 );
 
 // The dark variant of each Style, over the dark Palette.
@@ -152,6 +154,8 @@ $text-red: var(--genesys-text-red);
 $control: var(--genesys-control);
 // The background of a text area, a tint over what it lies on.
 $textarea: var(--genesys-textarea);
+// The outline of a die's slot the check leaves out, such as the Dice Prompt's unused Difficulty dice.
+$die-outline-off: var(--genesys-die-outline-off);
 // Gold text on dark blue.
 $text-gold: var(--genesys-text-gold);
 // Text on blue, dark blue, red, and the Dice Prompt's preview.
