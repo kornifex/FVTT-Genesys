@@ -65,6 +65,18 @@ const RELATIVE_COLOR_SHADES = {
 	terrinothBlue: [147, 68, 37],
 } satisfies Record<string, Rgb>;
 
+/**
+ * The colors Foundry gave its AppV1 windows, which the sheets, the Dice Prompt and the roll cards were drawn with before
+ * they joined the Palette (#850).
+ */
+const APPV1_COLORS = {
+	'--genesys-text': '#191813',
+	'--genesys-text-muted': '#4b4a44',
+	'--genesys-input': 'rgba(0, 0, 0, 0.05)',
+	'--genesys-input-border': '#7a7971',
+	'--genesys-heading-rule': '#782e22',
+};
+
 describe('Palette', () => {
 	// Worlds and modules override these since 0.3.0, so none of them may be renamed or removed.
 	it('keeps every color published in 0.3.0', () => {
@@ -144,6 +156,10 @@ describe('Palette', () => {
 		});
 	});
 
+	it("declares AppV1's colors, which the sheets and prompts were first drawn with", () => {
+		expect(declarations(DEFAULTS)).toMatchObject(APPV1_COLORS);
+	});
+
 	it('lets a Style override its default colors', () => {
 		expect(css.indexOf(`${TERRINOTH} {`)).toBeGreaterThan(css.indexOf(`${DEFAULTS} {`));
 	});
@@ -172,6 +188,10 @@ describe('Realms of Terrinoth Style', () => {
 			'--genesys-initiative-slot-pc': 'var(--genesys-blue)',
 			'--genesys-initiative-slot-npc': 'var(--genesys-red)',
 		});
+	});
+
+	it("keeps AppV1's colors", () => {
+		expect({ ...declarations(DEFAULTS), ...declarations(TERRINOTH) }).toMatchObject(APPV1_COLORS);
 	});
 
 	it('derives its text blue and text gold from its own blue and gold', () => {
@@ -232,6 +252,8 @@ const TEXT_ON = {
 	'text-gold': ['dark-blue'],
 	'text-on-dark': ['blue', 'dark-blue', 'red', 'blue-shade'],
 	'text-alert': ['dark-blue'],
+	text: ['paper', 'paper-pattern', 'field'],
+	'text-muted': ['paper', 'paper-pattern'],
 } satisfies Record<string, string[]>;
 
 // Each color for icons, and the backgrounds it is drawn on.
@@ -246,11 +268,31 @@ const TEXT_ON_TINT = [
 	{ text: 'ink', tint: 'blue', opacity: 0.4, over: 'paper-pattern' },
 ];
 
+// Text drawn on a translucent color of the Palette, and what that color lies over.
+const TEXT_ON_TRANSLUCENT = [
+	// A text field or a select of a sheet or a prompt.
+	{ text: 'text', translucent: 'input', over: 'paper' },
+	{ text: 'text', translucent: 'input', over: 'paper-pattern' },
+	{ text: 'text', translucent: 'input', over: 'field' },
+];
+
 /**
  * A translucent color over another, as the browser composites them.
  */
 function composite(color: Rgb, opacity: number, background: Rgb): Rgb {
 	return color.map((channel, index) => channel * opacity + background[index] * (1 - opacity)) as Rgb;
+}
+
+/**
+ * A translucent Palette color, declared as `rgba()`, over another color of the Palette.
+ */
+function resolveOver(name: string, over: string, style: Record<string, string>): Rgb {
+	const value = style[`--genesys-${name}`];
+	const rgba = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/.exec(value);
+	expect(rgba, `${name}: ${value}`).not.toBeNull();
+
+	const [, red, green, blue, opacity] = rgba!.map(Number);
+	return composite([red, green, blue], opacity, resolve(over, style));
 }
 
 describe.each([
@@ -267,6 +309,10 @@ describe.each([
 	it.each(TEXT_ON_TINT)('draws $text on $tint at $opacity over $over at 4.5:1 or more', ({ text, tint, opacity, over }) => {
 		const background = composite(resolve(tint, style()), opacity, resolve(over, style()));
 		expect(contrast(resolve(text, style()), background)).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it.each(TEXT_ON_TRANSLUCENT)('draws $text on $translucent over $over at 4.5:1 or more', ({ text, translucent, over }) => {
+		expect(contrast(resolve(text, style()), resolveOver(translucent, over, style()))).toBeGreaterThanOrEqual(4.5);
 	});
 
 	it.each(Object.entries(ICON_ON).flatMap(([icon, backgrounds]) => backgrounds.map((background) => [icon, background])))(

@@ -1,5 +1,4 @@
 @use '@scss/mixins/headings.scss';
-@use '@scss/vars/appv1.scss';
 @use '@scss/vars/colors.scss';
 @use '@scss/vars/sheet.scss';
 
@@ -9,7 +8,7 @@
 	padding: sheet.$padding;
 	overflow-x: hidden;
 	overflow-y: auto;
-	color: appv1.$text;
+	color: colors.$text;
 	line-height: normal;
 
 	> .vue-app {
@@ -17,9 +16,9 @@
 	}
 }
 
-// ApplicationV2 styles text fields itself. These restore AppV1's fields, which the components are written over. Foundry's
-// field styles sit in a cascade layer, which any unlayered rule outweighs, so these weigh as little as `.vue-app` alone:
-// a component's rule that names the field outweighs them.
+// ApplicationV2 styles text fields itself. These give them the shape of AppV1's fields, which the components are written
+// over, in the Palette's colors. Foundry's field styles sit in a cascade layer, which any unlayered rule outweighs, so
+// these weigh as little as `.vue-app` alone: a component's rule that names the field outweighs them.
 .vue-app
 	:where(
 		input[type='text'],
@@ -34,20 +33,20 @@
 	height: 26px;
 	line-height: inherit;
 	padding: 1px 3px;
-	background: appv1.$field-background;
-	border: 1px solid appv1.$field-border;
+	background: colors.$input;
+	border: 1px solid colors.$input-border;
 	border-radius: 3px;
 	outline: revert;
 	box-shadow: none;
-	color: appv1.$text;
+	color: colors.$text;
 	font-size: inherit;
 }
 
 .vue-app :where(select) {
 	height: 27px;
 	padding: 0 3px;
-	background: appv1.$field-background;
-	border: 1px solid appv1.$field-border;
+	background: colors.$input;
+	border: 1px solid colors.$input-border;
 	border-radius: 3px;
 	outline: revert;
 	color: revert;
@@ -126,7 +125,7 @@
 	@include headings.section;
 }
 
-// The rich text's headings, such as a description's, keep AppV1's look, which the descriptions were written for.
+// The rich text's headings, such as a description's, keep the look the descriptions were written for.
 .application .vue-app :is(.enriched, prose-mirror) :is(h1, h2, h3, h4) {
-	@include headings.appv1;
+	@include headings.rich-text;
 }
