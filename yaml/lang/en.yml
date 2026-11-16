@@ -507,10 +507,12 @@ Genesys:
       Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
-    Feature: FEATURE
-    SpellRatingSkill: >-
-      A spell names the skill whose ranks its Additional Effects count, Knowledge by default, which a player changes on
-      their character's spell
+    Fix: FIX
+    Styling: STYLING
+    DarkDiceFaces: >-
+      In the dark theme, a check's card keeps the symbols of the light dice dark, and every symbol stays inside its die
+    DicePromptSections: >-
+      The Dice Pool's Pool Modifications no longer fold, and line up with the Additional Effects and the Story Points
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
