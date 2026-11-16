@@ -11,8 +11,9 @@ This fork keeps the existing system going for tables with ongoing campaigns: sup
 ## What's new since the fork
 Since release 0.2.19 of the original system, this fork has:
 
-- moved the sheets to Foundry's ApplicationV2 and added support for Foundry v13 and v14;
+- moved the sheets to Foundry's ApplicationV2, then the system to Foundry v13 and v14, and now to v14 alone;
 - made every sheet usable from the keyboard and with a screen reader, with text at WCAG contrast in both Styles, a ⋮ menu of actions on every row, and compact counters;
+- let the sheets, prompts and chat cards follow Foundry's light or dark theme, in both Styles;
 - added magic: spells and their Additional Effects, cast from a Magic tab, with magic attacks and the Heal spell;
 - added attachments and complete qualities, whose effects can change their weapon or armor;
 - added healing and recovery: Medicine checks with a healing card to apply, rest at the end of an encounter and overnight, and Critical Injuries rolled on the world's table;
