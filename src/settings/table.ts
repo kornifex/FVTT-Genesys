@@ -245,16 +245,6 @@ export const SETTINGS = {
 		onSetup: true,
 	}),
 
-	/** Whether to collapse the 'Pool Modifications' section when a dice prompt renders. */
-	dicePoolCollapseModificationsDetails: setting({
-		scope: 'client',
-		type: switchField,
-		default: false,
-		name: 'Genesys.Settings.DicePoolCollapseModifications',
-		hint: 'Genesys.Settings.DicePoolCollapseModificationsHint',
-		field: { name: 'startWithCollapsedPoolModifications' },
-	}),
-
 	/** Whether to automatically apply all the pool modifications shown on the dice prompt. */
 	dicePoolAutoApplyModifications: setting({
 		scope: 'client',

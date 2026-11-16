@@ -14,7 +14,6 @@ import { useSheetContext } from '@/vue/SheetContext';
 import { usePromptAnswer } from '@/vue/usePrompt';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import Counter from '@/vue/components/Counter.vue';
-import DescriptionFold from '@/vue/components/DescriptionFold.vue';
 import Glyphs from '@/vue/components/Glyphs.vue';
 import Localized from '@/vue/components/Localized.vue';
 import PoolModificationIcon from '@/vue/components/PoolModificationIcon.vue';
@@ -185,7 +184,6 @@ const characteristicPickable = computed(() => !check.value || canPickCharacteris
 const offersNoCharacteristic = computed(() => !check.value || canRollWithoutCharacteristic(check.value));
 
 const useSuperCharacteristic = ref(false);
-const showPoolModifications = ref(!CONFIG.genesys.settings.startWithCollapsedPoolModifications);
 
 let previousDicePool: DicePool = {
 	dice: {},
@@ -538,112 +536,108 @@ const spendId = useId();
 			<label :for="superCharacteristicId"><Localized label="Genesys.DicePrompt.UseSuperCharacteristic" /></label>
 		</div>
 
-		<DescriptionFold v-model:open="showPoolModifications" class="pool-modifications-title">
-			<template #summary>
-				<span><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></span>
-			</template>
-			<template #fold>
-				<div class="pool-modifications-container">
-					<div class="pool-modifications-difficulty">
-						<span>
-							<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
-						</span>
-						<div>
-							<button
-								v-for="(die, index) in difficultyRow(difficulty)"
-								:key="index"
-								type="button"
-								:name="`difficulty-${index + 1}`"
-								:class="`difficulty-die difficulty-die-${die}`"
-								:data-tooltip="DIFFICULTY_LABELS[index + 1]"
-								v-localize:aria-label="DIFFICULTY_LABELS[index + 1]"
-								@click="onDifficultyDieClick(index + 1)"
-							>
-								{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
-							</button>
-							<!-- After the five dice, the level above Formidable, whose dice it rolls (CRB p. 18). -->
-							<button
-								type="button"
-								:name="`difficulty-${IMPOSSIBLE}`"
-								:class="['difficulty-impossible', { on: impossible }]"
-								:aria-pressed="impossible"
-								:data-tooltip="DIFFICULTY_LABELS[IMPOSSIBLE]"
-								v-localize:aria-label="DIFFICULTY_LABELS[IMPOSSIBLE]"
-								@click="onDifficultyDieClick(IMPOSSIBLE)"
-							>
-								<i class="fa-solid fa-skull" aria-hidden="true"></i>
-							</button>
-						</div>
-					</div>
-					<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
-						<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
-						<span>
-							<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
-						the checkbox alone turns the modification on. -->
-							<!-- prettier-ignore -->
-							<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
-						</span>
-						<div>
-							<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
-						</div>
-					</div>
-					<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
-					<div class="pool-modifications-manual">
-						<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
-						<div>
-							<ActionButton
-								v-for="(modification, index) in manualChanges"
-								:key="index"
-								:localized-label="cancelName(modification)"
-								@click="removeManualChange(index)"
-							>
-								<template #icon><PoolModificationIcon :glyph="modification" /></template>
-							</ActionButton>
-						</div>
+		<fieldset class="pool-modifications">
+			<legend><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></legend>
+			<div class="pool-modifications-container">
+				<div class="pool-modifications-difficulty">
+					<span>
+						<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
+					</span>
+					<div>
+						<button
+							v-for="(die, index) in difficultyRow(difficulty)"
+							:key="index"
+							type="button"
+							:name="`difficulty-${index + 1}`"
+							:class="`difficulty-die difficulty-die-${die}`"
+							:data-tooltip="DIFFICULTY_LABELS[index + 1]"
+							v-localize:aria-label="DIFFICULTY_LABELS[index + 1]"
+							@click="onDifficultyDieClick(index + 1)"
+						>
+							{{ die === 'Challenge' ? DIE_GLYPHS.Challenge : DIE_GLYPHS.Difficulty }}
+						</button>
+						<!-- After the five dice, the level above Formidable, whose dice it rolls (CRB p. 18). -->
+						<button
+							type="button"
+							:name="`difficulty-${IMPOSSIBLE}`"
+							:class="['difficulty-impossible', { on: impossible }]"
+							:aria-pressed="impossible"
+							:data-tooltip="DIFFICULTY_LABELS[IMPOSSIBLE]"
+							v-localize:aria-label="DIFFICULTY_LABELS[IMPOSSIBLE]"
+							@click="onDifficultyDieClick(IMPOSSIBLE)"
+						>
+							<i class="fa-solid fa-skull" aria-hidden="true"></i>
+						</button>
 					</div>
 				</div>
-			</template>
-		</DescriptionFold>
+				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
+					<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
+					<span>
+						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
+						the checkbox alone turns the modification on. -->
+						<!-- prettier-ignore -->
+						<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
+					</span>
+					<div>
+						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
+					</div>
+				</div>
+				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
+				<div class="pool-modifications-manual">
+					<span><Localized label="Genesys.DicePrompt.PoolModifications.ManualChanges" /></span>
+					<div>
+						<ActionButton
+							v-for="(modification, index) in manualChanges"
+							:key="index"
+							:localized-label="cancelName(modification)"
+							@click="removeManualChange(index)"
+						>
+							<template #icon><PoolModificationIcon :glyph="modification" /></template>
+						</ActionButton>
+					</div>
+				</div>
+			</div>
+		</fieldset>
 
-		<!-- Out of the Pool Modifications' fold: the Additional Effects added change the spell, not only its dice; an Impossible
-		task's point, without which it can't be rolled, stays in sight. -->
+		<!-- The rows of the Additional Effects and of the Story Points are laid out as the Pool Modifications': a checkbox, a
+		label, then a column of what they add, with why a choice is closed under its label. -->
 		<div class="choices">
 			<!-- An effect that can be added more than once has a count in place of its checkbox, named after the effect. -->
 			<fieldset v-if="spellEffects.length > 0" :class="['spell-effects', { 'has-counts': hasCounts }]">
 				<legend><Localized label="Genesys.Labels.AdditionalEffects" /></legend>
 				<div v-for="effect in spellEffects" :key="effect.id" class="spell-effect">
-					<template v-if="effect.repeatable">
-						<Counter
-							class="effect-count"
-							:label="effectCountLabel(effect)"
-							:value="countOf(effect)"
-							:max="maxCount(effect)"
-							:described-by="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
-							@step="setEffectCount(effect, countOf(effect) + $event)"
-							@type="setEffectCount(effect, $event)"
-						/>
-						<DescriptionTooltip :description="effect.description"
-							><span class="name">{{ effect.name }}</span></DescriptionTooltip
-						>
-					</template>
-					<template v-else>
-						<input
-							:id="`${effectId}-${effect.id}`"
-							type="checkbox"
-							:name="`effect-${effect.id}`"
-							:checked="countOf(effect) > 0"
-							:disabled="beyondFormidable(effect)"
-							:aria-describedby="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
-							@change="setEffectCount(effect, ($event.currentTarget as HTMLInputElement).checked ? 1 : 0)"
-						/>
-						<DescriptionTooltip :description="effect.description"
-							><label :for="`${effectId}-${effect.id}`">{{ effect.name }}</label></DescriptionTooltip
-						>
-					</template>
-					<Glyphs class="glyph" :glyphs="`+${DIE_GLYPHS.Difficulty.repeat(effect.difficulty)}`" />
-					<span v-if="beyondFormidable(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
-						<Localized label="Genesys.DicePrompt.BeyondFormidable" />
+					<Counter
+						v-if="effect.repeatable"
+						class="effect-count"
+						:label="effectCountLabel(effect)"
+						:value="countOf(effect)"
+						:max="maxCount(effect)"
+						:described-by="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
+						@step="setEffectCount(effect, countOf(effect) + $event)"
+						@type="setEffectCount(effect, $event)"
+					/>
+					<input
+						v-else
+						:id="`${effectId}-${effect.id}`"
+						type="checkbox"
+						:name="`effect-${effect.id}`"
+						:checked="countOf(effect) > 0"
+						:disabled="beyondFormidable(effect)"
+						:aria-describedby="beyondFormidable(effect) ? `${effectId}-${effect.id}-why` : undefined"
+						@change="setEffectCount(effect, ($event.currentTarget as HTMLInputElement).checked ? 1 : 0)"
+					/>
+					<span>
+						<DescriptionTooltip :description="effect.description">
+							<span v-if="effect.repeatable" class="name">{{ effect.name }}</span>
+							<label v-else :for="`${effectId}-${effect.id}`">{{ effect.name }}</label>
+						</DescriptionTooltip>
+						<span v-if="beyondFormidable(effect)" :id="`${effectId}-${effect.id}-why`" class="why">
+							<Localized label="Genesys.DicePrompt.BeyondFormidable" />
+						</span>
 					</span>
+					<div>
+						<Glyphs class="glyph" :glyphs="`+${DIE_GLYPHS.Difficulty.repeat(effect.difficulty)}`" />
+					</div>
 				</div>
 			</fieldset>
 
@@ -659,21 +653,23 @@ const spendId = useId();
 						:aria-describedby="option.refusal || option.spend === 'impossible' ? `${spendId}-${option.spend}-why` : undefined"
 						@change="onSpendChange(option.spend, $event)"
 					/>
-					<label :for="`${spendId}-${option.spend}`">
-						<Localized :label="SPEND_LABELS[option.spend]" />
-						<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads the
-					label as one. -->
-						<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>
-					</label>
-					<span v-if="SPEND_GLYPHS[option.spend]" class="glyph"
-						><PoolModificationIcon :glyph="SPEND_GLYPHS[option.spend]!"
-					/></span>
-					<span v-if="option.refusal" :id="`${spendId}-${option.spend}-why`" class="why"
-						><Localized :label="option.refusal"
-					/></span>
-					<span v-else-if="option.spend === 'impossible'" :id="`${spendId}-${option.spend}-why`" class="why">
-						<Localized label="Genesys.DicePrompt.StoryPoints.ImpossibleCost" />
+					<span>
+						<label :for="`${spendId}-${option.spend}`">
+							<Localized :label="SPEND_LABELS[option.spend]" />
+							<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads
+							the label as one. -->
+							<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>
+						</label>
+						<span v-if="option.refusal" :id="`${spendId}-${option.spend}-why`" class="why"
+							><Localized :label="option.refusal"
+						/></span>
+						<span v-else-if="option.spend === 'impossible'" :id="`${spendId}-${option.spend}-why`" class="why">
+							<Localized label="Genesys.DicePrompt.StoryPoints.ImpossibleCost" />
+						</span>
 					</span>
+					<div>
+						<PoolModificationIcon v-if="SPEND_GLYPHS[option.spend]" :glyph="SPEND_GLYPHS[option.spend]!" />
+					</div>
 				</div>
 			</fieldset>
 		</div>
@@ -718,13 +714,11 @@ const spendId = useId();
 @use '@scss/mixins/reset.scss';
 @use '@scss/mixins/headings.scss';
 
-// The Pool Modifications' title: its chevron alone in the margin, its text on the table's left edge.
+// The title of a section of choices.
 $title-font-size: 1.2rem;
-$chevron-column: 1rem;
-$chevron-gap: 0.4 * $title-font-size;
 
-// The Pool Modifications' rows, in rem, as the checkbox's size, so that it is centred on a label's first line: Foundry
-// gives inputs a font of their own. Their columns are as far apart as the chevron is from the title.
+// The sections' rows, in rem, as the checkbox's size, so that it is centred on a label's first line: Foundry gives
+// inputs a font of their own.
 $row-line-height: 1.25rem;
 $row-padding: 0.15rem;
 $row-column-gap: 0.4em;
@@ -808,75 +802,78 @@ $target-size: 24px;
 		}
 	}
 
-	// The title and the fold of the Pool Modifications are the roots of a `DescriptionFold`, which take no scope attribute
-	// from the prompt: :deep() reaches them.
-	& > :deep(.pool-modifications-title) {
+	.pool-modifications {
 		grid-column: 1 / span all;
-		grid-row: 4 / span all;
-		display: grid;
-		// The chevron's column keeps its width whichever way it points, so that the text doesn't move as the section folds;
-		// Bebas Neue's letters have almost no side bearing, which the gap makes up for.
-		grid-template-columns: $chevron-column 1fr;
-		column-gap: $chevron-gap;
-		align-items: center;
-		@include headings.font;
-		font-size: $title-font-size;
-		margin-bottom: -0.5em;
-		// A button takes its content's width, where the row it replaced filled the prompt's.
-		width: 100%;
-		text-align: start;
-
-		// `chevron-right` and `chevron-down` are not as wide: centred, they turn on one axis. Smaller than the title, as
-		// the chevrons after the rows' names are smaller than the names.
-		i {
-			justify-self: center;
-			font-size: 0.8em;
-		}
+		grid-row: 4 / span 1;
 	}
 
-	& > :deep(.description-fold) {
-		grid-column: 1 / span all;
-		grid-row: 5 / span all;
-		overflow: hidden;
-
-		// The fold clips the folded Pool Modifications, and its content, which `DescriptionFold` would clip too, doesn't:
-		// the glow and the focus outline of a Difficulty die, in the first row, pass its top edge. The content, the fold's
-		// only child, holds the top border: folded, the fold keeps its 1px, which a border on the container inside would
-		// overflow.
-		& > .description-fold-content {
-			overflow: visible;
-			margin-left: $chevron-column + $chevron-gap;
-			border-top: 1px dotted colors.$ink;
-		}
-	}
-
-	.pool-modifications-container {
-		display: grid;
+	// The sections of choices under the dice: the Pool Modifications, a spell's Additional Effects, the Story Points.
+	.pool-modifications,
+	.story-points,
+	.spell-effects {
+		margin: 0.5rem 0 0;
+		padding: 0;
+		border: none;
 		font-family: 'Roboto', sans-serif;
 
-		// A row: its checkbox, left empty for the Difficulty and the manual changes, so that every label starts on one edge
-		// and a label that wraps goes on under its own text; then its label, and its modifications.
+		legend {
+			@include headings.font;
+			font-size: $title-font-size;
+			padding: 0;
+		}
+	}
+
+	// A row of any section: its checkbox, left empty for the Difficulty and the manual changes, so that every label starts
+	// on one edge and a label that wraps goes on under its own text; then its label, with why a choice is closed under it,
+	// and what it adds to the pool, in a column of its own. A dotted line parts two rows, none runs above the first or
+	// below the last: the section's title heads it.
+	.pool-modifications-container > div,
+	.spell-effect,
+	.story-point-spend {
+		@include reset.input;
+		display: grid;
+		grid-template-columns: $checkbox-size minmax(0, 2fr) minmax(0, 1.2fr);
+		column-gap: $row-column-gap;
+		line-height: $row-line-height;
+
+		&:not(:first-of-type) {
+			border-top: 1px dotted colors.$ink;
+		}
+
+		& > span,
 		& > div {
-			display: grid;
-			grid-template-columns: $checkbox-size minmax(0, 2fr) minmax(0, 1.2fr);
-			column-gap: $row-column-gap;
-			border-bottom: 1px dotted colors.$ink;
-			line-height: $row-line-height;
+			padding-block: $row-padding;
+		}
 
-			& > span,
-			& > div {
-				padding-block: $row-padding;
-			}
+		& > span {
+			grid-column: 2;
+		}
 
-			& > span {
-				grid-column: 2;
-			}
+		& > div {
+			grid-column: 3;
+			border-left: 1px dotted colors.$ink;
+			padding-left: 0.5rem;
+		}
 
-			& > div {
-				grid-column: 3;
-				border-left: 1px dotted colors.$ink;
-				padding-left: 0.5rem;
-			}
+		& > input {
+			grid-column: 1;
+			align-self: start;
+			// Foundry draws the checkbox as a glyph of this size, which its box takes too.
+			--checkbox-size: #{$checkbox-size};
+			width: $checkbox-size;
+			height: $checkbox-size;
+			margin: $row-padding + ($row-line-height - $checkbox-size) * 0.5 0 0;
+		}
+
+		// A repeatable Additional Effect's count, in place of its checkbox.
+		& > .counter {
+			grid-column: 1;
+		}
+
+		.why {
+			display: block;
+			font-size: 0.9em;
+			color: colors.$text-muted;
 		}
 
 		.pool-modification {
@@ -894,6 +891,10 @@ $target-size: 24px;
 				line-height: 1;
 			}
 		}
+	}
+
+	.pool-modifications-container {
+		display: grid;
 
 		// A manual change is a button holding its glyph: the button is lowered, as the glyph is elsewhere, and its box
 		// stays no taller than the glyph.
@@ -945,6 +946,12 @@ $target-size: 24px;
 			line-height: $target-size;
 			vertical-align: onto-capitals($difficulty-die-scale);
 			cursor: pointer;
+
+			// The first die's ink starts where a modification's starts in the rows below: its glyph, 0.865em wide, is centred
+			// in a wider target, whose first half of the difference the margin takes back.
+			&:first-child {
+				margin-inline-start: min(0px, calc((0.865em - #{$target-size}) / 2));
+			}
 
 			// The focus ring's gap is a box shadow (VueSheet.scss), which a die keeps from the keyboard.
 			&:not(:focus-visible) {
@@ -1007,17 +1014,6 @@ $target-size: 24px;
 		}
 
 		.pool-modifications-effects {
-			@include reset.input;
-			input {
-				grid-column: 1;
-				align-self: start;
-				// Foundry draws the checkbox as a glyph of this size, which its box takes too.
-				--checkbox-size: #{$checkbox-size};
-				width: $checkbox-size;
-				height: $checkbox-size;
-				margin-top: $row-padding + ($row-line-height - $checkbox-size) * 0.5;
-			}
-
 			// The name of what a Pool Modification comes from, as plain text that opens it; not the glyph of a Pool
 			// Modification, which the rules above style.
 			.source-link {
@@ -1047,61 +1043,19 @@ $target-size: 24px;
 	// one row of the grid, so that a check without effects keeps its rows and gaps.
 	.choices {
 		grid-column: 1 / span all;
-		grid-row: 6 / span 1;
+		grid-row: 5 / span 1;
 	}
 
-	// A row per spend or per Additional Effect: its checkbox, its label with the pool it comes from, the upgrade or the
-	// difficulty it adds, then why it is closed, under the label.
-	.story-points,
-	.spell-effects {
-		margin: 0.5rem 0 0;
-		padding: 0;
-		border: none;
-		font-family: 'Roboto', sans-serif;
+	.story-point-spend .pool {
+		color: colors.$text-muted;
+	}
 
-		legend {
-			@include headings.font;
-			font-size: $title-font-size;
-			padding: 0;
-		}
-
-		.story-point-spend,
-		.spell-effect {
-			@include reset.input;
-			display: grid;
-			grid-template-columns: $checkbox-size 1fr auto;
-			column-gap: $row-column-gap;
-			align-items: center;
-			border-bottom: 1px dotted colors.$ink;
-			line-height: $row-line-height;
-			padding-block: $row-padding;
-
-			input {
-				--checkbox-size: #{$checkbox-size};
-				width: $checkbox-size;
-				height: $checkbox-size;
-				margin: 0;
-			}
-
-			.pool {
-				color: colors.$text-muted;
-			}
-
-			.glyph {
-				font-family: 'Genesys Symbols', sans-serif;
-			}
-
-			// The Difficulty dice an Additional Effect adds, in their colour.
-			&.spell-effect .glyph {
-				color: colors.$die-difficulty;
-			}
-
-			.why {
-				grid-column: 2 / span 2;
-				font-size: 0.9em;
-				color: colors.$text-muted;
-			}
-		}
+	// The Difficulty dice an Additional Effect adds, in their colour, lowered as a modification's glyph is.
+	.spell-effect .glyph {
+		font-family: 'Genesys Symbols', sans-serif;
+		color: colors.$die-difficulty;
+		vertical-align: onto-capitals(1);
+		line-height: 1;
 	}
 
 	// The − of a count shows left of it, past the row's edge: the rows keep room for it, every one of them, so that the
@@ -1112,7 +1066,7 @@ $target-size: 24px;
 
 	.chance-to-succeed {
 		grid-column: 1 / span 2;
-		grid-row: 7 / span 1;
+		grid-row: 6 / span 1;
 		margin-top: 1rem;
 
 		label {
@@ -1122,7 +1076,7 @@ $target-size: 24px;
 
 	.prompt-footer {
 		grid-column: 3 / span 1;
-		grid-row: 7 / span 1;
+		grid-row: 6 / span 1;
 		margin-top: 1rem;
 	}
 	//#endregion
@@ -1131,13 +1085,6 @@ $target-size: 24px;
 		color: colors.$text-blue;
 		@include headings.font;
 		font-size: 2em;
-	}
-
-	// The footer's buttons are its own elements, which the scoped rules don't reach.
-	.prompt-footer :deep(.roll-button) {
-		color: colors.$text-blue;
-		@include headings.font;
-		font-size: 1.25em;
 	}
 
 	.preview {

@@ -1,4 +1,3 @@
-import type { FoldToggle } from '../../page.ts';
 import type { Client, ScenarioContext } from '../../scenario.ts';
 
 /**
@@ -95,20 +94,35 @@ type CheckLink = { skill: string | null; difficulty: string | null; text: string
 type InlineGlyph = { px: number; em: number; fontSize: number; aboveXHeight: number };
 
 /**
- * The Pool Modifications' title and rows as laid out (§#513), in px from the table's left edge, a tenth of a px apart.
+ * The sections of choices under the dice as laid out (§#513), in px from the left edge of the Pool Modifications' rows,
+ * a tenth of a px apart.
  */
 type PoolModificationsLayout = {
-	/** The title's text. */
-	titleText: number;
-	/** The caret's box, and its vertical axis. */
-	caret: { left: number; right: number; axis: number };
+	/** Each section's title. */
+	titles: number[];
+	/** The rows of every section, the Pool Modifications' first: where their parts start, and their borders. */
+	sections: {
+		section: string;
+		/** The label's left edge. */
+		label: number;
+		/** The left edge of the column of what the row adds to the pool. */
+		column: number;
+		/** Where the ink of the column's first glyph starts; null without one. */
+		ink: number | null;
+		/** Whether a line runs above the row, and below it. */
+		above: boolean;
+		below: boolean;
+	}[];
+	/** The footer's buttons: their height, and their font. */
+	buttons: { height: number; font: string }[];
+	/** The Pool Modifications' rows. */
 	rows: {
 		/**
 		 * How far below the middle of the label's capitals the middle of the first modification's glyph sits, by the ink
 		 * the fonts draw rather than by their boxes; null without a modification.
 		 */
 		ink: number | null;
-		/** The row's height, its borders included. */
+		/** The row's height, without the borders that part it from the rows around it. */
 		height: number;
 		/** The label's left edge. */
 		label: number;
@@ -162,21 +176,6 @@ type SourceLink = {
 	cursor: string;
 };
 
-/**
- * The prompt's Pool Modifications as laid out: their expander, which folds them, and the container of their rows.
- */
-export type PoolModificationsBox = {
-	unfolded: boolean;
-	/** The expander's transition, as `<property> <duration> <easing>`. */
-	transition: string;
-	/** The expander's height: `whole` when it shows its container whole, else in px. */
-	height: number | 'whole';
-	/** The container's visibility, which Tab follows. */
-	visibility: string;
-	/** Whether the rows show a Pool Modification. */
-	modifications: boolean;
-};
-
 type DicePromptHelpers = {
 	settings(user: string): Settings;
 	restore(args: { user: string; settings: Settings }): Promise<void>;
@@ -204,11 +203,6 @@ type DicePromptHelpers = {
 	 * #495.
 	 */
 	openPromptSource(name: string): Promise<{ opened: { type: string; name: string }; prompts: number; enabled: boolean } | null>;
-	poolModificationsBox(): PoolModificationsBox;
-	/** The Pool Modifications' title, which folds and unfolds them, as read (#579). */
-	poolModificationsToggle(): FoldToggle;
-	/** Clicks the Pool Modifications' title, which folds or unfolds them, and waits for their transitions to end. */
-	togglePoolModifications(): Promise<PoolModificationsBox>;
 	/** Clicks the dice box's buttons, named by glyph and operator: `A+` adds an Ability die, `A^` upgrades one. */
 	promptAdd(keys: string[]): Promise<PromptState>;
 	/** Removes a die or symbol of the pool preview, as a click on it does. */
@@ -443,14 +437,7 @@ export function installDicePromptHelpers() {
 			blind: message.blind,
 		};
 	};
-	const SETTINGS = [
-		'uncoupleSkills',
-		'useSuperCharacteristics',
-		'defaultDifficulty',
-		'skillsCompendium',
-		'showDamageOnFailure',
-		'dicePoolCollapseModificationsDetails',
-	];
+	const SETTINGS = ['uncoupleSkills', 'useSuperCharacteristics', 'defaultDifficulty', 'skillsCompendium', 'showDamageOnFailure'];
 	const realPostMessage = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')!.value as Worker['postMessage'];
 
 	window.dicePromptE2E = {
@@ -834,44 +821,6 @@ export function installDicePromptHelpers() {
 				prompts: apps('app-dice-prompt').length,
 				enabled: row.querySelector('input')!.checked,
 			};
-		},
-
-		poolModificationsBox() {
-			const root = htmlOf(thePrompt())!;
-			// A `DescriptionFold` since #579; before, on the build a comparison runs, an expander of their own.
-			const expander = root.querySelector(':scope .dice-prompt > :is(.description-fold, .pool-modifications-expander)')!;
-			const container = root.querySelector('.pool-modifications-container')!;
-			// The expander's only child, which it folds: the container, or since #579 the fold's content around it.
-			const content = expander.firstElementChild!;
-			const style = getComputedStyle(expander);
-			const height = expander.getBoundingClientRect().height;
-			// Shown whole, the content stands at its full height in the expander, and cuts none of its rows; a pixel of
-			// slack for the heights rounded apart.
-			const whole =
-				Math.abs(height - content.getBoundingClientRect().height) <= 1 && content.scrollHeight - content.clientHeight <= 1;
-			return {
-				unfolded: root.querySelector('.pool-modifications-title')!.getAttribute('aria-expanded') === 'true',
-				transition: `${style.transitionProperty} ${style.transitionDuration} ${style.transitionTimingFunction}`,
-				height: height > 0 && whole ? 'whole' : Math.round(height),
-				visibility: getComputedStyle(container).visibility,
-				modifications: !!container.querySelector('[data-pool-entity]'),
-			};
-		},
-
-		poolModificationsToggle() {
-			return window.e2e.foldToggle(htmlOf(thePrompt())!.querySelector('.pool-modifications-title')!);
-		},
-
-		async togglePoolModifications() {
-			const before = window.dicePromptE2E.poolModificationsBox().unfolded;
-			htmlOf(thePrompt())!.querySelector<HTMLElement>('.pool-modifications-title')!.click();
-			await waitFor(
-				'the Pool Modifications to fold or unfold',
-				() => window.dicePromptE2E.poolModificationsBox().unfolded !== before,
-			);
-			// The page settles once their transitions have ended.
-			await settle();
-			return window.dicePromptE2E.poolModificationsBox();
 		},
 
 		async promptAdd(keys) {
@@ -1591,11 +1540,42 @@ export function installDicePromptHelpers() {
 					);
 				return walker?.nextNode();
 			};
-			const title = root.querySelector('.pool-modifications-title')!;
-			const caret = title.querySelector('i')!.getBoundingClientRect();
+			// Where the ink of a text node's first character starts, by the font's metrics: a glyph's box starts before its ink.
+			const inkLeft = (node: Node | null | undefined) => {
+				const element = node?.parentElement;
+				if (!node || !element) return null;
+				const index = node.textContent!.search(/\S/);
+				const box = document.createRange();
+				box.setStart(node, index);
+				box.setEnd(node, index + 1);
+				const rect = box.getBoundingClientRect();
+				const { fontStyle, fontWeight, fontSize, fontFamily } = getComputedStyle(element);
+				canvas.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+				return rect.left - canvas.measureText(node.textContent![index]).actualBoundingBoxLeft;
+			};
+			const lined = (element: Element, side: 'Top' | 'Bottom') =>
+				getComputedStyle(element)[`border${side}Style`] !== 'none' && getComputedStyle(element)[`border${side}Width`] !== '0px';
+			const sections = [...root.querySelectorAll('.dice-prompt fieldset')];
 			return {
-				titleText: px(title.querySelector('span')!.getBoundingClientRect().left - edge),
-				caret: { left: px(caret.left - edge), right: px(caret.right - edge), axis: px((caret.left + caret.right) / 2 - edge) },
+				titles: sections.map((section) => px(section.querySelector('legend')!.getBoundingClientRect().left - edge)),
+				sections: sections.flatMap((section) =>
+					[...section.querySelectorAll('.pool-modifications-container > div, .spell-effect, .story-point-spend')].map((row) => {
+						const column = row.querySelector(':scope > div')!;
+						const ink = inkLeft(firstText(column));
+						return {
+							section: section.classList[0],
+							label: px(row.querySelector(':scope > span')!.getBoundingClientRect().left - edge),
+							column: px(column.getBoundingClientRect().left - edge),
+							ink: ink === null ? null : px(ink - edge),
+							above: lined(row, 'Top'),
+							below: lined(row, 'Bottom'),
+						};
+					}),
+				),
+				buttons: [...root.querySelectorAll('.prompt-footer button')].map((button) => ({
+					height: px(button.getBoundingClientRect().height),
+					font: `${getComputedStyle(button).fontSize} ${getComputedStyle(button).fontFamily}`,
+				})),
 				rows: [...container.querySelectorAll(':scope > div')].map((row) => {
 					const label = row.querySelector(':scope > span')!;
 					const left = label.getBoundingClientRect().left;
@@ -1608,7 +1588,11 @@ export function installDicePromptHelpers() {
 					const glyph = inkMiddle(firstText(modifications[0]));
 					return {
 						ink: capitals !== null && glyph !== null ? px(glyph - capitals) : null,
-						height: px(row.getBoundingClientRect().height),
+						height: px(
+							row.getBoundingClientRect().height -
+								parseFloat(getComputedStyle(row).borderTopWidth) -
+								parseFloat(getComputedStyle(row).borderBottomWidth),
+						),
 						label: px(left - edge),
 						lineStarts: textLines.map((line) => px(line.left - left)),
 						checkbox: below(row.querySelector('input')),
