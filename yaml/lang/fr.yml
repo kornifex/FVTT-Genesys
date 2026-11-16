@@ -504,10 +504,13 @@ Genesys:
       premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
       sont possibles !
     Updates: Corrections et nouveautés
-    Feature: NOUVEAUTÉ
-    SpellRatingSkill: >-
-      Un sort indique la compétence dont ses effets supplémentaires comptent les rangs, Connaissance par défaut, qu'un
-      joueur change sur le sort de son personnage
+    Fix: CORRECTIF
+    Styling: STYLE
+    DarkDiceFaces: >-
+      En thème sombre, la carte d'un test garde sombres les symboles des dés clairs, et chaque symbole reste dans son dé
+    DicePromptSections: >-
+      La modification de la réserve de dés ne se replie plus, et s'aligne sur les effets supplémentaires et les points
+      narratifs
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
