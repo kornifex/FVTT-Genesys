@@ -1,4 +1,5 @@
 @use 'sass:math';
+@use '@scss/mixins/dice.scss';
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
 
@@ -103,34 +104,28 @@ $die-shift: 0.1em;
 				-webkit-text-stroke: 1px colors.$die-outline;
 				text-stroke: 1px colors.$die-outline;
 
-				// Boost Die
 				&[data-type='B'] {
-					color: colors.$die-boost;
+					@include dice.glyph('boost');
 				}
 
-				// Ability Die
 				&[data-type='A'] {
-					color: colors.$die-ability;
+					@include dice.glyph('ability');
 				}
 
-				// Proficiency Die
 				&[data-type='P'] {
-					color: colors.$die-proficiency;
+					@include dice.glyph('proficiency');
 				}
 
-				// Setback Die
 				&[data-type='S'] {
-					color: colors.$die-setback;
+					@include dice.glyph('setback');
 				}
 
-				// Difficulty Die
 				&[data-type='I'] {
-					color: colors.$die-difficulty;
+					@include dice.glyph('difficulty');
 				}
 
-				// Challenge Die
 				&[data-type='C'] {
-					color: colors.$die-challenge;
+					@include dice.glyph('challenge');
 				}
 			}
 

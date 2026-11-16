@@ -714,6 +714,7 @@ const spendId = useId();
 <style lang="scss" scoped>
 @use 'sass:math';
 @use '@scss/vars/colors.scss';
+@use '@scss/mixins/dice.scss';
 @use '@scss/mixins/reset.scss';
 @use '@scss/mixins/headings.scss';
 
@@ -1267,27 +1268,27 @@ $target-size: 24px;
 			font-size: 2.5rem;
 
 			&.die-Ability {
-				color: colors.$die-ability;
+				@include dice.glyph('ability');
 			}
 
 			&.die-Difficulty {
-				color: colors.$die-difficulty;
+				@include dice.glyph('difficulty');
 			}
 
 			&.die-Proficiency {
-				color: colors.$die-proficiency;
+				@include dice.glyph('proficiency');
 			}
 
 			&.die-Challenge {
-				color: colors.$die-challenge;
+				@include dice.glyph('challenge');
 			}
 
 			&.die-Boost {
-				color: colors.$die-boost;
+				@include dice.glyph('boost');
 			}
 
 			&.die-Setback {
-				color: colors.$die-setback;
+				@include dice.glyph('setback');
 			}
 		}
 	}

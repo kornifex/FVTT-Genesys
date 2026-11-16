@@ -45,6 +45,16 @@ $defaults: (
 	'field': #fff,
 	'shadow': #000,
 	'die-outline': #000,
+	// Each die's own outline, and the border of each filled rank box, which the dark theme sets apart from what they
+	// surround.
+	'die-outline-ability': var(--genesys-die-outline),
+	'die-outline-difficulty': var(--genesys-die-outline),
+	'die-outline-proficiency': var(--genesys-die-outline),
+	'die-outline-challenge': var(--genesys-die-outline),
+	'die-outline-boost': var(--genesys-die-outline),
+	'die-outline-setback': var(--genesys-die-outline),
+	'skill-rank-border-ability': var(--genesys-ink),
+	'skill-rank-border-proficiency': var(--genesys-ink),
 	// The colors of Foundry's AppV1 windows, which the sheets and prompts were first drawn with.
 	'text': #191813,
 	'text-muted': #4b4a44,
@@ -71,8 +81,18 @@ $dark: (
 	'ink-muted': color-mix(in srgb, var(--genesys-blue-gray), white 40%),
 	'text-blue': color-mix(in srgb, var(--genesys-blue), white 55%),
 	'icon-gold': var(--genesys-gold),
-	// The dice keep their colors, which are the game's: their light outline sets them apart from the dark paper.
+	// The dice keep their colors, which are the game's: the light outline sets the dark dice apart from the dark paper.
+	// The light dice stand out from it themselves, and a light outline would fade into them: theirs is a dark shade of the
+	// die, which keeps 3:1 against it. The filled rank boxes get the same border.
 	'die-outline': #fff,
+	'die-outline-ability': color-mix(in srgb, var(--genesys-die-ability), black 65%),
+	'die-outline-difficulty': var(--genesys-die-outline),
+	'die-outline-proficiency': color-mix(in srgb, var(--genesys-die-proficiency), black 65%),
+	'die-outline-challenge': var(--genesys-die-outline),
+	'die-outline-boost': color-mix(in srgb, var(--genesys-die-boost), black 65%),
+	'die-outline-setback': var(--genesys-die-outline),
+	'skill-rank-border-ability': color-mix(in srgb, var(--genesys-die-ability), black 65%),
+	'skill-rank-border-proficiency': color-mix(in srgb, var(--genesys-skill-rank-proficiency), black 65%),
 	'text': #e3ddd3,
 	'text-muted': #b3ada3,
 	'input': rgba(255, 255, 255, 0.05),
@@ -170,6 +190,16 @@ $field: var(--genesys-field);
 $shadow: var(--genesys-shadow);
 // The outline of the dice's and symbols' glyphs.
 $die-outline: var(--genesys-die-outline);
+// The outline of one die's glyph, which `mixins/dice.scss` pairs with the die's color.
+$die-outline-ability: var(--genesys-die-outline-ability);
+$die-outline-difficulty: var(--genesys-die-outline-difficulty);
+$die-outline-proficiency: var(--genesys-die-outline-proficiency);
+$die-outline-challenge: var(--genesys-die-outline-challenge);
+$die-outline-boost: var(--genesys-die-outline-boost);
+$die-outline-setback: var(--genesys-die-outline-setback);
+// The border of a rank box filled with the Ability or the Proficiency color.
+$skill-rank-border-ability: var(--genesys-skill-rank-border-ability);
+$skill-rank-border-proficiency: var(--genesys-skill-rank-border-proficiency);
 // The text of the sheets, prompts and chat cards, on paper and in their fields.
 $text: var(--genesys-text);
 // The hints and secondary text of the sheets, prompts and chat cards, on paper.

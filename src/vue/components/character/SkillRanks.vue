@@ -50,10 +50,12 @@ const glyphs = computed(() => DIE_GLYPHS.Proficiency.repeat(proficiencyDice.valu
 
 		&.proficiency {
 			background: colors.$skill-rank-proficiency;
+			border-color: colors.$skill-rank-border-proficiency;
 		}
 
 		&.ability {
 			background: colors.$die-ability;
+			border-color: colors.$skill-rank-border-ability;
 		}
 	}
 }

@@ -1,0 +1,19 @@
+@use 'sass:map';
+@use 'sass:meta';
+@use '@scss/vars/colors.scss';
+
+// A die's glyph in the die's color, with the outline the Palette gives that die, so that a light die keeps its outline
+// in the dark theme. The glyph's rule sets the outline's width. `$die` is a die's name in the Palette: `ability`,
+// `proficiency`…
+@mixin glyph($die) {
+	$palette: meta.module-variables('colors');
+	$color: map.get($palette, 'die-#{$die}');
+	$outline: map.get($palette, 'die-outline-#{$die}');
+	@if not $color or not $outline {
+		@error 'The Palette has no #{$die} die.';
+	}
+
+	color: $color;
+	-webkit-text-stroke-color: $outline;
+	text-stroke-color: $outline;
+}

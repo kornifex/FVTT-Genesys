@@ -172,14 +172,18 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 		looksOf('spend'),
 		looksOf('manual'),
 	);
-	// The Palette's `die-outline`: black on light paper, white on dark.
-	const outline = { light: 'rgb(0, 0, 0)', dark: 'rgb(255, 255, 255)' }[theme];
+	// Each die's outline in the Palette: black on light paper; on dark paper, white around the dark dice and a dark shade
+	// of the die around the light ones (#865), the Ability die's mixed with 65% black.
+	const outlines = {
+		light: { ability: 'rgb(0, 0, 0)', difficulty: 'rgb(0, 0, 0)' },
+		dark: { ability: 'color(srgb 0.0892157 0.237451 0.100196)', difficulty: 'rgb(255, 255, 255)' },
+	}[theme];
 	e2e.expect(
 		'#758 X6 the ability upgrade shows the Ability die and the difficulty upgrade the Difficulty die, each with its outline',
 		looksOf('spend').map(({ modification, color }) => [modification, color]),
 		[
-			['A^', `rgb(65, 173, 73), outline 0.5px ${outline}`],
-			['D^', `rgb(82, 35, 128), outline 0.5px ${outline}`],
+			['A^', `rgb(65, 173, 73), outline 0.5px ${outlines.ability}`],
+			['D^', `rgb(82, 35, 128), outline 0.5px ${outlines.difficulty}`],
 		],
 	);
 	await control(player, []);

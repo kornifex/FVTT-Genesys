@@ -22,8 +22,8 @@ const icon = computed(() => GenesysPoolModifications[props.glyph].icon);
 <style lang="scss" scoped>
 @use '@scss/vars/colors.scss';
 
-// The glyph and its operator icon, side by side and lined up at their top. The global die classes give a die its colour;
-// its outline is thinner than a die's in the text, and the operator is a small superscript with none.
+// The glyph and its operator icon, side by side and lined up at their top. The global die classes give a die its colour
+// and its outline's; the outline is thinner than a die's in the text, and the operator is a small superscript with none.
 .pool-modification {
 	display: inline-flex;
 	flex-direction: row;
@@ -32,8 +32,8 @@ const icon = computed(() => GenesysPoolModifications[props.glyph].icon);
 	font-family: 'Genesys Symbols', sans-serif;
 
 	&.die {
-		-webkit-text-stroke: 0.5px colors.$die-outline;
-		text-stroke: 0.5px colors.$die-outline;
+		-webkit-text-stroke-width: 0.5px;
+		text-stroke-width: 0.5px;
 	}
 
 	& > i {
