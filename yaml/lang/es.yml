@@ -749,6 +749,7 @@ Genesys:
     IsAttack: ¿Es un ataque?
     BaseDamage: Daño base
     AdditionalEffects: Efectos adicionales
+    RatingSkill: Rangos de los efectos en
     RemoveAdditionalEffect: Quitar el efecto adicional
     AdditionalEffectDetails: 'Detalles de {effect}'
     AddedDifficulty: Dificultad añadida
@@ -757,9 +758,8 @@ Genesys:
     ForAnAttack: Para un ataque
     Unrated: Sin índice
     FixedRating: Índice fijo
-    SkillRanksRating: Rangos en una habilidad
+    SkillRanksRating: Rangos del lanzador
     QualityRatingSource: '{quality}: índice según'
-    QualityRatingSkill: '{quality}: habilidad'
     DoublesDamageCharacteristic: ¿Duplica la característica de daño?
     HideMagicTab: Ocultar la pestaña Magia
     ShowMagicTab: Mostrar la pestaña Magia

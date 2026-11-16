@@ -138,7 +138,7 @@ export function castingDifficulty(spellDifficulty: number, effects: readonly Cas
 }
 
 /**
- * A quality an Additional Effect gives, as a card shows it: its rating is the caster's ranks in the effect's skill when
+ * A quality an Additional Effect gives, as a card shows it: its rating is the caster's ranks in the spell's skill when
  * it counts them.
  */
 type CastQuality = { name: string; description: string; isRated: boolean; rating: number };
@@ -154,22 +154,26 @@ export type SpellCast = {
 
 /**
  * What a spell cast with Additional Effects added shows on its card, in the spell's order. An effect added more than
- * once is listed once, with its qualities once. A quality rated by the caster's ranks in a skill takes them from
- * `ranksIn`.
+ * once is listed once, with its qualities once. A quality rated by the caster's ranks counts them in the spell's skill,
+ * which `ranksIn` gives.
  */
 export function spellCast(
-	effects: readonly Pick<ContainedAdditionalEffect, 'id' | 'name' | 'description' | 'qualities'>[],
+	spell: {
+		additionalEffects: readonly Pick<ContainedAdditionalEffect, 'id' | 'name' | 'description' | 'qualities'>[];
+		ratingSkill: string;
+	},
 	counts: EffectCounts,
 	ranksIn: (skill: string) => number,
 ): SpellCast {
+	const skillRanks = ranksIn(spell.ratingSkill);
 	return {
-		effects: effects
+		effects: spell.additionalEffects
 			.filter((effect) => countOf(counts, effect) > 0)
 			.map((effect) => ({
 				name: effect.name,
 				description: effect.description,
 				count: countOf(counts, effect),
-				qualities: effect.qualities.map((quality) => castQuality(quality, ranksIn)),
+				qualities: effect.qualities.map((quality) => castQuality(quality, skillRanks)),
 			})),
 		strain: CASTING_STRAIN,
 	};
@@ -179,15 +183,19 @@ export function spellCast(
  * The profile of a magic attack cast with Additional Effects added (CRB p. 215): its damage adds the characteristic
  * linked to the skill rolled, twice with Empowered, to the spell's base damage, an implement's bonus; it has no Critical
  * rating, so only a Triumph inflicts a Critical Injury, unless an effect gives one, as Deadly does; its qualities are its
- * effects', once however many times each is added, a rating counted from the caster's ranks in its skill.
+ * effects', once however many times each is added, a rating counted from the caster's ranks in the spell's skill.
  */
 export function spellAttackProfile(
-	spell: { name: string; system: { baseDamage: number; additionalEffects: readonly ContainedAdditionalEffect[] } },
+	spell: {
+		name: string;
+		system: { baseDamage: number; additionalEffects: readonly ContainedAdditionalEffect[]; ratingSkill: string };
+	},
 	counts: EffectCounts,
 	damageCharacteristic: DamageCharacteristic,
 	ranksIn: (skill: string) => number,
 ): AttackProfile {
 	const effects = spell.system.additionalEffects.filter((effect) => countOf(counts, effect) > 0);
+	const skillRanks = ranksIn(spell.system.ratingSkill);
 	// Of two effects that give a Critical rating, the lower one triggers more often.
 	const criticals = effects.flatMap((effect) => effect.critical ?? []);
 
@@ -202,7 +210,7 @@ export function spellAttackProfile(
 		// The qualities an Additional Effect gives are copied without Active Effects (#704), so they have no id to tag any.
 		qualities: effects.flatMap((effect) =>
 			effect.qualities.map((quality) => ({
-				...castQuality(quality, ranksIn),
+				...castQuality(quality, skillRanks),
 				id: '',
 				activation: quality.activation,
 				advantageCost: quality.advantageCost,
@@ -211,7 +219,7 @@ export function spellAttackProfile(
 	};
 }
 
-function castQuality(quality: SpellQuality, ranksIn: (skill: string) => number): CastQuality {
+function castQuality(quality: SpellQuality, skillRanks: number): CastQuality {
 	const { name, description } = quality;
 	const source = spellQualityRating(quality);
 	switch (source.ratingSource) {
@@ -220,6 +228,6 @@ function castQuality(quality: SpellQuality, ranksIn: (skill: string) => number):
 		case 'fixed':
 			return { name, description, isRated: true, rating: source.rating };
 		case 'skillRanks':
-			return { name, description, isRated: true, rating: ranksIn(source.ratingSkill) };
+			return { name, description, isRated: true, rating: skillRanks };
 	}
 }

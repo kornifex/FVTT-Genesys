@@ -23,6 +23,7 @@ import { maneuverEffectsProvideDefense } from '@/migrations/7-maneuver-effects-p
 import { expiredEffectsInDuration } from '@/migrations/8-expired-effects-in-duration';
 import { viciousThroughItsEffect } from '@/migrations/9-vicious-through-its-effect';
 import { poolModificationsTypeOfActor, poolModificationsTypeOfItem } from '@/migrations/10-pool-modifications-change-type';
+import { spellsNameTheirRatingSkill } from '@/migrations/11-spells-name-their-rating-skill';
 import {
 	actorItemsPlanner,
 	isWorldItemPack,
@@ -50,7 +51,9 @@ async function applyChanges(
 	}
 
 	if (items.length > 0) {
-		await actor.updateEmbeddedDocuments('Item', items);
+		// Unlike Foundry's diff against the source loaded, which has lost the keys the schema dropped, the world still
+		// stores them: an item written whole drops them there too.
+		await actor.updateEmbeddedDocuments('Item', items, { diff: false });
 	}
 
 	for (const [itemId, created] of Object.entries(createdItemEffects)) {
@@ -103,7 +106,8 @@ async function migrateEveryActor(plan: ActorPlanner) {
 
 async function applyItemChanges(item: GenesysItem, { update, effects = [], createdEffects = [] }: ItemChanges) {
 	if (update) {
-		await item.update(update);
+		// Not diffed, as an actor's items are not (see applyChanges).
+		await item.update(update, { diff: false });
 	}
 
 	if (effects.length > 0) {
@@ -211,6 +215,7 @@ const migrations: readonly (() => Promise<boolean>)[] = [
 		const actorsMigrated = await migrateEveryActor(poolModificationsTypeOfActor);
 		return (await migrateEveryItem(poolModificationsTypeOfItem)) && actorsMigrated;
 	},
+	() => migrateEveryItem(spellsNameTheirRatingSkill),
 ];
 
 /**

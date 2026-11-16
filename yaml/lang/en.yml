@@ -764,6 +764,7 @@ Genesys:
     IsAttack: Is an Attack?
     BaseDamage: Base Damage # What a magic attack adds to its characteristic: an implement's bonus
     AdditionalEffects: Additional Effects
+    RatingSkill: Effects Count Ranks In # The skill whose ranks the qualities of a spell's additional effects count, Knowledge by default
     RemoveAdditionalEffect: Remove the Additional Effect
     AdditionalEffectDetails: '{effect} Details' # e.g. Blast Details, the button that shows a spell's additional effect in full
     AddedDifficulty: Added Difficulty # The Difficulty dice an additional effect adds to its spell
@@ -772,9 +773,8 @@ Genesys:
     ForAnAttack: For an Attack # The heading of what an additional effect gives a magic attack
     Unrated: Unrated
     FixedRating: Fixed Rating
-    SkillRanksRating: Ranks in a Skill # A quality whose rating is the caster's ranks in a skill, Knowledge by default
+    SkillRanksRating: Caster's Ranks # A quality whose rating is the caster's ranks in the skill the spell names, Knowledge by default
     QualityRatingSource: '{quality}: Rating From' # e.g. Blast: Rating From, the name of the field that says where a quality's rating comes from
-    QualityRatingSkill: '{quality}: Skill' # e.g. Blast: Skill, the name of the skill whose ranks a quality's rating counts
     DoublesDamageCharacteristic: Doubles the Damage Characteristic? # Empowered: the attack deals twice the characteristic linked to its skill
     HideMagicTab: Hide the Magic Tab
     ShowMagicTab: Show the Magic Tab

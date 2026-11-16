@@ -1,7 +1,7 @@
 /** @file The schema fields several DataModels share, built by one factory each, with the types of the data they hold. */
 
 import { Characteristic } from '@/data/Characteristics';
-import { DEFAULT_RATING_SKILL, QUALITY_RATING_SOURCES } from '@/item/data/Spells';
+import { QUALITY_RATING_SOURCES } from '@/item/data/Spells';
 
 /**
  * A count against its maximum, such as wounds and strain, or a vehicle's hull trauma and system strain.
@@ -210,7 +210,6 @@ export function additionalEffectFields() {
 				advantageCost: advantageCostField(),
 				ratingSource: choiceField(QUALITY_RATING_SOURCES, 'unrated'),
 				rating: new fields.NumberField({ required: true, nullable: false, integer: true, min: 1, initial: 1 }),
-				ratingSkill: new fields.StringField({ initial: DEFAULT_RATING_SKILL }),
 			}),
 		),
 		critical: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, initial: null }),

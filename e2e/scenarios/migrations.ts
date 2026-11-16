@@ -34,6 +34,8 @@ type WorldState = {
 	vicious: Record<'Axe' | 'Cleaver' | 'Vicious pack', QualityEffects>;
 	/** The changes of the effects that hold Pool Modifications, sorted, as `<key> <type> <value>`. */
 	pool: Record<'Marksman' | 'Marksman talent' | 'World talent', string[]>;
+	/** The skill whose ranks the Additional Effects of a spell count. */
+	spells: Record<'Lore Bolt' | 'Mixed Bolt' | 'Dark Bolt', string>;
 };
 
 /**
@@ -94,6 +96,13 @@ type MigrationHelpers = {
 	/** The rows of an actor sheet's Effects tab, by section, sorted, as `<effect> ← <source>`. */
 	effectsTab(name: string): Promise<EffectsTab>;
 	/** Deletes what the scenario created. */
+	/**
+	 * The skills a world spell holds as the world stores it, which Foundry's loaded source no longer shows: the spell's,
+	 * and each of its effects' qualities' as `<quality>: <skill, or ->`.
+	 */
+	storedSkills(name: string): Promise<{ spell: string | null; qualities: string[] }>;
+	/** Removes the second Additional Effect of E2E Lore Bolt, as the spell's sheet writes its effects. */
+	editLoreBolt(): Promise<void>;
 	cleanUp(): Promise<void>;
 };
 
@@ -476,6 +485,85 @@ function installMigrationHelpers() {
 				type: 'talent',
 				effects: [customEffect('E2E Keen Senses', ['genesys.pool.check.target.', 'S'])],
 			});
+
+			// #877: spells as 0.7.1 stored them, naming no skill, each quality of their Additional Effects naming the skill its
+			// rating counted: a world spell whose effects counted Knowledge (Lore), one whose effects counted different
+			// skills, and a character's spell counting Knowledge (Forbidden). Foundry migrates the data given to a create, and
+			// an update can't remove the spell's skill, which the schema requires: the stored data is written through the
+			// socket, as the world holds it once 0.7.1 wrote it, over a spell created without effects.
+			const legacyQuality = (name: string, ratingSkill: string) => ({
+				name,
+				description: '',
+				activation: 'passive',
+				advantageCost: 0,
+				ratingSource: 'skillRanks',
+				rating: 1,
+				ratingSkill,
+			});
+			const legacyCopy = (name: string, quality: ReturnType<typeof legacyQuality>) => ({
+				id: randomID(),
+				name,
+				description: '',
+				difficulty: 1,
+				startsChecked: false,
+				repeatable: false,
+				qualities: [quality],
+				critical: null,
+				doublesDamageCharacteristic: false,
+			});
+			const asLegacy = (spell: { id: string; parent: { uuid: string } | null }, copies: object[]) =>
+				foundry.helpers.SocketInterface.dispatch('modifyDocument', {
+					type: 'Item',
+					action: 'update',
+					operation: {
+						updates: [
+							{
+								_id: spell.id,
+								system: { additionalEffects: copies, ratingSkill: new foundry.data.operators.ForcedDeletion() },
+							},
+						],
+						...(spell.parent && { parentUuid: spell.parent.uuid }),
+						diff: false,
+						recursive: true,
+						modifiedTime: Date.now(),
+						render: false,
+					},
+				});
+			await asLegacy(await Item.create({ name: 'E2E Lore Bolt', type: 'spell' }), [
+				legacyCopy('Blast', legacyQuality('Blast', 'Knowledge (Lore)')),
+				legacyCopy('Stun', legacyQuality('Disorient', 'Knowledge (Lore)')),
+			]);
+			await asLegacy(await Item.create({ name: 'E2E Mixed Bolt', type: 'spell' }), [
+				legacyCopy('Blast', legacyQuality('Blast', 'Knowledge (Lore)')),
+				legacyCopy('Stun', legacyQuality('Disorient', 'Knowledge (Forbidden)')),
+			]);
+			const scholar = await Actor.create({
+				name: 'E2E Scholar',
+				type: 'character',
+				items: [{ name: 'E2E Dark Bolt', type: 'spell' }],
+			});
+			await asLegacy(scholar.items.getName('E2E Dark Bolt'), [legacyCopy('Blast', legacyQuality('Blast', 'Knowledge (Forbidden)'))]);
+		},
+
+		async storedSkills(name) {
+			type Stored = { ratingSkill?: string; additionalEffects: { qualities: { name: string; ratingSkill?: string }[] }[] };
+			const response = await foundry.helpers.SocketInterface.dispatch('modifyDocument', {
+				type: 'Item',
+				action: 'get',
+				operation: { query: { _id: game.items.getName(`E2E ${name}`).id } },
+			});
+			const { ratingSkill, additionalEffects }: Stored = response.result[0].system;
+			return {
+				spell: ratingSkill ?? null,
+				qualities: additionalEffects.flatMap((effect) =>
+					effect.qualities.map((quality) => `${quality.name}: ${quality.ratingSkill ?? '-'}`),
+				),
+			};
+		},
+
+		async editLoreBolt() {
+			const spell = game.items.getName('E2E Lore Bolt');
+			await spell.update({ 'system.additionalEffects': spell.system.additionalEffects.slice(0, 1) });
 		},
 
 		async createWithCopies() {
@@ -638,6 +726,11 @@ function installMigrationHelpers() {
 					Marksman: changesOf(actorNamed('Marksman').effects),
 					'Marksman talent': changesOf(actorNamed('Marksman').items.getName('E2E Eagle Eye').effects),
 					'World talent': changesOf(game.items.getName('E2E Keen Senses').effects),
+				},
+				spells: {
+					'Lore Bolt': game.items.getName('E2E Lore Bolt').system.ratingSkill,
+					'Mixed Bolt': game.items.getName('E2E Mixed Bolt').system.ratingSkill,
+					'Dark Bolt': actorNamed('Scholar').items.getName('E2E Dark Bolt').system.ratingSkill,
 				},
 			};
 		},
@@ -828,13 +921,28 @@ export async function run(e2e: ScenarioContext) {
 	);
 
 	// #56 and #102: the first load as GM runs every migration.
+	e2e.expect(
+		"#877 A1 before the migration, a spell's effects' qualities store the skill they count, the spell none",
+		await gm.evaluate(() => window.migrationsE2E.storedSkills('Lore Bolt')),
+		{ spell: null, qualities: ['Blast: Knowledge (Lore)', 'Disorient: Knowledge (Lore)'] },
+	);
 	const migrated = await reload('GM loads the world at migration version 0');
 	e2e.expect(
 		'#56 A1 the migrations run once, each with permanent notifications, the unpaired copies warned',
 		await gm.evaluate(() => window.migrationsE2E.permanentNotices()),
 		await gm.evaluate(() => window.migrationsE2E.expectedNotices([{ actor: 'E2E Odd', item: 'E2E Knack' }])),
 	);
-	e2e.expect('the migration version reaches the last migration', migrated.version, 10);
+	e2e.expect('the migration version reaches the last migration', migrated.version, 11);
+	e2e.expect(
+		"#877 A2 a spell stored by 0.7.1 counts the skill its effects all counted, Knowledge if they counted different ones, a world's spell and a character's",
+		migrated.spells,
+		{ 'Lore Bolt': 'Knowledge (Lore)', 'Mixed Bolt': 'Knowledge', 'Dark Bolt': 'Knowledge (Forbidden)' },
+	);
+	e2e.expect(
+		"#877 A2 the world stores the spell's skill, and its effects' qualities no longer name one",
+		await gm.evaluate(() => window.migrationsE2E.storedSkills('Lore Bolt')),
+		{ spell: 'Knowledge (Lore)', qualities: ['Blast: -', 'Disorient: -'] },
+	);
 	e2e.expect('#294 A1 before the migration, the Pool Modifications have the custom type', legacy.pool, {
 		Marksman: ['genesys.critical.suffered custom 10', 'genesys.pool.combat.self. custom B'],
 		'Marksman talent': ['genesys.pool.skill.self.Perception custom B'],
@@ -1013,6 +1121,18 @@ export async function run(e2e: ScenarioContext) {
 		'#441 A4 undoing the linked purchase asks to confirm, and Yes deletes the talent and gives its XP back',
 		{ asked, ...(await gm.evaluate(() => window.migrationsE2E.talents('Elder'))) },
 		{ asked: true, talents: ['E2E Twin', 'E2E Twin'], xp: 90 },
+	);
+
+	// #877: the migration wrote the spell's skill down. Foundry only keeps it in memory otherwise, and a spell whose effects
+	// are written would lose it on the next load.
+	await e2e.step('#877 A3 GM removes the second Additional Effect of E2E Lore Bolt', () =>
+		gm.evaluate(() => window.migrationsE2E.editLoreBolt()),
+	);
+	const edited = await reload('GM loads the world with the edited spell');
+	e2e.expect(
+		'#877 A3 the edited spell still counts Knowledge (Lore) once the world is loaded again',
+		edited.spells['Lore Bolt'],
+		'Knowledge (Lore)',
 	);
 
 	await e2e.step('scenario documents deleted', () => gm.evaluate(() => window.migrationsE2E.cleanUp()));

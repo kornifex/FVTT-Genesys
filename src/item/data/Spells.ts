@@ -81,8 +81,9 @@ export const QUALITY_RATING_SOURCES = ['unrated', 'fixed', 'skillRanks'] as cons
 export type QualityRatingSource = (typeof QUALITY_RATING_SOURCES)[number];
 
 /**
- * The skill a quality's rating counts the caster's ranks in, unless the table names another: Knowledge, as Table
- * III.2–5 does (CRB p. 215). Realms of Terrinoth names Knowledge (Lore).
+ * The skill a new spell's Additional Effects count the caster's ranks in: Knowledge, as every effect of Tables III.2–5
+ * to III.2–11 does (CRB pp. 215–218). What changes it applies to the caster, for all their effects at once: Realms of
+ * Terrinoth counts Knowledge (Lore), its talent Dark Insight Knowledge (Forbidden).
  */
 export const DEFAULT_RATING_SKILL = 'Knowledge';
 
@@ -100,38 +101,30 @@ export type SpellQuality = {
 	 * The rating of a quality whose rating is fixed.
 	 */
 	rating: number;
-	/**
-	 * The skill whose ranks a quality's rating counts, when it counts the caster's ranks.
-	 */
-	ratingSkill: string;
 };
 
 /**
- * Where a quality's rating comes from, as casting reads it: only the field its source uses, the fixed rating or the skill
- * whose ranks it counts, and none other.
+ * Where a quality's rating comes from, as casting reads it: the fixed rating only for a quality whose rating is fixed.
+ * A quality that counts the caster's ranks counts them in the spell's skill, which the spell names.
  */
-type SpellQualityRating =
-	| { ratingSource: 'unrated' }
-	| { ratingSource: 'fixed'; rating: number }
-	| { ratingSource: 'skillRanks'; ratingSkill: string };
+type SpellQualityRating = { ratingSource: 'unrated' } | { ratingSource: 'fixed'; rating: number } | { ratingSource: 'skillRanks' };
 
 /**
- * The rating of a stored quality, parsed: the stored shape keeps all its fields, whichever the source reads.
+ * The rating of a stored quality, parsed: the stored shape keeps its fixed rating, whichever the source reads.
  */
-export function spellQualityRating({ ratingSource, rating, ratingSkill }: SpellQuality): SpellQualityRating {
+export function spellQualityRating({ ratingSource, rating }: SpellQuality): SpellQualityRating {
 	switch (ratingSource) {
 		case 'unrated':
+		case 'skillRanks':
 			return { ratingSource };
 		case 'fixed':
 			return { ratingSource, rating };
-		case 'skillRanks':
-			return { ratingSource, ratingSkill };
 	}
 }
 
 /**
  * The qualities of an Additional Effect with a quality item dropped on it: a rated quality counts the caster's ranks in
- * Knowledge, as Table III.2–5 does, an unrated one has no rating. `undefined` when the effect already gives a quality of
+ * the spell's skill, as Table III.2–5 does with Knowledge, an unrated one has no rating. `undefined` when the effect already gives a quality of
  * that name, whatever its case: an attack has each quality once.
  */
 export function withSpellQualityAdded(
@@ -154,7 +147,6 @@ export function withSpellQualityAdded(
 			advantageCost: system.advantageCost,
 			ratingSource: system.isRated ? 'skillRanks' : 'unrated',
 			rating: 1,
-			ratingSkill: DEFAULT_RATING_SKILL,
 		},
 	];
 }

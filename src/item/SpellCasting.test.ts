@@ -192,19 +192,21 @@ const quality = (name: string, ratingSource: SpellQuality['ratingSource'], ratin
 	advantageCost: 2,
 	ratingSource,
 	rating,
-	ratingSkill: 'Knowledge',
 });
 
 describe('spellCast', () => {
-	const effects = [
-		{ id: 'blast', name: 'Blast', description: '', qualities: [quality('Blast', 'skillRanks')] },
-		{ id: 'impact', name: 'Impact', description: '<p>Knocks the target down.</p>', qualities: [quality('Knockdown', 'unrated')] },
-		{ id: 'fire', name: 'Fire', description: '', qualities: [quality('Burn', 'fixed', 2)] },
-		{ id: 'range', name: 'Range', description: '', qualities: [] },
-	];
+	const spell = {
+		additionalEffects: [
+			{ id: 'blast', name: 'Blast', description: '', qualities: [quality('Blast', 'skillRanks')] },
+			{ id: 'impact', name: 'Impact', description: '<p>Knocks the target down.</p>', qualities: [quality('Knockdown', 'unrated')] },
+			{ id: 'fire', name: 'Fire', description: '', qualities: [quality('Burn', 'fixed', 2)] },
+			{ id: 'range', name: 'Range', description: '', qualities: [] },
+		],
+		ratingSkill: 'Knowledge',
+	};
 
 	it('lists the effects added in the spell’s order, with the 2 strain casting costs (CRB p. 210)', () => {
-		expect(spellCast(effects, { fire: 1, impact: 1, blast: 0 }, () => 0)).toEqual({
+		expect(spellCast(spell, { fire: 1, impact: 1, blast: 0 }, () => 0)).toEqual({
 			effects: [
 				{
 					name: 'Impact',
@@ -224,20 +226,26 @@ describe('spellCast', () => {
 	});
 
 	it('lists an effect added four times once, with its count', () => {
-		expect(spellCast(effects, { range: 4 }, () => 0).effects).toEqual([{ name: 'Range', description: '', count: 4, qualities: [] }]);
+		expect(spellCast(spell, { range: 4 }, () => 0).effects).toEqual([{ name: 'Range', description: '', count: 4, qualities: [] }]);
 	});
 
 	it('lists the qualities of an effect added more than once once', () => {
-		expect(spellCast(effects, { fire: 2 }, () => 0).effects[0].qualities).toHaveLength(1);
+		expect(spellCast(spell, { fire: 2 }, () => 0).effects[0].qualities).toHaveLength(1);
 	});
 
 	it("rates a quality by the caster's ranks in Knowledge, as Table III.2–5 does (CRB p. 215)", () => {
 		const ranks: Record<string, number> = { Knowledge: 3 };
-		expect(spellCast(effects, { blast: 1 }, (name) => ranks[name] ?? 0).effects[0].qualities[0]).toMatchObject({
+		expect(spellCast(spell, { blast: 1 }, (name) => ranks[name] ?? 0).effects[0].qualities[0]).toMatchObject({
 			name: 'Blast',
 			isRated: true,
 			rating: 3,
 		});
+	});
+
+	it("rates a quality by the caster's ranks in the skill the spell names, as Dark Insight's Knowledge (Forbidden) (RoT)", () => {
+		const ranks: Record<string, number> = { Knowledge: 3, 'Knowledge (Forbidden)': 1 };
+		const forbidden = { ...spell, ratingSkill: 'Knowledge (Forbidden)' };
+		expect(spellCast(forbidden, { blast: 1 }, (name) => ranks[name] ?? 0).effects[0].qualities[0].rating).toBe(1);
 	});
 });
 
@@ -256,7 +264,7 @@ describe('spellAttackProfile', () => {
 	});
 	const attackSpell = (baseDamage: number, ...additionalEffects: ContainedAdditionalEffect[]) => ({
 		name: 'Fireball',
-		system: { baseDamage, additionalEffects },
+		system: { baseDamage, additionalEffects, ratingSkill: 'Knowledge' },
 	});
 	const characteristics = { brawn: 2, agility: 2, intellect: 3, cunning: 2, willpower: 2, presence: 2 };
 	const empowered = effect('empowered', { doublesDamageCharacteristic: true });
@@ -295,6 +303,19 @@ describe('spellAttackProfile', () => {
 		expect(
 			spellAttackProfile(attackSpell(0, fire, impact), { fire: 1 }, Characteristic.Intellect, (name) => ranks[name] ?? 0).qualities,
 		).toEqual([{ id: '', name: 'Burn', description: '<p>Burn</p>', activation: 'active', advantageCost: 2, isRated: true, rating: 2 }]);
+	});
+
+	it("rates the qualities by the caster's ranks in the skill the spell names, as Realms of Terrinoth's Knowledge (Lore)", () => {
+		const fire = effect('fire', { qualities: [quality('Burn', 'skillRanks')] });
+		const spell = attackSpell(0, fire);
+		const lore = { ...spell, system: { ...spell.system, ratingSkill: 'Knowledge (Lore)' } };
+		const ranks: Record<string, number> = { Knowledge: 2, 'Knowledge (Lore)': 4 };
+
+		expect(spellAttackProfile(lore, { fire: 1 }, Characteristic.Intellect, (name) => ranks[name] ?? 0).qualities[0]).toMatchObject({
+			name: 'Burn',
+			isRated: true,
+			rating: 4,
+		});
 	});
 
 	it('gives the qualities of an effect added more than once once', () => {

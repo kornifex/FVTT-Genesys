@@ -66,27 +66,32 @@ export async function magicPart(ctx: SheetsContext) {
 		await dropOn({ item: 'E2E spell' }, 'E2E additionalEffect');
 	});
 	e2e.expect(
-		"#704 M3 the effect gives the rated quality at the caster's ranks in Knowledge, and the spell lists the effect twice, with it, under two ids",
-		await gm.evaluate(() => {
+		"#704 #877 M3 the effect gives the rated quality at the caster's ranks, its sheet naming no skill; the spell lists the effect twice, with it, under two ids, and counts ranks in Knowledge",
+		await gm.evaluate(async () => {
 			const spell = game.items.getName('E2E spell');
-			type Effect = { id: string; name: string; qualities: { name: string; ratingSource: string; ratingSkill: string }[] };
+			type Effect = { id: string; name: string; qualities: { name: string; ratingSource: string }[] };
 			const effects: Effect[] = spell.system.additionalEffects;
+			const effectSheet = await window.e2e.render(game.items.getName('E2E additionalEffect').sheet);
 			return {
 				effects: effects.map((effect) => ({
 					name: effect.name,
-					qualities: effect.qualities.map(({ name, ratingSource, ratingSkill }) => `${name} ${ratingSource} ${ratingSkill}`),
+					qualities: effect.qualities.map(({ name, ratingSource }) => `${name} ${ratingSource}`),
 				})),
 				distinctIds: new Set(effects.map((effect) => effect.id)).size,
 				rows: window.e2e.htmlOf(spell.sheet)!.querySelectorAll('.additional-effect').length,
+				ratingSkill: window.sheetsE2E.fieldValue('spell', 'system.ratingSkill'),
+				effectSkillFields: effectSheet.querySelectorAll('.spell-quality input[type="text"]').length,
 			};
 		}),
 		{
 			effects: [
-				{ name: 'E2E additionalEffect', qualities: ['E2E quality skillRanks Knowledge'] },
-				{ name: 'E2E additionalEffect', qualities: ['E2E quality skillRanks Knowledge'] },
+				{ name: 'E2E additionalEffect', qualities: ['E2E quality skillRanks'] },
+				{ name: 'E2E additionalEffect', qualities: ['E2E quality skillRanks'] },
 			],
 			distinctIds: 2,
 			rows: 2,
+			ratingSkill: 'Knowledge',
+			effectSkillFields: 0,
 		},
 	);
 

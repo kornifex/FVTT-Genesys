@@ -16,16 +16,12 @@ describe('spellQualityRating', () => {
 		advantageCost: 0,
 		ratingSource: 'unrated',
 		rating: 3,
-		ratingSkill: 'Knowledge',
 	};
 
 	it('keeps of the rating only what its source reads', () => {
 		expect(spellQualityRating(stored)).toEqual({ ratingSource: 'unrated' });
 		expect(spellQualityRating({ ...stored, ratingSource: 'fixed' })).toEqual({ ratingSource: 'fixed', rating: 3 });
-		expect(spellQualityRating({ ...stored, ratingSource: 'skillRanks' })).toEqual({
-			ratingSource: 'skillRanks',
-			ratingSkill: 'Knowledge',
-		});
+		expect(spellQualityRating({ ...stored, ratingSource: 'skillRanks' })).toEqual({ ratingSource: 'skillRanks' });
 	});
 });
 
@@ -63,7 +59,7 @@ const BLAST = { description: '<p>Blast</p>', activation: 'active', advantageCost
 const KNOCKDOWN = { description: '<p>Knockdown</p>', activation: 'active', advantageCost: 2, isRated: false } as const;
 
 describe('withSpellQualityAdded', () => {
-	it("rates a rated quality by the caster's ranks in Knowledge, as most of Table III.2–5 does (CRB p. 215)", () => {
+	it("rates a rated quality by the caster's ranks, as most of Table III.2–5 does (CRB p. 215)", () => {
 		expect(withSpellQualityAdded([], { name: 'Blast', system: BLAST })).toEqual([
 			{
 				name: 'Blast',
@@ -72,7 +68,6 @@ describe('withSpellQualityAdded', () => {
 				advantageCost: 2,
 				ratingSource: 'skillRanks',
 				rating: 1,
-				ratingSkill: 'Knowledge',
 			},
 		]);
 	});
@@ -114,8 +109,8 @@ describe('additionalEffectCopy', () => {
 
 	it("copies the effect's qualities, which changing on the copy leaves the item's as they were", () => {
 		const copy = additionalEffectCopy('copy1', { name: 'Deadly', system: deadly });
-		copy.qualities[0].ratingSkill = 'Knowledge (Lore)';
-		expect(deadly.qualities[0].ratingSkill).toBe('Knowledge');
+		copy.qualities[0].rating = 3;
+		expect(deadly.qualities[0].rating).toBe(1);
 	});
 
 	it('copies whether the effect can be added more than once, as Range can (CRB p. 215)', () => {
