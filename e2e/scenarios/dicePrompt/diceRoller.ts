@@ -61,4 +61,23 @@ export async function diceRollerPart(ctx: DicePromptContext) {
 		'/gendr': runsTheCommand,
 		'/GENDROLL': runsTheCommand,
 	});
+	// §#872: the chat input sends the HTML its editor holds, which a macro's processMessage never sees.
+	const typed: Record<string, { posted: number; prompts: number }> = {};
+	for (const command of ['/gendr', '/gendroll']) {
+		const before = await gm.evaluate(() => game.messages.size);
+		const input = gm.page.locator('#chat-message .ProseMirror');
+		await input.click();
+		await input.pressSequentially(command);
+		await gm.page.keyboard.press('Enter');
+		typed[command] = await gm.evaluate(async (before) => {
+			await window.e2e.settle();
+			return { posted: game.messages.size - before, prompts: window.dicePromptE2E.openPrompts() };
+		}, before);
+		await gm.evaluate(() => window.dicePromptE2E.closePrompts());
+	}
+	const opensTheDiceRoller = { posted: 0, prompts: 1 };
+	e2e.expect('#872 A1 /gendr and /gendroll typed in the chat input open the Dice Roller and post no message', typed, {
+		'/gendr': opensTheDiceRoller,
+		'/gendroll': opensTheDiceRoller,
+	});
 }
