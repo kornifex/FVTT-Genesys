@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.1...v0.7.2) (2026-11-16)
+
+
+### Features
+
+* **item:** name on the spell the skill its Additional Effects count ranks in ([#878](https://github.com/kornifex/FVTT-Genesys/issues/878)) ([d4d3bc0](https://github.com/kornifex/FVTT-Genesys/commit/d4d3bc0c13c58936143f77b192753ce47f612ffd))
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.7.2's changes since 0.7.1 in the welcome message ([#881](https://github.com/kornifex/FVTT-Genesys/issues/881)) ([9dd3a4a](https://github.com/kornifex/FVTT-Genesys/commit/9dd3a4a3ec09194fd6d46aee938039352130d353))
+
+
+### Documentation
+
+* add 0.7.1's changes to the README's What's new since the fork ([#874](https://github.com/kornifex/FVTT-Genesys/issues/874)) ([e799bf0](https://github.com/kornifex/FVTT-Genesys/commit/e799bf00f8bdb4f93bdf5ac4299b43e80961118e))
+
+
+### Continuous Integration
+
+* let release-please compute the next version again ([#876](https://github.com/kornifex/FVTT-Genesys/issues/876)) ([5ff99c5](https://github.com/kornifex/FVTT-Genesys/commit/5ff99c53a0a21e5a50567c7a9816e48f685ff22c))
+* set the next release to 0.7.2 ([#880](https://github.com/kornifex/FVTT-Genesys/issues/880)) ([0398d79](https://github.com/kornifex/FVTT-Genesys/commit/0398d79cb3d68bfddcfacd7c81e97e60e8bbeae9))
+
 ## [0.7.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.1-rc.1...v0.7.1) (2026-11-16)
 
 
