@@ -125,7 +125,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 
 		const cast =
 			app.roll.type === RollType.Spell && actor
-				? spellCast(app.roll.spell.system.additionalEffects, effectCountsOf(checkRoll), ranksOf(actor))
+				? spellCast(app.roll.spell.system, effectCountsOf(checkRoll), ranksOf(actor))
 				: undefined;
 		const message = await rollCheck(checkRoll, {
 			attack: attackOf(app.roll, checkRoll, actor),

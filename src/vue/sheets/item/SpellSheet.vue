@@ -71,6 +71,8 @@ async function updateAdditionalEffects(additionalEffects: ContainedAdditionalEff
 					</div>
 				</DataRow>
 
+				<DataRow label="Genesys.Labels.RatingSkill" name="system.ratingSkill" :value="system.ratingSkill" />
+
 				<DataRow label="Genesys.Labels.AdditionalEffects" group>
 					<div class="additional-effects">
 						<AdditionalEffectRows :additional-effects="system.additionalEffects" @change="updateAdditionalEffects" />

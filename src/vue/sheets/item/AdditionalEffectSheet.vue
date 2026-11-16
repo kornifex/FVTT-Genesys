@@ -34,17 +34,13 @@ async function changeRating(index: number, event: Event) {
 	}
 }
 
-// The name of a field that shows no label of its own: "Blast Rating", "Blast: Skill".
+// The name of a field that shows no label of its own: "Blast Rating", "Blast: Rating From".
 function ratingLabel(quality: string) {
 	return game.i18n.format('Genesys.Labels.QualityRating', { quality });
 }
 
 function ratingSourceLabel(quality: string) {
 	return game.i18n.format('Genesys.Labels.QualityRatingSource', { quality });
-}
-
-function ratingSkillLabel(quality: string) {
-	return game.i18n.format('Genesys.Labels.QualityRatingSkill', { quality });
 }
 
 // Removing a quality asks first, naming it.
@@ -98,14 +94,7 @@ async function removeQuality(index: number) {
 								:aria-label="ratingLabel(quality.name)"
 								@change="changeRating(index, $event)"
 							/>
-							<input
-								v-else-if="quality.ratingSource === 'skillRanks'"
-								class="rating-skill"
-								type="text"
-								:value="quality.ratingSkill"
-								:aria-label="ratingSkillLabel(quality.name)"
-								@change="changeQuality(index, { ratingSkill: valueOf($event).trim() })"
-							/>
+							<!-- A quality rated by the caster's ranks counts them in the skill the spell names. -->
 							<div v-else></div>
 							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveQuality" edits @click="removeQuality(index)" />
 						</div>
