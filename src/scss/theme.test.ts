@@ -56,6 +56,8 @@ const PAIRS = [
 	],
 ] satisfies [string, string, () => Record<string, string>][];
 
+const DICE = ['ability', 'difficulty', 'proficiency', 'challenge', 'boost', 'setback'];
+
 type Rgb = [number, number, number];
 
 function rgb(hex: string): Rgb {
@@ -178,6 +180,14 @@ describe('Palette', () => {
 		});
 	});
 
+	it("outlines each die with the dice's outline, and borders each filled rank box with ink", () => {
+		expect(declarations(DEFAULTS)).toMatchObject({
+			...Object.fromEntries(DICE.map((die) => [`--genesys-die-outline-${die}`, 'var(--genesys-die-outline)'])),
+			'--genesys-skill-rank-border-ability': 'var(--genesys-ink)',
+			'--genesys-skill-rank-border-proficiency': 'var(--genesys-ink)',
+		});
+	});
+
 	it("declares AppV1's colors, which the sheets and prompts were first drawn with", () => {
 		expect(declarations(DEFAULTS)).toMatchObject(APPV1_COLORS);
 	});
@@ -239,7 +249,7 @@ describe('Dark theme', () => {
 	// A world's override of these on `:root` still applies in the dark theme.
 	it('keeps the published colors other than the surfaces, and the dice', () => {
 		const kept = ['red', 'light-blue', 'blue', 'dark-blue', 'gold', 'orange', 'alert', 'glow-core', 'glow'].concat(
-			['ability', 'difficulty', 'proficiency', 'challenge', 'boost', 'setback'].map((die) => `die-${die}`),
+			DICE.map((die) => `die-${die}`),
 		);
 
 		for (const name of kept) {
@@ -347,6 +357,13 @@ const ICON_ON = {
 	'die-outline': ['paper', 'paper-pattern'],
 } satisfies Record<string, string[]>;
 
+// Each outline and border of the dark theme, and the color it surrounds (#865).
+const OUTLINE_AROUND = {
+	...Object.fromEntries(DICE.map((die) => [`die-outline-${die}`, `die-${die}`])),
+	'skill-rank-border-ability': 'die-ability',
+	'skill-rank-border-proficiency': 'skill-rank-proficiency',
+};
+
 // Text drawn on a translucent tint of the Palette: the tint, its opacity, and what it lies over.
 const TEXT_ON_TINT = [
 	// A Container's contents row, at rest and hovered, shows its quantity and weight in ink.
@@ -404,4 +421,19 @@ describe.each(PAIRS)('Text in the %s Style and the %s theme', (_, _theme, style)
 			expect(contrast(resolve(icon, style()), resolve(background, style()))).toBeGreaterThanOrEqual(3);
 		},
 	);
+});
+
+// In the light theme, the dark outline sets the light dice apart from the paper, and the dark dice stand out from it
+// themselves.
+describe.each(PAIRS.filter(([, theme]) => theme === 'dark'))('Outlines in the %s Style and the %s theme', (_, _theme, style) => {
+	it.each(Object.entries(OUTLINE_AROUND))('draws %s around %s at 3:1 or more', (outline, color) => {
+		expect(contrast(resolve(outline, style()), resolve(color, style()))).toBeGreaterThanOrEqual(3);
+	});
+
+	// A world's override of a die's color on `:root` reaches its outline.
+	it.each(Object.entries(OUTLINE_AROUND))('derives %s from %s or from the light outline', (outline, color) => {
+		expect([`color-mix(in srgb, var(--genesys-${color}), black 65%)`, 'var(--genesys-die-outline)']).toContain(
+			style()[`--genesys-${outline}`],
+		);
+	});
 });

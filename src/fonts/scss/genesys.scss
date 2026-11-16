@@ -5,6 +5,7 @@
  * as assets/fonts/GenesysSymbols-LICENSE.txt.
  */
 
+@use '@scss/mixins/dice.scss';
 @use '@scss/vars/colors.scss';
 
 @font-face {
@@ -71,36 +72,33 @@
 	font-style: normal;
 	font-family: 'Genesys Symbols', sans-serif;
 
-	// Ability & Difficulty Die
 	&.die-A,
 	&.die-Ability {
-		color: colors.$die-ability;
+		@include dice.glyph('ability');
 	}
 
 	&.die-D,
 	&.die-Difficulty {
-		color: colors.$die-difficulty;
+		@include dice.glyph('difficulty');
 	}
 
-	// Proficiency Die
 	&.die-P,
 	&.die-Proficiency {
-		color: colors.$die-proficiency;
+		@include dice.glyph('proficiency');
 	}
 
 	&.die-C,
 	&.die-Challenge {
-		color: colors.$die-challenge;
+		@include dice.glyph('challenge');
 	}
 
-	// Boost Die
 	&.die-B,
 	&.die-Boost {
-		color: colors.$die-boost;
+		@include dice.glyph('boost');
 	}
 
 	&.die-S,
 	&.die-Setback {
-		color: colors.$die-setback;
+		@include dice.glyph('setback');
 	}
 }
