@@ -502,14 +502,9 @@ Genesys:
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
     Feature: NOVEDAD
-    Fix: CORRECCIÓN
-    SheetsTheme: Las fichas y las ventanas siguen el tema de las aplicaciones de Foundry, oscuro incluido
-    ChatTheme: Las tarjetas del chat, el registro de combate y la descripción emergente también siguen el tema
-    ViciousEffect: >-
-      Vicious suma a las tiradas de heridas críticas mediante el efecto de su propiedad, se llame como se llame la propiedad
-    AdditionalEffectName: El efecto adicional de un hechizo se puede renombrar en su ficha
-    RollCardBlocks: Los bloques de una tarjeta de tirada se alinean con sus títulos, con el mismo espacio entre ellos
-    CriticalChangeValue: Un cambio a las tiradas de heridas críticas conserva su valor una vez guardado
+    SpellRatingSkill: >-
+      Un hechizo indica la habilidad cuyos rangos cuentan sus efectos adicionales, Conocimiento por defecto, que un jugador
+      cambia en el hechizo de su personaje
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
