@@ -507,14 +507,9 @@ Genesys:
       sont possibles !
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
-    Fix: CORRECTIF
-    SheetsTheme: Les fiches et les fenêtres suivent le thème des applications de Foundry, sombre compris
-    ChatTheme: Les cartes du chat, le suivi de combat et l'infobulle suivent aussi le thème
-    ViciousEffect: >-
-      Sanguinaire s'ajoute aux tirages de blessure critique par l'effet de son attribut, quel que soit le nom de l'attribut
-    AdditionalEffectName: L'effet supplémentaire d'un sort se renomme sur sa fiche
-    RollCardBlocks: Les blocs d'une carte de jet s'alignent sur leurs titres, également espacés
-    CriticalChangeValue: Une modification des tirages de blessure critique garde sa valeur une fois enregistrée
+    SpellRatingSkill: >-
+      Un sort indique la compétence dont ses effets supplémentaires comptent les rangs, Connaissance par défaut, qu'un
+      joueur change sur le sort de son personnage
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet

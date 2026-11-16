@@ -510,13 +510,9 @@ Genesys:
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
     Feature: FEATURE
-    Fix: FIX
-    SheetsTheme: The sheets and prompts follow the theme of Foundry's applications, dark included
-    ChatTheme: The chat cards, the Combat Tracker and the tooltip follow the theme too
-    ViciousEffect: Vicious adds to Critical Injury rolls through its quality's effect, whatever the quality is named
-    AdditionalEffectName: A spell's Additional Effect can be renamed on its sheet
-    RollCardBlocks: A roll card's blocks line up with their headings, evenly spaced
-    CriticalChangeValue: A change to Critical Injury rolls keeps its value once saved
+    SpellRatingSkill: >-
+      A spell names the skill whose ranks its Additional Effects count, Knowledge by default, which a player changes on
+      their character's spell
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
