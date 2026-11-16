@@ -172,6 +172,7 @@ describe('Palette', () => {
 			'--genesys-text-red': 'var(--genesys-red)',
 			'--genesys-text-gold': 'var(--genesys-gold)',
 			'--genesys-text-on-dark': '#fff',
+			'--genesys-text-on-light': '#000',
 			'--genesys-text-alert': 'color-mix(in srgb, var(--genesys-alert), white 50%)',
 			'--genesys-icon-gold': 'color-mix(in srgb, var(--genesys-gold), black 35%)',
 			'--genesys-field': '#fff',
@@ -355,6 +356,9 @@ const ICON_ON = {
 	'icon-gold': ['paper', 'paper-pattern'],
 	// The outline sets each die's glyph apart from the paper, whatever the die's own color.
 	'die-outline': ['paper', 'paper-pattern'],
+	// The symbols on a rolled die's face.
+	'text-on-light': ['die-ability', 'die-proficiency', 'die-boost'],
+	'text-on-dark': ['die-difficulty', 'die-challenge', 'die-setback'],
 } satisfies Record<string, string[]>;
 
 // Each outline and border of the dark theme, and the color it surrounds (#865).

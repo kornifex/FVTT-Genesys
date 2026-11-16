@@ -136,10 +136,31 @@ $die-shift: 0.1em;
 				translate: 0 ($die-shift * math.div($die-glyph, $die-face));
 				font-variant-ligatures: common-ligatures;
 
+				// The face would otherwise take the card's text color, which the dark theme lightens.
+				&[data-type='B'],
+				&[data-type='A'],
+				&[data-type='P'] {
+					color: colors.$text-on-light;
+				}
+
 				&[data-type='S'],
 				&[data-type='I'],
 				&[data-type='C'] {
 					color: colors.$text-on-dark;
+				}
+
+				// A face of two symbols sets them on a diagonal, which crosses the edges of the die at the face's size: the
+				// symbols shrink rather than the face, which keeps its place in the die. A diamond narrows more than a
+				// hexagon or a square.
+				& > span {
+					font-size: 0.8em;
+				}
+
+				&[data-type='A'],
+				&[data-type='I'] {
+					& > span {
+						font-size: 0.65em;
+					}
 				}
 			}
 		}
