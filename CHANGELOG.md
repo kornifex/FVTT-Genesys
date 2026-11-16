@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.2...v0.7.3) (2026-11-16)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.7.3's changes since 0.7.2 in the welcome message ([#889](https://github.com/kornifex/FVTT-Genesys/issues/889)) ([c098032](https://github.com/kornifex/FVTT-Genesys/commit/c0980322522664b9eefa2add1879df1fac8798e5))
+* **ui:** keep a rolled die's symbols dark on a light die and inside its edges ([#885](https://github.com/kornifex/FVTT-Genesys/issues/885)) ([3f697f7](https://github.com/kornifex/FVTT-Genesys/commit/3f697f7bff08abd7c3811002d7d863b2917daa29))
+* **ui:** lay out the Dice Prompt's Pool Modifications, Additional Effects and Story Points alike ([#888](https://github.com/kornifex/FVTT-Genesys/issues/888)) ([a0be04d](https://github.com/kornifex/FVTT-Genesys/commit/a0be04d2344082f54d3aa81a5f9ca1ecec9fe2ff))
+
+
+### Continuous Integration
+
+* let release-please compute the next version again ([#882](https://github.com/kornifex/FVTT-Genesys/issues/882)) ([806370e](https://github.com/kornifex/FVTT-Genesys/commit/806370eaf79acd3b4794dedb63e99a00782ad021))
+
 ## [0.7.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.1...v0.7.2) (2026-11-16)
 
 
