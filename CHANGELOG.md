@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.1-rc.1...v0.7.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **ui:** draw the buttons and Foundry's headings of a chat card in the dark theme's colors ([#870](https://github.com/kornifex/FVTT-Genesys/issues/870)) ([2f35dda](https://github.com/kornifex/FVTT-Genesys/commit/2f35dda64b3d499558fd478a2fd5776115ab9e27))
+* **ui:** outline the light dice and the filled rank boxes in a dark shade in the dark theme ([#867](https://github.com/kornifex/FVTT-Genesys/issues/867)) ([69245ee](https://github.com/kornifex/FVTT-Genesys/commit/69245ee1592908676053c31453e33a6be5c8b771))
+
+
+### Continuous Integration
+
+* set the next release to 0.7.1 ([#871](https://github.com/kornifex/FVTT-Genesys/issues/871)) ([dd609c1](https://github.com/kornifex/FVTT-Genesys/commit/dd609c19af81c0d2eb9191b63233a4b6f9a94045))
+
+
+### Tests
+
+* **dice:** type /gendr and /gendroll in the chat input ([#873](https://github.com/kornifex/FVTT-Genesys/issues/873)) ([d5c3f91](https://github.com/kornifex/FVTT-Genesys/commit/d5c3f911c55701454f9ee6e26aef91b6203c5675))
+
 ## [0.7.1-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.0...v0.7.1-rc.1) (2026-11-15)
 
 
