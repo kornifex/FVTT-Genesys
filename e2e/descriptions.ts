@@ -14,7 +14,7 @@ export const LONG_DESCRIPTION = [
 ].join('');
 
 /** How every fold opens and closes since #516, as a scenario reads it: `<property> <duration> <easing>`. */
-export const FOLD_TRANSITION = 'grid-template-rows 0.2s ease-out';
+const FOLD_TRANSITION = 'grid-template-rows 0.2s ease-out';
 
 /** An open description, as `window.e2e.descriptionBox` reads it with that cap: its whole text shows, past the cap. */
 export const shownDescription = (cap: number): DescriptionBox => ({

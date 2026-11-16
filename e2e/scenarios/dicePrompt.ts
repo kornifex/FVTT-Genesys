@@ -15,7 +15,6 @@ import { chanceToSucceedPart } from './dicePrompt/chanceToSucceed.ts';
 import { storyPointTrackerPart } from './dicePrompt/storyPointTracker.ts';
 import { weaponProfilesPart } from './dicePrompt/weaponProfiles.ts';
 import { diceRollerPart } from './dicePrompt/diceRoller.ts';
-import { modificationFoldsPart } from './dicePrompt/modificationFolds.ts';
 import { sameNameEffectsPart } from './dicePrompt/sameNameEffects.ts';
 import { difficultyPart } from './dicePrompt/difficulty.ts';
 import { damageHintPart } from './dicePrompt/damageHint.ts';
@@ -71,7 +70,6 @@ export async function run(e2e: ScenarioContext) {
 		defaultDifficulty: 'DD',
 		skillsCompendium: 'genesys.crb-skills',
 		showDamageOnFailure: false,
-		dicePoolCollapseModificationsDetails: false,
 	};
 	const setUp = async () => {
 		await gm.evaluate(
@@ -238,10 +236,6 @@ export async function run(e2e: ScenarioContext) {
 
 	// #367: the chat's dice button and `/gendr` open the Dice Roller, for the single controlled token's actor.
 	await part('diceRoller', () => diceRollerPart(context));
-
-	// §#396: the Pool Modifications fold and unfold through the expandable mixin, in the 0.2s ease-out of every fold since
-	// #516 (1s before), and their folded container is hidden from Tab. §#579: their title is a `DescriptionFold`'s chevron.
-	await part('modificationFolds', () => modificationFoldsPart(context));
 
 	// O: Pool Modifications of effects named alike are turned on one at a time (§#445).
 	await part('sameNameEffects', () => sameNameEffectsPart(context));

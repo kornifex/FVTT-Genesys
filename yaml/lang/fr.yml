@@ -55,8 +55,6 @@ Genesys:
     SkillForInjuriesHint: "Nom de la compétence utilisée pour se remettre d'une blessure critique."
     SkillForRepairingVehicleHits: Compétence mécanique utilisée
     SkillForRepairingVehicleHitsHint: Nom de la compétence utilisée pour récupérer des dommages critiques.
-    DicePoolCollapseModifications: Collapse the Pool Modifications Section
-    DicePoolCollapseModificationsHint: If enabled the 'Pool Modifications' section on the dice pool prompt will be collapsed during the initial render.
     DicePoolAutoApplyModifications: Auto-Apply Pool Modifications
     DicePoolAutoApplyModificationsHint: If enabled all the modifications that can affect the dice pool will be applied when opening the dice pool prompt.
     DicePoolChanceToSucceedByPermutation: Calcul les chances de succès pour ce pool.

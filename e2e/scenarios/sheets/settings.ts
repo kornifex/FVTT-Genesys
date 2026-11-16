@@ -18,7 +18,6 @@ export async function settingsPart(ctx: SheetsContext) {
 		talentTierVersions: true,
 		style: 'terrinoth',
 		storyPoints: { gm: 2, player: 5 },
-		dicePoolCollapseModificationsDetails: true,
 		dicePoolAutoApplyModifications: true,
 		dicePoolChanceToSucceedByPermutation: true,
 		dicePoolApproximation: 250,
@@ -77,4 +76,21 @@ export async function settingsPart(ctx: SheetsContext) {
 		{ errors: [], registered: false },
 	);
 	await gm.evaluate(() => localStorage.removeItem('genesys.useMagicalGirlSymbols'));
+
+	// §#887: nor does 0.7.3 register the client setting that collapsed the Pool Modifications, which no longer fold.
+	const collapsedErrorsBefore = gm.errors.length;
+	await e2e.step('#887 GM reloads with the Pool Modifications collapsed in their browser by 0.7.2', async () => {
+		await gm.evaluate(() => localStorage.setItem('genesys.dicePoolCollapseModificationsDetails', 'true'));
+		await gm.reload();
+	});
+	await gm.evaluate(installSheetsHelpers);
+	e2e.expect(
+		'#887 A5 a browser that collapsed the Pool Modifications loads the world without error, and the setting is gone',
+		{
+			errors: gm.errors.slice(collapsedErrorsBefore),
+			registered: await gm.evaluate(() => game.settings.settings.has('genesys.dicePoolCollapseModificationsDetails')),
+		},
+		{ errors: [], registered: false },
+	);
+	await gm.evaluate(() => localStorage.removeItem('genesys.dicePoolCollapseModificationsDetails'));
 }

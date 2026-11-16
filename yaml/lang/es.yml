@@ -55,8 +55,6 @@ Genesys:
     SkillForInjuriesHint: Nombre de la habilidad utilizada al recuperarse de Heridas críticas.
     SkillForRepairingVehicleHits: Nombre de la habilidad Mecánica
     SkillForRepairingVehicleHitsHint: Nombre de la habilidad utilizada al recuperarse de Daños críticos.
-    DicePoolCollapseModifications: Colapsar la sección de modificaciones de la reserva
-    DicePoolCollapseModificationsHint: Si está activada, la sección "modificaciones de la reserva" de la ventana de dados se colapsará durante la renderización inicial.
     DicePoolAutoApplyModifications: Aplicar automáticamente modificaciones en la reserva
     DicePoolAutoApplyModificationsHint: Si se activa, todas las modificaciones que puedan afectar a la tirada de dados se aplicarán al abrir la ventana de reserva de dados.
     DicePoolChanceToSucceedByPermutation: Calcular las probabilidades de éxito de la reserva de dados

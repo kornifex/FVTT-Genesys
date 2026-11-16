@@ -10,27 +10,47 @@ export async function modificationColumnsPart(ctx: DicePromptContext) {
 	);
 	await seekerCheck(gm);
 	await gm.evaluate(() => window.dicePromptE2E.promptAdd(['A+', 'S+']));
-	if (!(await gm.evaluate(() => window.dicePromptE2E.poolModificationsBox())).unfolded) {
-		await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	}
-	const layout = () => gm.evaluate(() => window.dicePromptE2E.poolModificationsLayout());
-	const unfoldedLayout = await layout();
-	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	const foldedLayout = await layout();
-	await gm.evaluate(() => window.dicePromptE2E.togglePoolModifications());
-	e2e.log('#513 the Pool Modifications as laid out, unfolded then folded', { unfolded: unfoldedLayout, folded: foldedLayout });
+	const layout = await gm.evaluate(() => window.dicePromptE2E.poolModificationsLayout());
+	e2e.log('#513 the sections of choices as laid out', layout);
 	// A tenth of a px apart, as the layout rounds them, or half a px for a box centred on another.
 	const near = (a: number, b: number, slack = 0.1) => Math.abs(a - b) <= slack;
-	const { titleText, caret, rows: layoutRows } = unfoldedLayout;
+	const { titles, sections, buttons, rows: layoutRows } = layout;
 	e2e.expect(
-		"#513 A1 the title's text starts on the table's left edge, the caret alone in the margin before it",
-		{ textOnEdge: near(titleText, 0), caretInMargin: caret.right <= titleText },
-		{ textOnEdge: true, caretInMargin: true },
+		"#887 A1 the sections' titles start on one edge, and every row of every section has its label and the column of what it adds on shared edges",
+		{
+			titles: titles.every((title) => near(title, 0)),
+			sections: [...new Set(sections.map(({ section }) => section))],
+			labels: new Set(sections.map(({ label }) => label)).size,
+			columns: new Set(sections.map(({ column }) => column)).size,
+		},
+		{ titles: true, sections: ['pool-modifications', 'story-points'], labels: 1, columns: 1 },
+	);
+	// The Difficulty's first die, then the first die or modification of every other row: the glyphs' own side bearings
+	// set their ink a px apart.
+	const [difficultyInk, ...inks] = sections.map(({ ink }) => ink);
+	const others = inks.flatMap((ink) => (ink === null ? [] : [ink])).sort((a, b) => a - b);
+	const median = others[Math.floor(others.length / 2)];
+	e2e.expect(
+		"#887 A2 the ink of the Difficulty's first die starts where the other rows' first die or modification starts, within a px and a half",
+		{ rows: others.length > 2, onEdge: difficultyInk !== null && near(difficultyInk, median, 1.5) },
+		{ rows: true, onEdge: true },
+	);
+	// Each section's rows, as the lines above and below each of them.
+	const lines: Record<string, [boolean, boolean][]> = {};
+	for (const { section, above, below } of sections) (lines[section] ??= []).push([above, below]);
+	e2e.expect(
+		'#887 A3 a dotted line parts two rows of a section, and none runs above its first row or below its last',
+		lines,
+		Object.fromEntries(Object.entries(lines).map(([section, rows]) => [section, rows.map((_, index) => [index > 0, false])])),
 	);
 	e2e.expect(
-		"#513 A2 folding the section moves neither the caret's axis nor the title's text",
-		{ axis: near(foldedLayout.caret.axis, caret.axis), text: near(foldedLayout.titleText, titleText) },
-		{ axis: true, text: true },
+		"#887 A4 the footer's Roll and Cancel buttons are as tall as each other, in one font",
+		{
+			count: buttons.length,
+			heights: new Set(buttons.map(({ height }) => height)).size,
+			fonts: new Set(buttons.map(({ font }) => font)).size,
+		},
+		{ count: 2, heights: 1, fonts: 1 },
 	);
 	e2e.expect(
 		"#513 A3 every row's label starts on one edge, after the checkboxes' column, and a wrapped label goes on under its own text",
