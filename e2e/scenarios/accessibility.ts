@@ -60,6 +60,27 @@ type AccessibilityHelpers = {
 	/** Posts a roll from the Hero's Dice Prompt, shows its card in the chat log, and returns the card's selector. */
 	showRollCard(): Promise<string>;
 	/**
+	 * Rolls the Medic's Sword with more Advantage than its Critical rating, shows its card in the chat log, and returns the
+	 * card's selector: the card offers to roll a Critical Injury (#869).
+	 */
+	showAttackCard(): Promise<string>;
+	/**
+	 * Rolls the Medic's Medicine to heal themself, with four Successes, shows its card in the chat log, and returns the
+	 * card's selector: the card offers Apply (#869).
+	 */
+	showHealCard(): Promise<string>;
+	/**
+	 * Posts a plain message holding an `h1`, as another module's could, shows it in the chat log, and returns its selector.
+	 */
+	showHeadingCard(): Promise<string>;
+	/** Whether the card a selector finds holds a button, by a selector inside the card. */
+	hasButton(card: string, button: string): boolean;
+	/**
+	 * The buttons and headings of a card whose text keeps less than 4.5:1 against the card's paper, each as
+	 * `button.apply-recovery Apply: 1.4`: a button over its own background, laid over the paper, enabled then disabled.
+	 */
+	paperContrasts(card: string): Promise<string[]>;
+	/**
 	 * Readies a keyboard step on an action of a sheet (#574), by the sheet's name: renders the sheet on the action's tab,
 	 * and focuses the control before the action's button in Tab order, so that one Tab reaches it.
 	 */
@@ -987,6 +1008,54 @@ function installAccessibilityHelpers() {
 	// The windows open before the control readied last was pressed.
 	let windowsBefore = new Set<unknown>();
 
+	// Rolls the Dice Prompt open, on the faces of 8 given when given, and returns the id of the message it posts.
+	const rollDicePrompt = async (faces?: number[]) => {
+		const app = await waitFor('the Dice Prompt', () => apps('app-dice-prompt').find((app: { rendered: boolean }) => app.rendered));
+		const root = await waitFor('its roll button', () => {
+			const root = htmlOf(app);
+			return root && PROMPTS.dice.ready(root) ? root : undefined;
+		});
+		if (faces) window.e2e.fixDice(faces.map((face) => ({ face, faces: 8 })));
+		const before = game.messages.size;
+		find(root, '.roll-button').click();
+		await waitFor('the roll', () => game.messages.size > before);
+		await helpers.closeAll();
+		// The roll above has just posted the last message.
+		return game.messages.contents.at(-1)!.id as string;
+	};
+	// Shows a message in the chat log, and returns its selector there.
+	const showInChatLog = async (id: string) => {
+		// The sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
+		ui.sidebar.expand();
+		ui.sidebar.changeTab('chat', 'primary');
+		const card = await waitFor('the card in the chat log', () =>
+			[...document.querySelectorAll<HTMLElement>(`#chat [data-message-id="${id}"]`)].find(
+				(element) => element.getBoundingClientRect().width > 0,
+			),
+		);
+		card.scrollIntoView({ block: 'center' });
+		await settle();
+		return `#chat [data-message-id="${id}"]`;
+	};
+	// A color as `getComputedStyle` gives it, `rgb()`, `rgba()` or `color(srgb …)`, as channels from 0 to 255 and an alpha.
+	const parseColor = (color: string) => {
+		const [red, green, blue, alpha = 1] = (color.match(/[\d.]+/g) ?? []).map(Number);
+		const scale = color.startsWith('color(srgb') ? 255 : 1;
+		return { rgb: [red * scale, green * scale, blue * scale], alpha };
+	};
+	// The contrast ratio of two opaque colors, as WCAG 2.2 defines it.
+	const contrastRatio = (a: number[], b: number[]) => {
+		const luminance = (color: number[]) => {
+			const [red, green, blue] = color.map((channel) => {
+				const value = channel / 255;
+				return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+			});
+			return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+		};
+		const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+		return (lighter + 0.05) / (darker + 0.05);
+	};
+
 	const helpers: AccessibilityHelpers = {
 		async setUp() {
 			await helpers.closeAll();
@@ -1037,6 +1106,20 @@ function installAccessibilityHelpers() {
 				{ name: 'E2E Blank Hero', type: 'character' },
 				{ name: 'E2E Blank Rival', type: 'rival' },
 				{ name: 'E2E Blank Ship', type: 'vehicle' },
+				// For the chat cards only (§#869): two Ability dice to attack and to heal with, and a weapon whose Critical
+				// rating one Advantage reaches.
+				{
+					name: 'E2E Medic',
+					type: 'character',
+					system: { characteristics: { brawn: 2, intellect: 2 } },
+					items: [
+						{
+							name: 'E2E Scalpel',
+							type: 'weapon',
+							system: { skills: ['Melee'], baseDamage: 2, critical: 1, state: 'equipped' },
+						},
+					],
+				},
 			]);
 			// For the headings only: a weapon with an extra Weapon Profile, which its sheet heads.
 			await Item.create({ name: 'E2E Profiled Weapon', type: 'weapon', system: { extraProfiles: [{ name: 'Thrown' }] } });
@@ -1144,25 +1227,71 @@ function installAccessibilityHelpers() {
 		},
 
 		async showRollCard() {
-			const before = game.messages.size;
-			const prompt = find(document, await helpers.openPrompt('dice'));
-			find(prompt, '.roll-button').click();
-			await waitFor('the roll', () => game.messages.size > before);
-			await helpers.closeAll();
-			// The roll above has just posted the last message.
-			const id = game.messages.contents.at(-1)!.id;
+			await helpers.openPrompt('dice');
+			return showInChatLog(await rollDicePrompt());
+		},
 
-			// The sidebar is collapsed in the headless window, and a collapsed chat log shows no message.
-			ui.sidebar.expand();
-			ui.sidebar.changeTab('chat', 'primary');
-			const card = await waitFor('the roll card in the chat log', () =>
-				[...document.querySelectorAll<HTMLElement>(`#chat [data-message-id="${id}"]`)].find(
-					(element) => element.getBoundingClientRect().width > 0,
-				),
+		async showAttackCard() {
+			await window.e2e.showTab('Medic', 'combat');
+			const row = rowWith(await sheet('Medic'), '.tab-combat .weapon:not(.columns)', 'E2E Scalpel');
+			if (!row) throw new Error('No row of the Scalpel');
+			find(row, '.name .roll-link').click();
+			// Two Ability dice on a Success and an Advantage each, two Difficulty dice blank: two Advantage past a Critical
+			// rating of 1.
+			return showInChatLog(await rollDicePrompt([7, 7, 1, 1]));
+		},
+
+		async showHealCard() {
+			await window.e2e.showTab('Medic', 'skills');
+			find(await sheet('Medic'), '.tab[data-tab="skills"] .skill .heal').click();
+			const app = await waitFor('the patient prompt', () => {
+				const [open] = apps('app-select-patient-prompt');
+				return open && htmlOf(open)?.querySelector('.patient-option') ? open : undefined;
+			});
+			const root = htmlOf(app)!;
+			const option = [...root.querySelectorAll('.patient-option')].find(
+				(option) => text(option.querySelector('.patient-name')) === 'E2E Medic',
 			);
-			card.scrollIntoView({ block: 'center' });
-			await settle();
-			return `#chat [data-message-id="${id}"]`;
+			if (!option) throw new Error('No patient E2E Medic');
+			find(option, 'input[type="radio"]').click();
+			await waitFor('the Medic picked', () => option.querySelector('.fa-check-circle'));
+			find(root, 'button[type="submit"]').click();
+			// Two Ability dice on two Successes each; the three Difficulty dice of an unwounded healer healing themself (Easy,
+			// two steps harder), blank.
+			return showInChatLog(await rollDicePrompt([4, 4, 1, 1, 1]));
+		},
+
+		async showHeadingCard() {
+			const message = await CONFIG.ChatMessage.documentClass.create({ content: '<h1>E2E Reminder</h1><p>A module posts this.</p>' });
+			return showInChatLog(message.id);
+		},
+
+		hasButton: (card, button) => !!document.querySelector(`${card} ${button}`),
+
+		async paperContrasts(card) {
+			const root = find(document, card);
+			// The paper is the card's background color, under its pattern.
+			const paper = parseColor(getComputedStyle(root).backgroundColor).rgb;
+			const low: string[] = [];
+			const measure = (element: HTMLElement, name: string) => {
+				const style = getComputedStyle(element);
+				const background = parseColor(style.backgroundColor);
+				const ground = paper.map((channel, i) => background.rgb[i] * background.alpha + channel * (1 - background.alpha));
+				const ratio = contrastRatio(parseColor(style.color).rgb, ground);
+				if (ratio < 4.5) low.push(`${name}: ${ratio.toFixed(1)}`);
+			};
+			for (const element of root.querySelectorAll<HTMLElement>('button, h1, h2, h3, h4, h5, h6')) {
+				const name = `${element.localName}${element.classList[0] ? `.${element.classList[0]}` : ''} ${text(element)}`;
+				measure(element, name);
+				if (element.localName !== 'button' || element.hasAttribute('disabled')) continue;
+				// Apply is disabled while it applies. Foundry's buttons fade from one color to the next.
+				element.setAttribute('disabled', '');
+				await settle();
+				measure(element, `${name}, disabled`);
+				element.removeAttribute('disabled');
+				await settle();
+			}
+			return low;
 		},
 
 		async readyKeyboardAction(sheet) {
@@ -2758,6 +2887,45 @@ export async function run(e2e: ScenarioContext) {
 			});
 			expectNamedButtons('#853 R2 a roll card has no button without a name');
 			expectContrasts('#853 R3 a roll card has no text under 4.5:1, in each Style and theme');
+
+			// §#869: the buttons a card offers, and the headings of another module's message, which Foundry colors. axe-core
+			// can't judge text over the paper's pattern, so the step also measures them against the paper's color.
+			const cards = { attack: '', heal: '', heading: '' };
+			const paperContrasts: Record<string, Record<string, string[]>> = { attack: {}, heal: {}, heading: {} };
+			await e2e.step('#869 B1 an attack card, a healing card and a plain message holding an h1 checked in the chat log', async () => {
+				cards.attack = await gm.evaluate(() => window.accessibilityE2E.showAttackCard());
+				cards.heal = await gm.evaluate(() => window.accessibilityE2E.showHealCard());
+				cards.heading = await gm.evaluate(() => window.accessibilityE2E.showHeadingCard());
+				for (const [card, selector] of Object.entries(cards) as [keyof typeof cards, string][]) {
+					await gm.evaluate((selector) => document.querySelector(selector)!.scrollIntoView({ block: 'center' }), selector);
+					await check(`${card} card`, selector);
+					for (const look of LOOKS) {
+						await show(look);
+						const low = await gm.evaluate((selector) => window.accessibilityE2E.paperContrasts(selector), selector);
+						if (low.length) paperContrasts[card][look.name] = low;
+					}
+				}
+				await gm.evaluate(() => ui.sidebar.collapse());
+			});
+			e2e.expect(
+				'#869 B1 the attack card offers to roll a Critical Injury, and the healing card offers Apply',
+				{
+					attack: await gm.evaluate(
+						(card) => window.accessibilityE2E.hasButton(card, 'button.roll-critical-injury'),
+						cards.attack,
+					),
+					heal: await gm.evaluate((card) => window.accessibilityE2E.hasButton(card, 'button.apply-recovery'), cards.heal),
+				},
+				{ attack: true, heal: true },
+			);
+			expectNamedButtons('#869 B2 neither card has a button without a name');
+			expectContrasts('#869 B3 neither card nor the plain message has text under 4.5:1, in each Style and theme');
+			e2e.expect(
+				"#869 B4 the cards' buttons, enabled and disabled, and their headings keep 4.5:1 against the paper, in each Style and theme",
+				{ attack: paperContrasts.attack, heal: paperContrasts.heal },
+				{ attack: {}, heal: {} },
+			);
+			e2e.expect("#869 B5 the plain message's h1 keeps 4.5:1 against the paper, in each Style and theme", paperContrasts.heading, {});
 		});
 	} finally {
 		await gm.evaluate((key) => window.accessibilityE2E.setStyle(key), worldStyle);

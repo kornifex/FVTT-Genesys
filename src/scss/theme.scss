@@ -72,4 +72,34 @@ $themed: map.keys(colors.$dark);
 // The chat cards follow the interface instead: the log of a dark sidebar tab, docked or popped out, and of the dark
 // interface's notifications takes the dark variant back, after the light rule. A chat message popped out stays light, as
 // Foundry draws its window.
-@include dark-variant(('.sidebar-tab.theme-dark .chat-log', '#interface.theme-dark #chat-notifications .chat-log'));
+$dark-chat-logs: ('.sidebar-tab.theme-dark .chat-log', '#interface.theme-dark #chat-notifications .chat-log');
+@include dark-variant($dark-chat-logs);
+
+// Inside a message, Foundry's own colors still follow the log's `theme-light`: its buttons and headings would keep their
+// near-black text over the dark paper, the system's cards' as the other modules' messages'. In a dark log they take the
+// values of Foundry's dark theme (`.themed.theme-dark` in `foundry2.css`). Foundry declares a button's colors on the button
+// itself, so the log's own would not reach it.
+:where(#{$dark-chat-logs}) {
+	--color-text-emphatic: var(--color-light-1);
+	--color-text-primary: var(--color-light-2);
+	--color-text-secondary: var(--color-light-3);
+	--color-text-subtle: var(--color-light-5);
+
+	:is(a.button, button, kbd) {
+		--button-background-color: var(--color-cool-5-50);
+		--button-border-color: var(--color-light-5);
+		--button-text-color: var(--color-light-3);
+		--button-hover-background-color: var(--color-warm-2);
+		--button-hover-border-color: var(--color-light-3);
+		--button-hover-text-color: var(--color-light-1);
+	}
+
+	:is(a.button, button, kbd)[disabled] {
+		--button-background-color: var(--color-cool-5);
+		--button-border-color: transparent;
+		--button-text-color: var(--color-light-5);
+		--button-hover-background-color: var(--button-background-color);
+		--button-hover-border-color: var(--button-border-color);
+		--button-hover-text-color: var(--button-text-color);
+	}
+}
