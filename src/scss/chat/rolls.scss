@@ -1,4 +1,3 @@
-@use 'sass:math';
 @use '@scss/mixins/dice.scss';
 @use '@scss/mixins/headings.scss';
 @use '@scss/vars/colors.scss';
@@ -15,7 +14,7 @@ $die-face: 1.5em;
 $die-width: 0.74 * $die-glyph;
 $die-height: 0.86 * $die-glyph;
 // Centring a glyph centres its line, whose middle is 0.4em above the baseline, where the middle of a die's ink is 0.5em
-// above: the die moves down by the difference, in the em of its glyph, and its face by as many pixels.
+// above: the die moves down by the difference, in the em of its glyph.
 $die-shift: 0.1em;
 
 .roll {
@@ -129,11 +128,10 @@ $die-shift: 0.1em;
 				}
 			}
 
+			// The face fills the box and centres its symbols' line in it, as the die's shift centres the die's ink: the face
+			// takes no shift of its own.
 			.face {
-				position: relative;
-				top: -0.25em;
 				font-size: $die-face;
-				translate: 0 ($die-shift * math.div($die-glyph, $die-face));
 				font-variant-ligatures: common-ligatures;
 
 				// The face would otherwise take the card's text color, which the dark theme lightens.
@@ -152,13 +150,29 @@ $die-shift: 0.1em;
 				// A face of two symbols sets them on a diagonal, which crosses the edges of the die at the face's size: the
 				// symbols shrink rather than the face, which keeps its place in the die. A diamond narrows more than a
 				// hexagon or a square.
+				//
+				// The middle of a symbol's ink lies about 0.04em under the middle of its line, and the middle of a diamond's ink
+				// sits higher than a hexagon's: the symbols move up by as much, in their own em. An Advantage or a Threat alone
+				// carries its weight in its lower half, under a point: it looks low with its ink centred, and moves up further.
 				& > span {
+					--lift: 0.04em;
+					--optical-lift: 0em;
 					font-size: 0.8em;
+					translate: 0 calc(-1 * (var(--lift) + var(--optical-lift)));
+
+					&[data-face='a'] {
+						--optical-lift: 0.02em;
+					}
+
+					&[data-face='h'] {
+						--optical-lift: 0.04em;
+					}
 				}
 
 				&[data-type='A'],
 				&[data-type='I'] {
 					& > span {
+						--lift: 0.07em;
 						font-size: 0.65em;
 					}
 				}
