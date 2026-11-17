@@ -508,11 +508,7 @@ Genesys:
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
     Fix: FIX
-    Styling: STYLING
-    DarkDiceFaces: >-
-      In the dark theme, a check's card keeps the symbols of the light dice dark, and every symbol stays inside its die
-    DicePromptSections: >-
-      The Dice Pool's Pool Modifications no longer fold, and line up with the Additional Effects and the Story Points
+    CentredDiceFaces: In a check's card, the symbols of a rolled die sit in the middle of the die
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
