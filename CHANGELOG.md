@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.3...v0.7.4) (2026-11-17)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.7.4's changes since 0.7.3 in the welcome message ([#894](https://github.com/kornifex/FVTT-Genesys/issues/894)) ([ae7e470](https://github.com/kornifex/FVTT-Genesys/commit/ae7e470a7cee6c9b2f50937f87ce8956dfb1f32b))
+* **ui:** centre a rolled die's symbols in the die ([#891](https://github.com/kornifex/FVTT-Genesys/issues/891)) ([7182f5f](https://github.com/kornifex/FVTT-Genesys/commit/7182f5f2e77abdb1fd1694d1fc6875c3dd7afdff))
+
 ## [0.7.3](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.2...v0.7.3) (2026-11-16)
 
 
