@@ -500,12 +500,7 @@ Genesys:
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
     Fix: CORRECCIÓN
-    Styling: ESTILO
-    DarkDiceFaces: >-
-      En el tema oscuro, la tarjeta de una tirada mantiene oscuros los símbolos de los dados claros, y cada símbolo queda
-      dentro de su dado
-    DicePromptSections: >-
-      Las modificaciones de la reserva ya no se pliegan, y se alinean con los efectos adicionales y los puntos de historia
+    CentredDiceFaces: En la tarjeta de una tirada, los símbolos de un dado lanzado quedan en el centro del dado
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
