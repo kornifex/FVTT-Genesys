@@ -503,8 +503,18 @@ Genesys:
       ¡Hola, y gracias por probar el sistema Genesys! Ten en cuenta que este sistema está todavía en fase alfa: está listo para
       las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
     Updates: Correcciones y novedades
+    Feature: NOVEDAD
     Fix: CORRECCIÓN
-    CentredDiceFaces: En la tarjeta de una tirada, los símbolos de un dado lanzado quedan en el centro del dado
+    HealerBonus: >-
+      Un efecto «Modificar curación» suma a las heridas que cura la tirada de Medicina de un sanador, una vez por rango de
+      un talento como Cirujano
+    GmUpgradesDifficulty: >-
+      La reserva de dados de un jugador le permite marcar el punto que el DJ gasta para mejorar la dificultad de su tirada
+    TargetCombatCheck: >-
+      Un efecto puede modificar toda tirada de combate contra el actor, cuerpo a cuerpo o a distancia, como hace Adversario
+    MedicineDifficulty: >-
+      Una tirada de Medicina sigue siendo Fácil hasta la mitad del umbral de heridas del paciente, redondeada hacia arriba
+    ContextMenuEntries: Las entradas de un menú contextual se alinean a la izquierda, los iconos y luego las etiquetas
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

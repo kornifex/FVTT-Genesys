@@ -512,8 +512,16 @@ Genesys:
       Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
       for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
     Updates: Bug Fixes & Updates
+    Feature: FEATURE
     Fix: FIX
-    CentredDiceFaces: In a check's card, the symbols of a rolled die sit in the middle of the die
+    HealerBonus: >-
+      A Modify Healing effect adds to the wounds a healer's Medicine check heals, once per rank of a talent such as Surgeon
+    GmUpgradesDifficulty: >-
+      A player's Dice Pool lets them mark the point the GM spends to upgrade their check's difficulty
+    TargetCombatCheck: >-
+      An effect can modify every combat check that targets the actor, melee or ranged, as Adversary does
+    MedicineDifficulty: A Medicine check stays Easy up to half the patient's wound threshold, rounded up
+    ContextMenuEntries: A context menu's entries line up on the left, icons then labels
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

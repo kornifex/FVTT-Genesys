@@ -508,8 +508,19 @@ Genesys:
       premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
       sont possibles !
     Updates: Corrections et nouveautés
+    Feature: NOUVEAUTÉ
     Fix: CORRECTIF
-    CentredDiceFaces: Dans la carte d'un test, les symboles d'un dé lancé sont au milieu du dé
+    HealerBonus: >-
+      Un effet « Soins à modifier » ajoute aux blessures que soigne le test de Médecine d'un soigneur, une fois par rang
+      d'un talent comme Chirurgien
+    GmUpgradesDifficulty: >-
+      La réserve de dés d'un joueur lui permet de cocher le point de Fatalité que le MJ dépense pour améliorer la
+      difficulté de son test
+    TargetCombatCheck: >-
+      Un effet peut modifier tout test de combat qui vise l'acteur, en mêlée ou à distance, comme le fait Adversaire
+    MedicineDifficulty: >-
+      Un test de Médecine reste Facile jusqu'à la moitié du seuil de blessure du patient, arrondie au supérieur
+    ContextMenuEntries: Les entrées d'un menu contextuel s'alignent à gauche, les icônes puis les libellés
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
