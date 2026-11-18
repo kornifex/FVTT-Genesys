@@ -206,6 +206,7 @@ export const SETTINGS = [
 	'useSuperCharacteristics',
 	'ignoreTalentPyramid',
 	'talentTierVersions',
+	'careerOnlyMagicSkills',
 	'careerSkillRanks',
 	'skillForInjuries',
 	'skillForRepairingVehicleHits',

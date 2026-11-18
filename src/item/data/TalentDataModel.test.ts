@@ -46,6 +46,7 @@ describe('TalentDataModel.migrateData', () => {
 			skills: [],
 			talents: [],
 			houseRules: { ignoreTalentPyramid: true, talentTierVersions: false },
+			alternateRules: { careerOnlyMagicSkills: false },
 		};
 		const result = buyDroppedTalent(character, { name: 'Indomitable', tier: talentSavedAt(6).tier, source: {} }, 'newId');
 		if (!('plan' in result)) {
