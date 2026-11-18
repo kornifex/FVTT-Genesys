@@ -300,6 +300,25 @@ describe('poolModificationsForCheck', () => {
 			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'engaged' })).toEqual([]);
 			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'short' })).toEqual([]);
 		});
+
+		it('applies the combat change to any attack, scaled by the rank of its talent, as Adversary (CRB p. 131)', () => {
+			const adversary = actorWithCopiedEffect(talent(2, 'yes'), [{ key: 'genesys.pool.combat.target.', value: '*' }]);
+
+			for (const attackRange of ['engaged', 'long']) {
+				expect(poolModificationsForCheck(self, adversary, { attackRange })).toEqual([
+					{
+						source: 'target',
+						from: {
+							effect: 'Effect',
+							uuid: 'ActiveEffect.Effect',
+							item: { name: 'Talent', uuid: 'Actor.actorId.Item.talentId' },
+						},
+						mods: ['*', '*'],
+					},
+				]);
+			}
+			expect(poolModificationsForCheck(self, adversary, check)).toEqual([]);
+		});
 	});
 
 	it('leaves out suppressed effects and effects without a relevant change', () => {
@@ -852,6 +871,7 @@ describe('editing changes in the effect sheets', () => {
 			'genesys.pool.char.target.cunning',
 			'genesys.pool.skill.self.Cool',
 			'genesys.pool.combat.self.',
+			'genesys.pool.combat.target.',
 			'genesys.pool.melee.target.',
 			'genesys.pool.ranged.target.',
 		]) {

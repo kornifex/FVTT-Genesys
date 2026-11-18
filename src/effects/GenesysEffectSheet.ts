@@ -37,7 +37,7 @@ type ChangeKey = { key: string; appliesTo: string; label: string };
 /**
  * The keys the Changes tab offers, by group.
  */
-const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
+export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyCharacteristic',
 		keys: [
@@ -118,6 +118,11 @@ const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				key: 'genesys.pool.skill.target',
 				appliesTo: TARGET_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.Skill',
+			},
+			{
+				key: 'genesys.pool.combat.target',
+				appliesTo: TARGET_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.CombatCheck',
 			},
 			{
 				key: 'genesys.pool.melee.target',
