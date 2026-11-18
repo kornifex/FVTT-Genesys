@@ -1,0 +1,17 @@
+name: Skulduggery
+type: skill
+img: icons/weapons/daggers/dagger-simple-purple.webp
+system:
+  description: ''
+  source: Core Rulebook, p.64
+  characteristic: cunning
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: OUI6viAuAPIBdup3
+_key: '!items!OUI6viAuAPIBdup3'

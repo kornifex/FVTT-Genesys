@@ -1,0 +1,18 @@
+name: Melee (Light)
+type: skill
+img: icons/skills/melee/maneuver-sword-katana-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.68
+  characteristic: brawn
+  category: combat
+  difficulty: DD
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: RF8cWQJbhrGbViEh
+_key: '!items!RF8cWQJbhrGbViEh'

@@ -1,0 +1,17 @@
+name: Charm
+type: skill
+img: icons/magic/life/heart-red-blue.webp
+system:
+  description: ''
+  source: Core Rulebook, p.54
+  characteristic: presence
+  category: social
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: JtxUIm0L1LR7ZvPT
+_key: '!items!JtxUIm0L1LR7ZvPT'

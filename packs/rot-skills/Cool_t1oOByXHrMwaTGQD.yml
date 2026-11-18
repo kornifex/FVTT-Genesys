@@ -1,0 +1,19 @@
+name: Cool
+type: skill
+img: icons/magic/light/explosion-star-blue.webp
+system:
+  description: ''
+  initiative: true
+  recoversStrain: true
+  source: Core Rulebook, p.59
+  characteristic: presence
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: t1oOByXHrMwaTGQD
+_key: '!items!t1oOByXHrMwaTGQD'

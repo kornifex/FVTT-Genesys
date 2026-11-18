@@ -1,0 +1,17 @@
+name: Knowledge (Lore)
+type: skill
+img: icons/sundries/books/book-open-brown.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.82
+  characteristic: intellect
+  category: knowledge
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: u0ZVkWNrY0O82t85
+_key: '!items!u0ZVkWNrY0O82t85'

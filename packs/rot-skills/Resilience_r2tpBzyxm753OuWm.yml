@@ -1,0 +1,17 @@
+name: Resilience
+type: skill
+img: icons/magic/defensive/shield-barrier-deflect-teal.webp
+system:
+  description: ''
+  source: Core Rulebook, p.63
+  characteristic: brawn
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: r2tpBzyxm753OuWm
+_key: '!items!r2tpBzyxm753OuWm'
