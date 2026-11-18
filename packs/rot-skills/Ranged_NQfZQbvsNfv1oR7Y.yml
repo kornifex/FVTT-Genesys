@@ -6,6 +6,7 @@ system:
   source: Core Rulebook, p.68
   characteristic: agility
   category: combat
+  attackKind: ranged
   career: false
   rank: 0
 effects: []
