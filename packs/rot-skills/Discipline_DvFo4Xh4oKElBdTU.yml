@@ -1,0 +1,18 @@
+name: Discipline
+type: skill
+img: icons/environment/people/infantry-army.webp
+system:
+  description: ''
+  recoversStrain: true
+  source: Core Rulebook, p.60
+  characteristic: willpower
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: DvFo4Xh4oKElBdTU
+_key: '!items!DvFo4Xh4oKElBdTU'

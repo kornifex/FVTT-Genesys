@@ -1,0 +1,18 @@
+name: Medicine
+type: skill
+img: icons/magic/life/cross-beam-green.webp
+system:
+  description: ''
+  healsWounds: true
+  source: Core Rulebook, p.61
+  characteristic: intellect
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: BuxGR3tGeZbAiBu3
+_key: '!items!BuxGR3tGeZbAiBu3'

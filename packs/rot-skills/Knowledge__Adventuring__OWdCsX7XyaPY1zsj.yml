@@ -1,0 +1,17 @@
+name: Knowledge (Adventuring)
+type: skill
+img: icons/environment/wilderness/tomb-entrance.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.81
+  characteristic: intellect
+  category: knowledge
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: OWdCsX7XyaPY1zsj
+_key: '!items!OWdCsX7XyaPY1zsj'

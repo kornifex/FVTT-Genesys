@@ -1,0 +1,17 @@
+name: Leadership
+type: skill
+img: icons/environment/people/cavalry-heavy.webp
+system:
+  description: ''
+  source: Core Rulebook, p.56
+  characteristic: presence
+  category: social
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: NLmF2uWZKILLgwlW
+_key: '!items!NLmF2uWZKILLgwlW'
