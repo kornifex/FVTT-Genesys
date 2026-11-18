@@ -8,6 +8,7 @@ import { fieldLooksPart } from './sheets/fieldLooks.ts';
 import { windowSizesPart } from './sheets/windowSizes.ts';
 import { characteristicBoxesPart } from './sheets/characteristicBoxes.ts';
 import { headingsPart } from './sheets/headings.ts';
+import { menuEntriesPart } from './sheets/menuEntries.ts';
 import { linkLines } from './sheets/linkLines.ts';
 import { storyPointTrackerPlace } from './sheets/storyPointTrackerPlace.ts';
 import { promptsPart } from './sheets/prompts.ts';
@@ -117,6 +118,9 @@ export async function run(e2e: ScenarioContext) {
 	// #346: ApplicationV2 gives headings a larger size, a darker colour and wide margins. A description's headings keep
 	// AppV1's look.
 	await part('headings', () => headingsPart(context));
+
+	// #897: a context menu's entries start on the left, their icons in one column, in both themes.
+	await part('menuEntries', () => menuEntriesPart(context));
 
 	await part('linkLines', () => linkLines(e2e));
 	await part('storyPointTrackerPlace', () => storyPointTrackerPlace(e2e));
