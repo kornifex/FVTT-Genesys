@@ -8,7 +8,9 @@ import { Defense } from '@/data/Actors';
 import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
-import { isCriticalChangeKey, isCriticalChangeValue } from '@/dice/CriticalInjuryRoll';
+import { isCriticalChangeKey } from '@/dice/CriticalInjuryRoll';
+import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
+import { parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
@@ -594,12 +596,21 @@ function isProvidedDefenseKey(key: string) {
 }
 
 /**
+ * Whether a change is one the system reads itself, as a whole number added to a roll or to what it heals: a change to
+ * Critical Injury rolls, or to the wounds a Medicine check heals.
+ */
+function isWholeNumberChangeKey(key: string) {
+	return isCriticalChangeKey(key) || key === HEALING_CHANGE_KEY;
+}
+
+/**
  * Which field of the effect sheets edits what a change applies to, given the key picked for it.
  */
 export function subjectFieldForKey(key: string) {
-	// A change to Critical Injury rolls has no subject, and no mode: it applies to nothing but the rolls. Nor has an Item
-	// Change, which its item always adds, or a change to the defense a source provides, which is always an Upgrade.
-	if (isCriticalChangeKey(key) || isItemChangeKey(key) || isProvidedDefenseKey(key)) {
+	// A change the system reads as a whole number has no subject, and no mode: it applies to nothing but the rolls or the
+	// healing that read it. Nor has an Item Change, which its item always adds, or a change to the defense a source
+	// provides, which is always an Upgrade.
+	if (isWholeNumberChangeKey(key) || isItemChangeKey(key) || isProvidedDefenseKey(key)) {
 		return 'check-selection';
 	}
 
@@ -643,8 +654,8 @@ export function toEditedChange(change: StoredChange): EditedChange {
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
  * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
- * Injury rolls, which the system reads itself too, gets the custom type, and loses its value unless it is a whole
- * number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
+ * Injury rolls or to the wounds a Medicine check heals, which the system reads itself too, gets the custom type, and
+ * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
  * a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
  */
 export function fromEditedChange(change: EditedChange): EditedChange {
@@ -656,8 +667,8 @@ export function fromEditedChange(change: EditedChange): EditedChange {
 		return { ...stored, type: 'upgrade' };
 	}
 
-	if (isCriticalChangeKey(change.key)) {
-		return { ...stored, type: 'custom', value: isCriticalChangeValue(value) ? value.trim() : '' };
+	if (isWholeNumberChangeKey(change.key)) {
+		return { ...stored, type: 'custom', value: parseWholeNumber(value) !== undefined ? value.trim() : '' };
 	}
 
 	if (isItemChangeKey(change.key)) {

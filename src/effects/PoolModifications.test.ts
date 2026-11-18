@@ -937,6 +937,18 @@ describe('editing changes in the effect sheets', () => {
 		expect(toEditedChange(editedChange('genesys.critical.inflicted', '10'))).toEqual(editedChange('genesys.critical.inflicted', '10'));
 	});
 
+	it("shows no mode for a change to the wounds a Medicine check heals, which the system reads at the check's roll", () => {
+		expect(subjectFieldForKey('genesys.healing.wounds')).toBe('check-selection');
+	});
+
+	it('gives a change to the wounds a Medicine check heals the custom type, and empties its value unless it is a whole number', () => {
+		expect(fromEditedChange(editedChange('genesys.healing.wounds', '1', { type: 'add' }))).toEqual(
+			editedChange('genesys.healing.wounds', '1'),
+		);
+		expect(fromEditedChange(editedChange('genesys.healing.wounds', 2)).value).toBe('2');
+		expect(fromEditedChange(editedChange('genesys.healing.wounds', '1.5')).value).toBe('');
+	});
+
 	it('shows no mode for a change to the defense a source provides, which is always an Upgrade', () => {
 		expect(subjectFieldForKey('system.providedDefense.melee')).toBe('check-selection');
 		expect(subjectFieldForKey('system.providedDefense.ranged')).toBe('check-selection');

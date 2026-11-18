@@ -124,6 +124,10 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			options: ['genesys.critical.inflicted=🎯 Inflicted on Others', 'genesys.critical.suffered=👇 Suffered'],
 		},
 		{
+			label: 'Modify Healing',
+			options: ['genesys.healing.wounds=👇 Wounds Healed by a Medicine Check'],
+		},
+		{
 			label: 'Modify Item',
 			options: [
 				'genesys.item.baseDamage=🔧 Damage',

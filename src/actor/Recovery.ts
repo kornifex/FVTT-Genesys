@@ -1,14 +1,16 @@
 /**
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
  * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
- * (CRB p. 116), and the Heal spell cast in its place (CRB p. 217); the checkthat recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
+ * (CRB p. 116), with the wounds its healer's effects add (CRB p. 74), and the Heal spell cast in its place (CRB p. 217);
+ * the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
  */
 
 import type { CombatPool } from '@/data/schemaFields';
-import { isCount, isRecord } from '@/data/parsing';
+import { isCount, isRecord, parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { AVERAGE, EASY, HARD, difficultyGlyphs } from '@/dice/Difficulty';
 import { SEVERITIES, type Severity } from '@/item/data/Injuries';
+import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 
 /**
  * The wounds and strain a check heals.
@@ -21,14 +23,56 @@ type Healed = { wounds: number; strain: number };
 type RecoveryResults = { netSuccess: number; netAdvantage: number };
 
 /**
- * A Medicine check heals a wound per Success and a strain per Advantage, once it succeeds (CRB p. 116).
+ * The key of the effect changes that add to the wounds their actor's Medicine checks heal, such as Surgeon's (CRB p.
+ * 74). Their value is a whole number.
  */
-function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults): Healed {
+export const HEALING_CHANGE_KEY = 'genesys.healing.wounds';
+
+/**
+ * What this module needs of an effect of a healer.
+ */
+type HealerEffect = {
+	isSuppressed: boolean;
+	// v14 lets a change hold a value of any type, a number among them.
+	system: { changes: { key?: string; value: unknown }[] };
+	originItem?: { system: RankedSystem };
+};
+
+/**
+ * What this module needs of the actor who makes a check that heals.
+ */
+export type Healer = { allApplicableEffects(): Iterable<HealerEffect> };
+
+/**
+ * What a healer's effects add to the wounds their Medicine checks heal: each change counts once per rank of its talent
+ * when the talent scales with rank, as Pool Modifications do, and once otherwise.
+ */
+function healerWoundsBonus(healer: Healer) {
+	let bonus = 0;
+	for (const effect of healer.allApplicableEffects()) {
+		if (effect.isSuppressed) {
+			continue;
+		}
+
+		for (const { key, value } of effect.system.changes) {
+			const parsed = key === HEALING_CHANGE_KEY ? parseWholeNumber(value) : undefined;
+			bonus += (parsed ?? 0) * scalingRank(effect.originItem);
+		}
+	}
+
+	return bonus;
+}
+
+/**
+ * A Medicine check heals a wound per Success and a strain per Advantage, once it succeeds (CRB p. 116), and the wounds
+ * its healer's bonus adds (CRB p. 74), never fewer than none.
+ */
+function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults, woundsBonus: number): Healed {
 	if (netSuccess <= 0) {
 		return { wounds: 0, strain: 0 };
 	}
 
-	return { wounds: netSuccess, strain: Math.max(netAdvantage, 0) };
+	return { wounds: Math.max(netSuccess + woundsBonus, 0), strain: Math.max(netAdvantage, 0) };
 }
 
 /**
@@ -39,18 +83,23 @@ function endOfEncounterRecovery({ netSuccess }: RecoveryResults): Healed {
 }
 
 /**
- * A kind of recovery check: how it heals from its results, the localization key of its card's label, which names the
- * patient, and whether it heals wounds, which its card shows only then.
+ * A kind of recovery check: how it heals from its results and its healer, the localization key of its card's label,
+ * which names the patient, and whether it heals wounds, which its card shows only then.
  */
-type RecoveryRuleDefinition = { heal: (results: RecoveryResults) => Healed; label: string; healsWounds: boolean };
+type RecoveryRuleDefinition = { heal: (results: RecoveryResults, healer?: Healer) => Healed; label: string; healsWounds: boolean };
 
 /**
  * How each kind of recovery check heals, and how its card shows it.
  */
 const RECOVERY_RULES = {
-	medicine: { heal: medicineHealing, label: 'Genesys.Recovery.CardLabel', healsWounds: true },
-	// A Heal spell is cast in place of a Medicine check, and heals as one does on success (CRB p. 217).
-	healSpell: { heal: medicineHealing, label: 'Genesys.Recovery.CardLabel', healsWounds: true },
+	medicine: {
+		heal: (results, healer) => medicineHealing(results, healer ? healerWoundsBonus(healer) : 0),
+		label: 'Genesys.Recovery.CardLabel',
+		healsWounds: true,
+	},
+	// A Heal spell is cast in place of a Medicine check, and heals as one does on success (CRB p. 217); it is no Medicine
+	// check, which a healer's bonus adds to (CRB p. 74).
+	healSpell: { heal: (results) => medicineHealing(results, 0), label: 'Genesys.Recovery.CardLabel', healsWounds: true },
 	endOfEncounter: { heal: endOfEncounterRecovery, label: 'Genesys.Recovery.EndOfEncounterCardLabel', healsWounds: false },
 } satisfies Record<string, RecoveryRuleDefinition>;
 
@@ -98,10 +147,13 @@ function isRecoveryRule(rule: string): rule is RecoveryRule {
 }
 
 /**
- * The recovery a check's results give: what they heal by the rule it is rolled for.
+ * The recovery a check's results give: what they heal by the rule it is rolled for, with what its healer's effects add
+ * when the rule takes them.
+ *
+ * @param healer The actor who rolled the check, if any.
  */
-export function recoveryOf(request: RecoveryRequest, results: RecoveryResults): Recovery {
-	return { ...request, ...RECOVERY_RULES[request.rule].heal(results) };
+export function recoveryOf(request: RecoveryRequest, results: RecoveryResults, healer?: Healer): Recovery {
+	return { ...request, ...RECOVERY_RULES[request.rule].heal(results, healer) };
 }
 
 /**

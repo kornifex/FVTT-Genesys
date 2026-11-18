@@ -33,4 +33,9 @@ describe('CHANGE_KEYS', () => {
 			'genesys.pool.ranged.target',
 		]);
 	});
+
+	it('offers the key of the wounds a Medicine check heals', () => {
+		const healingKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.Recovery.Effects.GroupLabel')?.keys.map(({ key }) => key);
+		expect(healingKeys).toEqual(['genesys.healing.wounds']);
+	});
 });

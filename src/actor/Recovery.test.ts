@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	canBePatient,
+	HEALING_CHANGE_KEY,
 	healedPools,
 	healingSkillNames,
 	heals,
@@ -108,6 +109,50 @@ describe('recoveryOf', () => {
 	it("recovers no strain when the end of an encounter's check fails (CRB p. 117)", () => {
 		expect(recoveryOf(endOfEncounter, { netSuccess: 0, netAdvantage: 2 })).toEqual({ ...endOfEncounter, wounds: 0, strain: 0 });
 		expect(recoveryOf(endOfEncounter, { netSuccess: -2, netAdvantage: 0 })).toEqual({ ...endOfEncounter, wounds: 0, strain: 0 });
+	});
+
+	describe("the healer's bonus to the wounds a Medicine check heals", () => {
+		const effect = (value: unknown, item?: { system: { rank?: number; scalesWithRank?: 'yes' | 'no' } }, isSuppressed = false) => ({
+			isSuppressed,
+			system: { changes: [{ key: HEALING_CHANGE_KEY, value }] },
+			originItem: item,
+		});
+		const healer = (...effects: ReturnType<typeof effect>[]) => ({ allApplicableEffects: () => effects });
+		const surgeon = (rank: number) => ({ system: { rank, scalesWithRank: 'yes' as const } });
+
+		it("adds once per rank of the healer's talent, as Surgeon does (CRB p. 74)", () => {
+			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 1 }, healer(effect('1', surgeon(2))))).toEqual({
+				...request,
+				wounds: 4,
+				strain: 1,
+			});
+		});
+
+		it('adds nothing when the Medicine check fails, which heals nothing (CRB p. 116)', () => {
+			expect(recoveryOf(request, { netSuccess: 0, netAdvantage: 2 }, healer(effect('1', surgeon(2))))).toEqual({
+				...request,
+				wounds: 0,
+				strain: 0,
+			});
+		});
+
+		it("sums the healer's effects, a number as Foundry stores it, once for an item that doesn't scale with rank", () => {
+			const bonus = healer(effect(2), effect('1', { system: { rank: 3, scalesWithRank: 'no' } }));
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 0 }, bonus).wounds).toBe(4);
+		});
+
+		it('leaves out a suppressed effect, and a value that is no whole number', () => {
+			const bonus = healer(effect('1', undefined, true), effect('1.5'), effect('two'));
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 0 }, bonus).wounds).toBe(1);
+		});
+
+		it('heals no fewer than zero wounds under a penalty', () => {
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 2 }, healer(effect('-3'))).wounds).toBe(0);
+		});
+
+		it('adds nothing to a Heal spell, which is no Medicine check (CRB pp. 74, 217)', () => {
+			expect(recoveryOf(healSpell, { netSuccess: 2, netAdvantage: 0 }, healer(effect('1', surgeon(1)))).wounds).toBe(2);
+		});
 	});
 });
 
