@@ -1,0 +1,17 @@
+name: Ranged
+type: skill
+img: icons/skills/ranged/arrows-flying-salvo-blue-light.webp
+system:
+  description: ''
+  source: Core Rulebook, p.68
+  characteristic: agility
+  category: combat
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: NQfZQbvsNfv1oR7Y
+_key: '!items!NQfZQbvsNfv1oR7Y'

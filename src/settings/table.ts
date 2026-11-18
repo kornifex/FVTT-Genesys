@@ -226,6 +226,19 @@ export const SETTINGS = {
 		field: { name: 'talentTierVersions' },
 	}),
 
+	/** Whether characters can buy ranks in a magic skill only when it is one of their career skills. */
+	careerOnlyMagicSkills: setting({
+		scope: 'world',
+		type: switchField,
+		default: false,
+		name: 'Genesys.Settings.CareerOnlyMagicSkills',
+		hint: 'Genesys.Settings.CareerOnlyMagicSkillsHint',
+		// The Skills tab reads it as it renders, to offer each skill's next rank or not; the purchase reads it live.
+		requiresReload: true,
+		readLive: true,
+		field: { name: 'careerOnlyMagicSkills' },
+	}),
+
 	/** The Style of the system's colors, chosen by the GM for every user. */
 	style: setting({
 		scope: 'world',

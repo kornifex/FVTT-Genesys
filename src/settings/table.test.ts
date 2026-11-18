@@ -42,6 +42,7 @@ describe('SETTINGS', () => {
 			'world.useSuperCharacteristics',
 			'world.ignoreTalentPyramid',
 			'world.talentTierVersions',
+			'world.careerOnlyMagicSkills',
 			'world.style',
 			'client.dicePoolAutoApplyModifications',
 			'client.dicePoolChanceToSucceedByPermutation',
@@ -53,7 +54,7 @@ describe('SETTINGS', () => {
 		const reloaded = settingEntries().flatMap(([key, entry]) =>
 			entry.requiresReload ? [`${key}${entry.readLive ? ' (live)' : ''}`] : [],
 		);
-		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'dicePoolChanceToSucceedByPermutation']);
+		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'careerOnlyMagicSkills (live)', 'dicePoolChanceToSucceedByPermutation']);
 	});
 
 	it('gives each field of CONFIG.genesys.settings to one setting', () => {
@@ -77,6 +78,7 @@ describe('the DataField of each setting', () => {
 			useSuperCharacteristics: 'boolean',
 			ignoreTalentPyramid: 'boolean',
 			talentTierVersions: 'boolean',
+			careerOnlyMagicSkills: 'boolean',
 			style: 'string',
 			dicePoolAutoApplyModifications: 'boolean',
 			dicePoolChanceToSucceedByPermutation: 'boolean',
@@ -183,6 +185,7 @@ describe('configDefaults', () => {
 			useSuperCharacteristics: false,
 			ignoreTalentPyramid: false,
 			talentTierVersions: false,
+			careerOnlyMagicSkills: false,
 			autoApplyPoolModifications: false,
 			showChanceToSucceedFromPermutations: false,
 			showChanceToSucceedFromSimulations: { enabled: false, amountOfRolls: 0 },

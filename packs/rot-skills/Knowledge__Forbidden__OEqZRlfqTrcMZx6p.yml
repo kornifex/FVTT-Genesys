@@ -1,0 +1,17 @@
+name: Knowledge (Forbidden)
+type: skill
+img: icons/sundries/books/book-eye-purple.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.81
+  characteristic: intellect
+  category: knowledge
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: OEqZRlfqTrcMZx6p
+_key: '!items!OEqZRlfqTrcMZx6p'

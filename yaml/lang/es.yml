@@ -73,6 +73,8 @@ Genesys:
     IgnoreTalentPyramidHint: 'Regla de la casa: permite adquirir talentos de cualquier nivel sin tener suficientes talentos del nivel inferior.'
     TalentTierVersions: Versiones de talento por nivel
     TalentTierVersionsHint: 'Regla de la casa: cada nivel de un talento con rangos es un objeto distinto con el mismo nombre. Arrastrar una de estas versiones sobre un personaje que ya tiene el talento adquiere un rango al precio del nivel de esa versión × 5 PX, en cualquier orden, y se oculta el botón para subir de rango.'
+    CareerOnlyMagicSkills: Habilidades de magia solo de carrera
+    CareerOnlyMagicSkillsHint: Un personaje solo puede adquirir rangos en una habilidad de magia si es una de sus habilidades de carrera, como en la ambientación de Runebound (Realms of Terrinoth, p.115) o en una ambientación donde la magia es un don (Libro básico, p.212).
     Style: Estilo
     StyleHint: 'Los colores de las fichas y las ventanas, para todos los usuarios. Solo cambian los colores, nunca la disposición.'
     StyleGenesys: Genesys

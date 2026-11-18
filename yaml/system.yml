@@ -30,6 +30,11 @@ packs:
     system: genesys
     path: ./packs/crb-skills
     type: Item
+  - name: rot-skills
+    label: Realms of Terrinoth Skills
+    system: genesys
+    path: ./packs/rot-skills
+    type: Item
 documentTypes:
   # Each type's data is defined by its DataModel, registered in CONFIG.Actor.dataModels and CONFIG.Item.dataModels.
   Actor:

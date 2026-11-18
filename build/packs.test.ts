@@ -36,12 +36,15 @@ describe('compilePacks', () => {
 		}
 	});
 
-	it('compiles each source document of the Skills Compendium into its pack', async () => {
+	it.each([
+		['crb-skills', 37],
+		['rot-skills', 33],
+	])('compiles each source document of the Skills Compendium %s into its pack', async (pack, count) => {
 		await compilePacks(sourceDir, dest);
-		await extractPack(path.join(dest, 'crb-skills'), path.join(dest, 'extracted'));
+		await extractPack(path.join(dest, pack), path.join(dest, 'extracted'));
 
-		const sources = readDocuments(path.join(sourceDir, 'crb-skills'), '.yml', load);
-		expect(sources).toHaveLength(37);
+		const sources = readDocuments(path.join(sourceDir, pack), '.yml', load);
+		expect(sources).toHaveLength(count);
 		expect(readDocuments(path.join(dest, 'extracted'), '.json', JSON.parse)).toEqual(sources);
 	});
 });

@@ -1,6 +1,6 @@
 /**
  * @file Tests for how skill names match, which skill an actor rolls, Free Ranks, how a character's skills are listed, and the
- * skills of the Core Rulebook's Skills Compendium.
+ * skills of the shipped Skills Compendiums.
  */
 
 import { readdirSync, readFileSync } from 'fs';
@@ -254,16 +254,22 @@ describe('skillsByCategory', () => {
 	});
 });
 
+type PackSkill = {
+	name: string;
+	type: string;
+	img: string;
+	system: { characteristic: string; category: string; source: string; initiative?: boolean; attackKind?: string };
+};
+
+/** The source documents of a shipped Skills Compendium. */
+function packSkills(pack: string) {
+	const packDir = path.resolve(__dirname, '../../packs', pack);
+	// The packs are written by hand in the shape of a skill item, which `build/packs.test.ts` compiles.
+	return readdirSync(packDir).map((file) => load(readFileSync(path.join(packDir, file), 'utf8')) as PackSkill);
+}
+
 describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
-	const packDir = path.resolve(__dirname, '../../packs/crb-skills');
-	const crbSkills = readdirSync(packDir).map(
-		(file) =>
-			load(readFileSync(path.join(packDir, file), 'utf8')) as {
-				name: string;
-				type: string;
-				system: { characteristic: string; category: string; source: string; initiative?: boolean; attackKind?: string };
-			},
-	);
+	const crbSkills = packSkills('crb-skills');
 
 	// Table I.3–1 (CRB p. 53), with each skill's characteristic and category from its description (p. 54-70).
 	const skillTable: [name: string, characteristic: string, category: SkillCategory, page: number][] = [
@@ -336,5 +342,71 @@ describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
 		expect(withKind('melee')).toEqual(['Brawl', 'Melee', 'Melee (Heavy)', 'Melee (Light)']);
 		expect(withKind('ranged')).toEqual(['Gunnery', 'Ranged', 'Ranged (Heavy)', 'Ranged (Light)']);
 		expect(crbSkills.filter((item) => item.system.attackKind === undefined)).toHaveLength(29);
+	});
+});
+
+describe('the Realms of Terrinoth Skills Compendium, rot-skills', () => {
+	const rotSkills = packSkills('rot-skills');
+	const crbSkills = packSkills('crb-skills');
+
+	// Table 2–3 (RoT p. 82): the Core Rulebook skills the setting keeps.
+	const keptSkills = [
+		'Alchemy',
+		'Arcana',
+		'Athletics',
+		'Brawl',
+		'Charm',
+		'Coercion',
+		'Cool',
+		'Coordination',
+		'Deception',
+		'Discipline',
+		'Divine',
+		'Leadership',
+		'Mechanics',
+		'Medicine',
+		'Melee (Heavy)',
+		'Melee (Light)',
+		'Negotiation',
+		'Perception',
+		'Primal',
+		'Ranged',
+		'Resilience',
+		'Riding',
+		'Skulduggery',
+		'Stealth',
+		'Streetwise',
+		'Survival',
+		'Vigilance',
+	];
+
+	// Table 2–3 (RoT p. 82): the setting's own skills, each with the page of its description (p. 81-83).
+	const newSkills: [name: string, characteristic: string, category: SkillCategory, page: number][] = [
+		['Knowledge (Adventuring)', 'intellect', 'knowledge', 81],
+		['Knowledge (Forbidden)', 'intellect', 'knowledge', 81],
+		['Knowledge (Geography)', 'intellect', 'knowledge', 81],
+		['Knowledge (Lore)', 'intellect', 'knowledge', 82],
+		['Runes', 'intellect', 'magic', 83],
+		['Verse', 'presence', 'magic', 83],
+	];
+
+	it('holds the 33 skills of Table 2–3, and only skills (RoT p. 82)', () => {
+		expect(rotSkills.map((item) => item.name).sort()).toEqual([...keptSkills, ...newSkills.map(([name]) => name)].sort());
+		expect(rotSkills.every((item) => item.type === 'skill')).toBe(true);
+	});
+
+	it.each(keptSkills)("keeps %s as the Core Rulebook's Skills Compendium defines it (RoT p. 82)", (name) => {
+		// Both packs hold the skill: the test above and the Core Rulebook pack's own fail otherwise.
+		const { img, system } = rotSkills.find((item) => item.name === name)!;
+		const crbSkill = crbSkills.find((item) => item.name === name)!;
+
+		expect({ img, system }).toEqual({ img: crbSkill.img, system: crbSkill.system });
+	});
+
+	it.each(newSkills)('links %s to %s, in the %s skills, described on page %i (RoT p. 81-83)', (name, characteristic, category, page) => {
+		// The pack holds the skill: the first test fails otherwise.
+		const skill = rotSkills.find((item) => item.name === name)!;
+
+		expect(skill.system).toMatchObject({ characteristic, category, source: `Realms of Terrinoth, p.${page}` });
 	});
 });

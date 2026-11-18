@@ -145,6 +145,33 @@ export async function advancement(
 		star: false,
 		canBuy: true,
 	});
+	const arcanaWithoutRule = (await skills(['Arcana'])).Arcana?.canBuy;
+	await e2e.step('#371 C6 Career-Only Magic Skills turned on, Arcana marked as a career skill', async () => {
+		await setHouseRules({ careerOnlyMagicSkills: true });
+		await page((name) => window.characterE2E.menu(name, { skill: 'Arcana' }, 'Genesys.Labels.MarkCareerSkill'), A);
+	});
+	const arcanaAsCareer = (await skills(['Arcana'])).Arcana?.canBuy;
+	await e2e.step('#371 C6 Arcana unmarked as a career skill', () =>
+		page((name) => window.characterE2E.menu(name, { skill: 'Arcana' }, 'Genesys.Labels.UnmarkCareerSkill'), A),
+	);
+	e2e.expect(
+		'#371 C6 with Career-Only Magic Skills, a magic skill offers its next rank only as a career skill, and any other skill as before',
+		{ arcanaWithoutRule, arcanaAsCareer, ...(await skills(['Arcana', 'Mechanics'])) },
+		{
+			arcanaWithoutRule: true,
+			arcanaAsCareer: true,
+			Arcana: { rank: 0, career: false, star: false, canBuy: false },
+			Mechanics: { rank: 0, career: false, star: false, canBuy: true },
+		},
+	);
+	await e2e.step('#371 C6 Career-Only Magic Skills turned off', async () => {
+		await setHouseRules({ careerOnlyMagicSkills: false });
+		// The Skills tab offers Arcana again once it renders.
+		await page((name) => window.characterE2E.menu(name, { skill: 'Arcana' }, 'Genesys.Labels.MarkCareerSkill'), A);
+		await e2e.settle();
+		await page((name) => window.characterE2E.menu(name, { skill: 'Arcana' }, 'Genesys.Labels.UnmarkCareerSkill'), A);
+	});
+	e2e.expect('#371 C6 without the rule, a non-career magic skill offers its next rank', (await skills(['Arcana'])).Arcana?.canBuy, true);
 	const journalBeforeFreeRanks = await page((name) => window.characterE2E.journal(name), A);
 	await e2e.step('#114 C6 Free Rank up on Stealth', () =>
 		page((name) => window.characterE2E.menu(name, { skill: 'Stealth' }, 'Genesys.Labels.FreeRankUp'), A),

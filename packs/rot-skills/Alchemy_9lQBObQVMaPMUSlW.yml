@@ -1,0 +1,17 @@
+name: Alchemy
+type: skill
+img: icons/consumables/potions/bottle-bulb-corked-green.webp
+system:
+  description: ''
+  source: Core Rulebook, p.57
+  characteristic: intellect
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: 9lQBObQVMaPMUSlW
+_key: '!items!9lQBObQVMaPMUSlW'

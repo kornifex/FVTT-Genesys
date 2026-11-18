@@ -1,0 +1,17 @@
+name: Negotiation
+type: skill
+img: icons/skills/social/diplomacy-handshake-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.56
+  characteristic: presence
+  category: social
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: ouFbSgdnKFTPYFJ4
+_key: '!items!ouFbSgdnKFTPYFJ4'

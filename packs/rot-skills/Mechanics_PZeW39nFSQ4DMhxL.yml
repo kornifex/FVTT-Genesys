@@ -1,0 +1,17 @@
+name: Mechanics
+type: skill
+img: icons/tools/hand/screwdriver-flat-steel-black.webp
+system:
+  description: ''
+  source: Core Rulebook, p.60
+  characteristic: intellect
+  category: general
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: PZeW39nFSQ4DMhxL
+_key: '!items!PZeW39nFSQ4DMhxL'

@@ -1,0 +1,17 @@
+name: Verse
+type: skill
+img: icons/tools/instruments/lute-gold-brown.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.83
+  characteristic: presence
+  category: magic
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: v7J0rzRvWpLDfGY1
+_key: '!items!v7J0rzRvWpLDfGY1'

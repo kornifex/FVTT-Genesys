@@ -1,0 +1,17 @@
+name: Knowledge (Geography)
+type: skill
+img: icons/tools/navigation/map-marked-brown.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.81
+  characteristic: intellect
+  category: knowledge
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: gfTmU95bjVJ7engg
+_key: '!items!gfTmU95bjVJ7engg'

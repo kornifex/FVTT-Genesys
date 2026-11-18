@@ -73,6 +73,8 @@ Genesys:
     IgnoreTalentPyramidHint: 'House rule: allows purchasing talents of any tier without having enough talents of the tier below.'
     TalentTierVersions: Talent Tiers as Separate Versions
     TalentTierVersionsHint: "House rule: each tier of a ranked talent is a separate item with the same name. Dropping one on a character who already has the talent buys a rank at that item's tier × 5 XP, in any order, and the rank upgrade button is hidden."
+    CareerOnlyMagicSkills: Career-Only Magic Skills
+    CareerOnlyMagicSkillsHint: Characters can buy ranks in a magic skill only when it is one of their career skills, as in the Runebound setting (Realms of Terrinoth, p.115) or a setting where magic is a gift (Core Rulebook, p.212).
     Style: Style
     StyleHint: 'The colors of the sheets and windows, for every user. Only colors change, never the layout.'
     StyleGenesys: Genesys

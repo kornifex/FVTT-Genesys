@@ -1,0 +1,17 @@
+name: Runes
+type: skill
+img: icons/magic/symbols/runes-carved-stone-purple.webp
+system:
+  description: ''
+  source: Realms of Terrinoth, p.83
+  characteristic: intellect
+  category: magic
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: R2dPly3OQnw8p2bg
+_key: '!items!R2dPly3OQnw8p2bg'

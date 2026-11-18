@@ -1,0 +1,18 @@
+name: Melee (Heavy)
+type: skill
+img: icons/skills/melee/maneuver-greatsword-yellow.webp
+system:
+  description: ''
+  source: Core Rulebook, p.68
+  characteristic: brawn
+  category: combat
+  difficulty: DD
+  career: false
+  rank: 0
+effects: []
+ownership:
+  default: 0
+folder: null
+sort: 0
+_id: IVAO0AiDLslOe7m6
+_key: '!items!IVAO0AiDLslOe7m6'
