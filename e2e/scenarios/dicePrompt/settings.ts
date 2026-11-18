@@ -51,6 +51,24 @@ export async function settingsPart(ctx: DicePromptContext) {
 			default: { compendium: 'genesys.crb-skills', skills: 37, notifications: [] },
 		},
 	);
+	e2e.expect(
+		'#371 J2 the Realms of Terrinoth Skills Compendium loads its 33 skills, Runes and Verse among the magic ones',
+		{
+			terrinoth: await skillsCompendium('genesys.rot-skills'),
+			magic: await gm.evaluate(() =>
+				CONFIG.genesys.skills
+					.filter((skill: { system: { category: string } }) => skill.system.category === 'magic')
+					.map((skill: { name: string }) => skill.name)
+					.sort(),
+			),
+		},
+		{
+			terrinoth: { compendium: 'genesys.rot-skills', skills: 33, notifications: [] },
+			magic: ['Arcana', 'Divine', 'Primal', 'Runes', 'Verse'],
+		},
+	);
+	await setSetting('skillsCompendium', 'genesys.crb-skills');
+	await e2e.settle();
 	await gm.evaluate(() => window.dicePromptE2E.createSkillsPack());
 	await setSetting('skillsCompendium', 'world.e2e-skills');
 	await e2e.settle();
