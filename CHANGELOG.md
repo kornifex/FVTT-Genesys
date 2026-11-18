@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.6](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.5...v0.7.6) (2026-11-18)
+
+
+### Documentation
+
+* add 0.7.5's changes to the README's What's new since the fork ([#910](https://github.com/kornifex/FVTT-Genesys/issues/910)) ([3a30ada](https://github.com/kornifex/FVTT-Genesys/commit/3a30adaf304de65068935beaf16bea900f9fbda6))
+
+
+### Continuous Integration
+
+* remove release-as now that 0.7.5 is out ([#909](https://github.com/kornifex/FVTT-Genesys/issues/909)) ([e0d696b](https://github.com/kornifex/FVTT-Genesys/commit/e0d696bf37f90d333e845bb6376cb8e85c35ddb1))
+
 ## [0.7.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.4...v0.7.5) (2026-11-18)
 
 
