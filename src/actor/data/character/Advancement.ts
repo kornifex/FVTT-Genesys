@@ -8,6 +8,7 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { Characteristic, CHARACTERISTIC_LABELS, CharacteristicsContainer } from '@/data/Characteristics';
+import type { SkillCategory } from '@/data/Skills';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
 import { itemsOfType, type SystemSource } from '@/item/ItemTypes';
@@ -43,6 +44,7 @@ type AdvancementSkill = {
 	name: string;
 	rank: number;
 	career: boolean;
+	category: SkillCategory;
 };
 
 /**
@@ -69,6 +71,9 @@ export type AdvancementCharacter = {
 	houseRules: {
 		ignoreTalentPyramid: boolean;
 		talentTierVersions: boolean;
+	};
+	alternateRules: {
+		careerOnlyMagicSkills: boolean;
 	};
 };
 
@@ -194,11 +199,16 @@ function skillRankCost(skill: Pick<AdvancementSkill, 'rank' | 'career'>) {
 }
 
 /**
- * Buy the next rank of a skill. During Character Creation, bought ranks can't go above 2.
+ * Buy the next rank of a skill. During Character Creation, bought ranks can't go above 2. With the Career-Only Magic
+ * Skills Alternate Rule, a magic skill that isn't a career skill can't be bought at all (CRB p. 212, RoT p. 115).
  */
 export function buySkillRank(character: AdvancementCharacter, skillId: string): AdvancementResult {
 	const skill = character.skills.find((candidate) => candidate.id === skillId);
 	if (!skill) {
+		return refuse();
+	}
+
+	if (character.alternateRules.careerOnlyMagicSkills && skill.category === 'magic' && !skill.career) {
 		return refuse();
 	}
 
@@ -495,6 +505,7 @@ export function advancementCharacter(actor: GenesysActor<'character'>): Advancem
 			name: skill.name,
 			rank: skill.system.rank,
 			career: skill.system.career,
+			category: skill.system.category,
 		})),
 		talents: itemsOfType(actor, 'talent').map((talent) => ({
 			id: talent.id,
@@ -506,6 +517,9 @@ export function advancementCharacter(actor: GenesysActor<'character'>): Advancem
 		houseRules: {
 			ignoreTalentPyramid: CONFIG.genesys.settings.ignoreTalentPyramid,
 			talentTierVersions: CONFIG.genesys.settings.talentTierVersions,
+		},
+		alternateRules: {
+			careerOnlyMagicSkills: CONFIG.genesys.settings.careerOnlyMagicSkills,
 		},
 	};
 }

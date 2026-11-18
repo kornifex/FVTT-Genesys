@@ -27,6 +27,7 @@ function character(items: CharacterItem[] = [], overrides: Partial<Character> = 
 			skills: [],
 			talents: [],
 			houseRules: { ignoreTalentPyramid: false, talentTierVersions: false },
+			alternateRules: { careerOnlyMagicSkills: false },
 		},
 		...overrides,
 	};

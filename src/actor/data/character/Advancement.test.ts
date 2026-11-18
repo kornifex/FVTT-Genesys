@@ -44,11 +44,12 @@ function character(overrides: Partial<AdvancementCharacter> = {}): AdvancementCh
 		woundThreshold: 12,
 		strainThreshold: 12,
 		skills: [
-			{ id: 'athletics', name: 'Athletics', rank: 0, career: true },
-			{ id: 'cool', name: 'Cool', rank: 1, career: false },
+			{ id: 'athletics', name: 'Athletics', rank: 0, career: true, category: 'general' },
+			{ id: 'cool', name: 'Cool', rank: 1, career: false, category: 'general' },
 		],
 		talents: [],
 		houseRules: { ignoreTalentPyramid: false, talentTierVersions: false },
+		alternateRules: { careerOnlyMagicSkills: false },
 		...overrides,
 	};
 }
@@ -154,18 +155,18 @@ describe('buySkillRank', () => {
 	});
 
 	it('buys a career skill to rank 2 for 15 XP, a non-career skill for 25 XP, one rank at a time (CRB p. 44)', () => {
-		const costs = (skill: { id: string; name: string; rank: number; career: boolean }) => {
+		const costs = (skill: AdvancementCharacter['skills'][number]) => {
 			const toOne = newEntries(buySkillRank(character({ skills: [skill] }), skill.id));
 			const toTwo = newEntries(buySkillRank(character({ entries: toOne, skills: [{ ...skill, rank: 1 }] }), skill.id));
 			return toTwo.slice(1).map((entry) => entry.amount);
 		};
 
-		expect(costs({ id: 'athletics', name: 'Athletics', rank: 0, career: true })).toEqual([-5, -10]);
-		expect(costs({ id: 'stealth', name: 'Stealth', rank: 0, career: false })).toEqual([-10, -15]);
+		expect(costs({ id: 'athletics', name: 'Athletics', rank: 0, career: true, category: 'general' })).toEqual([-5, -10]);
+		expect(costs({ id: 'stealth', name: 'Stealth', rank: 0, career: false, category: 'general' })).toEqual([-10, -15]);
 	});
 
 	it('caps bought ranks at 2 during Character Creation, at 5 afterwards (CRB p. 30, 44)', () => {
-		const atTwo = { skills: [{ id: 'cool', name: 'Cool', rank: 2, career: true }] };
+		const atTwo: Partial<AdvancementCharacter> = { skills: [{ id: 'cool', name: 'Cool', rank: 2, career: true, category: 'general' }] };
 
 		expect(isAllowed(buySkillRank(character(atTwo), 'cool'))).toBe(false);
 		expect(isAllowed(buySkillRank(character({ ...atTwo, entries: [{ amount: 100, type: EntryType.Starting }, AWARD] }), 'cool'))).toBe(
@@ -175,7 +176,7 @@ describe('buySkillRank', () => {
 			isAllowed(
 				buySkillRank(
 					character({
-						skills: [{ id: 'cool', name: 'Cool', rank: 5, career: true }],
+						skills: [{ id: 'cool', name: 'Cool', rank: 5, career: true, category: 'general' }],
 						entries: [{ amount: 100, type: EntryType.Starting }, AWARD],
 					}),
 					'cool',
@@ -187,6 +188,24 @@ describe('buySkillRank', () => {
 	it('is refused without enough XP, or for a skill the character lacks', () => {
 		expect(isAllowed(buySkillRank(character({ entries: [{ amount: 14, type: EntryType.Starting }] }), 'cool'))).toBe(false);
 		expect(isAllowed(buySkillRank(character(), 'stealth'))).toBe(false);
+	});
+
+	describe('with the Career-Only Magic Skills Alternate Rule', () => {
+		const arcana = (career: boolean) => character({ skills: [{ id: 'arcana', name: 'Arcana', rank: 0, career, category: 'magic' }] });
+		const alternateRules = { careerOnlyMagicSkills: true };
+
+		it('refuses a rank of a magic skill that is not a career skill (CRB p. 212, RoT p. 115)', () => {
+			expect(isAllowed(buySkillRank({ ...arcana(false), alternateRules }, 'arcana'))).toBe(false);
+		});
+
+		it('sells a rank of a career magic skill at the career price, and of any other non-career skill 5 XP dearer (RoT p. 115)', () => {
+			expect(newEntries(buySkillRank({ ...arcana(true), alternateRules }, 'arcana')).at(-1)?.amount).toBe(-5);
+			expect(newEntries(buySkillRank(character({ alternateRules }), 'cool')).at(-1)?.amount).toBe(-15);
+		});
+
+		it('sells a rank of a non-career magic skill 5 XP dearer without the rule (CRB p. 44)', () => {
+			expect(newEntries(buySkillRank(arcana(false), 'arcana')).at(-1)?.amount).toBe(-10);
+		});
 	});
 });
 
@@ -350,7 +369,8 @@ describe('undoEntry', () => {
 
 		expect(plan(undoEntry(character({ entries }), 0)).itemUpdates).toEqual([{ _id: 'cool', 'system.rank': 0 }]);
 		expect(
-			plan(undoEntry(character({ entries, skills: [{ id: 'cool', name: 'Cool', rank: 0, career: false }] }), 0)).itemUpdates,
+			plan(undoEntry(character({ entries, skills: [{ id: 'cool', name: 'Cool', rank: 0, career: false, category: 'general' }] }), 0))
+				.itemUpdates,
 		).toEqual([{ _id: 'cool', 'system.rank': 0 }]);
 	});
 
@@ -408,9 +428,9 @@ describe('undoEntry', () => {
 			AWARD,
 			{ amount: -15, type: EntryType.Skill, data: { name: 'Cool', id: 'cool', rank: 3 } },
 		];
-		const skills = [
-			{ id: 'athletics', name: 'Athletics', rank: 2, career: true },
-			{ id: 'cool', name: 'Cool', rank: 3, career: true },
+		const skills: AdvancementCharacter['skills'] = [
+			{ id: 'athletics', name: 'Athletics', rank: 2, career: true, category: 'general' },
+			{ id: 'cool', name: 'Cool', rank: 3, career: true, category: 'general' },
 		];
 		const undone = plan(undoEntry(character({ entries, skills }), 1));
 		const backInCreation = character({ entries: newEntries({ plan: undone }), skills });
@@ -517,7 +537,9 @@ describe('undoQuestion', () => {
 
 describe('advancementCharacter', () => {
 	beforeAll(() => {
-		vi.stubGlobal('CONFIG', { genesys: { settings: { ignoreTalentPyramid: false, talentTierVersions: false } } });
+		vi.stubGlobal('CONFIG', {
+			genesys: { settings: { ignoreTalentPyramid: false, talentTierVersions: false, careerOnlyMagicSkills: false } },
+		});
 	});
 
 	afterAll(() => {

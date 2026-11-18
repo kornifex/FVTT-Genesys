@@ -73,6 +73,8 @@ Genesys:
     IgnoreTalentPyramidHint: "Règle maison : permet d'acheter des talents de n'importe quelle catégorie sans avoir assez de talents de la catégorie inférieure."
     TalentTierVersions: Versions de talent par catégorie
     TalentTierVersionsHint: "Règle maison : chaque catégorie d'un talent à rangs est un item distinct portant le même nom. Glisser l'une de ces versions sur un personnage qui possède déjà le talent achète un rang au prix de la catégorie de cette version × 5 XP, dans n'importe quel ordre, et le bouton d'augmentation de rang est masqué."
+    CareerOnlyMagicSkills: Compétences de magie réservées à la carrière
+    CareerOnlyMagicSkillsHint: "Un personnage ne peut acheter des rangs dans une compétence de magie que si c'est l'une de ses compétences de carrière, comme dans l'univers de Runebound (Realms of Terrinoth, p. 115) ou dans un univers où la magie est un don (livre de base, p. 212)."
     Style: Style
     StyleHint: 'Les couleurs des fiches et des fenêtres, pour tous les utilisateurs. Seules les couleurs changent, jamais la mise en page.'
     StyleGenesys: Genesys
