@@ -314,6 +314,7 @@ Genesys:
       Impossible: Dépenser un point pour tenter la tâche impossible
       UpgradeAbility: Dépenser un point pour améliorer l'aptitude
       UpgradeDifficulty: Dépenser un point de Destin pour améliorer la difficulté
+      UpgradeDifficultyByGM: Le MJ dépense un point de Fatalité pour améliorer la difficulté
       ImpossibleCost: Une tâche impossible ne peut pas être lancée sans lui.
       EmptyPool: Cette réserve n'a plus de point à dépenser.
       ImpossibleOnly: Une tâche impossible n'admet aucun autre point narratif.

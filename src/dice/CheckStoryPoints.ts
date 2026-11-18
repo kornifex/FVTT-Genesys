@@ -16,8 +16,8 @@ export const CheckSpend = {
 	/** The roller's point upgrades the ability once (CRB p. 28). */
 	UpgradeAbility: 'upgradeAbility',
 	/**
-	 * A player's point upgrades the difficulty once, as when they answer an NPC's check against their character (CRB
-	 * p. 29). Only the GM, who rolls that check, spends it for them.
+	 * The other side's point upgrades the difficulty once (CRB p. 29): the GM's on a player's check, which the player
+	 * marks for them; a player's on an NPC's check, which the GM who rolls it spends for them.
 	 */
 	UpgradeDifficulty: 'upgradeDifficulty',
 } as const;
@@ -60,26 +60,27 @@ export type SpendContext = {
 export type SpendOption = { spend: CheckSpend; pool: StoryPointPool; refusal?: SpendRefusal };
 
 /**
- * The pool a spend comes from: the roller's own, the player pool for a player and the GM pool for a GM, but for the
- * player's point a GM spends to upgrade the difficulty (CRB p. 28–29).
+ * The pool a spend comes from: the roller's own, the player pool for a player and the GM pool for a GM, but the other
+ * side's for the upgrade of the difficulty (CRB pp. 28–29).
  */
 function spendPool(spend: CheckSpend, isGM: boolean): StoryPointPool {
-	return isGM && spend !== CheckSpend.UpgradeDifficulty ? 'gm' : 'player';
+	const [own, other]: [StoryPointPool, StoryPointPool] = isGM ? ['gm', 'player'] : ['player', 'gm'];
+	return spend === CheckSpend.UpgradeDifficulty ? other : own;
 }
 
 /**
- * The spends the Dice Prompt offers on a check: an Impossible task's point first, then the ability's upgrade, then for a
- * GM the player's upgrade of the difficulty. A player's prompt offers no spend from the GM pool, which only a GM writes.
+ * The spends the Dice Prompt offers on a check: an Impossible task's point first, then the ability's upgrade, then the
+ * other side's upgrade of the difficulty.
  */
-function offeredSpends({ isGM, impossible }: Pick<SpendContext, 'isGM' | 'impossible'>): CheckSpend[] {
-	return [...(impossible ? [CheckSpend.Impossible] : []), CheckSpend.UpgradeAbility, ...(isGM ? [CheckSpend.UpgradeDifficulty] : [])];
+function offeredSpends({ impossible }: Pick<SpendContext, 'impossible'>): CheckSpend[] {
+	return [...(impossible ? [CheckSpend.Impossible] : []), CheckSpend.UpgradeAbility, CheckSpend.UpgradeDifficulty];
 }
 
 /**
  * The spends the roller chose that the check still offers, in the order it offers them: the point of a task no longer
  * Impossible is spent no more, and once it is spent no other point is (CRB p. 18).
  */
-export function chosenSpends(chosen: readonly CheckSpend[], context: Pick<SpendContext, 'isGM' | 'impossible'>): CheckSpend[] {
+export function chosenSpends(chosen: readonly CheckSpend[], context: Pick<SpendContext, 'impossible'>): CheckSpend[] {
 	const spends = offeredSpends(context).filter((spend) => chosen.includes(spend));
 	return spends.includes(CheckSpend.Impossible) ? [CheckSpend.Impossible] : spends;
 }
