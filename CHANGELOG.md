@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.7.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.4...v0.7.5) (2026-11-18)
+
+
+### Features
+
+* **actor:** add a healer's bonus to the wounds a Medicine check heals ([#907](https://github.com/kornifex/FVTT-Genesys/issues/907)) ([ca171a6](https://github.com/kornifex/FVTT-Genesys/commit/ca171a6b67bb85aee2ec02a7d2ec793f50661811))
+* **dice:** let a player mark the GM's point that upgrades their check's difficulty ([#906](https://github.com/kornifex/FVTT-Genesys/issues/906)) ([eb9f013](https://github.com/kornifex/FVTT-Genesys/commit/eb9f013064bdea161b2bd8afee7b34bf9e475cd2))
+* **effects:** offer Combat Check among the target Pool Modification keys ([#905](https://github.com/kornifex/FVTT-Genesys/issues/905)) ([9f4d278](https://github.com/kornifex/FVTT-Genesys/commit/9f4d278c890c7aacbddc47987b78dc42302d6d8f))
+
+
+### Bug Fixes
+
+* **actor:** round half the wound threshold up for a Medicine check's difficulty ([#900](https://github.com/kornifex/FVTT-Genesys/issues/900)) ([6c5b7cd](https://github.com/kornifex/FVTT-Genesys/commit/6c5b7cd1ddf1ab29cd3c8e8def5a3f950e2473c7))
+* **i18n:** summarize 0.7.5's changes since 0.7.4 in the welcome message ([#908](https://github.com/kornifex/FVTT-Genesys/issues/908)) ([d534c9b](https://github.com/kornifex/FVTT-Genesys/commit/d534c9bb4a28d96ef9085b62755c311b1b365f2d))
+* **ui:** align a context menu's entries on the left ([#902](https://github.com/kornifex/FVTT-Genesys/issues/902)) ([d807e8a](https://github.com/kornifex/FVTT-Genesys/commit/d807e8aa39f7084a1e3463586a7c0dc09843e26c))
+
+
+### Continuous Integration
+
+* set the next release to 0.7.5 ([#903](https://github.com/kornifex/FVTT-Genesys/issues/903)) ([d743f8f](https://github.com/kornifex/FVTT-Genesys/commit/d743f8ffacdeee8674d2e4b187ecf415f7dcfb19))
+
 ## [0.7.4](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.3...v0.7.4) (2026-11-17)
 
 
