@@ -6,6 +6,7 @@ system:
   source: Core Rulebook, p.67
   characteristic: brawn
   category: combat
+  attackKind: melee
   difficulty: DD
   career: false
   rank: 0

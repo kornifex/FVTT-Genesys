@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, useId } from 'vue';
 import { CHARACTERISTICS } from '@/data/Characteristics';
-import { displayedSkillRules, SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
+import { displayedSkillRules, SKILL_ATTACK_KIND_LABELS, SKILL_ATTACK_KINDS, SKILL_CATEGORIES, SKILL_CATEGORY_LABELS } from '@/data/Skills';
 import { useSheetDocument } from '@/vue/useSheetDocument';
 import { GenesysItem } from '@/item/GenesysItem';
 import BasicItemSheet from '@/vue/sheets/item/BasicItemSheet.vue';
@@ -16,12 +16,13 @@ const fromCompendium = computed(() => document.value.actor !== null);
 const rules = computed(() =>
 	fromCompendium.value
 		? displayedSkillRules(CONFIG.genesys.skills, document.value.name, CONFIG.genesys.settings.defaultDifficulty)
-		: { difficulty: system.value.difficulty, initiative: system.value.initiative },
+		: { difficulty: system.value.difficulty, initiative: system.value.initiative, attackKind: system.value.attackKind },
 );
 const initiativeId = useId();
 const healsWoundsId = useId();
 const recoversStrainId = useId();
 const difficultyId = useId();
+const attackKindId = useId();
 </script>
 
 <template>
@@ -82,6 +83,26 @@ const difficultyId = useId();
 						<input :id="difficultyId" type="text" disabled :value="rules.difficulty" />
 					</Tooltip>
 					<input v-else :id="difficultyId" type="text" name="system.difficulty" :value="rules.difficulty" />
+				</div>
+
+				<div class="row">
+					<label :for="attackKindId">
+						<Tooltip content="Genesys.Tooltips.SkillAttackKind" localized
+							><Localized label="Genesys.Labels.SkillAttackKind"
+						/></Tooltip>
+					</label>
+					<Tooltip v-if="fromCompendium" content="Genesys.Tooltips.SkillRulesFromCompendium" localized>
+						<select :id="attackKindId" disabled :value="rules.attackKind">
+							<option v-for="kind in SKILL_ATTACK_KINDS" :key="kind" :value="kind">
+								<Localized :label="SKILL_ATTACK_KIND_LABELS[kind]" />
+							</option>
+						</select>
+					</Tooltip>
+					<select v-else :id="attackKindId" name="system.attackKind" :value="rules.attackKind">
+						<option v-for="kind in SKILL_ATTACK_KINDS" :key="kind" :value="kind">
+							<Localized :label="SKILL_ATTACK_KIND_LABELS[kind]" />
+						</option>
+					</select>
 				</div>
 
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />

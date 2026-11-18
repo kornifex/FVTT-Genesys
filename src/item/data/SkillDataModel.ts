@@ -1,6 +1,6 @@
 import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import { Characteristic } from '@/data/Characteristics';
-import { SKILL_CATEGORIES, type SkillCategory } from '@/data/Skills';
+import { SKILL_ATTACK_KINDS, SKILL_CATEGORIES, type SkillAttackKind, type SkillCategory } from '@/data/Skills';
 import { choiceField } from '@/data/schemaFields';
 import { itemsOfType } from '@/item/ItemTypes';
 import { createdSkillIsCareer } from '@/actor/data/character/Career';
@@ -42,6 +42,12 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 	 * Default Difficulty. Only the Skills Compendium's skill is read: an actor's copy keeps the field, ignored.
 	 */
 	abstract difficulty: string;
+
+	/**
+	 * Whether the attacks made with the skill are melee or ranged ones whatever the weapon's range, `range` when the
+	 * weapon's range decides. Only the Skills Compendium's skill is read: an actor's copy keeps the field, ignored.
+	 */
+	abstract attackKind: SkillAttackKind;
 
 	/**
 	 * (Owned Only) Whether the skill is a career skill for the character.
@@ -87,6 +93,7 @@ export abstract class SkillDataModel extends BaseItemDataModel {
 				// Foundry reports it after the field's path, among its own field errors, which it doesn't localize either.
 				validationError: 'must be dice pool modification glyphs',
 			}),
+			attackKind: choiceField(SKILL_ATTACK_KINDS, 'range'),
 			career: new fields.BooleanField({ initial: false }),
 			rank: new fields.NumberField({ integer: true, initial: 0 }),
 		};

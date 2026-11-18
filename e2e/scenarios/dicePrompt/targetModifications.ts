@@ -72,6 +72,16 @@ export async function targetModificationsPart(ctx: DicePromptContext) {
 		expectedDefenses,
 	);
 
+	// §#371: a pike attacks at short range with a melee skill (RoT p. 93). Mark's defense is 2 against both kinds.
+	await update({ actor: 'Ada', item: 'Spear' }, { 'system.range': 'short' });
+	const pikeDefense = await defenseRows('Spear');
+	await update({ actor: 'Ada', item: 'Spear' }, { 'system.range': 'engaged' });
+	e2e.expect(
+		'#371 C4 an attack with a melee skill meets the melee defense with a weapon of short range, as its skill of the Skills Compendium says',
+		pikeDefense,
+		[{ name: 'From Target: Melee Defense', enabled: false, mods: 'S+ S+' }],
+	);
+
 	// A targeted vehicle (§#201).
 	await target('Wagon');
 	const vehicleDefenses: Record<string, unknown> = {};

@@ -98,6 +98,12 @@ export type CheckForPoolModifications = {
 	attackRange?: string;
 
 	/**
+	 * The kind of attack the Skills Compendium gives the skill rolled, for an attack. Left undefined when it gives none:
+	 * the weapon's range then decides.
+	 */
+	skillAttackKind?: AttackKind;
+
+	/**
 	 * The actor that makes the attack, for an attack: the one making the check, or the vehicle whose weapon they fire.
 	 * Left undefined for any other check.
 	 */
@@ -354,9 +360,9 @@ export function poolModificationsForCheck(
 	if (target && TARGET_TYPES.includes(target.type)) {
 		modifications.push(...effectModifications(effectsExcept(target.allApplicableEffects(), isOutrankedEffect), 'target', check));
 
-		// The target's defense against the range of an attack adds one Setback per point.
+		// The target's defense against the kind of an attack adds one Setback per point.
 		if (check.attackRange) {
-			const defense = attackKind(check.attackRange);
+			const defense = attackKind(check.attackRange, check.skillAttackKind);
 			const totalDefense = (target.system as { totalDefense: Defense }).totalDefense;
 
 			if (totalDefense[defense] > 0) {
@@ -443,11 +449,12 @@ function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: S
 }
 
 /**
- * The kind of an attack with a weapon of a range: melee at engaged range, ranged at any other, as the defense it meets
- * (CRB p. 104).
+ * The kind of an attack, as the defense it meets (CRB p. 104): the one its skill makes, whatever the weapon's range, so
+ * that a pike's Melee (Heavy) attack at short range is a melee one (RoT p. 93). When the skill makes none, melee with a
+ * weapon of engaged range, ranged with one of any other.
  */
-function attackKind(range: string): AttackKind {
-	return range === 'engaged' ? 'melee' : 'ranged';
+function attackKind(range: string, skillAttackKind: AttackKind | undefined): AttackKind {
+	return skillAttackKind ?? (range === 'engaged' ? 'melee' : 'ranged');
 }
 
 function silhouetteOf({ system }: SilhouettedActor) {
@@ -493,7 +500,7 @@ function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModif
 function effectModifications(
 	effects: Iterable<PoolModificationEffect>,
 	source: PoolModificationSource,
-	{ characteristic, skillName, attackRange }: CheckForPoolModifications,
+	{ characteristic, skillName, attackRange, skillAttackKind }: CheckForPoolModifications,
 ) {
 	const appliesToCheck = (key: PoolModificationKey | undefined) => {
 		if (key?.source !== source) {
@@ -513,7 +520,7 @@ function effectModifications(
 				return key.subject === '' && attackRange !== undefined;
 			case 'melee':
 			case 'ranged':
-				return key.subject === '' && attackRange !== undefined && attackKind(attackRange) === key.kind;
+				return key.subject === '' && attackRange !== undefined && attackKind(attackRange, skillAttackKind) === key.kind;
 		}
 	};
 

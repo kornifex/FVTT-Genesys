@@ -31,18 +31,23 @@ describe('displayedSkillRules', () => {
 	const rules = [
 		{ name: 'Vigilance', system: { difficulty: 'D', initiative: true } },
 		{ name: 'Athletics', system: { difficulty: '', initiative: false } },
+		{ name: 'Brawl', system: { difficulty: 'DD', initiative: false, attackKind: 'melee' as const } },
 	];
 
 	it("shows the compendium skill's difficulty and initiative, whatever the case of the name", () => {
-		expect(displayedSkillRules(rules, 'vigilance', 'DD')).toEqual({ difficulty: 'D', initiative: true });
+		expect(displayedSkillRules(rules, 'vigilance', 'DD')).toEqual({ difficulty: 'D', initiative: true, attackKind: 'range' });
 	});
 
 	it("shows the world's difficulty for a compendium skill with none", () => {
-		expect(displayedSkillRules(rules, 'Athletics', 'DD')).toEqual({ difficulty: 'DD', initiative: false });
+		expect(displayedSkillRules(rules, 'Athletics', 'DD')).toEqual({ difficulty: 'DD', initiative: false, attackKind: 'range' });
 	});
 
-	it("shows the world's difficulty and no initiative without a compendium skill of that name", () => {
-		expect(displayedSkillRules(rules, 'Streetwise', 'DD')).toEqual({ difficulty: 'DD', initiative: false });
+	it("shows the world's difficulty, no initiative and attacks left to the weapon's range without a compendium skill of that name", () => {
+		expect(displayedSkillRules(rules, 'Streetwise', 'DD')).toEqual({ difficulty: 'DD', initiative: false, attackKind: 'range' });
+	});
+
+	it("shows the compendium skill's attack kind", () => {
+		expect(displayedSkillRules(rules, 'Brawl', 'D').attackKind).toBe('melee');
 	});
 });
 
@@ -258,7 +263,7 @@ type PackSkill = {
 	name: string;
 	type: string;
 	img: string;
-	system: { characteristic: string; category: string; source: string; initiative?: boolean };
+	system: { characteristic: string; category: string; source: string; initiative?: boolean; attackKind?: string };
 };
 
 /** The source documents of a shipped Skills Compendium. */
@@ -330,6 +335,18 @@ describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
 				.map((item) => item.name)
 				.sort(),
 		).toEqual(['Cool', 'Vigilance']);
+	});
+
+	it("makes the close combat skills' attacks melee ones and the ranged skills' ranged ones, and leaves the others to the weapon's range (CRB p. 104)", () => {
+		const withKind = (kind: string) =>
+			crbSkills
+				.filter((item) => item.system.attackKind === kind)
+				.map((item) => item.name)
+				.sort();
+
+		expect(withKind('melee')).toEqual(['Brawl', 'Melee', 'Melee (Heavy)', 'Melee (Light)']);
+		expect(withKind('ranged')).toEqual(['Gunnery', 'Ranged', 'Ranged (Heavy)', 'Ranged (Light)']);
+		expect(crbSkills.filter((item) => item.system.attackKind === undefined)).toHaveLength(29);
 	});
 });
 
