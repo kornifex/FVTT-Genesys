@@ -54,7 +54,7 @@ describe('SETTINGS', () => {
 		const reloaded = settingEntries().flatMap(([key, entry]) =>
 			entry.requiresReload ? [`${key}${entry.readLive ? ' (live)' : ''}`] : [],
 		);
-		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'dicePoolChanceToSucceedByPermutation']);
+		expect(reloaded).toEqual(['ignoreTalentPyramid (live)', 'careerOnlyMagicSkills (live)', 'dicePoolChanceToSucceedByPermutation']);
 	});
 
 	it('gives each field of CONFIG.genesys.settings to one setting', () => {

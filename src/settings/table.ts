@@ -233,6 +233,9 @@ export const SETTINGS = {
 		default: false,
 		name: 'Genesys.Settings.CareerOnlyMagicSkills',
 		hint: 'Genesys.Settings.CareerOnlyMagicSkillsHint',
+		// The Skills tab reads it as it renders, to offer each skill's next rank or not; the purchase reads it live.
+		requiresReload: true,
+		readLive: true,
 		field: { name: 'careerOnlyMagicSkills' },
 	}),
 

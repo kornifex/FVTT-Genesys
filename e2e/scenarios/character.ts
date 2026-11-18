@@ -40,6 +40,7 @@ export async function run(e2e: ScenarioContext) {
 					useSuperCharacteristics: false,
 					ignoreTalentPyramid: false,
 					talentTierVersions: false,
+					careerOnlyMagicSkills: false,
 					careerSkillRanks: 4,
 					skillForInjuries: 'Resilience',
 					skillForRepairingVehicleHits: 'Mechanics',
