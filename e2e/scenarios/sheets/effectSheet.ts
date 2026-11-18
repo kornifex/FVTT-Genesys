@@ -114,6 +114,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 				'genesys.pool.check.target=🎯 Any Check',
 				'genesys.pool.char.target=🎯 Uses Characteristic',
 				'genesys.pool.skill.target=🎯 Uses Skill',
+				'genesys.pool.combat.target=🎯 Combat Check',
 				'genesys.pool.melee.target=🎯 Melee Attack',
 				'genesys.pool.ranged.target=🎯 Ranged Attack',
 			],
@@ -207,6 +208,18 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		'#832 A1 the value of a change to Critical Injury rolls is saved, though v14 parses it as a number',
 		(await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')))[5],
 		['genesys.critical.suffered', 'custom', '10'],
+	);
+	await e2e.step('#895 GM picks the Combat Check that targets the actor as the key of a change, upgrading the difficulty', () =>
+		gm.evaluate(async () => {
+			const effectSheet = window.sheetsE2E.effectSheet;
+			await effectSheet.setChange('Hero', 5, 'genesys.pool.combat.target', '*');
+			await effectSheet.submit('Hero');
+		}),
+	);
+	e2e.expect(
+		'#895 A1 a change to the combat checks that target the actor is saved as a Pool Modification',
+		(await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Hero')))[5],
+		['genesys.pool.combat.target.', POOL, '*'],
 	);
 	await e2e.step('#140 GM opens the effect sheet in French', () =>
 		gm.evaluate(async () => {
