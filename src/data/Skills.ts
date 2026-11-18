@@ -84,17 +84,22 @@ export function compendiumSkill<S extends { name: string }>(compendiumSkills: S[
 }
 
 /**
- * The Default Difficulty and Initiative of a skill as the system uses them, read from the Skills Compendium's skill of the
- * same name: the Dice Prompt and the combat tracker never read an actor's copy. Without such a skill, the difficulty is
- * the world's and the skill is no Initiative Skill. A skill with no difficulty takes the world's too.
+ * The Default Difficulty, Initiative and attack kind of a skill as the system uses them, read from the Skills Compendium's
+ * skill of the same name: the Dice Prompt and the combat tracker never read an actor's copy. Without such a skill, the
+ * difficulty is the world's, the skill is no Initiative Skill and the weapon's range decides the kind of its attacks. A
+ * skill with no difficulty takes the world's too.
  */
 export function displayedSkillRules(
-	compendiumSkills: { name: string; system: { difficulty: string; initiative: boolean } }[],
+	compendiumSkills: { name: string; system: { difficulty: string; initiative: boolean; attackKind?: SkillAttackKind } }[],
 	name: string,
 	worldDifficulty: string,
-) {
+): { difficulty: string; initiative: boolean; attackKind: SkillAttackKind } {
 	const defined = compendiumSkill(compendiumSkills, name);
-	return { difficulty: defined?.system.difficulty || worldDifficulty, initiative: defined?.system.initiative ?? false };
+	return {
+		difficulty: defined?.system.difficulty || worldDifficulty,
+		initiative: defined?.system.initiative ?? false,
+		attackKind: defined?.system.attackKind ?? 'range',
+	};
 }
 
 /**

@@ -16,7 +16,7 @@ const fromCompendium = computed(() => document.value.actor !== null);
 const rules = computed(() =>
 	fromCompendium.value
 		? displayedSkillRules(CONFIG.genesys.skills, document.value.name, CONFIG.genesys.settings.defaultDifficulty)
-		: { difficulty: system.value.difficulty, initiative: system.value.initiative },
+		: { difficulty: system.value.difficulty, initiative: system.value.initiative, attackKind: system.value.attackKind },
 );
 const initiativeId = useId();
 const healsWoundsId = useId();
@@ -91,7 +91,14 @@ const attackKindId = useId();
 							><Localized label="Genesys.Labels.SkillAttackKind"
 						/></Tooltip>
 					</label>
-					<select :id="attackKindId" name="system.attackKind" :value="system.attackKind">
+					<Tooltip v-if="fromCompendium" content="Genesys.Tooltips.SkillRulesFromCompendium" localized>
+						<select :id="attackKindId" disabled :value="rules.attackKind">
+							<option v-for="kind in SKILL_ATTACK_KINDS" :key="kind" :value="kind">
+								<Localized :label="SKILL_ATTACK_KIND_LABELS[kind]" />
+							</option>
+						</select>
+					</Tooltip>
+					<select v-else :id="attackKindId" name="system.attackKind" :value="rules.attackKind">
 						<option v-for="kind in SKILL_ATTACK_KINDS" :key="kind" :value="kind">
 							<Localized :label="SKILL_ATTACK_KIND_LABELS[kind]" />
 						</option>

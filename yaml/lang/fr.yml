@@ -90,7 +90,7 @@ Genesys:
     SkillAttackKind: >-
       Indique si une attaque avec cette compétence est une attaque de mêlée ou à distance, ce qui décide de la défense qu'elle rencontre, quelle que soit la portée de l'arme : l'attaque d'une pique à portée courte rencontre la défense de mêlée. Laissez la portée de l'arme décider pour une compétence qui fait les deux, comme une compétence de magie. Seule la compétence du compendium des compétences compte.
     SkillRulesFromCompendium: >-
-      La compétence d'un personnage prend sa difficulté par défaut et son Initiative de la compétence du même nom dans le compendium des compétences. Réglez-les là.
+      La compétence d'un personnage prend sa difficulté par défaut, son Initiative et le genre de ses attaques de la compétence du même nom dans le compendium des compétences. Réglez-les là.
     HardPoints: >-
       La moitié de l'encombrement de base, arrondie au supérieur (livre de base, p. 206). Changez-la pour un objet qui fait exception ; videz le champ pour revenir à la valeur calculée.
     IsInitiative: Si la compétence est utilisée pour l'initiative ou non. En mettant cette valeur à VRAI, elle apparaîtra comme une option dans le traqueur de combat pour les jets de masse.
@@ -600,12 +600,13 @@ Genesys:
     Willpower: VOL
     Presence: PRÉ
 
-  # Skill Categories
+  # Skill Attack Kinds
   SkillAttackKind:
     FromRange: Selon la portée de l'arme
     Melee: Mêlée
     Ranged: À distance
 
+  # Skill Categories
   SkillCategory:
     General: Genéral
     Magic: Magique

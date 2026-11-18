@@ -90,7 +90,7 @@ Genesys:
     SkillAttackKind: >-
       Indica si un ataque con esta habilidad es cuerpo a cuerpo o a distancia, lo que decide la defensa que encuentra, sea cual sea el alcance del arma: el ataque de una pica a alcance corto encuentra la defensa cuerpo a cuerpo. Deja que decida el alcance del arma para una habilidad que hace ambos, como una habilidad de magia. Solo cuenta la habilidad del compendio de habilidades.
     SkillRulesFromCompendium: >-
-      La habilidad de un personaje toma su dificultad por defecto y su Iniciativa de la habilidad del mismo nombre en el compendio de habilidades. Defínelas allí.
+      La habilidad de un personaje toma su dificultad por defecto, su Iniciativa y el tipo de sus ataques de la habilidad del mismo nombre en el compendio de habilidades. Defínelas allí.
     HardPoints: >-
       La mitad del impedimento base, redondeada hacia arriba (manual básico, p. 206). Cámbialo para un objeto que sea una excepción; vacíalo para volver al valor calculado.
     IsInitiative: Si la habilidad se usa normalmente para Iniciativa o no. Si se establece como verdadero, aparecerá como una opción en el registro de combate.
@@ -594,12 +594,13 @@ Genesys:
     Willpower: Vol
     Presence: Pre
 
-  # Skill Categories
+  # Skill Attack Kinds
   SkillAttackKind:
     FromRange: Según el alcance del arma
     Melee: Cuerpo a cuerpo
     Ranged: A distancia
 
+  # Skill Categories
   SkillCategory:
     General: General
     Magic: Mágica
