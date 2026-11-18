@@ -174,6 +174,41 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 		{ card: applied, health: { wounds: 1, strain: 2 } },
 	);
 
+	// §#899: Cy's Surgeon 1, whose effect adds a wound per rank, adds to the wounds Cy's Medicine checks heal (CRB p. 74).
+	await update({ actor: 'Bo' }, { system: { wounds: { value: 6, max: 12 }, strain: { value: 0, max: 10 } } });
+	await gm.evaluate(async () => {
+		await window.e2e.actor('Cy').createEmbeddedDocuments('Item', [
+			{
+				name: 'E2E Surgeon',
+				type: 'talent',
+				system: { ranked: 'yes', rank: 1, scalesWithRank: 'yes' },
+				effects: [{ name: 'E2E Surgeon', system: { changes: [{ key: 'genesys.healing.wounds', value: '1', type: 'custom' }] } }],
+			},
+		]);
+		await window.e2e.settle();
+	});
+	await opened(player, async () => {
+		await heal(player)();
+		await patientPrompt(player, 'Bo');
+	});
+	// Ability dice on two Successes, then a blank face; the Difficulty die on a blank face.
+	await player.fixDice([
+		{ face: 4, faces: 8 },
+		{ face: 1, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const surgeon = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+	await recoveryButton(player, surgeon.id, true);
+	await gm.evaluate(async () => {
+		await window.e2e.actor('Cy').items.getName('E2E Surgeon').delete();
+		await window.e2e.settle();
+	});
+	e2e.expect(
+		'#899 H10 Cy with Surgeon 1 heals Bo: the card heals a wound per Success and one more, and Apply heals them',
+		{ results: surgeon.results, summaries: surgeon.summaries, health: await health('Bo') },
+		{ results: 's s', summaries: ['s Successes 2', 'Wounds 3 Strain 0'], health: { wounds: 3, strain: 0 } },
+	);
+
 	// A world whose Skills Compendium names the healing skill otherwise (§#756): the Heal button follows its « Heals wounds » box.
 	await gm.evaluate(async () => {
 		const pack = await window.e2e.createCompendium({ label: 'E2E Healing Skills', name: 'e2e-healing-skills', type: 'Item' });

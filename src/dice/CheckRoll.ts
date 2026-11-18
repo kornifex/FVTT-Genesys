@@ -72,7 +72,7 @@ export async function checkMessageData(
 	{ attack, recovery: recoveryRequest, spell, targetUuid }: CheckRollOptions = {},
 ) {
 	const card = cardResults(results);
-	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results);
+	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results, check.actor);
 	const data = {
 		description: checkDescription(check, game.i18n),
 		results,

@@ -9,6 +9,7 @@ import {
 	toEditedChange,
 } from '@/effects/PoolModifications';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
+import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
 import '@/effects/GenesysEffectSheet.scss';
 
@@ -144,6 +145,11 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 			{ key: CRITICAL_CHANGE_KEYS.inflicted, appliesTo: TARGET_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Inflicted' },
 			{ key: CRITICAL_CHANGE_KEYS.suffered, appliesTo: SELF_GLYPH, label: 'Genesys.CriticalInjuryPrompt.Effects.Suffered' },
 		],
+	},
+	{
+		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74).
+		group: 'Genesys.Recovery.Effects.GroupLabel',
+		keys: [{ key: HEALING_CHANGE_KEY, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' }],
 	},
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyItem',

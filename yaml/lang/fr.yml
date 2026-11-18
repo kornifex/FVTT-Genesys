@@ -378,6 +378,9 @@ Genesys:
     EndOfEncounterCardLabel: '{patient} récupère'
     NightsRest: Nuit de repos
     NightsRestMessage: 'Se repose pour la nuit. Stress récupéré : {strain}. Blessures soignées : {wounds}.'
+    Effects:
+      GroupLabel: Soins à modifier
+      MedicineWounds: Blessures soignées par un test de Médecine
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:

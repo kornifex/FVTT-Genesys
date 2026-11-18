@@ -378,6 +378,9 @@ Genesys:
     EndOfEncounterCardLabel: '{patient} se recupera'
     NightsRest: Noche de descanso
     NightsRestMessage: 'Descansa durante la noche. Tensión recuperada: {strain}. Heridas curadas: {wounds}.'
+    Effects:
+      GroupLabel: Modificar curación
+      MedicineWounds: Heridas curadas por una tirada de Medicina
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:
