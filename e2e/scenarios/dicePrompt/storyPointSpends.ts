@@ -18,6 +18,7 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 		why: state.why ?? '',
 	});
 	const UPGRADE = 'Spend a point to upgrade the ability';
+	const GM_UPGRADE = 'The GM spends a point to upgrade the difficulty (GM)';
 	const EMPTY = 'The pool has no point left to spend.';
 	const IMPOSSIBLE_ONLY = 'An Impossible task allows no other Story Point.';
 	await update({ actor: 'Bo' }, { 'system.characteristics.brawn': 2 });
@@ -34,13 +35,19 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 		{ offered, ticked, rolled: { formula: rolled.rolled?.formula, ...rolled, rolled: undefined }, pools: await pools() },
 		{
 			offered: {
-				spends: [option('upgradeAbility', `${UPGRADE} (Players)`)],
+				spends: [
+					option('upgradeAbility', `${UPGRADE} (Players)`),
+					option('upgradeDifficulty', GM_UPGRADE, { disabled: true, why: EMPTY }),
+				],
 				difficulty: 'Difficulty: Average',
 				pool: 'AA|DD',
 				canRoll: true,
 			},
 			ticked: {
-				spends: [option('upgradeAbility', `${UPGRADE} (Players)`, { checked: true })],
+				spends: [
+					option('upgradeAbility', `${UPGRADE} (Players)`, { checked: true }),
+					option('upgradeDifficulty', GM_UPGRADE, { disabled: true, why: EMPTY }),
+				],
 				difficulty: 'Difficulty: Average',
 				pool: 'PA|DD',
 				canRoll: true,
@@ -58,7 +65,10 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 		"#671 X2 a player's option is closed while the player pool is empty; a GM spends from the GM pool, and a player's point on the difficulty",
 		{ emptyPlayer: emptyPlayer.spends, gmOffered: gmOffered.spends },
 		{
-			emptyPlayer: [option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY })],
+			emptyPlayer: [
+				option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: EMPTY }),
+				option('upgradeDifficulty', GM_UPGRADE),
+			],
 			gmOffered: [
 				option('upgradeAbility', `${UPGRADE} (GM)`),
 				option('upgradeDifficulty', "Spend a player's point to upgrade the difficulty (Players)", {
@@ -103,6 +113,7 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 						why: "An Impossible task can't be rolled without it.",
 					}),
 					option('upgradeAbility', `${UPGRADE} (Players)`),
+					option('upgradeDifficulty', GM_UPGRADE, { disabled: true, why: EMPTY }),
 				],
 				difficulty: 'Difficulty: Impossible',
 				pool: 'AA|DDDDD',
@@ -116,6 +127,7 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 						why: "An Impossible task can't be rolled without it.",
 					}),
 					option('upgradeAbility', `${UPGRADE} (Players)`, { disabled: true, why: IMPOSSIBLE_ONLY }),
+					option('upgradeDifficulty', GM_UPGRADE, { disabled: true, why: IMPOSSIBLE_ONLY }),
 				],
 				difficulty: 'Difficulty: Impossible',
 				pool: 'AA|DDDDD',
@@ -145,15 +157,47 @@ export async function storyPointSpendsPart(ctx: DicePromptContext) {
 			closed: [
 				['impossible', false, "An Impossible task can't be rolled without it."],
 				['upgradeAbility', true, IMPOSSIBLE_ONLY],
+				['upgradeDifficulty', true, IMPOSSIBLE_ONLY],
 			],
 			reopened: [
 				['impossible', false, false],
 				['upgradeAbility', false, false],
+				['upgradeDifficulty', false, true],
 			],
 			storyPointMessages: 1,
 			pools: { player: 1, gm: 1 },
 		},
 	);
+	// §#898: the GM's point that upgrades the difficulty of a player's check, which the player marks and the Acting GM
+	// writes, as the GM's own spend.
+	await setPools({ player: 1, gm: 1 });
+	await linkPrompt(player, { message }, 'Athletics', 'DD');
+	const marked = await spend(player, 'upgradeDifficulty');
+	const markedRolled = await rollSpending(player);
+	const lastAuthor = await gm.evaluate(
+		() => game.messages.contents.filter((message: { content: string }) => message.content.includes('story-point')).at(-1)?.author?.name,
+	);
+	e2e.expect(
+		"#898 X7 a player marks the GM's point, which upgrades the difficulty once and moves from the GM pool to the player pool, as the GM's spend",
+		{
+			marked: { spends: marked.spends, pool: marked.pool },
+			formula: markedRolled.rolled?.formula,
+			storyPointMessages: markedRolled.storyPointMessages,
+			author: lastAuthor,
+			pools: await pools(),
+		},
+		{
+			marked: {
+				spends: [option('upgradeAbility', `${UPGRADE} (Players)`), option('upgradeDifficulty', GM_UPGRADE, { checked: true })],
+				pool: 'AA|CD',
+			},
+			formula: '0dp + 2da + 1di + 1dc',
+			storyPointMessages: 1,
+			author: gm.user,
+			pools: { player: 2, gm: 0 },
+		},
+	);
+
 	// The same upgrades, as the GM's spends and as the manual changes of a Pool Modifications' row.
 	await setPools({ player: 1, gm: 1 });
 	await control(gm, ['Bo']);

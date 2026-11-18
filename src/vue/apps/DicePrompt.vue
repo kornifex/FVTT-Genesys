@@ -61,6 +61,7 @@ import {
 	chosenSpends,
 	SPEND_GLYPHS,
 	type SpendContext,
+	type SpendOption,
 	spendGlyphs,
 	spendOptions,
 } from '@/dice/CheckStoryPoints';
@@ -143,12 +144,14 @@ const beyondFormidable = (effect: ContainedAdditionalEffect) =>
 	effect.repeatable ? countOf(effect) >= maxCount(effect) : maxCount(effect) === 0;
 const hasCounts = spellEffects.some((effect) => effect.repeatable);
 
-// What each spend buys, and the short name of the pool it comes from.
+// What each spend buys, the upgrade of the difficulty by whose point, and the short name of the pool it comes from.
 const SPEND_LABELS: Record<CheckSpend, string> = {
 	impossible: 'Genesys.DicePrompt.StoryPoints.Impossible',
 	upgradeAbility: 'Genesys.DicePrompt.StoryPoints.UpgradeAbility',
 	upgradeDifficulty: 'Genesys.DicePrompt.StoryPoints.UpgradeDifficulty',
 };
+const spendLabel = ({ spend, pool }: SpendOption) =>
+	spend === 'upgradeDifficulty' && pool === 'gm' ? 'Genesys.DicePrompt.StoryPoints.UpgradeDifficultyByGM' : SPEND_LABELS[spend];
 const POOL_LABELS: Record<StoryPointPool, string> = {
 	player: 'Genesys.StoryPoints.PlayerShort',
 	gm: 'Genesys.StoryPoints.GMShort',
@@ -655,7 +658,7 @@ const spendId = useId();
 					/>
 					<span>
 						<label :for="`${spendId}-${option.spend}`">
-							<Localized :label="SPEND_LABELS[option.spend]" />
+							<Localized :label="spendLabel(option)" />
 							<!-- The pool's name in words, after a space Vue would drop between the two elements: a screen reader reads
 							the label as one. -->
 							<span class="pool">{{ ' ' }}(<Localized :label="POOL_LABELS[option.pool]" />)</span>

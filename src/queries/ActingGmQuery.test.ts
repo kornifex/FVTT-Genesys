@@ -22,7 +22,7 @@ function actingGm(handler: (name: string, data: unknown) => unknown): ActingGm &
 	};
 }
 
-const spend = { count: 1 };
+const spend = { player: 1, gm: 0 };
 
 describe('queryActingGm', () => {
 	it('asks the Acting GM, and tells of no failure once it answers', async () => {

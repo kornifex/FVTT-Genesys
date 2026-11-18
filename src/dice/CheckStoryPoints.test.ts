@@ -15,8 +15,11 @@ const player: SpendContext = { isGM: false, gmConnected: true, storyPoints: { pl
 const gm: SpendContext = { ...player, isGM: true };
 
 describe('spendOptions', () => {
-	it('offers a player one point of the player pool to upgrade the ability, and no spend from the GM pool (CRB p. 28)', () => {
-		expect(spendOptions([], player)).toEqual([{ spend: CheckSpend.UpgradeAbility, pool: 'player' }]);
+	it("offers a player one point of the player pool to upgrade the ability, and the GM's point to upgrade the difficulty (CRB pp. 28–29)", () => {
+		expect(spendOptions([], player)).toEqual([
+			{ spend: CheckSpend.UpgradeAbility, pool: 'player' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'gm' },
+		]);
 	});
 
 	it("offers a GM one point of the GM pool to upgrade the ability, and a player's point to upgrade the difficulty (CRB pp. 28–29)", () => {
@@ -30,6 +33,7 @@ describe('spendOptions', () => {
 		expect(spendOptions([], { ...player, impossible: true }).map(({ spend, pool }) => [spend, pool])).toEqual([
 			[CheckSpend.Impossible, 'player'],
 			[CheckSpend.UpgradeAbility, 'player'],
+			[CheckSpend.UpgradeDifficulty, 'gm'],
 		]);
 		expect(spendOptions([], { ...gm, impossible: true })[0]).toEqual({ spend: CheckSpend.Impossible, pool: 'gm' });
 	});
@@ -38,6 +42,11 @@ describe('spendOptions', () => {
 		const empty = { player: 0, gm: 0 };
 		expect(spendOptions([], { ...player, storyPoints: empty })).toEqual([
 			{ spend: CheckSpend.UpgradeAbility, pool: 'player', refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'gm', refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' },
+		]);
+		expect(spendOptions([], { ...player, storyPoints: { player: 1, gm: 0 } })).toEqual([
+			{ spend: CheckSpend.UpgradeAbility, pool: 'player' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'gm', refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' },
 		]);
 		expect(spendOptions([], { ...gm, storyPoints: { player: 1, gm: 0 } })).toEqual([
 			{ spend: CheckSpend.UpgradeAbility, pool: 'gm', refusal: 'Genesys.DicePrompt.StoryPoints.EmptyPool' },
@@ -45,8 +54,11 @@ describe('spendOptions', () => {
 		]);
 	});
 
-	it("refuses a player's spend while no GM is connected to write it", () => {
-		expect(spendOptions([], { ...player, gmConnected: false })[0]?.refusal).toBe('Genesys.DicePrompt.StoryPoints.NoGM');
+	it("refuses a player's spends, from either pool, while no GM is connected to write them", () => {
+		expect(spendOptions([], { ...player, gmConnected: false }).map(({ refusal }) => refusal)).toEqual([
+			'Genesys.DicePrompt.StoryPoints.NoGM',
+			'Genesys.DicePrompt.StoryPoints.NoGM',
+		]);
 		expect(spendOptions([], { ...gm, gmConnected: false }).every(({ refusal }) => !refusal)).toBe(true);
 	});
 
@@ -54,6 +66,7 @@ describe('spendOptions', () => {
 		expect(spendOptions([CheckSpend.Impossible], { ...player, impossible: true })).toEqual([
 			{ spend: CheckSpend.Impossible, pool: 'player' },
 			{ spend: CheckSpend.UpgradeAbility, pool: 'player', refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'gm', refusal: 'Genesys.DicePrompt.StoryPoints.ImpossibleOnly' },
 		]);
 		expect(spendOptions([CheckSpend.Impossible], { ...gm, impossible: true })).toEqual([
 			{ spend: CheckSpend.Impossible, pool: 'gm' },
@@ -69,6 +82,7 @@ describe('spendOptions', () => {
 	it('leaves a chosen spend open, so that the roller can take it back, even once its pool is empty', () => {
 		expect(spendOptions([CheckSpend.UpgradeAbility], { ...player, storyPoints: { player: 0, gm: 3 } })).toEqual([
 			{ spend: CheckSpend.UpgradeAbility, pool: 'player' },
+			{ spend: CheckSpend.UpgradeDifficulty, pool: 'gm' },
 		]);
 	});
 });
@@ -87,14 +101,18 @@ describe('chosenSpends', () => {
 		).toEqual([CheckSpend.Impossible]);
 	});
 
-	it("drops the point of a task no longer Impossible, and a player's upgrade of the difficulty a player can't spend", () => {
-		expect(chosenSpends([CheckSpend.Impossible, CheckSpend.UpgradeDifficulty], player)).toEqual([]);
+	it('drops the point of a task no longer Impossible (CRB p. 18)', () => {
+		expect(chosenSpends([CheckSpend.Impossible, CheckSpend.UpgradeDifficulty], player)).toEqual([CheckSpend.UpgradeDifficulty]);
 	});
 });
 
 describe('spentPoints', () => {
 	it("takes a player's points from the player pool, an Impossible task's and the upgrade's (CRB pp. 18, 28)", () => {
 		expect(spentPoints([CheckSpend.Impossible, CheckSpend.UpgradeAbility], false)).toEqual({ player: 2, gm: 0 });
+	});
+
+	it("takes the GM's upgrade of the difficulty of a player's check from the GM pool (CRB p. 29)", () => {
+		expect(spentPoints([CheckSpend.UpgradeAbility, CheckSpend.UpgradeDifficulty], false)).toEqual({ player: 1, gm: 1 });
 	});
 
 	it("takes a GM's points from the GM pool, and the player's upgrade of the difficulty from the player pool (CRB pp. 28–29)", () => {

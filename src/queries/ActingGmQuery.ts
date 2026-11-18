@@ -1,11 +1,12 @@
 /** @file The operations a player's client asks the Acting GM to write, as Foundry queries, and why one may fail. */
 import type { ExtraSlotInitiative } from '@/combat/InitiativeSlots';
+import type { StoryPointSpend } from '@/data/StoryPoints';
 
 /**
  * The queries the Acting GM answers. Foundry asks a system to prefix their names with its id.
  */
 export const QueryName = {
-	/** A player spends Story Points from the player pool. */
+	/** A player spends Story Points from the player pool, and on their check the GM's point. */
 	SpendStoryPoint: 'genesys.spendStoryPoint',
 	/** A player claims an Initiative Slot for a combatant. */
 	ClaimInitiativeSlot: 'genesys.claimInitiativeSlot',
@@ -30,10 +31,8 @@ type CombatQueryData = {
  * The data each query carries.
  */
 export type QueryData = {
-	[QueryName.SpendStoryPoint]: {
-		/** How many points are spent together: one when left out, as from the tracker; up to two for a check. */
-		count?: number;
-	};
+	/** The points spent together from each pool: one of the player pool from the tracker; up to three for a check. */
+	[QueryName.SpendStoryPoint]: StoryPointSpend;
 	[QueryName.ClaimInitiativeSlot]: CombatQueryData & {
 		combatantId: string;
 		round: number;

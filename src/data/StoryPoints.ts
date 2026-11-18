@@ -35,6 +35,21 @@ export function onePoint(pool: StoryPointPool): StoryPointSpend {
 }
 
 /**
+ * The spend a player's client asks the Acting GM to write: a whole count of points of each pool, at least one in all.
+ * Undefined for anything else.
+ */
+export function parseStoryPointSpend(data: unknown): StoryPointSpend | undefined {
+	if (typeof data !== 'object' || data === null) {
+		return undefined;
+	}
+
+	// Any object may lack the pools' fields: each is checked below.
+	const { player, gm } = data as Partial<Record<StoryPointPool, unknown>>;
+	const isCount = (points: unknown): points is number => typeof points === 'number' && Number.isInteger(points) && points >= 0;
+	return isCount(player) && isCount(gm) && player + gm > 0 ? { player, gm } : undefined;
+}
+
+/**
  * The pools once points of them are spent together: each goes to the other pool. Undefined when a pool holds fewer
  * points than are spent from it: a point that reaches a pool by the spend can't be spent by it too.
  */

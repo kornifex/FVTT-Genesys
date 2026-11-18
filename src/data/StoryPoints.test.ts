@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	onePoint,
+	parseStoryPointSpend,
 	serialStoryPointWrites,
 	sessionStoryPoints,
 	type StoryPointPool,
@@ -37,6 +38,29 @@ describe('storyPointsAfterSpending', () => {
 	it("spends none of them when a pool holds fewer points than the check spends from it, even those the other pool's spend brings it", () => {
 		expect(storyPointsAfterSpending({ player: 1, gm: 2 }, { player: 2, gm: 0 })).toBeUndefined();
 		expect(storyPointsAfterSpending({ player: 0, gm: 1 }, { player: 1, gm: 1 })).toBeUndefined();
+	});
+});
+
+describe('parseStoryPointSpend', () => {
+	it('reads the points a player asks to spend from each pool, at least one', () => {
+		expect(parseStoryPointSpend({ player: 1, gm: 0 })).toEqual({ player: 1, gm: 0 });
+		expect(parseStoryPointSpend({ player: 1, gm: 1 })).toEqual({ player: 1, gm: 1 });
+		expect(parseStoryPointSpend({ player: 0, gm: 1 })).toEqual({ player: 0, gm: 1 });
+	});
+
+	it('refuses a spend of no point, of a part of a point or of a negative count, and anything else', () => {
+		for (const data of [
+			{ player: 0, gm: 0 },
+			{ player: 0.5, gm: 0 },
+			{ player: -1, gm: 2 },
+			{ player: 1 },
+			{},
+			{ count: 1 },
+			null,
+			1,
+		]) {
+			expect(parseStoryPointSpend(data)).toBeUndefined();
+		}
 	});
 });
 
