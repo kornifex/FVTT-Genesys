@@ -1,5 +1,5 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
-import { isCount, isRecord } from '@/data/parsing';
+import { isCount, isRecord, parseWholeNumber } from '@/data/parsing';
 import { effectTag } from '@/item/data/EffectTags';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
@@ -178,8 +178,6 @@ export const CRITICAL_CHANGE_KEYS = {
  */
 type CriticalChangeKind = keyof typeof CRITICAL_CHANGE_KEYS;
 
-const CRITICAL_VALUE_PATTERN = /^\s*[+-]?\d+\s*$/;
-
 /**
  * Whether a change modifies Critical Injury rolls.
  */
@@ -191,7 +189,7 @@ export function isCriticalChangeKey(key: string) {
  * Whether a change's value is one a Critical Injury roll adds: a whole number, signed or not.
  */
 export function isCriticalChangeValue(value: string) {
-	return CRITICAL_VALUE_PATTERN.test(value);
+	return parseWholeNumber(value) !== undefined;
 }
 
 /**
@@ -236,14 +234,6 @@ type CriticalBonusSource = { name: string; uuid: string; item?: { name: string; 
  * What an effect adds to a Critical Injury roll.
  */
 type CriticalEffectBonus = CriticalBonusSource & { value: number };
-
-function changeValue(value: unknown): number | undefined {
-	if (typeof value === 'number') {
-		return Number.isInteger(value) ? value : undefined;
-	}
-
-	return typeof value === 'string' && isCriticalChangeValue(value) ? parseInt(value, 10) : undefined;
-}
 
 const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 
@@ -294,7 +284,7 @@ export function criticalEffectBonuses(
 		}
 
 		const values = effect.system.changes.flatMap(({ key, value }) => {
-			const parsed = key === CRITICAL_CHANGE_KEYS[kind] ? changeValue(value) : undefined;
+			const parsed = key === CRITICAL_CHANGE_KEYS[kind] ? parseWholeNumber(value) : undefined;
 			return parsed === undefined ? [] : [parsed];
 		});
 		if (values.length === 0) {
