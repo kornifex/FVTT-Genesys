@@ -165,6 +165,15 @@ export type SheetsHelpers = {
 	drag(name: string, from: string, which: string, to: string): Promise<void>;
 	/** Opens the context menu of an element of a sheet and clicks its entry with an icon, or with one of icons `a|b`. */
 	menu(name: string, container: string, which: string, icon: string): Promise<void>;
+	/**
+	 * Opens the context menu of an element of a sheet, as {@link menu} does, measures its entries, then closes it: how many
+	 * there are, whether each icon starts at its entry's content edge, and whether the labels start in one column.
+	 */
+	menuColumns(
+		name: string,
+		container: string,
+		which: string,
+	): Promise<{ entries: number; iconsAtStart: boolean; labelsInOneColumn: boolean }>;
 	/** Opens the context menu of an element of a sheet, closes the sheet, then clicks the page: whether the click was blocked. */
 	clickAfterClosingMenu(name: string, container: string): Promise<boolean>;
 	/** Sets an input of an open prompt and fires its event. */
@@ -362,6 +371,16 @@ export function installSheetsHelpers() {
 		const found = typeof which === 'number' ? matches[which - 1] : matches.find((match) => named(match, which));
 		if (!found) throw new Error(`No ${selector} ${which}`);
 		return found;
+	};
+	// Opens the context menu of an element of a sheet, found as `find` finds it: on a click on its ⋮, when it has one, or on
+	// a right click. Gives back the menu's container, which holds the entries once they render.
+	const openMenu = (name: string, container: string, which: string) => {
+		const element = find(sheetElement(name), container, which);
+		const menu = element.matches('.menu-container') ? element : element.querySelector<HTMLElement>('.menu-container')!;
+		const trigger = menu.querySelector<HTMLElement>(':scope > .menu-trigger');
+		if (trigger) trigger.click();
+		else menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+		return menu;
 	};
 	// The editor of a field, which the sheet builds once it has enriched its text.
 	const editorOf = (name: string, field: string) =>
@@ -842,12 +861,7 @@ export function installSheetsHelpers() {
 		},
 
 		async menu(name, container, which, icon) {
-			const element = find(sheetElement(name), container, which);
-			const menu = element.matches('.menu-container') ? element : element.querySelector<HTMLElement>('.menu-container')!;
-			// A menu opens on a click on its ⋮, when it has one, or on a right click.
-			const trigger = menu.querySelector<HTMLElement>(':scope > .menu-trigger');
-			if (trigger) trigger.click();
-			else menu.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+			const menu = openMenu(name, container, which);
 			const entry = await waitFor(`menu entry ${icon}`, () =>
 				[...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')].find((item) =>
 					icon.split('|').some((name) => item.querySelector(`i.${name}`)),
@@ -855,6 +869,29 @@ export function installSheetsHelpers() {
 			);
 			entry.click();
 			await settle();
+		},
+
+		async menuColumns(name, container, which) {
+			const menu = openMenu(name, container, which);
+			const entries = await waitFor(`the menu of ${which}`, () => {
+				const found = [...menu.querySelectorAll<HTMLElement>('.context-menu .menu-item')];
+				return found.length > 0 && found;
+			});
+			const left = (element: Element) => element.getBoundingClientRect().left;
+			// Where an entry's content box starts, inside its border and padding.
+			const start = (entry: HTMLElement) => {
+				const style = getComputedStyle(entry);
+				return left(entry) + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+			};
+			const labelLeft = (entry: HTMLElement) => left(entry.querySelector('.menu-label')!);
+			const columns = {
+				entries: entries.length,
+				iconsAtStart: entries.every((entry) => Math.abs(left(entry.querySelector('.menu-icon')!) - start(entry)) <= 1),
+				labelsInOneColumn: entries.every((entry) => Math.abs(labelLeft(entry) - labelLeft(entries[0])) <= 1),
+			};
+			document.body.click();
+			await settle();
+			return columns;
 		},
 
 		async clickAfterClosingMenu(name, container) {

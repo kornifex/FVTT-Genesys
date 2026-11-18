@@ -39,6 +39,8 @@ defineProps<{
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
+	// Foundry's `button` rule centres a button's content, which would set each icon by its label's length.
+	justify-content: flex-start;
 	align-items: center;
 	gap: 0.25em;
 	padding-left: 0.25em;
