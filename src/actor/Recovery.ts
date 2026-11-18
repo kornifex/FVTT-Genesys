@@ -222,11 +222,12 @@ const HEALING_ONESELF = 2;
 
 /**
  * The difficulty level of a Medicine check that heals a patient's wounds, from their state of health (CRB p. 116,
- * Table I.6–11): Easy at half their wound threshold or less, Average above it, Hard past their wound threshold; two
- * more when the healer heals themselves. The equipment the healer lacks is the roller's to add in the Dice Prompt.
+ * Table I.6–11): Easy at half their wound threshold or less, rounded up as every fraction is (CRB p. 23), Average
+ * above it, Hard past their wound threshold; two more when the healer heals themselves. The equipment the healer lacks
+ * is the roller's to add in the Dice Prompt.
  */
 export function medicineDifficulty({ value, max }: CombatPool, healingOneself: boolean) {
-	const state = value > max ? HARD : 2 * value > max ? AVERAGE : EASY;
+	const state = value > max ? HARD : value > Math.ceil(max / 2) ? AVERAGE : EASY;
 	return state + (healingOneself ? HEALING_ONESELF : 0);
 }
 

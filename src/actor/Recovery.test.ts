@@ -34,9 +34,9 @@ describe('medicineDifficulty', () => {
 		expect(medicineDifficulty(wounds(12), false)).toBe(2);
 	});
 
-	it('counts half of an odd wound threshold as it is, without rounding (CRB p. 116, Table I.6–11)', () => {
-		expect(medicineDifficulty(wounds(6, 13), false)).toBe(1);
-		expect(medicineDifficulty(wounds(7, 13), false)).toBe(2);
+	it('rounds half of an odd wound threshold up (CRB pp. 23, 116)', () => {
+		expect(medicineDifficulty(wounds(7, 13), false)).toBe(1);
+		expect(medicineDifficulty(wounds(8, 13), false)).toBe(2);
 	});
 
 	it("is Hard once the patient's wounds exceed their wound threshold (CRB p. 116, Table I.6–11)", () => {
