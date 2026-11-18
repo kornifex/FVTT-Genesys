@@ -261,7 +261,7 @@ describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
 			load(readFileSync(path.join(packDir, file), 'utf8')) as {
 				name: string;
 				type: string;
-				system: { characteristic: string; category: string; source: string; initiative?: boolean };
+				system: { characteristic: string; category: string; source: string; initiative?: boolean; attackKind?: string };
 			},
 	);
 
@@ -324,5 +324,17 @@ describe("the Core Rulebook's Skills Compendium, crb-skills", () => {
 				.map((item) => item.name)
 				.sort(),
 		).toEqual(['Cool', 'Vigilance']);
+	});
+
+	it("makes the close combat skills' attacks melee ones and the ranged skills' ranged ones, and leaves the others to the weapon's range (CRB p. 104)", () => {
+		const withKind = (kind: string) =>
+			crbSkills
+				.filter((item) => item.system.attackKind === kind)
+				.map((item) => item.name)
+				.sort();
+
+		expect(withKind('melee')).toEqual(['Brawl', 'Melee', 'Melee (Heavy)', 'Melee (Light)']);
+		expect(withKind('ranged')).toEqual(['Gunnery', 'Ranged', 'Ranged (Heavy)', 'Ranged (Light)']);
+		expect(crbSkills.filter((item) => item.system.attackKind === undefined)).toHaveLength(29);
 	});
 });

@@ -4,7 +4,7 @@
 
 import type { GenesysItem } from '@/item/GenesysItem';
 import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } from '@/data/Characteristics';
-import { Skill, skillToRoll } from '@/data/Skills';
+import { Skill, type SkillAttackKind, skillAttackKind, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import {
@@ -29,7 +29,7 @@ type CheckKind = 'skill' | 'unranked' | 'characteristic' | 'pool';
  * What this module needs of a skill.
  */
 export type CheckSkill = Skill & {
-	system: { characteristic: Characteristic };
+	system: { characteristic: Characteristic; attackKind?: SkillAttackKind };
 };
 
 /**
@@ -192,6 +192,8 @@ export function resolveCheck<S extends CheckSkill>(
 		skillName: rolledSkill?.skill.name,
 		// Only a combat check gets the changes of combat checks and of melee or ranged attacks.
 		attackRange: isCombatCheck(purpose) ? request.attackRange : undefined,
+		skillAttackKind:
+			isCombatCheck(purpose) && rolledSkill ? skillAttackKind(rules.compendiumSkills, rolledSkill.skill.name) : undefined,
 		attacker: isCombatCheck(purpose) ? request.attacker ?? actor : undefined,
 		weapon: isCombatCheck(purpose) ? request.weapon : undefined,
 		attackQualities: isCombatCheck(purpose) ? request.attackQualities : undefined,

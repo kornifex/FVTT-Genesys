@@ -22,6 +22,23 @@ export const SKILL_CATEGORIES = ['general', 'magic', 'combat', 'social', 'knowle
 export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
 
 /**
+ * What a skill says of the attacks made with it: melee or ranged whatever the weapon's range, or `range`, when the
+ * weapon's range decides.
+ */
+export const SKILL_ATTACK_KINDS = ['range', 'melee', 'ranged'] as const;
+
+export type SkillAttackKind = (typeof SKILL_ATTACK_KINDS)[number];
+
+/**
+ * The localization key of each choice of a skill's attack kind.
+ */
+export const SKILL_ATTACK_KIND_LABELS: Record<SkillAttackKind, string> = {
+	range: 'Genesys.SkillAttackKind.FromRange',
+	melee: 'Genesys.SkillAttackKind.Melee',
+	ranged: 'Genesys.SkillAttackKind.Ranged',
+};
+
+/**
  * The localization key of each skill category's name.
  */
 export const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = {
@@ -78,6 +95,16 @@ export function displayedSkillRules(
 ) {
 	const defined = compendiumSkill(compendiumSkills, name);
 	return { difficulty: defined?.system.difficulty || worldDifficulty, initiative: defined?.system.initiative ?? false };
+}
+
+/**
+ * The kind of the attacks made with a skill, melee or ranged, read from the Skills Compendium's skill of the same name:
+ * the defense they meet follows the skill, not the weapon's range (CRB p. 104). Undefined when no such skill says it,
+ * as for a magic skill or a skill of a compendium that doesn't fill the field: the weapon's range then decides.
+ */
+export function skillAttackKind(compendiumSkills: { name: string; system: { attackKind?: SkillAttackKind } }[], name: string) {
+	const kind = compendiumSkill(compendiumSkills, name)?.system.attackKind;
+	return kind === 'melee' || kind === 'ranged' ? kind : undefined;
 }
 
 /**

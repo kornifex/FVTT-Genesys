@@ -85,6 +85,8 @@ Genesys:
     NoDescription: Aucune description disponible
     SkillDifficulty: >-
       La difficulté à laquelle la réserve de dés s'ouvre pour cette compétence, en symboles de modification de réserve (DD pour Moyen). Laissez vide pour la difficulté par défaut du monde. Seule la compétence du compendium des compétences compte.
+    SkillAttackKind: >-
+      Indique si une attaque avec cette compétence est une attaque de mêlée ou à distance, ce qui décide de la défense qu'elle rencontre, quelle que soit la portée de l'arme : l'attaque d'une pique à portée courte rencontre la défense de mêlée. Laissez la portée de l'arme décider pour une compétence qui fait les deux, comme une compétence de magie. Seule la compétence du compendium des compétences compte.
     SkillRulesFromCompendium: >-
       La compétence d'un personnage prend sa difficulté par défaut et son Initiative de la compétence du même nom dans le compendium des compétences. Réglez-les là.
     HardPoints: >-
@@ -597,6 +599,11 @@ Genesys:
     Presence: PRÉ
 
   # Skill Categories
+  SkillAttackKind:
+    FromRange: Selon la portée de l'arme
+    Melee: Mêlée
+    Ranged: À distance
+
   SkillCategory:
     General: Genéral
     Magic: Magique
@@ -812,6 +819,7 @@ Genesys:
     HealsWounds: Soigne les blessures ?
     RecoversStrain: Récupère du stress à la fin d'une rencontre ?
     SkillDifficulty: Difficulté par défaut
+    SkillAttackKind: Attaques
     Equipped: Equipé
     Carried: Porté
     Dropped: Stocké/abandonné

@@ -239,6 +239,38 @@ describe('resolveCheck', () => {
 		expect(keys(attack)).toEqual(['self.effect.ActiveEffect.Aim', 'target.effect.ActiveEffect.Prone', 'target.defense.melee']);
 	});
 
+	it("meets the defense of the kind of attack the Skills Compendium gives the skill, whatever the weapon's range and the actor's copy (CRB p. 104, RoT p. 93)", () => {
+		const kinds = {
+			...rules,
+			compendiumSkills: [
+				{ name: 'Melee (Heavy)', system: { characteristic: Characteristic.Brawn, rank: 0, attackKind: 'melee' as const } },
+				{ name: 'Ranged', system: { characteristic: Characteristic.Agility, rank: 0, attackKind: 'ranged' as const } },
+				{ name: 'Arcana', system: { characteristic: Characteristic.Intellect, rank: 0, attackKind: 'range' as const } },
+			],
+		};
+		const hero = actor('character', [
+			// The copy's own kind is never read.
+			{ name: 'Melee (Heavy)', system: { characteristic: Characteristic.Brawn, rank: 1, attackKind: 'ranged' as const } },
+			skill('Ranged', Characteristic.Agility, 1),
+			skill('Arcana', Characteristic.Intellect, 1),
+		]);
+		const foe = actor('rival', [], {
+			effects: [effect('Prone', [{ key: 'genesys.pool.melee.target.', value: 'B' }])],
+			totalDefense: { melee: 1, ranged: 1 },
+		});
+		const keys = (skillName: string, attackRange: string) =>
+			resolveCheck(hero, { skillName, target: foe, attackRange, purpose: attack }, kinds).poolModifications.map(
+				(modification) => modification.key,
+			);
+
+		// A pike attacks at short range with Melee (Heavy).
+		expect(keys('Melee (Heavy)', 'short')).toEqual(['target.effect.ActiveEffect.Prone', 'target.defense.melee']);
+		expect(keys('Ranged', 'engaged')).toEqual(['target.defense.ranged']);
+		// A skill that gives no kind leaves it to the weapon's range, as a skill the Skills Compendium lacks does.
+		expect(keys('Arcana', 'short')).toEqual(['target.defense.ranged']);
+		expect(keys('Arcana', 'engaged')).toEqual(['target.effect.ActiveEffect.Prone', 'target.defense.melee']);
+	});
+
 	it("makes a magic attack a combat check, which the target's defense and Aim change, and leaves another spell out (CRB p. 215)", () => {
 		const hero = actor('character', [skill('Arcana', Characteristic.Intellect, 1)], {
 			effects: [effect('Aim', [{ key: 'genesys.pool.combat.self.', value: 'B' }])],

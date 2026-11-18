@@ -85,6 +85,8 @@ Genesys:
     NoDescription: Descripción no disponible
     SkillDifficulty: >-
       La dificultad con la que se abre la reserva de dados para esta habilidad, en símbolos de modificación de reserva (DD para Medio). Déjalo vacío para la dificultad por defecto del mundo. Solo cuenta la habilidad del compendio de habilidades.
+    SkillAttackKind: >-
+      Indica si un ataque con esta habilidad es cuerpo a cuerpo o a distancia, lo que decide la defensa que encuentra, sea cual sea el alcance del arma: el ataque de una pica a alcance corto encuentra la defensa cuerpo a cuerpo. Deja que decida el alcance del arma para una habilidad que hace ambos, como una habilidad de magia. Solo cuenta la habilidad del compendio de habilidades.
     SkillRulesFromCompendium: >-
       La habilidad de un personaje toma su dificultad por defecto y su Iniciativa de la habilidad del mismo nombre en el compendio de habilidades. Defínelas allí.
     HardPoints: >-
@@ -591,6 +593,11 @@ Genesys:
     Presence: Pre
 
   # Skill Categories
+  SkillAttackKind:
+    FromRange: Según el alcance del arma
+    Melee: Cuerpo a cuerpo
+    Ranged: A distancia
+
   SkillCategory:
     General: General
     Magic: Mágica
@@ -803,6 +810,7 @@ Genesys:
     HealsWounds: ¿Cura heridas?
     RecoversStrain: ¿Recupera tensión al final de un encuentro?
     SkillDifficulty: Dificultad por defecto
+    SkillAttackKind: Ataques
     Equipped: Equipado
     Carried: Transportado
     Dropped: En el suelo

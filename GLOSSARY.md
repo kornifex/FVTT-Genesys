@@ -61,7 +61,7 @@ A state that hinders an actor during an encounter: Immobilized (no maneuvers), S
 _Avoid_: Condition
 
 **Combat Check**:
-A check made to attack with a weapon, melee when the weapon's range is engaged and ranged otherwise, as the defense it meets. Pool Modifications can apply to an actor's combat checks only, to their own melee or ranged attacks only, or to the melee or the ranged attacks against them only. Aim, a maneuver of the character's Combat tab, brings a Boost to their next combat check, two after two Aim maneuvers, and that check uses it up once rolled; Guarded Stance brings a Setback to their combat checks and provides melee defense 1, which doesn't stack with the armor's, as a Lapsing Effect of one round.
+A check made to attack with a weapon, melee or ranged, as the defense it meets: the kind the Skills Compendium's skill rolled gives its attacks, whatever the weapon's range (melee for Brawl and the Melee skills, ranged for the Ranged skills and Gunnery); when that skill gives none, as a magic skill does, melee when the weapon's range is engaged and ranged otherwise. Pool Modifications can apply to an actor's combat checks only, to their own melee or ranged attacks only, or to the melee or the ranged attacks against them only. Aim, a maneuver of the character's Combat tab, brings a Boost to their next combat check, two after two Aim maneuvers, and that check uses it up once rolled; Guarded Stance brings a Setback to their combat checks and provides melee defense 1, which doesn't stack with the armor's, as a Lapsing Effect of one round.
 _Avoid_: Attack roll, combat roll
 
 **Token State**:
