@@ -6,6 +6,7 @@ import { archetypes } from './character/archetypes.ts';
 import { advancement } from './character/advancement.ts';
 import { careers } from './character/careers.ts';
 import { careerSkillsOnCreation } from './character/careerSkillsOnCreation.ts';
+import { careerSkillChanges } from './character/careerSkillChanges.ts';
 import { superCharacteristics } from './character/superCharacteristics.ts';
 import { skillsTab } from './character/skillsTab.ts';
 import { skillMenus } from './character/skillMenus.ts';
@@ -52,6 +53,7 @@ export async function run(e2e: ScenarioContext) {
 		await e2e.part('advancement', () => advancement(e2e, page, notified, notifications));
 		await e2e.part('careers', () => careers(e2e, page, notified, notifications));
 		await e2e.part('careerSkillsOnCreation', () => careerSkillsOnCreation(e2e, page));
+		await e2e.part('careerSkillChanges', () => careerSkillChanges(e2e, page, notified, notifications));
 		await e2e.part('superCharacteristics', () => superCharacteristics(e2e, page, notifications));
 		await e2e.part('skillsTab', () => skillsTab(e2e, page));
 		await e2e.part('skillMenus', () => skillMenus(e2e, page));

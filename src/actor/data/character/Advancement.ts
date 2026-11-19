@@ -8,6 +8,7 @@ import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { isInCharacterCreation, maxPurchasableSkillRank } from '@/actor/data/character/CharacterCreation';
 import * as TalentPyramid from '@/actor/data/character/TalentPyramid';
 import { Characteristic, CHARACTERISTIC_LABELS, CharacteristicsContainer } from '@/data/Characteristics';
+import { careerSkillGrants, careerSkillsOnlyThrough, isCareerSkillFor } from '@/effects/CareerSkillChanges';
 import type { SkillCategory } from '@/data/Skills';
 import type { GenesysItem } from '@/item/GenesysItem';
 import { effectiveNextTier, effectiveTier } from '@/item/data/Talents';
@@ -56,6 +57,10 @@ export type AdvancementTalent = {
 	ranked: 'yes' | 'no';
 	tier: number;
 	rank: number;
+	/**
+	 * The ids of the skills that are career skills only through the talent's effects, which stop being ones without it.
+	 */
+	careerSkillIds: string[];
 };
 
 /**
@@ -394,6 +399,18 @@ export function undoEntry(character: AdvancementCharacter, index: number): Advan
 			}
 
 			if (entry.type === EntryType.NewTalent) {
+				// A skill rank bought after the talent made the skill a career skill was priced as one, as a Career can't be
+				// replaced once a rank is bought.
+				const pricedByTalent = character.entries
+					.slice(index + 1)
+					.find((later) => later.type === EntryType.Skill && talent.careerSkillIds.includes(later.data.id));
+				if (pricedByTalent?.type === EntryType.Skill) {
+					return refuse('Genesys.Notifications.CannotDeleteCareerSkillTalent', {
+						name: talent.name,
+						skill: pricedByTalent.data.name,
+					});
+				}
+
 				return planFor(entries, { itemDeletes: [talent.id] });
 			}
 
@@ -493,6 +510,10 @@ export function advancementCharacter(actor: GenesysActor<'character'>): Advancem
 	// The DataModels declare their fields rather than their schema, so their source reads as their fields.
 	const source = system._source as SystemSource<CharacterDataModel>;
 
+	// A skill is marked as a career skill by the Career or by hand, and made one by the effects that apply.
+	const markedSkills = itemsOfType(actor, 'skill').map((skill) => ({ ...skill.system, id: skill.id, name: skill.name }));
+	const grants = careerSkillGrants(actor.allApplicableEffects());
+
 	// An Advancement prices, caps and writes the base ratings: an Active Effect only adds to them for a while, so it
 	// keeps applying on top of the raised rating (CRB p. 44).
 	return {
@@ -500,12 +521,12 @@ export function advancementCharacter(actor: GenesysActor<'character'>): Advancem
 		characteristics: source.characteristics,
 		woundThreshold: source.wounds.max,
 		strainThreshold: source.strain.max,
-		skills: itemsOfType(actor, 'skill').map((skill) => ({
+		skills: markedSkills.map((skill) => ({
 			id: skill.id,
 			name: skill.name,
-			rank: skill.system.rank,
-			career: skill.system.career,
-			category: skill.system.category,
+			rank: skill.rank,
+			career: isCareerSkillFor(skill, grants),
+			category: skill.category,
 		})),
 		talents: itemsOfType(actor, 'talent').map((talent) => ({
 			id: talent.id,
@@ -513,6 +534,7 @@ export function advancementCharacter(actor: GenesysActor<'character'>): Advancem
 			ranked: talent.system.ranked,
 			tier: talent.system.tier,
 			rank: talent.system.rank,
+			careerSkillIds: careerSkillsOnlyThrough(talent.id, markedSkills, grants),
 		})),
 		houseRules: {
 			ignoreTalentPyramid: CONFIG.genesys.settings.ignoreTalentPyramid,

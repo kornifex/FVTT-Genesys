@@ -13,6 +13,7 @@ import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { type AttackChanges, decodeAttackChangeKey, isAttackChangeKey } from '@/effects/AttackChanges';
+import { CAREER_SKILL_CHANGE_KEY, careerSkillChangeKey, decodeCareerSkillChangeKey } from '@/effects/CareerSkillChanges';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
@@ -653,6 +654,11 @@ export function subjectFieldForKey(key: string) {
 		return 'check-selection';
 	}
 
+	// A Career Skill change names its skill, and has no mode either.
+	if (key === CAREER_SKILL_CHANGE_KEY) {
+		return 'skill-selection';
+	}
+
 	switch (key.match(BASE_KEY_PATTERN)?.[1] as PoolModificationKind | undefined) {
 		case 'check':
 		case 'combat':
@@ -676,8 +682,12 @@ export function toEditedChange(change: StoredChange): EditedChange {
 	const value = typeof change.value === 'string' ? change.value : JSON.stringify(change.value);
 	const editedChange: EditedChange = { ...change, value };
 	const key = decodeKey(change.key);
+	const careerSkill = decodeCareerSkillChangeKey(change.key);
 
-	if (key) {
+	if (careerSkill !== undefined) {
+		editedChange.key = CAREER_SKILL_CHANGE_KEY;
+		editedChange.skill = careerSkill;
+	} else if (key) {
 		editedChange.key = `${KEY_PREFIX}.${key.kind}.${key.source}`;
 
 		if (key.kind === 'char') {
@@ -694,8 +704,9 @@ export function toEditedChange(change: StoredChange): EditedChange {
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
  * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
  * Injury rolls or to the wounds a Medicine check heals, or an Attack Change, which the system reads itself too, gets the custom type, and
- * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
- * a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
+ * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A Career Skill
+ * change gets its skill in its key, the custom type and no value. A change to the defense a source provides gets the
+ * Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
  */
 export function fromEditedChange(change: EditedChange): EditedChange {
 	const { char, skill, ...stored } = change;
@@ -712,6 +723,10 @@ export function fromEditedChange(change: EditedChange): EditedChange {
 
 	if (isItemChangeKey(change.key)) {
 		return { ...stored, type: 'custom' };
+	}
+
+	if (change.key === CAREER_SKILL_CHANGE_KEY) {
+		return { ...stored, key: skill ? careerSkillChangeKey(skill) : CAREER_SKILL_CHANGE_KEY, type: 'custom', value: '' };
 	}
 
 	const baseKey = change.key.match(BASE_KEY_PATTERN);

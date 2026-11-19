@@ -9,10 +9,11 @@ import {
 	archetypeActorUpdate,
 	ArchetypeGrants,
 	ArchetypeHolder,
+	canGrant,
 	canRemoveArchetype,
+	grantedItemRows,
 	grantedNonSkills,
 	grantedSkillRankUpdates,
-	grantsItem,
 	heldNonSkillsGrantedBy,
 	removeArchetype,
 } from '@/actor/data/character/Archetype';
@@ -122,15 +123,25 @@ describe('granted items', () => {
 		expect(grantedNonSkills(archetypeGrants().grantedItems).map((i) => i.name)).toEqual(['Tough', 'Grit']);
 	});
 
-	it('already grants a skill named with another case, so a drop of it is refused', () => {
-		expect(grantsItem(archetypeGrants().grantedItems, { type: 'skill', name: 'ATHLETICS' })).toBe(true);
-		expect(grantsItem(archetypeGrants().grantedItems, { type: 'skill', name: 'Brawl' })).toBe(false);
+	it('grants a skill it already grants once more, for one more rank (RoT p. 63)', () => {
+		expect(canGrant(archetypeGrants().grantedItems, { type: 'skill', name: 'Athletics' })).toBe(true);
+		expect(canGrant(archetypeGrants().grantedItems, { type: 'skill', name: 'Brawl' })).toBe(true);
 	});
 
-	it('already grants an item of another type only under the same type and exact name', () => {
-		expect(grantsItem(archetypeGrants().grantedItems, { type: 'talent', name: 'Grit' })).toBe(true);
-		expect(grantsItem(archetypeGrants().grantedItems, { type: 'talent', name: 'grit' })).toBe(false);
-		expect(grantsItem(archetypeGrants().grantedItems, { type: 'ability', name: 'Grit' })).toBe(false);
+	it('refuses an item of another type it already grants under the same type and exact name', () => {
+		expect(canGrant(archetypeGrants().grantedItems, { type: 'talent', name: 'Grit' })).toBe(false);
+		expect(canGrant(archetypeGrants().grantedItems, { type: 'talent', name: 'grit' })).toBe(true);
+		expect(canGrant(archetypeGrants().grantedItems, { type: 'ability', name: 'Grit' })).toBe(true);
+	});
+
+	it('lists each granted skill once, with the number of ranks it grants, whatever the case of its name', () => {
+		const grantedItems = [...archetypeGrants().grantedItems, { name: 'athletics', type: 'skill' }];
+
+		expect(grantedItemRows(grantedItems)).toEqual([
+			{ item: grantedItems[0], index: 3, count: 2 },
+			{ item: grantedItems[1], index: 1, count: 1 },
+			{ item: grantedItems[2], index: 2, count: 1 },
+		]);
 	});
 
 	describe('with flagged granted items', () => {
@@ -193,6 +204,15 @@ describe('granted items', () => {
 		]);
 		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, -1)).toEqual([
 			{ skill: held[0], update: { 'system.rank': 0 } },
+		]);
+	});
+
+	it('gives or takes a rank per grant of a skill the Archetype grants twice, as the Deep Elf does (RoT p. 63)', () => {
+		const twice = [...archetypeGrants().grantedItems, { name: 'Athletics', type: 'skill' }];
+
+		expect(grantedSkillRankUpdates(held, twice, 1)).toEqual([{ skill: held[0], update: { 'system.rank': 3 } }]);
+		expect(grantedSkillRankUpdates([{ ...held[0], system: { rank: 2 } }], twice, -1)).toEqual([
+			{ skill: { ...held[0], system: { rank: 2 } }, update: { 'system.rank': 0 } },
 		]);
 	});
 

@@ -236,6 +236,9 @@ Genesys:
       ModifyStat: Estadística modificada
       ProvideDefense: Defensa proporcionada (cuenta la mejor)
       ModifyItem: Modificar objeto
+      CareerSkill:
+        GroupLabel: Habilidades profesionales
+        Option: Hacer habilidad profesional
       ModifyAttack:
         GroupLabel: Modificar ataques
         Options:
@@ -435,6 +438,7 @@ Genesys:
     CannotAffordRankedTalent: No puedes permitirte incrementar el talento '{name}' al rango {newRank} ({cost}pe).
     CannotDeleteExistingTalent: No puedes eliminar la entrada del diario de PE del talento mejorado '{name}' al rango {rank} - ¡primero debes eliminar los rangos superiores!
     CannotDeleteInvalidTalentPyramid: No puedes eliminar la entrada del diario de PE del talento de rango {rank} para preservar la pirámide de talentos. Intenta borrando talentos de rango mas bajo.
+    CannotDeleteCareerSkillTalent: No puedes eliminar la entrada del diario de PE del talento '{name}' - un rango de '{skill}' comprado después lo fue como habilidad profesional gracias a él. ¡Primero deshaz ese rango!
     CannotPurchaseTalentTier: No puedes comprar talentos de nivel {tier} - primero debes tener al menos {minimum} talentos de nivel {lowerTier}.
     CannotReplaceArchetype: No puedes tomar el arquetipo '{name}' - el arquetipo solo puede cambiar mientras el diario de PE no contenga más que los PE iniciales. ¡Primero deshaz sus otras entradas!
     CannotReplaceCareer: No puedes tomar la profesión '{name}' - la profesión solo puede cambiar hasta que se compre un rango de habilidad. ¡Primero deshaz las entradas de habilidad del diario de PE!
@@ -638,6 +642,7 @@ Genesys:
     StartingStrain: Umbral de Tensión inicial
     StartingXP: Puntos de Experiencia iniciales
     GrantedItems: Objetos concedidos
+    GrantedRanks: ×{count}
 
   # Adversary Labels
   Adversary:
@@ -729,6 +734,7 @@ Genesys:
     NoArchetype: No has seleccionado ningún arquetipo - ¡arrastra aquí uno!
     MarkCareerSkill: Marcar como habilidad profesional
     UnmarkCareerSkill: Desmarcar como habilidad profesional
+    CareerSkillFrom: 'Habilidad profesional gracias a: {effect}'
     MarkSuperCharacteristic: Marcar como supercaracterística
     UnmarkSuperCharacteristic: Desmarcar como supercaracterística
     Motivations: Motivaciones

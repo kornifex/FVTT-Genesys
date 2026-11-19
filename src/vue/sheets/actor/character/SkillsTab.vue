@@ -17,6 +17,7 @@ import RowActions from '@/vue/components/RowActions.vue';
 import type { RowAction } from '@/vue/components/RowAction';
 import { CHARACTERISTICS, Characteristic as CharacteristicType } from '@/data/Characteristics';
 import { SKILL_CATEGORY_HEADINGS, skillsByCategory } from '@/data/Skills';
+import { careerSkillGrants, grantsOfSkill, isCareerSkillFor } from '@/effects/CareerSkillChanges';
 import { freeSkillRank, openSheet, rollSkill } from '@/operations/ItemActions';
 import ActionButton from '@/vue/components/ActionButton.vue';
 import { isHealingSkill } from '@/actor/Recovery';
@@ -51,22 +52,39 @@ function canPurchaseSkillRank(skill: Stored<GenesysItem<'skill'>>) {
 	return isAllowed(buySkillRank(advancement.value, skill.id));
 }
 
-// A skill can be marked as a career skill by hand at any time, whatever the character's Career: a talent or the GM
-// may grant one.
+// A skill can be marked as a career skill by hand at any time, whatever the character's Career: the GM may grant one.
 async function toggleCareerSkill(skill: Stored<GenesysItem<'skill'>>) {
 	await skill.update({
 		system: { career: !skill.system.career },
 	});
 }
 
-// A skill's own actions: marking it as a career skill or not, and its Free Ranks.
+// The effects that make skills career skills, on top of the Career's and those marked by hand (RoT p. 87).
+const careerGrants = computed(() => careerSkillGrants(actor.value.allApplicableEffects()));
+
+function isCareer(skill: Stored<GenesysItem<'skill'>>) {
+	return isCareerSkillFor({ name: skill.name, career: skill.system.career }, careerGrants.value);
+}
+
+// A skill's own actions: marking it as a career skill or not, and its Free Ranks. A star an effect gives can't be
+// unmarked by hand: its entry names the effect and opens it, and the mark is only offered to unmark one made by hand.
 function skillActions(skill: Stored<GenesysItem<'skill'>>): RowAction[] {
+	const grants = grantsOfSkill(skill.name, careerGrants.value);
+	const markAction: RowAction = {
+		icon: `${skill.system.career ? 'far' : 'fas'} fa-star`,
+		label: skill.system.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill',
+		run: () => toggleCareerSkill(skill),
+	};
+
 	return [
-		{
-			icon: `${skill.system.career ? 'far' : 'fas'} fa-star`,
-			label: skill.system.career ? 'Genesys.Labels.UnmarkCareerSkill' : 'Genesys.Labels.MarkCareerSkill',
-			run: () => toggleCareerSkill(skill),
-		},
+		...grants.map(({ effect }) => ({
+			icon: 'fas fa-star',
+			label: 'Genesys.Labels.CareerSkillFrom',
+			labelData: { effect: effect.name },
+			edits: false,
+			run: () => openSheet(effect),
+		})),
+		...(skill.system.career || grants.length === 0 ? [markAction] : []),
 		{ icon: 'fas fa-circle-up', label: 'Genesys.Labels.FreeRankUp', run: () => freeSkillRank(skill, 1) },
 		{ icon: 'fas fa-circle-down', label: 'Genesys.Labels.FreeRankDown', run: () => freeSkillRank(skill, -1) },
 	];
@@ -132,7 +150,7 @@ async function toggleSuper(characteristic: CharacteristicType) {
 							:name="skill.name"
 							:skill="skill.name"
 							:characteristic="skill.system.characteristic"
-							:career="skill.system.career"
+							:career="isCareer(skill)"
 							:image="skill.img"
 							:rank="skill.system.rank"
 							:can-buy-rank="canPurchaseSkillRank(skill)"

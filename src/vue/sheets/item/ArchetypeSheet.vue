@@ -11,12 +11,16 @@ import { GenesysItem } from '@/item/GenesysItem';
 import Editor from '@/vue/components/Editor.vue';
 import Enriched from '@/vue/components/Enriched.vue';
 import { withoutIndex } from '@/arrays';
+import { grantedItemRows } from '@/actor/data/character/Archetype';
 import Characteristic from '@/vue/components/character/Characteristic.vue';
 import CharacteristicsRow from '@/vue/components/character/CharacteristicsRow.vue';
 
 const { document: item, system, editable } = useSheetDocument<GenesysItem<'archetype'>>();
 
 const specialAbilities = computed(() => system.value.grantedItems.filter((i) => i.type === 'ability'));
+
+// A skill granted several times shows once, with its number of ranks; its trash removes one grant.
+const grantedRows = computed(() => grantedItemRows(system.value.grantedItems));
 
 async function deleteGrantedItem(index: number) {
 	await item.value.update({ system: { grantedItems: withoutIndex(system.value.grantedItems, index) } });
@@ -100,9 +104,12 @@ async function deleteGrantedItem(index: number) {
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 
 				<DataRow label="Genesys.Archetype.GrantedItems" group>
-					<div v-for="(item, index) in system.grantedItems" :key="item.name" class="data">
+					<div v-for="{ item, index, count } in grantedRows" :key="index" class="data">
 						<img :src="item.img" :alt="item.name" />
 						<span class="name">{{ item.name }}</span>
+						<span v-if="count > 1" class="count"
+							><Localized label="Genesys.Archetype.GrantedRanks" :format-args="{ count }"
+						/></span>
 						<div v-if="editable">
 							<ActionButton icon="fas fa-trash" label="Genesys.Labels.RemoveGrantedItem" @click="deleteGrantedItem(index)" />
 						</div>
@@ -136,6 +143,10 @@ async function deleteGrantedItem(index: number) {
 	& > .name {
 		grid-column: 2 / span 1;
 		font-family: 'Roboto Serif', serif;
+	}
+
+	& > .count {
+		grid-column: 3 / span 1;
 	}
 
 	& > div {
