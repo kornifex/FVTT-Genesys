@@ -237,6 +237,10 @@ Genesys:
       # The defense that cover, Guarded Stance and some talents provide, the best of which is kept (CRB p. 106)
       ProvideDefense: Provide Defense (best kept)
       ModifyItem: Modify Item # The Item Changes, which change the weapon or armor that holds the effect
+      # The Career Skill changes, which make a skill a career skill for the effect's character (RoT p. 87)
+      CareerSkill:
+        GroupLabel: Career Skills
+        Option: Make a Career Skill
       # The Attack Changes, which add to the damage or the Critical rating of the attacks the effect's actor makes
       ModifyAttack:
         GroupLabel: Modify Attacks
@@ -444,6 +448,7 @@ Genesys:
     CannotAffordRankedTalent: Cannot afford to increase talent '{name}' to rank {newRank} ({cost}xp).
     CannotDeleteExistingTalent: Cannot delete XP Journal Entry for increasing talent '{name}' to rank {rank} - you must delete the higher rank increases first!
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
+    CannotDeleteCareerSkillTalent: Cannot delete XP Journal Entry for talent '{name}' - a later rank of '{skill}' was bought as a career skill thanks to it. Undo that rank first!
     CannotPurchaseTalentTier: Cannot purchase talents at tier {tier} - you must have at least {minimum} talents at rank {lowerTier} first.
     CannotReplaceArchetype: Cannot take the Archetype '{name}' - the Archetype can only change while the XP Journal holds nothing but the Starting XP. Undo its other entries first!
     CannotReplaceCareer: Cannot take the Career '{name}' - the Career can only change until a skill rank is bought. Undo the skill entries of the XP Journal first!
@@ -648,6 +653,7 @@ Genesys:
     StartingStrain: Starting Strain Threshold
     StartingXP: Starting Experience
     GrantedItems: Granted Items
+    GrantedRanks: ×{count}
 
   # Adversary Labels
   Adversary:
@@ -745,6 +751,7 @@ Genesys:
     NoArchetype: No archetype selected - drag one over!
     MarkCareerSkill: Mark As Career Skill
     UnmarkCareerSkill: Unmark As Career Skill
+    CareerSkillFrom: 'Career skill from: {effect}'
     MarkSuperCharacteristic: Mark As Super-Characteristic
     UnmarkSuperCharacteristic: Unmark As Super-Characteristic
     Motivations: Motivations

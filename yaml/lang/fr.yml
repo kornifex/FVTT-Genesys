@@ -236,6 +236,9 @@ Genesys:
       ModifyStat: Statistique à modifier
       ProvideDefense: Défense fournie (la meilleure compte)
       ModifyItem: Objet à modifier
+      CareerSkill:
+        GroupLabel: Compétences de carrière
+        Option: Rendre compétence de carrière
       ModifyAttack:
         GroupLabel: Attaques à modifier
         Options:
@@ -437,6 +440,7 @@ Genesys:
     CannotAffordRankedTalent: "Impossible d'augmenter le talent '{name}' au rang {newRank} ({cost}xp)."
     CannotDeleteExistingTalent: "Impossible de supprimer l'entrée du journal de XP pour l'augmentation du talent '{name}' au rang {rank} - Vous devez d'abord supprimer les augmentations de rang supérieur !"
     CannotDeleteInvalidTalentPyramid: Cannot delete XP Journal Entry for talent of rank {rank} to preserve the talent pyramid structure. Try deleting talents of higher rank first.
+    CannotDeleteCareerSkillTalent: "Impossible de supprimer l'entrée du journal d'XP pour le talent '{name}' - un rang de '{skill}' acheté ensuite l'a été comme compétence de carrière grâce à lui. Annulez d'abord ce rang !"
     CannotPurchaseTalentTier: "Vous ne pouvez prendre des talents de catégorie {tier} - vous devez avoir au moins {minimum} talents de catégorie {lowerTier} d'abord"
     CannotReplaceArchetype: "Impossible de prendre l'archétype '{name}' : l'archétype ne peut changer que si le Journal des XP ne contient rien d'autre que l'XP de départ. Annulez d'abord ses autres entrées !"
     CannotReplaceCareer: "Impossible de prendre la carrière '{name}' : la carrière ne peut plus changer une fois un rang de compétence acheté. Annulez d'abord les entrées de compétence du Journal des XP !"
@@ -644,6 +648,7 @@ Genesys:
     StartingStrain: Seuil de stress initial
     StartingXP: Expérience de départ
     GrantedItems: Objets ou talents
+    GrantedRanks: ×{count}
 
   # Adversary Labels
   Adversary:
@@ -740,6 +745,7 @@ Genesys:
     NoArchetype: Aucun archetype sélectionné - glissez en un !
     MarkCareerSkill: Coché comme compétence de carrière
     UnmarkCareerSkill: Non coché comme compétence de carrière
+    CareerSkillFrom: 'Compétence de carrière grâce à : {effect}'
     MarkSuperCharacteristic: Coché comme Super-Caractéristique
     UnmarkSuperCharacteristic: Non coché comme Super-Caractéristique
     Motivations: Motivations

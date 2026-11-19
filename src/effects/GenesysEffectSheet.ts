@@ -15,6 +15,7 @@ import {
 	type AttackChangeScope,
 	attackChangeKey,
 } from '@/effects/AttackChanges';
+import { CAREER_SKILL_CHANGE_KEY } from '@/effects/CareerSkillChanges';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
@@ -185,6 +186,11 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				label: ATTACK_CHANGE_LABELS[field][scope],
 			})),
 		),
+	},
+	{
+		// The skill the effect's character counts as a career skill, as Bard does (RoT p. 87).
+		group: 'Genesys.ActiveEffects.Types.CareerSkill.GroupLabel',
+		keys: [{ key: CAREER_SKILL_CHANGE_KEY, appliesTo: ACTOR_GLYPH, label: 'Genesys.ActiveEffects.Types.CareerSkill.Option' }],
 	},
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyItem',

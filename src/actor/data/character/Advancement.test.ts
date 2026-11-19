@@ -30,8 +30,8 @@ import { isInCharacterCreation } from '@/actor/data/character/CharacterCreation'
 import { Entry, EntryType } from '@/actor/data/character/ExperienceJournal';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
 
-function talent(id: string, tier: number, rank = 1, ranked: 'yes' | 'no' = 'yes'): AdvancementTalent {
-	return { id, name: id, ranked, tier, rank };
+function talent(id: string, tier: number, rank = 1, ranked: 'yes' | 'no' = 'yes', careerSkillIds: string[] = []): AdvancementTalent {
+	return { id, name: id, ranked, tier, rank, careerSkillIds };
 }
 
 /**
@@ -405,6 +405,25 @@ describe('undoEntry', () => {
 		).toBe(true);
 	});
 
+	describe('a talent that makes a skill a career skill (RoT p. 87)', () => {
+		const bard = talent('bard', 2, 1, 'no', ['verse']);
+		const buyBard: Entry = { amount: -10, type: EntryType.NewTalent, data: { name: 'bard', id: 'bard', tier: 2, rank: 1 } };
+		const buyVerse: Entry = { amount: -5, type: EntryType.Skill, data: { name: 'Verse', id: 'verse', rank: 1 } };
+		const talents = [talent('grit', 1), talent('parry', 1), bard];
+
+		it('refuses to undo the talent while a later skill rank was bought at the career price it gave', () => {
+			expect(refusal(undoEntry(character({ entries: [buyBard, buyVerse], talents }), 0))).toEqual({
+				key: 'Genesys.Notifications.CannotDeleteCareerSkillTalent',
+				data: { name: 'bard', skill: 'Verse' },
+			});
+		});
+
+		it('undoes the talent once that rank is undone, or when the rank was bought before it', () => {
+			expect(plan(undoEntry(character({ entries: [buyBard], talents }), 0)).itemDeletes).toEqual(['bard']);
+			expect(plan(undoEntry(character({ entries: [buyVerse, buyBard], talents }), 1)).itemDeletes).toEqual(['bard']);
+		});
+	});
+
 	it('only removes the entry when what it bought is gone', () => {
 		const entries: Entry[] = [{ amount: -10, type: EntryType.Skill, data: { name: 'Stealth', id: 'stealth', rank: 1 } }];
 
@@ -558,6 +577,7 @@ describe('advancementCharacter', () => {
 				_source: { characteristics: base, wounds: { max: 12 }, strain: { max: 12 } },
 			},
 			items: [],
+			allApplicableEffects: () => [],
 		} as unknown as GenesysActor<'character'>;
 	}
 
@@ -577,6 +597,35 @@ describe('advancementCharacter', () => {
 
 	it('refuses to raise a base rating of 5, even with an Active Effect on it (CRB p. 44)', () => {
 		expect(isAllowed(raiseCharacteristic(advancementCharacter(actor(5, 1)), Characteristic.Brawn))).toBe(false);
+	});
+
+	it('prices a skill a talent makes a career skill at the career price, and ties it to the talent (RoT p. 87)', () => {
+		const skill = (id: string, name: string, career = false) => ({
+			id,
+			name,
+			type: 'skill',
+			system: { rank: 0, career, category: 'general' },
+		});
+		const bard = { id: 'bard', name: 'Bard', type: 'talent', system: { ranked: 'no', tier: 2, rank: 1 } };
+		const bardEffect = {
+			name: 'Bard',
+			isSuppressed: false,
+			system: { changes: [{ key: 'genesys.careerSkill.Verse' }, { key: 'genesys.careerSkill.Charm' }] },
+			originItem: bard,
+		};
+		const character = advancementCharacter({
+			...actor(2, 0),
+			items: [skill('verse', 'Verse'), skill('charm', 'Charm', true), skill('cool', 'Cool'), bard],
+			allApplicableEffects: () => [bardEffect],
+		} as unknown as GenesysActor<'character'>);
+
+		expect(character.skills.map(({ id, career }) => [id, career])).toEqual([
+			['verse', true],
+			['charm', true],
+			['cool', false],
+		]);
+		expect(character.talents[0].careerSkillIds).toEqual(['verse']);
+		expect(newEntries(buySkillRank(character, 'verse')).at(-1)?.amount).toBe(-5);
 	});
 
 	it('puts the base rating back when the raise is undone, with an Active Effect on it (CRB p. 44)', () => {

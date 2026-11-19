@@ -139,6 +139,10 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			],
 		},
 		{
+			label: 'Career Skills',
+			options: ['genesys.careerSkill=🧑 Make a Career Skill'],
+		},
+		{
 			label: 'Modify Item',
 			options: [
 				'genesys.item.baseDamage=🔧 Damage',

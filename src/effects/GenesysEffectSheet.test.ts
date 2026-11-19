@@ -34,6 +34,13 @@ describe('CHANGE_KEYS', () => {
 		]);
 	});
 
+	it('offers the key of the Career Skill changes, whose skill is picked beside it (RoT p. 87)', () => {
+		const careerKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.ActiveEffects.Types.CareerSkill.GroupLabel')?.keys.map(
+			({ key }) => key,
+		);
+		expect(careerKeys).toEqual(['genesys.careerSkill']);
+	});
+
 	it('offers the key of the wounds a Medicine check heals', () => {
 		const healingKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.Recovery.Effects.GroupLabel')?.keys.map(({ key }) => key);
 		expect(healingKeys).toEqual(['genesys.healing.wounds']);

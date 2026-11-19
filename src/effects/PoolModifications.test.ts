@@ -1043,6 +1043,20 @@ describe('editing changes in the effect sheets', () => {
 		expect(subjectFieldForKey('genesys.item.baseDamage')).toBe('check-selection');
 	});
 
+	it('edits the skill of a Career Skill change in the skill select, and keeps it in its key (RoT p. 87)', () => {
+		expect(subjectFieldForKey('genesys.careerSkill')).toBe('skill-selection');
+		expect(toEditedChange(editedChange('genesys.careerSkill.Verse', ''))).toEqual(
+			editedChange('genesys.careerSkill', '', { skill: 'Verse' }),
+		);
+		expect(fromEditedChange(editedChange('genesys.careerSkill', '3', { type: 'add', skill: 'Verse' }))).toEqual(
+			editedChange('genesys.careerSkill.Verse', ''),
+		);
+	});
+
+	it('keeps a Career Skill change whose skill is not picked yet under the key without a skill', () => {
+		expect(fromEditedChange(editedChange('genesys.careerSkill', '', { skill: '' }))).toEqual(editedChange('genesys.careerSkill', ''));
+	});
+
 	it('keeps the key and value of an Item Change, with the custom type', () => {
 		expect(fromEditedChange(toEditedChange(editedChange('genesys.item.baseDamage', '+1', { type: 'add' })))).toEqual(
 			editedChange('genesys.item.baseDamage', '+1'),

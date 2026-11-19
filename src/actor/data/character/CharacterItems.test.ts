@@ -103,8 +103,8 @@ describe('decideCharacterDrop', () => {
 				advancement: {
 					...character().advancement,
 					talents: [
-						{ id: 'grit', name: 'Grit', ranked: 'yes', tier: 1, rank: 1 },
-						{ id: 'swift', name: 'Swift', ranked: 'no', tier: 1, rank: 1 },
+						{ id: 'grit', name: 'Grit', ranked: 'yes', tier: 1, rank: 1, careerSkillIds: [] },
+						{ id: 'swift', name: 'Swift', ranked: 'no', tier: 1, rank: 1, careerSkillIds: [] },
 					],
 				},
 			});

@@ -2,7 +2,7 @@ import VueArchetypeSheet from '@/vue/sheets/item/ArchetypeSheet.vue';
 
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysItem } from '@/item/GenesysItem';
-import { grantsItem } from '@/actor/data/character/Archetype';
+import { canGrant } from '@/actor/data/character/Archetype';
 
 import '@/item/sheets/ArchetypeSheet.scss';
 
@@ -29,7 +29,7 @@ export class ArchetypeSheet extends GenesysItemSheet<'archetype'> {
 			return;
 		}
 
-		if (grantsItem(this.item.system.grantedItems, droppedItem)) {
+		if (!canGrant(this.item.system.grantedItems, droppedItem)) {
 			return;
 		}
 

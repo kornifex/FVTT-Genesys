@@ -109,14 +109,32 @@ export function grantedNonSkills<T extends ArchetypeGrants['grantedItems'][numbe
 }
 
 /**
- * Whether the Archetype already grants an item: one of the same type and name, a skill's name matching whatever its
- * case.
+ * Whether the Archetype can grant an item dropped on it: a skill always, since each grant of a skill gives a rank, as
+ * the Deep Elf's 2 ranks in Knowledge (Forbidden) do (RoT p. 63); any other item unless it grants one of the same type
+ * and name already.
  */
-export function grantsItem(grantedItems: ArchetypeGrants['grantedItems'], item: { type: string; name: string }) {
-	return grantedItems.some(
-		(granted) =>
-			granted.type === item.type && (item.type === 'skill' ? skillNamesMatch(granted.name, item.name) : granted.name === item.name),
-	);
+export function canGrant(grantedItems: ArchetypeGrants['grantedItems'], item: { type: string; name: string }) {
+	return item.type === 'skill' || !grantedItems.some((granted) => granted.type === item.type && granted.name === item.name);
+}
+
+/**
+ * The rows of the Archetype's granted items, in the order they were first granted: a skill granted several times is one
+ * row, whatever the case of its name, counting its grants, and its index is its last grant's, the one removed first.
+ */
+export function grantedItemRows<T extends ArchetypeGrants['grantedItems'][number]>(grantedItems: T[]) {
+	const rows: { item: T; index: number; count: number }[] = [];
+	grantedItems.forEach((item, index) => {
+		const row =
+			item.type === 'skill' && rows.find((other) => other.item.type === 'skill' && skillNamesMatch(other.item.name, item.name));
+		if (row) {
+			row.index = index;
+			row.count += 1;
+		} else {
+			rows.push({ item, index, count: 1 });
+		}
+	});
+
+	return rows;
 }
 
 /**
@@ -161,8 +179,8 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(
 }
 
 /**
- * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank.
- * Each granted skill is the one the character rolls for its name.
+ * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank
+ * per grant. Each granted skill is the one the character rolls for its name.
  */
 export function grantedSkillRankUpdates<T extends HeldItem>(
 	items: T[],
@@ -170,12 +188,15 @@ export function grantedSkillRankUpdates<T extends HeldItem>(
 	sign: ArchetypeSign,
 ) {
 	const skills = ofType(items, 'skill');
-	const grantedSkills = new Set(grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []));
+	const grants = new Map<(typeof skills)[number], number>();
+	for (const skill of grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? [])) {
+		grants.set(skill, (grants.get(skill) ?? 0) + 1);
+	}
 
-	return [...grantedSkills].map((skill) => ({
+	return [...grants].map(([skill, count]) => ({
 		skill,
 		update: {
-			'system.rank': skill.system.rank + sign,
+			'system.rank': skill.system.rank + sign * count,
 		},
 	}));
 }
