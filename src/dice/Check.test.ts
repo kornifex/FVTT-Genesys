@@ -14,6 +14,7 @@ import {
 	canRollWithoutCharacteristic,
 	carriedPoolModificationStates,
 	characteristicToRoll,
+	checkAttackChanges,
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
@@ -500,6 +501,38 @@ describe('checkDicePool', () => {
 			Ability: 0,
 			Difficulty: 2,
 		});
+	});
+});
+
+describe('checkAttackChanges', () => {
+	const orc = actor('character', [skill('Melee', Characteristic.Brawn, 2)], {
+		effects: [
+			effect('Battle Rage', [
+				{ key: 'genesys.pool.melee.self.', value: 'S' },
+				{ key: 'genesys.attack.damage.melee', value: '2' },
+			]),
+			effect('Devastating', [{ key: 'genesys.attack.damage.combat', value: '2' }]),
+			effect('Dueling', [{ key: 'genesys.pool.skill.self.Melee', value: 'B' }]),
+		],
+	});
+	const attack = resolveCheck(orc, { skillName: 'Melee', purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' }, rules);
+
+	it('gives the Attack Changes of the effects left on, each named after its effect (RoT pp. 67, 79)', () => {
+		expect(checkAttackChanges(attack, () => true)).toEqual([
+			{ name: 'Battle Rage', damage: 2 },
+			{ name: 'Devastating', damage: 2 },
+		]);
+	});
+
+	it('leaves out those of an effect turned off, as its Pool Modifications', () => {
+		const isEnabled = ({ key }: { key: string }) => key !== 'self.effect.ActiveEffect.Battle Rage';
+
+		expect(checkAttackChanges(attack, isEnabled)).toEqual([{ name: 'Devastating', damage: 2 }]);
+		expect(checkDicePool(attack, { difficulty: 'DD', isEnabled }).dice.Setback).toBeUndefined();
+	});
+
+	it('gives none for a check that is no attack', () => {
+		expect(checkAttackChanges(resolveCheck(orc, { skillName: 'Melee' }, rules), () => true)).toEqual([]);
 	});
 });
 

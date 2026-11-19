@@ -37,6 +37,7 @@ import { spellCastingPart } from './dicePrompt/spellCasting.ts';
 import { repeatableEffectsPart } from './dicePrompt/repeatableEffects.ts';
 import { magicAttackPart } from './dicePrompt/magicAttack.ts';
 import { healSpellPart } from './dicePrompt/healSpell.ts';
+import { attackChangesPart } from './dicePrompt/attackChanges.ts';
 
 // The scenario controls and targets tokens on the canvas.
 export const needsCanvas = true;
@@ -322,6 +323,10 @@ export async function run(e2e: ScenarioContext) {
 	// HS: a Heal spell, cast in place of a Medicine check on a patient picked as Medicine's is, at the spell's difficulty,
 	// whose card heals the patient by its results (§#707, CRB p. 217).
 	await part('healSpell', () => healSpellPart(context));
+
+	// AC: the Attack Changes of an actor's effect, which the Dice Prompt lists with the effect's Pool Modifications and
+	// the attack's card counts in its damage and Critical rating (§#920, RoT p. 67).
+	await part('attackChanges', () => attackChangesPart(context));
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });

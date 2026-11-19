@@ -166,6 +166,10 @@ _Avoid_: Mod, upgrade
 A change of a weapon's or an armor's own effect that adds its value to the item itself rather than to its actor: damage (`genesys.item.baseDamage`) and Critical rating (`genesys.item.critical`) on every Weapon Profile (a quality's on the profile that holds it alone), defense (`genesys.item.defense`), soak (`genesys.item.soak`), encumbrance (`genesys.item.encumbrance`; a quality held by several profiles once, at its highest rank). The effect sheet lists these keys, marked 🔧; any other `genesys.item.*` key changes nothing. A Critical rating of 0 stays 0. It applies while its effect is enabled, whatever the item's Equipment State. The item's sheet edits the stored values, and shows the changed ones beside them.
 _Avoid_: Item override
 
+**Attack Change**:
+A change of an actor's effect that adds its value to the attacks the actor makes rather than to the actor: to their damage (`genesys.attack.damage.*`) or to their Critical rating (`genesys.attack.critical.*`), on every combat check (`combat`), on the melee attacks alone (`melee`) or on the ranged ones alone (`ranged`), by the kind of attack the skill makes, as a Pool Modification of attacks. The effect sheet lists these keys, marked 👇. The Dice Prompt lists it on the row of its effect, after the effect's Pool Modifications, and the roller turns both on or off at once: Battle Rage is one effect holding a Setback and +2 damage (RoT p. 67). The attack's card shows the changed damage and Critical rating, names the effects counted in each, and counts the Critical Injuries triggered by the changed rating. A talent's counts once per rank. A Critical rating of 0 stays 0, and any other stays at 1 or more. When the effect applies stays with the roller: nothing checks a condition such as strain above half the threshold (Hot Tempered, RoT p. 67).
+_Avoid_: Damage modifier, damage bonus
+
 ### Vehicles
 
 **Crew**:

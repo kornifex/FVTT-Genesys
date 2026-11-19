@@ -36,12 +36,15 @@ import {
 	canPickCharacteristic,
 	canRollWithoutCharacteristic,
 	carriedPoolModificationStates,
+	checkAttackChanges,
 	checkDicePool,
 	resolveCheck,
 	vehicleAttacker,
 	worldCheckRules,
 } from '@/dice/Check';
 import { matchOrigin } from '@/effects/PoolModifications';
+import { ATTACK_CHANGE_FIELDS, type AttackChangeField, type AttackChanges } from '@/effects/AttackChanges';
+import { signed } from '@/vue/format';
 import { stateReminders } from '@/effects/TokenStates';
 import { type DicePool, poolEntries, sortPoolModifications } from '@/dice/DicePool';
 import {
@@ -170,8 +173,18 @@ type SourceLink = { uuid: string; tooltip: string; icon: string };
 // The Pool Modifications of the check, each turned on or off by the roller. The origin is the actor or the target, the
 // name what the modification comes from.
 // A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
+// After its Pool Modifications, it lists what its effect's Attack Changes add to the attack, in words.
 const effects = ref<
-	{ key: string; origin: string; name: string; link?: SourceLink; description?: string; enabled: boolean; mods: string[] }[]
+	{
+		key: string;
+		origin: string;
+		name: string;
+		link?: SourceLink;
+		description?: string;
+		enabled: boolean;
+		mods: string[];
+		attack: string[];
+	}[]
 >([]);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
@@ -245,6 +258,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		...rowSource(modification),
 		enabled: modification.enabled,
 		mods: modification.mods,
+		attack: attackChangeLabels(modification.attack),
 	}));
 
 	check.value = resolved;
@@ -276,6 +290,21 @@ function poolModificationName({ from }: CheckPoolModification) {
 				item: name,
 				damage: game.i18n.localize(EQUIPMENT_DAMAGE_LABELS[damage]),
 			}),
+	});
+}
+
+const ATTACK_CHANGE_LABELS = {
+	damage: 'Genesys.DicePrompt.PoolModifications.AttackDamage',
+	critical: 'Genesys.DicePrompt.PoolModifications.AttackCritical',
+} as const satisfies Record<AttackChangeField, string>;
+
+/**
+ * What an effect's Attack Changes add to the attack, in words: "+2 Damage".
+ */
+function attackChangeLabels(changes: AttackChanges = {}) {
+	return ATTACK_CHANGE_FIELDS.flatMap((field) => {
+		const value = changes[field];
+		return value ? [game.i18n.format(ATTACK_CHANGE_LABELS[field], { value: signed(value) })] : [];
 	});
 }
 
@@ -319,13 +348,20 @@ function openSource(link: SourceLink) {
 	void sourceDocument(link.uuid)?.sheet?.render({ force: true });
 }
 
-function buildDicePool() {
+/**
+ * Whether the roller left a Pool Modification's row on, as the rows are now.
+ */
+function isEnabled() {
 	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
+	return (modification: CheckPoolModification) => enabledKeys.has(modification.key);
+}
+
+function buildDicePool() {
 	currentDicePool.value = checkDicePool(check.value!, {
 		difficulty: difficultyGlyphs(difficulty.value),
 		// A Story Point's upgrade applies as the roller's own changes do.
 		manualChanges: [...manualChanges.value, ...spendGlyphs(spends.value)].sort(sortPoolModifications),
-		isEnabled: (modification) => enabledKeys.has(modification.key),
+		isEnabled: isEnabled(),
 	});
 
 	void approximateProbability();
@@ -454,6 +490,7 @@ usePromptAnswer<DicePromptAnswer>(() => {
 		dicePool: currentDicePool.value,
 		spends: spends.value,
 		targetUuid: target?.uuid ?? undefined,
+		attackChanges: checkAttackChanges(check.value!, isEnabled()),
 	};
 	return spell ? { ...answered, type: RollType.Spell, effectCounts: { ...effectCounts.value } } : { ...answered, type: 'check' };
 });
@@ -583,6 +620,7 @@ const spendId = useId();
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
+						<span v-for="change in effect.attack" :key="change" class="attack-change">{{ change }}</span>
 					</div>
 				</div>
 				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->

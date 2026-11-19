@@ -233,6 +233,11 @@ $die-shift: 0.1em;
 			font-weight: bold;
 		}
 
+		// An effect counted in the damage or the Critical rating of the row above: a detail of that row, not a result.
+		.attack-change {
+			font-weight: normal;
+		}
+
 		// Foundry's `word-break: break-word` on a message's content lets a number break between its digits, which a long
 		// label would then do by squeezing this column.
 		.count {

@@ -38,4 +38,18 @@ describe('CHANGE_KEYS', () => {
 		const healingKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.Recovery.Effects.GroupLabel')?.keys.map(({ key }) => key);
 		expect(healingKeys).toEqual(['genesys.healing.wounds']);
 	});
+
+	it('offers the keys of the Attack Changes: the damage and the Critical rating, by the attacks they apply to', () => {
+		const attackKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.ActiveEffects.Types.ModifyAttack.GroupLabel')?.keys.map(
+			({ key }) => key,
+		);
+		expect(attackKeys).toEqual([
+			'genesys.attack.damage.combat',
+			'genesys.attack.damage.melee',
+			'genesys.attack.damage.ranged',
+			'genesys.attack.critical.combat',
+			'genesys.attack.critical.melee',
+			'genesys.attack.critical.ranged',
+		]);
+	});
 });

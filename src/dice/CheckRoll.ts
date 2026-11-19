@@ -14,6 +14,8 @@ import { CRITICAL_INJURY_FLAG, type CriticalInjuryFlag, criticalTriggers } from 
 import { heals, type Recovery, recoveryCard, type RecoveryRequest, recoveryOf } from '@/actor/Recovery';
 import type { SpellCast } from '@/item/SpellCasting';
 import type { CheckFlag } from '@/dice/RolledCheck';
+import { type AttackChangeField, changedAttack, type NamedAttackChanges } from '@/effects/AttackChanges';
+import { signed } from '@/vue/format';
 
 const CHECK_TEMPLATE = 'systems/genesys/templates/chat/rolls/skill.hbs';
 const ATTACK_TEMPLATE = 'systems/genesys/templates/chat/rolls/attack.hbs';
@@ -54,6 +56,8 @@ export async function rollPool(dicePool: DicePool): Promise<PoolRoll> {
  */
 type CheckRollOptions = {
 	attack?: AttackProfile;
+	/** The Attack Changes the attack is rolled with, which change the damage and the Critical rating of its profile. */
+	attackChanges?: NamedAttackChanges[];
 	recovery?: RecoveryRequest;
 	spell?: SpellCast;
 	/** The uuid of the actor the check was resolved against, the target the Dice Prompt read as it opened. */
@@ -69,8 +73,10 @@ type CheckRollOptions = {
 export async function checkMessageData(
 	check: Check,
 	{ roll, results }: PoolRoll,
-	{ attack, recovery: recoveryRequest, spell, targetUuid }: CheckRollOptions = {},
+	{ attack: profile, attackChanges = [], recovery: recoveryRequest, spell, targetUuid }: CheckRollOptions = {},
 ) {
+	// The Critical Injury is triggered against the changed Critical rating, as the card shows it.
+	const attack = profile && changedAttack(profile, attackChanges);
 	const card = cardResults(results);
 	const recovery = recoveryRequest && recoveryOf(recoveryRequest, results, check.actor);
 	const data = {
@@ -101,6 +107,8 @@ export async function checkMessageData(
 		? await foundry.applications.handlebars.renderTemplate(ATTACK_TEMPLATE, {
 				...data,
 				...(await attackCardData(check, attack, results, card)),
+				damageChanges: changesOf('damage', attackChanges),
+				criticalChanges: changesOf('critical', attackChanges),
 				criticalTriggers: triggers,
 			})
 		: await foundry.applications.handlebars.renderTemplate(CHECK_TEMPLATE, data);
@@ -163,7 +171,19 @@ async function spellCardData({ effects, strain }: SpellCast, showsQualities: boo
 }
 
 /**
- * What an attack's card shows on top of the check's: the damage, the critical and the qualities of the Weapon Profile.
+ * What an attack's card names under its damage or its Critical rating: each effect whose Attack Changes changed it, with
+ * what it added, signed.
+ */
+function changesOf(field: AttackChangeField, attackChanges: NamedAttackChanges[]) {
+	return attackChanges.flatMap((change) => {
+		const value = change[field];
+		return value ? [{ name: change.name, value: signed(value) }] : [];
+	});
+}
+
+/**
+ * What an attack's card shows on top of the check's: the damage, the critical and the qualities of the profile the attack
+ * is made with, once its Attack Changes changed it.
  */
 async function attackCardData(check: Check, profile: AttackProfile, results: GenesysRollResults, card: CardResults) {
 	// A vehicle has no characteristics to add to its weapons' damage.

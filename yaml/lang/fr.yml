@@ -236,6 +236,15 @@ Genesys:
       ModifyStat: Statistique à modifier
       ProvideDefense: Défense fournie (la meilleure compte)
       ModifyItem: Objet à modifier
+      ModifyAttack:
+        GroupLabel: Attaques à modifier
+        Options:
+          DamageCombat: 'Dégâts : test de combat'
+          DamageMelee: 'Dégâts : attaque de mêlée'
+          DamageRanged: 'Dégâts : attaque à distance'
+          CriticalCombat: 'Critique : test de combat'
+          CriticalMelee: 'Critique : attaque de mêlée'
+          CriticalRanged: 'Critique : attaque à distance'
       ModifyDicePool:
         GroupLabel: Réserve de dés à modifier
         Options:
@@ -313,6 +322,8 @@ Genesys:
       SilhouetteDifference: Gabarit ({target} contre {attacker})
       Encumbrance: Encombrement ({value} contre {threshold})
       ItemDamage: '{item} ({damage})'
+      AttackDamage: '{value} dégâts'
+      AttackCritical: '{value} critique'
     StoryPoints:
       Title: Points narratifs
       Impossible: Dépenser un point pour tenter la tâche impossible

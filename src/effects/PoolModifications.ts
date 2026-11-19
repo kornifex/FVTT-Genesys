@@ -12,6 +12,7 @@ import { isCriticalChangeKey } from '@/dice/CriticalInjuryRoll';
 import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
+import { type AttackChanges, decodeAttackChangeKey, isAttackChangeKey } from '@/effects/AttackChanges';
 import { originItemId } from '@/effects/EffectOrigin';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
@@ -189,6 +190,12 @@ export type ExternalPoolModification = {
 	source: PoolModificationSource;
 	from: PoolModificationOrigin;
 	mods: string[];
+	/**
+	 * What the Attack Changes of the same effect add to the attack, which the roller turns on or off with its Pool
+	 * Modifications: Battle Rage's Setback comes with its +2 damage (RoT p. 67). An effect that only holds Attack Changes
+	 * is listed with no Pool Modification.
+	 */
+	attack?: AttackChanges;
 	/**
 	 * Whether the Dice Prompt lists it off, whatever the world's setting: an active quality's, which the roller turns on
 	 * when they trigger it.
@@ -524,6 +531,28 @@ function effectModifications(
 		}
 	};
 
+	// What an effect's Attack Changes add to the attack, undefined when they add nothing: only the actor's own effects
+	// change the attacks it makes, by their kind, as its Pool Modifications of combat checks do.
+	const attackChanges = (
+		changes: PoolModificationEffect['system']['changes'],
+		scaled: (change: { key: string; value: unknown }) => unknown,
+	): AttackChanges | undefined => {
+		const totals: AttackChanges = {};
+		if (source !== 'self' || attackRange === undefined) {
+			return undefined;
+		}
+
+		for (const { key = '', value } of changes) {
+			const attackKey = decodeAttackChangeKey(key);
+			const amount = attackKey && parseWholeNumber(scaled({ key, value }));
+			if (attackKey && amount && (attackKey.scope === 'combat' || attackKey.scope === attackKind(attackRange, skillAttackKind))) {
+				totals[attackKey.field] = (totals[attackKey.field] ?? 0) + amount;
+			}
+		}
+
+		return Object.keys(totals).length > 0 ? totals : undefined;
+	};
+
 	const modifications: ExternalPoolModification[] = [];
 
 	for (const effect of effects) {
@@ -540,7 +569,9 @@ function effectModifications(
 				: [],
 		);
 
-		if (mods.length > 0) {
+		const attack = attackChanges(effect.system.changes, (change) => scaledChangeValue(item, change, quality));
+
+		if (mods.length > 0 || attack) {
 			modifications.push({
 				source,
 				from: {
@@ -550,6 +581,7 @@ function effectModifications(
 					...(described && { described: { name: described.name, description: described.description } }),
 				},
 				mods: mods.sort(sortPoolModifications),
+				...(attack && { attack }),
 				// An active quality applies only once the roller triggers it, by spending Advantage (CRB p. 86).
 				...(quality?.activation === 'active' && { startsOff: true }),
 			});
@@ -604,10 +636,10 @@ function isProvidedDefenseKey(key: string) {
 
 /**
  * Whether a change is one the system reads itself, as a whole number added to a roll or to what it heals: a change to
- * Critical Injury rolls, or to the wounds a Medicine check heals.
+ * Critical Injury rolls, to the wounds a Medicine check heals, or an Attack Change.
  */
 function isWholeNumberChangeKey(key: string) {
-	return isCriticalChangeKey(key) || key === HEALING_CHANGE_KEY;
+	return isCriticalChangeKey(key) || key === HEALING_CHANGE_KEY || isAttackChangeKey(key);
 }
 
 /**
@@ -661,7 +693,7 @@ export function toEditedChange(change: StoredChange): EditedChange {
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
  * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
- * Injury rolls or to the wounds a Medicine check heals, which the system reads itself too, gets the custom type, and
+ * Injury rolls or to the wounds a Medicine check heals, or an Attack Change, which the system reads itself too, gets the custom type, and
  * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A change to the defense
  * a source provides gets the Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
  */
