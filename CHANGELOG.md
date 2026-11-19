@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.8.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.5...v0.8.0) (2026-11-19)
+
+
+### Features
+
+* **actor:** add Career Skill changes, and let an Archetype grant a skill twice ([#923](https://github.com/kornifex/FVTT-Genesys/issues/923)) ([7495474](https://github.com/kornifex/FVTT-Genesys/commit/74954745131fac2c7941b4082a6181ee0f3ff1f7))
+* **actor:** add the Career-Only Magic Skills alternate rule ([#917](https://github.com/kornifex/FVTT-Genesys/issues/917)) ([3161ddb](https://github.com/kornifex/FVTT-Genesys/commit/3161ddb5d410f4e84998ad6e2d4f4ed402ecd502))
+* **dice:** add Attack Changes, which change the damage or the Critical rating of an actor's attacks ([#921](https://github.com/kornifex/FVTT-Genesys/issues/921)) ([9489ab7](https://github.com/kornifex/FVTT-Genesys/commit/9489ab789527d242a6559799c9689adcc3beed23))
+* **item:** ship a Realms of Terrinoth Skills Compendium ([#915](https://github.com/kornifex/FVTT-Genesys/issues/915)) ([ed7e9ac](https://github.com/kornifex/FVTT-Genesys/commit/ed7e9ac9c065e611025518590ec928b81de928ab))
+
+
+### Bug Fixes
+
+* **dice:** pick the target's defense from the kind of attack the skill makes ([#916](https://github.com/kornifex/FVTT-Genesys/issues/916)) ([2c0df8d](https://github.com/kornifex/FVTT-Genesys/commit/2c0df8d3a6499272953ded91c9e0e495ffde43b8))
+
+
+### Documentation
+
+* add 0.7.5's changes to the README's What's new since the fork ([#910](https://github.com/kornifex/FVTT-Genesys/issues/910)) ([3a30ada](https://github.com/kornifex/FVTT-Genesys/commit/3a30adaf304de65068935beaf16bea900f9fbda6))
+
+
+### Continuous Integration
+
+* remove release-as now that 0.7.5 is out ([#909](https://github.com/kornifex/FVTT-Genesys/issues/909)) ([e0d696b](https://github.com/kornifex/FVTT-Genesys/commit/e0d696bf37f90d333e845bb6376cb8e85c35ddb1))
+
 ## [0.7.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.4...v0.7.5) (2026-11-18)
 
 
