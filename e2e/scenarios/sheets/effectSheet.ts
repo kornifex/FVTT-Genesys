@@ -128,6 +128,17 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			options: ['genesys.healing.wounds=👇 Wounds Healed by a Medicine Check'],
 		},
 		{
+			label: 'Modify Attacks',
+			options: [
+				'genesys.attack.damage.combat=👇 Damage: Combat Check',
+				'genesys.attack.damage.melee=👇 Damage: Melee Attack',
+				'genesys.attack.damage.ranged=👇 Damage: Ranged Attack',
+				'genesys.attack.critical.combat=👇 Critical: Combat Check',
+				'genesys.attack.critical.melee=👇 Critical: Melee Attack',
+				'genesys.attack.critical.ranged=👇 Critical: Ranged Attack',
+			],
+		},
+		{
 			label: 'Modify Item',
 			options: [
 				'genesys.item.baseDamage=🔧 Damage',
