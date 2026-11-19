@@ -8,6 +8,13 @@ import {
 	subjectFieldForKey,
 	toEditedChange,
 } from '@/effects/PoolModifications';
+import {
+	ATTACK_CHANGE_FIELDS,
+	ATTACK_CHANGE_SCOPES,
+	type AttackChangeField,
+	type AttackChangeScope,
+	attackChangeKey,
+} from '@/effects/AttackChanges';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
@@ -34,6 +41,22 @@ const ITEM_GLYPH = '\u{1F527}';
  * A key the Changes tab offers: the glyph of what it applies to, and the localization key of its label.
  */
 type ChangeKey = { key: string; appliesTo: string; label: string };
+
+/**
+ * The localization key of each Attack Change, by what it adds to and the attacks it applies to.
+ */
+const ATTACK_CHANGE_LABELS = {
+	damage: {
+		combat: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.DamageCombat',
+		melee: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.DamageMelee',
+		ranged: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.DamageRanged',
+	},
+	critical: {
+		combat: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.CriticalCombat',
+		melee: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.CriticalMelee',
+		ranged: 'Genesys.ActiveEffects.Types.ModifyAttack.Options.CriticalRanged',
+	},
+} as const satisfies Record<AttackChangeField, Record<AttackChangeScope, string>>;
 
 /**
  * The keys the Changes tab offers, by group.
@@ -150,6 +173,18 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74).
 		group: 'Genesys.Recovery.Effects.GroupLabel',
 		keys: [{ key: HEALING_CHANGE_KEY, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' }],
+	},
+	{
+		// What the effect's actor adds to the damage and to the Critical rating of the attacks it makes, as Battle Rage does
+		// (RoT p. 67).
+		group: 'Genesys.ActiveEffects.Types.ModifyAttack.GroupLabel',
+		keys: ATTACK_CHANGE_FIELDS.flatMap((field) =>
+			ATTACK_CHANGE_SCOPES.map((scope) => ({
+				key: attackChangeKey(field, scope),
+				appliesTo: SELF_GLYPH,
+				label: ATTACK_CHANGE_LABELS[field][scope],
+			})),
+		),
 	},
 	{
 		group: 'Genesys.ActiveEffects.Types.ModifyItem',

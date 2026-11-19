@@ -272,6 +272,76 @@ describe('poolModificationsForCheck', () => {
 		});
 	});
 
+	describe("the Attack Changes of the actor's effects (RoT p. 67)", () => {
+		const battleRage = effect(
+			[
+				{ key: 'genesys.pool.melee.self.', value: 'S' },
+				{ key: 'genesys.attack.damage.melee', value: '2' },
+			],
+			{ name: 'Battle Rage' },
+		);
+		const from = { effect: 'Battle Rage', uuid: 'ActiveEffect.Battle Rage' };
+		const orc = actor('character', [battleRage]);
+
+		it("lists an effect's Attack Changes with its Pool Modifications, so that the roller turns both on at once", () => {
+			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'engaged' })).toEqual([
+				{ source: 'self', from, mods: ['S'], attack: { damage: 2 } },
+			]);
+		});
+
+		it('lists an effect that only holds Attack Changes, with no Pool Modification', () => {
+			const devastating = actor('character', [
+				effect([{ key: 'genesys.attack.damage.combat', value: '2' }], { name: 'Devastating' }),
+			]);
+
+			expect(poolModificationsForCheck(devastating, undefined, { ...check, attackRange: 'long' })).toEqual([
+				{ source: 'self', from: { effect: 'Devastating', uuid: 'ActiveEffect.Devastating' }, mods: [], attack: { damage: 2 } },
+			]);
+		});
+
+		it('leaves the melee ones out of a ranged attack, by the kind of attack the skill makes', () => {
+			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'short' })).toEqual([]);
+			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'short', skillAttackKind: 'melee' })).toEqual([
+				{ source: 'self', from, mods: ['S'], attack: { damage: 2 } },
+			]);
+			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'engaged', skillAttackKind: 'ranged' })).toEqual([]);
+		});
+
+		it('leaves them out of a check that is no attack, and of the attacks against the actor', () => {
+			expect(poolModificationsForCheck(orc, undefined, check)).toEqual([]);
+			expect(poolModificationsForCheck(actor('rival', []), orc, { attackRange: 'engaged' })).toEqual([]);
+		});
+
+		it('adds up the damage and the Critical rating apart, whatever the sign, and ignores a value that is no whole number', () => {
+			const self = actor('character', [
+				effect([
+					{ key: 'genesys.attack.damage.combat', value: '1' },
+					{ key: 'genesys.attack.damage.ranged', value: '2' },
+					{ key: 'genesys.attack.critical.ranged', value: '-1' },
+					{ key: 'genesys.attack.damage.combat', value: 'B' },
+					{ key: 'genesys.attack.damage.combat', value: '0' },
+				]),
+			]);
+
+			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'medium' })[0].attack).toEqual({
+				damage: 3,
+				critical: -1,
+			});
+		});
+
+		it("counts a talent's once per rank, as its numeric changes", () => {
+			const self = actorWithCopiedEffect(talent(3), [{ key: 'genesys.attack.damage.melee', value: '2' }]);
+
+			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'engaged' })[0].attack).toEqual({ damage: 6 });
+		});
+
+		it('ignores those of a suppressed effect', () => {
+			const self = actor('character', [effect([{ key: 'genesys.attack.damage.combat', value: '2' }], { isSuppressed: true })]);
+
+			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'engaged' })).toEqual([]);
+		});
+	});
+
 	describe('the changes of the attacks that target the actor, melee or ranged (CRB p. 100, 108)', () => {
 		const self = actor('character', []);
 		const prone = actor('character', [
@@ -935,6 +1005,15 @@ describe('editing changes in the effect sheets', () => {
 		expect(fromEditedChange(editedChange('genesys.critical.suffered', '-10')).value).toBe('-10');
 		expect(fromEditedChange(editedChange('genesys.critical.suffered', 'BB')).value).toBe('');
 		expect(toEditedChange(editedChange('genesys.critical.inflicted', '10'))).toEqual(editedChange('genesys.critical.inflicted', '10'));
+	});
+
+	it('shows no mode for an Attack Change, gives it the custom type, and empties its value unless it is a whole number', () => {
+		expect(subjectFieldForKey('genesys.attack.damage.melee')).toBe('check-selection');
+		expect(fromEditedChange(editedChange('genesys.attack.damage.melee', '2', { type: 'add' }))).toEqual(
+			editedChange('genesys.attack.damage.melee', '2'),
+		);
+		expect(fromEditedChange(editedChange('genesys.attack.critical.combat', '-1')).value).toBe('-1');
+		expect(fromEditedChange(editedChange('genesys.attack.damage.combat', 'BB')).value).toBe('');
 	});
 
 	it("shows no mode for a change to the wounds a Medicine check heals, which the system reads at the check's roll", () => {

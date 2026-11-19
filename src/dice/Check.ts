@@ -7,6 +7,7 @@ import { CHARACTERISTIC_ABBREVIATIONS, CHARACTERISTIC_LABELS, Characteristic } f
 import { Skill, type SkillAttackKind, skillAttackKind, skillToRoll } from '@/data/Skills';
 import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
+import type { NamedAttackChanges } from '@/effects/AttackChanges';
 import {
 	CheckForPoolModifications,
 	ExternalPoolModification,
@@ -314,6 +315,18 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 			})),
 		},
 	});
+}
+
+/**
+ * The Attack Changes an attack is rolled with: those of the effects the roller left on, each named after its effect.
+ */
+export function checkAttackChanges(check: Check, isEnabled: PoolChoices['isEnabled']): NamedAttackChanges[] {
+	return check.poolModifications.flatMap((modification) =>
+		// Only an effect holds Attack Changes, among the origins of a Pool Modification.
+		modification.attack && 'effect' in modification.from && isEnabled(modification)
+			? [{ ...modification.attack, name: modification.from.effect }]
+			: [],
+	);
 }
 
 /**

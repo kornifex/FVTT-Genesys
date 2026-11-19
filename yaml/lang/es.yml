@@ -236,6 +236,15 @@ Genesys:
       ModifyStat: Estadística modificada
       ProvideDefense: Defensa proporcionada (cuenta la mejor)
       ModifyItem: Modificar objeto
+      ModifyAttack:
+        GroupLabel: Modificar ataques
+        Options:
+          DamageCombat: 'Daño: tirada de combate'
+          DamageMelee: 'Daño: ataque cuerpo a cuerpo'
+          DamageRanged: 'Daño: ataque a distancia'
+          CriticalCombat: 'Crítico: tirada de combate'
+          CriticalMelee: 'Crítico: ataque cuerpo a cuerpo'
+          CriticalRanged: 'Crítico: ataque a distancia'
       ModifyDicePool:
         GroupLabel: Modificar reserva de dados
         Options:
@@ -313,6 +322,8 @@ Genesys:
       SilhouetteDifference: Silueta ({target} contra {attacker})
       Encumbrance: Impedimento ({value} contra {threshold})
       ItemDamage: '{item} ({damage})'
+      AttackDamage: '{value} daño'
+      AttackCritical: '{value} crítico'
     StoryPoints:
       Title: Puntos de Historia
       Impossible: Gastar un punto para intentar la tarea imposible

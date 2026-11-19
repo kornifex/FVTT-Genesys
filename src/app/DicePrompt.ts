@@ -17,6 +17,7 @@ import { useUpEffects } from '@/effects/maneuverEffects';
 import { sufferCastingStrain } from '@/dice/castingStrain';
 import { ownedSkill } from '@/data/Skills';
 import { type EffectCounts, spellAttackProfile, spellCast } from '@/item/SpellCasting';
+import type { NamedAttackChanges } from '@/effects/AttackChanges';
 
 /**
  * What the Dice Prompt rolls the check for.
@@ -56,9 +57,10 @@ export type DicePromptContext = {
 
 /**
  * The Dice Prompt's answer: the check and its dice pool, the Story Points the roller spends on it, and for a spell how
- * many times each Additional Effect is added. The target is the actor's uuid the prompt read as it opened.
+ * many times each Additional Effect is added. The target is the actor's uuid the prompt read as it opened. The Attack
+ * Changes are those of the effects the roller left on.
  */
-export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; targetUuid?: string } & (
+export type DicePromptAnswer = CheckRoll & { spends: CheckSpend[]; targetUuid?: string; attackChanges: NamedAttackChanges[] } & (
 		| { type: typeof RollType.Spell; effectCounts: EffectCounts }
 		| { type: 'check' }
 	);
@@ -129,6 +131,7 @@ export class DicePrompt extends VuePrompt<DicePromptAnswer | undefined>(undefine
 				: undefined;
 		const message = await rollCheck(checkRoll, {
 			attack: attackOf(app.roll, checkRoll, actor),
+			attackChanges: checkRoll.attackChanges,
 			recovery: app.recovery,
 			spell: cast,
 			targetUuid: checkRoll.targetUuid,

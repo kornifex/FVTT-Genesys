@@ -237,6 +237,16 @@ Genesys:
       # The defense that cover, Guarded Stance and some talents provide, the best of which is kept (CRB p. 106)
       ProvideDefense: Provide Defense (best kept)
       ModifyItem: Modify Item # The Item Changes, which change the weapon or armor that holds the effect
+      # The Attack Changes, which add to the damage or the Critical rating of the attacks the effect's actor makes
+      ModifyAttack:
+        GroupLabel: Modify Attacks
+        Options:
+          DamageCombat: 'Damage: Combat Check'
+          DamageMelee: 'Damage: Melee Attack'
+          DamageRanged: 'Damage: Ranged Attack'
+          CriticalCombat: 'Critical: Combat Check'
+          CriticalMelee: 'Critical: Melee Attack'
+          CriticalRanged: 'Critical: Ranged Attack'
       ModifyDicePool:
         GroupLabel: Modify Dice Pool
         Options:
@@ -315,6 +325,9 @@ Genesys:
       SilhouetteDifference: Silhouette ({target} vs {attacker})
       Encumbrance: Encumbrance ({value} vs {threshold})
       ItemDamage: '{item} ({damage})' # e.g. Pistol (Minor Damage)
+      # What an effect's Attack Changes add to the attack, after its Pool Modifications: +2 Damage
+      AttackDamage: '{value} Damage'
+      AttackCritical: '{value} Critical'
     # What a Story Point buys on the check, each followed by the short name of the pool it comes from.
     StoryPoints:
       Title: Story Points

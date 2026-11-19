@@ -10,12 +10,30 @@
 
 			<div class="separator"></div>
 
+			{{!-- The effects whose Attack Changes are counted in the damage above. --}}
+			{{#each damageChanges}}
+			<span class="symbol"></span>
+			<span class="label attack-change">{{name}}</span>
+			<span class="count">{{value}}</span>
+
+			<div class="separator"></div>
+			{{/each}}
+
 			{{!-- Critical --}}
 			<span class="symbol"><i class="fas fa-explosion"></i></span>
 			<span class="label">{{localize 'Genesys.Rolls.Attack.Critical'}}</span>
 			<span class="count">{{critical}}</span>
 
 			<div class="separator"></div>
+
+			{{!-- The effects whose Attack Changes are counted in the Critical rating above. --}}
+			{{#each criticalChanges}}
+			<span class="symbol"></span>
+			<span class="label attack-change">{{name}}</span>
+			<span class="count">{{value}}</span>
+
+			<div class="separator"></div>
+			{{/each}}
 
 			{{!-- How many times the attack triggers a Critical Injury, which the roller rolls from the button below. --}}
 			{{#if criticalTriggers}}
