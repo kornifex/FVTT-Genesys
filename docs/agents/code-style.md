@@ -63,11 +63,23 @@ How code, commits and pull requests are written in this repo. A rule a tool can 
 - Vue drops the whitespace between two elements when it holds a line break, so a line Prettier breaks can lose or gain a visible space. Where it does, the element keeps its line under `<!-- prettier-ignore -->`.
 - Prettier can't parse the Handlebars templates (blocks inside attributes, inline partials): they follow the same layout by hand.
 
+## UI conventions
+
+Every sheet and prompt follows these, from the front-end overhaul (#534, whose Conventions section gives the detail); new UI too. The goal is a consistent UX at WCAG 2.2 AA.
+
+- Every action is a focusable control with a name: an icon-only action is a `<button type="button">` whose localized `aria-label` is also its tooltip.
+- The row's icon opens its sheet; the name rolls. On a row that can't roll, the name opens the sheet too; an inventory row never rolls.
+- A row's other actions are in its ⋮ menu, which a right-click also opens. Right-click stays a shortcut, never the only way to reach an action.
+- Deleting data asks first, through the shared dialog. Removing an actor from a Crew or a role doesn't: the actor stays in the world.
+- A counter is a compact value: − and + appear on hover and focus, and the arrow keys step it.
+- Meaning never rests on colour alone, focus is always visible, and motion follows `prefers-reduced-motion`.
+
 ## Text and i18n
 
 - Every user-visible string goes through a localization key, in code and in templates.
 - Keys are written as literals, so a search finds them. A dynamic key comes from a typed table that lists its values.
 - `yaml/lang/en.yml` is the reference. `fr` is completed in the same PR; `es` when you can.
+- `fr` uses the French edition's game terms, not a translation of the English word: the Formidable difficulty is « Exceptionnel ». When unsure, ask rather than translate.
 
 ## Logs and errors
 
