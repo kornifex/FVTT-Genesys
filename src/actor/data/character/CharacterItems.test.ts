@@ -312,6 +312,16 @@ describe('decideCharacterDrop', () => {
 			});
 		});
 
+		it('leaves at 0 a skill both the held and the dropped Archetype grant whose rank was taken back by hand: its rank changes by the net change', () => {
+			const held = brutish();
+			held.items = held.items.map((item) => (item.id === 'athletics' ? skill('athletics', 'Athletics', 0) : item));
+
+			expect(decideCharacterDrop(held, dropped('archetype', 'Scholar', scholar), ids())).toMatchObject({
+				action: 'write',
+				plan: { itemUpdates: [{ _id: 'knowledge', 'system.rank': 1 }] },
+			});
+		});
+
 		it('refuses an Archetype once the Experience Journal holds more than the Starting XP, and says what to undo', () => {
 			const awarded = brutish([
 				{ amount: 100, type: EntryType.Starting },
@@ -608,6 +618,18 @@ describe('decideCharacterDrop', () => {
 					],
 					itemDeletes: ['soldier'],
 				},
+			});
+		});
+
+		it('leaves at 0 a skill chosen for both Careers whose Free Rank was taken back by hand: its rank changes by the net change', () => {
+			const held = character([
+				{ id: 'soldier', name: 'Soldier', type: 'career', system: { ...soldier, selectedSkillIDs: ['ranged'] } },
+				skill('ranged', 'Ranged', 0, true),
+			]);
+
+			expect(decideCharacterDrop(held, dropped('career', 'Ranger', ranger), ids(), ['ranged'])).toMatchObject({
+				action: 'write',
+				plan: { itemUpdates: [{ _id: 'ranged', 'system.career': true, 'system.rank': 0 }] },
 			});
 		});
 
