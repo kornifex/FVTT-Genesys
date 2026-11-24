@@ -25,6 +25,7 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 				// No window opened, as expected of a build without the choices.
 				return null;
 			}
+			// Foundry's globals are untyped in the harness: the open window's element, which holds the skills just found.
 			const root = open().element as HTMLElement;
 			return {
 				title: text(root.querySelector('.window-title')),

@@ -107,9 +107,10 @@ export function decideCharacterDrop(
 				return { action: 'refuse', refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: dropped.name } } };
 			}
 
+			// The dropped item's type tells its data: Foundry built it with the Archetype's DataModel, which fills every field.
+			const system = dropped.system as ArchetypeGrants;
 			// The skills are judged now, before the Career: the Core Rulebook has the archetype picked first (CRB p. 35), so a
 			// Career that later lists a chosen skill makes it a career skill, and the rank stays.
-			const system = dropped.system as ArchetypeGrants;
 			if (system.nonCareerSkillChoices > 0 && !chosenSkillIds) {
 				return {
 					action: 'chooseSkills',
