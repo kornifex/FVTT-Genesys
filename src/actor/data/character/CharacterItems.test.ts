@@ -286,7 +286,8 @@ describe('decideCharacterDrop', () => {
 
 		it("asks first which of the character's skills the Career lists, whatever their case, get its Free Ranks (CRB p. 40)", () => {
 			expect(decideCharacterDrop(character(skills()), dropped('career', 'Ranger', ranger), ids())).toEqual({
-				action: 'chooseFreeRanks',
+				action: 'chooseSkills',
+				choice: { kind: 'freeRanks' },
 				skillIds: ['ranged', 'stealth'],
 			});
 		});

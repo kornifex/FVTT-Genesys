@@ -29,18 +29,19 @@ export async function receiveCharacterDrop(actor: Stored<GenesysActor<'character
 	const dropped = { type: item.type, name: item.name, system: item.system as unknown, source: item.toObject() };
 	const newId = () => foundry.utils.randomID();
 	let decision = decideCharacterDrop(character(actor), dropped, newId);
-	if (decision.action === 'chooseFreeRanks') {
+	if (decision.action === 'chooseSkills') {
+		// The ids are those of the character's skills, which the decision read from its items.
 		const skills = decision.skillIds.map((id) => actor.items.get(id) as Stored<GenesysItem<'skill'>>);
-		const freeRankSkillIds = await CareerSkillPrompt.promptForSkills(skills);
+		const chosenSkillIds = await CareerSkillPrompt.promptForSkills(skills, decision.choice);
 		// The character is read again: it may have changed while the player chose.
-		decision = decideCharacterDrop(character(actor), dropped, newId, freeRankSkillIds);
+		decision = decideCharacterDrop(character(actor), dropped, newId, chosenSkillIds);
 	}
 
 	if (decision.action === 'write') {
 		return writeCharacter(actor, decision.plan);
 	}
 
-	// A decision made with the Free Ranks chosen asks nothing more: it writes or refuses.
+	// A decision made with the skills chosen asks nothing more: it writes or refuses.
 	if (decision.action === 'refuse' && decision.refusal) {
 		notify(decision.refusal);
 	}

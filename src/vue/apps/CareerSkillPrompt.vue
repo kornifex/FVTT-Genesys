@@ -14,10 +14,10 @@ import { GenesysItem } from '@/item/GenesysItem';
 const context = useSheetContext<CareerSkillPromptContext>();
 
 const selectedSkillIDs = ref<string[]>([]);
-const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - selectedSkillIDs.value.length);
+const remaining = computed(() => context.value.count - selectedSkillIDs.value.length);
 
 function selectSkill(skill: Stored<GenesysItem<'skill'>>) {
-	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, CONFIG.genesys.settings.freeCareerSkillRanks);
+	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, context.value.count);
 }
 
 usePromptAnswer<string[]>(() => selectedSkillIDs.value);
@@ -25,7 +25,7 @@ usePromptAnswer<string[]>(() => selectedSkillIDs.value);
 
 <template>
 	<div class="genesys career-skill-prompt">
-		<div class="career-skills-hint"><Localized label="Genesys.CareerSkillPrompt.Hint" /></div>
+		<div class="career-skills-hint"><Localized :label="context.hint" /></div>
 
 		<div class="selections">
 			<button

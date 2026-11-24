@@ -41,13 +41,19 @@ export type DroppedItem = {
 };
 
 /**
- * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or, for a
- * Career, a choice of the skills that get its Free Ranks to make first.
+ * The skills a drop asks the player to choose before it is written: those that get a Career's Free Ranks, as many as
+ * the world settings give.
+ */
+export type SkillChoice = { kind: 'freeRanks' };
+
+/**
+ * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or a choice of
+ * skills to make first, among the skills given.
  */
 type CharacterDropDecision =
 	| { action: 'refuse'; refusal?: Notification }
 	| { action: 'write'; plan: CharacterWrites }
-	| { action: 'chooseFreeRanks'; skillIds: string[] };
+	| { action: 'chooseSkills'; choice: SkillChoice; skillIds: string[] };
 
 type CareerData = { careerSkills: { name: string }[]; selectedSkillIDs: string[] };
 
@@ -75,14 +81,14 @@ function talentDrop(character: Character, dropped: DroppedItem, id: string): Cha
 
 /**
  * Decide what dropping an item does to a character, drawing the ids of the items it creates. A Career first asks for the
- * skills that get its Free Ranks: the decision is made again with them. Equipment goes to the character's inventory
- * instead.
+ * skills that get its Free Ranks: the decision is made again with the chosen skills. Equipment goes to the character's
+ * inventory instead.
  */
 export function decideCharacterDrop(
 	character: Character,
 	dropped: DroppedItem,
 	newId: () => string,
-	freeRankSkillIds?: string[],
+	chosenSkillIds?: string[],
 ): CharacterDropDecision {
 	switch (dropped.type) {
 		case 'skill': {
@@ -110,15 +116,16 @@ export function decideCharacterDrop(
 			}
 
 			const system = dropped.system as Pick<CareerData, 'careerSkills'>;
-			if (!freeRankSkillIds) {
+			if (!chosenSkillIds) {
 				return {
-					action: 'chooseFreeRanks',
+					action: 'chooseSkills',
+					choice: { kind: 'freeRanks' },
 					skillIds: heldCareerSkills(character.items, system.careerSkills).map((skill) => skill.id),
 				};
 			}
 
 			const [held] = ofType(character.items, 'career');
-			return writing(careerChange(character.items, held, { system, source: dropped.source }, freeRankSkillIds, newId));
+			return writing(careerChange(character.items, held, { system, source: dropped.source }, chosenSkillIds, newId));
 		}
 		case 'talent':
 			return talentDrop(character, dropped, newId());
