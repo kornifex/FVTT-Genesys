@@ -25,7 +25,7 @@ const CHOICE_TEXTS: Record<SkillChoice['kind'], { title: string; hint: string }>
 /**
  * Prompt the user for the skills that gain a free rank: a Career's Free Ranks, or an Archetype's non-career skills.
  */
-export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
+export class CareerSkillPrompt extends VuePrompt<string[] | null>(null) {
 	override get vueComponent() {
 		return VueCareerSkillPrompt;
 	}
@@ -37,7 +37,7 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 
 	/**
 	 * Ask the user to pick skills for a choice, by their IDs: the Career's Free Ranks, as many as the world settings give,
-	 * or as many non-career skills as the Archetype gives. None when the prompt is closed.
+	 * or as many non-career skills as the Archetype gives. `null` when the prompt is closed.
 	 */
 	static async promptForSkills(skills: Stored<GenesysItem<'skill'>>[], choice: SkillChoice) {
 		return new CareerSkillPrompt(skills, choice).prompt();

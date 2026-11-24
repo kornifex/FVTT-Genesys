@@ -181,16 +181,30 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 		{ prompts: 0, ranks: { Deception: 0, Survival: 0 } },
 	);
 
-	await e2e.step('#924 N6 the Human dropped, and its window closed', async () => {
+	let humanHeld = false;
+	await e2e.step('#924 N6 the Human dropped over the Plain Archetype, and its window closed', async () => {
 		await dropArchetype(H, 'Human');
 		await prompt();
 		await closePrompt();
-		await held(H, 'Human');
+		// A cancelled drop writes nothing, so there is nothing to wait for: a write that would land late gets two seconds.
+		humanHeld = await page(async (name) => {
+			try {
+				await window.e2e.waitFor(
+					`the Human on E2E ${name}`,
+					() => game.actors.getName(`E2E ${name}`).items.some((item: { name: string }) => item.name === 'E2E Human'),
+					2000,
+				);
+				return true;
+			} catch {
+				// The Human never came, as a cancelled drop leaves it.
+				return false;
+			}
+		}, H);
 	});
 	e2e.expect(
-		'#924 N6 closing the window drops the Archetype without chosen skills',
-		{ ranks: await ranks(H, ['Brawl', 'Deception']), archetype: await archetypeOf(H) },
-		{ ranks: { Brawl: 0, Deception: 0 }, archetype: { name: 'E2E Human', chosen: [] } },
+		'#924 N6 closing the window cancels the drop: the Plain Archetype stays',
+		{ humanHeld, archetype: await archetypeOf(H) },
+		{ humanHeld: false, archetype: { name: 'E2E Plain Archetype', chosen: [] } },
 	);
 
 	await e2e.step('#924 N7 the Other Human dropped with Brawl and Deception chosen, then removed', async () => {

@@ -88,14 +88,15 @@ function talentDrop(character: Character, dropped: DroppedItem, id: string): Cha
 /**
  * Decide what dropping an item does to a character, drawing the ids of the items it creates. A Career first asks for the
  * skills that get its Free Ranks, and an Archetype with non-career skill choices for those skills: the decision is made
- * again with the chosen skills, none when the player closed the window. Equipment goes to the character's inventory
- * instead.
+ * again with the chosen skills, or `null` when the player closed the window. Closing it adds the Career without Free
+ * Ranks, and cancels the Archetype's drop, which would otherwise take back what the held Archetype gave for nothing.
+ * Equipment goes to the character's inventory instead.
  */
 export function decideCharacterDrop(
 	character: Character,
 	dropped: DroppedItem,
 	newId: () => string,
-	chosenSkillIds?: string[],
+	chosenSkillIds?: string[] | null,
 ): CharacterDropDecision {
 	switch (dropped.type) {
 		case 'skill': {
@@ -115,9 +116,13 @@ export function decideCharacterDrop(
 
 			// The dropped item's type tells its data: Foundry built it with the Archetype's DataModel, which fills every field.
 			const system = dropped.system as ArchetypeGrants;
+			if (chosenSkillIds === null) {
+				return { action: 'refuse' };
+			}
+
 			// The skills are judged now, before the Career: the Core Rulebook has the archetype picked first (CRB p. 35), so a
 			// Career that later lists a chosen skill makes it a career skill, and the rank stays.
-			if (system.nonCareerSkillChoices > 0 && !chosenSkillIds) {
+			if (system.nonCareerSkillChoices > 0 && chosenSkillIds === undefined) {
 				const { alternateRules } = character.advancement;
 				const offered = character.advancement.skills.filter((skill) => !skill.career && !isBarredMagicSkill(skill, alternateRules));
 				return {
@@ -137,7 +142,7 @@ export function decideCharacterDrop(
 			}
 
 			const system = dropped.system as Pick<CareerData, 'careerSkills'>;
-			if (!chosenSkillIds) {
+			if (chosenSkillIds === undefined) {
 				return {
 					action: 'chooseSkills',
 					choice: { kind: 'freeRanks' },
@@ -146,7 +151,7 @@ export function decideCharacterDrop(
 			}
 
 			const [held] = ofType(character.items, 'career');
-			return writing(careerChange(character.items, held, { system, source: dropped.source }, chosenSkillIds, newId));
+			return writing(careerChange(character.items, held, { system, source: dropped.source }, chosenSkillIds ?? [], newId));
 		}
 		case 'talent':
 			return talentDrop(character, dropped, newId());

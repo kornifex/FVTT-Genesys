@@ -446,10 +446,18 @@ describe('decideCharacterDrop', () => {
 				});
 			});
 
-			it('drops the Archetype without chosen skills when the window is closed', () => {
+			it('drops the Archetype without chosen skills when none was offered', () => {
 				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Human', human), ids(), [])).toMatchObject({
 					action: 'write',
 					plan: { itemCreates: [{ name: 'Human', system: { chosenSkillIds: [] } }], itemUpdates: [] },
+				});
+			});
+
+			it('cancels the drop when the window is closed, so the Archetype held and its chosen ranks stay', () => {
+				const humanHeld = { id: 'human', name: 'Human', type: 'archetype', system: { ...human, chosenSkillIds: ['stealth'] } };
+
+				expect(decideCharacterDrop(skilled([humanHeld]), dropped('archetype', 'Other Human', human), ids(), null)).toEqual({
+					action: 'refuse',
 				});
 			});
 
@@ -575,6 +583,13 @@ describe('decideCharacterDrop', () => {
 					itemDeletes: [],
 					actorUpdate: {},
 				},
+			});
+		});
+
+		it('adds the Career without Free Ranks when the window is closed', () => {
+			expect(decideCharacterDrop(character(skills()), dropped('career', 'Ranger', ranger), ids(), null)).toMatchObject({
+				action: 'write',
+				plan: { itemCreates: [{ name: 'Ranger', system: { selectedSkillIDs: [] } }] },
 			});
 		});
 
