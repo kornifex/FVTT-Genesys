@@ -30,6 +30,8 @@ function archetypeGrants(): ArchetypeGrants {
 			{ name: 'Tough', type: 'ability' },
 			{ name: 'Grit', type: 'talent' },
 		],
+		nonCareerSkillChoices: 0,
+		chosenSkillIds: [],
 	};
 }
 
@@ -70,6 +72,8 @@ describe('archetypeActorUpdate', () => {
 			strainThreshold: 8,
 			startingXP: 100,
 			grantedItems: [],
+			nonCareerSkillChoices: 0,
+			chosenSkillIds: [],
 		};
 
 		expect(archetypeActorUpdate(character(), laborer, 1)).toMatchObject({
@@ -112,11 +116,11 @@ describe('archetypeActorUpdate', () => {
 
 describe('granted items', () => {
 	const held = [
-		{ name: 'Athletics', type: 'skill', system: { rank: 1 } },
-		{ name: 'Brawl', type: 'skill', system: { rank: 2 } },
-		{ name: 'Tough', type: 'ability', system: {} },
-		{ name: 'Grit', type: 'talent', system: {} },
-		{ name: 'Rope', type: 'equipment', system: {} },
+		{ id: 'athletics', name: 'Athletics', type: 'skill', system: { rank: 1 } },
+		{ id: 'brawl', name: 'Brawl', type: 'skill', system: { rank: 2 } },
+		{ id: 'tough', name: 'Tough', type: 'ability', system: {} },
+		{ id: 'grit', name: 'Grit', type: 'talent', system: {} },
+		{ id: 'rope', name: 'Rope', type: 'equipment', system: {} },
 	];
 
 	it('embeds everything but skills: its abilities and talents (CRB p. 35)', () => {
@@ -199,10 +203,10 @@ describe('granted items', () => {
 	});
 
 	it('gives or takes a rank of each granted skill, before any XP is spent (CRB p. 36-39)', () => {
-		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, 1)).toEqual([
+		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, [], 1)).toEqual([
 			{ skill: held[0], update: { 'system.rank': 2 } },
 		]);
-		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, -1)).toEqual([
+		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, [], -1)).toEqual([
 			{ skill: held[0], update: { 'system.rank': 0 } },
 		]);
 	});
@@ -210,15 +214,26 @@ describe('granted items', () => {
 	it('gives or takes a rank per grant of a skill the Archetype grants twice, as the Deep Elf does (RoT p. 63)', () => {
 		const twice = [...archetypeGrants().grantedItems, { name: 'Athletics', type: 'skill' }];
 
-		expect(grantedSkillRankUpdates(held, twice, 1)).toEqual([{ skill: held[0], update: { 'system.rank': 3 } }]);
-		expect(grantedSkillRankUpdates([{ ...held[0], system: { rank: 2 } }], twice, -1)).toEqual([
+		expect(grantedSkillRankUpdates(held, twice, [], 1)).toEqual([{ skill: held[0], update: { 'system.rank': 3 } }]);
+		expect(grantedSkillRankUpdates([{ ...held[0], system: { rank: 2 } }], twice, [], -1)).toEqual([
 			{ skill: { ...held[0], system: { rank: 2 } }, update: { 'system.rank': 0 } },
 		]);
 	});
 
 	it('gives a rank of a granted skill the character names with another case', () => {
-		expect(grantedSkillRankUpdates(held, [{ name: 'brawl', type: 'skill' }], 1)).toEqual([
+		expect(grantedSkillRankUpdates(held, [{ name: 'brawl', type: 'skill' }], [], 1)).toEqual([
 			{ skill: held[1], update: { 'system.rank': 3 } },
+		]);
+	});
+
+	it('gives or takes a rank of each skill chosen for the Archetype, as the Human gives two (RoT p. 61)', () => {
+		expect(grantedSkillRankUpdates(held, [], ['brawl'], 1)).toEqual([{ skill: held[1], update: { 'system.rank': 3 } }]);
+		expect(grantedSkillRankUpdates(held, [], ['brawl'], -1)).toEqual([{ skill: held[1], update: { 'system.rank': 1 } }]);
+	});
+
+	it('gives a skill both granted and chosen a rank for each, and ignores a chosen id the character no longer holds', () => {
+		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, ['athletics', 'gone'], 1)).toEqual([
+			{ skill: held[0], update: { 'system.rank': 3 } },
 		]);
 	});
 });
@@ -226,9 +241,10 @@ describe('granted items', () => {
 /**
  * A character actor that records the document operations made on it and its items.
  */
-function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
+function fakeActor(entries: { amount: number; type: EntryType }[] = [], chosenSkillIds: string[] = []) {
 	const operations: string[] = [];
 	const item = (name: string, type: string, system: object = {}) => ({
+		id: name.toLowerCase(),
 		name,
 		type,
 		system,
@@ -239,7 +255,7 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 			operations.push(`delete ${name}`);
 		},
 	});
-	const items = [item('Athletics', 'skill', { rank: 1 }), item('Brawl', 'skill', { rank: 0 }), item('Tough', 'ability')];
+	const items = [item('Athletics', 'skill', { rank: 1 }), item('Brawl', 'skill', { rank: 1 }), item('Tough', 'ability')];
 
 	const actor = {
 		id: 'hero',
@@ -250,7 +266,7 @@ function fakeActor(entries: { amount: number; type: EntryType }[] = []) {
 		},
 	} as unknown as GenesysActor<'character'>;
 
-	const archetype = item('Brute', 'archetype', archetypeGrants()) as unknown as GenesysItem<'archetype'>;
+	const archetype = item('Brute', 'archetype', { ...archetypeGrants(), chosenSkillIds }) as unknown as GenesysItem<'archetype'>;
 
 	return { actor, archetype, operations };
 }
@@ -261,6 +277,19 @@ describe('removeArchetype', () => {
 		await removeArchetype(actor, archetype);
 
 		expect(operations).toEqual(['delete Tough', 'update Athletics {"system.rank":0}', 'update actor []', 'delete Brute']);
+	});
+
+	it('takes back the rank of each skill chosen for the Archetype', async () => {
+		const { actor, archetype, operations } = fakeActor([{ amount: 110, type: EntryType.Starting }], ['brawl']);
+		await removeArchetype(actor, archetype);
+
+		expect(operations).toEqual([
+			'delete Tough',
+			'update Athletics {"system.rank":0}',
+			'update Brawl {"system.rank":0}',
+			'update actor []',
+			'delete Brute',
+		]);
 	});
 });
 

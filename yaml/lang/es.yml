@@ -146,6 +146,10 @@ Genesys:
   CareerSkillPrompt:
     Title: Habilidades de profesión
     Hint: 'Elige habilidades de profesión para adquirir un rango:'
+    NonCareerTitle: Habilidades que no son de profesión
+    NonCareerHint: >-
+      Elige habilidades distintas que no sean de profesión para adquirir un rango. Las de tu profesión quedan fuera una vez
+      que está en la hoja: arrástrala antes que el arquetipo.
     RemainingChoices: Elecciones pendientes
     Confirm: Listo
 
@@ -491,7 +495,7 @@ Genesys:
       Title: Quitar el arquetipo
       Content: >-
         Quitar {name} retira las características, los umbrales de heridas y de tensión y los PE iniciales que dio, elimina los
-        objetos que concedió y baja un rango cada habilidad que concedió. ¿Deseas continuar?
+        objetos que concedió y baja un rango cada habilidad que concedió o que se eligió para él. ¿Deseas continuar?
     ConfirmRemoveCareer:
       Title: Quitar la profesión
       Content: >-
@@ -643,6 +647,7 @@ Genesys:
     StartingXP: Puntos de Experiencia iniciales
     GrantedItems: Objetos concedidos
     GrantedRanks: ×{count}
+    NonCareerSkillChoices: Elecciones de habilidades que no son de profesión
 
   # Adversary Labels
   Adversary:

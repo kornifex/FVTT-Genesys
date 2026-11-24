@@ -19,10 +19,11 @@ export type CareerSkillPromptContext = {
  */
 const CHOICE_TEXTS: Record<SkillChoice['kind'], { title: string; hint: string }> = {
 	freeRanks: { title: 'Genesys.CareerSkillPrompt.Title', hint: 'Genesys.CareerSkillPrompt.Hint' },
+	nonCareerSkills: { title: 'Genesys.CareerSkillPrompt.NonCareerTitle', hint: 'Genesys.CareerSkillPrompt.NonCareerHint' },
 };
 
 /**
- * Prompt the user for the skills that gain a free rank.
+ * Prompt the user for the skills that gain a free rank: a Career's Free Ranks, or an Archetype's non-career skills.
  */
 export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	override get vueComponent() {
@@ -35,8 +36,8 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	};
 
 	/**
-	 * Ask the user to pick skills for a choice, by their IDs: the Career's Free Ranks, as many as the world settings give.
-	 * None when the prompt is closed.
+	 * Ask the user to pick skills for a choice, by their IDs: the Career's Free Ranks, as many as the world settings give,
+	 * or as many non-career skills as the Archetype gives. None when the prompt is closed.
 	 */
 	static async promptForSkills(skills: Stored<GenesysItem<'skill'>>[], choice: SkillChoice) {
 		return new CareerSkillPrompt(skills, choice).prompt();
@@ -56,7 +57,7 @@ export class CareerSkillPrompt extends VuePrompt<string[]>([]) {
 	override async getVueContext(): Promise<CareerSkillPromptContext> {
 		return {
 			skills: this.#skills,
-			count: CONFIG.genesys.settings.freeCareerSkillRanks,
+			count: this.#choice.kind === 'freeRanks' ? CONFIG.genesys.settings.freeCareerSkillRanks : this.#choice.count,
 			hint: CHOICE_TEXTS[this.#choice.kind].hint,
 		};
 	}

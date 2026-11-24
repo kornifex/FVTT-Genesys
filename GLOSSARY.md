@@ -128,6 +128,10 @@ _Avoid_: Creation phase, chargen
 A skill rank gained or lost without spending XP: granted by the archetype or the career, or given or taken by hand, for instance for a talent or by the GM. An archetype grants one per time it lists the skill, so the Deep Elf's two grants of Knowledge (Forbidden) give 2 ranks (RoT p. 63). A Free Rank is not an Advancement and is not recorded in the Experience Journal; a skill's rank never goes below 0.
 _Avoid_: Bonus rank, manual rank
 
+**Non-career skill choice**:
+A Free Rank an archetype gives in a skill of the player's choice, as the Human gives one in each of two different skills (RoT p. 61). The skill must not be a career skill for the character when the archetype is taken; a Career taken later that lists it makes it a career skill, and the rank stays. Replacing or removing the archetype takes the ranks back.
+_Avoid_: Bonus skill, free skill
+
 **Career skill**:
 A skill whose ranks cost the career price, 5 XP less than a non-career skill's (CRB p. 44), and the only kind of magic skill a character can buy under the Career-Only Magic Skills alternate rule. A skill is one from three sources: the character's Career lists it, it is marked by hand, or a Career Skill change of an effect that applies names it. The first two are stored on the skill; the third follows its effect, so it comes and goes with the talent, the archetype or the ability that holds it. A talent can't be undone while a later skill rank was bought at the career price it gave.
 _Avoid_: Class skill, trained skill

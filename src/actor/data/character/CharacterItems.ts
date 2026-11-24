@@ -42,9 +42,9 @@ export type DroppedItem = {
 
 /**
  * The skills a drop asks the player to choose before it is written: those that get a Career's Free Ranks, as many as
- * the world settings give.
+ * the world settings give, or the different non-career skills that gain a rank from an Archetype, as many as it gives.
  */
-export type SkillChoice = { kind: 'freeRanks' };
+export type SkillChoice = { kind: 'freeRanks' } | { kind: 'nonCareerSkills'; count: number };
 
 /**
  * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or a choice of
@@ -81,8 +81,9 @@ function talentDrop(character: Character, dropped: DroppedItem, id: string): Cha
 
 /**
  * Decide what dropping an item does to a character, drawing the ids of the items it creates. A Career first asks for the
- * skills that get its Free Ranks: the decision is made again with the chosen skills. Equipment goes to the character's
- * inventory instead.
+ * skills that get its Free Ranks, and an Archetype with non-career skill choices for those skills: the decision is made
+ * again with the chosen skills, none when the player closed the window. Equipment goes to the character's inventory
+ * instead.
  */
 export function decideCharacterDrop(
 	character: Character,
@@ -106,8 +107,19 @@ export function decideCharacterDrop(
 				return { action: 'refuse', refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: dropped.name } } };
 			}
 
+			// The skills are judged now, before the Career: the Core Rulebook has the archetype picked first (CRB p. 35), so a
+			// Career that later lists a chosen skill makes it a career skill, and the rank stays.
+			const system = dropped.system as ArchetypeGrants;
+			if (system.nonCareerSkillChoices > 0 && !chosenSkillIds) {
+				return {
+					action: 'chooseSkills',
+					choice: { kind: 'nonCareerSkills', count: system.nonCareerSkillChoices },
+					skillIds: character.advancement.skills.filter((skill) => !skill.career).map((skill) => skill.id),
+				};
+			}
+
 			const [held] = ofType(character.items, 'archetype');
-			return writing(archetypeChange(character, held, { system: dropped.system as ArchetypeGrants, source: dropped.source }, newId));
+			return writing(archetypeChange(character, held, { system, source: dropped.source }, chosenSkillIds ?? [], newId));
 		}
 		case 'career': {
 			// A Career can be replaced until a skill rank is bought, since that rank's cost depends on the Career's skills.

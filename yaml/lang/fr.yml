@@ -146,6 +146,10 @@ Genesys:
   CareerSkillPrompt:
     Title: Compétence de carrière
     Hint: 'Choisissez une compétence de carrière pour gagner un rang :'
+    NonCareerTitle: Compétences hors carrière
+    NonCareerHint: >-
+      Choisissez des compétences hors carrière différentes pour gagner un rang. Celles de votre carrière sont écartées une
+      fois qu'elle est sur la fiche : glissez-la avant l'archétype.
     RemainingChoices: Choix restants
     Confirm: Confirmer
 
@@ -493,7 +497,8 @@ Genesys:
       Title: Retirer l'archétype
       Content: >-
         Retirer {name} reprend les caractéristiques, les seuils de blessures et de stress et l'XP de départ qu'il a donnés,
-        supprime les objets qu'il a accordés et baisse d'un rang chaque compétence qu'il a accordée. Voulez-vous continuer ?
+        supprime les objets qu'il a accordés et baisse d'un rang chaque compétence qu'il a accordée ou choisie pour lui.
+        Voulez-vous continuer ?
     ConfirmRemoveCareer:
       Title: Retirer la carrière
       Content: >-
@@ -649,6 +654,7 @@ Genesys:
     StartingXP: Expérience de départ
     GrantedItems: Objets ou talents
     GrantedRanks: ×{count}
+    NonCareerSkillChoices: Choix de compétences hors carrière
 
   # Adversary Labels
   Adversary:
