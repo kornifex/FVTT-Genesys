@@ -402,6 +402,7 @@ const SELECT_OPTIONS = '.vue-app :where(select) :where(option, optgroup)';
 function paletteColor(rule: Record<string, string>, property: string): string {
 	const reference = /^var\(--genesys-([a-z-]+)\)$/.exec(rule[property] ?? '');
 	expect(reference, `${property}: ${rule[property]}`).not.toBeNull();
+	// The expect above throws on a null match, which TypeScript can't see through vitest's assertion.
 	return reference![1];
 }
 
