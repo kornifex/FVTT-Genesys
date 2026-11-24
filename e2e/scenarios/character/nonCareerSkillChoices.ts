@@ -271,10 +271,75 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 		{ choices: 0, errors: [] },
 	);
 
+	// A replacement that shares a skill with what it replaces changes that skill's rank twice in one plan, which a build
+	// before the fix got wrong on Foundry's items.
+	const G = 'Twin Grants';
+	await e2e.step('#924 N11 an Archetype granting Athletics replaced by another granting Athletics', async () => {
+		const twin = human('Twin Archetype', 0);
+		await page((item) => Item.createDocuments([item]), {
+			...twin,
+			system: { ...twin.system, grantedItems: [{ name: 'Athletics', type: 'skill', system: {} }] },
+		});
+		await page(async (name) => {
+			await window.characterE2E.create(name);
+			await window.characterE2E.open(name);
+			await window.characterE2E.applyArchetype(name, 'Archetype');
+		}, G);
+		await dropArchetype(G, 'Twin Archetype');
+		await page(async (name) => {
+			try {
+				await window.e2e.waitFor(
+					`the Twin Archetype on E2E ${name}`,
+					() => game.actors.getName(`E2E ${name}`).items.some((item: { name: string }) => item.name === 'E2E Twin Archetype'),
+					5000,
+				);
+			} catch {
+				// A build before the fix fails the replacement: the expect below tells.
+			}
+		}, G);
+	});
+	e2e.expect(
+		'#924 N11 a skill both Archetypes grant keeps its rank',
+		{ archetype: (await archetypeOf(G))?.name ?? null, ranks: await ranks(G, ['Athletics']) },
+		{ archetype: 'E2E Twin Archetype', ranks: { Athletics: 1 } },
+	);
+
+	const T = 'Twin Careers';
+	await e2e.step(
+		'#924 N12 a Career replaced by the Ranger, which lists Ranged and Stealth too, their Free Ranks chosen again',
+		async () => {
+			await page(async (name) => {
+				await window.characterE2E.create(name);
+				await window.characterE2E.open(name);
+				window.characterE2E.drop(name, window.characterE2E.worldItem('Career'));
+			}, T);
+			await page((name) => window.characterE2E.careerPrompt(name, ['Ranged', 'Cool', 'Stealth', 'Perception']), T);
+			await page((name) => window.characterE2E.drop(name, window.characterE2E.worldItem('Ranger')), T);
+			await prompt();
+			await pick(['Ranged', 'Stealth', 'Survival', 'Athletics']);
+			await page((name) => window.e2e.showTab(name, 'skills'), T);
+		},
+	);
+	e2e.expect(
+		'#924 N12 the skills both Careers list stay career skills with one Free Rank, those of the first alone lose theirs',
+		Object.fromEntries(
+			Object.entries(await skillsOf(page, T, ['Ranged', 'Stealth', 'Survival', 'Cool'])).map(([name, skill]) => [
+				name,
+				skill && { rank: skill.rank, career: skill.career },
+			]),
+		),
+		{
+			Ranged: { rank: 1, career: true },
+			Stealth: { rank: 1, career: true },
+			Survival: { rank: 1, career: true },
+			Cool: { rank: 0, career: false },
+		},
+	);
+
 	await page(
 		async (names) => {
 			for (const name of names) await window.characterE2E.close(name);
 		},
-		[H, L],
+		[H, L, G, T],
 	);
 }
