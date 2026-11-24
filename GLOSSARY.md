@@ -166,7 +166,7 @@ How many attachments a weapon or an armor can hold: half its base encumbrance, r
 _Avoid_: Slots, mod slots
 
 **Attachment**:
-Equipment installed on a weapon or an armor that takes some of its Hard Points (CRB pp. 206–209). An attachment dropped on a weapon or an armor is copied whole, as a quality is: its Active Effects become the item's own, and go with it. Its enabled effects are its base modifiers; its disabled ones, its modification options, which the table installs by enabling them. On a weapon, its Pool Modifications change the attacks made with any of the weapon's profiles; on an armor, every check they name. The same attachment dropped twice is installed twice. An attachment an actor holds as is changes nothing, nor does a quality.
+Equipment installed on a weapon or an armor that takes some of its Hard Points (CRB pp. 206–209). An attachment dropped on a weapon or an armor is copied whole, as a quality is: its Active Effects become the item's own, and go with it. Its enabled effects are its base modifiers; its disabled ones, its modification options, which the table installs by enabling them. On a weapon, its Pool Modifications change the attacks made with any of the weapon's profiles, and its Critical Injury changes count only for the injuries those attacks inflict; on an armor, they change every check they name and every Critical Injury its wearer inflicts or suffers. The same attachment dropped twice is installed twice. An attachment an actor holds as is changes nothing, nor does a quality.
 _Avoid_: Mod, upgrade
 
 **Item Change**:
