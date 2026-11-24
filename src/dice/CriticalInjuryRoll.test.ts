@@ -195,6 +195,37 @@ describe('criticalEffectBonuses of qualities (#726)', () => {
 	});
 });
 
+describe('criticalEffectBonuses of attachments (#932)', () => {
+	const attachmentEffect = (name: string, item: { type: string; uuid: string }, key = inflicted) =>
+		effect(name, [key(10)], {
+			flags: { genesys: { attachment: 'm1' } },
+			originItem: { name: item.uuid, uuid: item.uuid, type: item.type, system: {} },
+		});
+
+	const rifle = { type: 'weapon', uuid: 'Item.Rifle' };
+	const pistol = { type: 'weapon', uuid: 'Item.Pistol' };
+	const attackWith = ({ uuid }: { uuid: string }) => ({ name: uuid, uuid, qualities: [] });
+	const attacker = actor([attachmentEffect('Serrated Rounds', rifle)]);
+
+	it("counts a weapon's attachment's change for an attack with that weapon only", () => {
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith(rifle))).toMatchObject([{ name: 'Serrated Rounds', value: 10 }]);
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith(pistol))).toEqual([]);
+		expect(criticalEffectBonuses(attacker, 'inflicted')).toEqual([]);
+	});
+
+	it("leaves a weapon's attachment out of the injuries its wielder suffers", () => {
+		expect(criticalEffectBonuses(actor([attachmentEffect('Serrated Rounds', rifle, suffered)]), 'suffered', attackWith(rifle))).toEqual(
+			[],
+		);
+	});
+
+	it("counts an armor's attachment whatever the weapon", () => {
+		const armor = { type: 'armor', uuid: 'Item.Mail' };
+
+		expect(criticalEffectBonuses(actor([attachmentEffect('Padding', armor, suffered)]), 'suffered')).toMatchObject([{ value: 10 }]);
+	});
+});
+
 describe('parseCriticalInjuryFlag', () => {
 	const attack = {
 		triggers: 2,
