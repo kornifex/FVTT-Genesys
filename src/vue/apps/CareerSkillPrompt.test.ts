@@ -37,10 +37,26 @@ function mountPrompt(count: number, hint: string) {
 }
 
 describe('CareerSkillPrompt', () => {
-	it('shows the hint it is given above the skills', () => {
-		const { prompt } = mountPrompt(4, 'Genesys.CareerSkillPrompt.Hint');
+	it.each(['Genesys.CareerSkillPrompt.Hint', 'Genesys.CareerSkillPrompt.NonCareerHint'])(
+		'shows the hint it is given above the skills: %s',
+		(hint) => {
+			const { prompt } = mountPrompt(2, hint);
 
-		expect(prompt.get('.career-skills-hint').text()).toBe('localized Genesys.CareerSkillPrompt.Hint');
+			expect(prompt.get('.career-skills-hint').text()).toBe(`localized ${hint}`);
+		},
+	);
+
+	it('asks for no more choices than it offers skills, so Done can be reached', async () => {
+		const { prompt, answer } = mountPrompt(4, 'Genesys.CareerSkillPrompt.NonCareerHint');
+
+		expect(prompt.get('.remaining').text()).toBe('localized Genesys.CareerSkillPrompt.RemainingChoices: 3');
+
+		for (const button of prompt.findAll('.select-skill')) {
+			await button.trigger('click');
+		}
+
+		expect(prompt.get('.prompt-submit').attributes('disabled')).toBeUndefined();
+		expect(answer()).toEqual(['ranged', 'stealth', 'cool']);
 	});
 
 	it('counts the choices left down from the number it is given, and keeps Done disabled until none is left', async () => {
