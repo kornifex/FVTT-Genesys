@@ -246,6 +246,31 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 		},
 	);
 
+	const emptied = await e2e.step("#924 N10 GM empties the Human's non-career skill choices on its sheet", () =>
+		page(async () => {
+			const { render, settle } = window.e2e;
+			const item = game.items.getName('E2E Human');
+			const root = await render(item.sheet, (root) => root.querySelector('input[name="system.startingXP"]'));
+			const input = root.querySelector<HTMLInputElement>('input[name="system.nonCareerSkillChoices"]');
+			if (input) {
+				input.value = '';
+				input.dispatchEvent(new Event('change', { bubbles: true }));
+				await settle();
+			}
+			await item.sheet.close();
+		}, undefined),
+	);
+	// The field can't be null: Foundry's sheet cleans the emptied field to its initial 0 before it validates the update. A
+	// failed update would show as an error notification.
+	e2e.expect(
+		'#924 N10 an emptied field stores no choice, without an error',
+		{
+			choices: await page(() => game.items.getName('E2E Human').system.nonCareerSkillChoices ?? null, undefined),
+			errors: Object.values(emptied).flatMap((state) => state?.notifications.filter((note) => note.startsWith('error')) ?? []),
+		},
+		{ choices: 0, errors: [] },
+	);
+
 	await page(
 		async (names) => {
 			for (const name of names) await window.characterE2E.close(name);
