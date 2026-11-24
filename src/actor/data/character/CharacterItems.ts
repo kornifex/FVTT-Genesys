@@ -2,7 +2,13 @@
  * @file A character's Archetype, Career, skills, talents, abilities and Critical Injuries: the drops they receive.
  */
 
-import { AdvancementCharacter, buyDroppedTalent, canReplaceCareer, CharacterWrites } from '@/actor/data/character/Advancement';
+import {
+	AdvancementCharacter,
+	buyDroppedTalent,
+	canReplaceCareer,
+	CharacterWrites,
+	isBarredMagicSkill,
+} from '@/actor/data/character/Advancement';
 import { ArchetypeGrants, archetypeChange, ArchetypeHolder, canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { careerChange, heldCareerSkills } from '@/actor/data/character/Career';
 import { isOwnedSkill } from '@/data/Skills';
@@ -112,13 +118,8 @@ export function decideCharacterDrop(
 			// The skills are judged now, before the Career: the Core Rulebook has the archetype picked first (CRB p. 35), so a
 			// Career that later lists a chosen skill makes it a career skill, and the rank stays.
 			if (system.nonCareerSkillChoices > 0 && !chosenSkillIds) {
-				// Under the Career-Only Magic Skills rule, magic is a career skill's alone (RoT p. 115, CRB p. 212). The text only
-				// forbids buying a non-career magic skill, but a free rank would let a non-caster cast through a skill they could
-				// never raise, which the rule exists to forbid: those skills are left out, as `buySkillRank` refuses them.
-				const { careerOnlyMagicSkills } = character.advancement.alternateRules;
-				const offered = character.advancement.skills.filter(
-					(skill) => !skill.career && !(careerOnlyMagicSkills && skill.category === 'magic'),
-				);
+				const { alternateRules } = character.advancement;
+				const offered = character.advancement.skills.filter((skill) => !skill.career && !isBarredMagicSkill(skill, alternateRules));
 				return {
 					action: 'chooseSkills',
 					choice: { kind: 'nonCareerSkills', count: system.nonCareerSkillChoices },
