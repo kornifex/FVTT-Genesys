@@ -1,5 +1,5 @@
 import type { ScenarioContext } from '../../scenario.ts';
-import type { Evaluate } from './shared.ts';
+import { type Evaluate, skillsOf } from './shared.ts';
 
 /**
  * §#924: an Archetype with non-career skill choices, as the Human's two (RoT p. 61), asks for that many different
@@ -8,9 +8,8 @@ import type { Evaluate } from './shared.ts';
 export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate) {
 	const H = 'Human Hero';
 	const L = 'Late Career';
-	const skills = (actor: string, names: string[]) => page((args) => window.characterE2E.skills(args.actor, args.names), { actor, names });
 	const ranks = async (actor: string, names: string[]) =>
-		Object.fromEntries(Object.entries(await skills(actor, names)).map(([name, skill]) => [name, skill?.rank ?? null]));
+		Object.fromEntries(Object.entries(await skillsOf(page, actor, names)).map(([name, skill]) => [name, skill?.rank ?? null]));
 	const label = (key: string) => page((key) => game.i18n.localize(key), key);
 	const dropArchetype = (actor: string, archetype: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.archetype)), { actor, archetype });
@@ -224,7 +223,7 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 	);
 	e2e.expect(
 		'#924 N8 the Career is accepted: Ranged keeps its rank and becomes a career skill, Brawl stays a non-career skill',
-		await skills(L, ['Ranged', 'Brawl']),
+		await skillsOf(page, L, ['Ranged', 'Brawl']),
 		{
 			Ranged: { rank: 1, career: true, star: true, canBuy: true },
 			Brawl: { rank: 1, career: false, star: false, canBuy: true },
@@ -236,12 +235,16 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 		await e2e.settle();
 	});
 	// Character Creation caps bought ranks at 2, Free Ranks included (CRB p. 44).
-	e2e.expect('#924 N9 a skill at rank 2 can no longer be bought during Character Creation', (await skills(L, ['Ranged'])).Ranged, {
-		rank: 2,
-		career: true,
-		star: true,
-		canBuy: false,
-	});
+	e2e.expect(
+		'#924 N9 a skill at rank 2 can no longer be bought during Character Creation',
+		(await skillsOf(page, L, ['Ranged'])).Ranged,
+		{
+			rank: 2,
+			career: true,
+			star: true,
+			canBuy: false,
+		},
+	);
 
 	await page(
 		async (names) => {

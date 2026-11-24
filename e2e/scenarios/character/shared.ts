@@ -1057,3 +1057,11 @@ export function installCharacterHelpers() {
 }
 
 export type Evaluate = <A, R>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
+
+/**
+ * The skills of the character `E2E <actor>`, by name, as their Skills tab shows them, read in the page `page` runs in:
+ * null for a skill they don't own.
+ */
+export function skillsOf(page: Evaluate, actor: string, names: string[]) {
+	return page((args) => window.characterE2E.skills(args.actor, args.names), { actor, names });
+}

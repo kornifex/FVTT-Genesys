@@ -1,5 +1,5 @@
 import type { ScenarioContext } from '../../scenario.ts';
-import type { Characteristic, Evaluate } from './shared.ts';
+import { type Characteristic, type Evaluate, skillsOf } from './shared.ts';
 
 /** §#36, §#114, §#130, §#198: spending XP from the sheet, awarding it, and undoing each kind of entry. */
 export async function advancement(
@@ -12,7 +12,7 @@ export async function advancement(
 	const xp = () => page((name) => window.characterE2E.xp(name), A);
 	const journalTail = async (count: number) => (await page((name) => window.characterE2E.journal(name), A)).slice(-count);
 	const characteristic = (c: Characteristic) => page((args) => window.characterE2E.characteristic(args.actor, args.c), { actor: A, c });
-	const skills = (names: string[]) => page((args) => window.characterE2E.skills(args.actor, args.names), { actor: A, names });
+	const skills = (names: string[]) => skillsOf(page, A, names);
 	const talent = (name: string) => page((args) => window.characterE2E.talent(args.actor, args.name), { actor: A, name });
 	const drop = (item: string) =>
 		page((args) => window.characterE2E.drop(args.actor, window.characterE2E.worldItem(args.item)), { actor: A, item });
