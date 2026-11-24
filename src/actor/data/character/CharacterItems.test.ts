@@ -325,6 +325,49 @@ describe('decideCharacterDrop', () => {
 				});
 			});
 
+			describe('under the Career-Only Magic Skills alternate rule', () => {
+				/**
+				 * A character whose Career makes Arcana a career skill, and who has Divine and Primal, magic skills, and Stealth,
+				 * none of which is a career skill.
+				 */
+				function caster(careerOnlyMagicSkills: boolean) {
+					const skills = [
+						{ ...skill('arcana', 'Arcana', 0, true), category: 'magic' as const },
+						{ ...skill('divine', 'Divine'), category: 'magic' as const },
+						{ ...skill('stealth', 'Stealth'), category: 'general' as const },
+						{ ...skill('primal', 'Primal'), category: 'magic' as const },
+					];
+					return character(
+						skills.map(({ category: _, ...item }) => item),
+						{
+							system: newcomer().system,
+							advancement: {
+								...character().advancement,
+								skills: skills.map(({ id, name, system, category }) => {
+									const { rank, career } = system as { rank: number; career: boolean };
+									return { id, name, rank, career, category };
+								}),
+								alternateRules: { careerOnlyMagicSkills },
+							},
+						},
+					);
+				}
+
+				it("leaves out the magic skills that aren't career skills, which the character could never raise (RoT p. 115, CRB p. 212)", () => {
+					expect(decideCharacterDrop(caster(true), dropped('archetype', 'Human', human), ids())).toMatchObject({
+						action: 'chooseSkills',
+						skillIds: ['stealth'],
+					});
+				});
+
+				it('offers the magic skills that are no career skills without the rule', () => {
+					expect(decideCharacterDrop(caster(false), dropped('archetype', 'Human', human), ids())).toMatchObject({
+						action: 'chooseSkills',
+						skillIds: ['divine', 'stealth', 'primal'],
+					});
+				});
+			});
+
 			it('asks nothing for an Archetype without choices', () => {
 				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Scholar', scholar), ids())).toMatchObject({ action: 'write' });
 			});

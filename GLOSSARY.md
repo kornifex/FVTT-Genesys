@@ -129,7 +129,7 @@ A skill rank gained or lost without spending XP: granted by the archetype or the
 _Avoid_: Bonus rank, manual rank
 
 **Non-career skill choice**:
-A Free Rank an archetype gives in a skill of the player's choice, as the Human gives one in each of two different skills (RoT p. 61). The skill must not be a career skill for the character when the archetype is taken; a Career taken later that lists it makes it a career skill, and the rank stays. Replacing or removing the archetype takes the ranks back.
+A Free Rank an archetype gives in a skill of the player's choice, as the Human gives one in each of two different skills (RoT p. 61). The skill must not be a career skill for the character when the archetype is taken; a Career taken later that lists it makes it a career skill, and the rank stays. Under the Career-Only Magic Skills alternate rule, a magic skill can't be chosen, since the character could never raise it (RoT p. 115). Replacing or removing the archetype takes the ranks back.
 _Avoid_: Bonus skill, free skill
 
 **Career skill**:
