@@ -30,20 +30,23 @@ export function heldCareerSkills<T extends { name: string; type: string }>(items
 /**
  * The updates of the character's skills when a Career is added (sign +1) or removed (sign -1): the skills it lists
  * become Career skills or stop being ones, and those chosen for its Free Ranks gain or lose a rank, never going below 0.
+ * A skill's rank is the one `ranks` holds under its id, if a change before this one gave it a new rank, or its own.
  */
 export function careerSkillUpdates<T extends { id: string; name: string; type: string; system: unknown }>(
 	items: T[],
 	careerSkills: { name: string }[],
 	freeRankSkillIds: string[],
 	sign: 1 | -1,
+	ranks: ReadonlyMap<string, number> = new Map(),
 ) {
+	// A skill item's data is a skill's, which holds its rank.
 	const skills = heldCareerSkills(items, careerSkills) as (T & { system: { rank: number } })[];
 
 	return skills.map((skill) => ({
 		skill,
 		update: {
 			'system.career': sign > 0,
-			'system.rank': freeRank(skill.system.rank, freeRankSkillIds.includes(skill.id) ? sign : 0),
+			'system.rank': freeRank(ranks.get(skill.id) ?? skill.system.rank, freeRankSkillIds.includes(skill.id) ? sign : 0),
 		},
 	}));
 }
@@ -61,15 +64,15 @@ export function careerChange<T extends { id: string; name: string; type: string;
 	freeRankSkillIds: string[],
 	newId: () => string,
 ) {
-	let current = items;
+	// The ranks under change are kept by the items' ids rather than in copies of the items: a Foundry item's id is a getter
+	// of its prototype, which a copy made by spreading it leaves out.
 	const updates = new Map<string, { 'system.career': boolean; 'system.rank': number }>();
+	const ranks = new Map<string, number>();
 	const change = (careerSkills: { name: string }[], chosen: string[], sign: 1 | -1) => {
-		for (const { skill, update } of careerSkillUpdates(current, careerSkills, chosen, sign)) {
+		for (const { skill, update } of careerSkillUpdates(items, careerSkills, chosen, sign, ranks)) {
 			updates.set(skill.id, update);
+			ranks.set(skill.id, update['system.rank']);
 		}
-		current = current.map((item) =>
-			updates.has(item.id) ? { ...item, system: { ...(item.system as object), rank: updates.get(item.id)!['system.rank'] } } : item,
-		);
 	};
 
 	if (held) {

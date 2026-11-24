@@ -185,14 +185,16 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(
 
 /**
  * The rank updates of the character's skills granted by the Archetype or chosen for its non-career skill choices, which
- * gain (sign +1) or lose (sign -1) a rank per grant and per choice, never going below 0. Each granted skill is the one the character rolls
- * for its name; each chosen skill is found by its id, and one the character no longer holds is left out.
+ * gain (sign +1) or lose (sign -1) a rank per grant and per choice, never going below 0. Each granted skill is the one
+ * the character rolls for its name; each chosen skill is found by its id, and one the character no longer holds is left
+ * out. A skill's rank is the one `ranks` holds under its id, if a change before this one gave it a new rank, or its own.
  */
 export function grantedSkillRankUpdates<T extends HeldItem & { id: string }>(
 	items: T[],
 	grantedItems: ArchetypeGrants['grantedItems'],
 	chosenSkillIds: string[],
 	sign: ArchetypeSign,
+	ranks: ReadonlyMap<string, number> = new Map(),
 ) {
 	const skills = ofType(items, 'skill');
 	const granted = grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []);
@@ -205,7 +207,7 @@ export function grantedSkillRankUpdates<T extends HeldItem & { id: string }>(
 	return [...grants].map(([skill, count]) => ({
 		skill,
 		update: {
-			'system.rank': freeRank(skill.system.rank, sign * count),
+			'system.rank': freeRank(ranks.get(skill.id) ?? skill.system.rank, sign * count),
 		},
 	}));
 }
@@ -225,16 +227,14 @@ export function archetypeChange<T extends HeldItem & { id: string }>(
 	newId: () => string,
 ) {
 	let holder = character.system;
-	let items = character.items;
 	const itemDeletes: string[] = [];
+	// The ranks under change are kept by the items' ids rather than in copies of the items: a Foundry item's id is a getter
+	// of its prototype, which a copy made by spreading it leaves out.
 	const ranks = new Map<string, number>();
 	const changeRanks = (archetype: ArchetypeGrants, chosen: string[], sign: ArchetypeSign) => {
-		for (const { skill, update } of grantedSkillRankUpdates(items, archetype.grantedItems, chosen, sign)) {
+		for (const { skill, update } of grantedSkillRankUpdates(character.items, archetype.grantedItems, chosen, sign, ranks)) {
 			ranks.set(skill.id, update['system.rank']);
 		}
-		items = items.map((item) =>
-			ranks.has(item.id) ? { ...item, system: { ...(item.system as object), rank: ranks.get(item.id) } } : item,
-		);
 	};
 
 	if (held) {
