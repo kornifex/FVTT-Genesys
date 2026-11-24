@@ -37,6 +37,28 @@ function skill(id: string, name: string, rank = 0, career = false): CharacterIte
 	return { id, name, type: 'skill', system: { rank, career } };
 }
 
+/**
+ * An item as Foundry holds it: its fields are its own properties, but its id is a getter on its prototype, which a copy
+ * made by spreading it (`{ ...item }`) leaves out.
+ */
+class DocumentLike {
+	_id: string;
+	name: string;
+	type: string;
+	system: object;
+
+	constructor(id: string, name: string, type: string, system: object) {
+		this._id = id;
+		this.name = name;
+		this.type = type;
+		this.system = system;
+	}
+
+	get id() {
+		return this._id;
+	}
+}
+
 function dropped(type: string, name: string, system: object = {}): DroppedItem {
 	const source = { _id: 'source', name, type, system };
 	return { type, name, system, source };
@@ -155,6 +177,8 @@ describe('decideCharacterDrop', () => {
 					flags: { core: { sourceId: 'Item.tough' }, genesys: { archetypeGrant: 'stale', other: 1 } },
 				},
 			],
+			nonCareerSkillChoices: 0,
+			chosenSkillIds: [],
 		};
 		const scholar = {
 			characteristics: { brawn: 2, agility: 2, intellect: 3, cunning: 2, willpower: 2, presence: 2 },
@@ -166,6 +190,17 @@ describe('decideCharacterDrop', () => {
 				{ name: 'Knowledge', type: 'skill' },
 				{ name: 'Gifted', type: 'talent' },
 			],
+			nonCareerSkillChoices: 0,
+			chosenSkillIds: [],
+		};
+		const human = {
+			characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 },
+			woundThreshold: 10,
+			strainThreshold: 10,
+			startingXP: 110,
+			grantedItems: [],
+			nonCareerSkillChoices: 2,
+			chosenSkillIds: [],
 		};
 
 		/**
@@ -263,6 +298,30 @@ describe('decideCharacterDrop', () => {
 			});
 		});
 
+		it("keeps the rank of a skill both the held and the dropped Archetype grant, on items like Foundry's", () => {
+			const held = brutish();
+			held.items = [
+				new DocumentLike('brute', 'Brute', 'archetype', brute),
+				new DocumentLike('athletics', 'Athletics', 'skill', { rank: 1 }),
+				new DocumentLike('knowledge', 'Knowledge', 'skill', { rank: 0 }),
+			];
+
+			expect(decideCharacterDrop(held, dropped('archetype', 'Scholar', scholar), ids())).toMatchObject({
+				action: 'write',
+				plan: { itemUpdates: [{ _id: 'knowledge', 'system.rank': 1 }], itemDeletes: ['brute'] },
+			});
+		});
+
+		it('leaves at 0 a skill both the held and the dropped Archetype grant whose rank was taken back by hand: its rank changes by the net change', () => {
+			const held = brutish();
+			held.items = held.items.map((item) => (item.id === 'athletics' ? skill('athletics', 'Athletics', 0) : item));
+
+			expect(decideCharacterDrop(held, dropped('archetype', 'Scholar', scholar), ids())).toMatchObject({
+				action: 'write',
+				plan: { itemUpdates: [{ _id: 'knowledge', 'system.rank': 1 }] },
+			});
+		});
+
 		it('refuses an Archetype once the Experience Journal holds more than the Starting XP, and says what to undo', () => {
 			const awarded = brutish([
 				{ amount: 100, type: EntryType.Starting },
@@ -272,6 +331,226 @@ describe('decideCharacterDrop', () => {
 			expect(decideCharacterDrop(awarded, dropped('archetype', 'Scholar', scholar), ids())).toEqual({
 				action: 'refuse',
 				refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: 'Scholar' } },
+			});
+		});
+
+		describe('with non-career skill choices', () => {
+			/**
+			 * A character whose Career makes Ranged a career skill, who marked Cool by hand, and whose talent's effect makes
+			 * Arcana one: the skills tab's career skills, which Advancement reads.
+			 */
+			function skilled(items: CharacterItem[] = [], system = newcomer().system) {
+				const skills = [
+					skill('ranged', 'Ranged', 0, true),
+					skill('cool', 'Cool', 0, true),
+					skill('arcana', 'Arcana'),
+					skill('stealth', 'Stealth'),
+					skill('charm', 'Charm', 1),
+				];
+				const careerSkills = new Set(['ranged', 'cool', 'arcana']);
+				return character([...skills, ...items], {
+					system,
+					advancement: {
+						...character().advancement,
+						skills: skills.map(({ id, name, system }) => ({
+							id,
+							name,
+							rank: (system as { rank: number }).rank,
+							career: careerSkills.has(id),
+							category: 'general' as const,
+						})),
+					},
+				});
+			}
+
+			it("asks for as many different skills as the Archetype gives, among the character's non-career skills, leaving out their Career's, those marked by hand and those an effect makes career skills (RoT p. 61)", () => {
+				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Human', human), ids())).toEqual({
+					action: 'chooseSkills',
+					choice: { kind: 'nonCareerSkills', count: 2 },
+					skillIds: ['stealth', 'charm'],
+				});
+			});
+
+			describe('under the Career-Only Magic Skills alternate rule', () => {
+				/**
+				 * A character whose Career makes Arcana a career skill, and who has Divine and Primal, magic skills, and Stealth,
+				 * none of which is a career skill.
+				 */
+				function caster(careerOnlyMagicSkills: boolean) {
+					const skills = [
+						{ ...skill('arcana', 'Arcana', 0, true), category: 'magic' as const },
+						{ ...skill('divine', 'Divine'), category: 'magic' as const },
+						{ ...skill('stealth', 'Stealth'), category: 'general' as const },
+						{ ...skill('primal', 'Primal'), category: 'magic' as const },
+					];
+					return character(
+						skills.map(({ category: _, ...item }) => item),
+						{
+							system: newcomer().system,
+							advancement: {
+								...character().advancement,
+								skills: skills.map(({ id, name, system, category }) => {
+									const { rank, career } = system as { rank: number; career: boolean };
+									return { id, name, rank, career, category };
+								}),
+								alternateRules: { careerOnlyMagicSkills },
+							},
+						},
+					);
+				}
+
+				it("leaves out the magic skills that aren't career skills, which the character could never raise (RoT p. 115, CRB p. 212)", () => {
+					expect(decideCharacterDrop(caster(true), dropped('archetype', 'Human', human), ids())).toMatchObject({
+						action: 'chooseSkills',
+						skillIds: ['stealth'],
+					});
+				});
+
+				it('offers the magic skills that are no career skills without the rule', () => {
+					expect(decideCharacterDrop(caster(false), dropped('archetype', 'Human', human), ids())).toMatchObject({
+						action: 'chooseSkills',
+						skillIds: ['divine', 'stealth', 'primal'],
+					});
+				});
+			});
+
+			it('asks nothing for an Archetype without choices', () => {
+				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Scholar', scholar), ids())).toMatchObject({ action: 'write' });
+			});
+
+			it('gives each chosen skill a rank, and the Archetype keeps the chosen skills', () => {
+				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Human', human), ids(), ['stealth', 'charm'])).toMatchObject({
+					action: 'write',
+					plan: {
+						itemCreates: [
+							{ _id: 'new1', name: 'Human', type: 'archetype', system: { ...human, chosenSkillIds: ['stealth', 'charm'] } },
+						],
+						itemUpdates: [
+							{ _id: 'stealth', 'system.rank': 1 },
+							{ _id: 'charm', 'system.rank': 2 },
+						],
+						itemDeletes: [],
+					},
+				});
+			});
+
+			it('keeps the skills chosen now, not those an Archetype copied from another character holds', () => {
+				const copied = dropped('archetype', 'Human', { ...human, chosenSkillIds: ['ranged', 'cool'] });
+
+				expect(decideCharacterDrop(skilled(), copied, ids(), ['stealth'])).toMatchObject({
+					action: 'write',
+					plan: {
+						itemCreates: [{ system: { chosenSkillIds: ['stealth'] } }],
+						itemUpdates: [{ _id: 'stealth', 'system.rank': 1 }],
+					},
+				});
+			});
+
+			it('drops the Archetype without chosen skills when none was offered', () => {
+				expect(decideCharacterDrop(skilled(), dropped('archetype', 'Human', human), ids(), [])).toMatchObject({
+					action: 'write',
+					plan: { itemCreates: [{ name: 'Human', system: { chosenSkillIds: [] } }], itemUpdates: [] },
+				});
+			});
+
+			it('cancels the drop when the window is closed, so the Archetype held and its chosen ranks stay', () => {
+				const humanHeld = { id: 'human', name: 'Human', type: 'archetype', system: { ...human, chosenSkillIds: ['stealth'] } };
+
+				expect(decideCharacterDrop(skilled([humanHeld]), dropped('archetype', 'Other Human', human), ids(), null)).toEqual({
+					action: 'refuse',
+				});
+			});
+
+			it('asks again when the Archetype is replaced by one with choices, then takes back the ranks of the skills chosen for the held one', () => {
+				const humanHeld = {
+					id: 'human',
+					name: 'Human',
+					type: 'archetype',
+					system: { ...human, chosenSkillIds: ['stealth', 'charm'] },
+				};
+				const held = skilled([humanHeld], {
+					characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 },
+					wounds: { max: 12 },
+					strain: { max: 12 },
+					experienceJournal: { entries: [{ amount: 110, type: EntryType.Starting }] },
+				});
+				// Each skill chosen for the held Human holds its rank.
+				held.items = held.items.map((item) =>
+					item.id === 'stealth' ? skill('stealth', 'Stealth', 1) : item.id === 'charm' ? skill('charm', 'Charm', 2) : item,
+				);
+				const otherHuman = { ...human, startingXP: 100 };
+
+				expect(decideCharacterDrop(held, dropped('archetype', 'Other Human', otherHuman), ids())).toMatchObject({
+					action: 'chooseSkills',
+					choice: { kind: 'nonCareerSkills', count: 2 },
+				});
+				expect(
+					decideCharacterDrop(held, dropped('archetype', 'Other Human', otherHuman), ids(), ['charm', 'arcana']),
+				).toMatchObject({
+					action: 'write',
+					plan: {
+						itemUpdates: [
+							{ _id: 'stealth', 'system.rank': 0 },
+							{ _id: 'arcana', 'system.rank': 1 },
+						],
+						itemDeletes: ['human'],
+					},
+				});
+			});
+
+			it("keeps the rank of a skill chosen for both the held and the dropped Archetype, on items like Foundry's", () => {
+				const held = character(
+					[
+						new DocumentLike('human', 'Human', 'archetype', { ...human, chosenSkillIds: ['brawl', 'deception'] }),
+						new DocumentLike('brawl', 'Brawl', 'skill', { rank: 1, career: false }),
+						new DocumentLike('deception', 'Deception', 'skill', { rank: 1, career: false }),
+						new DocumentLike('survival', 'Survival', 'skill', { rank: 0, career: false }),
+					],
+					{ system: { ...newcomer().system, experienceJournal: { entries: [{ amount: 110, type: EntryType.Starting }] } } },
+				);
+
+				expect(
+					decideCharacterDrop(held, dropped('archetype', 'Other Human', human), ids(), ['deception', 'survival']),
+				).toMatchObject({
+					action: 'write',
+					plan: {
+						itemUpdates: [
+							{ _id: 'brawl', 'system.rank': 0 },
+							{ _id: 'survival', 'system.rank': 1 },
+						],
+						itemDeletes: ['human'],
+					},
+				});
+			});
+
+			it('takes back the ranks of the skills chosen for the held Archetype when one without choices replaces it', () => {
+				const humanHeld = { id: 'human', name: 'Human', type: 'archetype', system: { ...human, chosenSkillIds: ['stealth'] } };
+				const held = skilled([humanHeld], {
+					characteristics: { brawn: 2, agility: 2, intellect: 2, cunning: 2, willpower: 2, presence: 2 },
+					wounds: { max: 12 },
+					strain: { max: 12 },
+					experienceJournal: { entries: [{ amount: 110, type: EntryType.Starting }] },
+				});
+				held.items = held.items.map((item) => (item.id === 'stealth' ? skill('stealth', 'Stealth', 1) : item));
+
+				expect(decideCharacterDrop(held, dropped('archetype', 'Scholar', { ...scholar, grantedItems: [] }), ids())).toMatchObject({
+					action: 'write',
+					plan: { itemUpdates: [{ _id: 'stealth', 'system.rank': 0 }], itemDeletes: ['human'] },
+				});
+			});
+
+			it('refuses an Archetype with choices before asking anything once the Experience Journal holds more than the Starting XP', () => {
+				const awarded = skilled([], {
+					...newcomer().system,
+					experienceJournal: {
+						entries: [
+							{ amount: 110, type: EntryType.Starting },
+							{ amount: 5, type: EntryType.Award },
+						],
+					},
+				});
+
+				expect(decideCharacterDrop(awarded, dropped('archetype', 'Human', human), ids())).toMatchObject({ action: 'refuse' });
 			});
 		});
 	});
@@ -286,7 +565,8 @@ describe('decideCharacterDrop', () => {
 
 		it("asks first which of the character's skills the Career lists, whatever their case, get its Free Ranks (CRB p. 40)", () => {
 			expect(decideCharacterDrop(character(skills()), dropped('career', 'Ranger', ranger), ids())).toEqual({
-				action: 'chooseFreeRanks',
+				action: 'chooseSkills',
+				choice: { kind: 'freeRanks' },
 				skillIds: ['ranged', 'stealth'],
 			});
 		});
@@ -303,6 +583,13 @@ describe('decideCharacterDrop', () => {
 					itemDeletes: [],
 					actorUpdate: {},
 				},
+			});
+		});
+
+		it('adds the Career without Free Ranks when the window is closed', () => {
+			expect(decideCharacterDrop(character(skills()), dropped('career', 'Ranger', ranger), ids(), null)).toMatchObject({
+				action: 'write',
+				plan: { itemCreates: [{ name: 'Ranger', system: { selectedSkillIDs: [] } }] },
 			});
 		});
 
@@ -326,6 +613,57 @@ describe('decideCharacterDrop', () => {
 					],
 					itemDeletes: ['soldier'],
 					actorUpdate: {},
+				},
+			});
+		});
+
+		it("keeps a skill both the held and the dropped Career list a career skill, with the Free Rank chosen again, on items like Foundry's", () => {
+			const held = character([
+				new DocumentLike('soldier', 'Soldier', 'career', { ...soldier, selectedSkillIDs: ['ranged'] }),
+				new DocumentLike('ranged', 'Ranged', 'skill', { rank: 1, career: true }),
+				new DocumentLike('melee', 'Melee', 'skill', { rank: 0, career: true }),
+			]);
+
+			expect(decideCharacterDrop(held, dropped('career', 'Ranger', ranger), ids(), ['ranged'])).toMatchObject({
+				action: 'write',
+				plan: {
+					itemUpdates: [
+						{ _id: 'ranged', 'system.career': true, 'system.rank': 1 },
+						{ _id: 'melee', 'system.career': false, 'system.rank': 0 },
+					],
+					itemDeletes: ['soldier'],
+				},
+			});
+		});
+
+		it('leaves at 0 a skill chosen for both Careers whose Free Rank was taken back by hand: its rank changes by the net change', () => {
+			const held = character([
+				{ id: 'soldier', name: 'Soldier', type: 'career', system: { ...soldier, selectedSkillIDs: ['ranged'] } },
+				skill('ranged', 'Ranged', 0, true),
+			]);
+
+			expect(decideCharacterDrop(held, dropped('career', 'Ranger', ranger), ids(), ['ranged'])).toMatchObject({
+				action: 'write',
+				plan: { itemUpdates: [{ _id: 'ranged', 'system.career': true, 'system.rank': 0 }] },
+			});
+		});
+
+		it("accepts a Career that lists a skill chosen for the Archetype's non-career skills: the skill keeps its rank and becomes a career skill", () => {
+			const human = { id: 'human', name: 'Human', type: 'archetype', system: { grantedItems: [], chosenSkillIds: ['stealth'] } };
+			const held = character([human, skill('ranged', 'Ranged'), skill('stealth', 'Stealth', 1)]);
+
+			expect(decideCharacterDrop(held, dropped('career', 'Ranger', ranger), ids())).toEqual({
+				action: 'chooseSkills',
+				choice: { kind: 'freeRanks' },
+				skillIds: ['ranged', 'stealth'],
+			});
+			expect(decideCharacterDrop(held, dropped('career', 'Ranger', ranger), ids(), ['ranged'])).toMatchObject({
+				action: 'write',
+				plan: {
+					itemUpdates: [
+						{ _id: 'ranged', 'system.career': true, 'system.rank': 1 },
+						{ _id: 'stealth', 'system.career': true, 'system.rank': 1 },
+					],
 				},
 			});
 		});

@@ -32,6 +32,16 @@ export abstract class ArchetypeDataModel extends BaseItemDataModel {
 	 */
 	abstract grantedItems: StoredItem[];
 
+	/**
+	 * How many different non-career skills of the player's choice gain a rank, as the Human's two (RoT p. 61).
+	 */
+	abstract nonCareerSkillChoices: number;
+
+	/**
+	 * (Owned Only) The ids of the character's skills chosen for the non-career skill choices, which each gained a rank.
+	 */
+	abstract chosenSkillIds: string[];
+
 	static override defineSchema() {
 		const fields = foundry.data.fields;
 
@@ -42,6 +52,8 @@ export abstract class ArchetypeDataModel extends BaseItemDataModel {
 			strainThreshold: new fields.NumberField({ initial: 10, integer: true }),
 			startingXP: new fields.NumberField({ initial: 100, integer: true }),
 			grantedItems: new fields.ArrayField(new fields.ObjectField()),
+			nonCareerSkillChoices: new fields.NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 0 }),
+			chosenSkillIds: new fields.ArrayField(new fields.StringField()),
 		};
 	}
 }

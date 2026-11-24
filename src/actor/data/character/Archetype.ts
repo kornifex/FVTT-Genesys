@@ -8,7 +8,7 @@ import { ofType } from '@/item/ItemTypes';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import { ownedSkill, skillNamesMatch } from '@/data/Skills';
+import { freeRank, ownedSkill, skillNamesMatch } from '@/data/Skills';
 
 /**
  * Whether the Archetype is being added to the character (+1) or removed from it (-1).
@@ -24,6 +24,11 @@ export type ArchetypeGrants = {
 	strainThreshold: number;
 	startingXP: number;
 	grantedItems: { name: string; type: string; flags?: Flags }[];
+	nonCareerSkillChoices: number;
+	/**
+	 * The ids of the character's skills chosen for the non-career skill choices, on the Archetype the character holds.
+	 */
+	chosenSkillIds: string[];
 };
 
 /**
@@ -179,50 +184,70 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(
 }
 
 /**
- * The rank updates of the character's skills granted by the Archetype, which gain (sign +1) or lose (sign -1) a rank
- * per grant. Each granted skill is the one the character rolls for its name.
+ * The change of rank of each of the character's skills granted by the Archetype or chosen for its non-career skill
+ * choices: a rank per grant and per choice, gained (sign +1) or lost (sign -1). Each granted skill is the one the
+ * character rolls for its name; each chosen skill is found by its id, and one the character no longer holds is left out.
  */
-export function grantedSkillRankUpdates<T extends HeldItem>(
+function grantedSkillRankChanges<T extends HeldItem & { id: string }>(
 	items: T[],
 	grantedItems: ArchetypeGrants['grantedItems'],
+	chosenSkillIds: string[],
 	sign: ArchetypeSign,
 ) {
 	const skills = ofType(items, 'skill');
-	const grants = new Map<(typeof skills)[number], number>();
-	for (const skill of grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? [])) {
-		grants.set(skill, (grants.get(skill) ?? 0) + 1);
+	const granted = grantedSkillNames(grantedItems).flatMap((name) => ownedSkill(skills, name) ?? []);
+	const chosen = chosenSkillIds.flatMap((id) => skills.find((skill) => skill.id === id) ?? []);
+	const changes = new Map<(typeof skills)[number], number>();
+	for (const skill of [...granted, ...chosen]) {
+		changes.set(skill, (changes.get(skill) ?? 0) + sign);
 	}
 
-	return [...grants].map(([skill, count]) => ({
+	return changes;
+}
+
+/**
+ * The rank updates of the character's skills granted by the Archetype or chosen for its non-career skill choices, which
+ * gain (sign +1) or lose (sign -1) a rank per grant and per choice, never going below 0. Each granted skill is the one
+ * the character rolls for its name; each chosen skill is found by its id, and one the character no longer holds is left
+ * out.
+ */
+export function grantedSkillRankUpdates<T extends HeldItem & { id: string }>(
+	items: T[],
+	grantedItems: ArchetypeGrants['grantedItems'],
+	chosenSkillIds: string[],
+	sign: ArchetypeSign,
+) {
+	return [...grantedSkillRankChanges(items, grantedItems, chosenSkillIds, sign)].map(([skill, change]) => ({
 		skill,
-		update: {
-			'system.rank': skill.system.rank + sign * count,
-		},
+		update: { 'system.rank': freeRank(skill.system.rank, change) },
 	}));
 }
 
 /**
  * The writes that give the character an Archetype, in place of the one they hold if any: what the held Archetype gave
- * is taken back, then what the new one grants is given, and its granted non-skills and the Archetype item itself are
- * created under the ids drawn. Each kind of write is one batch, so a granted skill both Archetypes grant keeps its rank.
+ * is taken back, the ranks of the skills chosen for it included, then what the new one grants is given, with a rank in
+ * each skill chosen for its non-career skill choices. Its granted non-skills and the Archetype item itself, which keeps
+ * the skills chosen, are created under the ids drawn. Each kind of write is one batch, so a granted skill both
+ * Archetypes grant keeps its rank.
  */
 export function archetypeChange<T extends HeldItem & { id: string }>(
 	character: { id: string | null; system: ArchetypeHolder; items: T[] },
 	held: { id: string; system: ArchetypeGrants } | undefined,
-	dropped: { system: ArchetypeGrants; source: object },
+	dropped: { system: ArchetypeGrants; source: { system?: object } },
+	chosenSkillIds: string[],
 	newId: () => string,
 ) {
 	let holder = character.system;
-	let items = character.items;
 	const itemDeletes: string[] = [];
-	const ranks = new Map<string, number>();
-	const changeRanks = (archetype: ArchetypeGrants, sign: ArchetypeSign) => {
-		for (const { skill, update } of grantedSkillRankUpdates(items, archetype.grantedItems, sign)) {
-			ranks.set(skill.id, update['system.rank']);
+	// Each skill's rank changes by the sum of what the held Archetype took back and the dropped one gives, floored at 0
+	// once: flooring each change apart would turn a rank taken back by hand into a rank gained. The skills are the
+	// character's items themselves, never copies: a Foundry item's id is a getter of its prototype, which a copy made by
+	// spreading it leaves out.
+	const changes = new Map<T & { system: { rank: number } }, number>();
+	const changeRanks = (archetype: ArchetypeGrants, chosen: string[], sign: ArchetypeSign) => {
+		for (const [skill, change] of grantedSkillRankChanges(character.items, archetype.grantedItems, chosen, sign)) {
+			changes.set(skill, (changes.get(skill) ?? 0) + change);
 		}
-		items = items.map((item) =>
-			ranks.has(item.id) ? { ...item, system: { ...(item.system as object), rank: ranks.get(item.id) } } : item,
-		);
 	};
 
 	if (held) {
@@ -231,11 +256,11 @@ export function archetypeChange<T extends HeldItem & { id: string }>(
 			...heldNonSkillsGrantedBy(character.items, held.system.grantedItems, character.id).map((item) => item.id),
 			held.id,
 		);
-		changeRanks(held.system, -1);
+		changeRanks(held.system, held.system.chosenSkillIds, -1);
 	}
 
-	changeRanks(dropped.system, 1);
-	const rankOf = (id: string) => (character.items.find((item) => item.id === id)?.system as { rank: number }).rank;
+	// The dropped Archetype's own chosen skills, held when it is copied from another character, are another's ids.
+	changeRanks(dropped.system, chosenSkillIds, 1);
 
 	return {
 		itemCreates: [
@@ -243,9 +268,12 @@ export function archetypeChange<T extends HeldItem & { id: string }>(
 				...flaggedGrant(grantedItem, character.id),
 				_id: newId(),
 			})),
-			{ ...dropped.source, _id: newId() },
+			{ ...dropped.source, _id: newId(), system: { ...dropped.source.system, chosenSkillIds } },
 		],
-		itemUpdates: [...ranks].filter(([id, rank]) => rank !== rankOf(id)).map(([id, rank]) => ({ _id: id, 'system.rank': rank })),
+		itemUpdates: [...changes].flatMap(([skill, change]) => {
+			const rank = freeRank(skill.system.rank, change);
+			return rank === skill.system.rank ? [] : [{ _id: skill.id, 'system.rank': rank }];
+		}),
 		itemDeletes,
 		actorUpdate: toActorUpdate(withArchetype(holder, dropped.system, 1)),
 	};
@@ -259,7 +287,8 @@ export function canRemoveArchetype(character: Pick<ArchetypeHolder, 'experienceJ
 }
 
 /**
- * Remove everything an Archetype added to the character, then delete the Archetype item.
+ * Remove everything an Archetype added to the character, the ranks of the skills chosen for it included, then delete
+ * the Archetype item.
  */
 export async function removeArchetype(actor: GenesysActor<'character'>, archetype: GenesysItem<'archetype'>) {
 	const archetypeData = archetype.system;
@@ -271,7 +300,7 @@ export async function removeArchetype(actor: GenesysActor<'character'>, archetyp
 
 	// Foundry takes the updates' dot-notation keys, which the types don't.
 	await Promise.all(
-		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, -1).map(
+		grantedSkillRankUpdates(actor.items.contents, archetypeData.grantedItems, archetypeData.chosenSkillIds, -1).map(
 			async ({ skill, update }) => await skill.update(update as Item.UpdateData),
 		),
 	);

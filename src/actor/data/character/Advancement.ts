@@ -204,8 +204,20 @@ function skillRankCost(skill: Pick<AdvancementSkill, 'rank' | 'career'>) {
 }
 
 /**
- * Buy the next rank of a skill. During Character Creation, bought ranks can't go above 2. With the Career-Only Magic
- * Skills Alternate Rule, a magic skill that isn't a career skill can't be bought at all (CRB p. 212, RoT p. 115).
+ * Whether the Career-Only Magic Skills Alternate Rule bars a skill from gaining ranks: under the rule, a magic skill
+ * that isn't a career skill (CRB p. 212, RoT p. 115). Its text only forbids buying one, but a rank gained any other way
+ * would let a non-caster cast through a skill they could never raise, which the rule exists to forbid.
+ */
+export function isBarredMagicSkill(
+	skill: Pick<AdvancementSkill, 'category' | 'career'>,
+	alternateRules: AdvancementCharacter['alternateRules'],
+) {
+	return alternateRules.careerOnlyMagicSkills && skill.category === 'magic' && !skill.career;
+}
+
+/**
+ * Buy the next rank of a skill. During Character Creation, bought ranks can't go above 2. A magic skill the Career-Only
+ * Magic Skills Alternate Rule bars can't be bought at all.
  */
 export function buySkillRank(character: AdvancementCharacter, skillId: string): AdvancementResult {
 	const skill = character.skills.find((candidate) => candidate.id === skillId);
@@ -213,7 +225,7 @@ export function buySkillRank(character: AdvancementCharacter, skillId: string): 
 		return refuse();
 	}
 
-	if (character.alternateRules.careerOnlyMagicSkills && skill.category === 'magic' && !skill.career) {
+	if (isBarredMagicSkill(skill, character.alternateRules)) {
 		return refuse();
 	}
 

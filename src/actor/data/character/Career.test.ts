@@ -61,6 +61,13 @@ describe('careerSkillUpdates', () => {
 			{ skill: ranked[1], update: { 'system.career': false, 'system.rank': 0 } },
 		]);
 	});
+
+	it('never takes a rank below 0, as when the Free Rank was already taken back by hand', () => {
+		expect(careerSkillUpdates(held, careerSkills, ['brawl'], -1)).toEqual([
+			{ skill: held[0], update: { 'system.career': false, 'system.rank': 1 } },
+			{ skill: held[1], update: { 'system.career': false, 'system.rank': 0 } },
+		]);
+	});
 });
 
 describe('toggledFreeRankChoice', () => {

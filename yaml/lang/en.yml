@@ -146,6 +146,10 @@ Genesys:
   CareerSkillPrompt:
     Title: Career Skills
     Hint: 'Select Career Skills to gain a rank:'
+    NonCareerTitle: Non-Career Skills
+    NonCareerHint: >-
+      Select different non-career skills to gain a rank. Your Career's skills are left out once it is on the sheet: drop it
+      before the Archetype.
     RemainingChoices: Remaining Choices
     Confirm: Done
 
@@ -501,7 +505,7 @@ Genesys:
       Title: Remove Archetype
       Content: >-
         Removing {name} takes back the characteristics, wound and strain thresholds and Starting XP it gave, deletes the items
-        it granted, and lowers each skill it granted by one rank. Do you want to proceed?
+        it granted, and lowers each skill it granted or that was chosen for it by one rank. Do you want to proceed?
     ConfirmRemoveCareer:
       Title: Remove Career
       Content: Removing {name} unmarks its career skills and takes back the Free Ranks it gave them. Do you want to proceed?
@@ -654,6 +658,7 @@ Genesys:
     StartingXP: Starting Experience
     GrantedItems: Granted Items
     GrantedRanks: ×{count}
+    NonCareerSkillChoices: Non-Career Skill Choices
 
   # Adversary Labels
   Adversary:

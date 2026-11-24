@@ -62,6 +62,10 @@ async function deleteGrantedItem(index: number) {
 						<li>
 							<strong><Localized label="Genesys.Archetype.StartingXP" />:</strong> {{ system.startingXP }}
 						</li>
+						<li v-if="system.nonCareerSkillChoices > 0">
+							<strong><Localized label="Genesys.Archetype.NonCareerSkillChoices" />:</strong>
+							{{ system.nonCareerSkillChoices }}
+						</li>
 						<li v-for="ability in specialAbilities" :key="ability.name">
 							<div class="granted-ability">
 								<img :src="ability.img" :alt="ability.name" />
@@ -100,6 +104,10 @@ async function deleteGrantedItem(index: number) {
 				/>
 
 				<DataRow label="Genesys.Archetype.StartingXP" name="system.startingXP" :value="system.startingXP" type="number" />
+
+				<DataRow label="Genesys.Archetype.NonCareerSkillChoices" v-slot="{ id }">
+					<input :id="id" type="number" min="0" name="system.nonCareerSkillChoices" :value="system.nonCareerSkillChoices" />
+				</DataRow>
 
 				<DataRow label="Genesys.Labels.Source" name="system.source" :value="system.source" />
 

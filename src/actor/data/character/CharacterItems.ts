@@ -2,7 +2,13 @@
  * @file A character's Archetype, Career, skills, talents, abilities and Critical Injuries: the drops they receive.
  */
 
-import { AdvancementCharacter, buyDroppedTalent, canReplaceCareer, CharacterWrites } from '@/actor/data/character/Advancement';
+import {
+	AdvancementCharacter,
+	buyDroppedTalent,
+	canReplaceCareer,
+	CharacterWrites,
+	isBarredMagicSkill,
+} from '@/actor/data/character/Advancement';
 import { ArchetypeGrants, archetypeChange, ArchetypeHolder, canRemoveArchetype } from '@/actor/data/character/Archetype';
 import { careerChange, heldCareerSkills } from '@/actor/data/character/Career';
 import { isOwnedSkill } from '@/data/Skills';
@@ -41,13 +47,19 @@ export type DroppedItem = {
 };
 
 /**
- * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or, for a
- * Career, a choice of the skills that get its Free Ranks to make first.
+ * The skills a drop asks the player to choose before it is written: those that get a Career's Free Ranks, as many as
+ * the world settings give, or the different non-career skills that gain a rank from an Archetype, as many as it gives.
+ */
+export type SkillChoice = { kind: 'freeRanks' } | { kind: 'nonCareerSkills'; count: number };
+
+/**
+ * What a drop does to a character: refused, with what to tell the user if anything, the writes it makes, or a choice of
+ * skills to make first, among the skills given.
  */
 type CharacterDropDecision =
 	| { action: 'refuse'; refusal?: Notification }
 	| { action: 'write'; plan: CharacterWrites }
-	| { action: 'chooseFreeRanks'; skillIds: string[] };
+	| { action: 'chooseSkills'; choice: SkillChoice; skillIds: string[] };
 
 type CareerData = { careerSkills: { name: string }[]; selectedSkillIDs: string[] };
 
@@ -75,14 +87,16 @@ function talentDrop(character: Character, dropped: DroppedItem, id: string): Cha
 
 /**
  * Decide what dropping an item does to a character, drawing the ids of the items it creates. A Career first asks for the
- * skills that get its Free Ranks: the decision is made again with them. Equipment goes to the character's inventory
- * instead.
+ * skills that get its Free Ranks, and an Archetype with non-career skill choices for those skills: the decision is made
+ * again with the chosen skills, or `null` when the player closed the window. Closing it adds the Career without Free
+ * Ranks, and cancels the Archetype's drop, which would otherwise take back what the held Archetype gave for nothing.
+ * Equipment goes to the character's inventory instead.
  */
 export function decideCharacterDrop(
 	character: Character,
 	dropped: DroppedItem,
 	newId: () => string,
-	freeRankSkillIds?: string[],
+	chosenSkillIds?: string[] | null,
 ): CharacterDropDecision {
 	switch (dropped.type) {
 		case 'skill': {
@@ -100,8 +114,26 @@ export function decideCharacterDrop(
 				return { action: 'refuse', refusal: { key: 'Genesys.Notifications.CannotReplaceArchetype', data: { name: dropped.name } } };
 			}
 
+			// The dropped item's type tells its data: Foundry built it with the Archetype's DataModel, which fills every field.
+			const system = dropped.system as ArchetypeGrants;
+			if (chosenSkillIds === null) {
+				return { action: 'refuse' };
+			}
+
+			// The skills are judged now, before the Career: the Core Rulebook has the archetype picked first (CRB p. 35), so a
+			// Career that later lists a chosen skill makes it a career skill, and the rank stays.
+			if (system.nonCareerSkillChoices > 0 && chosenSkillIds === undefined) {
+				const { alternateRules } = character.advancement;
+				const offered = character.advancement.skills.filter((skill) => !skill.career && !isBarredMagicSkill(skill, alternateRules));
+				return {
+					action: 'chooseSkills',
+					choice: { kind: 'nonCareerSkills', count: system.nonCareerSkillChoices },
+					skillIds: offered.map((skill) => skill.id),
+				};
+			}
+
 			const [held] = ofType(character.items, 'archetype');
-			return writing(archetypeChange(character, held, { system: dropped.system as ArchetypeGrants, source: dropped.source }, newId));
+			return writing(archetypeChange(character, held, { system, source: dropped.source }, chosenSkillIds ?? [], newId));
 		}
 		case 'career': {
 			// A Career can be replaced until a skill rank is bought, since that rank's cost depends on the Career's skills.
@@ -110,15 +142,16 @@ export function decideCharacterDrop(
 			}
 
 			const system = dropped.system as Pick<CareerData, 'careerSkills'>;
-			if (!freeRankSkillIds) {
+			if (chosenSkillIds === undefined) {
 				return {
-					action: 'chooseFreeRanks',
+					action: 'chooseSkills',
+					choice: { kind: 'freeRanks' },
 					skillIds: heldCareerSkills(character.items, system.careerSkills).map((skill) => skill.id),
 				};
 			}
 
 			const [held] = ofType(character.items, 'career');
-			return writing(careerChange(character.items, held, { system, source: dropped.source }, freeRankSkillIds, newId));
+			return writing(careerChange(character.items, held, { system, source: dropped.source }, chosenSkillIds ?? [], newId));
 		}
 		case 'talent':
 			return talentDrop(character, dropped, newId());

@@ -13,11 +13,14 @@ import { GenesysItem } from '@/item/GenesysItem';
 
 const context = useSheetContext<CareerSkillPromptContext>();
 
+// A character may hold fewer skills to offer than the choices given, as a Human whose skills are nearly all career
+// skills: asking for more would keep Done disabled.
+const count = computed(() => Math.min(context.value.count, context.value.skills.length));
 const selectedSkillIDs = ref<string[]>([]);
-const remaining = computed(() => CONFIG.genesys.settings.freeCareerSkillRanks - selectedSkillIDs.value.length);
+const remaining = computed(() => count.value - selectedSkillIDs.value.length);
 
 function selectSkill(skill: Stored<GenesysItem<'skill'>>) {
-	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, CONFIG.genesys.settings.freeCareerSkillRanks);
+	selectedSkillIDs.value = toggledFreeRankChoice(selectedSkillIDs.value, skill.id, count.value);
 }
 
 usePromptAnswer<string[]>(() => selectedSkillIDs.value);
@@ -25,7 +28,7 @@ usePromptAnswer<string[]>(() => selectedSkillIDs.value);
 
 <template>
 	<div class="genesys career-skill-prompt">
-		<div class="career-skills-hint"><Localized label="Genesys.CareerSkillPrompt.Hint" /></div>
+		<div class="career-skills-hint"><Localized :label="context.hint" /></div>
 
 		<div class="selections">
 			<button

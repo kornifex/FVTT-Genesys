@@ -152,7 +152,7 @@ export async function confirmedRemovals(e2e: ScenarioContext, page: Evaluate) {
 				application: 'DialogV2',
 				title: 'Remove Archetype',
 				content:
-					'Removing E2E Archetype takes back the characteristics, wound and strain thresholds and Starting XP it gave, deletes the items it granted, and lowers each skill it granted by one rank. Do you want to proceed?',
+					'Removing E2E Archetype takes back the characteristics, wound and strain thresholds and Starting XP it gave, deletes the items it granted, and lowers each skill it granted or that was chosen for it by one rank. Do you want to proceed?',
 				buttons: ['yes', 'no'],
 				defaultButton: 'no',
 			},

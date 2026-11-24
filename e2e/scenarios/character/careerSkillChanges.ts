@@ -1,5 +1,5 @@
 import type { ScenarioContext } from '../../scenario.ts';
-import type { Evaluate } from './shared.ts';
+import { type Evaluate, skillsOf } from './shared.ts';
 
 /**
  * §#922: a talent's or an Archetype's Career Skill change makes a skill a career skill while it applies, and an Archetype
@@ -12,7 +12,7 @@ export async function careerSkillChanges(
 	notifications: () => Promise<string[]>,
 ) {
 	const S = 'Scholar';
-	const skills = (names: string[]) => page((args) => window.characterE2E.skills(args.actor, args.names), { actor: S, names });
+	const skills = (names: string[]) => skillsOf(page, S, names);
 	const journal = () => page((name) => window.characterE2E.journal(name), S);
 	const arcanaMenu = () => page((name) => window.characterE2E.menu(name, { skill: 'Arcana' }), S);
 	const label = (key: string, data: Record<string, string> = {}) => page((args) => game.i18n.format(args.key, args.data), { key, data });
