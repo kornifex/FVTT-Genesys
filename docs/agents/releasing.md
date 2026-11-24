@@ -29,7 +29,8 @@ The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wik
 
 ## Versions
 
-- In 0.x, `feat` and breaking changes bump the minor, `fix` the patch.
+- In 0.x, `feat` and breaking changes bump the minor, `fix` the patch. The version is the one release-please computes: `release-as` forces only a release candidate, then the final version after it (see Release candidates).
+- A milestone is titled with the version its release will get. When a feature release comes before a planned one, the milestones after it are renamed, along with the plan issues that cite them.
 - A version with a pre-release part (`0.4.0-rc.1`) is published as a GitHub pre-release. Foundry reads `releases/latest` for updates, so only testers get it, by installing `https://github.com/kornifex/FVTT-Genesys/releases/download/v<version>/manifest.json`.
 - Foundry never offers `0.4.0` as an update to `0.4.0-rc.1`: it compares `0` with `0-rc` as text. Testers reinstall the final version from its manifest.
 
