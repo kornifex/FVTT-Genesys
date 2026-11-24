@@ -11,26 +11,35 @@ import { describe, expect, it } from 'vitest';
 const scssAlias = {
 	findFileUrl: (url: string) => (url.startsWith('@scss/') ? pathToFileURL(path.resolve(__dirname, url.slice('@scss/'.length))) : null),
 };
-const css = compile(path.resolve(__dirname, 'theme.scss'), { importers: [scssAlias] }).css;
+const compileScss = (file: string) => compile(path.resolve(__dirname, file), { importers: [scssAlias] }).css;
+const css = compileScss('theme.scss');
+const vueSheetCss = compileScss('../vue/VueSheet.scss');
 
 /**
- * Custom properties declared by the first rule with exactly this selector.
+ * Properties declared by the first rule of a stylesheet with exactly this selector.
  */
-function declarations(selector: string): Record<string, string> {
-	const start = css.indexOf(`${selector} {`);
+function properties(stylesheet: string, selector: string): Record<string, string> {
+	const start = stylesheet.indexOf(`${selector} {`);
 	expect(start, `rule ${selector}`).toBeGreaterThanOrEqual(0);
 
-	const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start));
+	const body = stylesheet.slice(stylesheet.indexOf('{', start) + 1, stylesheet.indexOf('}', start));
 	return Object.fromEntries(
 		body
 			.split(';')
 			.map((declaration) => declaration.trim())
-			.filter((declaration) => declaration.startsWith('--'))
+			.filter((declaration) => declaration !== '')
 			.map((declaration) => {
 				const separator = declaration.indexOf(':');
 				return [declaration.slice(0, separator), declaration.slice(separator + 1).trim()];
 			}),
 	);
+}
+
+/**
+ * Custom properties declared by the first rule of the theme stylesheet with exactly this selector.
+ */
+function declarations(selector: string): Record<string, string> {
+	return Object.fromEntries(Object.entries(properties(css, selector)).filter(([property]) => property.startsWith('--')));
 }
 
 const DEFAULTS = ':where(:root)';
@@ -383,6 +392,20 @@ const TEXT_ON_TRANSLUCENT = [
 	{ text: 'text', translucent: 'input', over: 'field' },
 ];
 
+// The options of a select in the Vue sheets. The browser draws their open list in a popup of its own, over which a
+// translucent background shows the popup's light color whatever the Theme (#926).
+const SELECT_OPTIONS = '.vue-app :where(select) :where(option, optgroup)';
+
+/**
+ * The Palette color a property of a rule takes, which must be one of the Palette's, for a world's override to reach it.
+ */
+function paletteColor(rule: Record<string, string>, property: string): string {
+	const reference = /^var\(--genesys-([a-z-]+)\)$/.exec(rule[property] ?? '');
+	expect(reference, `${property}: ${rule[property]}`).not.toBeNull();
+	// The expect above throws on a null match, which TypeScript can't see through vitest's assertion.
+	return reference![1];
+}
+
 /**
  * A translucent color over another, as the browser composites them.
  */
@@ -417,6 +440,14 @@ describe.each(PAIRS)('Text in the %s Style and the %s theme', (_, _theme, style)
 
 	it.each(TEXT_ON_TRANSLUCENT)('draws $text on $translucent over $over at 4.5:1 or more', ({ text, translucent, over }) => {
 		expect(contrast(resolve(text, style()), resolveOver(translucent, over, style()))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	// `resolve` accepts only opaque colors, as the options' popup needs.
+	it("draws a select's options in their text color on their opaque background at 4.5:1 or more", () => {
+		const options = properties(vueSheetCss, SELECT_OPTIONS);
+		const [text, background] = [paletteColor(options, 'color'), paletteColor(options, 'background')];
+
+		expect(contrast(resolve(text, style()), resolve(background, style()))).toBeGreaterThanOrEqual(4.5);
 	});
 
 	it.each(Object.entries(ICON_ON).flatMap(([icon, backgrounds]) => backgrounds.map((background) => [icon, background])))(

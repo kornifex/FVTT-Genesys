@@ -289,7 +289,8 @@ export type SheetsHelpers = {
 	cleanUp(): Promise<void>;
 	/**
 	 * The looks the text fields, number fields and selects of an open sheet take over all its tabs, as
-	 * `<tag> shadow | background | border | radius`, each with how many fields take it; then the look of their options.
+	 * `<tag> shadow | background | border | radius`, each with how many fields take it; then the look of their options, as
+	 * `option background | colour`, each colour named `paper` or `text` when it is that Palette colour.
 	 */
 	fieldLooks(name: string): Promise<Record<string, number>>;
 	/**
@@ -1553,6 +1554,20 @@ export function installSheetsHelpers() {
 			const looks: Record<string, number> = {};
 			const count = (look: string) => (looks[look] = (looks[look] ?? 0) + 1);
 			const seen = new Set<Element>();
+			// A Palette colour's name, when a computed colour is the paper or the text the options take (#926). The probe sits
+			// beside the field, since the Palette follows the Theme around it. A field of a sheet always has a parent.
+			const paletteName = (colour: string, field: Element) => {
+				const probe = field.parentElement!.appendChild(document.createElement('span'));
+				try {
+					for (const name of ['paper', 'text']) {
+						probe.style.color = `var(--genesys-${name})`;
+						if (getComputedStyle(probe).color === colour) return name;
+					}
+					return colour;
+				} finally {
+					probe.remove();
+				}
+			};
 			const tabs = [...sheetElement(name).querySelectorAll<HTMLElement>('.sheet-tabs [data-tab]')].map((tab) => tab.dataset.tab!);
 			// A tab's fields may render only while it shows.
 			for (const tab of tabs.length ? tabs : [null]) {
@@ -1571,7 +1586,7 @@ export function installSheetsHelpers() {
 					if (field.getAttribute('name')?.startsWith('system.characteristics.')) count(`characteristic ${style.textAlign}`);
 					for (const option of field.querySelectorAll('option')) {
 						const optionStyle = getComputedStyle(option);
-						count(`option ${optionStyle.backgroundColor} | ${optionStyle.color}`);
+						count(`option ${paletteName(optionStyle.backgroundColor, field)} | ${paletteName(optionStyle.color, field)}`);
 					}
 				}
 			}
