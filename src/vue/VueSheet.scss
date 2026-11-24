@@ -50,6 +50,14 @@
 	border-radius: 3px;
 	outline: revert;
 	color: revert;
+
+	// The browser draws the open list in a popup of its own, where the select's translucent background turns light whatever
+	// the Theme. Foundry's dark Theme makes the options transparent, and its `color-scheme: dark` turns the reverted text
+	// light: the list read light on light (#926). The options take the sheet's text over its opaque paper, in every Theme.
+	:where(option, optgroup) {
+		background: colors.$paper;
+		color: colors.$text;
+	}
 }
 
 .vue-app :where(textarea) {
