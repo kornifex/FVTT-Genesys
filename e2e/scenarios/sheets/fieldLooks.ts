@@ -27,7 +27,8 @@ export async function fieldLooksPart(ctx: SheetsContext, actorTypes: string[], i
 		return [...kinds].sort();
 	};
 	e2e.log('#95 field looks', fieldLooks);
-	const optionLook = 'option rgb(247, 243, 232) | rgb(0, 0, 0)';
+	// The options take the Palette's text over its paper, which the browser's popup needs opaque (#926).
+	const optionLook = 'option paper | text';
 	const characterLooks = ['input drawn by its component'];
 	const adversaryLooks = ['characteristic center', 'input drawn by its component', 'input flat'];
 	const itemLooks = ['input drawn by its component', 'input flat'];
