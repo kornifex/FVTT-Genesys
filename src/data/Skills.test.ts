@@ -197,6 +197,11 @@ describe('freeRank', () => {
 	it('never lowers the rank below 0', () => {
 		expect(freeRank(0, -1)).toBe(0);
 	});
+
+	it('gives or takes several ranks at once, as an Archetype granting a skill twice does, never below 0', () => {
+		expect(freeRank(1, 2)).toBe(3);
+		expect(freeRank(1, -2)).toBe(0);
+	});
 });
 
 describe('skillsByCategory', () => {

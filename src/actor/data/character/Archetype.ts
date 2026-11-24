@@ -8,7 +8,7 @@ import { ofType } from '@/item/ItemTypes';
 import { Entry } from '@/actor/data/character/ExperienceJournal';
 import { withStartingXP, withoutStartingXP } from '@/actor/data/character/Advancement';
 import { Characteristic, CharacteristicsContainer } from '@/data/Characteristics';
-import { ownedSkill, skillNamesMatch } from '@/data/Skills';
+import { freeRank, ownedSkill, skillNamesMatch } from '@/data/Skills';
 
 /**
  * Whether the Archetype is being added to the character (+1) or removed from it (-1).
@@ -185,7 +185,7 @@ export function heldNonSkillsGrantedBy<T extends HeldItem>(
 
 /**
  * The rank updates of the character's skills granted by the Archetype or chosen for its non-career skill choices, which
- * gain (sign +1) or lose (sign -1) a rank per grant and per choice. Each granted skill is the one the character rolls
+ * gain (sign +1) or lose (sign -1) a rank per grant and per choice, never going below 0. Each granted skill is the one the character rolls
  * for its name; each chosen skill is found by its id, and one the character no longer holds is left out.
  */
 export function grantedSkillRankUpdates<T extends HeldItem & { id: string }>(
@@ -205,7 +205,7 @@ export function grantedSkillRankUpdates<T extends HeldItem & { id: string }>(
 	return [...grants].map(([skill, count]) => ({
 		skill,
 		update: {
-			'system.rank': skill.system.rank + sign * count,
+			'system.rank': freeRank(skill.system.rank, sign * count),
 		},
 	}));
 }

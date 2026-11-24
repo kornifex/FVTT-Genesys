@@ -2,7 +2,7 @@
  * @file A character's Career: which of their skills it makes Career skills, and the Free Ranks it gives them.
  */
 
-import { skillNamesMatch } from '@/data/Skills';
+import { freeRank, skillNamesMatch } from '@/data/Skills';
 
 /**
  * Whether a skill is one of a Career's skills. A Career names its skills, which may differ in case from the
@@ -29,7 +29,7 @@ export function heldCareerSkills<T extends { name: string; type: string }>(items
 
 /**
  * The updates of the character's skills when a Career is added (sign +1) or removed (sign -1): the skills it lists
- * become Career skills or stop being ones, and those chosen for its Free Ranks gain or lose a rank.
+ * become Career skills or stop being ones, and those chosen for its Free Ranks gain or lose a rank, never going below 0.
  */
 export function careerSkillUpdates<T extends { id: string; name: string; type: string; system: unknown }>(
 	items: T[],
@@ -43,7 +43,7 @@ export function careerSkillUpdates<T extends { id: string; name: string; type: s
 		skill,
 		update: {
 			'system.career': sign > 0,
-			'system.rank': skill.system.rank + (freeRankSkillIds.includes(skill.id) ? sign : 0),
+			'system.rank': freeRank(skill.system.rank, freeRankSkillIds.includes(skill.id) ? sign : 0),
 		},
 	}));
 }

@@ -231,6 +231,19 @@ describe('granted items', () => {
 		expect(grantedSkillRankUpdates(held, [], ['brawl'], -1)).toEqual([{ skill: held[1], update: { 'system.rank': 1 } }]);
 	});
 
+	it('never takes a rank below 0, as when the Free Rank was already taken back by hand', () => {
+		const lowered = [
+			{ ...held[0], system: { rank: 1 } },
+			{ ...held[1], system: { rank: 0 } },
+		];
+		const twice = [...archetypeGrants().grantedItems, { name: 'Athletics', type: 'skill' }];
+
+		expect(grantedSkillRankUpdates(lowered, twice, ['brawl'], -1)).toEqual([
+			{ skill: lowered[0], update: { 'system.rank': 0 } },
+			{ skill: lowered[1], update: { 'system.rank': 0 } },
+		]);
+	});
+
 	it('gives a skill both granted and chosen a rank for each, and ignores a chosen id the character no longer holds', () => {
 		expect(grantedSkillRankUpdates(held, archetypeGrants().grantedItems, ['athletics', 'gone'], 1)).toEqual([
 			{ skill: held[0], update: { 'system.rank': 3 } },

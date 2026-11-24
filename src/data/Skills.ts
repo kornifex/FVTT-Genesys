@@ -204,10 +204,11 @@ export function promptSkills<S extends Skill>(ownedSkills: S[], compendiumSkills
 }
 
 /**
- * A skill's rank after a Free Rank up or down: gained or lost without spending XP, and never below 0.
+ * A skill's rank after Free Ranks are gained (a positive change) or lost (a negative one), by hand, an Archetype or a
+ * Career: without spending XP, and never below 0, since a rank given may have been taken back by hand already.
  */
-export function freeRank(rank: number, step: 1 | -1) {
-	return Math.max(0, rank + step);
+export function freeRank(rank: number, change: number) {
+	return Math.max(0, rank + change);
 }
 
 /**
