@@ -271,8 +271,8 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 		{ choices: 0, errors: [] },
 	);
 
-	// A replacement that shares a skill with what it replaces changes that skill's rank twice in one plan, which a build
-	// before the fix got wrong on Foundry's items.
+	// A replacement that shares a skill with what it replaces changes that skill's rank twice in one plan, on Foundry's
+	// items, whose id the unit tests' plain items can't reproduce.
 	const G = 'Twin Grants';
 	await e2e.step('#924 N11 an Archetype granting Athletics replaced by another granting Athletics', async () => {
 		const twin = human('Twin Archetype', 0);
@@ -294,7 +294,7 @@ export async function nonCareerSkillChoices(e2e: ScenarioContext, page: Evaluate
 					5000,
 				);
 			} catch {
-				// A build before the fix fails the replacement: the expect below tells.
+				// A failed replacement leaves the first Archetype in place, which the expect below reports.
 			}
 		}, G);
 	});

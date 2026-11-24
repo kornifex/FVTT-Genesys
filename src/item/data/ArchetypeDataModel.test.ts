@@ -2,8 +2,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-// Foundry's TypeDataModel and fields, reduced to the options each field is built with; a SchemaField and an ArrayField
-// keep what they hold.
+// Foundry's TypeDataModel and fields, reduced to the options each field is built with, each field a class of its own; a
+// SchemaField and an ArrayField keep what they hold.
 vi.hoisted(() => {
 	const field = class {
 		readonly options: object;
@@ -27,10 +27,10 @@ vi.hoisted(() => {
 						this.element = element;
 					}
 				},
-				HTMLField: field,
-				NumberField: field,
-				ObjectField: field,
-				StringField: field,
+				HTMLField: class extends field {},
+				NumberField: class extends field {},
+				ObjectField: class extends field {},
+				StringField: class extends field {},
 			},
 		},
 	});
@@ -46,6 +46,9 @@ describe('archetype schema', () => {
 	});
 
 	it("holds the ids of the character's skills chosen for its choices", () => {
-		expect(ArchetypeDataModel.defineSchema().chosenSkillIds).toMatchObject({ element: { options: {} } });
+		const { chosenSkillIds } = ArchetypeDataModel.defineSchema();
+
+		expect(chosenSkillIds).toBeInstanceOf(foundry.data.fields.ArrayField);
+		expect(chosenSkillIds.element).toBeInstanceOf(foundry.data.fields.StringField);
 	});
 });
