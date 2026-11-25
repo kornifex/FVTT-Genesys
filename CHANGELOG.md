@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.1...v0.8.2) (2026-11-25)
+
+
+### Documentation
+
+* add 0.8.0's changes to the README's What's new since the fork ([#942](https://github.com/kornifex/FVTT-Genesys/issues/942)) ([84775ce](https://github.com/kornifex/FVTT-Genesys/commit/84775ce170df818e4970b789c91fa5277126ec90))
+
 ## [0.8.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.0...v0.8.1) (2026-11-25)
 
 
