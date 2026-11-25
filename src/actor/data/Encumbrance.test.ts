@@ -45,13 +45,13 @@ describe('rootContainer', () => {
 const CHARACTER: EncumbranceRules = {
 	isRelevant: (type) => ['weapon', 'armor', 'consumable', 'gear', 'container'].includes(type),
 	ignoresDropped: true,
-	reducesEquippedArmor: true,
+	wearsEquipment: true,
 };
 
 const VEHICLE: EncumbranceRules = {
 	isRelevant: (type) => ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'].includes(type),
 	ignoresDropped: false,
-	reducesEquippedArmor: false,
+	wearsEquipment: false,
 };
 
 function item(id: string, fields: Partial<EncumberingItem> = {}): EncumberingItem {

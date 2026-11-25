@@ -45,7 +45,7 @@ type CharacterActor = GenesysActor<'character'>;
 const ENCUMBRANCE_RULES: EncumbranceRules = {
 	isRelevant: (type) => isRelevantToCharacter('ENCUMBRANCE', type),
 	ignoresDropped: true,
-	reducesEquippedArmor: true,
+	wearsEquipment: true,
 };
 
 /**

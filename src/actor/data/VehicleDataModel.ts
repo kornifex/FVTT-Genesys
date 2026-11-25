@@ -12,7 +12,7 @@ import { CombatPool, combatPoolField, ValueWithThreshold, valueWithThresholdFiel
 const ENCUMBRANCE_RULES: EncumbranceRules = {
 	isRelevant: (type) => isRelevantToVehicle('ENCUMBRANCE', type),
 	ignoresDropped: false,
-	reducesEquippedArmor: false,
+	wearsEquipment: false,
 };
 
 /**

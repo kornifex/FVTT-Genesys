@@ -50,9 +50,9 @@ export type EncumbranceRules = {
 	 */
 	ignoresDropped: boolean;
 	/**
-	 * Whether an Equipped armor counts 3 less, for one of its quantity.
+	 * Whether the actor wears the equipment it equips, so that an Equipped armor counts 3 less, for one of its quantity.
 	 */
-	reducesEquippedArmor: boolean;
+	wearsEquipment: boolean;
 };
 
 /**
@@ -82,7 +82,7 @@ export function rootContainer<T extends HeldContainer>(containerId: string, getC
  */
 function addedValue(item: EncumberingItem, rules: EncumbranceRules) {
 	// Only one of a stack of armor can be worn.
-	if (rules.reducesEquippedArmor && item.type === 'armor' && item.state === EquipmentState.Equipped) {
+	if (rules.wearsEquipment && item.type === 'armor' && item.state === EquipmentState.Equipped) {
 		return Math.max(0, item.encumbrance - WORN_ARMOR_ENCUMBRANCE_REDUCTION) + Math.max(0, item.encumbrance * (item.quantity - 1));
 	}
 
