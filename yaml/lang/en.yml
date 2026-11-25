@@ -540,14 +540,24 @@ Genesys:
     Updates: Bug Fixes & Updates
     Feature: FEATURE
     Fix: FIX
-    HealerBonus: >-
-      A Modify Healing effect adds to the wounds a healer's Medicine check heals, once per rank of a talent such as Surgeon
-    GmUpgradesDifficulty: >-
-      A player's Dice Pool lets them mark the point the GM spends to upgrade their check's difficulty
-    TargetCombatCheck: >-
-      An effect can modify every combat check that targets the actor, melee or ranged, as Adversary does
-    MedicineDifficulty: A Medicine check stays Easy up to half the patient's wound threshold, rounded up
-    ContextMenuEntries: A context menu's entries line up on the left, icons then labels
+    RotSkills: >-
+      A second Skills Compendium, Realms of Terrinoth Skills, holds the setting's 33 skills: pick it in the Skills
+      Compendium setting
+    CareerOnlyMagicSkills: >-
+      The Career-Only Magic Skills rule keeps a character from buying ranks in a magic skill that isn't a career skill
+    CareerSkillChanges: >-
+      An effect can make a skill a career skill, as a talent does, and an Archetype can grant a skill twice
+    ArchetypeSkillChoices: >-
+      An Archetype can give ranks in non-career skills of the player's choice, as the Human's two
+    AttackChanges: >-
+      An effect can change the damage or the Critical rating of the actor's attacks, melee or ranged
+    WearableGear: >-
+      A character can wear gear marked as wearable, such as a ring or a cloak, beside their armor; its effects apply while
+      it is worn
+    AttackDefense: >-
+      An attack meets the melee or the ranged defense by its skill, not by its weapon's range: a pike at short range meets
+      the melee defense
+    SelectOptions: A select's open list reads in the sheet's colors, in the dark Theme too
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
