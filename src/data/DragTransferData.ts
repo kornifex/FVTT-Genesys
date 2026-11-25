@@ -15,11 +15,11 @@ export type CrewDragTransferData = DragTransferData & {
 };
 
 const GENESYS_DRAG_TYPE_PREFIX = 'genesys';
-const UPPER_CASE_PATTERN = /([A-Z]+)/g;
+const UPPER_CASE_PATTERN = /[A-Z]/g;
 const ENCODED_UPPER_CASE_PATTERN = /\|(\d+)\|/g;
 
 function encodeUpperCase(text: string) {
-	return text.replace(UPPER_CASE_PATTERN, (_match, group1: string) => `|${group1.codePointAt(0)}|`);
+	return text.replace(UPPER_CASE_PATTERN, (letter) => `|${letter.codePointAt(0)}|`);
 }
 
 function decodeUpperCase(text: string) {

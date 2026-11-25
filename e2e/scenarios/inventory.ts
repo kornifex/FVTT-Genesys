@@ -188,8 +188,15 @@ type InventoryHelpers = {
 	 * field of its sheet writing `system.state`, an action of its sheet that deletes.
 	 */
 	stateAndDeletePaths(actor: string, item: string): Promise<{ quantity: boolean; stateField: boolean; deleteAction: boolean }>;
-	createItems(actor: string, items: { name: string; type: string; system?: object; in?: string }[]): Promise<void>;
+	/** Gives an actor items, each with a marker effect per name of its `markers`. */
+	createItems(actor: string, items: { name: string; type: string; system?: object; in?: string; markers?: string[] }[]): Promise<void>;
 	updateActor(actor: string, changes: object): Promise<void>;
+	/** Updates an item by script, and tells whether the data model refused the change and what the item keeps at a path. */
+	tryUpdateItem(actor: string, item: string, changes: object, path: string): Promise<{ threw: boolean; kept: unknown }>;
+	/** The Wearable option and the worn encumbrance field of a gear's sheet, with their labels, null when it shows none. */
+	gearSheet(actor: string, item: string): Promise<{ wearable: SheetField | null; wornEncumbrance: SheetField | null }>;
+	/** Checks or unchecks the Wearable option of a gear's sheet, as a click does. */
+	setWearable(actor: string, item: string, wearable: boolean): Promise<void>;
 
 	/** The actor's items named `E2E …`: equipment as `Name:state` or `Name:state@Container`, others as `Name (type)`. */
 	items(actor: string): string[];
@@ -240,6 +247,9 @@ type InventoryHelpers = {
  * compendium.
  */
 type ConsumablePlace = 'world' | 'actor' | 'token' | 'pack';
+
+/** A field of an item's sheet: its label, and its value, or whether it is checked. */
+type SheetField = { label: string; value: string | boolean };
 
 declare global {
 	interface Window {
@@ -573,6 +583,7 @@ function installInventoryHelpers() {
 				gear('Knife'),
 				container('Backpack', { encumbrance: 1 }),
 				gear('Saddlebags', { encumbrance: -2, quantity: 2 }),
+				gear('Amulet', { encumbrance: 1, wearable: true, wornEncumbrance: 0 }),
 				{
 					name: full('Blaster'),
 					type: 'vehicleWeapon',
@@ -610,7 +621,10 @@ function installInventoryHelpers() {
 					'Placer',
 					'Hoarder',
 					'Lister',
+					'Dresser',
 				].map(character),
+				{ name: full('Wagon'), type: 'vehicle' },
+				{ name: full('Fence'), type: 'rival' },
 				{ name: full('Vehicle'), type: 'vehicle' },
 				{ name: full('Hauler'), type: 'vehicle' },
 				{ name: full('Barge'), type: 'vehicle' },
@@ -1249,12 +1263,59 @@ function installInventoryHelpers() {
 		async createItems(ref, entries) {
 			await give(
 				actor(ref),
-				entries.map((entry) => ({ data: { name: full(entry.name), type: entry.type, system: entry.system ?? {} }, in: entry.in })),
+				entries.map((entry) => ({
+					data: {
+						name: full(entry.name),
+						type: entry.type,
+						system: entry.system ?? {},
+						effects: (entry.markers ?? []).map(marker),
+					},
+					in: entry.in,
+				})),
 			);
 		},
 
 		async updateActor(ref, changes) {
 			await actor(ref).update(changes);
+		},
+
+		async tryUpdateItem(ref, name, changes, path) {
+			let threw = false;
+			try {
+				await item(ref, name).update(changes);
+			} catch {
+				// The data model refuses the change: the step reads that it threw.
+				threw = true;
+			}
+			return { threw, kept: foundry.utils.getProperty(item(ref, name), path) };
+		},
+
+		async gearSheet(ref, name) {
+			const app = item(ref, name).sheet;
+			const root = await render(app, (root) => root.querySelector('.data-grid'));
+			const field = (selector: string): SheetField | null => {
+				const input = root.querySelector<HTMLInputElement>(selector);
+				if (!input) return null;
+				return {
+					label: text(root.querySelector(`label[for="${input.id}"]`)),
+					value: input.type === 'checkbox' ? input.checked : input.value,
+				};
+			};
+			const fields = { wearable: field('[name="system.wearable"]'), wornEncumbrance: field('[name="system.wornEncumbrance"]') };
+			await app.close();
+			await settle();
+			return fields;
+		},
+
+		async setWearable(ref, name, wearable) {
+			const app = item(ref, name).sheet;
+			const root = await render(app, (root) => root.querySelector('[name="system.wearable"]'));
+			const input = root.querySelector<HTMLInputElement>('[name="system.wearable"]')!;
+			input.checked = wearable;
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+			await settle();
+			await app.close();
+			await settle();
 		},
 
 		items(ref) {
@@ -2536,8 +2597,164 @@ export async function run(e2e: ScenarioContext) {
 	await e2e.part('containerFold', () => containerFold(e2e));
 	await e2e.part('menuKeyboard', () => menuKeyboard(e2e));
 	await e2e.part('summaryRow', () => summaryRow(e2e));
+	await e2e.part('wearableGear', () => wearableGear(e2e));
 
 	await gm.evaluate(() => window.inventoryE2E.tearDown());
+}
+
+/**
+ * §#938: a character wears any number of pieces of Wearable Gear beside their armor. Its effects apply only while it is
+ * worn, and its worn encumbrance counts for one of its quantity; gear that isn't wearable can't be Equipped and applies
+ * while Carried. On vehicles and adversaries, Wearable changes nothing.
+ */
+async function wearableGear(e2e: ScenarioContext) {
+	const { gm } = e2e;
+	const { items, entries } = inventorySteps(gm);
+	const menu = (actor: string, item: string, action: MenuAction) => () =>
+		gm.evaluate((args) => window.inventoryE2E.menu(args.actor, args.item, args.action), { actor, item, action });
+	const canEquip = async (actor: string, item: string) => (await entries(actor, item)).some((entry) => entry.startsWith('Equip '));
+	const applied = async (actor: string) =>
+		(await gm.evaluate((ref) => window.inventoryE2E.effects(ref), actor)).applied.filter((name) => name.endsWith(' Mark'));
+	const encumbrance = async (actor: string) => (await gm.evaluate((ref) => window.inventoryE2E.encumbrance(ref), actor)).value;
+	const wearable = (encumbrance: number, wornEncumbrance: number | null = null) => ({ encumbrance, wearable: true, wornEncumbrance });
+
+	await e2e.step('#938 W1 Dresser given a worn Jerkin, and a Cloak (worn encumbrance 0), a Ring and a Tinderbox, Carried', () =>
+		gm.evaluate(
+			(args) =>
+				window.inventoryE2E.createItems('Dresser', [
+					{ name: 'Jerkin', type: 'armor', system: { state: 'equipped', soak: 1 } },
+					{ name: 'Cloak', type: 'gear', system: { ...args.cloak, state: 'carried' }, markers: ['Cloak Mark'] },
+					{ name: 'Ring', type: 'gear', system: { ...args.ring, state: 'carried' }, markers: ['Ring Mark'] },
+					{ name: 'Tinderbox', type: 'gear', system: { encumbrance: 1, state: 'carried' }, markers: ['Tinderbox Mark'] },
+				]),
+			{ cloak: wearable(1, 0), ring: wearable(1) },
+		),
+	);
+	e2e.expect(
+		"#938 W1 only the Wearable Gear's menu offers to equip it; Carried, it applies no effect and counts its encumbrance",
+		{
+			canEquip: { cloak: await canEquip('Dresser', 'Cloak'), tinderbox: await canEquip('Dresser', 'Tinderbox') },
+			applied: await applied('Dresser'),
+			encumbrance: await encumbrance('Dresser'),
+		},
+		{ canEquip: { cloak: true, tinderbox: false }, applied: ['Tinderbox Mark'], encumbrance: 3 },
+	);
+
+	await e2e.step("#938 W2 Dresser's Cloak and Ring equipped from their menus", async () => {
+		await menu('Dresser', 'Cloak', 'equip')();
+		await menu('Dresser', 'Ring', 'equip')();
+	});
+	e2e.expect(
+		'#938 W2 both are worn beside the armor, apply their effects, and the Cloak counts its worn encumbrance of 0',
+		{ items: await items('Dresser'), applied: await applied('Dresser'), encumbrance: await encumbrance('Dresser') },
+		{
+			items: ['Cloak:equipped', 'Jerkin:equipped', 'Ring:equipped', 'Tinderbox:carried'],
+			applied: ['Cloak Mark', 'Ring Mark', 'Tinderbox Mark'],
+			encumbrance: 2,
+		},
+	);
+
+	await e2e.step("#938 W3 Dresser's Cloak given a quantity of 2", () =>
+		gm.evaluate(() => window.inventoryE2E.updateItem('Dresser', 'Cloak', { 'system.quantity': 2 })),
+	);
+	e2e.expect('#938 W3 the second Cloak of the stack counts its encumbrance of 1', await encumbrance('Dresser'), 3);
+
+	await e2e.step("#938 W4 Dresser's Ring dropped, and a Bangle created Equipped inside a Pouch, as a script may write it", async () => {
+		await menu('Dresser', 'Ring', 'drop')();
+		await gm.evaluate(
+			(bangle) =>
+				window.inventoryE2E.createItems('Dresser', [
+					{ name: 'Pouch', type: 'container', system: { state: 'carried' } },
+					{ name: 'Bangle', type: 'gear', system: { ...bangle, state: 'equipped' }, in: 'Pouch', markers: ['Bangle Mark'] },
+				]),
+			wearable(0),
+		);
+	});
+	e2e.expect('#938 W4 neither the Dropped Ring nor the Bangle in a Container applies its effect', await applied('Dresser'), [
+		'Cloak Mark',
+		'Tinderbox Mark',
+	]);
+
+	await e2e.step("#938 W5 Dresser's Ring picked up and equipped again, then Wearable unchecked on the Cloak's sheet", async () => {
+		await menu('Dresser', 'Ring', 'equip')();
+		await gm.evaluate(() => window.inventoryE2E.setWearable('Dresser', 'Cloak', false));
+	});
+	e2e.expect(
+		'#938 W5 the Cloak goes back to Carried, its menu no longer offers to equip it, and the worn Ring stays on',
+		{
+			items: (await items('Dresser')).filter((entry) => /^(Cloak|Ring):/.test(entry)),
+			canEquip: await canEquip('Dresser', 'Cloak'),
+		},
+		{ items: ['Cloak:carried', 'Ring:equipped'], canEquip: false },
+	);
+
+	e2e.expect(
+		"#938 W6 a gear's sheet shows the Wearable option, and the worn encumbrance field only while it is on, empty when unset",
+		{
+			ring: await gm.evaluate(() => window.inventoryE2E.gearSheet('Dresser', 'Ring')),
+			cloak: await gm.evaluate(() => window.inventoryE2E.gearSheet('Dresser', 'Cloak')),
+		},
+		{
+			ring: { wearable: { label: 'Wearable', value: true }, wornEncumbrance: { label: 'Worn Encumbrance', value: '' } },
+			cloak: { wearable: { label: 'Wearable', value: false }, wornEncumbrance: null },
+		},
+	);
+
+	await gm.evaluate(() => window.inventoryE2E.takeNotifications());
+	const negative = await gm.evaluate(() =>
+		window.inventoryE2E.tryUpdateItem('Dresser', 'Ring', { 'system.wornEncumbrance': -1 }, 'system.wornEncumbrance'),
+	);
+	// Foundry refuses an update that fails validation with an error notification, and doesn't throw.
+	e2e.expect(
+		'#938 W7 a script writing a negative worn encumbrance fails validation, and the Ring keeps none',
+		{
+			...negative,
+			refused: (await gm.evaluate(() => window.inventoryE2E.takeNotifications())).some((note) => note.includes('must be 0 or more')),
+		},
+		{ threw: false, kept: null, refused: true },
+	);
+
+	e2e.expect(
+		"#938 W8 a drag from the Items directory over Dresser's Inventory tab opens the Equipped section for the Amulet, not the Lantern",
+		{
+			amulet: (await gm.evaluate(() => window.inventoryE2E.windowDrag({ directory: 'Item', name: 'E2E Amulet' }, 'Dresser')))
+				.sections,
+			lantern: (await gm.evaluate(() => window.inventoryE2E.windowDrag({ directory: 'Item', name: 'E2E Lantern' }, 'Dresser')))
+				.sections,
+		},
+		{ amulet: ['equipped', 'carried', 'dropped'], lantern: ['carried', 'dropped'] },
+	);
+
+	await e2e.step("#938 W9 the Amulet and the Lantern dropped from the Items directory on Dresser's Equipped section", async () => {
+		await gm.evaluate(() => window.inventoryE2E.drop({ sidebar: 'Amulet' }, 'Dresser', { section: 'equipped', slot: 0 }));
+		await gm.evaluate(() => window.inventoryE2E.drop({ sidebar: 'Lantern' }, 'Dresser', { section: 'equipped', slot: 0 }));
+	});
+	e2e.expect(
+		'#938 W9 the Amulet lands worn, the Lantern is refused',
+		(await items('Dresser')).filter((entry) => /^(Amulet|Lantern):/.test(entry)),
+		['Amulet:equipped'],
+	);
+
+	await e2e.step('#938 W10 the Wagon and the rival Fence given a Shawl of Wearable Gear, Carried', async () => {
+		for (const actor of ['Wagon', 'Fence']) {
+			await gm.evaluate(
+				(args) =>
+					window.inventoryE2E.createItems(args.actor, [
+						{ name: 'Shawl', type: 'gear', system: { ...args.shawl, state: 'carried' }, markers: ['Shawl Mark'] },
+					]),
+				{ actor, shawl: wearable(1, 0) },
+			);
+		}
+	});
+	e2e.expect(
+		"#938 W10 the Wagon's Shawl can't be equipped and applies its effect while Carried; the Fence's applies it too, at its full encumbrance",
+		{
+			wagon: { canEquip: await canEquip('Wagon', 'Shawl'), applied: await applied('Wagon') },
+			fence: await applied('Fence'),
+			wagonEncumbrance: await gm.evaluate(() => window.inventoryE2E.stat('Wagon', 'currentEncumbrance.value')),
+		},
+		{ wagon: { canEquip: false, applied: ['Shawl Mark'] }, fence: ['Shawl Mark'], wagonEncumbrance: 1 },
+	);
 }
 
 /**

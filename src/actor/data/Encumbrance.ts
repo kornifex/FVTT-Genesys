@@ -35,6 +35,14 @@ export type EncumberingItem = HeldContainer & {
 	encumbrance: number;
 	quantity: number;
 	state: EquipmentState;
+	/**
+	 * Whether the item is Wearable Gear. Only gear can be.
+	 */
+	wearable: boolean;
+	/**
+	 * The encumbrance Wearable Gear counts for one of its quantity while it is worn, or null when it counts its encumbrance.
+	 */
+	wornEncumbrance: number | null;
 };
 
 /**
@@ -50,9 +58,9 @@ export type EncumbranceRules = {
 	 */
 	ignoresDropped: boolean;
 	/**
-	 * Whether an Equipped armor counts 3 less, for one of its quantity.
+	 * Whether the actor wears the equipment it equips, so that an Equipped armor counts 3 less, for one of its quantity.
 	 */
-	reducesEquippedArmor: boolean;
+	wearsEquipment: boolean;
 };
 
 /**
@@ -78,15 +86,36 @@ export function rootContainer<T extends HeldContainer>(containerId: string, getC
 }
 
 /**
- * The encumbrance an item that doesn't have a negative encumbrance adds to the value.
+ * The encumbrance a worn item counts instead of its own: an Equipped armor's, 3 less to a minimum of 0, and Worn Gear's
+ * worn encumbrance. Undefined when the item isn't worn, or counts its own encumbrance while worn.
  */
-function addedValue(item: EncumberingItem, rules: EncumbranceRules) {
-	// Only one of a stack of armor can be worn.
-	if (rules.reducesEquippedArmor && item.type === 'armor' && item.state === EquipmentState.Equipped) {
-		return Math.max(0, item.encumbrance - WORN_ARMOR_ENCUMBRANCE_REDUCTION) + Math.max(0, item.encumbrance * (item.quantity - 1));
+function wornEncumbrance(item: EncumberingItem) {
+	if (item.state !== EquipmentState.Equipped) {
+		return undefined;
 	}
 
-	return item.encumbrance * item.quantity;
+	// An armor's negative encumbrance raises the threshold by all of it, worn or not.
+	if (item.type === 'armor' && item.encumbrance >= 0) {
+		return Math.max(0, item.encumbrance - WORN_ARMOR_ENCUMBRANCE_REDUCTION);
+	}
+
+	// Wearable Gear in a Container isn't worn, whatever its state.
+	return item.wearable && item.container === '' ? item.wornEncumbrance ?? undefined : undefined;
+}
+
+/**
+ * The encumbrance the items of a stack count, in groups of items that count the same: only one of a stack is worn.
+ */
+function stackEncumbrance(item: EncumberingItem, rules: EncumbranceRules) {
+	const worn = rules.wearsEquipment && item.quantity > 0 ? wornEncumbrance(item) : undefined;
+	if (worn === undefined) {
+		return [{ encumbrance: item.encumbrance, count: item.quantity }];
+	}
+
+	return [
+		{ encumbrance: worn, count: 1 },
+		{ encumbrance: item.encumbrance, count: item.quantity - 1 },
+	];
 }
 
 /**
@@ -110,14 +139,15 @@ export function equipmentEncumbrance(items: EncumberingItem[], rules: Encumbranc
 
 	return items
 		.filter((item) => rules.isRelevant(item.type) && !(rules.ignoresDropped && isDropped(item)))
+		.flatMap((item) => stackEncumbrance(item, rules))
 		.reduce(
-			(total, item) => {
+			(total, { encumbrance, count }) => {
 				// Negative encumbrance raises the threshold instead of lowering the value.
-				if (item.encumbrance < 0) {
-					return { value: total.value, thresholdBonus: total.thresholdBonus - item.encumbrance * item.quantity };
+				if (encumbrance < 0) {
+					return { value: total.value, thresholdBonus: total.thresholdBonus - encumbrance * count };
 				}
 
-				return { value: total.value + addedValue(item, rules), thresholdBonus: total.thresholdBonus };
+				return { value: total.value + encumbrance * count, thresholdBonus: total.thresholdBonus };
 			},
 			{ value: 0, thresholdBonus: 0 },
 		);
@@ -156,6 +186,9 @@ export function isEncumbered({ value, threshold }: Encumbrance) {
 export function encumberingItems(items: Iterable<Item.Stored>): EncumberingItem[] {
 	return Array.from(items, (item) => {
 		const { encumbrance, quantity, state, container } = (item as GenesysItem<EquipmentType>).system;
-		return { id: item.id, type: item.type, encumbrance, quantity, state, container };
+		// Only gear can be Wearable Gear.
+		const { wearable, wornEncumbrance } =
+			item.type === 'gear' ? (item as GenesysItem<'gear'>).system : { wearable: false, wornEncumbrance: null };
+		return { id: item.id, type: item.type, encumbrance, quantity, state, container, wearable, wornEncumbrance };
 	});
 }

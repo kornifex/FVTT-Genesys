@@ -45,17 +45,27 @@ describe('rootContainer', () => {
 const CHARACTER: EncumbranceRules = {
 	isRelevant: (type) => ['weapon', 'armor', 'consumable', 'gear', 'container'].includes(type),
 	ignoresDropped: true,
-	reducesEquippedArmor: true,
+	wearsEquipment: true,
 };
 
 const VEHICLE: EncumbranceRules = {
 	isRelevant: (type) => ['vehicleWeapon', 'weapon', 'armor', 'consumable', 'gear', 'container'].includes(type),
 	ignoresDropped: false,
-	reducesEquippedArmor: false,
+	wearsEquipment: false,
 };
 
 function item(id: string, fields: Partial<EncumberingItem> = {}): EncumberingItem {
-	return { id, type: 'gear', encumbrance: 0, quantity: 1, state: 'carried', container: '', ...fields };
+	return {
+		id,
+		type: 'gear',
+		encumbrance: 0,
+		quantity: 1,
+		state: 'carried',
+		container: '',
+		wearable: false,
+		wornEncumbrance: null,
+		...fields,
+	};
 }
 
 describe('equipmentEncumbrance', () => {
@@ -178,6 +188,45 @@ describe('equipmentEncumbrance', () => {
 		const equippedPlate = item('equippedPlate', { type: 'armor', encumbrance: 4, state: 'equipped' });
 
 		expect(equipmentEncumbrance([equippedPlate], VEHICLE)).toEqual({ value: 4, thresholdBonus: 0 });
+	});
+
+	it("counts a character's Worn Gear its worn encumbrance for one of its quantity, as a fine cloak's 0", () => {
+		const cloak = { type: 'gear', encumbrance: 1, wearable: true, wornEncumbrance: 0 };
+
+		expect(equipmentEncumbrance([item('cloak', { ...cloak, state: 'equipped' })], CHARACTER)).toEqual({ value: 0, thresholdBonus: 0 });
+		expect(equipmentEncumbrance([item('cloak', { ...cloak, quantity: 2, state: 'equipped' })], CHARACTER)).toEqual({
+			value: 1,
+			thresholdBonus: 0,
+		});
+	});
+
+	it("counts a character's Wearable Gear in full while it is carried, or worn without a worn encumbrance", () => {
+		const cloak = item('cloak', { encumbrance: 1, wearable: true, wornEncumbrance: 0 });
+		const ring = item('ring', { encumbrance: 1, wearable: true, wornEncumbrance: null, state: 'equipped' });
+
+		expect(equipmentEncumbrance([cloak], CHARACTER)).toEqual({ value: 1, thresholdBonus: 0 });
+		expect(equipmentEncumbrance([ring], CHARACTER)).toEqual({ value: 1, thresholdBonus: 0 });
+	});
+
+	it("counts a character's Wearable Gear in full when it is Equipped in a Container, as it isn't worn there", () => {
+		const items = [
+			item('pouch', { type: 'container' }),
+			item('bangle', { encumbrance: 3, wearable: true, wornEncumbrance: 0, state: 'equipped', container: 'pouch' }),
+		];
+
+		expect(equipmentEncumbrance(items, CHARACTER)).toEqual({ value: 3, thresholdBonus: 0 });
+	});
+
+	it('raises the threshold by the negative encumbrance of the rest of a stack of Worn Gear', () => {
+		const harness = item('harness', { encumbrance: -1, quantity: 3, wearable: true, wornEncumbrance: 2, state: 'equipped' });
+
+		expect(equipmentEncumbrance([harness], CHARACTER)).toEqual({ value: 2, thresholdBonus: 2 });
+	});
+
+	it("counts a vehicle's Wearable Gear in full, Equipped or not", () => {
+		const cloak = item('cloak', { encumbrance: 1, wearable: true, wornEncumbrance: 0, state: 'equipped' });
+
+		expect(equipmentEncumbrance([cloak], VEHICLE)).toEqual({ value: 1, thresholdBonus: 0 });
 	});
 });
 

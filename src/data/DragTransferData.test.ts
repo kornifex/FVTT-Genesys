@@ -48,6 +48,17 @@ describe('dragData', () => {
 	});
 });
 
+describe('extractDataFromDragTransferTypes', () => {
+	it('reads back the uuid and type of a drag format whole, consecutive capitals included, as browsers lowercase formats', () => {
+		const format = constructDragTransferTypeFromData('vehicleWeapon', 'Item.cDbPlbuUh4ElpRKD');
+
+		expect(extractDataFromDragTransferTypes([format.toLowerCase()])).toEqual({
+			genesysType: 'vehicleWeapon',
+			uuid: 'Item.cDbPlbuUh4ElpRKD',
+		});
+	});
+});
+
 describe('addGenesysDragType', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();

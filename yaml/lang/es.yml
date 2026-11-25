@@ -773,6 +773,8 @@ Genesys:
     Add: Añadir
     Cancel: Cancelar
     Encumbrance: Impedimento
+    Wearable: Se lleva puesto
+    WornEncumbrance: Impedimento puesto
     HardPoints: Puntos de anclaje
     HardPointsRequired: Puntos de anclaje requeridos
     HardPointsOver: '¡{taken} puntos de anclaje ocupados, de {total}!'

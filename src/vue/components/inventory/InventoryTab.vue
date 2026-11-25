@@ -9,7 +9,8 @@ import { VehicleDataModel } from '@/actor/data/VehicleDataModel';
 import { EquipmentState } from '@/item/data/EquipmentState';
 import { GenesysItem } from '@/item/GenesysItem';
 import { EQUIPMENT_TYPES, itemsOfType, type EquipmentType } from '@/item/ItemTypes';
-import { draggedGenesysType } from '@/data/DragTransferData';
+import { draggedGenesysType, extractDataFromDragTransferTypes } from '@/data/DragTransferData';
+import { isEquipable } from '@/actor/data/Equipable';
 import { rowDropTarget, sectionItems, type RowEdge } from '@/actor/data/Inventory';
 import { receiveInventoryEvent } from '@/operations/InventoryDrop';
 import { useDragHover } from '@/vue/useDragHover';
@@ -36,14 +37,14 @@ const currencyId = useId();
 
 const { document: actor, system } = useSheetDocument<GenesysActor<'character' | 'vehicle'>>();
 
-// The actor's data model tells which item types belong to the inventory and which of them can be equipped.
+// The actor's data model tells which item types belong to the inventory.
 const dataModel = actor.value.system.constructor as typeof CharacterDataModel | typeof VehicleDataModel;
 
 const isDraggable = ref(actor.value.isOwner);
 
 // A drag over the tab opens the sort slots of the sections that take the dragged item: the Equipped section those the
 // actor can equip, the others any item of its inventory.
-const equipableDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('EQUIPABLE', draggedGenesysType(event) ?? ''));
+const equipableDrag = useDragHover(mayEquipDragged);
 const inventoryDrag = useDragHover((event) => dataModel.isRelevantTypeForContext('INVENTORY', draggedGenesysType(event) ?? ''));
 
 const inventory = computed(() =>
@@ -75,6 +76,28 @@ const itemSections = computed(() => {
 
 // The order of the tab's parts: the item sections and the currency and encumbrance row.
 const layout = computed(() => (props.summaryOnTop ? ['summary', 'items'] : ['items', 'summary']));
+
+// Gear says in its data whether it is wearable, which a drag doesn't carry: it is read from the dragged item. A
+// compendium only gives its index, without the data, so its gear opens the Equipped section and the drop decides.
+function mayEquipDragged(event: DragEvent) {
+	const dragged = extractDataFromDragTransferTypes(event.dataTransfer?.types);
+	if (!dragged) {
+		return false;
+	}
+
+	const system = dragged.genesysType === 'gear' ? draggedItem(dragged.uuid)?.system ?? { wearable: true } : {};
+	return isEquipable(actor.value.type, { type: dragged.genesysType, system });
+}
+
+function draggedItem(uuid: string) {
+	try {
+		// The uuid comes from an item's drag format: an item, or a compendium's index entry, which holds no `system`.
+		return fromUuidSync(uuid) as { system?: object } | null;
+	} catch {
+		// Foundry can't read an item of an actor in a compendium synchronously.
+		return null;
+	}
+}
 
 function canTypeBeInsideContainer(type: string) {
 	return type !== 'container' && dataModel.isRelevantTypeForContext('INVENTORY', type);
