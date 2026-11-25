@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.8.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.5...v0.8.0) (2026-11-25)
+
+
+### Features
+
+* **actor:** add Career Skill changes, and let an Archetype grant a skill twice ([#923](https://github.com/kornifex/FVTT-Genesys/issues/923)) ([7495474](https://github.com/kornifex/FVTT-Genesys/commit/74954745131fac2c7941b4082a6181ee0f3ff1f7))
+* **actor:** add the Career-Only Magic Skills alternate rule ([#917](https://github.com/kornifex/FVTT-Genesys/issues/917)) ([3161ddb](https://github.com/kornifex/FVTT-Genesys/commit/3161ddb5d410f4e84998ad6e2d4f4ed402ecd502))
+* **actor:** let an Archetype give ranks in non-career skills of the player's choice ([#935](https://github.com/kornifex/FVTT-Genesys/issues/935)) ([4605645](https://github.com/kornifex/FVTT-Genesys/commit/46056458a2fcce3ee99a2c3cdc02944395c098d1))
+* **dice:** add Attack Changes, which change the damage or the Critical rating of an actor's attacks ([#921](https://github.com/kornifex/FVTT-Genesys/issues/921)) ([9489ab7](https://github.com/kornifex/FVTT-Genesys/commit/9489ab789527d242a6559799c9689adcc3beed23))
+* **item:** let a character wear gear marked as wearable ([#939](https://github.com/kornifex/FVTT-Genesys/issues/939)) ([9716421](https://github.com/kornifex/FVTT-Genesys/commit/9716421a69cfbc152e850c6f9810d1c1b36db387))
+* **item:** ship a Realms of Terrinoth Skills Compendium ([#915](https://github.com/kornifex/FVTT-Genesys/issues/915)) ([ed7e9ac](https://github.com/kornifex/FVTT-Genesys/commit/ed7e9ac9c065e611025518590ec928b81de928ab))
+
+
+### Bug Fixes
+
+* **dice:** count an attachment's Critical Injury change for its weapon's attacks only ([#933](https://github.com/kornifex/FVTT-Genesys/issues/933)) ([2d82a10](https://github.com/kornifex/FVTT-Genesys/commit/2d82a1028c4a3b9b50ab7385ef092433ca13e481))
+* **dice:** pick the target's defense from the kind of attack the skill makes ([#916](https://github.com/kornifex/FVTT-Genesys/issues/916)) ([2c0df8d](https://github.com/kornifex/FVTT-Genesys/commit/2c0df8d3a6499272953ded91c9e0e495ffde43b8))
+* **ui:** draw a select's open list in the sheet's text over its paper ([#934](https://github.com/kornifex/FVTT-Genesys/issues/934)) ([be05e6c](https://github.com/kornifex/FVTT-Genesys/commit/be05e6c771097c7fb97fe227dda06d50de0792ce))
+
+
+### Documentation
+
+* add 0.7.5's changes to the README's What's new since the fork ([#910](https://github.com/kornifex/FVTT-Genesys/issues/910)) ([3a30ada](https://github.com/kornifex/FVTT-Genesys/commit/3a30adaf304de65068935beaf16bea900f9fbda6))
+* let release-please compute every version ([#937](https://github.com/kornifex/FVTT-Genesys/issues/937)) ([8147af1](https://github.com/kornifex/FVTT-Genesys/commit/8147af1deee34638edfd8cde921d155c66c76384))
+* **ui:** write down the UI conventions and the French edition's terms ([#925](https://github.com/kornifex/FVTT-Genesys/issues/925)) ([23fb777](https://github.com/kornifex/FVTT-Genesys/commit/23fb777ab7eaf4c6cefccd67e3d3c8d203d48a01))
+
+
+### Continuous Integration
+
+* remove release-as now that 0.7.5 is out ([#909](https://github.com/kornifex/FVTT-Genesys/issues/909)) ([e0d696b](https://github.com/kornifex/FVTT-Genesys/commit/e0d696bf37f90d333e845bb6376cb8e85c35ddb1))
+
 ## [0.7.5](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.4...v0.7.5) (2026-11-18)
 
 
