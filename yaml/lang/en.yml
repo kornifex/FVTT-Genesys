@@ -791,6 +791,8 @@ Genesys:
     Add: Add
     Cancel: Cancel
     Encumbrance: Encumbrance
+    Wearable: Wearable
+    WornEncumbrance: Worn Encumbrance
     HardPoints: Hard Points
     HardPointsRequired: Hard Points Required
     HardPointsOver: '{taken} Hard Points taken, out of {total}!' # The warning of a weapon or an armor whose attachments take more Hard Points than it has

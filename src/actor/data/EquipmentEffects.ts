@@ -2,21 +2,22 @@
  * @file Effects of equipment apply only while their item is in the right Equipment State: equipped and in no Container for equipable items, and carried for any other equipment but consumables, whose effects never apply.
  */
 
+import { isEquipable, type EquipableItem } from '@/actor/data/Equipable';
 import { isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { EquipmentState } from '@/item/data/EquipmentState';
 
 /**
  * The relevant-types check of an actor type, limited to the contexts this rule needs.
  */
-type IsEquipmentType = (context: 'INVENTORY' | 'EQUIPABLE' | 'CONSUMABLE', type: string) => boolean;
+type IsEquipmentType = (context: 'INVENTORY' | 'CONSUMABLE', type: string) => boolean;
 
 /**
- * What this rule reads of an item: its type and, for equipment, its Equipment State and the Container holding it.
+ * What this rule reads of an item: its type and, for equipment, its Equipment State, the Container holding it and
+ * whether it can be equipped.
  */
-type HeldItem = {
-	type: string;
+type HeldItem = EquipableItem & {
 	// The data of an item of any type, which only equipment fills these fields of.
-	system: object & { state?: EquipmentState; container?: string };
+	system: { state?: EquipmentState; container?: string };
 };
 
 // The relevant-types check of each actor type whose equipment has an Equipment State. Adversaries have none: the
@@ -29,12 +30,12 @@ const EQUIPMENT_TYPES_BY_ACTOR_TYPE: Partial<Record<string, IsEquipmentType>> = 
 /**
  * Whether the effects of an item must be disabled. Effects of an item that isn't equipment for the actor are always enabled.
  */
-function areEffectsDisabled(isEquipmentType: IsEquipmentType, item: HeldItem) {
+function areEffectsDisabled(actorType: string, isEquipmentType: IsEquipmentType, item: HeldItem) {
 	if (!isEquipmentType('INVENTORY', item.type)) {
 		return false;
 	}
 
-	if (isEquipmentType('EQUIPABLE', item.type)) {
+	if (isEquipable(actorType, item)) {
 		return EquipmentState.Equipped !== item.system.state || !!item.system.container;
 	} else if (isEquipmentType('CONSUMABLE', item.type)) {
 		// The system has no way to use a consumable (.out-of-scope/using-consumables.md), so its effects never apply.
@@ -57,7 +58,7 @@ export function hasEquipmentState(actorType: string, itemType: string) {
  */
 export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) {
 	const isEquipmentType = EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType];
-	return !!isEquipmentType && areEffectsDisabled(isEquipmentType, item);
+	return !!isEquipmentType && areEffectsDisabled(actorType, isEquipmentType, item);
 }
 
 /**
@@ -65,8 +66,7 @@ export function isSuppressedByEquipmentState(actorType: string, item: HeldItem) 
  * in a Container, whatever the Container's state, as an armor in it isn't worn (CRB p. 92).
  */
 export function isSuppressedByContainer(actorType: string, item: HeldItem) {
-	const isEquipmentType = EQUIPMENT_TYPES_BY_ACTOR_TYPE[actorType];
-	return !!isEquipmentType && isEquipmentType('EQUIPABLE', item.type) && !!item.system.container;
+	return isEquipable(actorType, item) && !!item.system.container;
 }
 
 /**

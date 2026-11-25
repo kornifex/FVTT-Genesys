@@ -26,6 +26,10 @@ function item(id: string, type: string, state: EquipmentState = EquipmentState.C
 	return { id, type, sort, system: { state, container } };
 }
 
+function wearableGear(id: string, state: EquipmentState = EquipmentState.Carried, sort = 0): InventoryItem {
+	return { id, type: 'gear', sort, system: { state, container: '', wearable: true } };
+}
+
 // Ids for the created items, in order.
 function newIds() {
 	let count = 0;
@@ -125,6 +129,34 @@ describe('decideDrop', () => {
 			create: [{ system: { state: EquipmentState.Equipped } }],
 		});
 		expect(decideDrop(vehicle, { item: item('sword', 'weapon'), at: equipped }, newIds())).toEqual({ action: 'refuse' });
+	});
+
+	it("equips Wearable Gear on a character's Equipped section, leaving the worn armor and the other Worn Gear on", () => {
+		const pc = {
+			uuid: 'Actor.pc',
+			type: 'character',
+			items: [item('jacket', 'armor', EquipmentState.Equipped, 100000), wearableGear('cloak', EquipmentState.Equipped, 200000)],
+		};
+
+		const decision = decideDrop(
+			pc,
+			{ item: wearableGear('ring'), at: { kind: 'section', state: EquipmentState.Equipped, after: 1 } },
+			newIds(),
+		);
+
+		expect(decision).toEqual({
+			action: 'copy',
+			create: [{ sourceId: 'ring', _id: 'new1', sort: 300000, system: { state: EquipmentState.Equipped, container: '' } }],
+			update: [],
+			delete: [],
+		});
+	});
+
+	it("refuses Wearable Gear on a vehicle's Equipped section, as only characters wear gear", () => {
+		const vehicle = { uuid: 'Actor.ship', type: 'vehicle', items: [] };
+		const equipped = { kind: 'section', state: EquipmentState.Equipped, after: -1 } as const;
+
+		expect(decideDrop(vehicle, { item: wearableGear('cloak'), at: equipped }, newIds())).toEqual({ action: 'refuse' });
 	});
 
 	it('takes off the worn armor, to the end of the Carried section, when another armor is equipped (CRB p. 92)', () => {
@@ -443,6 +475,18 @@ describe('equipmentStateUpdates', () => {
 		]);
 	});
 
+	it('leaves the worn armor and the other Worn Gear on when Wearable Gear is equipped', () => {
+		const items = [
+			item('jacket', 'armor', EquipmentState.Equipped),
+			wearableGear('cloak', EquipmentState.Equipped),
+			wearableGear('ring', EquipmentState.Carried),
+		];
+
+		expect(equipmentStateUpdates(items, 'ring', EquipmentState.Equipped)).toEqual([
+			{ _id: 'ring', system: { state: EquipmentState.Equipped } },
+		]);
+	});
+
 	it("leaves the worn armor on when an armor held in a Container is equipped, as it keeps the Container's state", () => {
 		const items = [
 			item('jacket', 'armor', EquipmentState.Equipped),
@@ -553,6 +597,17 @@ describe('equipmentStateMoves', () => {
 		expect(equipmentStateMoves('character', item('rope', 'gear', EquipmentState.Dropped))).toEqual([
 			{ action: 'pickUp', state: EquipmentState.Carried },
 		]);
+	});
+
+	it('offers a character to equip Wearable Gear and to put it back to Carried, but not other gear', () => {
+		expect(actions('character', wearableGear('cloak', EquipmentState.Carried))).toEqual(['equip', 'drop']);
+		expect(actions('character', wearableGear('cloak', EquipmentState.Equipped))).toEqual(['unequip', 'drop']);
+		expect(actions('character', item('rope', 'gear', EquipmentState.Carried))).toEqual(['drop']);
+	});
+
+	it('offers no equip move for Wearable Gear on a vehicle or an adversary', () => {
+		expect(actions('vehicle', wearableGear('cloak'))).toEqual([]);
+		expect(actions('rival', wearableGear('cloak'))).toEqual([]);
 	});
 
 	it('offers a vehicle to equip and unequip its vehicle weapons, but nothing to drop', () => {

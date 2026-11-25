@@ -32,6 +32,38 @@ describe('isSuppressedByEquipmentState', () => {
 		expect(applyingStates('character', 'container')).toEqual([EquipmentState.Carried]);
 	});
 
+	it("applies a character's Wearable Gear only while it is Equipped in no Container, like a fine cloak while worn", () => {
+		const applying = ALL_STATES.filter(
+			(state) => !isSuppressedByEquipmentState('character', { type: 'gear', system: { state, container: '', wearable: true } }),
+		);
+
+		expect(applying).toEqual([EquipmentState.Equipped]);
+		expect(
+			isSuppressedByEquipmentState('character', {
+				type: 'gear',
+				system: { state: EquipmentState.Equipped, container: 'box', wearable: true },
+			}),
+		).toBe(true);
+	});
+
+	it("applies a character's gear that isn't wearable while it is carried", () => {
+		const applying = ALL_STATES.filter(
+			(state) => !isSuppressedByEquipmentState('character', { type: 'gear', system: { state, container: '', wearable: false } }),
+		);
+
+		expect(applying).toEqual([EquipmentState.Carried]);
+	});
+
+	it('leaves Wearable Gear to the rules of any gear on vehicles and adversaries', () => {
+		const applying = (actorType: string) =>
+			ALL_STATES.filter(
+				(state) => !isSuppressedByEquipmentState(actorType, { type: 'gear', system: { state, container: '', wearable: true } }),
+			);
+
+		expect(applying('vehicle')).toEqual([EquipmentState.Carried]);
+		expect(applying('rival')).toEqual(ALL_STATES);
+	});
+
 	it("applies a vehicle's vehicle weapons only while they are equipped", () => {
 		expect(applyingStates('vehicle', 'vehicleWeapon')).toEqual([EquipmentState.Equipped]);
 	});
@@ -112,6 +144,12 @@ describe('isSuppressedByContainer', () => {
 		expect(isSuppressedByContainer('character', { type: 'armor', system: { state: EquipmentState.Equipped, container: '' } })).toBe(
 			false,
 		);
+		expect(
+			isSuppressedByContainer('character', {
+				type: 'gear',
+				system: { state: EquipmentState.Equipped, container: 'box', wearable: true },
+			}),
+		).toBe(true);
 	});
 
 	it("leaves other equipment to its state, and adversaries' equipment alone", () => {

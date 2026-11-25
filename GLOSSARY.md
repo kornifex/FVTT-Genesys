@@ -142,7 +142,7 @@ A change of an actor's effect that makes the skill it names (`genesys.careerSkil
 ### Equipment
 
 **Equipment State**:
-Where a piece of a character's or vehicle's equipment is: Equipped, Carried or Dropped. The effects of equipment that can be equipped (a character's weapons and armor, a vehicle's vehicle weapons) apply only while it's Equipped and held in no container, and of any other equipment only while it's Carried, but a consumable's effects never apply, whatever its state: the system has no way to use one ([out of scope for now](.out-of-scope/using-consumables.md)). Adversaries have no Equipment State: the effects of their equipment always apply, consumables included.
+Where a piece of a character's or vehicle's equipment is: Equipped, Carried or Dropped. The effects of equipment that can be equipped (a character's weapons, armor and Wearable Gear, a vehicle's vehicle weapons) apply only while it's Equipped and held in no container, and of any other equipment only while it's Carried, but a consumable's effects never apply, whatever its state: the system has no way to use one ([out of scope for now](.out-of-scope/using-consumables.md)). Adversaries have no Equipment State: the effects of their equipment always apply, consumables included.
 _Avoid_: Inventory category, equipment status
 
 **Container**:
@@ -153,8 +153,16 @@ _Avoid_: Bag, pack
 The armor a character wears: Equipped and held in no container. A character wears one armor: equipping an armor puts the one worn before back to Carried. When older data still has several worn, only the one with the best soak, then the best defense, then the first in item order adds its soak and defense. An armor in a container never adds soak or defense, whatever the container's state.
 _Avoid_: Active armor, armor in use
 
+**Wearable Gear**:
+Gear a character puts on rather than carries, such as a fine cloak or a magic ring: each piece of gear says whether it is wearable. Wearable Gear can be Equipped, any number of pieces at once, and its effects then apply as those of any equipment that can be equipped. Other gear, such as a tool, can't be Equipped, and its effects apply while it's Carried. Gear that stops being wearable while Equipped goes back to Carried. Only characters wear gear: on a vehicle or an adversary, being wearable changes nothing.
+_Avoid_: Accessory
+
+**Worn Gear**:
+The Wearable Gear a character wears: Equipped and held in no container. A piece of Wearable Gear may have a worn encumbrance, 0 or more, which counts instead of its encumbrance for one of its quantity while it is worn, as a fine cloak's 0; without one, it counts its encumbrance.
+_Avoid_: Equipped gear, accessory in use
+
 **Encumbrance**:
-The total encumbrance of a character's or vehicle's equipment (its value), against the threshold above which they are encumbered. Each item adds its encumbrance to the value once per item of its quantity; an item with a negative encumbrance raises the threshold instead, also once per item. On a character, Dropped equipment, including the contents of a Dropped container, counts towards neither the value nor the threshold, and an Equipped armor counts 3 less, to a minimum of 0, for one of its quantity. On a vehicle, all equipment counts, whatever its Equipment State.
+The total encumbrance of a character's or vehicle's equipment (its value), against the threshold above which they are encumbered. Each item adds its encumbrance to the value once per item of its quantity; an item with a negative encumbrance raises the threshold instead, also once per item. On a character, Dropped equipment, including the contents of a Dropped container, counts towards neither the value nor the threshold, an Equipped armor counts 3 less, to a minimum of 0, for one of its quantity, and Worn Gear counts its worn encumbrance, when it has one, for one of its quantity. On a vehicle, all equipment counts, whatever its Equipment State.
 _Avoid_: Weight, load
 
 **Weapon Profile**:

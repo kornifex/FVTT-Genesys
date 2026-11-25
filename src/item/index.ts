@@ -10,6 +10,7 @@ import { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
 import { CareerDataModel } from '@/item/data/CareerDataModel';
 import { ContainerDataModel } from '@/item/data/ContainerDataModel';
 import { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import { GearDataModel } from '@/item/data/GearDataModel';
 import { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import { SkillDataModel } from '@/item/data/SkillDataModel';
 import { SpellDataModel } from '@/item/data/SpellDataModel';
@@ -40,7 +41,7 @@ const DATA_MODELS: { [T in ItemType]: abstract new (...args: never[]) => ItemDat
 	consumable: EquipmentDataModel,
 	container: ContainerDataModel,
 	injury: InjuryDataModel,
-	gear: EquipmentDataModel,
+	gear: GearDataModel,
 	skill: SkillDataModel,
 	spell: SpellDataModel,
 	talent: TalentDataModel,

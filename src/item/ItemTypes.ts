@@ -11,6 +11,7 @@ import type { AttachmentDataModel } from '@/item/data/AttachmentDataModel';
 import type { CareerDataModel } from '@/item/data/CareerDataModel';
 import type { ContainerDataModel } from '@/item/data/ContainerDataModel';
 import type { EquipmentDataModel } from '@/item/data/EquipmentDataModel';
+import type { GearDataModel } from '@/item/data/GearDataModel';
 import type { InjuryDataModel } from '@/item/data/InjuryDataModel';
 import type { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import type { SkillDataModel } from '@/item/data/SkillDataModel';
@@ -31,7 +32,7 @@ export type ItemDataModels = {
 	career: CareerDataModel;
 	consumable: EquipmentDataModel;
 	container: ContainerDataModel;
-	gear: EquipmentDataModel;
+	gear: GearDataModel;
 	injury: InjuryDataModel;
 	quality: ItemQualityDataModel;
 	skill: SkillDataModel;

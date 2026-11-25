@@ -786,6 +786,8 @@ Genesys:
     Add: Ajouter
     Cancel: Annuler
     Encumbrance: Encombrement
+    Wearable: Se porte
+    WornEncumbrance: Encombrement porté
     HardPoints: Points d'emplacement
     HardPointsRequired: Points d'emplacement requis
     HardPointsOver: '{taken} points d’emplacement pris, sur {total} !'

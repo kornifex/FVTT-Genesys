@@ -3,6 +3,7 @@
  * their Equipment State, and what its rows offer: Equipment State moves and steps of an item's quantity and damage.
  */
 
+import { isEquipable } from '@/actor/data/Equipable';
 import { hasEquipmentState } from '@/actor/data/EquipmentEffects';
 import { isRelevantToAdversary, isRelevantToCharacter, isRelevantToVehicle } from '@/actor/data/RelevantTypes';
 import { damageStep, EquipmentDamageState } from '@/item/data/EquipmentDamage';
@@ -10,13 +11,13 @@ import { EquipmentState } from '@/item/data/EquipmentState';
 import { SORT_DENSITY } from '@/data/Sort';
 
 /**
- * What this module reads of a piece of equipment.
+ * What this module reads of a piece of equipment. Only gear tells whether it is Wearable Gear.
  */
 export type InventoryItem = {
 	id: string;
 	type: string;
 	sort: number;
-	system: { state: EquipmentState; container: string };
+	system: { state: EquipmentState; container: string; wearable?: boolean };
 };
 
 /**
@@ -109,30 +110,26 @@ type EquipmentStateMove =
 	| { action: 'drop'; state: typeof EquipmentState.Dropped };
 
 /**
- * The item types an actor type keeps in its inventory, those of them it can equip, and whether it can drop them.
+ * The item types an actor type keeps in its inventory, and whether it can drop them.
  */
 type InventoryTypes = {
 	isInventory(type: string): boolean;
-	isEquipable(type: string): boolean;
 	canDrop: boolean;
 };
 
 const ADVERSARY_INVENTORY_TYPES: InventoryTypes = {
 	isInventory: (type) => isRelevantToAdversary('INVENTORY', type),
-	isEquipable: () => false,
 	canDrop: false,
 };
 
 const INVENTORY_TYPES_BY_ACTOR_TYPE: Partial<Record<string, InventoryTypes>> = {
 	character: {
 		isInventory: (type) => isRelevantToCharacter('INVENTORY', type),
-		isEquipable: (type) => isRelevantToCharacter('EQUIPABLE', type),
 		canDrop: true,
 	},
 	// A vehicle's equipment is aboard: it is never Dropped.
 	vehicle: {
 		isInventory: (type) => isRelevantToVehicle('INVENTORY', type),
-		isEquipable: (type) => isRelevantToVehicle('EQUIPABLE', type),
 		canDrop: false,
 	},
 	minion: ADVERSARY_INVENTORY_TYPES,
@@ -170,8 +167,8 @@ function isWornArmor(item: PlacedItem) {
 
 /**
  * The updates that take off a character's worn armor, to the end of the Carried section, when another armor lands
- * Equipped in no Container: a character benefits from one piece of armor (CRB p. 92). Weapons and gear can be equipped
- * together.
+ * Equipped in no Container: a character benefits from one piece of armor (CRB p. 92). Weapons and Wearable Gear can be
+ * equipped together, any number of them.
  */
 function takeOffWornArmor(items: InventoryItem[], placed: PlacedItem): ItemUpdate[] {
 	if (!isWornArmor(placed)) {
@@ -209,7 +206,7 @@ export function equipmentStateMoves(actorType: string, item: PlacedItem): Equipm
 	}
 
 	const moves: EquipmentStateMove[] = [];
-	if (types.isEquipable(item.type)) {
+	if (isEquipable(actorType, item)) {
 		moves.push(
 			item.system.state === EquipmentState.Equipped
 				? { action: 'unequip', state: EquipmentState.Carried }
@@ -358,7 +355,7 @@ function sortInSection(section: InventoryItem[], item: InventoryItem, after?: nu
  * Where a dropped item lands on the receiver, and the sort updates of its new neighbours. Undefined when it can't land
  * there.
  */
-function placement(receiver: Receiver, types: InventoryTypes, item: InventoryItem, at: DropTarget) {
+function placement(receiver: Receiver, item: InventoryItem, at: DropTarget) {
 	// Adversaries have no Equipment State: their equipment stays Carried.
 	const hasState = hasEquipmentState(receiver.type, item.type);
 	if (at.kind === 'container') {
@@ -372,7 +369,7 @@ function placement(receiver: Receiver, types: InventoryTypes, item: InventoryIte
 	}
 
 	const state = at.kind === 'section' && hasState ? at.state : EquipmentState.Carried;
-	if (state === EquipmentState.Equipped && !types.isEquipable(item.type)) {
+	if (state === EquipmentState.Equipped && !isEquipable(receiver.type, item)) {
 		return undefined;
 	}
 
@@ -408,7 +405,7 @@ export function decideDrop(receiver: Receiver, { item, from, at }: Drop, newId: 
 
 	// A Container's contents go wherever it goes. One copied from a compendium or the sidebar holds nothing.
 	const contents = from && item.type === 'container' ? heldItems(from.items, item.id) : [];
-	const place = placement(receiver, types, item, at);
+	const place = placement(receiver, item, at);
 	if (!place || !contents.every((content) => types.isInventory(content.type))) {
 		return { action: 'refuse' };
 	}
