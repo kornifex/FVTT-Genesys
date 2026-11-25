@@ -15,14 +15,14 @@ Since release 0.2.19 of the original system, this fork has:
 - made every sheet usable from the keyboard and with a screen reader, with text at WCAG contrast in both Styles, a ⋮ menu of actions on every row, and compact counters;
 - let the sheets, prompts and chat cards follow Foundry's light or dark theme, in both Styles;
 - added magic: spells and their Additional Effects, cast from a Magic tab, with magic attacks and the Heal spell;
-- added attachments and complete qualities, whose effects can change their weapon or armor;
+- added attachments and complete qualities, whose effects can change their weapon or armor, and effects that change the damage or the Critical rating of an actor's attacks;
 - added healing and recovery: Medicine checks with a healing card to apply and a healer's talent bonus such as Surgeon's, rest at the end of an encounter and overnight, and Critical Injuries rolled on the world's table;
 - added Story Point spends in the Dice Prompt, the GM's included, and maneuvers and states (Aim, Guarded Stance, cover, prone, incapacitated) that apply to checks;
 - added Weapon Profiles, a choice of Attack Skill for each weapon, and Silhouettes that change a targeted attack's difficulty;
 - let the roller set a check's Difficulty in the Dice Prompt, roll skills they lack as Unranked Skill Checks, and roll check links from journals, chat messages and item sheets;
 - fixed initiative, so Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots;
-- brought Character Creation, armor, Encumbrance and equipment effects in line with the Core Rulebook;
-- added optional house rules: Ignore Talent Pyramid, Talent Tier Versions, and a Realms of Terrinoth style.
+- brought Character Creation, armor, Encumbrance and equipment effects in line with the Core Rulebook, with career skills that talents grant, Archetypes that let the player choose non-career skills, and wearable gear such as a cloak or a ring;
+- added a Realms of Terrinoth Skills Compendium, and optional rules: Ignore Talent Pyramid, Talent Tier Versions, Career-Only Magic Skills, and a Realms of Terrinoth style.
 
 The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wiki/Changes-since-the-fork) page groups these changes by theme for players and GMs. The [changelog](CHANGELOG.md) lists every change with its issue.
 
