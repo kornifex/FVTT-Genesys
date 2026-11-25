@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.0...v0.8.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **i18n:** summarize 0.8.0's changes since 0.7.5 in the welcome message ([#940](https://github.com/kornifex/FVTT-Genesys/issues/940)) ([d0ab0fe](https://github.com/kornifex/FVTT-Genesys/commit/d0ab0fe6d170168d81f39ba3d2dcf14ac9e9d29a))
+
 ## [0.8.0](https://github.com/kornifex/FVTT-Genesys/compare/v0.7.5...v0.8.0) (2026-11-25)
 
 
