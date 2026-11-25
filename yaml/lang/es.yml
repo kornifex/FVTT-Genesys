@@ -528,16 +528,26 @@ Genesys:
     Updates: Correcciones y novedades
     Feature: NOVEDAD
     Fix: CORRECCIÓN
-    HealerBonus: >-
-      Un efecto «Modificar curación» suma a las heridas que cura la tirada de Medicina de un sanador, una vez por rango de
-      un talento como Cirujano
-    GmUpgradesDifficulty: >-
-      La reserva de dados de un jugador le permite marcar el punto que el DJ gasta para mejorar la dificultad de su tirada
-    TargetCombatCheck: >-
-      Un efecto puede modificar toda tirada de combate contra el actor, cuerpo a cuerpo o a distancia, como hace Adversario
-    MedicineDifficulty: >-
-      Una tirada de Medicina sigue siendo Fácil hasta la mitad del umbral de heridas del paciente, redondeada hacia arriba
-    ContextMenuEntries: Las entradas de un menú contextual se alinean a la izquierda, los iconos y luego las etiquetas
+    RotSkills: >-
+      Un segundo compendio de habilidades, Realms of Terrinoth Skills, reúne las 33 habilidades del mundo: elígelo en el
+      ajuste Compendio de habilidades
+    CareerOnlyMagicSkills: >-
+      La regla «Habilidades de magia solo de carrera» impide comprar rangos en una habilidad de magia que no sea
+      profesional
+    CareerSkillChanges: >-
+      Un efecto puede volver profesional una habilidad, como hace un talento, y un arquetipo puede conceder dos veces una
+      habilidad
+    ArchetypeSkillChoices: >-
+      Un arquetipo puede dar rangos en habilidades que no son de profesión a elección del jugador, como las dos del Humano
+    AttackChanges: >-
+      Un efecto puede modificar el daño o el crítico de los ataques del actor, cuerpo a cuerpo o a distancia
+    WearableGear: >-
+      Un personaje puede llevar puesto un equipo que se lleva puesto, como un anillo o una capa, además de su armadura; sus
+      efectos se aplican mientras lo lleva
+    AttackDefense: >-
+      Un ataque se enfrenta a la defensa cuerpo a cuerpo o a distancia según su habilidad, no el alcance de su arma: una
+      pica a corto alcance se enfrenta a la defensa cuerpo a cuerpo
+    SelectOptions: La lista abierta de un desplegable toma los colores de la hoja, también en el tema oscuro
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
