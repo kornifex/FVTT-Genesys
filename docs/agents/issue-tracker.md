@@ -20,6 +20,8 @@ The repository is still a GitHub fork of Mezryss/FVTT-Genesys (it stays in the f
 
 Third parties open issues through the forms in `.github/ISSUE_TEMPLATE/` (blank issues are disabled in the web UI): a bug report or a feature request, which applies its category label (`bug` or `enhancement`) and `needs-triage`. They may be written in French.
 
+Every open issue has a milestone: the release it ships in, or, while it is in triage (`needs-triage`, `needs-info`), the one it would most likely ship in, moved when it slips. An issue closed as not planned loses its milestone (see the slices left to the table, #677).
+
 ## Project board
 
 Open issues are tracked on the user project [FVTT-genesys](https://github.com/users/kornifex/projects/2) (number `2`, owner `kornifex`), linked to the repository. Its built-in workflows add every new issue to the board and move an item to **Done** when it closes; pull requests are not added, they show on their issue through _Linked pull requests_.

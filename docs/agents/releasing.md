@@ -1,6 +1,6 @@
 # Releasing
 
-release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges a release candidate's PR once `e2e:all` passes, so that testers can install it for the table tests, and the final version's PR once the release's test checklist issue is done.
+release-please keeps a release PR open on `main`, titled `chore: release <version>`. It holds the changelog and the version (`package.json`, `yaml/system.yml`), both computed from the Conventional Commits. Merging it releases: the `Release` workflow tags the version, checks and builds it, attaches `manifest.json` and `genesys.zip`, and publishes the GitHub Release. The maintainer merges the release PR once `e2e:all` passes. The table tests the published version afterwards, on its players' free time, and what it finds ships in the next patch; a release candidate is the exception (see Release candidates).
 
 ## Release lines
 
@@ -14,7 +14,7 @@ A release is marked latest, the one Foundry offers as an update, unless a higher
 
 1. `pnpm e2e:all` passes on every supported Foundry version, on the release PR's head: it runs every scenario of `e2e/scenarios/` and exits with 1 on a failed assertion ([`e2e/README.md`](../../e2e/README.md)). It needs the licensed installs, so it can't run in CI; it runs from any worktree, beside other runs.
 2. Its summary (the last lines it prints) goes into a comment on the release's test checklist issue.
-3. For the final version only: the checklist items no test proves, listed atop that issue, are tested at the table, on a release candidate.
+3. The checklist items no test proves, listed atop that issue, don't hold the release back: the table tests them on the published version, and the issue stays open until they are ticked.
 
 Before that, a PR rewrites the summary of the welcome message, which the GM reads in the chat when the world runs a new version: a handful of the changes that matter at the table, since the previous release candidate for a candidate, since the previous final version for a final version. Each change is a line of `public/templates/chat/alpha-notice.hbs`, tagged FIX, FEATURE or STYLING and linked to its PR, and a key under `Genesys.AlphaNotice` in every language file. The last line links to the version's GitHub Release, for every change.
 
@@ -23,17 +23,20 @@ Before that, a PR rewrites the summary of the welcome message, which the GM read
 release-please's list in a GitHub Release only holds the commits since the previous release, a candidate's included. Once the version is published, a hand-written summary goes above it:
 
 - For a candidate: a French "Pour la table, en bref" section for the testers, with the install link and the changes since the previous candidate.
-- For a final version: an "Upgrading from <previous final version>" section in English (the Foundry versions, the backup, what breaks a macro or a module), then the French section, with every change since the previous final version, as features, fixes and other changes, and last the ones since the last candidate.
+- For a final version: an "Upgrading from <previous final version>" section in English (the Foundry versions, the backup, what breaks a macro or a module), then the French section, with every change since the previous final version, as features, fixes and other changes, and last, when there was a candidate, the ones since it.
 
 The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wiki/Changes-since-the-fork) page gets a final version's changes too, each with its first release, and the README's "What's new since the fork" its biggest ones.
 
 ## Versions
 
-- In 0.x, `feat` and breaking changes bump the minor, `fix` the patch.
+- In 0.x, `feat` and breaking changes bump the minor, `fix` the patch. The version is the one release-please computes: `release-as` forces only a release candidate, then the final version after it (see Release candidates).
+- A milestone is titled with the version its release will get. When a feature release comes before a planned one, the milestones after it are renamed, along with the plan issues that cite them.
 - A version with a pre-release part (`0.4.0-rc.1`) is published as a GitHub pre-release. Foundry reads `releases/latest` for updates, so only testers get it, by installing `https://github.com/kornifex/FVTT-Genesys/releases/download/v<version>/manifest.json`.
 - Foundry never offers `0.4.0` as an update to `0.4.0-rc.1`: it compares `0` with `0-rc` as text. Testers reinstall the final version from its manifest.
 
 ## Release candidates
+
+A release candidate is optional: the maintainer asks for one when a release risks a world's data, such as a migration or a breaking change, and the table then tests it before the final version.
 
 `release-as` in `release-please-config.json` forces the next version. It has to change after every release, or the next release PR reuses a version that already exists:
 
