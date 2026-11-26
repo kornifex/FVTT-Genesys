@@ -21,6 +21,7 @@ import {
 	skillOfLargestPool,
 	strainRecoverySkillNames,
 } from '@/actor/Recovery';
+import type { RankedSystem } from '@/item/data/Talents';
 
 describe('medicineDifficulty', () => {
 	const wounds = (value: number, max = 12) => ({ value, max });
@@ -228,13 +229,19 @@ describe('recoveryOf', () => {
 	});
 });
 
-type RankedItem = { system: { rank?: number; scalesWithRank?: 'yes' | 'no' } };
+type RankedItem = { system: RankedSystem };
 
 /**
- * An effect holding a change of each key and value, from the item given, if any.
+ * An effect holding a change of each key and value, from the item given, if any, and tagged with the id of the item's
+ * quality it belongs to, if any.
  */
-function bonusEffect(changes: [string, unknown][], originItem?: RankedItem) {
-	return { isSuppressed: false, system: { changes: changes.map(([key, value]) => ({ key, value })) }, originItem };
+function bonusEffect(changes: [string, unknown][], originItem?: RankedItem, quality?: string) {
+	return {
+		isSuppressed: false,
+		system: { changes: changes.map(([key, value]) => ({ key, value })) },
+		originItem,
+		flags: { genesys: { quality } },
+	};
 }
 
 function talentOfRank(rank: number, scalesWithRank: 'yes' | 'no' = 'yes'): RankedItem {
@@ -308,6 +315,55 @@ describe('nightsRest', () => {
 			expect(nightsRest(rested(5, 0, bonus('-3'))).wounds).toBe(0);
 			expect(nightsRest(rested(5, 0, bonusEffect([[HEALING_CHANGE_KEYS.encounterEndWounds, '2']]))).wounds).toBe(1);
 		});
+	});
+});
+
+describe("the healing bonus of a weapon's or an armor's quality (CRB pp. 86–89)", () => {
+	const { medicineWounds, restWounds, encounterEndStrain, encounterEndWounds } = HEALING_CHANGE_KEYS;
+	const restorative = (id: string, rating: number) => ({ id, name: 'Restorative', isRated: true, rating });
+
+	// An armor holding the quality at a rating, whose effect, tagged with its id, holds the changes given.
+	const armorWith = (rating: number, changes: [string, unknown][]) => {
+		const armor = { system: { qualities: [restorative('main', rating)] } };
+		return recoverer(bonusEffect(changes, armor, 'main'));
+	};
+
+	// A weapon holding the quality on its main Weapon Profile and on its extra one, each copy at its rating with an effect
+	// tagged with its id that adds a wound to a night's rest.
+	const weaponWith = (mainRating: number, extraRating: number) => {
+		const weapon = {
+			system: { qualities: [restorative('main', mainRating)], extraProfiles: [{ qualities: [restorative('extra', extraRating)] }] },
+		};
+		return recoverer(...['main', 'extra'].map((id) => bonusEffect([[restWounds, 1]], weapon, id)));
+	};
+	const rested = (character: ReturnType<typeof recoverer>) => ({
+		...character,
+		system: { wounds: { value: 8, max: 12 }, strain: { value: 0, max: 10 } },
+	});
+
+	it("counts the bonus once per rank of the quality's rating, for a night's rest", () => {
+		expect(nightsRest(rested(armorWith(2, [[restWounds, 1]]))).wounds).toBe(3);
+	});
+
+	it("counts the bonuses once per rank of the quality's rating, for the end of an encounter", () => {
+		const character = armorWith(2, [
+			[encounterEndStrain, 1],
+			[encounterEndWounds, 1],
+		]);
+		expect(recoveryOf({ patient: 'Actor.bo', rule: 'endOfEncounter' }, { netSuccess: 1, netAdvantage: 0 }, character)).toMatchObject({
+			wounds: 2,
+			strain: 3,
+		});
+	});
+
+	it("counts the healer's bonus once per rank of the quality's rating, for a Medicine check", () => {
+		const healer = armorWith(2, [[medicineWounds, 1]]);
+		expect(recoveryOf({ patient: 'Actor.bo', rule: 'medicine' }, { netSuccess: 1, netAdvantage: 0 }, healer).wounds).toBe(3);
+	});
+
+	it('counts a quality held by two Weapon Profiles of a weapon once, at its highest rating', () => {
+		expect(nightsRest(rested(weaponWith(1, 1))).wounds).toBe(2);
+		expect(nightsRest(rested(weaponWith(2, 3))).wounds).toBe(4);
 	});
 });
 

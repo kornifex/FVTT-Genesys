@@ -11,6 +11,7 @@ import { isCount, isRecord, parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { AVERAGE, EASY, HARD, difficultyGlyphs } from '@/dice/Difficulty';
 import { SEVERITIES, type Severity } from '@/item/data/Injuries';
+import { effectQuality, isOutrankedQualityEffect, qualityRank } from '@/item/data/Qualities';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 
 /**
@@ -52,6 +53,8 @@ type RecoveryEffect = {
 	isSuppressed: boolean;
 	// v14 lets a change hold a value of any type, a number among them.
 	system: { changes: { key?: string; value: unknown }[] };
+	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
+	flags?: object;
 	originItem?: { system: RankedSystem };
 };
 
@@ -62,19 +65,23 @@ type RecoveryEffect = {
 export type RecoveryActor = { allApplicableEffects(): Iterable<RecoveryEffect> };
 
 /**
- * What an actor's effects add by the changes of a key, nothing without an actor: each change counts once per rank of
- * its talent when the talent scales with rank, as Pool Modifications do, and once otherwise.
+ * What an actor's effects add by the changes of a key, nothing without an actor, as Pool Modifications count: each
+ * change counts once per rank of its talent when the talent scales with rank, once per rank of a rated quality of a
+ * weapon or an armor, and once otherwise. A quality held by several Weapon Profiles counts once, at its highest rank.
  */
 function healingBonus(actor: RecoveryActor | undefined, healingKey: HealingChangeKey) {
 	let bonus = 0;
 	for (const effect of actor?.allApplicableEffects() ?? []) {
-		if (effect.isSuppressed) {
+		const system = effect.originItem?.system;
+		if (effect.isSuppressed || isOutrankedQualityEffect(effect, system)) {
 			continue;
 		}
 
+		const quality = effectQuality(effect, system);
+		const rank = quality ? qualityRank(quality) : scalingRank(effect.originItem);
 		for (const { key, value } of effect.system.changes) {
 			const parsed = key === healingKey ? parseWholeNumber(value) : undefined;
-			bonus += (parsed ?? 0) * scalingRank(effect.originItem);
+			bonus += (parsed ?? 0) * rank;
 		}
 	}
 
