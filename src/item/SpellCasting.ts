@@ -214,6 +214,7 @@ export function spellAttackProfile(
 				id: '',
 				activation: quality.activation,
 				advantageCost: quality.advantageCost,
+				attachmentRatings: [],
 			})),
 		),
 	};

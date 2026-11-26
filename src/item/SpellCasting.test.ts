@@ -302,7 +302,18 @@ describe('spellAttackProfile', () => {
 
 		expect(
 			spellAttackProfile(attackSpell(0, fire, impact), { fire: 1 }, Characteristic.Intellect, (name) => ranks[name] ?? 0).qualities,
-		).toEqual([{ id: '', name: 'Burn', description: '<p>Burn</p>', activation: 'active', advantageCost: 2, isRated: true, rating: 2 }]);
+		).toEqual([
+			{
+				id: '',
+				name: 'Burn',
+				description: '<p>Burn</p>',
+				activation: 'active',
+				advantageCost: 2,
+				isRated: true,
+				rating: 2,
+				attachmentRatings: [],
+			},
+		]);
 	});
 
 	it("rates the qualities by the caster's ranks in the skill the spell names, as Realms of Terrinoth's Knowledge (Lore)", () => {

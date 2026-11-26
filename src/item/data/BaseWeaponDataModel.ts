@@ -40,8 +40,27 @@ export type ContainedItemQuality = {
 	isRated: boolean;
 
 	/**
-	 * Rating value for the item.
+	 * Rating value for the item: what the item holds of the quality, plus what each of its attachments adds. An unrated
+	 * quality reads as held once whatever its rating, which counts its holders the same way, so that removing the last
+	 * one removes it.
 	 */
+	rating: number;
+
+	/**
+	 * What each attachment installed on the item added to the rating, by the attachment's id, which removing the
+	 * attachment takes back. Empty for a quality of the item alone, and on an attachment item.
+	 */
+	attachmentRatings: AttachmentRating[];
+};
+
+/**
+ * What an attachment installed on a weapon or an armor added to the rating of one of its qualities.
+ */
+export type AttachmentRating = {
+	/**
+	 * The id of the attachment among the item's attachments.
+	 */
+	attachment: string;
 	rating: number;
 };
 

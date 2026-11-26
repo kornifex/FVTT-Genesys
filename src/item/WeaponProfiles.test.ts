@@ -20,6 +20,7 @@ const quality = (id: string, name: string) => ({
 	advantageCost: 2,
 	isRated: true,
 	rating: 1,
+	attachmentRatings: [],
 });
 const accurate = quality('acc', 'Accurate');
 const limitedAmmo = quality('ammo', 'Limited Ammo');

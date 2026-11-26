@@ -18,21 +18,29 @@ export function qualityNameKey(name: string) {
 /**
  * The qualities with a quality item dropped on the weapon or armor: added at rating 1, or, when the item already has a
  * quality of that name, that quality's rating raised by 1. `undefined` when nothing changes, as dropping a quality
- * that isn't rated on an item that has it.
+ * that isn't rated on an item that holds it itself. An unrated quality that only the item's attachments give it is
+ * raised too: the item then holds it, and keeps it when they go.
  */
 export function withQualityAdded(
 	qualities: readonly ContainedItemQuality[],
-	added: Omit<ContainedItemQuality, 'rating'>,
+	added: Omit<ContainedItemQuality, 'rating' | 'attachmentRatings'>,
 ): ContainedItemQuality[] | undefined {
 	const index = qualities.findIndex((quality) => qualityNameKey(quality.name) === qualityNameKey(added.name));
 	if (index < 0) {
-		return [...qualities, { ...added, rating: 1 }];
+		return [...qualities, { ...added, rating: 1, attachmentRatings: [] }];
 	}
-	if (!qualities[index].isRated) {
+	if (!qualities[index].isRated && heldByItem(qualities[index])) {
 		return undefined;
 	}
 
 	return qualities.map((quality, i) => (i === index ? { ...quality, rating: quality.rating + 1 } : quality));
+}
+
+/**
+ * Whether the item holds a quality itself, beyond what its attachments add to the rating.
+ */
+function heldByItem(quality: Pick<ContainedItemQuality, 'rating' | 'attachmentRatings'>) {
+	return quality.attachmentRatings.reduce((rating, added) => rating - added.rating, quality.rating) > 0;
 }
 
 /**
@@ -149,12 +157,12 @@ export function isOutrankedQualityEffect(effect: TaggedEffect, system: object | 
 }
 
 /**
- * What a weapon or an armor copies of a quality item dropped on it, but its rating, under the id given.
+ * What a weapon, an armor or an attachment copies of a quality item dropped on it, but its rating, under the id given.
  */
 export function qualityCopy(
 	id: string,
 	{ name, system }: { name: string; system: Pick<ContainedItemQuality, 'description' | 'activation' | 'advantageCost' | 'isRated'> },
-): Omit<ContainedItemQuality, 'rating'> {
+): Omit<ContainedItemQuality, 'rating' | 'attachmentRatings'> {
 	return {
 		id,
 		name,

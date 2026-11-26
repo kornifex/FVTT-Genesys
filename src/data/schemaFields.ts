@@ -171,9 +171,10 @@ export function advantageCostField() {
 }
 
 /**
- * The qualities a weapon or an armor holds, copied from the quality items dropped on it. A copy stored before it had an
- * id, an activation and an Advantage cost reads as passive, costing 2, without an id: Foundry fills the fields it lacks
- * with their initial values when it cleans the data. A copy without an id gets one once an effect is added to it.
+ * The qualities a weapon, an armor or an attachment holds, copied from the quality items dropped on it. A copy stored
+ * before it had an id, an activation, an Advantage cost and attachment ratings reads as passive, costing 2, without an
+ * id, raised by no attachment: Foundry fills the fields it lacks with their initial values when it cleans the data. A
+ * copy without an id gets one once an effect is added to it.
  */
 export function qualitiesField() {
 	return new foundry.data.fields.ArrayField(
@@ -185,6 +186,12 @@ export function qualitiesField() {
 			advantageCost: advantageCostField(),
 			isRated: new foundry.data.fields.BooleanField({ initial: true }),
 			rating: integerField(1),
+			attachmentRatings: new foundry.data.fields.ArrayField(
+				new foundry.data.fields.SchemaField({
+					attachment: new foundry.data.fields.StringField({ initial: '' }),
+					rating: integerField(1),
+				}),
+			),
 		}),
 	);
 }
