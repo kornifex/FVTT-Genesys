@@ -29,6 +29,7 @@ export async function upToRankPart(ctx: DicePromptContext) {
 		gm.evaluate(
 			async ({ name, direction }) => {
 				const { apps, htmlOf, counterNamed, clickCounter, settle } = window.e2e;
+				// The steps call it once intellectCheck opened the prompt, which shows: htmlOf finds its element.
 				const counter = counterNamed(htmlOf(apps('app-dice-prompt')[0])!, name);
 				if (counter?.querySelector(direction === 1 ? 'button.increase' : 'button.decrease')) {
 					clickCounter(counter, direction);
@@ -41,6 +42,7 @@ export async function upToRankPart(ctx: DicePromptContext) {
 	const surgeCounter = () =>
 		gm.evaluate((name) => {
 			const { apps, htmlOf, counterNamed, counterState } = window.e2e;
+			// As stepSurge, it reads the prompt intellectCheck opened, which shows.
 			return counterState(counterNamed(htmlOf(apps('app-dice-prompt')[0])!, name));
 		}, 'E2E Surge: Times Applied');
 

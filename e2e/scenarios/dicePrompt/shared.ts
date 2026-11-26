@@ -414,6 +414,7 @@ export function installDicePromptHelpers() {
 				const name = text(row.querySelector('.effect-name'));
 				const mods = [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' ');
 				const count = row.querySelector(':scope > .counter [role="spinbutton"]');
+				// A row without a count has its checkbox in its place, as the Dice Prompt renders one or the other.
 				return count
 					? { name, count: Number(count.getAttribute('aria-valuenow')), max: Number(count.getAttribute('aria-valuemax')), mods }
 					: { name, enabled: row.querySelector<HTMLInputElement>(':scope > input')!.checked, mods };
