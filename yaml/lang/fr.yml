@@ -535,37 +535,28 @@ Genesys:
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:
-    Title: Genesys Alpha {version}
+    Title: Genesys {version}
     Welcome: >-
-      Bonjour, et merci d'essayer le système Genesys ! Notez que ce système est encore en version alpha : il est prêt pour de
-      premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
-      sont possibles !
+      Bonjour, et merci de jouer avec le système Genesys ! Voici les principaux changements de cette version ; les liens
+      plus bas mènent à sa documentation et à l'endroit où signaler un bug.
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
     Fix: CORRECTIF
-    RotSkills: >-
-      Un second compendium des compétences, Realms of Terrinoth Skills, réunit les 33 compétences de l'univers :
-      choisissez-le dans le réglage Compendium des compétences
-    CareerOnlyMagicSkills: >-
-      La règle « Compétences de magie réservées à la carrière » empêche d'acheter des rangs dans une compétence de magie
-      hors carrière
-    CareerSkillChanges: >-
-      Un effet peut faire d'une compétence une compétence de carrière, comme le fait un talent, et un archétype peut
-      accorder deux fois la même compétence
-    ArchetypeSkillChoices: >-
-      Un archétype peut donner des rangs dans des compétences hors carrière au choix du joueur, comme les deux de l'Humain
-    AttackChanges: >-
-      Un effet peut modifier les dégâts ou le critique des attaques de l'acteur, en mêlée ou à distance
-    WearableGear: >-
-      Un personnage peut équiper un objet qui s'équipe, comme un anneau ou une cape, en plus de son armure ; ses effets
-      s'appliquent tant qu'il est équipé
-    AttackDefense: >-
-      Une attaque rencontre la défense de mêlée ou à distance selon sa compétence, et non la portée de son arme : une pique
-      à portée courte rencontre la défense de mêlée
-    SelectOptions: La liste ouverte d'un menu déroulant prend les couleurs de la fiche, en thème sombre aussi
-    FrenchAccents: Équipé, Équipement et Équipage prennent leur accent
-    FrenchWearableGear: >-
-      Un objet équipable prend le nom de l'état Équipé : « S'équipe » et « Encombrement équipé »
+    AttachmentQualities: >-
+      Les attributs d'une amélioration, comme ceux d'une rune, passent à l'arme ou à l'armure où elle est installée, avec
+      leurs effets
+    WeaponAttacksOnly: >-
+      L'effet propre d'une arme peut ne compter que pour ses attaques : cochez « Attaques de cette arme seulement » sur la
+      fiche de l'effet
+    UpToRank: >-
+      Un talent comme Rapid Reaction peut compter ses effets jusqu'à son rang : avec « Jusqu'au rang », la réserve de dés
+      demande combien de fois
+    InitiativeAndRecovery: >-
+      Un effet peut modifier les tests d'initiative, les blessures soignées par une nuit de repos, et le stress et les
+      blessures récupérés en fin de rencontre
+    UnrankedTalentChanges: >-
+      Les modifications chiffrées et les modifications d'attaque d'un talent sans rang comptent une fois, quel que soit le
+      rang qu'il a gardé
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet

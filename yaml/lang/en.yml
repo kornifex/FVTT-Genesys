@@ -543,34 +543,24 @@ Genesys:
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:
-    Title: Genesys Alpha {version}
+    Title: Genesys {version}
     Welcome: >-
-      Hello! Thank you for giving the Genesys system a try! Please note that this system is currently in an alpha state; it is ready
-      for some early playtesting and experimentation, but there are many features that are yet unimplemented and may be bugs!
+      Hello, and thank you for playing with the Genesys system! Here are this version's main changes; the links below lead
+      to its documentation and to where to report a bug.
     Updates: Bug Fixes & Updates
     Feature: FEATURE
     Fix: FIX
-    RotSkills: >-
-      A second Skills Compendium, Realms of Terrinoth Skills, holds the setting's 33 skills: pick it in the Skills
-      Compendium setting
-    CareerOnlyMagicSkills: >-
-      The Career-Only Magic Skills rule keeps a character from buying ranks in a magic skill that isn't a career skill
-    CareerSkillChanges: >-
-      An effect can make a skill a career skill, as a talent does, and an Archetype can grant a skill twice
-    ArchetypeSkillChoices: >-
-      An Archetype can give ranks in non-career skills of the player's choice, as the Human's two
-    AttackChanges: >-
-      An effect can change the damage or the Critical rating of the actor's attacks, melee or ranged
-    WearableGear: >-
-      A character can wear gear marked as wearable, such as a ring or a cloak, beside their armor; its effects apply while
-      it is worn
-    AttackDefense: >-
-      An attack meets the melee or the ranged defense by its skill, not by its weapon's range: a pike at short range meets
-      the melee defense
-    SelectOptions: A select's open list reads in the sheet's colors, in the dark Theme too
-    FrenchAccents: In French, Équipé, Équipement and Équipage take their accent
-    FrenchWearableGear: >-
-      In French, wearable gear is named after the Equipped state: « S'équipe » and « Encombrement équipé »
+    AttachmentQualities: >-
+      An attachment's qualities, such as a rune's, go to the weapon or armor it is installed on, with their effects
+    WeaponAttacksOnly: >-
+      A weapon's own effect can count for its attacks only: check "This weapon's attacks only" on the effect's sheet
+    UpToRank: >-
+      A talent such as Rapid Reaction can count its effects up to its rank: with "Up to rank", the Dice Prompt asks how
+      many times
+    InitiativeAndRecovery: >-
+      An effect can change initiative checks, the wounds a night's rest heals, and the strain and wounds recovered at the
+      end of an encounter
+    UnrankedTalentChanges: An unranked talent's numeric changes and Attack Changes count once, whatever rank it kept
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation

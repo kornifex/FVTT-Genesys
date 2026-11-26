@@ -530,37 +530,27 @@ Genesys:
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:
-    Title: Genesys Alpha {version}
+    Title: Genesys {version}
     Welcome: >-
-      ¡Hola, y gracias por probar el sistema Genesys! Ten en cuenta que este sistema está todavía en fase alfa: está listo para
-      las primeras pruebas de juego, pero aún faltan muchas funciones y puede haber errores.
+      ¡Hola, y gracias por jugar con el sistema Genesys! Estos son los principales cambios de esta versión; los enlaces de
+      abajo llevan a su documentación y al lugar donde informar de un error.
     Updates: Correcciones y novedades
     Feature: NOVEDAD
     Fix: CORRECCIÓN
-    RotSkills: >-
-      Un segundo compendio de habilidades, Realms of Terrinoth Skills, reúne las 33 habilidades del mundo: elígelo en el
-      ajuste Compendio de habilidades
-    CareerOnlyMagicSkills: >-
-      La regla «Habilidades de magia solo de carrera» impide comprar rangos en una habilidad de magia que no sea
-      profesional
-    CareerSkillChanges: >-
-      Un efecto puede volver profesional una habilidad, como hace un talento, y un arquetipo puede conceder dos veces una
-      habilidad
-    ArchetypeSkillChoices: >-
-      Un arquetipo puede dar rangos en habilidades que no son de profesión a elección del jugador, como las dos del Humano
-    AttackChanges: >-
-      Un efecto puede modificar el daño o el crítico de los ataques del actor, cuerpo a cuerpo o a distancia
-    WearableGear: >-
-      Un personaje puede llevar puesto un equipo que se lleva puesto, como un anillo o una capa, además de su armadura; sus
-      efectos se aplican mientras lo lleva
-    AttackDefense: >-
-      Un ataque se enfrenta a la defensa cuerpo a cuerpo o a distancia según su habilidad, no el alcance de su arma: una
-      pica a corto alcance se enfrenta a la defensa cuerpo a cuerpo
-    SelectOptions: La lista abierta de un desplegable toma los colores de la hoja, también en el tema oscuro
-    FrenchAccents: En francés, Équipé, Équipement y Équipage llevan su acento
-    FrenchWearableGear: >-
-      En francés, el equipo que se puede llevar puesto toma el nombre del estado Équipé: « S'équipe » y « Encombrement
-      équipé »
+    AttachmentQualities: >-
+      Las propiedades de un accesorio, como las de una runa, pasan al arma o a la armadura en la que está instalado, con
+      sus efectos
+    WeaponAttacksOnly: >-
+      El efecto propio de un arma puede contar solo para sus ataques: marca «Solo los ataques de esta arma» en la hoja del
+      efecto
+    UpToRank: >-
+      Un talento como Rapid Reaction puede contar sus efectos hasta su rango: con «Hasta el rango», la reserva de dados
+      pregunta cuántas veces
+    InitiativeAndRecovery: >-
+      Un efecto puede modificar las tiradas de iniciativa, las heridas curadas por una noche de descanso, y la tensión y
+      las heridas recuperadas al final del encuentro
+    UnrankedTalentChanges: >-
+      Las modificaciones numéricas y de ataque de un talento sin rangos cuentan una vez, sea cual sea el rango que conservó
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
