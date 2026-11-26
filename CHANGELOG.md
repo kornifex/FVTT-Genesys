@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.0.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.2...v1.0.0-rc.1) (2026-11-26)
+
+
+### Features
+
+* **effects:** add effect keys for initiative checks, a night's rest and the end of an encounter's recovery ([#961](https://github.com/kornifex/FVTT-Genesys/issues/961)) ([aa327db](https://github.com/kornifex/FVTT-Genesys/commit/aa327db2910c1834dd0bd517bda45a0a8e3e1204))
+* **effects:** let a weapon's own effect count for its attacks only ([#957](https://github.com/kornifex/FVTT-Genesys/issues/957)) ([60e9097](https://github.com/kornifex/FVTT-Genesys/commit/60e9097d1d50502f9659f01dd259c9c054ebe287))
+* **effects:** let the roller count a talent's Pool Modifications up to its rank ([#960](https://github.com/kornifex/FVTT-Genesys/issues/960)) ([5fb1518](https://github.com/kornifex/FVTT-Genesys/commit/5fb1518998b8063954960539cb522a9854f0a6b7))
+* **item:** give an attachment's qualities to the weapon or armor it is installed on ([#955](https://github.com/kornifex/FVTT-Genesys/issues/955)) ([62147d1](https://github.com/kornifex/FVTT-Genesys/commit/62147d1c6a8bc416c02ad82fdc85c64c4157173e))
+
+
+### Bug Fixes
+
+* **effects:** count an unranked talent's numeric changes once ([#963](https://github.com/kornifex/FVTT-Genesys/issues/963)) ([62c3db4](https://github.com/kornifex/FVTT-Genesys/commit/62c3db42ebae325c4360b76a1fc9af592cfb23f7))
+* **i18n:** summarize 1.0.0-rc.1's changes since 0.8.2 in the welcome message ([#965](https://github.com/kornifex/FVTT-Genesys/issues/965)) ([1c0a328](https://github.com/kornifex/FVTT-Genesys/commit/1c0a3289f4cef0b63f08b91f44497f0d2cec39a7))
+
+
+### Code Refactoring
+
+* **dice:** count each Pool Modification of a check rather than turn it on or off ([#958](https://github.com/kornifex/FVTT-Genesys/issues/958)) ([c15e3da](https://github.com/kornifex/FVTT-Genesys/commit/c15e3da7f3f2e928a6210a73648344208910047b))
+* **effects:** give the check of Pool Modifications a purpose, and read recovery bonuses through a table of healing keys ([#959](https://github.com/kornifex/FVTT-Genesys/issues/959)) ([9d8e0a5](https://github.com/kornifex/FVTT-Genesys/commit/9d8e0a5efb391b8b37d91bd2abc075b9dcbad010))
+
+
+### Continuous Integration
+
+* set the next release to 1.0.0-rc.1 ([#964](https://github.com/kornifex/FVTT-Genesys/issues/964)) ([9de9d2f](https://github.com/kornifex/FVTT-Genesys/commit/9de9d2fcad41f1cb414cf5ca11adac3fb41b8e84))
+
 ## [0.8.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.1...v0.8.2) (2026-11-26)
 
 
