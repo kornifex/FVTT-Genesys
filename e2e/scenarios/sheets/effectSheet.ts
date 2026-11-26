@@ -126,7 +126,12 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		},
 		{
 			label: 'Modify Healing',
-			options: ['genesys.healing.wounds=👇 Wounds Healed by a Medicine Check'],
+			options: [
+				'genesys.healing.wounds=👇 Wounds Healed by a Medicine Check',
+				"genesys.healing.rest.wounds=👇 Wounds Healed by a Night's Rest",
+				'genesys.healing.encounterEnd.strain=👇 Strain Recovered at the End of an Encounter',
+				'genesys.healing.encounterEnd.wounds=👇 Wounds Healed at the End of an Encounter',
+			],
 		},
 		{
 			label: 'Modify Attacks',
@@ -269,6 +274,26 @@ export async function effectSheetPart(ctx: SheetsContext) {
 				['Vitesse', 'Maniabilité', 'Défense', 'Armure'],
 			),
 			selected: 'system.characteristics.cunning',
+		},
+	);
+	const frenchGroup = (label: string) =>
+		french.keyOptions.find(
+			(option): option is { label: string; options: string[] } => typeof option !== 'string' && option.label === label,
+		)?.options;
+	e2e.expect(
+		"#931 E1 in French, the key select offers « Test d'initiative » among the Pool Modifications of the actor's own checks, and the keys of a night's rest and of the end of an encounter under « Soins à modifier »",
+		{
+			initiative: frenchGroup('Réserve de dés à modifier')?.filter((option) => option.startsWith('genesys.pool.initiative')),
+			healing: frenchGroup('Soins à modifier'),
+		},
+		{
+			initiative: ["genesys.pool.initiative.self=👇 Test d'initiative"],
+			healing: [
+				'genesys.healing.wounds=👇 Blessures soignées par un test de Médecine',
+				'genesys.healing.rest.wounds=👇 Blessures soignées par une nuit de repos',
+				'genesys.healing.encounterEnd.strain=👇 Stress récupéré en fin de rencontre',
+				'genesys.healing.encounterEnd.wounds=👇 Blessures soignées en fin de rencontre',
+			],
 		},
 	);
 	await e2e.step("#85 GM edits, adds and deletes the changes of an item's effect", () =>

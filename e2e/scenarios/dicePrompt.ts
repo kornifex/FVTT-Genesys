@@ -30,6 +30,7 @@ import { tokenStateDicePart } from './dicePrompt/tokenStateDice.ts';
 import { combatManeuversPart } from './dicePrompt/combatManeuvers.ts';
 import { medicineHealPart } from './dicePrompt/medicineHeal.ts';
 import { recoveryPart } from './dicePrompt/recovery.ts';
+import { recoveryBonusesPart } from './dicePrompt/recoveryBonuses.ts';
 import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
 import { attachmentQualitiesPart } from './dicePrompt/attachmentQualities.ts';
@@ -301,6 +302,10 @@ export async function run(e2e: ScenarioContext) {
 	// check whose card recovers a strain per Success, and a night's rest that recovers all strain and heals a wound
 	// (§#687, CRB pp. 116–117).
 	await part('recovery', () => recoveryPart(context));
+
+	// RB: what a character's effects add to the wounds their night's rest heals, and to the strain and wounds their end of
+	// encounter check recovers, whatever its results, once per rank of a talent that scales with rank (§#931).
+	await part('recoveryBonuses', () => recoveryBonusesPart(context));
 
 	// Q: the qualities of weapons, whose Active Effects their rank scales, on the weapon's attacks only, while it is
 	// equipped (§#694, CRB pp. 86–89).

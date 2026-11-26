@@ -409,6 +409,9 @@ Genesys:
     Effects:
       GroupLabel: Modificar curación
       MedicineWounds: Heridas curadas por una tirada de Medicina
+      RestWounds: Heridas curadas por una noche de descanso
+      EncounterEndStrain: Tensión recuperada al final del encuentro
+      EncounterEndWounds: Heridas curadas al final del encuentro
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:

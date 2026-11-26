@@ -1189,6 +1189,14 @@ describe('editing changes in the effect sheets', () => {
 		expect(fromEditedChange(editedChange('genesys.healing.wounds', '1.5')).value).toBe('');
 	});
 
+	it("edits a change to a night's rest or to the end of an encounter's recovery as one to a Medicine check's: no mode, the custom type, a whole number", () => {
+		for (const key of ['genesys.healing.rest.wounds', 'genesys.healing.encounterEnd.strain', 'genesys.healing.encounterEnd.wounds']) {
+			expect(subjectFieldForKey(key)).toBe('check-selection');
+			expect(fromEditedChange(editedChange(key, '1', { type: 'add' }))).toEqual(editedChange(key, '1'));
+			expect(fromEditedChange(editedChange(key, 'B')).value).toBe('');
+		}
+	});
+
 	it('shows no mode for a change to the defense a source provides, which is always an Upgrade', () => {
 		expect(subjectFieldForKey('system.providedDefense.melee')).toBe('check-selection');
 		expect(subjectFieldForKey('system.providedDefense.ranged')).toBe('check-selection');

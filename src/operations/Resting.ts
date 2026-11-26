@@ -15,8 +15,8 @@ type Character = Stored<GenesysActor<'character'>>;
 
 /**
  * Open a character's check that recovers strain at the end of an encounter: a Simple Discipline or Cool check, on the
- * skill of the larger pool, whose card recovers a strain per Success (CRB p. 117). The roller can pick the other skill
- * in the Dice Prompt.
+ * skill of the larger pool, whose card recovers a strain per Success (CRB p. 117), and the strain and wounds the
+ * character's effects add. The roller can pick the other skill in the Dice Prompt.
  */
 export async function recoverAtEndOfEncounter(character: Character) {
 	const skillName = skillOfLargestPool(strainRecoverySkillNames(CONFIG.genesys.skills), (name) => {
@@ -40,11 +40,11 @@ export async function recoverAtEndOfEncounter(character: Character) {
 }
 
 /**
- * Rest a character for a full night: they recover all their strain and heal one wound (CRB pp. 116–117), and the chat
- * says how much, since the sheet's bars change without a roll to show why.
+ * Rest a character for a full night: they recover all their strain and heal one wound (CRB pp. 116–117), and those
+ * their effects add, and the chat says how much, since the sheet's bars change without a roll to show why.
  */
 export async function restForTheNight(character: Character) {
-	const healed = nightsRest(character.system);
+	const healed = nightsRest(character);
 	const { wounds, strain } = healedPools(character.system, healed);
 	await character.update({ system: { wounds: { value: wounds }, strain: { value: strain } } });
 	await ChatMessage.create({

@@ -167,21 +167,112 @@ describe('recoveryOf', () => {
 		it('adds nothing to a Heal spell, which is no Medicine check (CRB pp. 74, 217)', () => {
 			expect(recoveryOf(healSpell, { netSuccess: 2, netAdvantage: 0 }, healer(effect('1', surgeon(1)))).wounds).toBe(2);
 		});
+
+		it("leaves the end of an encounter's recovery as it is, whose keys are its own", () => {
+			expect(recoveryOf(endOfEncounter, { netSuccess: 2, netAdvantage: 0 }, healer(effect('1')))).toEqual({
+				...endOfEncounter,
+				wounds: 0,
+				strain: 2,
+			});
+		});
+	});
+
+	describe("the character's own bonus to the end of an encounter's recovery (#931)", () => {
+		const { encounterEndStrain, encounterEndWounds } = HEALING_CHANGE_KEYS;
+
+		// A character holding one effect, of a strain bonus and a wounds bonus.
+		const character = (strain: unknown, wounds: unknown, item?: RankedItem) =>
+			recoverer(
+				bonusEffect(
+					[
+						[encounterEndStrain, strain],
+						[encounterEndWounds, wounds],
+					],
+					item,
+				),
+			);
+
+		it('recovers the strain bonus on top of the Successes, and heals the wounds bonus', () => {
+			expect(recoveryOf(endOfEncounter, { netSuccess: 3, netAdvantage: 0 }, character('1', '2'))).toEqual({
+				...endOfEncounter,
+				wounds: 2,
+				strain: 4,
+			});
+		});
+
+		it('adds both bonuses whatever the results, the check failing included', () => {
+			expect(recoveryOf(endOfEncounter, { netSuccess: -2, netAdvantage: 1 }, character('1', '1'))).toEqual({
+				...endOfEncounter,
+				wounds: 1,
+				strain: 1,
+			});
+		});
+
+		it('counts each bonus once per rank of a talent marked as scaling with its rank, once otherwise', () => {
+			const results = { netSuccess: 1, netAdvantage: 0 };
+			expect(recoveryOf(endOfEncounter, results, character('1', 1, talentOfRank(3)))).toMatchObject({ wounds: 3, strain: 4 });
+			expect(recoveryOf(endOfEncounter, results, character('1', 1, talentOfRank(3, 'no')))).toMatchObject({ wounds: 1, strain: 2 });
+		});
+
+		it('recovers and heals no fewer than none under a penalty', () => {
+			expect(recoveryOf(endOfEncounter, { netSuccess: 2, netAdvantage: 0 }, character('-3', '-1'))).toMatchObject({
+				wounds: 0,
+				strain: 0,
+			});
+		});
+
+		it('adds nothing to a Medicine check, and nothing without an actor rolling', () => {
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 1 }, character('1', '1'))).toMatchObject({ wounds: 1, strain: 1 });
+			expect(recoveryOf(endOfEncounter, { netSuccess: 1, netAdvantage: 0 })).toMatchObject({ wounds: 0, strain: 1 });
+		});
 	});
 });
 
+type RankedItem = { system: { rank?: number; scalesWithRank?: 'yes' | 'no' } };
+
+/**
+ * An effect holding a change of each key and value, from the item given, if any.
+ */
+function bonusEffect(changes: [string, unknown][], originItem?: RankedItem) {
+	return { isSuppressed: false, system: { changes: changes.map(([key, value]) => ({ key, value })) }, originItem };
+}
+
+function talentOfRank(rank: number, scalesWithRank: 'yes' | 'no' = 'yes'): RankedItem {
+	return { system: { rank, scalesWithRank } };
+}
+
+/**
+ * An actor holding the effects given.
+ */
+function recoverer(...effects: ReturnType<typeof bonusEffect>[]) {
+	return { allApplicableEffects: () => effects };
+}
+
 describe('recoveryCard', () => {
-	it("shows a Medicine check's wounds and strain healed", () => {
-		expect(recoveryCard('medicine')).toEqual({ label: 'Genesys.Recovery.CardLabel', healsWounds: true });
+	const recovery = (rule: 'medicine' | 'endOfEncounter', wounds: number) => ({ patient: 'Actor.bo', rule, wounds, strain: 2 });
+
+	it("shows a Medicine check's wounds and strain healed, even none", () => {
+		expect(recoveryCard(recovery('medicine', 0))).toEqual({ label: 'Genesys.Recovery.CardLabel', healsWounds: true });
 	});
 
 	it("shows the strain alone of the end of an encounter's check, which heals no wound (CRB p. 117)", () => {
-		expect(recoveryCard('endOfEncounter')).toEqual({ label: 'Genesys.Recovery.EndOfEncounterCardLabel', healsWounds: false });
+		expect(recoveryCard(recovery('endOfEncounter', 0))).toEqual({
+			label: 'Genesys.Recovery.EndOfEncounterCardLabel',
+			healsWounds: false,
+		});
+	});
+
+	it("shows the wounds of the end of an encounter's check once the character's effects heal some (#931)", () => {
+		expect(recoveryCard(recovery('endOfEncounter', 2)).healsWounds).toBe(true);
 	});
 });
 
 describe('nightsRest', () => {
-	const rested = (wounds: number, strain: number) => ({ wounds: { value: wounds, max: 12 }, strain: { value: strain, max: 10 } });
+	const rested = (wounds: number, strain: number, ...effects: ReturnType<typeof bonusEffect>[]) => ({
+		...recoverer(...effects),
+		system: { wounds: { value: wounds, max: 12 }, strain: { value: strain, max: 10 } },
+	});
+	const { restWounds } = HEALING_CHANGE_KEYS;
 
 	it('recovers all strain and heals one wound (CRB pp. 116–117)', () => {
 		expect(nightsRest(rested(5, 7))).toEqual({ wounds: 1, strain: 7 });
@@ -192,8 +283,31 @@ describe('nightsRest', () => {
 	});
 
 	it('leaves the character at zero wounds and strain at most, once applied (CRB pp. 116–117)', () => {
-		expect(healedPools(rested(1, 7), nightsRest(rested(1, 7)))).toEqual({ wounds: 0, strain: 0 });
-		expect(healedPools(rested(0, 0), nightsRest(rested(0, 0)))).toEqual({ wounds: 0, strain: 0 });
+		expect(healedPools(rested(1, 7).system, nightsRest(rested(1, 7)))).toEqual({ wounds: 0, strain: 0 });
+		expect(healedPools(rested(0, 0).system, nightsRest(rested(0, 0)))).toEqual({ wounds: 0, strain: 0 });
+	});
+
+	describe("the character's own bonus to the wounds it heals (#931)", () => {
+		const bonus = (value: unknown, item?: RankedItem) => bonusEffect([[restWounds, value]], item);
+
+		it('heals the bonus on top of its one wound, as Apothecary put on the patient does (RoT p. 84)', () => {
+			expect(nightsRest(rested(5, 3, bonus('2')))).toEqual({ wounds: 3, strain: 3 });
+		});
+
+		it('heals no more wounds than the character suffers', () => {
+			expect(nightsRest(rested(2, 0, bonus('3')))).toEqual({ wounds: 2, strain: 0 });
+			expect(nightsRest(rested(0, 0, bonus('3')))).toEqual({ wounds: 0, strain: 0 });
+		});
+
+		it('counts the bonus once per rank of a talent marked as scaling with its rank, once otherwise', () => {
+			expect(nightsRest(rested(8, 0, bonus(1, talentOfRank(2)))).wounds).toBe(3);
+			expect(nightsRest(rested(8, 0, bonus(1, talentOfRank(2, 'no')))).wounds).toBe(2);
+		});
+
+		it('heals no fewer than none under a penalty, and reads no other key', () => {
+			expect(nightsRest(rested(5, 0, bonus('-3'))).wounds).toBe(0);
+			expect(nightsRest(rested(5, 0, bonusEffect([[HEALING_CHANGE_KEYS.encounterEndWounds, '2']]))).wounds).toBe(1);
+		});
 	});
 });
 
