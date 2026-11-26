@@ -130,6 +130,12 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				appliesTo: SELF_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.RangedAttack',
 			},
+			// Initiative has no target, so it has no key of the checks that target the actor.
+			{
+				key: 'genesys.pool.initiative.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.InitiativeCheck',
+			},
 			{
 				key: 'genesys.pool.check.target',
 				appliesTo: TARGET_GLYPH,
@@ -172,9 +178,15 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 		],
 	},
 	{
-		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74).
+		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74), to the wounds
+		// their night's rest heals, and to the strain and wounds the check they make at the end of an encounter recovers.
 		group: 'Genesys.Recovery.Effects.GroupLabel',
-		keys: [{ key: HEALING_CHANGE_KEYS.medicineWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' }],
+		keys: [
+			{ key: HEALING_CHANGE_KEYS.medicineWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' },
+			{ key: HEALING_CHANGE_KEYS.restWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.RestWounds' },
+			{ key: HEALING_CHANGE_KEYS.encounterEndStrain, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.EncounterEndStrain' },
+			{ key: HEALING_CHANGE_KEYS.encounterEndWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.EncounterEndWounds' },
+		],
 	},
 	{
 		// What the effect's actor adds to the damage and to the Critical rating of the attacks it makes, as Battle Rage does

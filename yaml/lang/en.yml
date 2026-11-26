@@ -268,6 +268,8 @@ Genesys:
           CombatCheck: Combat Check
           MeleeAttack: Melee Attack
           RangedAttack: Ranged Attack
+          # Initiative checks, whatever their skill
+          InitiativeCheck: Initiative Check
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
@@ -411,10 +413,14 @@ Genesys:
     EndOfEncounterCardLabel: '{patient} recovers'
     NightsRest: Night's rest
     NightsRestMessage: 'Rests for the night. Strain recovered: {strain}. Wounds healed: {wounds}.'
-    # The effect key that adds to the wounds a healer's Medicine checks heal, as Surgeon does
+    # The effect keys that add to the wounds a healer's Medicine checks heal, as Surgeon does, and to what their actor
+    # recovers with a night's rest and at the end of an encounter
     Effects:
       GroupLabel: Modify Healing
       MedicineWounds: Wounds Healed by a Medicine Check
+      RestWounds: Wounds Healed by a Night's Rest
+      EncounterEndStrain: Strain Recovered at the End of an Encounter
+      EncounterEndWounds: Wounds Healed at the End of an Encounter
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:

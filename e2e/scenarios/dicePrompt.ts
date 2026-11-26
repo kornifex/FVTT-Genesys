@@ -30,6 +30,7 @@ import { tokenStateDicePart } from './dicePrompt/tokenStateDice.ts';
 import { combatManeuversPart } from './dicePrompt/combatManeuvers.ts';
 import { medicineHealPart } from './dicePrompt/medicineHeal.ts';
 import { recoveryPart } from './dicePrompt/recovery.ts';
+import { recoveryBonusesPart } from './dicePrompt/recoveryBonuses.ts';
 import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
 import { attachmentQualitiesPart } from './dicePrompt/attachmentQualities.ts';
@@ -41,6 +42,7 @@ import { magicAttackPart } from './dicePrompt/magicAttack.ts';
 import { healSpellPart } from './dicePrompt/healSpell.ts';
 import { attackChangesPart } from './dicePrompt/attackChanges.ts';
 import { upToRankPart } from './dicePrompt/upToRank.ts';
+import { initiativeModificationsPart } from './dicePrompt/initiativeModifications.ts';
 
 // The scenario controls and targets tokens on the canvas.
 export const needsCanvas = true;
@@ -301,6 +303,10 @@ export async function run(e2e: ScenarioContext) {
 	// (§#687, CRB pp. 116–117).
 	await part('recovery', () => recoveryPart(context));
 
+	// RB: what a character's effects add to the wounds their night's rest heals, and to the strain and wounds their end of
+	// encounter check recovers, whatever its results, once per rank of a talent that scales with rank (§#931).
+	await part('recoveryBonuses', () => recoveryBonusesPart(context));
+
 	// Q: the qualities of weapons, whose Active Effects their rank scales, on the weapon's attacks only, while it is
 	// equipped (§#694, CRB pp. 86–89).
 	await part('qualityEffects', () => qualityEffectsPart(context));
@@ -342,6 +348,10 @@ export async function run(e2e: ScenarioContext) {
 	// U: a talent set Up to rank, whose effect's row the roller counts from 0 to its rank, its Pool Modifications applied
 	// that many times (§#928, CRB p. 74).
 	await part('upToRank', () => upToRankPart(context));
+
+	// I: the Pool Modifications of an actor's initiative checks, whatever skill they are rolled with, and of no other check
+	// of that skill (§#931).
+	await part('initiativeModifications', () => initiativeModificationsPart(context));
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });

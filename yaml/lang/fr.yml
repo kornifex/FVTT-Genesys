@@ -265,6 +265,8 @@ Genesys:
           CombatCheck: Test de combat
           MeleeAttack: Attaque de mêlée
           RangedAttack: Attaque à distance
+          # Initiative checks, whatever their skill
+          InitiativeCheck: Test d'initiative
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:
@@ -407,6 +409,9 @@ Genesys:
     Effects:
       GroupLabel: Soins à modifier
       MedicineWounds: Blessures soignées par un test de Médecine
+      RestWounds: Blessures soignées par une nuit de repos
+      EncounterEndStrain: Stress récupéré en fin de rencontre
+      EncounterEndWounds: Blessures soignées en fin de rencontre
 
   # Clone Actor Prompt Labels
   CloneActorPrompt:

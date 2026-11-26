@@ -145,7 +145,7 @@ function criticalInjuryFlag(check: Check, attack: AttackProfile, triggers: numbe
 function recoveryCardData(recovery: Recovery) {
 	const patient = fromUuidSync(recovery.patient) as { name: string } | null;
 	return {
-		...recoveryCard(recovery.rule),
+		...recoveryCard(recovery),
 		patientName: patient?.name ?? '',
 		wounds: recovery.wounds,
 		strain: recovery.strain,

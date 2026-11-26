@@ -2,7 +2,8 @@
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
  * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
  * (CRB p. 116), with the wounds its healer's effects add (CRB p. 74), and the Heal spell cast in its place (CRB p. 217);
- * the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117).
+ * the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117), with what the
+ * effects of the character who recovers add to them.
  */
 
 import type { CombatPool } from '@/data/schemaFields';
@@ -10,6 +11,7 @@ import { isCount, isRecord, parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { AVERAGE, EASY, HARD, difficultyGlyphs } from '@/dice/Difficulty';
 import { SEVERITIES, type Severity } from '@/item/data/Injuries';
+import { effectQuality, isOutrankedQualityEffect, qualityRank } from '@/item/data/Qualities';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 
 /**
@@ -24,10 +26,15 @@ type RecoveryResults = { netSuccess: number; netAdvantage: number };
 
 /**
  * The keys of the effect changes that add to what a recovery heals, read from the effects of the actor named: the
- * wounds their Medicine checks heal, such as Surgeon's (CRB p. 74). Their value is a whole number.
+ * wounds their Medicine checks heal, such as Surgeon's (CRB p. 74); the wounds a night's rest heals them on top of its
+ * one, as Apothecary does when the table puts it on the patient (RoT p. 84); the strain the check they make at the end
+ * of an encounter recovers on top of its Successes, and the wounds it heals. Their value is a whole number.
  */
 export const HEALING_CHANGE_KEYS = {
 	medicineWounds: 'genesys.healing.wounds',
+	restWounds: 'genesys.healing.rest.wounds',
+	encounterEndStrain: 'genesys.healing.encounterEnd.strain',
+	encounterEndWounds: 'genesys.healing.encounterEnd.wounds',
 } as const;
 
 type HealingChangeKey = (typeof HEALING_CHANGE_KEYS)[keyof typeof HEALING_CHANGE_KEYS];
@@ -46,28 +53,35 @@ type RecoveryEffect = {
 	isSuppressed: boolean;
 	// v14 lets a change hold a value of any type, a number among them.
 	system: { changes: { key?: string; value: unknown }[] };
+	/** The effect's flags, which tag the effect of a weapon's or an armor's quality. */
+	flags?: object;
 	originItem?: { system: RankedSystem };
 };
 
 /**
- * What this module needs of an actor whose effects add to a recovery: the healer who makes a Medicine check.
+ * What this module needs of an actor whose effects add to a recovery: the healer who makes a Medicine check, the
+ * character who recovers at the end of an encounter or rests for the night.
  */
 export type RecoveryActor = { allApplicableEffects(): Iterable<RecoveryEffect> };
 
 /**
- * What an actor's effects add by the changes of a key: each change counts once per rank of its talent when the talent
- * scales with rank, as Pool Modifications do, and once otherwise.
+ * What an actor's effects add by the changes of a key, nothing without an actor, as Pool Modifications count: each
+ * change counts once per rank of its talent when the talent scales with rank, once per rank of a rated quality of a
+ * weapon or an armor, and once otherwise. A quality held by several Weapon Profiles counts once, at its highest rank.
  */
-function healingBonus(actor: RecoveryActor, healingKey: HealingChangeKey) {
+function healingBonus(actor: RecoveryActor | undefined, healingKey: HealingChangeKey) {
 	let bonus = 0;
-	for (const effect of actor.allApplicableEffects()) {
-		if (effect.isSuppressed) {
+	for (const effect of actor?.allApplicableEffects() ?? []) {
+		const system = effect.originItem?.system;
+		if (effect.isSuppressed || isOutrankedQualityEffect(effect, system)) {
 			continue;
 		}
 
+		const quality = effectQuality(effect, system);
+		const rank = quality ? qualityRank(quality) : scalingRank(effect.originItem);
 		for (const { key, value } of effect.system.changes) {
 			const parsed = key === healingKey ? parseWholeNumber(value) : undefined;
-			bonus += (parsed ?? 0) * scalingRank(effect.originItem);
+			bonus += (parsed ?? 0) * rank;
 		}
 	}
 
@@ -87,20 +101,22 @@ function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults, woundsBo
 }
 
 /**
- * The check a character makes at the end of an encounter recovers a strain per Success, and heals no wound (CRB p. 117).
+ * The check a character makes at the end of an encounter recovers a strain per Success, and heals no wound (CRB p. 117),
+ * but the strain and the wounds their effects add, whatever its results: the table sets them no condition (#931). Never
+ * fewer than none.
  */
-function endOfEncounterRecovery({ netSuccess }: RecoveryResults): Healed {
-	return { wounds: 0, strain: Math.max(netSuccess, 0) };
+function endOfEncounterRecovery({ netSuccess }: RecoveryResults, bonus: Healed): Healed {
+	return { wounds: Math.max(bonus.wounds, 0), strain: Math.max(Math.max(netSuccess, 0) + bonus.strain, 0) };
 }
 
 /**
- * A kind of recovery check: how it heals from its results and its healer, the localization key of its card's label,
- * which names the patient, and whether it heals wounds, which its card shows only then.
+ * A kind of recovery check: how it heals from its results and the actor who rolled it, the localization key of its
+ * card's label, which names the patient, and whether it heals wounds, which its card shows only then.
  */
 type RecoveryRuleDefinition = {
-	heal: (results: RecoveryResults, healer?: RecoveryActor) => Healed;
+	heal: (results: RecoveryResults, roller?: RecoveryActor) => Healed;
 	label: string;
-	healsWounds: boolean;
+	healsWounds: (healed: Healed) => boolean;
 };
 
 /**
@@ -108,14 +124,24 @@ type RecoveryRuleDefinition = {
  */
 const RECOVERY_RULES = {
 	medicine: {
-		heal: (results, healer) => medicineHealing(results, healer ? healingBonus(healer, HEALING_CHANGE_KEYS.medicineWounds) : 0),
+		heal: (results, healer) => medicineHealing(results, healingBonus(healer, HEALING_CHANGE_KEYS.medicineWounds)),
 		label: 'Genesys.Recovery.CardLabel',
-		healsWounds: true,
+		healsWounds: () => true,
 	},
 	// A Heal spell is cast in place of a Medicine check, and heals as one does on success (CRB p. 217); it is no Medicine
 	// check, which a healer's bonus adds to (CRB p. 74).
-	healSpell: { heal: (results) => medicineHealing(results, 0), label: 'Genesys.Recovery.CardLabel', healsWounds: true },
-	endOfEncounter: { heal: endOfEncounterRecovery, label: 'Genesys.Recovery.EndOfEncounterCardLabel', healsWounds: false },
+	healSpell: { heal: (results) => medicineHealing(results, 0), label: 'Genesys.Recovery.CardLabel', healsWounds: () => true },
+	// The character who makes it recovers themselves: the bonus is their own. Its wounds show only when their effects heal
+	// some, which they do whatever the results.
+	endOfEncounter: {
+		heal: (results, character) =>
+			endOfEncounterRecovery(results, {
+				wounds: healingBonus(character, HEALING_CHANGE_KEYS.encounterEndWounds),
+				strain: healingBonus(character, HEALING_CHANGE_KEYS.encounterEndStrain),
+			}),
+		label: 'Genesys.Recovery.EndOfEncounterCardLabel',
+		healsWounds: ({ wounds }) => wounds > 0,
+	},
 } satisfies Record<string, RecoveryRuleDefinition>;
 
 /**
@@ -124,11 +150,12 @@ const RECOVERY_RULES = {
 type RecoveryRule = keyof typeof RECOVERY_RULES;
 
 /**
- * How a recovery check's card shows it: the localization key of its label, and whether it shows the wounds healed.
+ * How a recovery check's card shows it: the localization key of its label, and whether it shows the wounds healed, as
+ * a Medicine check's always does, and the end of an encounter's only when it heals some.
  */
-export function recoveryCard(rule: RecoveryRule) {
-	const { label, healsWounds } = RECOVERY_RULES[rule];
-	return { label, healsWounds };
+export function recoveryCard(recovery: Recovery) {
+	const { label, healsWounds } = RECOVERY_RULES[recovery.rule];
+	return { label, healsWounds: healsWounds(recovery) };
 }
 
 /**
@@ -208,11 +235,13 @@ export function healedPools(patient: Patient, healing: Healed): { wounds: number
 }
 
 /**
- * What a full night's rest heals a character of, without a check: all their strain, and one wound when they suffer any
- * (CRB pp. 116–117).
+ * What a full night's rest heals a character of, without a check: all their strain, and one wound (CRB pp. 116–117)
+ * with those their effects add, never more wounds than they suffer nor fewer than none.
  */
-export function nightsRest({ wounds, strain }: { wounds: CombatPool; strain: CombatPool }): Healed {
-	return { wounds: Math.min(wounds.value, 1), strain: strain.value };
+export function nightsRest(character: RecoveryActor & { system: { wounds: CombatPool; strain: CombatPool } }): Healed {
+	const { wounds, strain } = character.system;
+	const healable = 1 + healingBonus(character, HEALING_CHANGE_KEYS.restWounds);
+	return { wounds: Math.max(Math.min(wounds.value, healable), 0), strain: strain.value };
 }
 
 /**

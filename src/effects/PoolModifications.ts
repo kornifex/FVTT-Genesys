@@ -26,9 +26,9 @@ import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
  * What a Pool Modification change applies to: every check, checks of a characteristic, checks of a skill, combat checks,
- * or only melee or only ranged attacks.
+ * only melee or only ranged attacks, or initiative checks.
  */
-const KINDS = ['check', 'char', 'skill', 'combat', 'melee', 'ranged'] as const;
+const KINDS = ['check', 'char', 'skill', 'combat', 'melee', 'ranged', 'initiative'] as const;
 type PoolModificationKind = (typeof KINDS)[number];
 
 /**
@@ -96,9 +96,10 @@ export type CheckForPoolModifications = {
 	skillName?: string;
 
 	/**
-	 * What the check is rolled for, as its Pool Modifications see it: an attack, which is a combat check, or any other.
+	 * What the check is rolled for, as its Pool Modifications see it: an attack, which is a combat check, initiative,
+	 * whatever its skill, or any other.
 	 */
-	purpose: CombatCheck | { kind: 'other' };
+	purpose: CombatCheck | { kind: 'initiative' } | { kind: 'other' };
 };
 
 /**
@@ -572,6 +573,10 @@ function effectModifications(
 			case 'melee':
 			case 'ranged':
 				return key.subject === '' && !!attack && attackKind(attack) === key.kind;
+			// An initiative check gets them whatever its skill, Vigilance, Cool or another the table allows, and no other
+			// check of those skills does (#931).
+			case 'initiative':
+				return key.subject === '' && purpose.kind === 'initiative';
 		}
 	};
 
@@ -713,6 +718,7 @@ export function subjectFieldForKey(key: string) {
 		case 'combat':
 		case 'melee':
 		case 'ranged':
+		case 'initiative':
 			return 'check-selection';
 		case 'char':
 			return 'characteristic-selection';

@@ -17,7 +17,7 @@ describe('CHANGE_KEYS', () => {
 		({ key }) => key,
 	);
 
-	it('offers the Pool Modification keys of the checks that target the actor in the order of its own checks', () => {
+	it("offers the Pool Modification keys of the checks that target the actor in the order of its own checks, initiative's last of its own as it has no target", () => {
 		expect(poolKeys).toEqual([
 			'genesys.pool.check.self',
 			'genesys.pool.char.self',
@@ -25,6 +25,7 @@ describe('CHANGE_KEYS', () => {
 			'genesys.pool.combat.self',
 			'genesys.pool.melee.self',
 			'genesys.pool.ranged.self',
+			'genesys.pool.initiative.self',
 			'genesys.pool.check.target',
 			'genesys.pool.char.target',
 			'genesys.pool.skill.target',
@@ -41,9 +42,14 @@ describe('CHANGE_KEYS', () => {
 		expect(careerKeys).toEqual(['genesys.careerSkill']);
 	});
 
-	it('offers the key of the wounds a Medicine check heals', () => {
+	it("offers the keys of the wounds a Medicine check heals, of the wounds a night's rest heals, and of the strain and wounds the end of an encounter recovers", () => {
 		const healingKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.Recovery.Effects.GroupLabel')?.keys.map(({ key }) => key);
-		expect(healingKeys).toEqual(['genesys.healing.wounds']);
+		expect(healingKeys).toEqual([
+			'genesys.healing.wounds',
+			'genesys.healing.rest.wounds',
+			'genesys.healing.encounterEnd.strain',
+			'genesys.healing.encounterEnd.wounds',
+		]);
 	});
 
 	it('offers the keys of the Attack Changes: the damage and the Critical rating, by the attacks they apply to', () => {

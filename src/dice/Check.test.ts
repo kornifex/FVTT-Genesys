@@ -823,6 +823,27 @@ describe('an initiative check', () => {
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.ActiveEffect.Alert']);
 		expect(checkDicePool(check, { difficulty: '', countOf: () => 1 }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });
 	});
+
+	describe("gets the actor's changes of initiative checks (#931)", () => {
+		const watchful = actor('character', [skill('Vigilance', Characteristic.Willpower, 1), skill('Cool', Characteristic.Presence, 1)], {
+			effects: [effect('Rapid Reaction', [{ key: 'genesys.pool.initiative.self.', value: 'B' }])],
+		});
+		const effectKeys = (check: Check) => check.poolModifications.map((modification) => modification.key);
+
+		it('whatever the skill it is rolled with, Vigilance, Cool or another', () => {
+			for (const skillName of ['Vigilance', 'Cool', 'Melee']) {
+				expect(effectKeys(resolveCheck(watchful, { purpose: { kind: 'initiative' }, skillName }, rules))).toEqual([
+					'self.effect.ActiveEffect.Rapid Reaction',
+				]);
+			}
+		});
+
+		it('and no check of Vigilance or Cool that is not rolled for initiative gets them', () => {
+			for (const skillName of ['Vigilance', 'Cool']) {
+				expect(effectKeys(resolveCheck(watchful, { skillName }, rules))).toEqual([]);
+			}
+		});
+	});
 });
 
 describe('checkDescription', () => {
