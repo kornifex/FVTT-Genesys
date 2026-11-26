@@ -558,6 +558,9 @@ Genesys:
       An attack meets the melee or the ranged defense by its skill, not by its weapon's range: a pike at short range meets
       the melee defense
     SelectOptions: A select's open list reads in the sheet's colors, in the dark Theme too
+    FrenchAccents: In French, Équipé, Équipement and Équipage take their accent
+    FrenchWearableGear: >-
+      In French, wearable gear is named after the Equipped state: « S'équipe » and « Encombrement équipé »
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
