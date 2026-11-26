@@ -548,6 +548,10 @@ Genesys:
       Un ataque se enfrenta a la defensa cuerpo a cuerpo o a distancia según su habilidad, no el alcance de su arma: una
       pica a corto alcance se enfrenta a la defensa cuerpo a cuerpo
     SelectOptions: La lista abierta de un desplegable toma los colores de la hoja, también en el tema oscuro
+    FrenchAccents: En francés, Équipé, Équipement y Équipage llevan su acento
+    FrenchWearableGear: >-
+      En francés, el equipo que se puede llevar puesto toma el nombre del estado Équipé: « S'équipe » y « Encombrement
+      équipé »
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto

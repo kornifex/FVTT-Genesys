@@ -554,6 +554,9 @@ Genesys:
       Une attaque rencontre la défense de mêlée ou à distance selon sa compétence, et non la portée de son arme : une pique
       à portée courte rencontre la défense de mêlée
     SelectOptions: La liste ouverte d'un menu déroulant prend les couleurs de la fiche, en thème sombre aussi
+    FrenchAccents: Équipé, Équipement et Équipage prennent leur accent
+    FrenchWearableGear: >-
+      Un objet équipable prend le nom de l'état Équipé : « S'équipe » et « Encombrement équipé »
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
