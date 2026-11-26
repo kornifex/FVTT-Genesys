@@ -24,7 +24,7 @@ TYPES:
     attachment: Amélioration
     consumable: Consommable
     container: Conteneur
-    gear: Equipement
+    gear: Équipement
     quality: Attribut d'objet
     weapon: Arme
     vehicleWeapon: Arme de véhicule
@@ -609,7 +609,7 @@ Genesys:
     Data: Données
     Details: Détails
     Miscellaneous: Divers
-    Crew: Equipage
+    Crew: Équipage
 
   # Characteristics
   Characteristics:
@@ -671,7 +671,7 @@ Genesys:
     Skills: Compétences
     Talents: Talents
     Abilities: Aptitudes
-    Equipment: Equipement
+    Equipment: Équipement
     Base: Base
     Remaining: Reste
 
@@ -857,8 +857,8 @@ Genesys:
     RecoversStrain: Récupère du stress à la fin d'une rencontre ?
     SkillDifficulty: Difficulté par défaut
     SkillAttackKind: Attaques
-    Equipped: Equipé
-    Carried: Porté
+    Equipped: Équipé
+    Carried: Transporté
     Dropped: Stocké/abandonné
     NotApplicable: N/A
     EffectiveTier: Catégorie
