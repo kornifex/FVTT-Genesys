@@ -18,7 +18,7 @@ import {
 import { CAREER_SKILL_CHANGE_KEY } from '@/effects/CareerSkillChanges';
 import { isForWeaponAttacksOnly, offersWeaponAttacksOnly, WEAPON_ATTACKS_ONLY_FLAG } from '@/effects/WeaponAttacksOnly';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
-import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
+import { HEALING_CHANGE_KEYS } from '@/actor/Recovery';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
 import '@/effects/GenesysEffectSheet.scss';
 
@@ -174,7 +174,7 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 	{
 		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74).
 		group: 'Genesys.Recovery.Effects.GroupLabel',
-		keys: [{ key: HEALING_CHANGE_KEY, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' }],
+		keys: [{ key: HEALING_CHANGE_KEYS.medicineWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' }],
 	},
 	{
 		// What the effect's actor adds to the damage and to the Critical rating of the attacks it makes, as Battle Rage does

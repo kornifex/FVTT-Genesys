@@ -23,15 +23,26 @@ type Healed = { wounds: number; strain: number };
 type RecoveryResults = { netSuccess: number; netAdvantage: number };
 
 /**
- * The key of the effect changes that add to the wounds their actor's Medicine checks heal, such as Surgeon's (CRB p.
- * 74). Their value is a whole number.
+ * The keys of the effect changes that add to what a recovery heals, read from the effects of the actor named: the
+ * wounds their Medicine checks heal, such as Surgeon's (CRB p. 74). Their value is a whole number.
  */
-export const HEALING_CHANGE_KEY = 'genesys.healing.wounds';
+export const HEALING_CHANGE_KEYS = {
+	medicineWounds: 'genesys.healing.wounds',
+} as const;
+
+type HealingChangeKey = (typeof HEALING_CHANGE_KEYS)[keyof typeof HEALING_CHANGE_KEYS];
 
 /**
- * What this module needs of an effect of a healer.
+ * Whether a change adds to what a recovery heals.
  */
-type HealerEffect = {
+export function isHealingChangeKey(key: string) {
+	return Object.values<string>(HEALING_CHANGE_KEYS).includes(key);
+}
+
+/**
+ * What this module needs of an effect whose changes add to a recovery.
+ */
+type RecoveryEffect = {
 	isSuppressed: boolean;
 	// v14 lets a change hold a value of any type, a number among them.
 	system: { changes: { key?: string; value: unknown }[] };
@@ -39,23 +50,23 @@ type HealerEffect = {
 };
 
 /**
- * What this module needs of the actor who makes a check that heals.
+ * What this module needs of an actor whose effects add to a recovery: the healer who makes a Medicine check.
  */
-export type Healer = { allApplicableEffects(): Iterable<HealerEffect> };
+export type RecoveryActor = { allApplicableEffects(): Iterable<RecoveryEffect> };
 
 /**
- * What a healer's effects add to the wounds their Medicine checks heal: each change counts once per rank of its talent
- * when the talent scales with rank, as Pool Modifications do, and once otherwise.
+ * What an actor's effects add by the changes of a key: each change counts once per rank of its talent when the talent
+ * scales with rank, as Pool Modifications do, and once otherwise.
  */
-function healerWoundsBonus(healer: Healer) {
+function healingBonus(actor: RecoveryActor, healingKey: HealingChangeKey) {
 	let bonus = 0;
-	for (const effect of healer.allApplicableEffects()) {
+	for (const effect of actor.allApplicableEffects()) {
 		if (effect.isSuppressed) {
 			continue;
 		}
 
 		for (const { key, value } of effect.system.changes) {
-			const parsed = key === HEALING_CHANGE_KEY ? parseWholeNumber(value) : undefined;
+			const parsed = key === healingKey ? parseWholeNumber(value) : undefined;
 			bonus += (parsed ?? 0) * scalingRank(effect.originItem);
 		}
 	}
@@ -86,14 +97,18 @@ function endOfEncounterRecovery({ netSuccess }: RecoveryResults): Healed {
  * A kind of recovery check: how it heals from its results and its healer, the localization key of its card's label,
  * which names the patient, and whether it heals wounds, which its card shows only then.
  */
-type RecoveryRuleDefinition = { heal: (results: RecoveryResults, healer?: Healer) => Healed; label: string; healsWounds: boolean };
+type RecoveryRuleDefinition = {
+	heal: (results: RecoveryResults, healer?: RecoveryActor) => Healed;
+	label: string;
+	healsWounds: boolean;
+};
 
 /**
  * How each kind of recovery check heals, and how its card shows it.
  */
 const RECOVERY_RULES = {
 	medicine: {
-		heal: (results, healer) => medicineHealing(results, healer ? healerWoundsBonus(healer) : 0),
+		heal: (results, healer) => medicineHealing(results, healer ? healingBonus(healer, HEALING_CHANGE_KEYS.medicineWounds) : 0),
 		label: 'Genesys.Recovery.CardLabel',
 		healsWounds: true,
 	},
@@ -152,7 +167,7 @@ function isRecoveryRule(rule: string): rule is RecoveryRule {
  *
  * @param healer The actor who rolled the check, if any.
  */
-export function recoveryOf(request: RecoveryRequest, results: RecoveryResults, healer?: Healer): Recovery {
+export function recoveryOf(request: RecoveryRequest, results: RecoveryResults, healer?: RecoveryActor): Recovery {
 	return { ...request, ...RECOVERY_RULES[request.rule].heal(results, healer) };
 }
 

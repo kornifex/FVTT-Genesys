@@ -9,7 +9,7 @@ import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
 import { isCriticalChangeKey } from '@/dice/CriticalInjuryRoll';
-import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
+import { isHealingChangeKey } from '@/actor/Recovery';
 import { parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { type AttackChanges, decodeAttackChangeKey, isAttackChangeKey } from '@/effects/AttackChanges';
@@ -96,31 +96,42 @@ export type CheckForPoolModifications = {
 	skillName?: string;
 
 	/**
-	 * Range of the weapon, for an attack, which is a combat check. Left undefined for any other check.
+	 * What the check is rolled for, as its Pool Modifications see it: an attack, which is a combat check, or any other.
 	 */
-	attackRange?: string;
+	purpose: CombatCheck | { kind: 'other' };
+};
+
+/**
+ * An attack, with a weapon or a spell, whose Pool Modifications depend on how it is made.
+ */
+export type CombatCheck = {
+	kind: 'combat';
 
 	/**
-	 * The kind of attack the Skills Compendium gives the skill rolled, for an attack. Left undefined when it gives none:
-	 * the weapon's range then decides.
+	 * Range of the weapon, or the magic attack's.
+	 */
+	attackRange: string;
+
+	/**
+	 * The kind of attack the Skills Compendium gives the skill rolled. Left undefined when it gives none: the weapon's
+	 * range then decides.
 	 */
 	skillAttackKind?: AttackKind;
 
 	/**
-	 * The actor that makes the attack, for an attack: the one making the check, or the vehicle whose weapon they fire.
-	 * Left undefined for any other check.
+	 * The actor that makes the attack: the one making the check, or the vehicle whose weapon they fire.
 	 */
-	attacker?: SilhouettedActor;
+	attacker: SilhouettedActor;
 
 	/**
-	 * The weapon an attack is made with, whose damage hinders it, and whose qualities' effects change it. Left undefined
-	 * for any other check.
+	 * The weapon the attack is made with, whose damage hinders it, and whose qualities' effects change it. Left undefined
+	 * for a magic attack.
 	 */
 	weapon?: DamageableItem & { effects?: Iterable<PoolModificationEffect> };
 
 	/**
-	 * The qualities of the Weapon Profile an attack is made with, whose effects change it. Left undefined for any other
-	 * check.
+	 * The qualities of the Weapon Profile the attack is made with, whose effects change it. Left undefined for a magic
+	 * attack.
 	 */
 	attackQualities?: readonly Pick<ContainedItemQuality, 'id'>[];
 };
@@ -359,19 +370,21 @@ export function poolModificationsForCheck(
 		return modifications;
 	}
 
+	const attack = check.purpose.kind === 'combat' ? check.purpose : undefined;
+
 	modifications.push(
 		...effectModifications(effectsExcept(actor.allApplicableEffects(), isWeaponAttackEffect), 'self', check),
-		...effectModifications(weaponAttackEffects(check), 'self', check),
+		...(attack ? effectModifications(weaponAttackEffects(attack), 'self', check) : []),
 		...encumbranceModifications(actor, check),
-		...itemDamageModifications(check.weapon),
+		...itemDamageModifications(attack?.weapon),
 	);
 
 	if (target && TARGET_TYPES.includes(target.type)) {
 		modifications.push(...effectModifications(effectsExcept(target.allApplicableEffects(), isOutrankedEffect), 'target', check));
 
-		// The target's defense against the kind of an attack adds one Setback per point.
-		if (check.attackRange) {
-			const defense = attackKind(check.attackRange, check.skillAttackKind);
+		if (attack) {
+			// The target's defense against the kind of an attack adds one Setback per point.
+			const defense = attackKind(attack);
 			const totalDefense = (target.system as { totalDefense: Defense }).totalDefense;
 
 			if (totalDefense[defense] > 0) {
@@ -381,10 +394,8 @@ export function poolModificationsForCheck(
 					mods: Array<string>(totalDefense[defense]).fill(DieTypes.Setback.GLYPH),
 				});
 			}
-		}
 
-		if (check.attacker) {
-			modifications.push(...silhouetteDifferenceModifications(check.attacker, target));
+			modifications.push(...silhouetteDifferenceModifications(attack.attacker, target));
 		}
 	}
 
@@ -462,8 +473,8 @@ function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: S
  * that a pike's Melee (Heavy) attack at short range is a melee one (RoT p. 93). When the skill makes none, melee with a
  * weapon of engaged range, ranged with one of any other.
  */
-function attackKind(range: string, skillAttackKind: AttackKind | undefined): AttackKind {
-	return skillAttackKind ?? (range === 'engaged' ? 'melee' : 'ranged');
+function attackKind({ attackRange, skillAttackKind }: CombatCheck): AttackKind {
+	return skillAttackKind ?? (attackRange === 'engaged' ? 'melee' : 'ranged');
 }
 
 function silhouetteOf({ system }: SilhouettedActor) {
@@ -506,7 +517,7 @@ function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (ef
 
 // The effects of the qualities of the Weapon Profile an attack is made with, and those of the weapon that change every
 // profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
-function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
+function weaponAttackEffects({ weapon, attackQualities = [] }: CombatCheck) {
 	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
 	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(effectTag(effect, QUALITY_FLAG) ?? '') || changesEveryProfile(effect));
 }
@@ -514,8 +525,10 @@ function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModif
 function effectModifications(
 	effects: Iterable<PoolModificationEffect>,
 	source: PoolModificationSource,
-	{ characteristic, skillName, attackRange, skillAttackKind }: CheckForPoolModifications,
+	{ characteristic, skillName, purpose }: CheckForPoolModifications,
 ) {
+	const attack = purpose.kind === 'combat' ? purpose : undefined;
+
 	const appliesToCheck = (key: PoolModificationKey | undefined) => {
 		if (key?.source !== source) {
 			return false;
@@ -531,10 +544,10 @@ function effectModifications(
 			// An attack is a combat check: Aim and Guarded Stance change the actor's own, cover and prone those made against
 			// them, by their kind, and prone the actor's own melee attacks (CRB p. 98–100, 108).
 			case 'combat':
-				return key.subject === '' && attackRange !== undefined;
+				return key.subject === '' && !!attack;
 			case 'melee':
 			case 'ranged':
-				return key.subject === '' && attackRange !== undefined && attackKind(attackRange, skillAttackKind) === key.kind;
+				return key.subject === '' && !!attack && attackKind(attack) === key.kind;
 		}
 	};
 
@@ -545,14 +558,14 @@ function effectModifications(
 		scaled: (change: { key: string; value: unknown }) => unknown,
 	): AttackChanges | undefined => {
 		const totals: AttackChanges = {};
-		if (source !== 'self' || attackRange === undefined) {
+		if (source !== 'self' || !attack) {
 			return undefined;
 		}
 
 		for (const { key = '', value } of changes) {
 			const attackKey = decodeAttackChangeKey(key);
 			const amount = attackKey && parseWholeNumber(scaled({ key, value }));
-			if (attackKey && amount && (attackKey.scope === 'combat' || attackKey.scope === attackKind(attackRange, skillAttackKind))) {
+			if (attackKey && amount && (attackKey.scope === 'combat' || attackKey.scope === attackKind(attack))) {
 				totals[attackKey.field] = (totals[attackKey.field] ?? 0) + amount;
 			}
 		}
@@ -643,10 +656,10 @@ function isProvidedDefenseKey(key: string) {
 
 /**
  * Whether a change is one the system reads itself, as a whole number added to a roll or to what it heals: a change to
- * Critical Injury rolls, to the wounds a Medicine check heals, or an Attack Change.
+ * Critical Injury rolls, to what a recovery heals, or an Attack Change.
  */
 function isWholeNumberChangeKey(key: string) {
-	return isCriticalChangeKey(key) || key === HEALING_CHANGE_KEY || isAttackChangeKey(key);
+	return isCriticalChangeKey(key) || isHealingChangeKey(key) || isAttackChangeKey(key);
 }
 
 /**
@@ -709,7 +722,7 @@ export function toEditedChange(change: StoredChange): EditedChange {
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
  * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
- * Injury rolls or to the wounds a Medicine check heals, or an Attack Change, which the system reads itself too, gets the custom type, and
+ * Injury rolls or to what a recovery heals, or an Attack Change, which the system reads itself too, gets the custom type, and
  * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A Career Skill
  * change gets its skill in its key, the custom type and no value. A change to the defense a source provides gets the
  * Upgrade type, so that two such effects don't stack. Any other change is returned as it is.

@@ -6,6 +6,9 @@ import { DieTypes } from '@/dice/DieTypes';
 import { decodeKey, POOL_MODIFICATION_TYPE, type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
 import { stateReminders, statusMenu, TOKEN_STATES, tokenState, tokenStatesFor } from '@/effects/TokenStates';
 
+const other = { kind: 'other' } as const;
+const attackAt = (attackRange: string) => ({ kind: 'combat', attackRange, attacker: { system: { silhouette: 1 } } }) as const;
+
 /**
  * A character with a Token State, as the token's status menu applies it: an effect named after the state, holding its
  * changes. Their defense is 0.
@@ -63,10 +66,10 @@ describe('Disoriented', () => {
 	it('brings one Setback die to any check of its actor (CRB p. 114)', () => {
 		const disoriented = characterWith('disoriented');
 		const checks = [
-			{ characteristic: Characteristic.Agility, skillName: 'Ranged (Light)' },
-			{ characteristic: Characteristic.Willpower },
-			{ characteristic: Characteristic.Presence, skillName: 'Cool', attackRange: 'short' },
-			{},
+			{ characteristic: Characteristic.Agility, skillName: 'Ranged (Light)', purpose: other },
+			{ characteristic: Characteristic.Willpower, purpose: other },
+			{ characteristic: Characteristic.Presence, skillName: 'Cool', purpose: attackAt('short') },
+			{ purpose: other },
 		];
 
 		for (const check of checks) {
@@ -82,14 +85,18 @@ describe('Disoriented', () => {
 
 	it("brings nothing to the checks that target its actor: only the actor's own checks suffer it (CRB p. 114)", () => {
 		const attacker = characterWith('immobilized');
-		expect(poolModificationsForCheck(attacker, characterWith('disoriented'), { characteristic: Characteristic.Agility })).toEqual([]);
+		expect(
+			poolModificationsForCheck(attacker, characterWith('disoriented'), { characteristic: Characteristic.Agility, purpose: other }),
+		).toEqual([]);
 	});
 });
 
 describe('Immobilized and Staggered', () => {
 	it('change no dice (CRB p. 114)', () => {
 		for (const id of ['immobilized', 'staggered']) {
-			expect(poolModificationsForCheck(characterWith(id), undefined, { characteristic: Characteristic.Brawn })).toEqual([]);
+			expect(
+				poolModificationsForCheck(characterWith(id), undefined, { characteristic: Characteristic.Brawn, purpose: other }),
+			).toEqual([]);
 		}
 	});
 });
@@ -118,21 +125,23 @@ describe('In cover', () => {
 
 	it('adds a Setback to a ranged attack against its actor, as ranged defense 1 (CRB p. 99, 104)', () => {
 		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
-			expect(poolModificationsForCheck(attacker, inCover(), { attackRange })).toEqual([
+			expect(poolModificationsForCheck(attacker, inCover(), { purpose: attackAt(attackRange) })).toEqual([
 				{ source: 'target', from: { defense: 'ranged' }, mods: [DieTypes.Setback.GLYPH] },
 			]);
 		}
 	});
 
 	it('adds nothing to a melee attack against its actor (CRB p. 99)', () => {
-		expect(poolModificationsForCheck(attacker, inCover(), { attackRange: 'engaged' })).toEqual([]);
+		expect(poolModificationsForCheck(attacker, inCover(), { purpose: attackAt('engaged') })).toEqual([]);
 	});
 
 	it("doesn't stack with the ranged defense its actor's stat block provides, the best one being kept (CRB p. 106)", () => {
-		expect(poolModificationsForCheck(attacker, inCover({ melee: 1, ranged: 1 }), { attackRange: 'short' })[0].mods).toEqual([
+		expect(poolModificationsForCheck(attacker, inCover({ melee: 1, ranged: 1 }), { purpose: attackAt('short') })[0].mods).toEqual([
 			DieTypes.Setback.GLYPH,
 		]);
-		expect(poolModificationsForCheck(attacker, inCover({ melee: 0, ranged: 2 }), { attackRange: 'short' })[0].mods).toHaveLength(2);
+		expect(poolModificationsForCheck(attacker, inCover({ melee: 0, ranged: 2 }), { purpose: attackAt('short') })[0].mods).toHaveLength(
+			2,
+		);
 	});
 });
 
@@ -144,18 +153,22 @@ describe('Prone', () => {
 
 	it('adds a Setback to a ranged attack against its actor (CRB p. 100, 108)', () => {
 		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
-			expect(poolModificationsForCheck(attacker, characterWith('prone'), { attackRange })).toEqual(fromProne(DieTypes.Setback.GLYPH));
+			expect(poolModificationsForCheck(attacker, characterWith('prone'), { purpose: attackAt(attackRange) })).toEqual(
+				fromProne(DieTypes.Setback.GLYPH),
+			);
 		}
 	});
 
 	it('adds a Boost to a melee attack against its actor (CRB p. 100, 108)', () => {
-		expect(poolModificationsForCheck(attacker, characterWith('prone'), { attackRange: 'engaged' })).toEqual(
+		expect(poolModificationsForCheck(attacker, characterWith('prone'), { purpose: attackAt('engaged') })).toEqual(
 			fromProne(DieTypes.Boost.GLYPH),
 		);
 	});
 
 	it('adds nothing to a check against its actor that is no attack', () => {
-		expect(poolModificationsForCheck(attacker, characterWith('prone'), { characteristic: Characteristic.Presence })).toEqual([]);
+		expect(
+			poolModificationsForCheck(attacker, characterWith('prone'), { characteristic: Characteristic.Presence, purpose: other }),
+		).toEqual([]);
 	});
 
 	it("adds a Setback to its actor's own melee attack, not to their ranged attack nor to their Athletics check (CRB p. 108)", () => {
@@ -164,7 +177,7 @@ describe('Prone', () => {
 			poolModificationsForCheck(prone, undefined, {
 				characteristic: Characteristic.Brawn,
 				skillName: 'Melee (Light)',
-				attackRange: 'engaged',
+				purpose: attackAt('engaged'),
 			}),
 		).toEqual([
 			{
@@ -178,15 +191,17 @@ describe('Prone', () => {
 				poolModificationsForCheck(prone, undefined, {
 					characteristic: Characteristic.Agility,
 					skillName: 'Ranged (Light)',
-					attackRange,
+					purpose: attackAt(attackRange),
 				}),
 			).toEqual([]);
 		}
-		expect(poolModificationsForCheck(prone, undefined, { characteristic: Characteristic.Brawn, skillName: 'Athletics' })).toEqual([]);
+		expect(
+			poolModificationsForCheck(prone, undefined, { characteristic: Characteristic.Brawn, skillName: 'Athletics', purpose: other }),
+		).toEqual([]);
 	});
 
 	it("adds the Setback on its actor's melee attack against a prone target beside the target's Boost (CRB p. 100, 108)", () => {
-		expect(poolModificationsForCheck(characterWith('prone'), characterWith('prone'), { attackRange: 'engaged' })).toEqual([
+		expect(poolModificationsForCheck(characterWith('prone'), characterWith('prone'), { purpose: attackAt('engaged') })).toEqual([
 			{
 				source: 'self',
 				from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
