@@ -362,6 +362,7 @@ export function scaledChangeValue(
 	// A quality of rank 1, rated or not, leaves its value as written: the rewrite below would cut a decimal or a formula to
 	// an integer.
 	if (quality ? rankOfQuality !== 1 : item?.type === 'talent' && item.system.ranked === 'yes') {
+		// Without a quality, the condition holds only for a ranked talent, whose rank the DataModel always sets.
 		const rank = rankOfQuality ?? item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;
@@ -629,8 +630,8 @@ function effectModifications(
 				mods: mods.sort(sortPoolModifications),
 				...(attack && { attack }),
 				// An effect with no Pool Modification for the check has nothing to count: the roller turns its Attack Changes
-				// on or off, which count once per rank of its talent. An active quality applies only once the roller triggers
-				// it, by spending Advantage (CRB p. 86).
+				// on or off, which count once per rank of a ranked talent. An active quality applies only once the roller
+				// triggers it, by spending Advantage (CRB p. 86).
 				choice:
 					mods.length > 0 && 'upTo' in count
 						? { kind: 'count', upTo: count.upTo }
