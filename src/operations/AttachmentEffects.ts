@@ -15,11 +15,12 @@ import { QUALITY_FLAG } from '@/item/data/Qualities';
  * quality's copy. A quality it raised brings none: the item already has that quality's effects.
  */
 export async function installAttachment(item: GenesysItem<'weapon' | 'armor'>, dropped: GenesysItem) {
+	// The sheet hands over an attachment item, which a generic GenesysItem doesn't say.
 	const system = dropped.system as AttachmentDataModel;
 	const copy = attachmentCopy(foundry.utils.randomID(), { name: dropped.name, system });
 	const attachments: ContainedAttachment[] = [...item.system.attachments, copy];
 	// The stored data, which the update copies whole: the prepared profiles hold the damage and Critical ratings the
-	// item's Item Changes add.
+	// item's Item Changes add. fvtt-types types `_source.system` loosely, not as the type's DataModel.
 	const source = item._source.system as WeaponDataModel | ArmorDataModel;
 	const { update, brought } = attachmentQualitiesInstalled(source, { id: copy.id, qualities: system.qualities }, () =>
 		foundry.utils.randomID(),

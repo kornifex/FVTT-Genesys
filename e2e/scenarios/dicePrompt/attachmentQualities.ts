@@ -43,6 +43,7 @@ export async function attachmentQualitiesPart(ctx: DicePromptContext) {
 						? game.items.getName(`E2E ${args.target.world}`)
 						: game.actors.getName('E2E Ada').items.getName(`E2E ${args.target.ada}`);
 				const root = await window.e2e.render(item.sheet, (root) => root.querySelector('.window-content'));
+				// `render` resolved once the sheet's content was there.
 				window.e2e.drop(root.querySelector('.window-content')!, {
 					type: 'Item',
 					uuid: game.items.getName(`E2E ${args.dropped}`).uuid,
@@ -159,6 +160,55 @@ export async function attachmentQualitiesPart(ctx: DicePromptContext) {
 		'#927 K6 removing the last takes back what it added: Pierce 2, held before, stays; the qualities it brought go with their effects',
 		{ state: await itemState(carbine), attack: superiorRows(await opened(gm, attack('Carbine'))) },
 		{ state: { qualities: [['E2E Pierce 2'], []], effects: [] }, attack: [] },
+	);
+
+	// An armor's attachment: Reinforced, unrated, raising its wearer's ranged defense by 1; Deflecting, rated, which Ada's
+	// Vest holds at 1.
+	await gm.evaluate(async () => {
+		await Item.createDocuments([
+			{
+				name: 'E2E Reinforced',
+				type: 'quality',
+				system: { isRated: false },
+				effects: [{ name: 'E2E Reinforced', system: { changes: [{ key: 'system.defense.ranged', value: 1, type: 'add' }] } }],
+			},
+			{ name: 'E2E Deflecting', type: 'quality', system: { isRated: true } },
+			{ name: 'E2E Plates', type: 'attachment', system: { hardPointsRequired: 1 } },
+		]);
+		await game.actors.getName('E2E Ada').createEmbeddedDocuments('Item', [
+			{
+				name: 'E2E Vest',
+				type: 'armor',
+				system: {
+					state: 'equipped',
+					soak: 1,
+					encumbrance: 2,
+					qualities: [{ id: 'vestDeflecting', name: 'E2E Deflecting', isRated: true, rating: 1 }],
+				},
+			},
+		]);
+	});
+	const vest = { ada: 'Vest' };
+	const rangedDefense = () => gm.evaluate(() => game.actors.getName('E2E Ada').system.totalDefense.ranged);
+	const unplated = await rangedDefense();
+	await e2e.step("#952 K7 GM drops Reinforced and Deflecting on the Plates, then the Plates on Ada's Vest", async () => {
+		await drop('Reinforced', { world: 'Plates' })();
+		await drop('Deflecting', { world: 'Plates' })();
+		await drop('Plates', vest)();
+	});
+	e2e.expect(
+		"#952 K7 the Vest gains Reinforced, whose effect raises Ada's ranged defense, and Deflecting 1 becomes Deflecting 2",
+		{ state: await itemState(vest), added: (await rangedDefense()) - unplated },
+		{ state: { qualities: [['E2E Deflecting 2', 'E2E Reinforced']], effects: [{ name: 'E2E Reinforced', tagged: true }] }, added: 1 },
+	);
+
+	await e2e.step("#952 K8 GM removes the Plates from Ada's Vest", () =>
+		update({ actor: 'Ada', item: 'Vest' }, { 'system.attachments': [] }),
+	);
+	e2e.expect(
+		'#952 K8 removing the Plates gives Deflecting 1 back, and Reinforced goes with its effect',
+		{ state: await itemState(vest), added: (await rangedDefense()) - unplated },
+		{ state: { qualities: [['E2E Deflecting 1']], effects: [] }, added: 0 },
 	);
 	await e2e.step('attachmentQualities end');
 }

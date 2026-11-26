@@ -38,8 +38,8 @@ function qualitiesUpdate<Profile extends QualitiesProfile>(source: QualitiesSour
 /**
  * The qualities a weapon's or an armor's every profile has once an attachment is installed on it (ADR 0007: an
  * attachment changes every Weapon Profile). On each profile, a quality of the attachment that the profile holds, by
- * name, is raised by the attachment's rank of it; one it lacks is added at that rank, as a copy under an id from
- * `newId`. Either records the rank under the attachment's id, which its removal takes back.
+ * name, is raised by the attachment's rating of it (1 for an unrated quality); one it lacks is added at that rating, as
+ * a copy under an id from `newId`. Either records the rating under the attachment's id, which its removal takes back.
  *
  * Returns the system update, built from the stored data given, and the qualities the attachment brought, from the id of
  * the attachment's quality to that of its copy: their effects are the attachment's quality's, which the item copies.

@@ -72,6 +72,7 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 				changesAttachments && hasAttachments(this)
 					? attachmentQualitiesTakenBack(
 							// The stored data, which the update copies whole, rather than the prepared profiles' changed ratings.
+							// fvtt-types types `_source.system` loosely, not as the type's DataModel.
 							this._source.system as WeaponDataModel | ArmorDataModel,
 							this.system.attachments.map(({ id }) => id),
 						)

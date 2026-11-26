@@ -305,8 +305,8 @@ export async function run(e2e: ScenarioContext) {
 
 	await part('attachments', () => attachmentsPart(context));
 
-	// K: the qualities an attachment gives every profile of the weapon it is installed on, or raises, and takes back when
-	// it is removed (§#927, CRB pp. 206–209).
+	// K: the qualities an attachment gives every profile of the weapon or the armor it is installed on, or raises, and
+	// takes back when it is removed (§#927, §#952, CRB pp. 206–209).
 	await part('attachmentQualities', () => attachmentQualitiesPart(context));
 
 	// D: a Pool Modification of a quality or an attachment shows its description, where an effect written on the weapon

@@ -18,6 +18,7 @@ export async function addDroppedQuality(
 	qualities: readonly ContainedItemQuality[],
 	update: (qualities: ContainedItemQuality[]) => object,
 ) {
+	// The sheet hands over a quality item, which a generic GenesysItem doesn't say.
 	const copy = qualityCopy(foundry.utils.randomID(), { name: dropped.name, system: dropped.system as ItemQualityDataModel });
 	const added = withQualityAdded(qualities, copy);
 	if (added) {
