@@ -299,7 +299,7 @@ describe('poolModificationsForCheck', () => {
 
 	describe("the changes of the actor's initiative checks (#931)", () => {
 		const alert = actor('character', [effect([{ key: 'genesys.pool.initiative.self.', value: 'B' }], { name: 'Alert' })]);
-		const boost = [{ source: 'self', from: { effect: 'Alert', uuid: 'ActiveEffect.Alert' }, mods: ['B'] }];
+		const boost = [{ source: 'self', from: { effect: 'Alert', uuid: 'ActiveEffect.Alert' }, mods: ['B'], choice: TOGGLED }];
 
 		it('applies to an initiative check whatever its skill, Vigilance, Cool or another, or without one', () => {
 			for (const skillName of ['Vigilance', 'Cool', 'Perception', undefined]) {

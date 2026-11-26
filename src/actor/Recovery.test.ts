@@ -245,7 +245,7 @@ function bonusEffect(changes: [string, unknown][], originItem?: RankedItem, qual
 }
 
 function talentOfRank(rank: number, scalesWithRank: 'yes' | 'no' = 'yes'): RankedItem {
-	return { system: { rank, scalesWithRank } };
+	return { system: { ranked: 'yes', rank, scalesWithRank } };
 }
 
 /**
