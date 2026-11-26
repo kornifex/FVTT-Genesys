@@ -29,14 +29,14 @@ import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
 type Change = { key: string; value: string };
 
-function talent(rank: number, scalesWithRank: 'yes' | 'no' | 'upTo' = 'no') {
+function talent(rank: number, scalesWithRank: 'yes' | 'no' | 'upTo' = 'no', ranked: 'yes' | 'no' = 'yes') {
 	return {
 		documentName: 'Item',
 		id: 'talentId',
 		name: 'Talent',
 		uuid: 'Actor.actorId.Item.talentId',
 		type: 'talent',
-		system: { ranked: 'yes' as const, rank, scalesWithRank },
+		system: { ranked, rank, scalesWithRank },
 	};
 }
 
@@ -174,9 +174,14 @@ describe('scaledChangeValue', () => {
 		expect(scaledChangeValue(undefined, { key: 'genesys.pool.check.self.', value: 'B' })).toBe('B');
 	});
 
-	it('multiplies a numeric change by the rank of any talent', () => {
+	it('multiplies a numeric change by the rank of a ranked talent, whether or not it scales with rank', () => {
 		expect(scaledChangeValue(talent(3, 'no'), { key: 'system.soak', value: '1' })).toBe('3');
 		expect(scaledChangeValue(talent(3, 'yes'), { key: 'system.soak', value: '2' })).toBe('6');
+	});
+
+	it('counts a numeric change of an unranked talent once, whatever rank it stored', () => {
+		expect(scaledChangeValue(talent(3, 'yes', 'no'), { key: 'system.soak', value: '1' })).toBe('1');
+		expect(scaledChangeValue(talent(3, 'no', 'no'), { key: 'system.soak', value: 2 })).toBe(2);
 	});
 
 	it("counts Defensive Driving's Piloted Vehicle Defense once per rank (CRB p. 80)", () => {
@@ -360,10 +365,18 @@ describe('poolModificationsForCheck', () => {
 			});
 		});
 
-		it("counts a talent's once per rank, as its numeric changes", () => {
+		it("counts a ranked talent's once per rank, as its numeric changes", () => {
 			const self = actorWithCopiedEffect(talent(3), [{ key: 'genesys.attack.damage.melee', value: '2' }]);
 
 			expect(poolModificationsForCheck(self, undefined, { ...check, purpose: attack('engaged') })[0].attack).toEqual({ damage: 6 });
+		});
+
+		it("counts an unranked talent's once, whatever rank it stored", () => {
+			const self = actorWithCopiedEffect(talent(3, 'yes', 'no'), [{ key: 'genesys.attack.critical.melee', value: '-1' }]);
+
+			expect(poolModificationsForCheck(self, undefined, { ...check, purpose: attack('engaged') })[0].attack).toEqual({
+				critical: -1,
+			});
 		});
 
 		it('ignores those of a suppressed effect', () => {

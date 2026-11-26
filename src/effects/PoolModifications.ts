@@ -328,7 +328,8 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  * - A Pool Modification counts once per rank only when its talent is ranked and scales with rank. Talents opt into it
  *   so that those written before the option kept their behaviour. One whose talent counts it up to its rank counts
  *   once: the roller counts it again in the Dice Prompt.
- * - A numeric change counts once per rank of any talent.
+ * - A numeric change counts once per rank of a ranked talent, whether or not it scales with rank, and once for an
+ *   unranked one, whatever rank it kept from when it was ranked.
  *
  * The effect of a weapon's or an armor's quality, given that quality, counts both kinds once per rank of a rated quality
  * (CRB pp. 86–89): Accurate 2, written as one Boost, gives two.
@@ -360,7 +361,7 @@ export function scaledChangeValue(
 
 	// A quality of rank 1, rated or not, leaves its value as written: the rewrite below would cut a decimal or a formula to
 	// an integer.
-	if (quality ? rankOfQuality !== 1 : item?.type === 'talent') {
+	if (quality ? rankOfQuality !== 1 : item?.type === 'talent' && item.system.ranked === 'yes') {
 		const rank = rankOfQuality ?? item!.system.rank!;
 		if (typeof value === 'number') {
 			return value * rank;
