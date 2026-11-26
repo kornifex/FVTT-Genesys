@@ -2,7 +2,7 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import * as Talents from '@/item/data/Talents';
 import { AbilityActivation, activationField, choiceField } from '@/data/schemaFields';
 
-// Whether a talent is ranked, and how its effects scale with its rank, are stored as words.
+// Whether a talent is ranked is stored as a word.
 const YES_NO = ['yes', 'no'] as const;
 
 type YesNo = (typeof YES_NO)[number];
