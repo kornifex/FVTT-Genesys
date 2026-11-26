@@ -21,6 +21,7 @@ const quality = (id: string, name: string) => ({
 	isRated: true,
 	rating: 1,
 	attachmentRatings: [],
+	heldByItem: true,
 });
 const accurate = quality('acc', 'Accurate');
 const limitedAmmo = quality('ammo', 'Limited Ammo');

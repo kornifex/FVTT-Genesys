@@ -312,6 +312,7 @@ describe('spellAttackProfile', () => {
 				isRated: true,
 				rating: 2,
 				attachmentRatings: [],
+				heldByItem: true,
 			},
 		]);
 	});

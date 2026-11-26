@@ -125,10 +125,10 @@ export function profileUpdate(weapon: ProfiledWeapon, index: number, changes: Pa
 
 /**
  * The system update that adds an extra profile to a weapon, after the others: unnamed, with the fields of a new
- * weapon's main profile.
+ * weapon's main profile, and the qualities given, those the weapon's attachments give every profile.
  */
-export function addExtraProfileUpdate(weapon: ProfiledWeapon) {
-	const added: ExtraWeaponProfile = { name: '', ...NEW_PROFILE, skills: [], qualities: [] };
+export function addExtraProfileUpdate(weapon: ProfiledWeapon, qualities: ContainedItemQuality[] = []) {
+	const added: ExtraWeaponProfile = { name: '', ...NEW_PROFILE, skills: [], qualities };
 
 	return { extraProfiles: [...weapon.extraProfiles, added] };
 }

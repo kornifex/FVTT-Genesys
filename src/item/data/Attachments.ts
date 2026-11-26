@@ -39,7 +39,8 @@ function qualitiesUpdate<Profile extends QualitiesProfile>(source: QualitiesSour
  * The qualities a weapon's or an armor's every profile has once an attachment is installed on it (ADR 0007: an
  * attachment changes every Weapon Profile). On each profile, a quality of the attachment that the profile holds, by
  * name, is raised by the attachment's rating of it (1 for an unrated quality); one it lacks is added at that rating, as
- * a copy under an id from `newId`. Either records the rating under the attachment's id, which its removal takes back.
+ * a copy under an id from `newId` that the item doesn't hold. Either records the rating under the attachment's id,
+ * which its removal takes back.
  *
  * Returns the system update, built from the stored data given, and the qualities the attachment brought, from the id of
  * the attachment's quality to that of its copy: their effects are the attachment's quality's, which the item copies.
@@ -66,7 +67,7 @@ export function attachmentQualitiesInstalled<Profile extends QualitiesProfile>(
 
 				const id = newId();
 				brought.push({ from: added.id, to: id });
-				return [...held, { ...added, id, rating, attachmentRatings: [granted] }];
+				return [...held, { ...added, id, rating, attachmentRatings: [granted], heldByItem: false }];
 			},
 			[...qualities],
 		),
@@ -78,8 +79,10 @@ export function attachmentQualitiesInstalled<Profile extends QualitiesProfile>(
 /**
  * The system update that takes back, on each of an item's profiles, what the attachments it no longer holds added to
  * its qualities: each rating comes down by what they added, and a quality goes once nothing holds it, neither the item
- * nor an attachment, its effects with it. A quality an attachment still raises stays at rating 1 or more, even when the
- * table lowered it below what the attachments add. `undefined` when every attachment that raised a quality is held.
+ * nor an attachment, its effects with it. A quality the item holds, or that an attachment still raises, stays at
+ * rating 1 or more, even when the table lowered it below what the attachments add: the sheet shows the total alone, so
+ * a lowered rating doesn't say whose part the table took. One the attachments brought, which the table raised, keeps
+ * what the table added. `undefined` when every attachment that raised a quality is held.
  */
 export function attachmentQualitiesTakenBack<Profile extends QualitiesProfile>(
 	source: QualitiesSource<Profile>,
@@ -100,11 +103,37 @@ export function attachmentQualitiesTakenBack<Profile extends QualitiesProfile>(
 				0,
 			);
 			const rating = quality.rating - removed;
-			return rating <= 0 && kept.length === 0 ? [] : [{ ...quality, rating: Math.max(rating, 1), attachmentRatings: kept }];
+			return rating <= 0 && kept.length === 0 && !quality.heldByItem
+				? []
+				: [{ ...quality, rating: Math.max(rating, 1), attachmentRatings: kept }];
 		}),
 	);
 
 	return changed ? qualitiesUpdate(source, profiles) : undefined;
+}
+
+/**
+ * The qualities a new Weapon Profile starts with, so that the attachments installed on the weapon give it what they
+ * give every profile (ADR 0007): a copy of each quality of the main profile that an attachment raises, under an id from
+ * `newId`, at what the attachments add, which the new profile doesn't hold.
+ *
+ * Returns them, and the qualities copied, from the id of the main profile's copy to that of the new profile's: the new
+ * copy's effects are a copy of the main one's, which are the quality's.
+ */
+export function attachmentQualitiesOfNewProfile(main: readonly ContainedItemQuality[], newId: () => string) {
+	const copied: { from: string; to: string }[] = [];
+	const qualities = main.flatMap((quality) => {
+		if (quality.attachmentRatings.length === 0) {
+			return [];
+		}
+
+		const id = newId();
+		copied.push({ from: quality.id, to: id });
+		const rating = quality.attachmentRatings.reduce((total, added) => total + added.rating, 0);
+		return [{ ...quality, id, rating, heldByItem: false }];
+	});
+
+	return { qualities, copied };
 }
 
 /**

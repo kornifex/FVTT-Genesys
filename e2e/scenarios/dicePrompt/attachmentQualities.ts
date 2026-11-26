@@ -162,6 +162,53 @@ export async function attachmentQualitiesPart(ctx: DicePromptContext) {
 		{ state: { qualities: [['E2E Pierce 2'], []], effects: [] }, attack: [] },
 	);
 
+	await e2e.step("#927 K9 GM drops the Customization on Ada's Carbine again, then adds a profile from its sheet", async () => {
+		await drop('Customization', carbine)();
+		await gm.evaluate(async () => {
+			const item = game.actors.getName('E2E Ada').items.getName('E2E Carbine');
+			const root = await window.e2e.render(item.sheet, (root) => root.querySelector('.add-profile button'));
+			// `render` resolved once the button was there.
+			root.querySelector<HTMLButtonElement>('.add-profile button')!.click();
+			await window.e2e.settle();
+		});
+	});
+	e2e.expect(
+		'#927 K9 the profile added after the Customization gains what it gives every profile, Superior with its effect and Pierce 1',
+		await itemState(carbine),
+		{
+			qualities: [
+				['E2E Pierce 3', 'E2E Superior'],
+				['E2E Superior', 'E2E Pierce 1'],
+				['E2E Pierce 1', 'E2E Superior'],
+			],
+			effects: [
+				{ name: 'E2E Superior', tagged: true },
+				{ name: 'E2E Superior', tagged: true },
+				{ name: 'E2E Superior', tagged: true },
+			],
+		},
+	);
+
+	await e2e.step("#927 K10 GM gives the Carbine's own Pierce an effect and types 1 for its rating, then removes the Customization", () =>
+		gm.evaluate(async () => {
+			const item = game.actors.getName('E2E Ada').items.getName('E2E Carbine');
+			await item.createEmbeddedDocuments('ActiveEffect', [
+				{ name: 'E2E Carbine Pierce', flags: { genesys: { quality: 'carbinePierce' } } },
+			]);
+			const qualities = item._source.system.qualities as { id: string; rating: number }[];
+			await item.update({
+				'system.qualities': qualities.map((quality) => (quality.id === 'carbinePierce' ? { ...quality, rating: 1 } : quality)),
+			});
+			await item.update({ 'system.attachments': [] });
+			await window.e2e.settle();
+		}),
+	);
+	e2e.expect(
+		'#927 K10 Pierce, which the Carbine held before, stays at 1 with its effect, though the table lowered it to what the Customization added',
+		await itemState(carbine),
+		{ qualities: [['E2E Pierce 1'], [], []], effects: [{ name: 'E2E Carbine Pierce', tagged: true }] },
+	);
+
 	// An armor's attachment: Reinforced, unrated, raising its wearer's ranged defense by 1; Deflecting, rated, which Ada's
 	// Vest holds at 1.
 	await gm.evaluate(async () => {

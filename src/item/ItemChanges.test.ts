@@ -6,7 +6,17 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
  * A rated quality of a weapon or an armor.
  */
 function quality(id: string, name: string, rating: number): ContainedItemQuality {
-	return { id, name, rating, isRated: true, description: '', activation: 'passive', advantageCost: 2, attachmentRatings: [] };
+	return {
+		id,
+		name,
+		rating,
+		isRated: true,
+		description: '',
+		activation: 'passive',
+		advantageCost: 2,
+		attachmentRatings: [],
+		heldByItem: true,
+	};
 }
 
 describe('itemChangeTotals', () => {

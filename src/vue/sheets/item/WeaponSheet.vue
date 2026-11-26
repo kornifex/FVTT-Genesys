@@ -9,7 +9,6 @@ import ActionButton from '@/vue/components/ActionButton.vue';
 import WeaponProfileFields from '@/vue/components/item/WeaponProfileFields.vue';
 import EffectiveStats from '@/vue/components/item/EffectiveStats.vue';
 import {
-	addExtraProfileUpdate,
 	deleteExtraProfileUpdate,
 	type ExtraWeaponProfile,
 	profileRowName,
@@ -18,6 +17,7 @@ import {
 	type WeaponProfile,
 } from '@/item/WeaponProfiles';
 import { confirmDelete } from '@/operations/ItemActions';
+import { addExtraProfile } from '@/operations/AttachmentEffects';
 
 // The profiles are read from the stored data, which each change writes back whole: the prepared data holds the damage
 // and Critical ratings the weapon's effects add (its attachments'), which the change would store.
@@ -39,7 +39,7 @@ async function updateProfile(profile: WeaponProfile, changes: Partial<ExtraWeapo
 }
 
 async function addProfile() {
-	await item.value.update({ system: addExtraProfileUpdate(source.value) });
+	await addExtraProfile(item.value);
 }
 
 // Deleting an extra profile asks first, naming it as the weapon's rows do: "Blaster (Stun)".

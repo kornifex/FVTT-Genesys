@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { AttachmentRating, ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
-import { attachmentCopy, attachmentQualitiesInstalled, attachmentQualitiesTakenBack, hardPointsTaken } from '@/item/data/Attachments';
+import {
+	attachmentCopy,
+	attachmentQualitiesInstalled,
+	attachmentQualitiesOfNewProfile,
+	attachmentQualitiesTakenBack,
+	hardPointsTaken,
+} from '@/item/data/Attachments';
 
 const attachment = (id: string, hardPointsRequired = 1) => ({ id, name: 'Scope', description: '', hardPointsRequired });
 
@@ -19,7 +25,11 @@ const quality = (
 	isRated,
 	rating,
 	attachmentRatings,
+	heldByItem: true,
 });
+
+// A quality the attachments brought, which the item doesn't hold itself.
+const brought = (copy: ContainedItemQuality): ContainedItemQuality => ({ ...copy, heldByItem: false });
 
 // Hands out the ids q1, q2… in turn, as `randomID` would hand out random ones.
 const ids = () => {
@@ -34,8 +44,8 @@ describe('attachmentQualitiesInstalled', () => {
 
 		expect(attachmentQualitiesInstalled(weapon, balanced, ids())).toEqual({
 			update: {
-				qualities: [quality('w1', 'Pierce', 2), quality('q1', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }])],
-				extraProfiles: [{ name: 'Butt', qualities: [quality('q2', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }])] }],
+				qualities: [quality('w1', 'Pierce', 2), brought(quality('q1', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }]))],
+				extraProfiles: [{ name: 'Butt', qualities: [brought(quality('q2', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }]))] }],
 			},
 			brought: [
 				{ from: 'x1', to: 'q1' },
@@ -69,9 +79,9 @@ describe('attachmentQualitiesTakenBack', () => {
 		const weapon = {
 			qualities: [
 				quality('w1', 'Pierce', 3, [{ attachment: 'a1', rating: 1 }]),
-				quality('w2', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }]),
+				brought(quality('w2', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }])),
 			],
-			extraProfiles: [{ name: 'Butt', qualities: [quality('w3', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }])] }],
+			extraProfiles: [{ name: 'Butt', qualities: [brought(quality('w3', 'Accurate', 1, [{ attachment: 'a1', rating: 1 }]))] }],
 		};
 
 		expect(attachmentQualitiesTakenBack(weapon, [])).toEqual({
@@ -114,6 +124,52 @@ describe('attachmentQualitiesTakenBack', () => {
 
 		expect(attachmentQualitiesTakenBack(weapon, ['a2'])).toEqual({
 			qualities: [quality('w1', 'Pierce', 1, [{ attachment: 'a2', rating: 1 }])],
+		});
+	});
+
+	it('keeps at rating 1, with its effects, a quality the item held, after the table lowered it to what the attachment adds', () => {
+		const weapon = { qualities: [quality('w1', 'Pierce', 1, [{ attachment: 'a1', rating: 1 }])] };
+
+		expect(attachmentQualitiesTakenBack(weapon, [])).toEqual({ qualities: [quality('w1', 'Pierce', 1)] });
+	});
+
+	it('takes back a quality the attachment brought after the table lowered it, and keeps what the table raised it by', () => {
+		const weapon = {
+			qualities: [
+				brought(quality('w1', 'Pierce', 1, [{ attachment: 'a1', rating: 2 }])),
+				brought(quality('w2', 'Vicious', 3, [{ attachment: 'a1', rating: 1 }])),
+			],
+		};
+
+		expect(attachmentQualitiesTakenBack(weapon, [])).toEqual({ qualities: [brought(quality('w2', 'Vicious', 2))] });
+	});
+});
+
+describe('attachmentQualitiesOfNewProfile', () => {
+	it("copies each quality the attachments raise on the main profile, at what they add, under a new id the profile doesn't hold", () => {
+		const main = [
+			quality('w1', 'Pierce', 3, [
+				{ attachment: 'a1', rating: 1 },
+				{ attachment: 'a2', rating: 1 },
+			]),
+			brought(quality('w2', 'Superior', 1, [{ attachment: 'a1', rating: 1 }], false)),
+			quality('w3', 'Vicious', 2),
+		];
+
+		expect(attachmentQualitiesOfNewProfile(main, ids())).toEqual({
+			qualities: [
+				brought(
+					quality('q1', 'Pierce', 2, [
+						{ attachment: 'a1', rating: 1 },
+						{ attachment: 'a2', rating: 1 },
+					]),
+				),
+				brought(quality('q2', 'Superior', 1, [{ attachment: 'a1', rating: 1 }], false)),
+			],
+			copied: [
+				{ from: 'w1', to: 'q1' },
+				{ from: 'w2', to: 'q2' },
+			],
 		});
 	});
 });

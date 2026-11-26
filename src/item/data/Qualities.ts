@@ -18,29 +18,22 @@ export function qualityNameKey(name: string) {
 /**
  * The qualities with a quality item dropped on the weapon or armor: added at rating 1, or, when the item already has a
  * quality of that name, that quality's rating raised by 1. `undefined` when nothing changes, as dropping a quality
- * that isn't rated on an item that holds it itself. An unrated quality that only the item's attachments give it is
- * raised too: the item then holds it, and keeps it when they go.
+ * that isn't rated on an item that holds it itself. Either way the item holds the quality: one that only its
+ * attachments gave it, unrated ones included, is raised too, and stays when they go.
  */
 export function withQualityAdded(
 	qualities: readonly ContainedItemQuality[],
-	added: Omit<ContainedItemQuality, 'rating' | 'attachmentRatings'>,
+	added: Omit<ContainedItemQuality, 'rating' | 'attachmentRatings' | 'heldByItem'>,
 ): ContainedItemQuality[] | undefined {
 	const index = qualities.findIndex((quality) => qualityNameKey(quality.name) === qualityNameKey(added.name));
 	if (index < 0) {
-		return [...qualities, { ...added, rating: 1, attachmentRatings: [] }];
+		return [...qualities, { ...added, rating: 1, attachmentRatings: [], heldByItem: true }];
 	}
-	if (!qualities[index].isRated && heldByItem(qualities[index])) {
+	if (!qualities[index].isRated && qualities[index].heldByItem) {
 		return undefined;
 	}
 
-	return qualities.map((quality, i) => (i === index ? { ...quality, rating: quality.rating + 1 } : quality));
-}
-
-/**
- * Whether the item holds a quality itself, beyond what its attachments add to the rating.
- */
-function heldByItem(quality: Pick<ContainedItemQuality, 'rating' | 'attachmentRatings'>) {
-	return quality.attachmentRatings.reduce((rating, added) => rating - added.rating, quality.rating) > 0;
+	return qualities.map((quality, i) => (i === index ? { ...quality, rating: quality.rating + 1, heldByItem: true } : quality));
 }
 
 /**
@@ -162,7 +155,7 @@ export function isOutrankedQualityEffect(effect: TaggedEffect, system: object | 
 export function qualityCopy(
 	id: string,
 	{ name, system }: { name: string; system: Pick<ContainedItemQuality, 'description' | 'activation' | 'advantageCost' | 'isRated'> },
-): Omit<ContainedItemQuality, 'rating' | 'attachmentRatings'> {
+): Omit<ContainedItemQuality, 'rating' | 'attachmentRatings' | 'heldByItem'> {
 	return {
 		id,
 		name,

@@ -51,6 +51,13 @@ export type ContainedItemQuality = {
 	 * attachment takes back. Empty for a quality of the item alone, and on an attachment item.
 	 */
 	attachmentRatings: AttachmentRating[];
+
+	/**
+	 * Whether the item holds the quality itself, rather than only through its attachments: a quality an attachment
+	 * brought is not, until the table drops the quality on the item. Removing the attachments never takes away a quality
+	 * the item holds, whatever rating the table typed for it.
+	 */
+	heldByItem: boolean;
 };
 
 /**

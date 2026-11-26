@@ -215,6 +215,7 @@ export function spellAttackProfile(
 				activation: quality.activation,
 				advantageCost: quality.advantageCost,
 				attachmentRatings: [],
+				heldByItem: true,
 			})),
 		),
 	};
