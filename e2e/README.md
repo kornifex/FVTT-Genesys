@@ -73,6 +73,16 @@ A run hands its work to a pool of `--launches` Foundry launches (`E2E_LAUNCHES`,
 
 A Foundry-dependent change adds or extends its domain's scenario, rather than keeping a one-off scenario out of the repo. Every `.ts` file directly in `e2e/scenarios/` is a scenario (its parts may live in a folder of its name, see [Parts](#parts)): helpers shared by several scenarios go in `e2e/`, and those that run in the page in `window.e2e` ([`page.ts`](page.ts)).
 
+## The README's screenshots
+
+[`showcase/readme.ts`](showcase/readme.ts) builds a demo world set in Realms of Terrinoth ([`showcase/demoWorld.ts`](showcase/demoWorld.ts): a character built on his sheet from his Archetype and Career, a Minion group, a Rival, a vehicle) on a fresh world, then saves each sheet's window as a PNG, on v14, in the default Style and the light interface, and the character's Skills tab again in the Terrinoth Style and in the dark interface. It is shaped like a scenario but sits outside `e2e/scenarios/`, so `pnpm e2e:all` never runs it. Retake the screenshots with:
+
+```sh
+SHOWCASE_OUT=/tmp/showcase pnpm e2e e2e/showcase/readme.ts
+```
+
+It writes the PNGs to `SHOWCASE_OUT`, never to `screenshots/`: look at each one before copying it there. The portraits it uploads are public domain or CC0 images from Wikimedia Commons, credited in [`showcase/portraits/CREDITS.md`](showcase/portraits/CREDITS.md); a new one gets its line there.
+
 ## Writing a scenario
 
 A scenario is a TypeScript file exporting `run`, `isolated = true` when it must not share its world, `needsCanvas = true` when it uses tokens on the canvas ([Canvas](#canvas)), and `routePrefix` when an isolated scenario's Foundry serves the world under a path, as behind a reverse proxy (`'e2e'` serves it at `/e2e/`, through the `routePrefix` of its data dir's `Config/options.json`).
