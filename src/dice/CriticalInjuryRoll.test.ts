@@ -93,7 +93,7 @@ function effect(
 }
 
 function talent(name: string, rank: number, scalesWithRank: 'yes' | 'no' | 'upTo') {
-	return { name, uuid: `Item.${name}`, type: 'talent', system: { rank, scalesWithRank } };
+	return { name, uuid: `Item.${name}`, type: 'talent', system: { ranked: 'yes' as const, rank, scalesWithRank } };
 }
 
 function actor(effects: CriticalEffect[], items: { type: string }[] = []): CriticalInjuryActor {

@@ -325,9 +325,9 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
 /**
  * The value a change counts for, given the item its effect comes from. Talent ranks scale the two kinds of changes
  * differently:
- * - A Pool Modification counts once per rank only when its talent scales with rank. Talents opt into it so that those
- *   written before the option kept their behaviour. One whose talent counts it up to its rank counts once: the roller
- *   counts it again in the Dice Prompt.
+ * - A Pool Modification counts once per rank only when its talent is ranked and scales with rank. Talents opt into it
+ *   so that those written before the option kept their behaviour. One whose talent counts it up to its rank counts
+ *   once: the roller counts it again in the Dice Prompt.
  * - A numeric change counts once per rank of any talent.
  *
  * The effect of a weapon's or an armor's quality, given that quality, counts both kinds once per rank of a rated quality

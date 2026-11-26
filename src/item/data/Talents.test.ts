@@ -4,25 +4,35 @@ import { describe, expect, it } from 'vitest';
 import { effectiveNextTier, effectiveTier, poolModificationCount, scalingRank, talentGroups, TIERS } from '@/item/data/Talents';
 
 describe('scalingRank', () => {
-	it('counts once per rank for a talent that scales with rank, and once for any other item', () => {
-		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'yes' } })).toBe(3);
-		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'no' } })).toBe(1);
-		expect(scalingRank({ system: { scalesWithRank: 'yes' } })).toBe(1);
+	it('counts once per rank for a ranked talent that scales with rank, and once for any other item', () => {
+		expect(scalingRank({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'yes' } })).toBe(3);
+		expect(scalingRank({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'no' } })).toBe(1);
+		expect(scalingRank({ system: { ranked: 'yes', scalesWithRank: 'yes' } })).toBe(1);
 		expect(scalingRank({ system: {} })).toBe(1);
 		expect(scalingRank(undefined)).toBe(1);
 	});
 
-	it('counts once per rank for a talent whose Pool Modifications count up to its rank', () => {
-		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'upTo' } })).toBe(3);
+	it('counts once per rank for a ranked talent whose Pool Modifications count up to its rank', () => {
+		expect(scalingRank({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'upTo' } })).toBe(3);
+	});
+
+	it('counts once for an unranked talent, whose sheet hides how its effects scale but keeps the value set before', () => {
+		expect(scalingRank({ system: { ranked: 'no', rank: 3, scalesWithRank: 'yes' } })).toBe(1);
+		expect(scalingRank({ system: { ranked: 'no', rank: 3, scalesWithRank: 'upTo' } })).toBe(1);
 	});
 });
 
 describe('poolModificationCount', () => {
-	it("leaves the count to the roller, up to the rank, for a talent counted up to its rank, and fixes it by the rank's scaling otherwise", () => {
-		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'upTo' } })).toEqual({ upTo: 3 });
-		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'yes' } })).toEqual({ times: 3 });
-		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'no' } })).toEqual({ times: 1 });
+	it("leaves the count to the roller, up to the rank, for a ranked talent counted up to its rank, and fixes it by the rank's scaling otherwise", () => {
+		expect(poolModificationCount({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'upTo' } })).toEqual({ upTo: 3 });
+		expect(poolModificationCount({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'yes' } })).toEqual({ times: 3 });
+		expect(poolModificationCount({ system: { ranked: 'yes', rank: 3, scalesWithRank: 'no' } })).toEqual({ times: 1 });
 		expect(poolModificationCount(undefined)).toEqual({ times: 1 });
+	});
+
+	it('counts once for an unranked talent, whatever its sheet stored before it was made unranked', () => {
+		expect(poolModificationCount({ system: { ranked: 'no', rank: 3, scalesWithRank: 'yes' } })).toEqual({ times: 1 });
+		expect(poolModificationCount({ system: { ranked: 'no', rank: 3, scalesWithRank: 'upTo' } })).toEqual({ times: 1 });
 	});
 });
 

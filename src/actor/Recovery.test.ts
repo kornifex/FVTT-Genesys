@@ -114,7 +114,7 @@ describe('recoveryOf', () => {
 	describe("the healer's bonus to the wounds a Medicine check heals", () => {
 		const effect = (
 			value: unknown,
-			item?: { system: { rank?: number; scalesWithRank?: 'yes' | 'no' | 'upTo' } },
+			item?: { system: { ranked?: 'yes' | 'no'; rank?: number; scalesWithRank?: 'yes' | 'no' | 'upTo' } },
 			isSuppressed = false,
 		) => ({
 			isSuppressed,
@@ -122,7 +122,7 @@ describe('recoveryOf', () => {
 			originItem: item,
 		});
 		const healer = (...effects: ReturnType<typeof effect>[]) => ({ allApplicableEffects: () => effects });
-		const surgeon = (rank: number) => ({ system: { rank, scalesWithRank: 'yes' as const } });
+		const surgeon = (rank: number) => ({ system: { ranked: 'yes' as const, rank, scalesWithRank: 'yes' as const } });
 
 		it("adds once per rank of the healer's talent, as Surgeon does (CRB p. 74)", () => {
 			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 1 }, healer(effect('1', surgeon(2))))).toEqual({
@@ -133,8 +133,13 @@ describe('recoveryOf', () => {
 		});
 
 		it('adds once per rank of a talent whose Pool Modifications count up to its rank, as one that scales with rank', () => {
-			const upToRank = healer(effect('1', { system: { rank: 2, scalesWithRank: 'upTo' } }));
+			const upToRank = healer(effect('1', { system: { ranked: 'yes', rank: 2, scalesWithRank: 'upTo' } }));
 			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 0 }, upToRank).wounds).toBe(4);
+		});
+
+		it('adds once for an unranked talent left scaling with rank, which its sheet no longer offers', () => {
+			const unranked = healer(effect('1', { system: { ranked: 'no', rank: 2, scalesWithRank: 'yes' } }));
+			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 0 }, unranked).wounds).toBe(3);
 		});
 
 		it('adds nothing when the Medicine check fails, which heals nothing (CRB p. 116)', () => {
@@ -146,7 +151,7 @@ describe('recoveryOf', () => {
 		});
 
 		it("sums the healer's effects, a number as Foundry stores it, once for an item that doesn't scale with rank", () => {
-			const bonus = healer(effect(2), effect('1', { system: { rank: 3, scalesWithRank: 'no' } }));
+			const bonus = healer(effect(2), effect('1', { system: { ranked: 'yes', rank: 3, scalesWithRank: 'no' } }));
 			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 0 }, bonus).wounds).toBe(4);
 		});
 

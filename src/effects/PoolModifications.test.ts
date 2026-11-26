@@ -36,7 +36,7 @@ function talent(rank: number, scalesWithRank: 'yes' | 'no' | 'upTo' = 'no') {
 		name: 'Talent',
 		uuid: 'Actor.actorId.Item.talentId',
 		type: 'talent',
-		system: { rank, scalesWithRank },
+		system: { ranked: 'yes' as const, rank, scalesWithRank },
 	};
 }
 

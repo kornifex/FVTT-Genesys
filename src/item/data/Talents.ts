@@ -20,23 +20,30 @@ export const RANK_SCALINGS = ['yes', 'no', 'upTo'] as const;
 /**
  * The data of an item of any type, which only a talent fills the rank fields of.
  */
-export type RankedSystem = object & { rank?: number; scalesWithRank?: (typeof RANK_SCALINGS)[number] };
+export type RankedSystem = object & { ranked?: 'yes' | 'no'; rank?: number; scalesWithRank?: (typeof RANK_SCALINGS)[number] };
+
+// How a talent's ranks scale its effects: only a ranked talent's do. The sheet hides the choice once the talent is made
+// unranked, but keeps the value set before, which then no longer applies.
+function rankScaling(item: { system: RankedSystem } | undefined) {
+	return item?.system.ranked === 'yes' ? item.system.scalesWithRank : undefined;
+}
 
 /**
- * How many times a talent's Critical Injury and healing changes count: once per rank when the talent scales with rank,
- * or up to it, once otherwise, and for an item that is no talent.
+ * How many times a talent's Critical Injury and healing changes count: once per rank when the talent is ranked and
+ * scales with rank, or up to it, once otherwise, and for an item that is no talent.
  */
 export function scalingRank(item: { system: RankedSystem } | undefined) {
-	return item?.system.scalesWithRank === 'yes' || item?.system.scalesWithRank === 'upTo' ? item.system.rank ?? 1 : 1;
+	const scaling = rankScaling(item);
+	return scaling === 'yes' || scaling === 'upTo' ? item?.system.rank ?? 1 : 1;
 }
 
 /**
  * How many times a talent's Pool Modifications count: a number of times its ranks fix (`times`), once per rank when the
- * talent scales with rank, once otherwise, and for an item that is no talent; or as many times as the roller chooses,
- * from 0 up to its rank (`upTo`).
+ * talent is ranked and scales with rank, once otherwise, and for an item that is no talent; or, for a ranked talent
+ * counted up to its rank, as many times as the roller chooses, from 0 up to its rank (`upTo`).
  */
 export function poolModificationCount(item: { system: RankedSystem } | undefined): { times: number } | { upTo: number } {
-	return item?.system.scalesWithRank === 'upTo' ? { upTo: item.system.rank ?? 1 } : { times: scalingRank(item) };
+	return rankScaling(item) === 'upTo' ? { upTo: item?.system.rank ?? 1 } : { times: scalingRank(item) };
 }
 
 /**

@@ -64,14 +64,14 @@ function effect(name: string, changes: { key: string; value: string }[], uuid = 
 }
 
 /**
- * The effect of a talent at a rank, which lives on the talent.
+ * The effect of a talent at a rank, ranked unless said otherwise, which lives on the talent.
  */
 function talentEffect(
 	name: string,
-	{ rank, scalesWithRank }: { rank: number; scalesWithRank: 'yes' | 'no' | 'upTo' },
+	{ ranked = 'yes', rank, scalesWithRank }: { ranked?: 'yes' | 'no'; rank: number; scalesWithRank: 'yes' | 'no' | 'upTo' },
 	changes: { key: string; value: string }[],
 ): PoolModificationEffect {
-	const talent = { documentName: 'Item', type: 'talent', name, uuid: `Item.${name}`, system: { rank, scalesWithRank } };
+	const talent = { documentName: 'Item', type: 'talent', name, uuid: `Item.${name}`, system: { ranked, rank, scalesWithRank } };
 	return { ...effect(name, changes, `Item.${name}.ActiveEffect.effect`), parent: talent };
 }
 
@@ -747,6 +747,21 @@ describe("a talent's effect counted up to its rank", () => {
 			expect(countsOf(carriedPoolModificationStates([{ ...melee, count: 5 }], [melee], true))).toEqual([3]);
 			expect(countsOf(carriedPoolModificationStates([{ ...brawl, count: 2 }], [brawl], true))).toEqual([1]);
 		});
+	});
+
+	it('turns on or off, once, the Pool Modifications of an unranked talent left counted up to its rank or scaling with it', () => {
+		const unranked = (scalesWithRank: 'yes' | 'upTo') =>
+			checkOf(
+				talentEffect('Rapid Reaction', { ranked: 'no', rank: 3, scalesWithRank }, [
+					{ key: 'genesys.pool.check.self.', value: 's' },
+				]),
+			).poolModifications;
+
+		for (const scalesWithRank of ['yes', 'upTo'] as const) {
+			const [modification] = unranked(scalesWithRank);
+			expect({ mods: modification.mods, choice: modification.choice }).toEqual({ mods: ['s'], choice: TOGGLED });
+			expect(carriedPoolModificationStates([], [modification], true)[0].count).toBe(1);
+		}
 	});
 
 	it("leaves a talent that scales with rank, or doesn't, turned on or off as before", () => {
