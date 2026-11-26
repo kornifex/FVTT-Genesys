@@ -9,7 +9,7 @@ import type { Stored } from '@/data/Stored';
 import { buildDicePool, DicePool, parsePoolModifications } from '@/dice/DicePool';
 import type { NamedAttackChanges } from '@/effects/AttackChanges';
 import {
-	CheckForPoolModifications,
+	CombatCheck,
 	ExternalPoolModification,
 	matchOrigin,
 	PoolModificationActor,
@@ -103,7 +103,7 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	target?: CheckActor<S>;
 
 	/**
-	 * Range of the weapon, for an attack.
+	 * Range of the weapon, for an attack. A combat check made without one is resolved as any other check.
 	 */
 	attackRange?: string;
 
@@ -117,12 +117,12 @@ export type CheckRequest<S extends CheckSkill = CheckSkill> = {
 	 * The weapon of an attack, whose damage hinders it, and whose qualities' effects change it. Ignored for any other
 	 * check.
 	 */
-	weapon?: CheckForPoolModifications['weapon'];
+	weapon?: CombatCheck['weapon'];
 
 	/**
 	 * The qualities of the Weapon Profile an attack is made with, whose effects change it. Ignored for any other check.
 	 */
-	attackQualities?: CheckForPoolModifications['attackQualities'];
+	attackQualities?: CombatCheck['attackQualities'];
 
 	/**
 	 * Whether the Proficiency dice explode, for a dice pool rolled without an actor.
@@ -192,12 +192,17 @@ export function resolveCheck<S extends CheckSkill>(
 		characteristic,
 		skillName: rolledSkill?.skill.name,
 		// Only a combat check gets the changes of combat checks and of melee or ranged attacks.
-		attackRange: isCombatCheck(purpose) ? request.attackRange : undefined,
-		skillAttackKind:
-			isCombatCheck(purpose) && rolledSkill ? skillAttackKind(rules.compendiumSkills, rolledSkill.skill.name) : undefined,
-		attacker: isCombatCheck(purpose) ? request.attacker ?? actor : undefined,
-		weapon: isCombatCheck(purpose) ? request.weapon : undefined,
-		attackQualities: isCombatCheck(purpose) ? request.attackQualities : undefined,
+		purpose:
+			isCombatCheck(purpose) && request.attackRange !== undefined
+				? {
+						kind: 'combat',
+						attackRange: request.attackRange,
+						skillAttackKind: rolledSkill && skillAttackKind(rules.compendiumSkills, rolledSkill.skill.name),
+						attacker: request.attacker ?? actor,
+						weapon: request.weapon,
+						attackQualities: request.attackQualities,
+					}
+				: { kind: 'other' },
 	});
 
 	return {

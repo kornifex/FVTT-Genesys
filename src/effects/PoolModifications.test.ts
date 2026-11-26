@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { vehicleDefense } from '@/actor/data/Protection';
 import { Characteristic } from '@/data/Characteristics';
 import {
+	CombatCheck,
 	decodeKey,
 	EditedChange,
 	encodeKey,
@@ -217,7 +218,15 @@ describe('scaledChangeValue', () => {
 });
 
 describe('poolModificationsForCheck', () => {
-	const check = { characteristic: Characteristic.Agility, skillName: 'Stealth' };
+	const other = { kind: 'other' } as const;
+	// An attack at a range, made by a human-sized attacker unless the test gives another.
+	const attack = (attackRange: string, details: Partial<CombatCheck> = {}): CombatCheck => ({
+		kind: 'combat',
+		attackRange,
+		attacker: { system: { silhouette: 1 } },
+		...details,
+	});
+	const check = { characteristic: Characteristic.Agility, skillName: 'Stealth', purpose: other };
 
 	it('collects the changes of the actor that apply to every check, to the characteristic and to the skill', () => {
 		const self = actor('character', [
@@ -243,9 +252,13 @@ describe('poolModificationsForCheck', () => {
 	it('collects the changes of a skill whatever the case of its name', () => {
 		const self = actor('character', [effect([{ key: 'genesys.pool.skill.self.Ranged (Light)', value: 'B' }], { name: 'Talent' })]);
 
-		expect(poolModificationsForCheck(self, undefined, { characteristic: Characteristic.Agility, skillName: 'Ranged (light)' })).toEqual(
-			[{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B'] }],
-		);
+		expect(
+			poolModificationsForCheck(self, undefined, {
+				characteristic: Characteristic.Agility,
+				skillName: 'Ranged (light)',
+				purpose: other,
+			}),
+		).toEqual([{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B'] }]);
 	});
 
 	it('only collects the changes for every check without a characteristic or a skill', () => {
@@ -256,7 +269,7 @@ describe('poolModificationsForCheck', () => {
 			]),
 		]);
 
-		expect(poolModificationsForCheck(self, undefined, {})[0].mods).toEqual(['B']);
+		expect(poolModificationsForCheck(self, undefined, { purpose: other })[0].mods).toEqual(['B']);
 	});
 
 	describe("the changes of the actor's combat checks (CRB p. 101)", () => {
@@ -264,7 +277,7 @@ describe('poolModificationsForCheck', () => {
 
 		it('applies to an attack, melee or ranged', () => {
 			for (const attackRange of ['engaged', 'short', 'extreme']) {
-				expect(poolModificationsForCheck(aiming, undefined, { ...check, attackRange })).toEqual([
+				expect(poolModificationsForCheck(aiming, undefined, { ...check, purpose: attack(attackRange) })).toEqual([
 					{ source: 'self', from: { effect: 'Aim', uuid: 'ActiveEffect.Aim' }, mods: ['B'] },
 				]);
 			}
@@ -272,12 +285,12 @@ describe('poolModificationsForCheck', () => {
 
 		it('is left out of a check that is no attack, as a Stealth or a Characteristic Check (CRB p. 98)', () => {
 			expect(poolModificationsForCheck(aiming, undefined, check)).toEqual([]);
-			expect(poolModificationsForCheck(aiming, undefined, { characteristic: Characteristic.Agility })).toEqual([]);
-			expect(poolModificationsForCheck(aiming, undefined, {})).toEqual([]);
+			expect(poolModificationsForCheck(aiming, undefined, { characteristic: Characteristic.Agility, purpose: other })).toEqual([]);
+			expect(poolModificationsForCheck(aiming, undefined, { purpose: other })).toEqual([]);
 		});
 
 		it("is left out of the attacks against the actor: only the actor's own checks get it", () => {
-			expect(poolModificationsForCheck(actor('rival', []), aiming, { attackRange: 'short' })).toEqual([]);
+			expect(poolModificationsForCheck(actor('rival', []), aiming, { purpose: attack('short') })).toEqual([]);
 		});
 	});
 
@@ -293,7 +306,7 @@ describe('poolModificationsForCheck', () => {
 		const orc = actor('character', [battleRage]);
 
 		it("lists an effect's Attack Changes with its Pool Modifications, so that the roller turns both on at once", () => {
-			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'engaged' })).toEqual([
+			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('engaged') })).toEqual([
 				{ source: 'self', from, mods: ['S'], attack: { damage: 2 } },
 			]);
 		});
@@ -303,22 +316,24 @@ describe('poolModificationsForCheck', () => {
 				effect([{ key: 'genesys.attack.damage.combat', value: '2' }], { name: 'Devastating' }),
 			]);
 
-			expect(poolModificationsForCheck(devastating, undefined, { ...check, attackRange: 'long' })).toEqual([
+			expect(poolModificationsForCheck(devastating, undefined, { ...check, purpose: attack('long') })).toEqual([
 				{ source: 'self', from: { effect: 'Devastating', uuid: 'ActiveEffect.Devastating' }, mods: [], attack: { damage: 2 } },
 			]);
 		});
 
 		it('leaves the melee ones out of a ranged attack, by the kind of attack the skill makes', () => {
-			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'short' })).toEqual([]);
-			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'short', skillAttackKind: 'melee' })).toEqual([
-				{ source: 'self', from, mods: ['S'], attack: { damage: 2 } },
-			]);
-			expect(poolModificationsForCheck(orc, undefined, { ...check, attackRange: 'engaged', skillAttackKind: 'ranged' })).toEqual([]);
+			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('short') })).toEqual([]);
+			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('short', { skillAttackKind: 'melee' }) })).toEqual(
+				[{ source: 'self', from, mods: ['S'], attack: { damage: 2 } }],
+			);
+			expect(
+				poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('engaged', { skillAttackKind: 'ranged' }) }),
+			).toEqual([]);
 		});
 
 		it('leaves them out of a check that is no attack, and of the attacks against the actor', () => {
 			expect(poolModificationsForCheck(orc, undefined, check)).toEqual([]);
-			expect(poolModificationsForCheck(actor('rival', []), orc, { attackRange: 'engaged' })).toEqual([]);
+			expect(poolModificationsForCheck(actor('rival', []), orc, { purpose: attack('engaged') })).toEqual([]);
 		});
 
 		it('adds up the damage and the Critical rating apart, whatever the sign, and ignores a value that is no whole number', () => {
@@ -332,7 +347,7 @@ describe('poolModificationsForCheck', () => {
 				]),
 			]);
 
-			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'medium' })[0].attack).toEqual({
+			expect(poolModificationsForCheck(self, undefined, { ...check, purpose: attack('medium') })[0].attack).toEqual({
 				damage: 3,
 				critical: -1,
 			});
@@ -341,13 +356,13 @@ describe('poolModificationsForCheck', () => {
 		it("counts a talent's once per rank, as its numeric changes", () => {
 			const self = actorWithCopiedEffect(talent(3), [{ key: 'genesys.attack.damage.melee', value: '2' }]);
 
-			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'engaged' })[0].attack).toEqual({ damage: 6 });
+			expect(poolModificationsForCheck(self, undefined, { ...check, purpose: attack('engaged') })[0].attack).toEqual({ damage: 6 });
 		});
 
 		it('ignores those of a suppressed effect', () => {
 			const self = actor('character', [effect([{ key: 'genesys.attack.damage.combat', value: '2' }], { isSuppressed: true })]);
 
-			expect(poolModificationsForCheck(self, undefined, { ...check, attackRange: 'engaged' })).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, { ...check, purpose: attack('engaged') })).toEqual([]);
 		});
 	});
 
@@ -365,9 +380,9 @@ describe('poolModificationsForCheck', () => {
 		const fromProne = (mods: string[]) => [{ source: 'target', from: { effect: 'Prone', uuid: 'ActiveEffect.Prone' }, mods }];
 
 		it('applies the melee change to an attack at engaged range, the ranged change to an attack at any other range', () => {
-			expect(poolModificationsForCheck(self, prone, { attackRange: 'engaged' })).toEqual(fromProne(['B']));
+			expect(poolModificationsForCheck(self, prone, { purpose: attack('engaged') })).toEqual(fromProne(['B']));
 			for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
-				expect(poolModificationsForCheck(self, prone, { attackRange })).toEqual(fromProne(['S']));
+				expect(poolModificationsForCheck(self, prone, { purpose: attack(attackRange) })).toEqual(fromProne(['S']));
 			}
 		});
 
@@ -376,15 +391,15 @@ describe('poolModificationsForCheck', () => {
 		});
 
 		it("applies to no check of the actor's own", () => {
-			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'engaged' })).toEqual([]);
-			expect(poolModificationsForCheck(prone, undefined, { attackRange: 'short' })).toEqual([]);
+			expect(poolModificationsForCheck(prone, undefined, { purpose: attack('engaged') })).toEqual([]);
+			expect(poolModificationsForCheck(prone, undefined, { purpose: attack('short') })).toEqual([]);
 		});
 
 		it('applies the combat change to any attack, scaled by the rank of its talent, as Adversary (CRB p. 131)', () => {
 			const adversary = actorWithCopiedEffect(talent(2, 'yes'), [{ key: 'genesys.pool.combat.target.', value: '*' }]);
 
 			for (const attackRange of ['engaged', 'long']) {
-				expect(poolModificationsForCheck(self, adversary, { attackRange })).toEqual([
+				expect(poolModificationsForCheck(self, adversary, { purpose: attack(attackRange) })).toEqual([
 					{
 						source: 'target',
 						from: {
@@ -458,27 +473,27 @@ describe('poolModificationsForCheck', () => {
 		const character = actor('character', [], { totalDefense: { melee: 1, ranged: 2 } });
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
 
-		expect(poolModificationsForCheck(self, character, { attackRange: 'engaged' })).toEqual([
+		expect(poolModificationsForCheck(self, character, { purpose: attack('engaged') })).toEqual([
 			{ source: 'target', from: { defense: 'melee' }, mods: ['S'] },
 		]);
-		expect(poolModificationsForCheck(self, character, { attackRange: 'long' })).toEqual([
+		expect(poolModificationsForCheck(self, character, { purpose: attack('long') })).toEqual([
 			{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] },
 		]);
-		expect(poolModificationsForCheck(self, adversary, { attackRange: 'long' })).toEqual([
+		expect(poolModificationsForCheck(self, adversary, { purpose: attack('long') })).toEqual([
 			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] },
 		]);
 		expect(
-			poolModificationsForCheck(self, actor('rival', [], { totalDefense: { melee: 0, ranged: 2 } }), { attackRange: 'medium' }),
+			poolModificationsForCheck(self, actor('rival', [], { totalDefense: { melee: 0, ranged: 2 } }), { purpose: attack('medium') }),
 		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
-		expect(poolModificationsForCheck(self, character, {})).toEqual([]);
+		expect(poolModificationsForCheck(self, character, { purpose: other })).toEqual([]);
 	});
 
 	it("leaves out the target's defense when it is 0 against the attack (CRB p. 104)", () => {
 		const self = actor('character', []);
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
 
-		expect(poolModificationsForCheck(self, adversary, { attackRange: 'engaged' })).toEqual([]);
-		expect(poolModificationsForCheck(self, actor('rival', []), { attackRange: 'medium' })).toEqual([]);
+		expect(poolModificationsForCheck(self, adversary, { purpose: attack('engaged') })).toEqual([]);
+		expect(poolModificationsForCheck(self, actor('rival', []), { purpose: attack('medium') })).toEqual([]);
 	});
 
 	it("collects a targeted vehicle's changes, and adds one Setback per point of its defense at any range (CRB p. 223, 104)", () => {
@@ -487,15 +502,15 @@ describe('poolModificationsForCheck', () => {
 			totalDefense: vehicleDefense(2, 0),
 		});
 
-		expect(poolModificationsForCheck(self, vehicle, {})).toEqual([
+		expect(poolModificationsForCheck(self, vehicle, { purpose: other })).toEqual([
 			{ source: 'target', from: { effect: 'Smoke', uuid: 'ActiveEffect.Smoke' }, mods: ['D'] },
 		]);
-		expect(poolModificationsForCheck(self, vehicle, { attackRange: 'medium' })).toContainEqual({
+		expect(poolModificationsForCheck(self, vehicle, { purpose: attack('medium') })).toContainEqual({
 			source: 'target',
 			from: { defense: 'ranged' },
 			mods: ['S', 'S'],
 		});
-		expect(poolModificationsForCheck(self, vehicle, { attackRange: 'engaged' })).toContainEqual({
+		expect(poolModificationsForCheck(self, vehicle, { purpose: attack('engaged') })).toContainEqual({
 			source: 'target',
 			from: { defense: 'melee' },
 			mods: ['S', 'S'],
@@ -506,20 +521,21 @@ describe('poolModificationsForCheck', () => {
 		const self = actor('character', []);
 
 		expect(
-			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0, 0) }), { attackRange: 'long' }),
+			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(0, 0) }), { purpose: attack('long') }),
 		).toEqual([]);
 		expect(
-			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5, 0) }), { attackRange: 'short' }),
+			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5, 0) }), { purpose: attack('short') }),
 		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
 	});
 
 	describe('the silhouette difference between the attacker and the target (CRB p. 109)', () => {
 		const sized = (type: string, silhouette: number) => actor(type, [], { silhouette });
+		const attackBy = (attacker: PoolModificationActor) => ({ purpose: attack('engaged', { attacker }) });
 
 		it('removes one Difficulty die from an attack against a target 2 or more silhouettes larger', () => {
 			const self = sized('character', 1);
 
-			expect(poolModificationsForCheck(self, sized('rival', 3), { attacker: self })).toEqual([
+			expect(poolModificationsForCheck(self, sized('rival', 3), attackBy(self))).toEqual([
 				{ source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] },
 			]);
 		});
@@ -527,7 +543,7 @@ describe('poolModificationsForCheck', () => {
 		it('adds one Difficulty die to an attack against a target 2 or more silhouettes smaller', () => {
 			const self = sized('nemesis', 4);
 
-			expect(poolModificationsForCheck(self, sized('character', 0), { attacker: self })).toEqual([
+			expect(poolModificationsForCheck(self, sized('character', 0), attackBy(self))).toEqual([
 				{ source: 'target', from: { silhouette: { target: 0, attacker: 4 } }, mods: ['D'] },
 			]);
 		});
@@ -536,7 +552,7 @@ describe('poolModificationsForCheck', () => {
 			const self = sized('character', 2);
 
 			for (const silhouette of [1, 2, 3]) {
-				expect(poolModificationsForCheck(self, sized('rival', silhouette), { attacker: self })).toEqual([]);
+				expect(poolModificationsForCheck(self, sized('rival', silhouette), attackBy(self))).toEqual([]);
 			}
 		});
 
@@ -544,24 +560,28 @@ describe('poolModificationsForCheck', () => {
 			const self = sized('character', 1);
 			const vehicle = sized('vehicle', 3);
 
-			expect(poolModificationsForCheck(self, vehicle, { attacker: self })[0].mods).toEqual(['-D']);
-			expect(poolModificationsForCheck(self, sized('character', 1), { attacker: vehicle })).toEqual([
+			expect(poolModificationsForCheck(self, vehicle, attackBy(self))[0].mods).toEqual(['-D']);
+			expect(poolModificationsForCheck(self, sized('character', 1), attackBy(vehicle))).toEqual([
 				{ source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
 			]);
 		});
 
 		it('changes nothing against a vehicle whose silhouette was emptied in its sheet', () => {
 			const self = sized('character', 4);
-			const vehicle: PoolModificationActor = { type: 'vehicle', system: { silhouette: null }, allApplicableEffects: () => [] };
+			const vehicle: PoolModificationActor = {
+				type: 'vehicle',
+				system: { silhouette: null, totalDefense: vehicleDefense(0, 0) },
+				allApplicableEffects: () => [],
+			};
 
-			expect(poolModificationsForCheck(self, vehicle, { attacker: self })).toEqual([]);
+			expect(poolModificationsForCheck(self, vehicle, attackBy(self))).toEqual([]);
 		});
 
 		it("lists the silhouette difference after the target's defense", () => {
 			const self = sized('character', 1);
 			const target = actor('rival', [], { silhouette: 3, totalDefense: { melee: 1, ranged: 0 } });
 
-			expect(poolModificationsForCheck(self, target, { attackRange: 'engaged', attacker: self }).map(({ from }) => from)).toEqual([
+			expect(poolModificationsForCheck(self, target, attackBy(self)).map(({ from }) => from)).toEqual([
 				{ defense: 'melee' },
 				{ silhouette: { target: 3, attacker: 1 } },
 			]);
@@ -570,8 +590,8 @@ describe('poolModificationsForCheck', () => {
 		it("changes nothing for a check that isn't an attack, or without a target", () => {
 			const self = sized('character', 1);
 
-			expect(poolModificationsForCheck(self, sized('rival', 3), {})).toEqual([]);
-			expect(poolModificationsForCheck(self, undefined, { attacker: self })).toEqual([]);
+			expect(poolModificationsForCheck(self, sized('rival', 3), { purpose: other })).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, attackBy(self))).toEqual([]);
 		});
 	});
 
@@ -584,9 +604,9 @@ describe('poolModificationsForCheck', () => {
 
 		it('adds one Setback per point over the threshold to Agility and Brawn checks', () => {
 			for (const characteristic of [Characteristic.Agility, Characteristic.Brawn]) {
-				expect(poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic, skillName: 'Athletics' })).toEqual([
-					{ source: 'self', from: { encumbrance: { value: 8, threshold: 6 } }, mods: ['S', 'S'] },
-				]);
+				expect(
+					poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic, skillName: 'Athletics', purpose: other }),
+				).toEqual([{ source: 'self', from: { encumbrance: { value: 8, threshold: 6 } }, mods: ['S', 'S'] }]);
 			}
 		});
 
@@ -597,22 +617,27 @@ describe('poolModificationsForCheck', () => {
 				Characteristic.Willpower,
 				Characteristic.Presence,
 			]) {
-				expect(poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic })).toEqual([]);
+				expect(poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic, purpose: other })).toEqual([]);
 			}
-			expect(poolModificationsForCheck(encumbered(8, 6), undefined, {})).toEqual([]);
+			expect(poolModificationsForCheck(encumbered(8, 6), undefined, { purpose: other })).toEqual([]);
 		});
 
 		it('changes nothing at the threshold or under it', () => {
 			for (const value of [5, 6]) {
-				expect(poolModificationsForCheck(encumbered(value, 6), undefined, { characteristic: Characteristic.Brawn })).toEqual([]);
+				expect(
+					poolModificationsForCheck(encumbered(value, 6), undefined, { characteristic: Characteristic.Brawn, purpose: other }),
+				).toEqual([]);
 			}
 		});
 
 		it('only hinders a character, the only actor with a threshold', () => {
 			for (const type of ['minion', 'rival', 'nemesis', 'vehicle']) {
-				expect(poolModificationsForCheck(encumbered(8, 6, type), undefined, { characteristic: Characteristic.Agility })).toEqual(
-					[],
-				);
+				expect(
+					poolModificationsForCheck(encumbered(8, 6, type), undefined, {
+						characteristic: Characteristic.Agility,
+						purpose: other,
+					}),
+				).toEqual([]);
 			}
 		});
 
@@ -623,7 +648,9 @@ describe('poolModificationsForCheck', () => {
 			};
 			const target = actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }], { name: 'Target' })]);
 
-			expect(poolModificationsForCheck(self, target, { characteristic: Characteristic.Agility }).map(({ from }) => from)).toEqual([
+			expect(
+				poolModificationsForCheck(self, target, { characteristic: Characteristic.Agility, purpose: other }).map(({ from }) => from),
+			).toEqual([
 				{ effect: 'Own', uuid: 'ActiveEffect.Own' },
 				{ encumbrance: { value: 7, threshold: 6 } },
 				{ effect: 'Target', uuid: 'ActiveEffect.Target' },
@@ -636,20 +663,20 @@ describe('poolModificationsForCheck', () => {
 		const self = actor('character', []);
 
 		it('adds a Setback at minor damage', () => {
-			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('minor') })).toEqual([
+			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short', { weapon: weapon('minor') }) })).toEqual([
 				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'minor' } }, mods: ['S'] },
 			]);
 		});
 
 		it('adds one Difficulty die at moderate damage', () => {
-			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('moderate') })).toEqual([
+			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short', { weapon: weapon('moderate') }) })).toEqual([
 				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'moderate' } }, mods: ['D'] },
 			]);
 		});
 
 		it('changes nothing for an undamaged weapon, or a check made without one', () => {
-			expect(poolModificationsForCheck(self, undefined, { weapon: weapon('undamaged') })).toEqual([]);
-			expect(poolModificationsForCheck(self, undefined, {})).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short', { weapon: weapon('undamaged') }) })).toEqual([]);
+			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short') })).toEqual([]);
 		});
 	});
 
@@ -708,9 +735,7 @@ describe('poolModificationsForCheck', () => {
 		const attackWith = (weapon: ReturnType<typeof equipment>, attackRange = 'engaged', attackQualities = weapon.system.qualities) => ({
 			characteristic: Characteristic.Brawn,
 			skillName: 'Melee',
-			attackRange,
-			weapon,
-			attackQualities,
+			purpose: attack(attackRange, { weapon, attackQualities }),
 		});
 
 		it("counts a weapon's quality's Pool Modification once per rank on the attacks made with it", () => {
@@ -835,9 +860,7 @@ describe('poolModificationsForCheck', () => {
 		const attackWith = (weapon: ReturnType<typeof equipment>, attackQualities: { id: string }[] = []) => ({
 			characteristic: Characteristic.Agility,
 			skillName: 'Ranged',
-			attackRange: 'medium',
-			weapon,
-			attackQualities,
+			purpose: attack('medium', { weapon, attackQualities }),
 		});
 
 		it("applies a weapon's attachment to the attacks made with the weapon, with any of its Weapon Profiles", () => {
@@ -913,7 +936,7 @@ describe('poolModificationsForCheck', () => {
 		const rangedCheck = (weaponUsed?: ReturnType<typeof weapon>) => ({
 			characteristic: Characteristic.Agility,
 			skillName: 'Ranged',
-			...(weaponUsed && { attackRange: 'medium', weapon: weaponUsed, attackQualities: [] }),
+			purpose: weaponUsed ? attack('medium', { weapon: weaponUsed, attackQualities: [] }) : other,
 		});
 
 		it("counts a scoped Pool Modification on an attack with its weapon, not on the skill's other checks", () => {
@@ -944,7 +967,9 @@ describe('poolModificationsForCheck', () => {
 
 	it('collects nothing without an actor making the check', () => {
 		expect(
-			poolModificationsForCheck(undefined, actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]), {}),
+			poolModificationsForCheck(undefined, actor('rival', [effect([{ key: 'genesys.pool.check.target.', value: 'S' }])]), {
+				purpose: other,
+			}),
 		).toEqual([]);
 	});
 });

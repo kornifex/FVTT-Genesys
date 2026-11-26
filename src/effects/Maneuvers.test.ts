@@ -35,9 +35,18 @@ function characterWith(maneuver: ManeuverEffect): PoolModificationActor {
 	};
 }
 
-const melee = { characteristic: Characteristic.Brawn, skillName: 'Melee', attackRange: 'engaged' };
-const ranged = { characteristic: Characteristic.Agility, skillName: 'Ranged', attackRange: 'medium' };
-const stealth = { characteristic: Characteristic.Agility, skillName: 'Stealth' };
+const attacker = { system: { silhouette: 1 } };
+const melee = {
+	characteristic: Characteristic.Brawn,
+	skillName: 'Melee',
+	purpose: { kind: 'combat', attackRange: 'engaged', attacker },
+} as const;
+const ranged = {
+	characteristic: Characteristic.Agility,
+	skillName: 'Ranged',
+	purpose: { kind: 'combat', attackRange: 'medium', attacker },
+} as const;
+const stealth = { characteristic: Characteristic.Agility, skillName: 'Stealth', purpose: { kind: 'other' } } as const;
 
 describe('Aim', () => {
 	it('brings a Boost to the next combat check, melee or ranged (CRB p. 98)', () => {

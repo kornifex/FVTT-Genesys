@@ -314,10 +314,10 @@ describe('resolveCheck', () => {
 		const giant = actor('rival', [], { silhouette: 3 });
 		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
 
-		expect(resolveCheck(hero, { purpose: attack, skillName: 'Melee', target: giant }, rules).poolModifications).toEqual([
-			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] },
-		]);
-		expect(resolveCheck(hero, { skillName: 'Melee', target: giant }, rules).poolModifications).toEqual([]);
+		expect(
+			resolveCheck(hero, { purpose: attack, skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications,
+		).toEqual([{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] }]);
+		expect(resolveCheck(hero, { skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications).toEqual([]);
 	});
 
 	it('takes the silhouette of the vehicle whose weapon is fired, not the crew member rolling the attack (CRB p. 222)', () => {
@@ -327,6 +327,7 @@ describe('resolveCheck', () => {
 			purpose: { kind: 'attack', weaponName: 'Cannon' },
 			skillName: 'Gunnery',
 			target: actor('character', []),
+			attackRange: 'long',
 			attacker: vehicle,
 		} as const;
 
@@ -350,7 +351,9 @@ describe('resolveCheck', () => {
 		const sword = { name: 'Sword', uuid: 'Item.sword', system: { damage: 'moderate' } } as const;
 		const attack = { kind: 'attack', weaponName: 'Sword' } as const;
 
-		expect(resolveCheck(hero, { purpose: attack, skillName: 'Melee', weapon: sword }, rules).poolModifications).toEqual([
+		expect(
+			resolveCheck(hero, { purpose: attack, skillName: 'Melee', attackRange: 'engaged', weapon: sword }, rules).poolModifications,
+		).toEqual([
 			{
 				key: 'self.itemDamage',
 				source: 'self',
@@ -358,7 +361,7 @@ describe('resolveCheck', () => {
 				mods: ['D'],
 			},
 		]);
-		expect(resolveCheck(hero, { skillName: 'Melee', weapon: sword }, rules).poolModifications).toEqual([]);
+		expect(resolveCheck(hero, { skillName: 'Melee', attackRange: 'engaged', weapon: sword }, rules).poolModifications).toEqual([]);
 	});
 
 	it('changes an attack with the effects of the qualities of the Weapon Profile it is made with, and no other check (CRB p. 86)', () => {
