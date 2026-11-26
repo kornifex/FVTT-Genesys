@@ -535,11 +535,10 @@ Genesys:
 
   # Alpha Notice: the welcome message a GM reads when the system runs a new version
   AlphaNotice:
-    Title: Genesys Alpha {version}
+    Title: Genesys {version}
     Welcome: >-
-      Bonjour, et merci d'essayer le système Genesys ! Notez que ce système est encore en version alpha : il est prêt pour de
-      premières parties d'essai et quelques expérimentations, mais de nombreuses fonctionnalités manquent encore et des bugs
-      sont possibles !
+      Bonjour, et merci de jouer avec le système Genesys ! Voici les principaux changements de cette version ; les liens
+      plus bas mènent à sa documentation et à l'endroit où signaler un bug.
     Updates: Corrections et nouveautés
     Feature: NOUVEAUTÉ
     Fix: CORRECTIF
