@@ -1,7 +1,7 @@
 /** @file Tests for the tier a talent's ranks are bought at, and for the groups the Talents tab lists talents in. */
 
 import { describe, expect, it } from 'vitest';
-import { effectiveNextTier, effectiveTier, scalingRank, talentGroups, TIERS } from '@/item/data/Talents';
+import { effectiveNextTier, effectiveTier, poolModificationCount, scalingRank, talentGroups, TIERS } from '@/item/data/Talents';
 
 describe('scalingRank', () => {
 	it('counts once per rank for a talent that scales with rank, and once for any other item', () => {
@@ -10,6 +10,19 @@ describe('scalingRank', () => {
 		expect(scalingRank({ system: { scalesWithRank: 'yes' } })).toBe(1);
 		expect(scalingRank({ system: {} })).toBe(1);
 		expect(scalingRank(undefined)).toBe(1);
+	});
+
+	it('counts once per rank for a talent whose Pool Modifications count up to its rank', () => {
+		expect(scalingRank({ system: { rank: 3, scalesWithRank: 'upTo' } })).toBe(3);
+	});
+});
+
+describe('poolModificationCount', () => {
+	it("leaves the count to the roller, up to the rank, for a talent counted up to its rank, and fixes it by the rank's scaling otherwise", () => {
+		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'upTo' } })).toEqual({ upTo: 3 });
+		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'yes' } })).toEqual({ times: 3 });
+		expect(poolModificationCount({ system: { rank: 3, scalesWithRank: 'no' } })).toEqual({ times: 1 });
+		expect(poolModificationCount(undefined)).toEqual({ times: 1 });
 	});
 });
 

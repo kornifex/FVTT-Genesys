@@ -275,11 +275,19 @@ export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | u
 }
 
 /**
- * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
- * count it had, a new one counts once, on, when the world applies Pool Modifications automatically, unless it starts
- * off, as an active quality's.
+ * How many times a Pool Modification counts before the roller changes it: once, on, when the world applies Pool
+ * Modifications automatically, unless it starts off, as an active quality's; not at all otherwise, and always for one
+ * the roller counts up to a talent's rank.
  */
-export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff'>>(
+export function startingCount(modification: Pick<CheckPoolModification, 'startsOff' | 'upTo'>, autoApply: boolean) {
+	return autoApply && !modification.startsOff && modification.upTo === undefined ? 1 : 0;
+}
+
+/**
+ * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
+ * count it had, a new one starts at its {@link startingCount}.
+ */
+export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff' | 'upTo'>>(
 	previous: { key: string; count: number }[],
 	poolModifications: M[],
 	autoApply: boolean,
@@ -287,7 +295,7 @@ export function carriedPoolModificationStates<M extends Pick<CheckPoolModificati
 	const countByKey = new Map(previous.map((modification) => [modification.key, modification.count]));
 	return poolModifications.map((modification) => ({
 		...modification,
-		count: countByKey.get(modification.key) ?? (autoApply && !modification.startsOff ? 1 : 0),
+		count: countByKey.get(modification.key) ?? startingCount(modification, autoApply),
 	}));
 }
 
@@ -301,7 +309,8 @@ export type PoolChoices = {
 	difficulty: string;
 	manualChanges?: string[];
 	/**
-	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on.
+	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on, and up to its
+	 * `upTo` for one they count.
 	 */
 	countOf: (modification: CheckPoolModification) => number;
 };

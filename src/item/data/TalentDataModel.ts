@@ -2,7 +2,7 @@ import { BaseItemDataModel } from '@/item/data/BaseItemDataModel';
 import * as Talents from '@/item/data/Talents';
 import { AbilityActivation, activationField, choiceField } from '@/data/schemaFields';
 
-// Whether a talent is ranked, and whether its effects scale with its rank, are stored as words.
+// Whether a talent is ranked, and how its effects scale with its rank, are stored as words.
 const YES_NO = ['yes', 'no'] as const;
 
 type YesNo = (typeof YES_NO)[number];
@@ -14,7 +14,7 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 	abstract tier: number;
 	abstract activation: AbilityActivation;
 	abstract ranked: YesNo;
-	abstract scalesWithRank: YesNo;
+	abstract scalesWithRank: (typeof Talents.RANK_SCALINGS)[number];
 	abstract rank: number;
 
 	/**
@@ -53,7 +53,7 @@ export abstract class TalentDataModel extends BaseItemDataModel {
 			tier: new fields.NumberField({ integer: true, initial: 1, min: 1, max: Talents.MAX_TIER }),
 			activation: activationField(),
 			ranked: choiceField(YES_NO, 'no'),
-			scalesWithRank: choiceField(YES_NO, 'no'),
+			scalesWithRank: choiceField(Talents.RANK_SCALINGS, 'no'),
 			rank: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
 		};
 	}

@@ -21,7 +21,7 @@ import { effectTag } from '@/item/data/EffectTags';
 import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
 import { ATTACHMENT_FLAG, effectAttachment } from '@/item/data/Attachments';
 import { isForWeaponAttacksOnly } from '@/effects/WeaponAttacksOnly';
-import { type RankedSystem, scalingRank } from '@/item/data/Talents';
+import { poolModificationCount, type RankedSystem } from '@/item/data/Talents';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
 /**
@@ -214,6 +214,12 @@ export type ExternalPoolModification = {
 	 * when they trigger it.
 	 */
 	startsOff?: boolean;
+	/**
+	 * The most times the roller may count it, for an effect of a talent whose Pool Modifications count up to its rank:
+	 * `mods` are then those of one count, and it starts at 0, whatever the world's setting, as each count has a cost the
+	 * table pays (Rapid Reaction's strain, CRB p. 74). Left out, the roller turns it on or off.
+	 */
+	upTo?: number;
 };
 
 /**
@@ -308,7 +314,8 @@ export function sourceItem<Item extends SourceItem>(effect: Pick<PoolModificatio
  * The value a change counts for, given the item its effect comes from. Talent ranks scale the two kinds of changes
  * differently:
  * - A Pool Modification counts once per rank only when its talent scales with rank. Talents opt into it so that those
- *   written before the option kept their behaviour.
+ *   written before the option kept their behaviour. One whose talent counts it up to its rank counts once: the roller
+ *   counts it again in the Dice Prompt.
  * - A numeric change counts once per rank of any talent.
  *
  * The effect of a weapon's or an armor's quality, given that quality, counts both kinds once per rank of a rated quality
@@ -334,7 +341,8 @@ export function scaledChangeValue(
 	const rankOfQuality = quality && qualityRank(quality);
 
 	if (decodeKey(key)) {
-		const rank = rankOfQuality ?? scalingRank(item);
+		const count = poolModificationCount(item);
+		const rank = rankOfQuality ?? ('times' in count ? count.times : 1);
 		return typeof value === 'string' ? value.repeat(Math.max(rank, 0)) : value;
 	}
 
@@ -590,6 +598,7 @@ function effectModifications(
 		);
 
 		const attack = attackChanges(effect.system.changes, (change) => scaledChangeValue(item, change, quality));
+		const count = poolModificationCount(item);
 
 		if (mods.length > 0 || attack) {
 			modifications.push({
@@ -604,6 +613,9 @@ function effectModifications(
 				...(attack && { attack }),
 				// An active quality applies only once the roller triggers it, by spending Advantage (CRB p. 86).
 				...(quality?.activation === 'active' && { startsOff: true }),
+				// An effect with no Pool Modification for the check has nothing to count: the roller turns its Attack Changes
+				// on or off, which count once per rank of its talent.
+				...(mods.length > 0 && 'upTo' in count && { upTo: count.upTo }),
 			});
 		}
 	}

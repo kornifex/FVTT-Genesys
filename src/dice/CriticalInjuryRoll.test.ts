@@ -92,7 +92,7 @@ function effect(
 	return { name, uuid: `ActiveEffect.${name}`, isSuppressed, system: { changes }, originItem, flags };
 }
 
-function talent(name: string, rank: number, scalesWithRank: 'yes' | 'no') {
+function talent(name: string, rank: number, scalesWithRank: 'yes' | 'no' | 'upTo') {
 	return { name, uuid: `Item.${name}`, type: 'talent', system: { rank, scalesWithRank } };
 }
 
@@ -140,6 +140,12 @@ describe('criticalEffectBonuses', () => {
 			},
 			{ name: 'Bloodthirst', uuid: 'ActiveEffect.Bloodthirst', item: { name: 'Bloodthirst', uuid: 'Item.Bloodthirst' }, value: 10 },
 		]);
+	});
+
+	it('counts a change once per rank of a talent whose Pool Modifications count up to its rank, as one that scales with rank', () => {
+		const upToRank = effect('Lethal Blows', [inflicted('10')], { originItem: talent('Lethal Blows', 2, 'upTo') });
+
+		expect(criticalEffectBonuses(actor([upToRank]), 'inflicted')[0].value).toBe(20);
 	});
 });
 

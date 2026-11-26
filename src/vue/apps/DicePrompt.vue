@@ -170,22 +170,25 @@ type SourceDocument = {
 // The link to a source document: the row holds its uuid, not the document, which Vue would wrap in a reactive proxy.
 type SourceLink = { uuid: string; tooltip: string; icon: string };
 
-// The Pool Modifications of the check, each turned on or off by the roller: counted once or not at all. The origin is
-// the actor or the target, the name what the modification comes from.
+// The Pool Modifications of the check, each turned on or off by the roller, counted once or not at all, or counted by
+// them from 0 up to `upTo`, a talent's rank. The origin is the actor or the target, the name what the modification
+// comes from.
 // A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
 // After its Pool Modifications, it lists what its effect's Attack Changes add to the attack, in words.
-const effects = ref<
-	{
-		key: string;
-		origin: string;
-		name: string;
-		link?: SourceLink;
-		description?: string;
-		count: number;
-		mods: string[];
-		attack: string[];
-	}[]
->([]);
+type EffectRow = {
+	key: string;
+	origin: string;
+	name: string;
+	link?: SourceLink;
+	description?: string;
+	count: number;
+	upTo?: number;
+	mods: string[];
+	attack: string[];
+};
+const effects = ref<EffectRow[]>([]);
+// The − of a row's count shows left of it, past the row's edge: the rows keep room for it, as the Additional Effects' do.
+const hasModificationCounts = computed(() => effects.value.some((effect) => effect.upTo !== undefined));
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
 const weaponSkills = shallowRef<PromptSkill[]>([]);
@@ -257,6 +260,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		name: poolModificationName(modification),
 		...rowSource(modification),
 		count: modification.count,
+		...(modification.upTo !== undefined && { upTo: modification.upTo }),
 		mods: modification.mods,
 		attack: attackChangeLabels(modification.attack),
 	}));
@@ -356,9 +360,17 @@ function modificationCounts() {
 	return (modification: CheckPoolModification) => counts.get(modification.key) ?? 0;
 }
 
-function setModificationCount(effect: { count: number }, count: number) {
-	effect.count = count;
+/**
+ * Count a Pool Modification's row as many times as given, from 0 up to its talent's rank for a row the roller counts,
+ * once at most for one they turn on or off.
+ */
+function setModificationCount(effect: EffectRow, count: number) {
+	effect.count = Math.max(0, Math.min(count, effect.upTo ?? 1));
 	buildDicePool();
+}
+
+function modificationCountLabel(effect: EffectRow) {
+	return game.i18n.format('Genesys.DicePrompt.PoolModifications.Count', { effect: effect.name });
 }
 
 function buildDicePool() {
@@ -583,7 +595,7 @@ const spendId = useId();
 
 		<fieldset class="pool-modifications">
 			<legend><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></legend>
-			<div class="pool-modifications-container">
+			<div :class="['pool-modifications-container', { 'has-counts': hasModificationCounts }]">
 				<div class="pool-modifications-difficulty">
 					<span>
 						<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
@@ -615,11 +627,26 @@ const spendId = useId();
 						</button>
 					</div>
 				</div>
+				<!-- A talent's effect counted up to its rank has a count in place of its checkbox, named after the effect. -->
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
-					<input type="checkbox" :checked="effect.count > 0" @change="setModificationCount(effect, effect.count > 0 ? 0 : 1)" />
+					<Counter
+						v-if="effect.upTo !== undefined"
+						class="modification-count"
+						:label="modificationCountLabel(effect)"
+						:value="effect.count"
+						:max="effect.upTo"
+						@step="setModificationCount(effect, effect.count + $event)"
+						@type="setModificationCount(effect, $event)"
+					/>
+					<input
+						v-else
+						type="checkbox"
+						:checked="effect.count > 0"
+						@change="setModificationCount(effect, effect.count > 0 ? 0 : 1)"
+					/>
 					<span>
 						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
-						the checkbox alone turns the modification on. -->
+						the checkbox or the count alone turns the modification on. -->
 						<!-- prettier-ignore -->
 						<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
 					</span>
@@ -911,7 +938,7 @@ $target-size: 24px;
 			margin: $row-padding + ($row-line-height - $checkbox-size) * 0.5 0 0;
 		}
 
-		// A repeatable Additional Effect's count, in place of its checkbox.
+		// A repeatable Additional Effect's count, or a Pool Modification's, in place of its checkbox.
 		& > .counter {
 			grid-column: 1;
 		}
@@ -1106,7 +1133,8 @@ $target-size: 24px;
 
 	// The − of a count shows left of it, past the row's edge: the rows keep room for it, every one of them, so that the
 	// effects' names stay in line.
-	.spell-effects.has-counts .spell-effect {
+	.spell-effects.has-counts .spell-effect,
+	.pool-modifications-container.has-counts > div {
 		padding-inline-start: 0.75rem;
 	}
 

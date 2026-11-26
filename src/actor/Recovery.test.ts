@@ -112,7 +112,11 @@ describe('recoveryOf', () => {
 	});
 
 	describe("the healer's bonus to the wounds a Medicine check heals", () => {
-		const effect = (value: unknown, item?: { system: { rank?: number; scalesWithRank?: 'yes' | 'no' } }, isSuppressed = false) => ({
+		const effect = (
+			value: unknown,
+			item?: { system: { rank?: number; scalesWithRank?: 'yes' | 'no' | 'upTo' } },
+			isSuppressed = false,
+		) => ({
 			isSuppressed,
 			system: { changes: [{ key: HEALING_CHANGE_KEYS.medicineWounds, value }] },
 			originItem: item,
@@ -126,6 +130,11 @@ describe('recoveryOf', () => {
 				wounds: 4,
 				strain: 1,
 			});
+		});
+
+		it('adds once per rank of a talent whose Pool Modifications count up to its rank, as one that scales with rank', () => {
+			const upToRank = healer(effect('1', { system: { rank: 2, scalesWithRank: 'upTo' } }));
+			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 0 }, upToRank).wounds).toBe(4);
 		});
 
 		it('adds nothing when the Medicine check fails, which heals nothing (CRB p. 116)', () => {

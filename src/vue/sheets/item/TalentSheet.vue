@@ -35,6 +35,7 @@ const { system } = useSheetDocument<GenesysItem<'talent'>>();
 					<select :id="id" name="system.scalesWithRank" :value="system.scalesWithRank">
 						<option value="yes"><Localized label="Genesys.Labels.Yes" /></option>
 						<option value="no"><Localized label="Genesys.Labels.No" /></option>
+						<option value="upTo"><Localized label="Genesys.Labels.UpToRank" /></option>
 					</select>
 				</DataRow>
 

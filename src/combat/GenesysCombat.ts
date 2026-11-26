@@ -1,7 +1,7 @@
 import { GenesysCombatant } from '@/combat/GenesysCombatant';
 import { InitiativeSkill, initiativeSkillsOf } from '@/combat/InitiativeSkills';
 import { checkMessageData, CheckRoll, rollPool } from '@/dice/CheckRoll';
-import { checkDicePool, resolveCheck, worldCheckRules } from '@/dice/Check';
+import { checkDicePool, resolveCheck, startingCount, worldCheckRules } from '@/dice/Check';
 import { initiativeMessageMode, requestedInitiativeMode } from '@/dice/messageMode';
 import { DicePrompt } from '@/app/DicePrompt';
 import * as log from '@/log';
@@ -429,7 +429,8 @@ export class GenesysCombat extends Combat {
 				}
 				checkRoll = answered;
 			} else {
-				// Initiative has no target, and its Pool Modifications are turned on as the world setting says.
+				// Initiative has no target, and its Pool Modifications count as the Dice Prompt starts them: turned on as the
+				// world setting says, and those the roller counts up to a talent's rank not at all, as Rapid Reaction's.
 				const check = resolveCheck(
 					combatant.actor ?? undefined,
 					{
@@ -443,7 +444,7 @@ export class GenesysCombat extends Combat {
 					check,
 					dicePool: checkDicePool(check, {
 						difficulty: '',
-						countOf: () => (CONFIG.genesys.settings.autoApplyPoolModifications ? 1 : 0),
+						countOf: (modification) => startingCount(modification, CONFIG.genesys.settings.autoApplyPoolModifications),
 					}),
 				};
 			}

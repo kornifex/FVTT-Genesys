@@ -28,7 +28,7 @@ import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
 type Change = { key: string; value: string };
 
-function talent(rank: number, scalesWithRank: 'yes' | 'no' = 'no') {
+function talent(rank: number, scalesWithRank: 'yes' | 'no' | 'upTo' = 'no') {
 	return {
 		documentName: 'Item',
 		id: 'talentId',
@@ -432,6 +432,21 @@ describe('poolModificationsForCheck', () => {
 		expect(poolModificationsForCheck(scaling, undefined, check)[0].mods).toEqual(['B', 'B']);
 		expect(poolModificationsForCheck(notScaling, undefined, check)[0].mods).toEqual(['B']);
 		expect(poolModificationsForCheck(onItem, undefined, check)[0].mods).toEqual(['B', 'B', 'B']);
+	});
+
+	it('gives a talent counted up to its rank its Pool Modifications once, with its rank as the most times they count, and its numeric changes once per rank (CRB p. 74)', () => {
+		const rapidReaction = actorWithCopiedEffect(talent(3, 'upTo'), [
+			{ key: 'genesys.pool.check.self.', value: 's' },
+			{ key: 'genesys.attack.damage.combat', value: '1' },
+		]);
+
+		expect(poolModificationsForCheck(rapidReaction, undefined, { ...check, attackRange: 'engaged' })[0]).toMatchObject({
+			mods: ['s'],
+			upTo: 3,
+			attack: { damage: 3 },
+		});
+		expect(scaledChangeValue(talent(3, 'upTo'), { key: 'genesys.pool.check.self.', value: 's' })).toBe('s');
+		expect(scaledChangeValue(talent(3, 'upTo'), { key: 'system.soak', value: '1' })).toBe('3');
 	});
 
 	it('carries the item an effect comes from, whether the effect lives on it or was copied onto the actor', () => {
