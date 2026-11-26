@@ -781,6 +781,7 @@ Genesys:
     ActivationDetail: Detalle de la activación
     Rank: Rango
     Ranked: Con rangos
+    EffectsScaleWithRank: Efectos mejorados con el rango
     UpToRank: Hasta el rango
     Active: Activa
     Passive: Pasiva
