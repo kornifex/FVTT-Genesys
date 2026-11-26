@@ -270,18 +270,19 @@ export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | u
 }
 
 /**
- * The Pool Modifications of a check resolved again, each turned on or off: one still listed keeps the state it had, a
- * new one is on when the world applies Pool Modifications automatically, unless it starts off, as an active quality's.
+ * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
+ * count it had, a new one counts once, on, when the world applies Pool Modifications automatically, unless it starts
+ * off, as an active quality's.
  */
 export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff'>>(
-	previous: { key: string; enabled: boolean }[],
+	previous: { key: string; count: number }[],
 	poolModifications: M[],
 	autoApply: boolean,
-): (M & { enabled: boolean })[] {
-	const enabledByKey = new Map(previous.map((modification) => [modification.key, modification.enabled]));
+): (M & { count: number })[] {
+	const countByKey = new Map(previous.map((modification) => [modification.key, modification.count]));
 	return poolModifications.map((modification) => ({
 		...modification,
-		enabled: enabledByKey.get(modification.key) ?? (autoApply && !modification.startsOff),
+		count: countByKey.get(modification.key) ?? (autoApply && !modification.startsOff ? 1 : 0),
 	}));
 }
 
@@ -294,13 +295,16 @@ export type PoolChoices = {
 	 */
 	difficulty: string;
 	manualChanges?: string[];
-	isEnabled: (modification: CheckPoolModification) => boolean;
+	/**
+	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on.
+	 */
+	countOf: (modification: CheckPoolModification) => number;
 };
 
 /**
- * The dice pool of a check.
+ * The dice pool of a check, each Pool Modification counted as many times as the roller chose.
  */
-export function checkDicePool(check: Check, { difficulty, manualChanges = [], isEnabled }: PoolChoices): DicePool {
+export function checkDicePool(check: Check, { difficulty, manualChanges = [], countOf }: PoolChoices): DicePool {
 	return buildDicePool({
 		characteristicValue: check.characteristicValue,
 		skillRank: check.rank,
@@ -308,11 +312,14 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 		modifications: {
 			difficulty: parsePoolModifications(difficulty),
 			manualChanges,
-			effects: check.poolModifications.map((modification) => ({
-				name: modification.key,
-				enabled: isEnabled(modification),
-				mods: modification.mods,
-			})),
+			effects: check.poolModifications.map((modification) => {
+				const count = countOf(modification);
+				return {
+					name: modification.key,
+					enabled: count > 0,
+					mods: Array.from({ length: count }, () => modification.mods).flat(),
+				};
+			}),
 		},
 	});
 }
@@ -320,10 +327,10 @@ export function checkDicePool(check: Check, { difficulty, manualChanges = [], is
 /**
  * The Attack Changes an attack is rolled with: those of the effects the roller left on, each named after its effect.
  */
-export function checkAttackChanges(check: Check, isEnabled: PoolChoices['isEnabled']): NamedAttackChanges[] {
+export function checkAttackChanges(check: Check, countOf: PoolChoices['countOf']): NamedAttackChanges[] {
 	return check.poolModifications.flatMap((modification) =>
 		// Only an effect holds Attack Changes, among the origins of a Pool Modification.
-		modification.attack && 'effect' in modification.from && isEnabled(modification)
+		modification.attack && 'effect' in modification.from && countOf(modification) > 0
 			? [{ ...modification.attack, name: modification.from.effect }]
 			: [],
 	);

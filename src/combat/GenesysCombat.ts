@@ -441,7 +441,10 @@ export class GenesysCombat extends Combat {
 				);
 				checkRoll = {
 					check,
-					dicePool: checkDicePool(check, { difficulty: '', isEnabled: () => CONFIG.genesys.settings.autoApplyPoolModifications }),
+					dicePool: checkDicePool(check, {
+						difficulty: '',
+						countOf: () => (CONFIG.genesys.settings.autoApplyPoolModifications ? 1 : 0),
+					}),
 				};
 			}
 

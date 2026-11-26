@@ -476,12 +476,12 @@ describe('checkDicePool', () => {
 	const check = resolveCheck(hero, { skillName: 'Melee' }, rules);
 
 	it('builds the pool from the characteristic, the rank, the difficulty and the enabled Pool Modifications', () => {
-		expect(checkDicePool(check, { difficulty: 'DD', isEnabled: () => true })).toEqual({
+		expect(checkDicePool(check, { difficulty: 'DD', countOf: () => 1 })).toEqual({
 			dice: { Proficiency: 2, Ability: 1, Difficulty: 2, Boost: 1 },
 			symbols: {},
 			usesSuperCharacteristic: false,
 		});
-		expect(checkDicePool(check, { difficulty: '', manualChanges: ['s'], isEnabled: () => false })).toEqual({
+		expect(checkDicePool(check, { difficulty: '', manualChanges: ['s'], countOf: () => 0 })).toEqual({
 			dice: { Proficiency: 2, Ability: 1 },
 			symbols: { Success: 1 },
 			usesSuperCharacteristic: false,
@@ -496,7 +496,7 @@ describe('checkDicePool', () => {
 		const intellectCheck = resolveCheck(wearer, { fallbackCharacteristic: Characteristic.Intellect }, rules);
 		const [first] = intellectCheck.poolModifications;
 
-		expect(checkDicePool(intellectCheck, { difficulty: 'DD', isEnabled: ({ key }) => key === first.key }).dice).toEqual({
+		expect(checkDicePool(intellectCheck, { difficulty: 'DD', countOf: ({ key }) => (key === first.key ? 1 : 0) }).dice).toEqual({
 			Proficiency: 1,
 			Ability: 0,
 			Difficulty: 2,
@@ -518,21 +518,21 @@ describe('checkAttackChanges', () => {
 	const attack = resolveCheck(orc, { skillName: 'Melee', purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' }, rules);
 
 	it('gives the Attack Changes of the effects left on, each named after its effect (RoT pp. 67, 79)', () => {
-		expect(checkAttackChanges(attack, () => true)).toEqual([
+		expect(checkAttackChanges(attack, () => 1)).toEqual([
 			{ name: 'Battle Rage', damage: 2 },
 			{ name: 'Devastating', damage: 2 },
 		]);
 	});
 
 	it('leaves out those of an effect turned off, as its Pool Modifications', () => {
-		const isEnabled = ({ key }: { key: string }) => key !== 'self.effect.ActiveEffect.Battle Rage';
+		const countOf = ({ key }: { key: string }) => (key !== 'self.effect.ActiveEffect.Battle Rage' ? 1 : 0);
 
-		expect(checkAttackChanges(attack, isEnabled)).toEqual([{ name: 'Devastating', damage: 2 }]);
-		expect(checkDicePool(attack, { difficulty: 'DD', isEnabled }).dice.Setback).toBeUndefined();
+		expect(checkAttackChanges(attack, countOf)).toEqual([{ name: 'Devastating', damage: 2 }]);
+		expect(checkDicePool(attack, { difficulty: 'DD', countOf }).dice.Setback).toBeUndefined();
 	});
 
 	it('gives none for a check that is no attack', () => {
-		expect(checkAttackChanges(resolveCheck(orc, { skillName: 'Melee' }, rules), () => true)).toEqual([]);
+		expect(checkAttackChanges(resolveCheck(orc, { skillName: 'Melee' }, rules), () => 1)).toEqual([]);
 	});
 });
 
@@ -546,40 +546,40 @@ describe('carriedPoolModificationStates', () => {
 	});
 	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
 	const before = [
-		{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
-		{ key: 'self.effect.ActiveEffect.Dueling', enabled: true },
+		{ key: 'self.effect.ActiveEffect.Steady', count: 0 },
+		{ key: 'self.effect.ActiveEffect.Dueling', count: 1 },
 	];
 	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
 	const states = (autoApply: boolean) =>
-		carriedPoolModificationStates(before, cool.poolModifications, autoApply).map(({ key, enabled }) => ({ key, enabled }));
+		carriedPoolModificationStates(before, cool.poolModifications, autoApply).map(({ key, count }) => ({ key, count }));
 
 	it('keeps the state of the Pool Modifications still listed, and turns new ones on when auto-apply is on', () => {
 		expect(states(true)).toEqual([
-			{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
-			{ key: 'self.effect.ActiveEffect.Alert', enabled: true },
+			{ key: 'self.effect.ActiveEffect.Steady', count: 0 },
+			{ key: 'self.effect.ActiveEffect.Alert', count: 1 },
 		]);
 	});
 
 	it('leaves new Pool Modifications off when auto-apply is off', () => {
 		expect(states(false)).toEqual([
-			{ key: 'self.effect.ActiveEffect.Steady', enabled: false },
-			{ key: 'self.effect.ActiveEffect.Alert', enabled: false },
+			{ key: 'self.effect.ActiveEffect.Steady', count: 0 },
+			{ key: 'self.effect.ActiveEffect.Alert', count: 0 },
 		]);
 	});
 
 	it("starts an active quality's Pool Modification off though auto-apply is on, and keeps the roller's choice once they turn it on (CRB p. 86)", () => {
 		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', startsOff: true };
 		const accurate = { key: 'self.effect.ActiveEffect.Accurate' };
-		const states = (previous: { key: string; enabled: boolean }[]) =>
-			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, enabled }) => ({ key, enabled }));
+		const states = (previous: { key: string; count: number }[]) =>
+			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, count }) => ({ key, count }));
 
 		expect(states([])).toEqual([
-			{ key: 'self.effect.ActiveEffect.AutoFire', enabled: false },
-			{ key: 'self.effect.ActiveEffect.Accurate', enabled: true },
+			{ key: 'self.effect.ActiveEffect.AutoFire', count: 0 },
+			{ key: 'self.effect.ActiveEffect.Accurate', count: 1 },
 		]);
-		expect(states([{ key: 'self.effect.ActiveEffect.AutoFire', enabled: true }])[0]).toEqual({
+		expect(states([{ key: 'self.effect.ActiveEffect.AutoFire', count: 1 }])[0]).toEqual({
 			key: 'self.effect.ActiveEffect.AutoFire',
-			enabled: true,
+			count: 1,
 		});
 	});
 
@@ -594,15 +594,15 @@ describe('carriedPoolModificationStates', () => {
 		expect(
 			carriedPoolModificationStates(
 				[
-					{ key: first.key, enabled: true },
-					{ key: second.key, enabled: false },
+					{ key: first.key, count: 1 },
+					{ key: second.key, count: 0 },
 				],
 				picked.poolModifications,
 				false,
-			).map(({ mods, enabled }) => ({ mods, enabled })),
+			).map(({ mods, count }) => ({ mods, count })),
 		).toEqual([
-			{ mods: ['^'], enabled: true },
-			{ mods: ['B'], enabled: false },
+			{ mods: ['^'], count: 1 },
+			{ mods: ['B'], count: 0 },
 		]);
 	});
 
@@ -610,8 +610,8 @@ describe('carriedPoolModificationStates', () => {
 		const [steady, alert] = cool.poolModifications;
 
 		expect(carriedPoolModificationStates(before, cool.poolModifications, true)).toEqual([
-			{ ...steady, enabled: false },
-			{ ...alert, enabled: true },
+			{ ...steady, count: 0 },
+			{ ...alert, count: 1 },
 		]);
 	});
 });
@@ -628,7 +628,7 @@ describe('an initiative check', () => {
 		const check = resolveCheck(hero, { purpose: { kind: 'initiative' }, skillName: 'Cool', target: foe }, rules);
 
 		expect(check.poolModifications.map((modification) => modification.key)).toEqual(['self.effect.ActiveEffect.Alert']);
-		expect(checkDicePool(check, { difficulty: '', isEnabled: () => true }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });
+		expect(checkDicePool(check, { difficulty: '', countOf: () => 1 }).dice).toEqual({ Proficiency: 1, Ability: 1, Boost: 1 });
 	});
 });
 
