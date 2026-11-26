@@ -99,12 +99,20 @@ type QualitiesHolder = {
 };
 
 /**
+ * The qualities of each of an item's profiles: its main one first, then its extra Weapon Profiles. A single profile
+ * without any for an item that holds no qualities.
+ */
+export function profilesQualities(system: object): (readonly ContainedItemQuality[])[] {
+	const holder = system as QualitiesHolder;
+	return [holder.qualities ?? [], ...(holder.extraProfiles ?? []).map((profile) => profile.qualities)];
+}
+
+/**
  * Every quality of an item: those of its main profile, then those of its extra Weapon Profiles. None for an item that
  * holds no qualities.
  */
 export function itemQualities(system: object): ContainedItemQuality[] {
-	const holder = system as QualitiesHolder;
-	return [...(holder.qualities ?? []), ...(holder.extraProfiles ?? []).flatMap((profile) => profile.qualities)];
+	return profilesQualities(system).flat();
 }
 
 /**

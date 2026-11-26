@@ -5,7 +5,7 @@
 
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectTag } from '@/item/data/EffectTags';
-import { qualityNameKey, qualityRank } from '@/item/data/Qualities';
+import { profilesQualities, qualityNameKey, qualityRank } from '@/item/data/Qualities';
 
 /**
  * What this module reads of a weapon's or an armor's stored data to change its qualities: those of its main profile,
@@ -17,13 +17,6 @@ type QualitiesSource<Profile extends QualitiesProfile> = {
 };
 
 type QualitiesProfile = { qualities: readonly ContainedItemQuality[] };
-
-/**
- * The qualities of each of an item's profiles, its main one first.
- */
-function profilesQualities<Profile extends QualitiesProfile>(source: QualitiesSource<Profile>) {
-	return [source.qualities, ...(source.extraProfiles ?? []).map((profile) => profile.qualities)];
-}
 
 /**
  * The system update that gives an item new qualities on each of its profiles, its main one first, keeping the rest of
