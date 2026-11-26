@@ -15,11 +15,8 @@ export const isolated = true;
 /** Where a window opens: clear of the scene controls on the left and of the Story Point tracker on the top right. */
 type Position = { left: number; top: number; width?: number; height?: number | 'auto' };
 
-/**
- * A sheet to show: an actor's or a world item's, by its name, on a tab when given, its content scrolled to the element
- * a selector finds when given.
- */
-type Shown = { kind: 'actor' | 'item'; name: string; tab?: string; scrollTo?: string; position: Position };
+/** A sheet to show: an actor's or a world item's, by its name, on a tab when given. */
+type Shown = { kind: 'actor' | 'item'; name: string; tab?: string; position: Position };
 
 type ShowcaseHelpers = {
 	/** Uploads the portraits into the world's data, and gives the path of each by its file name. */
@@ -27,6 +24,8 @@ type ShowcaseHelpers = {
 	/** Sets the world to Realms of Terrinoth's skills and money, the default Style and the light interface. */
 	configure(): Promise<void>;
 	setStyle(style: 'genesys' | 'terrinoth'): Promise<void>;
+	/** Sets Foundry's color scheme, of the applications and the interface alike. */
+	setColorScheme(scheme: 'light' | 'dark'): Promise<void>;
 	createWorldItems(items: typeof WORLD_ITEMS, portraits: Record<string, string>): Promise<void>;
 	/**
 	 * Creates the character and builds him on his sheet as a player would: drops the Archetype and the Career, picks
@@ -102,10 +101,6 @@ export async function run(e2e: ScenarioContext) {
 	await capture('character.png', await show({ kind: 'actor', name: CHARACTER.name, tab: 'skills', position: characterSheet }));
 	await capture('combat.png', await show({ kind: 'actor', name: CHARACTER.name, tab: 'combat', position: characterSheet }));
 	await capture('talents.png', await show({ kind: 'actor', name: CHARACTER.name, tab: 'talents', position: characterSheet }));
-	await capture(
-		'journal.png',
-		await show({ kind: 'actor', name: CHARACTER.name, tab: 'journal', scrollTo: '.xp-journal', position: characterSheet }),
-	);
 	await capture('minion.png', await show({ kind: 'actor', name: MINION.name, position: sheet }));
 	await capture('rival.png', await show({ kind: 'actor', name: RIVAL.name, position: sheet }));
 	await capture('archetype.png', await show({ kind: 'item', name: WORLD_ITEMS.archetype.name, position: sheet }));
@@ -122,6 +117,10 @@ export async function run(e2e: ScenarioContext) {
 	await gm.evaluate(() => window.showcase.setStyle('terrinoth'));
 	await capture('character-terrinoth.png', await show({ kind: 'actor', name: CHARACTER.name, tab: 'skills', position: characterSheet }));
 	await gm.evaluate(() => window.showcase.setStyle('genesys'));
+
+	await gm.evaluate(() => window.showcase.setColorScheme('dark'));
+	await capture('character-dark.png', await show({ kind: 'actor', name: CHARACTER.name, tab: 'skills', position: characterSheet }));
+	await gm.evaluate(() => window.showcase.setColorScheme('light'));
 }
 
 /**
@@ -195,13 +194,17 @@ function installShowcaseHelpers() {
 			// The Dice Prompt shows the chance to succeed, and Story Points to spend.
 			await game.settings.set('genesys', 'dicePoolApproximation', 10000);
 			await game.settings.set('genesys', 'storyPoints', { gm: 2, player: 3 });
-			const uiConfig = game.settings.get('core', 'uiConfig');
-			await game.settings.set('core', 'uiConfig', { ...uiConfig, colorScheme: { applications: 'light', interface: 'light' } });
-			await settle();
+			await window.showcase.setColorScheme('light');
 		},
 
 		async setStyle(style) {
 			await game.settings.set('genesys', 'style', style);
+			await settle();
+		},
+
+		async setColorScheme(scheme) {
+			const uiConfig = game.settings.get('core', 'uiConfig');
+			await game.settings.set('core', 'uiConfig', { ...uiConfig, colorScheme: { applications: scheme, interface: scheme } });
 			await settle();
 		},
 
@@ -331,7 +334,7 @@ function installShowcaseHelpers() {
 			await settle();
 		},
 
-		async show({ kind, name, tab, scrollTo, position }) {
+		async show({ kind, name, tab, position }) {
 			await closeWindows();
 			const document = kind === 'actor' ? game.actors.getName(name) : game.items.getName(name);
 			if (!document) throw new Error(`No ${kind} ${name}`);
@@ -344,15 +347,6 @@ function installShowcaseHelpers() {
 			app.setPosition(position);
 			app.bringToFront();
 			await settle();
-			if (scrollTo) {
-				const target = root.querySelector(scrollTo);
-				if (!target) throw new Error(`No ${scrollTo} on the sheet of ${name}`);
-				target.scrollIntoView({ block: 'end' });
-				// What scrolls inside the target shows from its top: the Experience Journal's list, laid out in reverse with its
-				// latest entry first, starts scrolled to its end, the top of which is a negative scroll.
-				for (const inner of target.querySelectorAll('*')) inner.scrollTop = -inner.scrollHeight;
-				await settle();
-			}
 			return root.id;
 		},
 

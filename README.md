@@ -65,11 +65,29 @@ The [wiki](https://github.com/kornifex/FVTT-Genesys/wiki) documents the system f
 #### Character Sheet
 ![Player Character](screenshots/character.png)
 
+#### Character Sheet, Terrinoth Style
+![Player Character in the Terrinoth Style](screenshots/character-terrinoth.png)
+
+#### Character Sheet, Dark Interface
+![Player Character in Foundry's dark interface](screenshots/character-dark.png)
+
+#### Combat Tab
+![A character's attacks, a weapon's profiles each on its own line](screenshots/combat.png)
+
+#### Talents Tab
+![A character's talents and the summary of their tiers](screenshots/talents.png)
+
+#### Dice Prompt
+![The Dice Prompt of a Melee (Light) check](screenshots/dice-prompt.png)
+
 #### Minion Sheet
 ![Minion](screenshots/minion.png)
 
 #### Rival Sheet
 ![Rival](screenshots/rival.png)
+
+#### Vehicle Sheet
+![Vehicle](screenshots/vehicle.png)
 
 #### Archetype Sheet
 ![Archetype](screenshots/archetype.png)

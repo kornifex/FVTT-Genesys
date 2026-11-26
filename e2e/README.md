@@ -75,7 +75,7 @@ A Foundry-dependent change adds or extends its domain's scenario, rather than ke
 
 ## The README's screenshots
 
-[`showcase/readme.ts`](showcase/readme.ts) builds a demo world set in Realms of Terrinoth ([`showcase/demoWorld.ts`](showcase/demoWorld.ts): a character built on his sheet from his Archetype and Career, a Minion group, a Rival, a vehicle) on a fresh world, then saves each sheet's window as a PNG, on v14, in the default Style and the light interface. It is shaped like a scenario but sits outside `e2e/scenarios/`, so `pnpm e2e:all` never runs it. Retake the screenshots with:
+[`showcase/readme.ts`](showcase/readme.ts) builds a demo world set in Realms of Terrinoth ([`showcase/demoWorld.ts`](showcase/demoWorld.ts): a character built on his sheet from his Archetype and Career, a Minion group, a Rival, a vehicle) on a fresh world, then saves each sheet's window as a PNG, on v14, in the default Style and the light interface, and the character's Skills tab again in the Terrinoth Style and in the dark interface. It is shaped like a scenario but sits outside `e2e/scenarios/`, so `pnpm e2e:all` never runs it. Retake the screenshots with:
 
 ```sh
 SHOWCASE_OUT=/tmp/showcase pnpm e2e e2e/showcase/readme.ts
