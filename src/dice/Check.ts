@@ -192,7 +192,8 @@ export function resolveCheck<S extends CheckSkill>(
 	const poolModifications = poolModificationsForCheck(actor, target, {
 		characteristic,
 		skillName: rolledSkill?.skill.name,
-		// Only a combat check gets the changes of combat checks and of melee or ranged attacks.
+		// Only a combat check gets the changes of combat checks and of melee or ranged attacks, and only an initiative check
+		// those of initiative checks.
 		purpose:
 			isCombatCheck(purpose) && request.attackRange !== undefined
 				? {
@@ -203,7 +204,7 @@ export function resolveCheck<S extends CheckSkill>(
 						weapon: request.weapon,
 						attackQualities: request.attackQualities,
 					}
-				: { kind: 'other' },
+				: { kind: purpose.kind === 'initiative' ? 'initiative' : 'other' },
 	});
 
 	return {

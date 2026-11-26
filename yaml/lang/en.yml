@@ -268,6 +268,8 @@ Genesys:
           CombatCheck: Combat Check
           MeleeAttack: Melee Attack
           RangedAttack: Ranged Attack
+          # Initiative checks, whatever their skill
+          InitiativeCheck: Initiative Check
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:

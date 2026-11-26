@@ -265,6 +265,8 @@ Genesys:
           CombatCheck: Test de combat
           MeleeAttack: Attaque de mêlée
           RangedAttack: Attaque à distance
+          # Initiative checks, whatever their skill
+          InitiativeCheck: Test d'initiative
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:

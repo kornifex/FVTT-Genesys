@@ -101,10 +101,11 @@ describe('change keys', () => {
 		expect(encodeKey({ kind: 'skill', source: 'self', subject: 'Ranged (Light)' })).toBe('genesys.pool.skill.self.Ranged (Light)');
 	});
 
-	it('encodes the keys of combat checks and of melee or ranged attacks with an empty subject', () => {
+	it('encodes the keys of combat checks, of melee or ranged attacks and of initiative checks with an empty subject', () => {
 		expect(encodeKey({ kind: 'combat', source: 'self', subject: 'ignored' })).toBe('genesys.pool.combat.self.');
 		expect(encodeKey({ kind: 'melee', source: 'target', subject: '' })).toBe('genesys.pool.melee.target.');
 		expect(encodeKey({ kind: 'ranged', source: 'target', subject: '' })).toBe('genesys.pool.ranged.target.');
+		expect(encodeKey({ kind: 'initiative', source: 'self', subject: 'Vigilance' })).toBe('genesys.pool.initiative.self.');
 	});
 
 	it('decodes the keys it encodes', () => {
@@ -115,6 +116,7 @@ describe('change keys', () => {
 			{ kind: 'combat', source: 'self', subject: '' },
 			{ kind: 'melee', source: 'target', subject: '' },
 			{ kind: 'ranged', source: 'target', subject: '' },
+			{ kind: 'initiative', source: 'self', subject: '' },
 		] as const) {
 			expect(decodeKey(encodeKey(key))).toEqual(key);
 		}
@@ -292,6 +294,32 @@ describe('poolModificationsForCheck', () => {
 
 		it("is left out of the attacks against the actor: only the actor's own checks get it", () => {
 			expect(poolModificationsForCheck(actor('rival', []), aiming, { purpose: attack('short') })).toEqual([]);
+		});
+	});
+
+	describe("the changes of the actor's initiative checks (#931)", () => {
+		const alert = actor('character', [effect([{ key: 'genesys.pool.initiative.self.', value: 'B' }], { name: 'Alert' })]);
+		const boost = [{ source: 'self', from: { effect: 'Alert', uuid: 'ActiveEffect.Alert' }, mods: ['B'] }];
+
+		it('applies to an initiative check whatever its skill, Vigilance, Cool or another, or without one', () => {
+			for (const skillName of ['Vigilance', 'Cool', 'Perception', undefined]) {
+				expect(
+					poolModificationsForCheck(alert, undefined, {
+						characteristic: Characteristic.Willpower,
+						skillName,
+						purpose: { kind: 'initiative' },
+					}),
+				).toEqual(boost);
+			}
+		});
+
+		it('is left out of a check of Vigilance or Cool that is not rolled for initiative, and of an attack', () => {
+			for (const skillName of ['Vigilance', 'Cool']) {
+				expect(
+					poolModificationsForCheck(alert, undefined, { characteristic: Characteristic.Willpower, skillName, purpose: other }),
+				).toEqual([]);
+			}
+			expect(poolModificationsForCheck(alert, undefined, { ...check, purpose: attack('short') })).toEqual([]);
 		});
 	});
 
@@ -1071,6 +1099,7 @@ describe('editing changes in the effect sheets', () => {
 			'genesys.pool.combat.target.',
 			'genesys.pool.melee.target.',
 			'genesys.pool.ranged.target.',
+			'genesys.pool.initiative.self.',
 		]) {
 			expect(fromEditedChange(toEditedChange(editedChange(key, 'B'))).key).toBe(key);
 		}
@@ -1114,7 +1143,12 @@ describe('editing changes in the effect sheets', () => {
 		expect(subjectFieldForKey('genesys.pool.check.self')).toBe('check-selection');
 		expect(subjectFieldForKey('genesys.pool.char.target')).toBe('characteristic-selection');
 		expect(subjectFieldForKey('genesys.pool.skill.self')).toBe('skill-selection');
-		for (const key of ['genesys.pool.combat.self', 'genesys.pool.melee.target', 'genesys.pool.ranged.target']) {
+		for (const key of [
+			'genesys.pool.combat.self',
+			'genesys.pool.melee.target',
+			'genesys.pool.ranged.target',
+			'genesys.pool.initiative.self',
+		]) {
 			expect(subjectFieldForKey(key)).toBe('check-selection');
 		}
 		expect(subjectFieldForKey('system.soak')).toBe('effect-mode');

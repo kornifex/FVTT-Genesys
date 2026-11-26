@@ -130,6 +130,12 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 				appliesTo: SELF_GLYPH,
 				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.RangedAttack',
 			},
+			// Initiative has no target, so it has no key of the checks that target the actor.
+			{
+				key: 'genesys.pool.initiative.self',
+				appliesTo: SELF_GLYPH,
+				label: 'Genesys.ActiveEffects.Types.ModifyDicePool.Options.InitiativeCheck',
+			},
 			{
 				key: 'genesys.pool.check.target',
 				appliesTo: TARGET_GLYPH,

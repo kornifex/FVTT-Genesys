@@ -265,6 +265,8 @@ Genesys:
           CombatCheck: Tirada de combate
           MeleeAttack: Ataque cuerpo a cuerpo
           RangedAttack: Ataque a distancia
+          # Initiative checks, whatever their skill
+          InitiativeCheck: Tirada de iniciativa
 
   # Token States: the states of the token's status menu (CRB p. 114)
   TokenStates:

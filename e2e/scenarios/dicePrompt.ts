@@ -41,6 +41,7 @@ import { magicAttackPart } from './dicePrompt/magicAttack.ts';
 import { healSpellPart } from './dicePrompt/healSpell.ts';
 import { attackChangesPart } from './dicePrompt/attackChanges.ts';
 import { upToRankPart } from './dicePrompt/upToRank.ts';
+import { initiativeModificationsPart } from './dicePrompt/initiativeModifications.ts';
 
 // The scenario controls and targets tokens on the canvas.
 export const needsCanvas = true;
@@ -342,6 +343,10 @@ export async function run(e2e: ScenarioContext) {
 	// U: a talent set Up to rank, whose effect's row the roller counts from 0 to its rank, its Pool Modifications applied
 	// that many times (§#928, CRB p. 74).
 	await part('upToRank', () => upToRankPart(context));
+
+	// I: the Pool Modifications of an actor's initiative checks, whatever skill they are rolled with, and of no other check
+	// of that skill (§#931).
+	await part('initiativeModifications', () => initiativeModificationsPart(context));
 
 	e2e.expect('#414 A2 no compatibility warning about the roll modes v14 deprecated is logged', rollModeWarnings, []);
 	await gm.evaluate((settings) => window.dicePromptE2E.restore(settings), { user: e2e.playerUser, settings: saved });

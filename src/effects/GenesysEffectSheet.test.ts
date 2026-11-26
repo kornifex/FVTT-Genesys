@@ -17,7 +17,7 @@ describe('CHANGE_KEYS', () => {
 		({ key }) => key,
 	);
 
-	it('offers the Pool Modification keys of the checks that target the actor in the order of its own checks', () => {
+	it("offers the Pool Modification keys of the checks that target the actor in the order of its own checks, initiative's last of its own as it has no target", () => {
 		expect(poolKeys).toEqual([
 			'genesys.pool.check.self',
 			'genesys.pool.char.self',
@@ -25,6 +25,7 @@ describe('CHANGE_KEYS', () => {
 			'genesys.pool.combat.self',
 			'genesys.pool.melee.self',
 			'genesys.pool.ranged.self',
+			'genesys.pool.initiative.self',
 			'genesys.pool.check.target',
 			'genesys.pool.char.target',
 			'genesys.pool.skill.target',

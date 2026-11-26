@@ -111,6 +111,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 				'genesys.pool.combat.self=👇 Combat Check',
 				'genesys.pool.melee.self=👇 Melee Attack',
 				'genesys.pool.ranged.self=👇 Ranged Attack',
+				'genesys.pool.initiative.self=👇 Initiative Check',
 				'genesys.pool.check.target=🎯 Any Check',
 				'genesys.pool.char.target=🎯 Uses Characteristic',
 				'genesys.pool.skill.target=🎯 Uses Skill',
