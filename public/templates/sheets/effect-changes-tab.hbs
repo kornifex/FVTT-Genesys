@@ -1,4 +1,13 @@
 <section class="tab changes{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+	{{#if weaponAttacksOnly}}
+	<div class="form-group weapon-attacks-only">
+		<label for="{{rootId}}-weaponAttacksOnly">{{localize "Genesys.ActiveEffects.WeaponAttacksOnly"}}</label>
+		<div class="form-fields">
+			<input type="checkbox" id="{{rootId}}-weaponAttacksOnly" name="{{weaponAttacksOnly.name}}" {{checked weaponAttacksOnly.checked}}>
+		</div>
+		<p class="hint">{{localize "Genesys.ActiveEffects.WeaponAttacksOnlyHint"}}</p>
+	</div>
+	{{/if}}
 	<header>
 		<div class="key">{{localize "EFFECT.FIELDS.changes.element.key.label"}}</div>
 		<div class="mode">{{localize "EFFECT.FIELDS.changes.element.type.label"}}</div>

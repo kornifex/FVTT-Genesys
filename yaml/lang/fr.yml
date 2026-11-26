@@ -235,6 +235,9 @@ Genesys:
     Expired: Expiré
     TurnOn: Activer l'effet
     TurnOff: Désactiver l'effet
+    WeaponAttacksOnly: Attaques de cette arme seulement
+    WeaponAttacksOnlyHint: >-
+      Ses modifications de la réserve de dés de son porteur, de ses attaques et des blessures critiques qu'elles infligent ne comptent que pour une attaque avec cette arme, quel que soit son profil. Décoché, elles s'appliquent à tous les tests de son porteur. Ses autres modifications, dont celles des tests contre son porteur, s'appliquent toujours.
     Types:
       ModifyCharacteristic: Caractéristique à modifier
       ModifyStat: Statistique à modifier

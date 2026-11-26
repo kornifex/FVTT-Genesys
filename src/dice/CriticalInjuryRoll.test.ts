@@ -226,6 +226,40 @@ describe('criticalEffectBonuses of attachments (#932)', () => {
 	});
 });
 
+describe("criticalEffectBonuses of a weapon's own effects for its attacks only (#929)", () => {
+	const rifle = { name: 'Rifle', uuid: 'Item.Rifle', type: 'weapon', system: {} };
+	const weaponEffect = (weaponAttacksOnly: boolean) =>
+		effect('Barbed Blade', [inflicted(10)], { flags: { genesys: { weaponAttacksOnly } }, originItem: rifle });
+	const attackWith = (uuid: string) => ({ name: uuid, uuid, qualities: [] });
+
+	it('counts a scoped change for an attack with its weapon only', () => {
+		const attacker = actor([weaponEffect(true)]);
+
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith('Item.Rifle'))).toMatchObject([{ name: 'Barbed Blade', value: 10 }]);
+		expect(criticalEffectBonuses(attacker, 'inflicted', attackWith('Item.Pistol'))).toEqual([]);
+		expect(criticalEffectBonuses(attacker, 'inflicted')).toEqual([]);
+	});
+
+	it('counts an unscoped change for every injury its holder inflicts', () => {
+		expect(criticalEffectBonuses(actor([weaponEffect(false)]), 'inflicted', attackWith('Item.Pistol'))).toMatchObject([{ value: 10 }]);
+	});
+
+	it("keeps counting a scoped effect's change to the injuries its holder suffers", () => {
+		const ward = effect('Ward', [suffered(-10)], { flags: { genesys: { weaponAttacksOnly: true } }, originItem: rifle });
+
+		expect(criticalEffectBonuses(actor([ward]), 'suffered')).toMatchObject([{ value: -10 }]);
+	});
+
+	it("ignores the option on an effect that isn't a weapon's, as a talent's dragged from one", () => {
+		const talentEffect = effect('Lethal Blows', [inflicted(10)], {
+			flags: { genesys: { weaponAttacksOnly: true } },
+			originItem: talent('Lethal Blows', 3, 'yes'),
+		});
+
+		expect(criticalEffectBonuses(actor([talentEffect]), 'inflicted')).toMatchObject([{ value: 30 }]);
+	});
+});
+
 describe('parseCriticalInjuryFlag', () => {
 	const attack = {
 		triggers: 2,

@@ -20,6 +20,7 @@ import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import { effectTag } from '@/item/data/EffectTags';
 import { effectQuality, isOutrankedQualityEffect, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
 import { ATTACHMENT_FLAG, effectAttachment } from '@/item/data/Attachments';
+import { isForWeaponAttacksOnly } from '@/effects/WeaponAttacksOnly';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { isItemChangeKey } from '@/item/ItemChanges';
 
@@ -473,13 +474,20 @@ function silhouetteOf({ system }: SilhouettedActor) {
 // The item types whose qualities' and attachments' Pool Modifications change only the attacks made with the item.
 const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 
-// Whether an effect is a weapon's quality's or attachment's, whose own Pool Modifications change only the attacks made
-// with that weapon, rather than every check its keys name, as an armor's do (#694, #702).
+// Whether an effect is a weapon's quality's or attachment's, or one of its own marked for its attacks only, whose Pool
+// Modifications change only the attacks made with that weapon, rather than every check its keys name, as an armor's do
+// (#694, #702, #929).
 function isWeaponAttackEffect(effect: PoolModificationEffect) {
 	return (
-		(effectTag(effect, QUALITY_FLAG) !== undefined || effectTag(effect, ATTACHMENT_FLAG) !== undefined) &&
+		(effectTag(effect, QUALITY_FLAG) !== undefined || changesEveryProfile(effect)) &&
 		WEAPON_TYPES.includes(sourceItem(effect)?.type ?? '')
 	);
+}
+
+// Whether a weapon's effect changes the attacks made with any of its Weapon Profiles: an attachment's, or one of its own
+// marked for its attacks only. A quality's changes those of the profile that holds it alone.
+function changesEveryProfile(effect: PoolModificationEffect) {
+	return effectTag(effect, ATTACHMENT_FLAG) !== undefined || isForWeaponAttacksOnly(effect, sourceItem(effect));
 }
 
 // Whether an effect belongs to a weapon's quality that another of the weapon's profiles holds at a higher rank: a quality
@@ -496,13 +504,11 @@ function* effectsExcept(effects: Iterable<PoolModificationEffect>, excluded: (ef
 	}
 }
 
-// The effects of the qualities of the Weapon Profile an attack is made with, and of the weapon's attachments, which
-// change every profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
+// The effects of the qualities of the Weapon Profile an attack is made with, and those of the weapon that change every
+// profile, read from the weapon itself: a vehicle weapon's never reach the crew member who fires it.
 function weaponAttackEffects({ weapon, attackQualities = [] }: CheckForPoolModifications) {
 	const ids = new Set(attackQualities.map((quality) => quality.id).filter((id) => id !== ''));
-	return [...(weapon?.effects ?? [])].filter(
-		(effect) => ids.has(effectTag(effect, QUALITY_FLAG) ?? '') || effectTag(effect, ATTACHMENT_FLAG) !== undefined,
-	);
+	return [...(weapon?.effects ?? [])].filter((effect) => ids.has(effectTag(effect, QUALITY_FLAG) ?? '') || changesEveryProfile(effect));
 }
 
 function effectModifications(

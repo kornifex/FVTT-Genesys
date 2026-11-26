@@ -235,6 +235,9 @@ Genesys:
     Expired: Expired
     TurnOn: Turn the effect on
     TurnOff: Turn the effect off
+    WeaponAttacksOnly: This weapon's attacks only
+    WeaponAttacksOnlyHint: >-
+      Its changes to its holder's dice pools, attacks and the Critical Injuries they inflict count only for an attack made with this weapon, with any of its profiles. Unchecked, they apply to every check of its holder. Its other changes, those to the checks against its holder included, always apply.
     Types:
       ModifyCharacteristic: Modify Characteristic
       ModifyStat: Modify Stat

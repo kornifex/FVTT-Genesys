@@ -16,6 +16,7 @@ import {
 	attackChangeKey,
 } from '@/effects/AttackChanges';
 import { CAREER_SKILL_CHANGE_KEY } from '@/effects/CareerSkillChanges';
+import { isForWeaponAttacksOnly, offersWeaponAttacksOnly, WEAPON_ATTACKS_ONLY_FLAG } from '@/effects/WeaponAttacksOnly';
 import { CRITICAL_CHANGE_KEYS } from '@/dice/CriticalInjuryRoll';
 import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
 import { ITEM_CHANGE_FIELDS, ITEM_CHANGE_LABELS, itemChangeKey } from '@/item/ItemChanges';
@@ -269,6 +270,13 @@ export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffe
 				characteristics: CHARACTERISTICS,
 				changeTypes: changeTypeChoices(changes),
 				priorities: Object.fromEntries(Object.entries(changeTypes()).map(([type, { defaultPriority }]) => [type, defaultPriority])),
+				// A weapon's own effect can count for its attacks only (#929).
+				weaponAttacksOnly: offersWeaponAttacksOnly(this.document, this.document.parent)
+					? {
+							checked: isForWeaponAttacksOnly(partContext.source, this.document.parent),
+							name: `flags.genesys.${WEAPON_ATTACKS_ONLY_FLAG}`,
+						}
+					: undefined,
 			});
 		}
 
