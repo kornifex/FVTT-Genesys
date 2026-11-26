@@ -13,6 +13,7 @@ import {
 	ExternalPoolModification,
 	matchOrigin,
 	PoolModificationActor,
+	type PoolModificationChoice,
 	poolModificationsForCheck,
 	SilhouettedActor,
 } from '@/effects/PoolModifications';
@@ -284,19 +285,39 @@ export function startingCount({ choice }: Pick<CheckPoolModification, 'choice'>,
 }
 
 /**
- * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
- * count it had, a new one starts at its {@link startingCount}.
+ * The most times the roller may count a Pool Modification: up to its talent's rank for one they count, once for one
+ * they turn on or off.
+ */
+export function maxModificationCount(choice: PoolModificationChoice) {
+	return choice.kind === 'count' ? choice.upTo : 1;
+}
+
+function isSameChoice(a: PoolModificationChoice, b: PoolModificationChoice) {
+	return a.kind === 'count' ? b.kind === 'count' && a.upTo === b.upTo : b.kind === 'toggle' && a.startsOff === b.startsOff;
+}
+
+/**
+ * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed with the same
+ * choice keeps the count it had, up to its {@link maxModificationCount}; a new one, or one whose choice changed, starts at its
+ * {@link startingCount}. A count whose talent's rank changed thus starts again at 0, as each count has a cost the roller
+ * chooses again against the new rank, and a checkbox that became a count never carries the check auto-apply gave it.
  */
 export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'choice'>>(
-	previous: { key: string; count: number }[],
+	previous: (Pick<CheckPoolModification, 'key' | 'choice'> & { count: number })[],
 	poolModifications: M[],
 	autoApply: boolean,
 ): (M & { count: number })[] {
-	const countByKey = new Map(previous.map((modification) => [modification.key, modification.count]));
-	return poolModifications.map((modification) => ({
-		...modification,
-		count: countByKey.get(modification.key) ?? startingCount(modification, autoApply),
-	}));
+	const previousByKey = new Map(previous.map((modification) => [modification.key, modification]));
+	return poolModifications.map((modification) => {
+		const before = previousByKey.get(modification.key);
+		return {
+			...modification,
+			count:
+				before && isSameChoice(before.choice, modification.choice)
+					? Math.min(before.count, maxModificationCount(modification.choice))
+					: startingCount(modification, autoApply),
+		};
+	});
 }
 
 /**

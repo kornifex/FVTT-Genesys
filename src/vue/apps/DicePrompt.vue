@@ -38,6 +38,7 @@ import {
 	carriedPoolModificationStates,
 	checkAttackChanges,
 	checkDicePool,
+	maxModificationCount,
 	resolveCheck,
 	vehicleAttacker,
 	worldCheckRules,
@@ -232,7 +233,7 @@ const target = singleTargetActor();
 
 /**
  * Resolve the check again for the skill and characteristic asked for. The Pool Modifications still listed keep their
- * state, new ones follow the world setting.
+ * state while their choice stays the same, others start as {@link carriedPoolModificationStates} says.
  */
 function resolve(request: CheckRequest<PromptSkill>) {
 	const resolved = resolveCheck(
@@ -365,7 +366,7 @@ function modificationCounts() {
  * once at most for one they turn on or off.
  */
 function setModificationCount(effect: EffectRow, count: number) {
-	effect.count = Math.max(0, Math.min(count, effect.choice.kind === 'count' ? effect.choice.upTo : 1));
+	effect.count = Math.max(0, Math.min(count, maxModificationCount(effect.choice)));
 	buildDicePool();
 }
 

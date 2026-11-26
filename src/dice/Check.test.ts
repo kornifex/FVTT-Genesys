@@ -575,8 +575,8 @@ describe('carriedPoolModificationStates', () => {
 	});
 	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
 	const before = [
-		{ key: 'self.effect.ActiveEffect.Steady', count: 0 },
-		{ key: 'self.effect.ActiveEffect.Dueling', count: 1 },
+		{ key: 'self.effect.ActiveEffect.Steady', count: 0, choice: TOGGLED },
+		{ key: 'self.effect.ActiveEffect.Dueling', count: 1, choice: TOGGLED },
 	];
 	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
 	const states = (autoApply: boolean) =>
@@ -600,14 +600,14 @@ describe('carriedPoolModificationStates', () => {
 		const startsOff: PoolModificationChoice = { kind: 'toggle', startsOff: true };
 		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', choice: startsOff };
 		const accurate = { key: 'self.effect.ActiveEffect.Accurate', choice: TOGGLED };
-		const states = (previous: { key: string; count: number }[]) =>
+		const states = (previous: { key: string; count: number; choice: PoolModificationChoice }[]) =>
 			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, count }) => ({ key, count }));
 
 		expect(states([])).toEqual([
 			{ key: 'self.effect.ActiveEffect.AutoFire', count: 0 },
 			{ key: 'self.effect.ActiveEffect.Accurate', count: 1 },
 		]);
-		expect(states([{ key: 'self.effect.ActiveEffect.AutoFire', count: 1 }])[0]).toEqual({
+		expect(states([{ ...autoFire, count: 1 }])[0]).toEqual({
 			key: 'self.effect.ActiveEffect.AutoFire',
 			count: 1,
 		});
@@ -624,8 +624,8 @@ describe('carriedPoolModificationStates', () => {
 		expect(
 			carriedPoolModificationStates(
 				[
-					{ key: first.key, count: 1 },
-					{ key: second.key, count: 0 },
+					{ ...first, count: 1 },
+					{ ...second, count: 0 },
 				],
 				picked.poolModifications,
 				false,
@@ -695,7 +695,58 @@ describe("a talent's effect counted up to its rank", () => {
 	it("keeps the roller's count when the check is resolved again", () => {
 		const { poolModifications } = checkOf(rapidReaction('upTo'));
 
-		expect(carriedPoolModificationStates([{ key: poolModifications[0].key, count: 2 }], poolModifications, true)[0].count).toBe(2);
+		expect(carriedPoolModificationStates([{ ...poolModifications[0], count: 2 }], poolModifications, true)[0].count).toBe(2);
+	});
+
+	describe('resolved again once its row changed', () => {
+		const hero = (rank: number, scalesWithRank: 'yes' | 'no' | 'upTo') =>
+			actor('character', [skill('Melee', Characteristic.Brawn, 2), skill('Brawl', Characteristic.Brawn, 1)], {
+				effects: [
+					talentEffect('Rapid Reaction', { rank, scalesWithRank }, [
+						{ key: 'genesys.pool.skill.self.Melee', value: 's' },
+						{ key: 'genesys.attack.damage.combat', value: '1' },
+					]),
+				],
+			});
+		const attackWith = (skillName: string, rank = 3, scalesWithRank: 'yes' | 'no' | 'upTo' = 'upTo') =>
+			resolveCheck(
+				hero(rank, scalesWithRank),
+				{ skillName, purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' },
+				rules,
+			).poolModifications;
+		const countsOf = (rows: { count: number }[]) => rows.map(({ count }) => count);
+
+		it('starts at 0 once its checkbox, which auto-apply checked, turns into a count', () => {
+			// A Brawl attack gets the effect's Attack Change alone, which the roller turns on or off.
+			const brawl = carriedPoolModificationStates([], attackWith('Brawl'), true);
+
+			expect(brawl.map(({ choice, count }) => ({ choice, count }))).toEqual([{ choice: TOGGLED, count: 1 }]);
+			expect(countsOf(carriedPoolModificationStates(brawl, attackWith('Melee'), true))).toEqual([0]);
+		});
+
+		it("starts again at 0 once the talent's rank it counts up to changed, so the roller chooses again what each count costs", () => {
+			const counted = [{ ...attackWith('Melee', 3)[0], count: 3 }];
+
+			expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 2), true))).toEqual([0]);
+			expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 4), true))).toEqual([0]);
+		});
+
+		it('starts as a checkbox does once its talent scales with rank or not again, rather than repeating its Pool Modifications', () => {
+			const counted = [{ ...attackWith('Melee')[0], count: 3 }];
+
+			for (const scalesWithRank of ['yes', 'no'] as const) {
+				expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 3, scalesWithRank), true))).toEqual([1]);
+				expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 3, scalesWithRank), false))).toEqual([0]);
+			}
+		});
+
+		it('never carries more than its most: its rank for a count, once for a checkbox', () => {
+			const [melee] = attackWith('Melee');
+			const [brawl] = attackWith('Brawl');
+
+			expect(countsOf(carriedPoolModificationStates([{ ...melee, count: 5 }], [melee], true))).toEqual([3]);
+			expect(countsOf(carriedPoolModificationStates([{ ...brawl, count: 2 }], [brawl], true))).toEqual([1]);
+		});
 	});
 
 	it("leaves a talent that scales with rank, or doesn't, turned on or off as before", () => {
