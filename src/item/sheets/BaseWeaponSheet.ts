@@ -1,9 +1,7 @@
 import { GenesysItemSheet } from '@/item/GenesysItemSheet';
 import { GenesysItem } from '@/item/GenesysItem';
-import { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { skillNamesMatch } from '@/data/Skills';
-import { qualityCopy, withQualityAdded } from '@/item/data/Qualities';
-import { copyQualityEffects } from '@/operations/QualityEffects';
+import { addDroppedQuality } from '@/operations/QualityEffects';
 import { installAttachment } from '@/operations/AttachmentEffects';
 import type { VehicleWeaponDataModel } from '@/item/data/VehicleWeaponDataModel';
 import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
@@ -40,19 +38,10 @@ export class BaseWeaponSheet extends GenesysItemSheet<'weapon' | 'vehicleWeapon'
 
 				return;
 
-			case 'quality': {
-				const copy = qualityCopy(foundry.utils.randomID(), {
-					name: droppedItem.name,
-					system: droppedItem.system as ItemQualityDataModel,
-				});
-				const qualities = withQualityAdded(profile.qualities, copy);
-				if (qualities) {
-					await this.item.update({ system: update({ qualities }) });
-					await copyQualityEffects(this.item, droppedItem, qualities, copy.id);
-				}
+			case 'quality':
+				await addDroppedQuality(this.item, droppedItem, profile.qualities, (qualities) => update({ qualities }));
 
 				return;
-			}
 
 			// An attachment changes the whole weapon, wherever it is dropped. A vehicle weapon takes none: a vehicle's own
 			// Hard Points are a vehicle rule.
