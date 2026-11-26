@@ -82,7 +82,7 @@ export default defineConfig(
 	},
 	{
 		// The functions the e2e harness runs in the page use Foundry's globals untyped (e2e/foundry.d.ts).
-		files: ['e2e/page.ts', 'e2e/scenario.ts', 'e2e/scenarios/**/*.ts'],
+		files: ['e2e/page.ts', 'e2e/scenario.ts', 'e2e/scenarios/**/*.ts', 'e2e/showcase/**/*.ts'],
 		rules: {
 			'@typescript-eslint/no-unsafe-argument': 'off',
 			'@typescript-eslint/no-unsafe-assignment': 'off',
