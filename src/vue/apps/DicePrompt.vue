@@ -515,6 +515,7 @@ usePromptAnswer<DicePromptAnswer>(() => {
 
 const superCharacteristicId = useId();
 const effectId = useId();
+const modificationId = useId();
 const chanceId = useId();
 const spendId = useId();
 </script>
@@ -629,7 +630,7 @@ const spendId = useId();
 					</div>
 				</div>
 				<!-- A talent's effect counted up to its rank has a count in place of its checkbox, named after the effect. -->
-				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
+				<div v-for="(effect, row) in effects" :key="effect.key" class="pool-modifications-effects">
 					<Counter
 						v-if="effect.choice.kind === 'count'"
 						class="modification-count"
@@ -643,13 +644,14 @@ const spendId = useId();
 						v-else
 						type="checkbox"
 						:checked="effect.count > 0"
+						:aria-labelledby="`${modificationId}-${row}`"
 						@change="setModificationCount(effect, effect.count > 0 ? 0 : 1)"
 					/>
 					<span>
 						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
-						the checkbox or the count alone turns the modification on. -->
+						the checkbox or the count alone turns the modification on, the checkbox named after the text. -->
 						<!-- prettier-ignore -->
-						<span class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
+						<span :id="`${modificationId}-${row}`" class="effect-name">{{ effect.origin }}<ActionButton v-if="effect.link" class="source-link" :data-tooltip="effect.link.tooltip" @click="openSource(effect.link)">{{ effect.name }}<i :class="effect.link.icon"></i></ActionButton><DescriptionTooltip v-else-if="effect.description !== undefined" :description="effect.description">{{ effect.name }}</DescriptionTooltip><template v-else>{{ effect.name }}</template></span>
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />

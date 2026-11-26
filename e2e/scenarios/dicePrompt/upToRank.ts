@@ -135,6 +135,13 @@ export async function upToRankPart(ctx: DicePromptContext) {
 			: null,
 		{},
 	);
+	// A checkbox's row names it from its text, which is no label: a label would pass a click on its text to the source's
+	// button.
+	e2e.expect(
+		"#928 U6 axe-core finds Steady's checkbox named after its row",
+		await gm.axe('.app-dice-prompt .pool-modifications-effects:has(> input[type="checkbox"])', ['label']),
+		{},
+	);
 	await gm.evaluate(() => window.dicePromptE2E.closePrompts());
 	await e2e.step('upToRank end');
 }
