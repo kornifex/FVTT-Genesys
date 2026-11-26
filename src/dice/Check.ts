@@ -279,15 +279,15 @@ export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | u
  * Modifications automatically, unless it starts off, as an active quality's; not at all otherwise, and always for one
  * the roller counts up to a talent's rank.
  */
-export function startingCount(modification: Pick<CheckPoolModification, 'startsOff' | 'upTo'>, autoApply: boolean) {
-	return autoApply && !modification.startsOff && modification.upTo === undefined ? 1 : 0;
+export function startingCount({ choice }: Pick<CheckPoolModification, 'choice'>, autoApply: boolean) {
+	return autoApply && choice.kind === 'toggle' && !choice.startsOff ? 1 : 0;
 }
 
 /**
  * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
  * count it had, a new one starts at its {@link startingCount}.
  */
-export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff' | 'upTo'>>(
+export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'choice'>>(
 	previous: { key: string; count: number }[],
 	poolModifications: M[],
 	autoApply: boolean,
@@ -310,7 +310,7 @@ export type PoolChoices = {
 	manualChanges?: string[];
 	/**
 	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on, and up to its
-	 * `upTo` for one they count.
+	 * choice's `upTo` for one they count.
 	 */
 	countOf: (modification: CheckPoolModification) => number;
 };

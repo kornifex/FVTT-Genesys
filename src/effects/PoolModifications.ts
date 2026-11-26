@@ -209,18 +209,30 @@ export type ExternalPoolModification = {
 	 * is listed with no Pool Modification.
 	 */
 	attack?: AttackChanges;
-	/**
-	 * Whether the Dice Prompt lists it off, whatever the world's setting: an active quality's, which the roller turns on
-	 * when they trigger it.
-	 */
-	startsOff?: boolean;
-	/**
-	 * The most times the roller may count it, for an effect of a talent whose Pool Modifications count up to its rank:
-	 * `mods` are then those of one count, and it starts at 0, whatever the world's setting, as each count has a cost the
-	 * table pays (Rapid Reaction's strain, CRB p. 74). Left out, the roller turns it on or off.
-	 */
-	upTo?: number;
+	choice: PoolModificationChoice;
 };
+
+/**
+ * How the roller sets a Pool Modification in the Dice Prompt.
+ */
+export type PoolModificationChoice =
+	/**
+	 * Turned on or off. One that starts off is listed off whatever the world's setting: an active quality's, which the
+	 * roller turns on when they trigger it.
+	 */
+	| { kind: 'toggle'; startsOff: boolean }
+	/**
+	 * Counted from 0 up to a talent's rank, for an effect of a talent whose Pool Modifications count up to its rank:
+	 * `mods` are then those of one count, and it starts at 0 whatever the world's setting, as each count has a cost the
+	 * table pays (Rapid Reaction's strain, CRB p. 74).
+	 */
+	| { kind: 'count'; upTo: number };
+
+/**
+ * The choice of a Pool Modification that comes from no effect, as the target's defense: turned on or off, starting as
+ * the world's setting says.
+ */
+export const TOGGLED: PoolModificationChoice = { kind: 'toggle', startsOff: false };
 
 /**
  * The value that the function for its kind of origin gives a Pool Modification's origin.
@@ -400,6 +412,7 @@ export function poolModificationsForCheck(
 					source: 'target',
 					from: { defense },
 					mods: Array<string>(totalDefense[defense]).fill(DieTypes.Setback.GLYPH),
+					choice: TOGGLED,
 				});
 			}
 
@@ -427,6 +440,7 @@ function encumbranceModifications(actor: PoolModificationActor, { characteristic
 			source: 'self',
 			from: { encumbrance },
 			mods: Array<string>(encumbrance.value - encumbrance.threshold).fill(DieTypes.Setback.GLYPH),
+			choice: TOGGLED,
 		},
 	];
 }
@@ -449,6 +463,7 @@ function itemDamageModifications(weapon: DamageableItem | undefined): ExternalPo
 			source: 'self',
 			from: { itemDamage: { name: weapon.name, uuid: weapon.uuid, damage } },
 			mods: [DAMAGE_MODIFICATIONS[damage]],
+			choice: TOGGLED,
 		},
 	];
 }
@@ -472,6 +487,7 @@ function silhouetteDifferenceModifications(attacker: SilhouettedActor, target: S
 			source: 'target',
 			from: { silhouette: { target: targetSilhouette, attacker: attackerSilhouette } },
 			mods: [difference > 0 ? removalGlyph(DIE_GLYPHS.Difficulty) : DIE_GLYPHS.Difficulty],
+			choice: TOGGLED,
 		},
 	];
 }
@@ -611,11 +627,13 @@ function effectModifications(
 				},
 				mods: mods.sort(sortPoolModifications),
 				...(attack && { attack }),
-				// An active quality applies only once the roller triggers it, by spending Advantage (CRB p. 86).
-				...(quality?.activation === 'active' && { startsOff: true }),
 				// An effect with no Pool Modification for the check has nothing to count: the roller turns its Attack Changes
-				// on or off, which count once per rank of its talent.
-				...(mods.length > 0 && 'upTo' in count && { upTo: count.upTo }),
+				// on or off, which count once per rank of its talent. An active quality applies only once the roller triggers
+				// it, by spending Advantage (CRB p. 86).
+				choice:
+					mods.length > 0 && 'upTo' in count
+						? { kind: 'count', upTo: count.upTo }
+						: { kind: 'toggle', startsOff: quality?.activation === 'active' },
 			});
 		}
 	}

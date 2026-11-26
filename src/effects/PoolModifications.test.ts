@@ -23,6 +23,7 @@ import {
 	sourceItem,
 	subjectFieldForKey,
 	toEditedChange,
+	TOGGLED,
 } from '@/effects/PoolModifications';
 import type { EquipmentDamageState } from '@/item/data/EquipmentDamage';
 
@@ -245,7 +246,7 @@ describe('poolModificationsForCheck', () => {
 		]);
 
 		expect(poolModificationsForCheck(self, undefined, check)).toEqual([
-			{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B', 'A', '^'] },
+			{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B', 'A', '^'], choice: TOGGLED },
 		]);
 	});
 
@@ -258,7 +259,7 @@ describe('poolModificationsForCheck', () => {
 				skillName: 'Ranged (light)',
 				purpose: other,
 			}),
-		).toEqual([{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B'] }]);
+		).toEqual([{ source: 'self', from: { effect: 'Talent', uuid: 'ActiveEffect.Talent' }, mods: ['B'], choice: TOGGLED }]);
 	});
 
 	it('only collects the changes for every check without a characteristic or a skill', () => {
@@ -278,7 +279,7 @@ describe('poolModificationsForCheck', () => {
 		it('applies to an attack, melee or ranged', () => {
 			for (const attackRange of ['engaged', 'short', 'extreme']) {
 				expect(poolModificationsForCheck(aiming, undefined, { ...check, purpose: attack(attackRange) })).toEqual([
-					{ source: 'self', from: { effect: 'Aim', uuid: 'ActiveEffect.Aim' }, mods: ['B'] },
+					{ source: 'self', from: { effect: 'Aim', uuid: 'ActiveEffect.Aim' }, mods: ['B'], choice: TOGGLED },
 				]);
 			}
 		});
@@ -307,7 +308,7 @@ describe('poolModificationsForCheck', () => {
 
 		it("lists an effect's Attack Changes with its Pool Modifications, so that the roller turns both on at once", () => {
 			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('engaged') })).toEqual([
-				{ source: 'self', from, mods: ['S'], attack: { damage: 2 } },
+				{ source: 'self', from, mods: ['S'], attack: { damage: 2 }, choice: TOGGLED },
 			]);
 		});
 
@@ -317,14 +318,20 @@ describe('poolModificationsForCheck', () => {
 			]);
 
 			expect(poolModificationsForCheck(devastating, undefined, { ...check, purpose: attack('long') })).toEqual([
-				{ source: 'self', from: { effect: 'Devastating', uuid: 'ActiveEffect.Devastating' }, mods: [], attack: { damage: 2 } },
+				{
+					source: 'self',
+					from: { effect: 'Devastating', uuid: 'ActiveEffect.Devastating' },
+					mods: [],
+					attack: { damage: 2 },
+					choice: TOGGLED,
+				},
 			]);
 		});
 
 		it('leaves the melee ones out of a ranged attack, by the kind of attack the skill makes', () => {
 			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('short') })).toEqual([]);
 			expect(poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('short', { skillAttackKind: 'melee' }) })).toEqual(
-				[{ source: 'self', from, mods: ['S'], attack: { damage: 2 } }],
+				[{ source: 'self', from, mods: ['S'], attack: { damage: 2 }, choice: TOGGLED }],
 			);
 			expect(
 				poolModificationsForCheck(orc, undefined, { ...check, purpose: attack('engaged', { skillAttackKind: 'ranged' }) }),
@@ -377,7 +384,9 @@ describe('poolModificationsForCheck', () => {
 				{ name: 'Prone' },
 			),
 		]);
-		const fromProne = (mods: string[]) => [{ source: 'target', from: { effect: 'Prone', uuid: 'ActiveEffect.Prone' }, mods }];
+		const fromProne = (mods: string[]) => [
+			{ source: 'target', from: { effect: 'Prone', uuid: 'ActiveEffect.Prone' }, mods, choice: TOGGLED },
+		];
 
 		it('applies the melee change to an attack at engaged range, the ranged change to an attack at any other range', () => {
 			expect(poolModificationsForCheck(self, prone, { purpose: attack('engaged') })).toEqual(fromProne(['B']));
@@ -408,6 +417,7 @@ describe('poolModificationsForCheck', () => {
 							item: { name: 'Talent', uuid: 'Actor.actorId.Item.talentId' },
 						},
 						mods: ['*', '*'],
+						choice: TOGGLED,
 					},
 				]);
 			}
@@ -440,10 +450,10 @@ describe('poolModificationsForCheck', () => {
 			{ key: 'genesys.attack.damage.combat', value: '1' },
 		]);
 
-		expect(poolModificationsForCheck(rapidReaction, undefined, { ...check, attackRange: 'engaged' })[0]).toMatchObject({
+		expect(poolModificationsForCheck(rapidReaction, undefined, { ...check, purpose: attack('engaged') })[0]).toMatchObject({
 			mods: ['s'],
-			upTo: 3,
 			attack: { damage: 3 },
+			choice: { kind: 'count', upTo: 3 },
 		});
 		expect(scaledChangeValue(talent(3, 'upTo'), { key: 'genesys.pool.check.self.', value: 's' })).toBe('s');
 		expect(scaledChangeValue(talent(3, 'upTo'), { key: 'system.soak', value: '1' })).toBe('3');
@@ -478,8 +488,8 @@ describe('poolModificationsForCheck', () => {
 		]);
 
 		expect(poolModificationsForCheck(self, target, check)).toEqual([
-			{ source: 'self', from: { effect: 'Mine', uuid: 'ActiveEffect.Mine' }, mods: ['B'] },
-			{ source: 'target', from: { effect: 'Theirs', uuid: 'ActiveEffect.Theirs' }, mods: ['S', 'D'] },
+			{ source: 'self', from: { effect: 'Mine', uuid: 'ActiveEffect.Mine' }, mods: ['B'], choice: TOGGLED },
+			{ source: 'target', from: { effect: 'Theirs', uuid: 'ActiveEffect.Theirs' }, mods: ['S', 'D'], choice: TOGGLED },
 		]);
 	});
 
@@ -489,17 +499,17 @@ describe('poolModificationsForCheck', () => {
 		const adversary = actor('nemesis', [], { totalDefense: { melee: 0, ranged: 1 } });
 
 		expect(poolModificationsForCheck(self, character, { purpose: attack('engaged') })).toEqual([
-			{ source: 'target', from: { defense: 'melee' }, mods: ['S'] },
+			{ source: 'target', from: { defense: 'melee' }, mods: ['S'], choice: TOGGLED },
 		]);
 		expect(poolModificationsForCheck(self, character, { purpose: attack('long') })).toEqual([
-			{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] },
+			{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'], choice: TOGGLED },
 		]);
 		expect(poolModificationsForCheck(self, adversary, { purpose: attack('long') })).toEqual([
-			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'] },
+			{ source: 'target', from: { defense: 'ranged' }, mods: ['S'], choice: TOGGLED },
 		]);
 		expect(
 			poolModificationsForCheck(self, actor('rival', [], { totalDefense: { melee: 0, ranged: 2 } }), { purpose: attack('medium') }),
-		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'] }]);
+		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S'], choice: TOGGLED }]);
 		expect(poolModificationsForCheck(self, character, { purpose: other })).toEqual([]);
 	});
 
@@ -518,17 +528,19 @@ describe('poolModificationsForCheck', () => {
 		});
 
 		expect(poolModificationsForCheck(self, vehicle, { purpose: other })).toEqual([
-			{ source: 'target', from: { effect: 'Smoke', uuid: 'ActiveEffect.Smoke' }, mods: ['D'] },
+			{ source: 'target', from: { effect: 'Smoke', uuid: 'ActiveEffect.Smoke' }, mods: ['D'], choice: TOGGLED },
 		]);
 		expect(poolModificationsForCheck(self, vehicle, { purpose: attack('medium') })).toContainEqual({
 			source: 'target',
 			from: { defense: 'ranged' },
 			mods: ['S', 'S'],
+			choice: TOGGLED,
 		});
 		expect(poolModificationsForCheck(self, vehicle, { purpose: attack('engaged') })).toContainEqual({
 			source: 'target',
 			from: { defense: 'melee' },
 			mods: ['S', 'S'],
+			choice: TOGGLED,
 		});
 	});
 
@@ -540,7 +552,7 @@ describe('poolModificationsForCheck', () => {
 		).toEqual([]);
 		expect(
 			poolModificationsForCheck(self, actor('vehicle', [], { totalDefense: vehicleDefense(5, 0) }), { purpose: attack('short') }),
-		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'] }]);
+		).toEqual([{ source: 'target', from: { defense: 'ranged' }, mods: ['S', 'S', 'S', 'S'], choice: TOGGLED }]);
 	});
 
 	describe('the silhouette difference between the attacker and the target (CRB p. 109)', () => {
@@ -551,7 +563,7 @@ describe('poolModificationsForCheck', () => {
 			const self = sized('character', 1);
 
 			expect(poolModificationsForCheck(self, sized('rival', 3), attackBy(self))).toEqual([
-				{ source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] },
+				{ source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'], choice: TOGGLED },
 			]);
 		});
 
@@ -559,7 +571,7 @@ describe('poolModificationsForCheck', () => {
 			const self = sized('nemesis', 4);
 
 			expect(poolModificationsForCheck(self, sized('character', 0), attackBy(self))).toEqual([
-				{ source: 'target', from: { silhouette: { target: 0, attacker: 4 } }, mods: ['D'] },
+				{ source: 'target', from: { silhouette: { target: 0, attacker: 4 } }, mods: ['D'], choice: TOGGLED },
 			]);
 		});
 
@@ -577,7 +589,7 @@ describe('poolModificationsForCheck', () => {
 
 			expect(poolModificationsForCheck(self, vehicle, attackBy(self))[0].mods).toEqual(['-D']);
 			expect(poolModificationsForCheck(self, sized('character', 1), attackBy(vehicle))).toEqual([
-				{ source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
+				{ source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'], choice: TOGGLED },
 			]);
 		});
 
@@ -621,7 +633,7 @@ describe('poolModificationsForCheck', () => {
 			for (const characteristic of [Characteristic.Agility, Characteristic.Brawn]) {
 				expect(
 					poolModificationsForCheck(encumbered(8, 6), undefined, { characteristic, skillName: 'Athletics', purpose: other }),
-				).toEqual([{ source: 'self', from: { encumbrance: { value: 8, threshold: 6 } }, mods: ['S', 'S'] }]);
+				).toEqual([{ source: 'self', from: { encumbrance: { value: 8, threshold: 6 } }, mods: ['S', 'S'], choice: TOGGLED }]);
 			}
 		});
 
@@ -679,13 +691,23 @@ describe('poolModificationsForCheck', () => {
 
 		it('adds a Setback at minor damage', () => {
 			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short', { weapon: weapon('minor') }) })).toEqual([
-				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'minor' } }, mods: ['S'] },
+				{
+					source: 'self',
+					from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'minor' } },
+					mods: ['S'],
+					choice: TOGGLED,
+				},
 			]);
 		});
 
 		it('adds one Difficulty die at moderate damage', () => {
 			expect(poolModificationsForCheck(self, undefined, { purpose: attack('short', { weapon: weapon('moderate') }) })).toEqual([
-				{ source: 'self', from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'moderate' } }, mods: ['D'] },
+				{
+					source: 'self',
+					from: { itemDamage: { name: 'Pistol', uuid: 'Item.pistol', damage: 'moderate' } },
+					mods: ['D'],
+					choice: TOGGLED,
+				},
 			]);
 		});
 
@@ -738,7 +760,7 @@ describe('poolModificationsForCheck', () => {
 				described: { name, description: `The ${name} quality.` },
 			},
 			mods,
-			...(startsOff && { startsOff }),
+			choice: { kind: 'toggle', startsOff },
 		});
 
 		// Accurate 2 written in the quality as one Boost on combat checks.
@@ -870,6 +892,7 @@ describe('poolModificationsForCheck', () => {
 				described: { name: 'Scope', description: 'Sights the target.' },
 			},
 			mods,
+			choice: TOGGLED,
 		});
 		const boost = [{ key: 'genesys.pool.combat.self.', value: 'B' }];
 		const attackWith = (weapon: ReturnType<typeof equipment>, attackQualities: { id: string }[] = []) => ({
@@ -946,6 +969,7 @@ describe('poolModificationsForCheck', () => {
 			from: { effect: 'Balanced', uuid: 'ActiveEffect.Balanced', item: { name: item, uuid: `Item.${item}` } },
 			mods,
 			...(attack && { attack }),
+			choice: TOGGLED,
 		});
 		const rangedBoost = [{ key: 'genesys.pool.skill.self.Ranged', value: 'B' }];
 		const rangedCheck = (weaponUsed?: ReturnType<typeof weapon>) => ({

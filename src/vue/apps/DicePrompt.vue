@@ -42,7 +42,7 @@ import {
 	vehicleAttacker,
 	worldCheckRules,
 } from '@/dice/Check';
-import { matchOrigin } from '@/effects/PoolModifications';
+import { matchOrigin, type PoolModificationChoice } from '@/effects/PoolModifications';
 import { ATTACK_CHANGE_FIELDS, type AttackChangeField, type AttackChanges } from '@/effects/AttackChanges';
 import { signed } from '@/vue/format';
 import { stateReminders } from '@/effects/TokenStates';
@@ -171,8 +171,8 @@ type SourceDocument = {
 type SourceLink = { uuid: string; tooltip: string; icon: string };
 
 // The Pool Modifications of the check, each turned on or off by the roller, counted once or not at all, or counted by
-// them from 0 up to `upTo`, a talent's rank. The origin is the actor or the target, the name what the modification
-// comes from.
+// them from 0 up to a talent's rank, as its choice says. The origin is the actor or the target, the name what the
+// modification comes from.
 // A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
 // After its Pool Modifications, it lists what its effect's Attack Changes add to the attack, in words.
 type EffectRow = {
@@ -181,14 +181,14 @@ type EffectRow = {
 	name: string;
 	link?: SourceLink;
 	description?: string;
+	choice: PoolModificationChoice;
 	count: number;
-	upTo?: number;
 	mods: string[];
 	attack: string[];
 };
 const effects = ref<EffectRow[]>([]);
 // The − of a row's count shows left of it, past the row's edge: the rows keep room for it, as the Additional Effects' do.
-const hasModificationCounts = computed(() => effects.value.some((effect) => effect.upTo !== undefined));
+const hasModificationCounts = computed(() => effects.value.some((effect) => effect.choice.kind === 'count'));
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
 const weaponSkills = shallowRef<PromptSkill[]>([]);
@@ -259,8 +259,8 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		origin: game.i18n.localize(poolModificationOriginLabel(modification.source)),
 		name: poolModificationName(modification),
 		...rowSource(modification),
+		choice: modification.choice,
 		count: modification.count,
-		...(modification.upTo !== undefined && { upTo: modification.upTo }),
 		mods: modification.mods,
 		attack: attackChangeLabels(modification.attack),
 	}));
@@ -365,7 +365,7 @@ function modificationCounts() {
  * once at most for one they turn on or off.
  */
 function setModificationCount(effect: EffectRow, count: number) {
-	effect.count = Math.max(0, Math.min(count, effect.upTo ?? 1));
+	effect.count = Math.max(0, Math.min(count, effect.choice.kind === 'count' ? effect.choice.upTo : 1));
 	buildDicePool();
 }
 
@@ -630,11 +630,11 @@ const spendId = useId();
 				<!-- A talent's effect counted up to its rank has a count in place of its checkbox, named after the effect. -->
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
 					<Counter
-						v-if="effect.upTo !== undefined"
+						v-if="effect.choice.kind === 'count'"
 						class="modification-count"
 						:label="modificationCountLabel(effect)"
 						:value="effect.count"
-						:max="effect.upTo"
+						:max="effect.choice.upTo"
 						@step="setModificationCount(effect, effect.count + $event)"
 						@type="setModificationCount(effect, $event)"
 					/>

@@ -21,7 +21,7 @@ import {
 	startingCount,
 	vehicleAttacker,
 } from '@/dice/Check';
-import { PoolModificationEffect } from '@/effects/PoolModifications';
+import { PoolModificationChoice, PoolModificationEffect, TOGGLED } from '@/effects/PoolModifications';
 
 function skill(name: string, characteristic: Characteristic, rank = 0): CheckSkill {
 	return { name, system: { characteristic, rank } };
@@ -227,6 +227,7 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { effect: 'Dueling', uuid: 'ActiveEffect.Dueling' },
 				mods: ['B'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(
@@ -312,12 +313,14 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring1.ActiveEffect.grade' },
 				mods: ['^'],
+				choice: TOGGLED,
 			},
 			{
 				key: 'self.effect.Actor.hero.Item.ring2.ActiveEffect.grade',
 				source: 'self',
 				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring2.ActiveEffect.grade' },
 				mods: ['^', '^'],
+				choice: TOGGLED,
 			},
 		]);
 	});
@@ -329,7 +332,9 @@ describe('resolveCheck', () => {
 
 		expect(
 			resolveCheck(hero, { purpose: attack, skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications,
-		).toEqual([{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] }]);
+		).toEqual([
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'], choice: TOGGLED },
+		]);
 		expect(resolveCheck(hero, { skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications).toEqual([]);
 	});
 
@@ -345,13 +350,19 @@ describe('resolveCheck', () => {
 		} as const;
 
 		expect(resolveCheck(gunner, request, rules).poolModifications).toEqual([
-			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'], choice: TOGGLED },
 		]);
 	});
 
 	it('hinders the Agility check an encumbered character picks for a skill when skills are uncoupled from characteristics (CRB p. 85, 205)', () => {
 		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], { currentEncumbrance: { value: 9, threshold: 8 } });
-		const encumbrance = { key: 'self.encumbrance', source: 'self', from: { encumbrance: { value: 9, threshold: 8 } }, mods: ['S'] };
+		const encumbrance = {
+			key: 'self.encumbrance',
+			source: 'self',
+			from: { encumbrance: { value: 9, threshold: 8 } },
+			mods: ['S'],
+			choice: TOGGLED,
+		};
 
 		expect(resolveCheck(hero, { skillName: 'Cool', characteristic: Characteristic.Agility }, uncoupled).poolModifications).toEqual([
 			encumbrance,
@@ -372,6 +383,7 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { itemDamage: { name: 'Sword', uuid: 'Item.sword', damage: 'moderate' } },
 				mods: ['D'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(resolveCheck(hero, { skillName: 'Melee', attackRange: 'engaged', weapon: sword }, rules).poolModifications).toEqual([]);
@@ -415,6 +427,7 @@ describe('resolveCheck', () => {
 					described: { name: 'Accurate', description: 'Aims better.' },
 				},
 				mods: ['B', 'B'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(resolveCheck(hero, request, rules).poolModifications).toEqual([]);
@@ -584,8 +597,9 @@ describe('carriedPoolModificationStates', () => {
 	});
 
 	it("starts an active quality's Pool Modification off though auto-apply is on, and keeps the roller's choice once they turn it on (CRB p. 86)", () => {
-		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', startsOff: true };
-		const accurate = { key: 'self.effect.ActiveEffect.Accurate' };
+		const startsOff: PoolModificationChoice = { kind: 'toggle', startsOff: true };
+		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', choice: startsOff };
+		const accurate = { key: 'self.effect.ActiveEffect.Accurate', choice: TOGGLED };
 		const states = (previous: { key: string; count: number }[]) =>
 			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, count }) => ({ key, count }));
 
@@ -643,7 +657,7 @@ describe("a talent's effect counted up to its rank", () => {
 	it("lists its Pool Modifications once, with the talent's rank as the most times they count", () => {
 		const [modification] = checkOf(rapidReaction('upTo')).poolModifications;
 
-		expect(modification).toMatchObject({ mods: ['s'], upTo: 3 });
+		expect(modification).toMatchObject({ mods: ['s'], choice: { kind: 'count', upTo: 3 } });
 	});
 
 	it('counts its Pool Modifications as many times as the count, 0 included', () => {
@@ -690,7 +704,10 @@ describe("a talent's effect counted up to its rank", () => {
 
 		expect(scaling.mods).toEqual(['s', 's', 's']);
 		expect(once.mods).toEqual(['s']);
-		expect('upTo' in scaling || 'upTo' in once).toBe(false);
+		expect([scaling.choice, once.choice]).toEqual([
+			{ kind: 'toggle', startsOff: false },
+			{ kind: 'toggle', startsOff: false },
+		]);
 	});
 
 	it('counts its Attack Changes once per rank, as a talent that scales with rank, once its count is above 0', () => {
@@ -721,7 +738,7 @@ describe("a talent's effect counted up to its rank", () => {
 			rules,
 		).poolModifications;
 
-		expect(modification.upTo).toBeUndefined();
+		expect(modification.choice).toEqual({ kind: 'toggle', startsOff: false });
 		expect(modification.attack).toEqual({ damage: 3 });
 	});
 });
