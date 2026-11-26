@@ -170,8 +170,8 @@ type SourceDocument = {
 // The link to a source document: the row holds its uuid, not the document, which Vue would wrap in a reactive proxy.
 type SourceLink = { uuid: string; tooltip: string; icon: string };
 
-// The Pool Modifications of the check, each turned on or off by the roller. The origin is the actor or the target, the
-// name what the modification comes from.
+// The Pool Modifications of the check, each turned on or off by the roller: counted once or not at all. The origin is
+// the actor or the target, the name what the modification comes from.
 // A row opens its source with a link, or shows the description of the quality or attachment it comes from, or neither.
 // After its Pool Modifications, it lists what its effect's Attack Changes add to the attack, in words.
 const effects = ref<
@@ -181,7 +181,7 @@ const effects = ref<
 		name: string;
 		link?: SourceLink;
 		description?: string;
-		enabled: boolean;
+		count: number;
 		mods: string[];
 		attack: string[];
 	}[]
@@ -256,7 +256,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		origin: game.i18n.localize(poolModificationOriginLabel(modification.source)),
 		name: poolModificationName(modification),
 		...rowSource(modification),
-		enabled: modification.enabled,
+		count: modification.count,
 		mods: modification.mods,
 		attack: attackChangeLabels(modification.attack),
 	}));
@@ -349,11 +349,16 @@ function openSource(link: SourceLink) {
 }
 
 /**
- * Whether the roller left a Pool Modification's row on, as the rows are now.
+ * How many times the roller counts a Pool Modification's row, as the rows are now.
  */
-function isEnabled() {
-	const enabledKeys = new Set(effects.value.filter((effect) => effect.enabled).map((effect) => effect.key));
-	return (modification: CheckPoolModification) => enabledKeys.has(modification.key);
+function modificationCounts() {
+	const counts = new Map(effects.value.map((effect) => [effect.key, effect.count]));
+	return (modification: CheckPoolModification) => counts.get(modification.key) ?? 0;
+}
+
+function setModificationCount(effect: { count: number }, count: number) {
+	effect.count = count;
+	buildDicePool();
 }
 
 function buildDicePool() {
@@ -361,7 +366,7 @@ function buildDicePool() {
 		difficulty: difficultyGlyphs(difficulty.value),
 		// A Story Point's upgrade applies as the roller's own changes do.
 		manualChanges: [...manualChanges.value, ...spendGlyphs(spends.value)].sort(sortPoolModifications),
-		isEnabled: isEnabled(),
+		countOf: modificationCounts(),
 	});
 
 	void approximateProbability();
@@ -490,7 +495,7 @@ usePromptAnswer<DicePromptAnswer>(() => {
 		dicePool: currentDicePool.value,
 		spends: spends.value,
 		targetUuid: target?.uuid ?? undefined,
-		attackChanges: checkAttackChanges(check.value!, isEnabled()),
+		attackChanges: checkAttackChanges(check.value!, modificationCounts()),
 	};
 	return spell ? { ...answered, type: RollType.Spell, effectCounts: { ...effectCounts.value } } : { ...answered, type: 'check' };
 });
@@ -611,7 +616,7 @@ const spendId = useId();
 					</div>
 				</div>
 				<div v-for="effect in effects" :key="effect.key" class="pool-modifications-effects">
-					<input type="checkbox" v-model="effect.enabled" @change="buildDicePool()" />
+					<input type="checkbox" :checked="effect.count > 0" @change="setModificationCount(effect, effect.count > 0 ? 0 : 1)" />
 					<span>
 						<!-- Not a label: one would pass a click on its text to the source's button. The source's button opens it,
 						the checkbox alone turns the modification on. -->
