@@ -10,7 +10,13 @@ import {
 	GUARDED_STANCE,
 	type ManeuverEffect,
 } from '@/effects/Maneuvers';
-import { decodeKey, POOL_MODIFICATION_TYPE, type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
+import {
+	decodeKey,
+	POOL_MODIFICATION_TYPE,
+	type PoolModificationActor,
+	poolModificationsForCheck,
+	TOGGLED,
+} from '@/effects/PoolModifications';
 
 const BOOST = DieTypes.Boost.GLYPH;
 const SETBACK = DieTypes.Setback.GLYPH;
@@ -53,7 +59,12 @@ describe('Aim', () => {
 		const aiming = characterWith(aimGiving(1));
 		for (const attack of [melee, ranged]) {
 			expect(poolModificationsForCheck(aiming, undefined, attack)).toEqual([
-				{ source: 'self', from: { effect: 'Genesys.Maneuvers.Aim.Name', uuid: 'Actor.hero.ActiveEffect.aim' }, mods: [BOOST] },
+				{
+					source: 'self',
+					from: { effect: 'Genesys.Maneuvers.Aim.Name', uuid: 'Actor.hero.ActiveEffect.aim' },
+					mods: [BOOST],
+					choice: TOGGLED,
+				},
 			]);
 		}
 	});
@@ -97,6 +108,7 @@ describe('Guarded Stance', () => {
 					source: 'self',
 					from: { effect: 'Genesys.Maneuvers.GuardedStance.Name', uuid: 'Actor.hero.ActiveEffect.guardedStance' },
 					mods: [SETBACK],
+					choice: TOGGLED,
 				},
 			]);
 		}

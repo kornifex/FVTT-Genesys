@@ -103,7 +103,7 @@ The Difficulty and Challenge dice a check starts with, before any Pool Modificat
 _Avoid_: Base difficulty, difficulty modifier
 
 **Pool Modification**:
-A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off. It comes from an effect of the actor or of their target, from the target's defense, from the silhouette difference of an attack, or is entered by hand. An effect comes from one of the actor's or target's items, such as a talent or a piece of equipment, or from the actor itself; the Dice Prompt names that item and opens it, so the roller can read when the effect applies. The Difficulty is not one.
+A change to the dice pool of a check: adding, removing, upgrading or downgrading dice, or adding symbols. The dice prompt lists each one so the roller can turn it on or off, or count it, for a talent Up to Rank. It comes from an effect of the actor or of their target, from the target's defense, from the silhouette difference of an attack, or is entered by hand. An effect comes from one of the actor's or target's items, such as a talent or a piece of equipment, or from the actor itself; the Dice Prompt names that item and opens it, so the roller can read when the effect applies. The Difficulty is not one.
 _Avoid_: Dice modifier, pool mod
 
 **Dice Roller**:
@@ -224,6 +224,10 @@ A special ability of a character or an Adversary, distinct from their talents: i
 
 **Talent Pyramid**:
 The rule that a character must have more talents at each tier than at the tier above it. A ranked talent counts once at each tier its ranks have reached, and every rank bought at tier 5 counts at tier 5.
+
+**Up to Rank**:
+How a ranked talent's effects scale, beside scaling with rank (once per rank) or not (once): « Jusqu'au rang » on the talent sheet, for a talent that adds up to its ranks in dice or symbols for a cost, as Rapid Reaction's Successes for as much strain (CRB p. 74). In the Dice Prompt, each of its effects' rows has a count from 0 to the talent's rank in place of its checkbox, which starts at 0 whatever the world's auto-apply setting, also for an initiative rolled without the prompt; its Pool Modifications count as many times as the count, through the pool's rules, the upgrades and downgrades of a pool short of dice to change included. A target's effect Up to Rank, as one that adds Setbacks to the attacks against it, gets a count too, which the roller sets as the target announces: the target pays the cost. Its other changes (Attack Changes, Critical Injury and healing changes) count once per rank, as when it scales with rank, those of a row with a count once the count is above 0. The cost stays the table's to pay.
+_Avoid_: Variable rank, chosen rank
 
 ### Magic
 

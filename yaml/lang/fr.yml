@@ -328,6 +328,7 @@ Genesys:
       SelfEffects: 'Soi : '
       TargetEffects: 'Cible : '
       EffectOfItem: '{effect} ({item})'
+      Count: '{effect} : nombre de fois'
       OpenSource: Ouvrir {name}
       SilhouetteDifference: Gabarit ({target} contre {attacker})
       Encumbrance: Encombrement ({value} contre {threshold})
@@ -791,6 +792,7 @@ Genesys:
     Rank: Rang
     Ranked: A rang
     EffectsScaleWithRank: Effet amélioré avec le rang
+    UpToRank: Jusqu'au rang
     Active: Actif
     Passive: Passif
     Yes: Oui

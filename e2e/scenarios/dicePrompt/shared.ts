@@ -19,8 +19,11 @@ export type PromptState = {
 	skill: string | null;
 	/** The skill options by group label, '' for the options outside a group. */
 	skills: Record<string, string[]> | null;
-	/** The Pool Modification rows: their label, checkbox and modifications (`S+` adds a Setback). */
-	modifications: { name: string; enabled: boolean; mods: string }[];
+	/**
+	 * The Pool Modification rows: their label, checkbox and modifications (`S+` adds a Setback); a talent's counted up to
+	 * its rank has its count and the highest it may reach instead of a checkbox (§#928).
+	 */
+	modifications: ({ name: string; enabled: boolean; mods: string } | { name: string; count: number; max: number; mods: string })[];
 	/** The chance to succeed shown, `spinner` while it is computed, null when the prompt shows none. */
 	chance: string | null;
 };
@@ -407,11 +410,15 @@ export function installDicePromptHelpers() {
 			},
 			skill: skill ? text(skill.selectedOptions[0]) : null,
 			skills,
-			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => ({
-				name: text(row.querySelector('.effect-name')),
-				enabled: row.querySelector('input')!.checked,
-				mods: [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' '),
-			})),
+			modifications: [...root.querySelectorAll('.pool-modifications-effects')].map((row) => {
+				const name = text(row.querySelector('.effect-name'));
+				const mods = [...row.querySelectorAll(':scope > div > .pool-modification')].map((mod) => poolModification(mod)).join(' ');
+				const count = row.querySelector(':scope > .counter [role="spinbutton"]');
+				// A row without a count has its checkbox in its place, as the Dice Prompt renders one or the other.
+				return count
+					? { name, count: Number(count.getAttribute('aria-valuenow')), max: Number(count.getAttribute('aria-valuemax')), mods }
+					: { name, enabled: row.querySelector<HTMLInputElement>(':scope > input')!.checked, mods };
+			}),
 			chance: chance ? (chance.querySelector('.fa-spinner') ? 'spinner' : text(chance.querySelector('span'))) : null,
 		};
 	};

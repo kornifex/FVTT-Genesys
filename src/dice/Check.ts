@@ -13,6 +13,7 @@ import {
 	ExternalPoolModification,
 	matchOrigin,
 	PoolModificationActor,
+	type PoolModificationChoice,
 	poolModificationsForCheck,
 	SilhouettedActor,
 } from '@/effects/PoolModifications';
@@ -275,20 +276,48 @@ export function vehicleAttacker<A>(weapon: { type: string; actor: A | null } | u
 }
 
 /**
- * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed keeps the
- * count it had, a new one counts once, on, when the world applies Pool Modifications automatically, unless it starts
- * off, as an active quality's.
+ * How many times a Pool Modification counts before the roller changes it: once, on, when the world applies Pool
+ * Modifications automatically, unless it starts off, as an active quality's; not at all otherwise, and always for one
+ * the roller counts up to a talent's rank.
  */
-export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'startsOff'>>(
-	previous: { key: string; count: number }[],
+export function startingCount({ choice }: Pick<CheckPoolModification, 'choice'>, autoApply: boolean) {
+	return autoApply && choice.kind === 'toggle' && !choice.startsOff ? 1 : 0;
+}
+
+/**
+ * The most times the roller may count a Pool Modification: up to its talent's rank for one they count, once for one
+ * they turn on or off.
+ */
+export function maxModificationCount(choice: PoolModificationChoice) {
+	return choice.kind === 'count' ? choice.upTo : 1;
+}
+
+function isSameChoice(a: PoolModificationChoice, b: PoolModificationChoice) {
+	return a.kind === 'count' ? b.kind === 'count' && a.upTo === b.upTo : b.kind === 'toggle' && a.startsOff === b.startsOff;
+}
+
+/**
+ * The Pool Modifications of a check resolved again, each with how many times it counts: one still listed with the same
+ * choice keeps the count it had, up to its {@link maxModificationCount}; a new one, or one whose choice changed, starts at its
+ * {@link startingCount}. A count whose talent's rank changed thus starts again at 0, as each count has a cost the roller
+ * chooses again against the new rank, and a checkbox that became a count never carries the check auto-apply gave it.
+ */
+export function carriedPoolModificationStates<M extends Pick<CheckPoolModification, 'key' | 'choice'>>(
+	previous: (Pick<CheckPoolModification, 'key' | 'choice'> & { count: number })[],
 	poolModifications: M[],
 	autoApply: boolean,
 ): (M & { count: number })[] {
-	const countByKey = new Map(previous.map((modification) => [modification.key, modification.count]));
-	return poolModifications.map((modification) => ({
-		...modification,
-		count: countByKey.get(modification.key) ?? (autoApply && !modification.startsOff ? 1 : 0),
-	}));
+	const previousByKey = new Map(previous.map((modification) => [modification.key, modification]));
+	return poolModifications.map((modification) => {
+		const before = previousByKey.get(modification.key);
+		return {
+			...modification,
+			count:
+				before && isSameChoice(before.choice, modification.choice)
+					? Math.min(before.count, maxModificationCount(modification.choice))
+					: startingCount(modification, autoApply),
+		};
+	});
 }
 
 /**
@@ -301,7 +330,8 @@ export type PoolChoices = {
 	difficulty: string;
 	manualChanges?: string[];
 	/**
-	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on.
+	 * How many times a Pool Modification counts: 0 when the roller left it off, 1 when they turned it on, and up to its
+	 * choice's `upTo` for one they count.
 	 */
 	countOf: (modification: CheckPoolModification) => number;
 };

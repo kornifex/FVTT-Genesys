@@ -332,6 +332,7 @@ Genesys:
       SelfEffects: 'From Self: '
       TargetEffects: 'From Target: '
       EffectOfItem: '{effect} ({item})'
+      Count: '{effect}: Times Applied' # The count of a talent's effect applied up to its rank, e.g. Rapid Reaction: Times Applied
       OpenSource: Open {name}
       SilhouetteDifference: Silhouette ({target} vs {attacker})
       Encumbrance: Encumbrance ({value} vs {threshold})
@@ -797,6 +798,7 @@ Genesys:
     Rank: Rank
     Ranked: Ranked
     EffectsScaleWithRank: Effects scale with rank
+    UpToRank: Up to rank # The talent's Pool Modifications count as many times as the roller chooses, up to its rank
     Active: Active
     Passive: Passive
     Yes: Yes

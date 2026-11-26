@@ -18,9 +18,10 @@ import {
 	checkDescription,
 	checkDicePool,
 	resolveCheck,
+	startingCount,
 	vehicleAttacker,
 } from '@/dice/Check';
-import { PoolModificationEffect } from '@/effects/PoolModifications';
+import { PoolModificationChoice, PoolModificationEffect, TOGGLED } from '@/effects/PoolModifications';
 
 function skill(name: string, characteristic: Characteristic, rank = 0): CheckSkill {
 	return { name, system: { characteristic, rank } };
@@ -60,6 +61,18 @@ function actor(
 
 function effect(name: string, changes: { key: string; value: string }[], uuid = `ActiveEffect.${name}`): PoolModificationEffect {
 	return { name, uuid, isSuppressed: false, origin: null, parent: null, system: { changes } };
+}
+
+/**
+ * The effect of a talent at a rank, ranked unless said otherwise, which lives on the talent.
+ */
+function talentEffect(
+	name: string,
+	{ ranked = 'yes', rank, scalesWithRank }: { ranked?: 'yes' | 'no'; rank: number; scalesWithRank: 'yes' | 'no' | 'upTo' },
+	changes: { key: string; value: string }[],
+): PoolModificationEffect {
+	const talent = { documentName: 'Item', type: 'talent', name, uuid: `Item.${name}`, system: { ranked, rank, scalesWithRank } };
+	return { ...effect(name, changes, `Item.${name}.ActiveEffect.effect`), parent: talent };
 }
 
 /**
@@ -214,6 +227,7 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { effect: 'Dueling', uuid: 'ActiveEffect.Dueling' },
 				mods: ['B'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(
@@ -299,12 +313,14 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring1.ActiveEffect.grade' },
 				mods: ['^'],
+				choice: TOGGLED,
 			},
 			{
 				key: 'self.effect.Actor.hero.Item.ring2.ActiveEffect.grade',
 				source: 'self',
 				from: { effect: 'Ring', uuid: 'Actor.hero.Item.ring2.ActiveEffect.grade' },
 				mods: ['^', '^'],
+				choice: TOGGLED,
 			},
 		]);
 	});
@@ -316,7 +332,9 @@ describe('resolveCheck', () => {
 
 		expect(
 			resolveCheck(hero, { purpose: attack, skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications,
-		).toEqual([{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'] }]);
+		).toEqual([
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 3, attacker: 1 } }, mods: ['-D'], choice: TOGGLED },
+		]);
 		expect(resolveCheck(hero, { skillName: 'Melee', target: giant, attackRange: 'engaged' }, rules).poolModifications).toEqual([]);
 	});
 
@@ -332,13 +350,19 @@ describe('resolveCheck', () => {
 		} as const;
 
 		expect(resolveCheck(gunner, request, rules).poolModifications).toEqual([
-			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'] },
+			{ key: 'target.silhouette', source: 'target', from: { silhouette: { target: 1, attacker: 3 } }, mods: ['D'], choice: TOGGLED },
 		]);
 	});
 
 	it('hinders the Agility check an encumbered character picks for a skill when skills are uncoupled from characteristics (CRB p. 85, 205)', () => {
 		const hero = actor('character', [skill('Cool', Characteristic.Presence, 1)], { currentEncumbrance: { value: 9, threshold: 8 } });
-		const encumbrance = { key: 'self.encumbrance', source: 'self', from: { encumbrance: { value: 9, threshold: 8 } }, mods: ['S'] };
+		const encumbrance = {
+			key: 'self.encumbrance',
+			source: 'self',
+			from: { encumbrance: { value: 9, threshold: 8 } },
+			mods: ['S'],
+			choice: TOGGLED,
+		};
 
 		expect(resolveCheck(hero, { skillName: 'Cool', characteristic: Characteristic.Agility }, uncoupled).poolModifications).toEqual([
 			encumbrance,
@@ -359,6 +383,7 @@ describe('resolveCheck', () => {
 				source: 'self',
 				from: { itemDamage: { name: 'Sword', uuid: 'Item.sword', damage: 'moderate' } },
 				mods: ['D'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(resolveCheck(hero, { skillName: 'Melee', attackRange: 'engaged', weapon: sword }, rules).poolModifications).toEqual([]);
@@ -402,6 +427,7 @@ describe('resolveCheck', () => {
 					described: { name: 'Accurate', description: 'Aims better.' },
 				},
 				mods: ['B', 'B'],
+				choice: TOGGLED,
 			},
 		]);
 		expect(resolveCheck(hero, request, rules).poolModifications).toEqual([]);
@@ -549,8 +575,8 @@ describe('carriedPoolModificationStates', () => {
 	});
 	// The roller turned Steady off and left Dueling on, then picks Cool instead of Melee.
 	const before = [
-		{ key: 'self.effect.ActiveEffect.Steady', count: 0 },
-		{ key: 'self.effect.ActiveEffect.Dueling', count: 1 },
+		{ key: 'self.effect.ActiveEffect.Steady', count: 0, choice: TOGGLED },
+		{ key: 'self.effect.ActiveEffect.Dueling', count: 1, choice: TOGGLED },
 	];
 	const cool = resolveCheck(hero, { skillName: 'Cool' }, rules);
 	const states = (autoApply: boolean) =>
@@ -571,16 +597,17 @@ describe('carriedPoolModificationStates', () => {
 	});
 
 	it("starts an active quality's Pool Modification off though auto-apply is on, and keeps the roller's choice once they turn it on (CRB p. 86)", () => {
-		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', startsOff: true };
-		const accurate = { key: 'self.effect.ActiveEffect.Accurate' };
-		const states = (previous: { key: string; count: number }[]) =>
+		const startsOff: PoolModificationChoice = { kind: 'toggle', startsOff: true };
+		const autoFire = { key: 'self.effect.ActiveEffect.AutoFire', choice: startsOff };
+		const accurate = { key: 'self.effect.ActiveEffect.Accurate', choice: TOGGLED };
+		const states = (previous: { key: string; count: number; choice: PoolModificationChoice }[]) =>
 			carriedPoolModificationStates(previous, [autoFire, accurate], true).map(({ key, count }) => ({ key, count }));
 
 		expect(states([])).toEqual([
 			{ key: 'self.effect.ActiveEffect.AutoFire', count: 0 },
 			{ key: 'self.effect.ActiveEffect.Accurate', count: 1 },
 		]);
-		expect(states([{ key: 'self.effect.ActiveEffect.AutoFire', count: 1 }])[0]).toEqual({
+		expect(states([{ ...autoFire, count: 1 }])[0]).toEqual({
 			key: 'self.effect.ActiveEffect.AutoFire',
 			count: 1,
 		});
@@ -597,8 +624,8 @@ describe('carriedPoolModificationStates', () => {
 		expect(
 			carriedPoolModificationStates(
 				[
-					{ key: first.key, count: 1 },
-					{ key: second.key, count: 0 },
+					{ ...first, count: 1 },
+					{ ...second, count: 0 },
 				],
 				picked.poolModifications,
 				false,
@@ -616,6 +643,169 @@ describe('carriedPoolModificationStates', () => {
 			{ ...steady, count: 0 },
 			{ ...alert, count: 1 },
 		]);
+	});
+});
+
+describe("a talent's effect counted up to its rank", () => {
+	// Rapid Reaction adds up to its ranks in Successes, for as much strain (CRB p. 74).
+	const rapidReaction = (scalesWithRank: 'yes' | 'no' | 'upTo', changes = [{ key: 'genesys.pool.check.self.', value: 's' }]) =>
+		talentEffect('Rapid Reaction', { rank: 3, scalesWithRank }, changes);
+	const checkOf = (...effects: PoolModificationEffect[]) =>
+		resolveCheck(actor('character', [], { effects }), { fallbackCharacteristic: Characteristic.Intellect }, rules);
+	const counted = (check: Check, count: number) => checkDicePool(check, { difficulty: 'DD', countOf: () => count });
+
+	it("lists its Pool Modifications once, with the talent's rank as the most times they count", () => {
+		const [modification] = checkOf(rapidReaction('upTo')).poolModifications;
+
+		expect(modification).toMatchObject({ mods: ['s'], choice: { kind: 'count', upTo: 3 } });
+	});
+
+	it('counts its Pool Modifications as many times as the count, 0 included', () => {
+		const check = checkOf(rapidReaction('upTo'));
+
+		expect([0, 1, 2, 3].map((count) => counted(check, count).symbols)).toEqual([{}, { Success: 1 }, { Success: 2 }, { Success: 3 }]);
+	});
+
+	it("applies each count through the pool's rules: an upgrade of a pool without Ability dice adds one, a downgrade without Proficiency dice does nothing (CRB p. 22)", () => {
+		// Intellect 1, no skill: one Ability die.
+		const upgrades = checkOf(
+			talentEffect('Grit', { rank: 3, scalesWithRank: 'upTo' }, [{ key: 'genesys.pool.check.self.', value: '^' }]),
+		);
+		const downgrades = checkOf(
+			talentEffect('Doubt', { rank: 2, scalesWithRank: 'upTo' }, [{ key: 'genesys.pool.check.self.', value: '_' }]),
+		);
+
+		// The first upgrade turns the Ability die into a Proficiency die, the second adds an Ability die, the third upgrades it.
+		expect(counted(upgrades, 3).dice).toEqual({ Proficiency: 2, Ability: 0, Difficulty: 2 });
+		expect(counted(downgrades, 2).dice).toEqual({ Proficiency: 0, Ability: 1, Difficulty: 2 });
+	});
+
+	it('starts at 0 whether the world applies Pool Modifications automatically or not, where a checkbox keeps the setting', () => {
+		const { poolModifications } = checkOf(
+			rapidReaction('upTo'),
+			talentEffect('Steady', { rank: 2, scalesWithRank: 'yes' }, [{ key: 'genesys.pool.check.self.', value: 'B' }]),
+		);
+		const counts = (autoApply: boolean) => carriedPoolModificationStates([], poolModifications, autoApply).map(({ count }) => count);
+
+		expect(counts(true)).toEqual([0, 1]);
+		expect(counts(false)).toEqual([0, 0]);
+		expect(poolModifications.map((modification) => startingCount(modification, true))).toEqual([0, 1]);
+	});
+
+	it("keeps the roller's count when the check is resolved again", () => {
+		const { poolModifications } = checkOf(rapidReaction('upTo'));
+
+		expect(carriedPoolModificationStates([{ ...poolModifications[0], count: 2 }], poolModifications, true)[0].count).toBe(2);
+	});
+
+	describe('resolved again once its row changed', () => {
+		const hero = (rank: number, scalesWithRank: 'yes' | 'no' | 'upTo') =>
+			actor('character', [skill('Melee', Characteristic.Brawn, 2), skill('Brawl', Characteristic.Brawn, 1)], {
+				effects: [
+					talentEffect('Rapid Reaction', { rank, scalesWithRank }, [
+						{ key: 'genesys.pool.skill.self.Melee', value: 's' },
+						{ key: 'genesys.attack.damage.combat', value: '1' },
+					]),
+				],
+			});
+		const attackWith = (skillName: string, rank = 3, scalesWithRank: 'yes' | 'no' | 'upTo' = 'upTo') =>
+			resolveCheck(
+				hero(rank, scalesWithRank),
+				{ skillName, purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' },
+				rules,
+			).poolModifications;
+		const countsOf = (rows: { count: number }[]) => rows.map(({ count }) => count);
+
+		it('starts at 0 once its checkbox, which auto-apply checked, turns into a count', () => {
+			// A Brawl attack gets the effect's Attack Change alone, which the roller turns on or off.
+			const brawl = carriedPoolModificationStates([], attackWith('Brawl'), true);
+
+			expect(brawl.map(({ choice, count }) => ({ choice, count }))).toEqual([{ choice: TOGGLED, count: 1 }]);
+			expect(countsOf(carriedPoolModificationStates(brawl, attackWith('Melee'), true))).toEqual([0]);
+		});
+
+		it("starts again at 0 once the talent's rank it counts up to changed, so the roller chooses again what each count costs", () => {
+			const counted = [{ ...attackWith('Melee', 3)[0], count: 3 }];
+
+			expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 2), true))).toEqual([0]);
+			expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 4), true))).toEqual([0]);
+		});
+
+		it('starts as a checkbox does once its talent scales with rank or not again, rather than repeating its Pool Modifications', () => {
+			const counted = [{ ...attackWith('Melee')[0], count: 3 }];
+
+			for (const scalesWithRank of ['yes', 'no'] as const) {
+				expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 3, scalesWithRank), true))).toEqual([1]);
+				expect(countsOf(carriedPoolModificationStates(counted, attackWith('Melee', 3, scalesWithRank), false))).toEqual([0]);
+			}
+		});
+
+		it('never carries more than its most: its rank for a count, once for a checkbox', () => {
+			const [melee] = attackWith('Melee');
+			const [brawl] = attackWith('Brawl');
+
+			expect(countsOf(carriedPoolModificationStates([{ ...melee, count: 5 }], [melee], true))).toEqual([3]);
+			expect(countsOf(carriedPoolModificationStates([{ ...brawl, count: 2 }], [brawl], true))).toEqual([1]);
+		});
+	});
+
+	it('turns on or off, once, the Pool Modifications of an unranked talent left counted up to its rank or scaling with it', () => {
+		const unranked = (scalesWithRank: 'yes' | 'upTo') =>
+			checkOf(
+				talentEffect('Rapid Reaction', { ranked: 'no', rank: 3, scalesWithRank }, [
+					{ key: 'genesys.pool.check.self.', value: 's' },
+				]),
+			).poolModifications;
+
+		for (const scalesWithRank of ['yes', 'upTo'] as const) {
+			const [modification] = unranked(scalesWithRank);
+			expect({ mods: modification.mods, choice: modification.choice }).toEqual({ mods: ['s'], choice: TOGGLED });
+			expect(carriedPoolModificationStates([], [modification], true)[0].count).toBe(1);
+		}
+	});
+
+	it("leaves a talent that scales with rank, or doesn't, turned on or off as before", () => {
+		const [scaling] = checkOf(rapidReaction('yes')).poolModifications;
+		const [once] = checkOf(rapidReaction('no')).poolModifications;
+
+		expect(scaling.mods).toEqual(['s', 's', 's']);
+		expect(once.mods).toEqual(['s']);
+		expect([scaling.choice, once.choice]).toEqual([
+			{ kind: 'toggle', startsOff: false },
+			{ kind: 'toggle', startsOff: false },
+		]);
+	});
+
+	it('counts its Attack Changes once per rank, as a talent that scales with rank, once its count is above 0', () => {
+		const attack = resolveCheck(
+			actor('character', [skill('Melee', Characteristic.Brawn, 2)], {
+				effects: [
+					rapidReaction('upTo', [
+						{ key: 'genesys.pool.melee.self.', value: 'S' },
+						{ key: 'genesys.attack.damage.melee', value: '1' },
+					]),
+				],
+			}),
+			{ skillName: 'Melee', purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' },
+			rules,
+		);
+
+		expect(checkAttackChanges(attack, () => 0)).toEqual([]);
+		expect(checkAttackChanges(attack, () => 1)).toEqual([{ name: 'Rapid Reaction', damage: 3 }]);
+		expect(checkAttackChanges(attack, () => 2)).toEqual([{ name: 'Rapid Reaction', damage: 3 }]);
+	});
+
+	it('is turned on or off as before when it holds Attack Changes alone, which count once per rank', () => {
+		const [modification] = resolveCheck(
+			actor('character', [skill('Melee', Characteristic.Brawn, 2)], {
+				effects: [rapidReaction('upTo', [{ key: 'genesys.attack.damage.melee', value: '1' }])],
+			}),
+			{ skillName: 'Melee', purpose: { kind: 'attack', weaponName: 'Axe' }, attackRange: 'engaged' },
+			rules,
+		).poolModifications;
+
+		expect(modification.choice).toEqual({ kind: 'toggle', startsOff: false });
+		expect(modification.attack).toEqual({ damage: 3 });
 	});
 });
 

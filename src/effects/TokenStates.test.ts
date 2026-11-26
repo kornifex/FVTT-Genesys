@@ -3,7 +3,13 @@ import { adversaryDefense } from '@/actor/data/Protection';
 import type { Defense } from '@/data/Actors';
 import { Characteristic } from '@/data/Characteristics';
 import { DieTypes } from '@/dice/DieTypes';
-import { decodeKey, POOL_MODIFICATION_TYPE, type PoolModificationActor, poolModificationsForCheck } from '@/effects/PoolModifications';
+import {
+	decodeKey,
+	POOL_MODIFICATION_TYPE,
+	type PoolModificationActor,
+	poolModificationsForCheck,
+	TOGGLED,
+} from '@/effects/PoolModifications';
 import { stateReminders, statusMenu, TOKEN_STATES, tokenState, tokenStatesFor } from '@/effects/TokenStates';
 
 const other = { kind: 'other' } as const;
@@ -78,6 +84,7 @@ describe('Disoriented', () => {
 					source: 'self',
 					from: { effect: 'Genesys.TokenStates.Disoriented.Name', uuid: 'Actor.hero.ActiveEffect.disoriented' },
 					mods: [DieTypes.Setback.GLYPH],
+					choice: TOGGLED,
 				},
 			]);
 		}
@@ -126,7 +133,7 @@ describe('In cover', () => {
 	it('adds a Setback to a ranged attack against its actor, as ranged defense 1 (CRB p. 99, 104)', () => {
 		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
 			expect(poolModificationsForCheck(attacker, inCover(), { purpose: attackAt(attackRange) })).toEqual([
-				{ source: 'target', from: { defense: 'ranged' }, mods: [DieTypes.Setback.GLYPH] },
+				{ source: 'target', from: { defense: 'ranged' }, mods: [DieTypes.Setback.GLYPH], choice: TOGGLED },
 			]);
 		}
 	});
@@ -148,7 +155,12 @@ describe('In cover', () => {
 describe('Prone', () => {
 	const attacker = characterWith('immobilized');
 	const fromProne = (glyph: string) => [
-		{ source: 'target', from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' }, mods: [glyph] },
+		{
+			source: 'target',
+			from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
+			mods: [glyph],
+			choice: TOGGLED,
+		},
 	];
 
 	it('adds a Setback to a ranged attack against its actor (CRB p. 100, 108)', () => {
@@ -184,6 +196,7 @@ describe('Prone', () => {
 				source: 'self',
 				from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
 				mods: [DieTypes.Setback.GLYPH],
+				choice: TOGGLED,
 			},
 		]);
 		for (const attackRange of ['short', 'medium', 'long', 'extreme']) {
@@ -206,6 +219,7 @@ describe('Prone', () => {
 				source: 'self',
 				from: { effect: 'Genesys.TokenStates.Prone.Name', uuid: 'Actor.hero.ActiveEffect.prone' },
 				mods: [DieTypes.Setback.GLYPH],
+				choice: TOGGLED,
 			},
 			...fromProne(DieTypes.Boost.GLYPH),
 		]);
