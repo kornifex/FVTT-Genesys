@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	canBePatient,
-	HEALING_CHANGE_KEY,
+	HEALING_CHANGE_KEYS,
 	healedPools,
 	healingSkillNames,
 	heals,
@@ -114,7 +114,7 @@ describe('recoveryOf', () => {
 	describe("the healer's bonus to the wounds a Medicine check heals", () => {
 		const effect = (value: unknown, item?: { system: { rank?: number; scalesWithRank?: 'yes' | 'no' } }, isSuppressed = false) => ({
 			isSuppressed,
-			system: { changes: [{ key: HEALING_CHANGE_KEY, value }] },
+			system: { changes: [{ key: HEALING_CHANGE_KEYS.medicineWounds, value }] },
 			originItem: item,
 		});
 		const healer = (...effects: ReturnType<typeof effect>[]) => ({ allApplicableEffects: () => effects });

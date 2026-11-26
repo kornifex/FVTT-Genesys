@@ -9,7 +9,7 @@ import { DieTypes } from '@/dice/DieTypes';
 import { parsePoolModifications, sortPoolModifications } from '@/dice/DicePool';
 import { DIE_GLYPHS, PoolModGlyphPattern, removalGlyph } from '@/dice/GenesysPoolModifications';
 import { isCriticalChangeKey } from '@/dice/CriticalInjuryRoll';
-import { HEALING_CHANGE_KEY } from '@/actor/Recovery';
+import { isHealingChangeKey } from '@/actor/Recovery';
 import { parseWholeNumber } from '@/data/parsing';
 import { skillNamesMatch } from '@/data/Skills';
 import { type AttackChanges, decodeAttackChangeKey, isAttackChangeKey } from '@/effects/AttackChanges';
@@ -643,10 +643,10 @@ function isProvidedDefenseKey(key: string) {
 
 /**
  * Whether a change is one the system reads itself, as a whole number added to a roll or to what it heals: a change to
- * Critical Injury rolls, to the wounds a Medicine check heals, or an Attack Change.
+ * Critical Injury rolls, to what a recovery heals, or an Attack Change.
  */
 function isWholeNumberChangeKey(key: string) {
-	return isCriticalChangeKey(key) || key === HEALING_CHANGE_KEY || isAttackChangeKey(key);
+	return isCriticalChangeKey(key) || isHealingChangeKey(key) || isAttackChangeKey(key);
 }
 
 /**
@@ -709,7 +709,7 @@ export function toEditedChange(change: StoredChange): EditedChange {
 /**
  * A change edited in the effect sheets, turned back into a change. Pool Modifications get their full key, their own
  * type, which Foundry applies to nothing, and lose their value unless it only holds glyphs. A change to Critical
- * Injury rolls or to the wounds a Medicine check heals, or an Attack Change, which the system reads itself too, gets the custom type, and
+ * Injury rolls or to what a recovery heals, or an Attack Change, which the system reads itself too, gets the custom type, and
  * loses its value unless it is a whole number. An Item Change, which its item always adds, gets the custom type, and keeps its value. A Career Skill
  * change gets its skill in its key, the custom type and no value. A change to the defense a source provides gets the
  * Upgrade type, so that two such effects don't stack. Any other change is returned as it is.
