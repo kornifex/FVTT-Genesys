@@ -34,6 +34,7 @@ import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
 import { attachmentQualitiesPart } from './dicePrompt/attachmentQualities.ts';
 import { qualityAttachmentDescriptionsPart } from './dicePrompt/qualityAttachmentDescriptions.ts';
+import { weaponAttacksOnlyPart } from './dicePrompt/weaponAttacksOnly.ts';
 import { spellCastingPart } from './dicePrompt/spellCasting.ts';
 import { repeatableEffectsPart } from './dicePrompt/repeatableEffects.ts';
 import { magicAttackPart } from './dicePrompt/magicAttack.ts';
@@ -312,6 +313,10 @@ export async function run(e2e: ScenarioContext) {
 	// D: a Pool Modification of a quality or an attachment shows its description, where an effect written on the weapon
 	// links to it (§#768).
 	await part('qualityAttachmentDescriptions', () => qualityAttachmentDescriptionsPart(context));
+
+	// W: a weapon's own effect marked for its attacks only, from its effect sheet, changes the attacks made with it and no
+	// other check of its holder (§#929).
+	await part('weaponAttacksOnly', () => weaponAttacksOnlyPart(context));
 
 	// S: casting a spell from the Magic tab, with its magic skill, at its difficulty raised by the Additional Effects
 	// checked in the Dice Prompt, never beyond Formidable, and the 2 strain it costs (§#705, CRB pp. 210–217).

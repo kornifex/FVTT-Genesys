@@ -47,7 +47,16 @@ function effect(
 		parent = null,
 		quality = undefined,
 		attachment = undefined,
-	}: { name?: string; isSuppressed?: boolean; origin?: string | null; parent?: unknown; quality?: string; attachment?: string } = {},
+		weaponAttacksOnly = undefined,
+	}: {
+		name?: string;
+		isSuppressed?: boolean;
+		origin?: string | null;
+		parent?: unknown;
+		quality?: string;
+		attachment?: string;
+		weaponAttacksOnly?: boolean;
+	} = {},
 ): PoolModificationEffect {
 	return {
 		name,
@@ -56,7 +65,7 @@ function effect(
 		origin,
 		parent,
 		system: { changes },
-		flags: { genesys: { quality, attachment } },
+		flags: { genesys: { quality, attachment, weaponAttacksOnly } },
 	};
 }
 
@@ -876,6 +885,60 @@ describe('poolModificationsForCheck', () => {
 			expect(poolModificationsForCheck(actor('character', [...armor.effects]), undefined, check)).toEqual([
 				fromAttachment('Coat', ['B']),
 			]);
+		});
+	});
+
+	describe("a weapon's own effects for its attacks only (#929)", () => {
+		// A weapon holding one effect of its own, written on it rather than brought by a quality or an attachment.
+		function weapon(name: string, changes: Change[], weaponAttacksOnly?: boolean) {
+			const item = {
+				documentName: 'Item',
+				type: 'weapon',
+				name,
+				uuid: `Item.${name}`,
+				system: { damage: 'undamaged' as const, qualities: [], attachments: [] },
+				effects: [] as PoolModificationEffect[],
+			};
+			item.effects = [effect(changes, { name: 'Balanced', parent: item, weaponAttacksOnly })];
+			return item;
+		}
+
+		const fromWeapon = (item: string, mods: string[], attack?: object) => ({
+			source: 'self',
+			from: { effect: 'Balanced', uuid: 'ActiveEffect.Balanced', item: { name: item, uuid: `Item.${item}` } },
+			mods,
+			...(attack && { attack }),
+		});
+		const rangedBoost = [{ key: 'genesys.pool.skill.self.Ranged', value: 'B' }];
+		const rangedCheck = (weaponUsed?: ReturnType<typeof weapon>) => ({
+			characteristic: Characteristic.Agility,
+			skillName: 'Ranged',
+			...(weaponUsed && { attackRange: 'medium', weapon: weaponUsed, attackQualities: [] }),
+		});
+
+		it("counts a scoped Pool Modification on an attack with its weapon, not on the skill's other checks", () => {
+			const rifle = weapon('Rifle', rangedBoost, true);
+			const holder = actor('character', [...rifle.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck(rifle))).toEqual([fromWeapon('Rifle', ['B'])]);
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck(weapon('Pistol', [])))).toEqual([]);
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck())).toEqual([]);
+		});
+
+		it("adds a scoped Attack Change to its weapon's attacks only", () => {
+			const rifle = weapon('Rifle', [{ key: 'genesys.attack.damage.combat', value: '2' }], true);
+			const holder = actor('character', [...rifle.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck(rifle))).toEqual([fromWeapon('Rifle', [], { damage: 2 })]);
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck(weapon('Pistol', [])))).toEqual([]);
+		});
+
+		it("counts an unscoped weapon effect on every check its key names, as any item's (ADR 0001)", () => {
+			const rifle = weapon('Rifle', rangedBoost, false);
+			const holder = actor('character', [...rifle.effects]);
+
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck(weapon('Pistol', [])))).toEqual([fromWeapon('Rifle', ['B'])]);
+			expect(poolModificationsForCheck(holder, undefined, rangedCheck())).toEqual([fromWeapon('Rifle', ['B'])]);
 		});
 	});
 

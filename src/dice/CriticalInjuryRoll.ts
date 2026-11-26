@@ -1,6 +1,7 @@
 /** @file Rolling a Critical Injury: how many times an attack triggers it, the lines of its roll's modifier, and the results its total draws from the world's table. */
 import { isCount, isRecord, parseWholeNumber } from '@/data/parsing';
 import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
+import { isForWeaponAttacksOnly } from '@/effects/WeaponAttacksOnly';
 import { effectTag } from '@/item/data/EffectTags';
 import { type RankedSystem, scalingRank } from '@/item/data/Talents';
 import { effectQuality, isOutrankedQuality, QUALITY_FLAG, qualityRank } from '@/item/data/Qualities';
@@ -240,13 +241,17 @@ const WEAPON_TYPES = ['weapon', 'vehicleWeapon'];
 
 /**
  * How many times an effect's change counts, or undefined when the effect doesn't apply to this roll: its quality's rank
- * for a quality, its talent's rank for a talent that scales with rank, once otherwise, as an attachment's does.
+ * for a quality, its talent's rank for a talent that scales with rank, once otherwise, as an attachment's does and a
+ * weapon's own effect for its attacks only.
  */
 function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: CriticalAttackWeapon | undefined): number | undefined {
 	const item = effect.originItem;
 	const qualityId = effectTag(effect, QUALITY_FLAG);
-	const attachmentId = effectTag(effect, ATTACHMENT_FLAG);
-	if ((qualityId === undefined && attachmentId === undefined) || !item) {
+	// A weapon's own effect for its attacks only keeps the injuries it inflicts to them, and those its holder suffers as any
+	// item's.
+	const changesEveryProfile =
+		effectTag(effect, ATTACHMENT_FLAG) !== undefined || (kind === 'inflicted' && isForWeaponAttacksOnly(effect, item));
+	if ((qualityId === undefined && !changesEveryProfile) || !item) {
 		return scalingRank(item);
 	}
 
@@ -259,7 +264,8 @@ function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: C
 		return undefined;
 	}
 
-	// An attachment changes every Weapon Profile of its weapon, so it counts whatever profile the attack is made with.
+	// An attachment, or a weapon's own effect for its attacks only, changes every Weapon Profile of its weapon, so it counts
+	// whatever profile the attack is made with.
 	if (qualityId === undefined) {
 		return 1;
 	}
@@ -274,8 +280,8 @@ function effectRanks(effect: CriticalEffect, kind: CriticalChangeKind, weapon: C
  * when the talent scales with rank, and once per rank of a rated quality, as Pool Modifications do.
  *
  * A weapon's quality changes only the injuries inflicted by an attack with that weapon, at the highest rank among its
- * copies on the Weapon Profile; without such a weapon, it changes none. A weapon's attachment does the same, once. An
- * armor's quality or attachment changes the injuries its wearer suffers or inflicts, as its talents do.
+ * copies on the Weapon Profile; without such a weapon, it changes none. A weapon's attachment does the same, once, as
+ * does a weapon's own effect marked for its attacks only; its other effects count as a talent's. An armor's quality or attachment changes the injuries its wearer suffers or inflicts, as its talents do.
  * @param weapon The weapon of the attack the injury is inflicted by, if any.
  */
 export function criticalEffectBonuses(

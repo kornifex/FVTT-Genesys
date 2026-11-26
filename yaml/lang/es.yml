@@ -235,6 +235,9 @@ Genesys:
     Expired: Expirado
     TurnOn: Activar el efecto
     TurnOff: Desactivar el efecto
+    WeaponAttacksOnly: Solo los ataques de esta arma
+    WeaponAttacksOnlyHint: >-
+      Sus modificaciones de la reserva de dados de su portador, de sus ataques y de las heridas críticas que infligen solo cuentan para un ataque con esta arma, con cualquiera de sus perfiles. Sin marcar, se aplican a todas las tiradas de su portador. Sus demás modificaciones, incluidas las de las tiradas contra su portador, se aplican siempre.
     Types:
       ModifyCharacteristic: Característica modificada
       ModifyStat: Estadística modificada
