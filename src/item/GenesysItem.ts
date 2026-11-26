@@ -1,7 +1,9 @@
 import { heldByDeletedContainers, containerStateUpdates } from '@/actor/data/Inventory';
 import { EQUIPMENT_TYPES, itemsOfType } from '@/item/ItemTypes';
 import { itemQualities, QUALITY_FLAG } from '@/item/data/Qualities';
-import { ATTACHMENT_FLAG } from '@/item/data/Attachments';
+import { ATTACHMENT_FLAG, attachmentQualitiesTakenBack } from '@/item/data/Attachments';
+import type { ArmorDataModel } from '@/item/data/ArmorDataModel';
+import type { WeaponDataModel } from '@/item/data/WeaponDataModel';
 import { orphanedTaggedEffects } from '@/item/data/EffectTags';
 import { applyItemChanges } from '@/item/ItemChanges';
 
@@ -31,7 +33,7 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 
 	/**
 	 * Keep a Container's contents in its Equipment State, whatever changed the state of either, and remove the effects of
-	 * a quality or an attachment removed from a weapon or an armor.
+	 * a quality or an attachment removed from a weapon or an armor, and what the attachment added to its qualities.
 	 * @inheritDoc
 	 */
 	protected override _onUpdate(changed: Item.UpdateData, options: Item.Database.OnUpdateOptions, userId: string) {
@@ -62,6 +64,21 @@ export class GenesysItem<SubType extends Item.SubType = Item.SubType> extends It
 			];
 			if (orphaned.length > 0) {
 				void this.deleteEmbeddedDocuments('ActiveEffect', orphaned);
+			}
+
+			// Removing an attachment also takes back what it added to the qualities: the update that removes a quality it
+			// brought removes that quality's effects in turn.
+			const takenBack =
+				changesAttachments && hasAttachments(this)
+					? attachmentQualitiesTakenBack(
+							// The stored data, which the update copies whole, rather than the prepared profiles' changed ratings.
+							// fvtt-types types `_source.system` loosely, not as the type's DataModel.
+							this._source.system as WeaponDataModel | ArmorDataModel,
+							this.system.attachments.map(({ id }) => id),
+						)
+					: undefined;
+			if (takenBack) {
+				void this.update({ system: takenBack });
 			}
 		}
 

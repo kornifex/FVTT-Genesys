@@ -1,17 +1,38 @@
-/** @file The effects of a weapon's or an armor's qualities: copied from a quality item dropped on it, or added to one of its qualities. */
+/** @file The qualities of a weapon or an armor and their effects: copied from a quality item dropped on it, or added to one of its qualities. */
 
 import type { GenesysItem } from '@/item/GenesysItem';
 import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import type { ItemQualityDataModel } from '@/item/data/ItemQualityDataModel';
 import { taggedEffectsData } from '@/item/data/EffectTags';
-import { QUALITY_FLAG } from '@/item/data/Qualities';
+import { QUALITY_FLAG, qualityCopy, withQualityAdded } from '@/item/data/Qualities';
 import { newEffectData } from '@/effects/NewEffect';
+
+/**
+ * Adds a quality item dropped on an item to the qualities given, the item's or those of one of its Weapon Profiles,
+ * saved as the system update `update` builds from the new list, then copies the quality's effects onto the item. A drop
+ * that changes nothing, a quality that isn't rated which the list holds, saves nothing.
+ */
+export async function addDroppedQuality(
+	item: GenesysItem,
+	dropped: GenesysItem,
+	qualities: readonly ContainedItemQuality[],
+	update: (qualities: ContainedItemQuality[]) => object,
+) {
+	// The sheet hands over a quality item, which a generic GenesysItem doesn't say.
+	const copy = qualityCopy(foundry.utils.randomID(), { name: dropped.name, system: dropped.system as ItemQualityDataModel });
+	const added = withQualityAdded(qualities, copy);
+	if (added) {
+		await item.update({ system: update(added) });
+		await copyQualityEffects(item, dropped, added, copy.id);
+	}
+}
 
 /**
  * Copies the effects of a quality item dropped on a weapon or an armor onto it, tagged with the id of the quality the
  * drop added, once the item's qualities hold it. A drop that only raised the rating of a quality the item had copies
  * none: the item already has that quality's effects.
  */
-export async function copyQualityEffects(item: GenesysItem, dropped: GenesysItem, qualities: readonly ContainedItemQuality[], id: string) {
+async function copyQualityEffects(item: GenesysItem, dropped: GenesysItem, qualities: readonly ContainedItemQuality[], id: string) {
 	if (!qualities.some((quality) => quality.id === id)) {
 		return;
 	}

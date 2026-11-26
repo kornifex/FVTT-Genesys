@@ -40,6 +40,8 @@ const legacy: ContainedItemQuality = {
 	advantageCost: 2,
 	isRated: true,
 	rating: 1,
+	attachmentRatings: [],
+	heldByItem: true,
 };
 
 /** Mounts the rows on a sheet the user can edit, with Defensive's details open. */

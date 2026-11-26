@@ -18,21 +18,22 @@ export function qualityNameKey(name: string) {
 /**
  * The qualities with a quality item dropped on the weapon or armor: added at rating 1, or, when the item already has a
  * quality of that name, that quality's rating raised by 1. `undefined` when nothing changes, as dropping a quality
- * that isn't rated on an item that has it.
+ * that isn't rated on an item that holds it itself. Either way the item holds the quality: one that only its
+ * attachments gave it, unrated ones included, is raised too, and stays when they go.
  */
 export function withQualityAdded(
 	qualities: readonly ContainedItemQuality[],
-	added: Omit<ContainedItemQuality, 'rating'>,
+	added: Omit<ContainedItemQuality, 'rating' | 'attachmentRatings' | 'heldByItem'>,
 ): ContainedItemQuality[] | undefined {
 	const index = qualities.findIndex((quality) => qualityNameKey(quality.name) === qualityNameKey(added.name));
 	if (index < 0) {
-		return [...qualities, { ...added, rating: 1 }];
+		return [...qualities, { ...added, rating: 1, attachmentRatings: [], heldByItem: true }];
 	}
-	if (!qualities[index].isRated) {
+	if (!qualities[index].isRated && qualities[index].heldByItem) {
 		return undefined;
 	}
 
-	return qualities.map((quality, i) => (i === index ? { ...quality, rating: quality.rating + 1 } : quality));
+	return qualities.map((quality, i) => (i === index ? { ...quality, rating: quality.rating + 1, heldByItem: true } : quality));
 }
 
 /**
@@ -98,12 +99,20 @@ type QualitiesHolder = {
 };
 
 /**
+ * The qualities of each of an item's profiles: its main one first, then its extra Weapon Profiles. A single profile
+ * without any for an item that holds no qualities.
+ */
+export function profilesQualities(system: object): (readonly ContainedItemQuality[])[] {
+	const holder = system as QualitiesHolder;
+	return [holder.qualities ?? [], ...(holder.extraProfiles ?? []).map((profile) => profile.qualities)];
+}
+
+/**
  * Every quality of an item: those of its main profile, then those of its extra Weapon Profiles. None for an item that
  * holds no qualities.
  */
 export function itemQualities(system: object): ContainedItemQuality[] {
-	const holder = system as QualitiesHolder;
-	return [...(holder.qualities ?? []), ...(holder.extraProfiles ?? []).flatMap((profile) => profile.qualities)];
+	return profilesQualities(system).flat();
 }
 
 /**
@@ -149,12 +158,12 @@ export function isOutrankedQualityEffect(effect: TaggedEffect, system: object | 
 }
 
 /**
- * What a weapon or an armor copies of a quality item dropped on it, but its rating, under the id given.
+ * What a weapon, an armor or an attachment copies of a quality item dropped on it, but its rating, under the id given.
  */
 export function qualityCopy(
 	id: string,
 	{ name, system }: { name: string; system: Pick<ContainedItemQuality, 'description' | 'activation' | 'advantageCost' | 'isRated'> },
-): Omit<ContainedItemQuality, 'rating'> {
+): Omit<ContainedItemQuality, 'rating' | 'attachmentRatings' | 'heldByItem'> {
 	return {
 		id,
 		name,

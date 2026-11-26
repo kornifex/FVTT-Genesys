@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
+import type { AttachmentRating, ContainedItemQuality } from '@/item/data/BaseWeaponDataModel';
 import {
 	effectQuality,
 	isOutrankedQualityEffect,
@@ -18,7 +18,7 @@ import {
 	withQualityRating,
 } from '@/item/data/Qualities';
 
-const quality = (name: string, rating = 1, isRated = true): ContainedItemQuality => ({
+const quality = (name: string, rating = 1, isRated = true, attachmentRatings: AttachmentRating[] = []): ContainedItemQuality => ({
 	id: name.toLowerCase(),
 	name,
 	description: `<p>${name}.</p>`,
@@ -26,10 +26,16 @@ const quality = (name: string, rating = 1, isRated = true): ContainedItemQuality
 	advantageCost: 2,
 	isRated,
 	rating,
+	attachmentRatings,
+	heldByItem: true,
 });
 
 // A quality item dropped on a weapon or an armor, as the item copies it.
-const dropped = (name: string, isRated = true, description = `<p>${name}.</p>`): Omit<ContainedItemQuality, 'rating'> => ({
+const dropped = (
+	name: string,
+	isRated = true,
+	description = `<p>${name}.</p>`,
+): Omit<ContainedItemQuality, 'rating' | 'attachmentRatings' | 'heldByItem'> => ({
 	id: name.toLowerCase(),
 	name,
 	description,
@@ -65,6 +71,19 @@ describe('withQualityAdded', () => {
 
 	it('changes nothing when the item already has the quality and the quality is not rated', () => {
 		expect(withQualityAdded([quality('Accurate', 1, false)], dropped('Accurate', false, ''))).toBeUndefined();
+	});
+
+	it('makes the item hold an unrated quality that only its attachments gave it, which removing them then leaves', () => {
+		const given = { ...quality('Superior', 1, false, [{ attachment: 'a1', rating: 1 }]), heldByItem: false };
+
+		expect(withQualityAdded([given], dropped('Superior', false))).toEqual([{ ...given, rating: 2, heldByItem: true }]);
+		expect(withQualityAdded([{ ...given, rating: 2, heldByItem: true }], dropped('Superior', false))).toBeUndefined();
+	});
+
+	it('makes the item hold a rated quality that only its attachments gave it, raising it by 1', () => {
+		const given = { ...quality('Pierce', 1, true, [{ attachment: 'a1', rating: 1 }]), heldByItem: false };
+
+		expect(withQualityAdded([given], dropped('Pierce'))).toEqual([{ ...given, rating: 2, heldByItem: true }]);
 	});
 });
 

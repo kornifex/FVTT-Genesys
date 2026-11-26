@@ -13,7 +13,7 @@ import { confirmDelete } from '@/operations/ItemActions';
 import { addQualityEffect } from '@/operations/QualityEffects';
 
 /**
- * The qualities of a weapon's profile or of an armor, each with its rating and its removal, which open to edit the
+ * The qualities of a weapon's profile, an armor or an attachment, each with its rating and its removal, which open to edit the
  * quality in full: its activation, the Advantage an active one costs, its description, and an effect to add to it, which
  * the item's Effects tab lists. Each change goes to `onChange` as the new list.
  */
@@ -21,7 +21,7 @@ const props = defineProps<{
 	qualities: readonly ContainedItemQuality[];
 	/**
 	 * The path of the list in the item's data, which the descriptions' editors read: `system.qualities` for a weapon's
-	 * main profile or an armor.
+	 * main profile, an armor or an attachment.
 	 */
 	path: string;
 	/**
@@ -31,7 +31,7 @@ const props = defineProps<{
 	onChange: (qualities: ContainedItemQuality[]) => unknown;
 }>();
 
-const { document: item } = useSheetDocument<GenesysItem<'weapon' | 'vehicleWeapon' | 'armor'>>();
+const { document: item } = useSheetDocument<GenesysItem<'weapon' | 'vehicleWeapon' | 'armor' | 'attachment'>>();
 const id = useId();
 
 const ACTIVATION_LABELS = { passive: 'Genesys.Labels.Passive', active: 'Genesys.Labels.Active' } as const satisfies Record<

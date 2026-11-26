@@ -32,6 +32,7 @@ import { medicineHealPart } from './dicePrompt/medicineHeal.ts';
 import { recoveryPart } from './dicePrompt/recovery.ts';
 import { qualityEffectsPart } from './dicePrompt/qualityEffects.ts';
 import { attachmentsPart } from './dicePrompt/attachments.ts';
+import { attachmentQualitiesPart } from './dicePrompt/attachmentQualities.ts';
 import { qualityAttachmentDescriptionsPart } from './dicePrompt/qualityAttachmentDescriptions.ts';
 import { spellCastingPart } from './dicePrompt/spellCasting.ts';
 import { repeatableEffectsPart } from './dicePrompt/repeatableEffects.ts';
@@ -303,6 +304,10 @@ export async function run(e2e: ScenarioContext) {
 	await part('qualityEffects', () => qualityEffectsPart(context));
 
 	await part('attachments', () => attachmentsPart(context));
+
+	// K: the qualities an attachment gives every profile of the weapon or the armor it is installed on, or raises, and
+	// takes back when it is removed (§#927, §#952, CRB pp. 206–209).
+	await part('attachmentQualities', () => attachmentQualitiesPart(context));
 
 	// D: a Pool Modification of a quality or an attachment shows its description, where an effect written on the weapon
 	// links to it (§#768).

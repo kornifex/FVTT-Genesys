@@ -9,7 +9,7 @@ const i18n = {
 };
 
 // What a quality copy holds besides its name, description and rating.
-const copy = { id: 'q1', activation: 'passive' as const, advantageCost: 2 };
+const copy = { id: 'q1', activation: 'passive' as const, advantageCost: 2, attachmentRatings: [], heldByItem: true };
 
 describe('chatCard', () => {
 	it("gives an ability's card its activation, without tier or rank", () => {
