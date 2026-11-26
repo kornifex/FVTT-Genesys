@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.2](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.1...v0.8.2) (2026-11-26)
+
+
+### Bug Fixes
+
+* **i18n:** add 0.8.2's French label fixes to the welcome message ([#950](https://github.com/kornifex/FVTT-Genesys/issues/950)) ([949cc8a](https://github.com/kornifex/FVTT-Genesys/commit/949cc8a390a4ead087cca4a1701a0df56526f671))
+* **i18n:** name French Wearable Gear after the Equipped state and keep « Porté » for Carried ([#947](https://github.com/kornifex/FVTT-Genesys/issues/947)) ([2d2ab13](https://github.com/kornifex/FVTT-Genesys/commit/2d2ab13b1f5cfa0671bb6b1425e3526e00a7abe9))
+* **i18n:** name the French Carried state « Transporté » and accent « Équipé » ([#945](https://github.com/kornifex/FVTT-Genesys/issues/945)) ([e2e67a7](https://github.com/kornifex/FVTT-Genesys/commit/e2e67a72ff93f41581f0fdde4e2e8162a5d0d058))
+
+
+### Documentation
+
+* add 0.8.0's changes to the README's What's new since the fork ([#942](https://github.com/kornifex/FVTT-Genesys/issues/942)) ([84775ce](https://github.com/kornifex/FVTT-Genesys/commit/84775ce170df818e4970b789c91fa5277126ec90))
+
 ## [0.8.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.0...v0.8.1) (2026-11-25)
 
 
