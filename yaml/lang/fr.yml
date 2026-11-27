@@ -506,7 +506,7 @@ Genesys:
       Title: Retirer l'archétype
       Content: >-
         Retirer {name} reprend les caractéristiques, les seuils de blessures et de stress et l'XP de départ qu'il a donnés,
-        supprime les objets qu'il a accordés et baisse d'un rang chaque compétence qu'il a accordée ou choisie pour lui.
+        supprime les objets qu'il a accordés et baisse d'un rang chaque compétence qu'il a accordée ou qui a été choisie pour lui.
         Voulez-vous continuer ?
     ConfirmRemoveCareer:
       Title: Retirer la carrière
