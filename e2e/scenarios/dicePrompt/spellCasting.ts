@@ -60,6 +60,12 @@ export async function spellCastingPart(ctx: DicePromptContext) {
 		},
 	);
 
+	e2e.expect(
+		"#985 S1 in the dark theme, an Additional Effect's Difficulty dice are outlined as the Difficulty row's dice, in white",
+		await gm.evaluate(() => window.dicePromptE2E.promptDarkOutlines()),
+		{ difficultyDie: '0.5px rgb(255, 255, 255)', spellEffect: '0.5px rgb(255, 255, 255)' },
+	);
+
 	// What hovering an element with the mouse shows as a tooltip.
 	const hovered = async (selector: string, index: number) => {
 		await gm.page.locator(selector).nth(index).hover();

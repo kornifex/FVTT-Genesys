@@ -235,6 +235,11 @@ type DicePromptHelpers = {
 	promptModificationLooks(): { row: 'spend' | 'manual'; modification: string; font: string; color: string; arrow: string }[];
 	/** The theme the prompt is shown in: the nearest one Foundry set on it or on an ancestor. */
 	promptTheme(): 'light' | 'dark';
+	/**
+	 * The computed outline (`-webkit-text-stroke`) of the Dice Prompt's first Difficulty die and of its first Additional
+	 * Effect's glyph, read with the prompt in the dark theme, whose theme is then restored.
+	 */
+	promptDarkOutlines(): { difficultyDie: string; spellEffect: string };
 	/** The Additional Effects of a spell's prompt, its difficulty's label and its pool. */
 	promptSpellEffects(): PromptSpellEffects;
 	/** Clicks an Additional Effect's checkbox, by its label. */
@@ -974,6 +979,20 @@ export function installDicePromptHelpers() {
 			// Foundry always sets a theme on `body` (`Game#configureUI`), so an ancestor carries one.
 			const themed = htmlOf(thePrompt())!.closest('.theme-light, .theme-dark')!;
 			return themed.classList.contains('theme-dark') ? 'dark' : 'light';
+		},
+
+		promptDarkOutlines() {
+			const root = htmlOf(thePrompt())!;
+			const themed = root.closest('.theme-light, .theme-dark')!;
+			const theme = themed.classList.contains('theme-dark') ? 'theme-dark' : 'theme-light';
+			themed.classList.replace(theme, 'theme-dark');
+			const outline = (selector: string) => getComputedStyle(root.querySelector(selector)!).webkitTextStroke;
+			const outlines = {
+				difficultyDie: outline('.pool-modifications-difficulty .difficulty-die-Difficulty'),
+				spellEffect: outline('.spell-effect .glyph'),
+			};
+			themed.classList.replace('theme-dark', theme);
+			return outlines;
 		},
 
 		promptSpellEffects() {

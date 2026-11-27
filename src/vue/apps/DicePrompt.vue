@@ -1144,10 +1144,13 @@ $target-size: 24px;
 		color: colors.$text-muted;
 	}
 
-	// The Difficulty dice an Additional Effect adds, in their colour, lowered as a modification's glyph is.
+	// The Difficulty dice an Additional Effect adds, in their colour and with the Difficulty row's outline, which keeps
+	// them apart from the dark theme's paper; lowered as a modification's glyph is.
 	.spell-effect .glyph {
 		font-family: 'Genesys Symbols', sans-serif;
-		color: colors.$die-difficulty;
+		@include dice.glyph('difficulty');
+		-webkit-text-stroke-width: 0.5px;
+		text-stroke-width: 0.5px;
 		vertical-align: onto-capitals(1);
 		line-height: 1;
 	}
