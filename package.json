@@ -1,6 +1,6 @@
 {
 	"name": "genesys",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Unofficial implementation of the Genesys RPG for Foundry",
 	"repository": "https://github.com/kornifex/FVTT-Genesys",
 	"author": "kornifex",
