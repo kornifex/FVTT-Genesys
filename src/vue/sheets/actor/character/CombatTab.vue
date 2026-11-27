@@ -260,6 +260,11 @@ function skillForProfile(profile: WeaponProfile): { name: string; skill?: Genesy
 
 	.weapon {
 		grid-template-columns: 1.5rem 2fr 1fr repeat(3, 80px);
+
+		// Skill names differ in length: ending every skill cell on the same edge lines up the dice pools below each other.
+		& > .skill {
+			justify-self: end;
+		}
 	}
 
 	.toggles {
