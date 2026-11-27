@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.0.0](https://github.com/kornifex/FVTT-Genesys/compare/v1.0.0-rc.2...v1.0.0) (2026-11-27)
+
+
+### Features
+
+* **effects:** add the strain a Medicine check heals through genesys.healing.strain ([#986](https://github.com/kornifex/FVTT-Genesys/issues/986)) ([93b2590](https://github.com/kornifex/FVTT-Genesys/commit/93b2590058a3aad4f365a05109e5a1a570f57bd1))
+
+
+### Bug Fixes
+
+* **dice:** outline an Additional Effect's Difficulty dice as the Difficulty row's ([#987](https://github.com/kornifex/FVTT-Genesys/issues/987)) ([c3f468a](https://github.com/kornifex/FVTT-Genesys/commit/c3f468a1dcbefb3c80b3acda68036daa4ea3f37d))
+* **i18n:** summarize 1.0.0's changes since 0.8.2 in the welcome message ([#989](https://github.com/kornifex/FVTT-Genesys/issues/989)) ([1658556](https://github.com/kornifex/FVTT-Genesys/commit/16585565443fc01aad70469643c4fc134156f9e6))
+
+
+### Continuous Integration
+
+* set the next release to 1.0.0 ([#988](https://github.com/kornifex/FVTT-Genesys/issues/988)) ([2768295](https://github.com/kornifex/FVTT-Genesys/commit/2768295cf4b193d6e2a70e63f84c6e0db4246b04))
+
+
+### Tests
+
+* key the e2e baseline cache on a scenario's part files too ([#982](https://github.com/kornifex/FVTT-Genesys/issues/982)) ([3bae18d](https://github.com/kornifex/FVTT-Genesys/commit/3bae18ded49d119315e6d0596fb06f3fbc8158d1))
+
 ## [1.0.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-11-27)
 
 
