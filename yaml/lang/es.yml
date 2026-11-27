@@ -535,22 +535,16 @@ Genesys:
       ¡Hola, y gracias por jugar con el sistema Genesys! Estos son los principales cambios de esta versión; los enlaces de
       abajo llevan a su documentación y al lugar donde informar de un error.
     Updates: Correcciones y novedades
-    Feature: NOVEDAD
     Fix: CORRECCIÓN
-    AttachmentQualities: >-
-      Las propiedades de un accesorio, como las de una runa, pasan al arma o a la armadura en la que está instalado, con
-      sus efectos
-    WeaponAttacksOnly: >-
-      El efecto propio de un arma puede contar solo para sus ataques: marca «Solo los ataques de esta arma» en la hoja del
-      efecto
-    UpToRank: >-
-      Un talento como Rapid Reaction puede contar sus efectos hasta su rango: con «Hasta el rango», la reserva de dados
-      pregunta cuántas veces
-    InitiativeAndRecovery: >-
-      Un efecto puede modificar las tiradas de iniciativa, las heridas curadas por una noche de descanso, y la tensión y
-      las heridas recuperadas al final del encuentro
-    UnrankedTalentChanges: >-
-      Las modificaciones numéricas y de ataque de un talento sin rangos cuentan una vez, sea cual sea el rango que conservó
+    Styling: ESTILO
+    AttackPoolsAligned: >-
+      En la pestaña Combate, las reservas de dados de los ataques se alinean en un mismo borde, y las filas ya no tocan
+      sus líneas
+    FrenchArchetypeRemoval: En francés, al quitar un arquetipo se dice que las habilidades se eligieron para él
+    AttackChangesApart: >-
+      En la reserva de dados, las modificaciones de ataque de un mismo efecto ya no se leen pegadas
+    CounterPlusClear: En la reserva de dados, el + de un contador ya no tapa el nombre de su fila
+    EffectKeysWhole: En la hoja de un efecto, la clave de cada cambio se lee entera, en todos los idiomas
     ReleaseNotes: Todos los cambios de la {version}
     UsefulLinks: Enlaces útiles
     Documentation: Documentación del proyecto
