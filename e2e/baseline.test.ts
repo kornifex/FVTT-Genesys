@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { baselineFile, baselineSteps, cacheable, mergeBaseline, planBase } from './baseline.ts';
+import { baselineFile, baselineSteps, cacheable, mergeBaseline, planBase, scenarioSources } from './baseline.ts';
 import { fatalStep } from './steps.ts';
 
 const steps = [
@@ -111,5 +113,45 @@ describe('baselineFile', () => {
 
 	it('tells the sources apart where they meet', () => {
 		expect(baselineFile('/work', { ...key, sources: ['ab', 'c'] })).not.toBe(baselineFile('/work', { ...key, sources: ['a', 'bc'] }));
+	});
+});
+
+describe('scenarioSources', () => {
+	let dir: string;
+
+	beforeEach(() => {
+		dir = fs.mkdtempSync(path.join(os.tmpdir(), 'genesys-baseline-'));
+	});
+
+	afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+	const baselineOf = (scenario: string) =>
+		baselineFile('/work', {
+			commit: 'dda7e26ab',
+			version: 14,
+			scenario: 'sheets',
+			sources: [...scenarioSources(scenario), 'harness source'],
+		});
+
+	it('gives the source of a scenario without parts', () => {
+		const scenario = path.join(dir, 'combat.ts');
+		fs.writeFileSync(scenario, 'scenario source');
+
+		expect(scenarioSources(scenario)).toEqual(['scenario source']);
+	});
+
+	it('moves two runs whose part files differ to different baseline files', () => {
+		const scenario = path.join(dir, 'sheets.ts');
+		fs.writeFileSync(scenario, 'scenario source');
+		fs.mkdirSync(path.join(dir, 'sheets'));
+		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source');
+		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source');
+		const before = baselineOf(scenario);
+
+		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source, edited');
+		const partEdited = baselineOf(scenario);
+		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source, edited');
+
+		expect(new Set([before, partEdited, baselineOf(scenario)]).size).toBe(3);
 	});
 });
