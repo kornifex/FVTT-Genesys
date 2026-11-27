@@ -42,10 +42,11 @@ describe('CHANGE_KEYS', () => {
 		expect(careerKeys).toEqual(['genesys.careerSkill']);
 	});
 
-	it("offers the keys of the wounds a Medicine check heals, of the wounds a night's rest heals, and of the strain and wounds the end of an encounter recovers", () => {
+	it("offers the keys of the wounds and strain a Medicine check heals, of the wounds a night's rest heals, and of the strain and wounds the end of an encounter recovers", () => {
 		const healingKeys = CHANGE_KEYS.find(({ group }) => group === 'Genesys.Recovery.Effects.GroupLabel')?.keys.map(({ key }) => key);
 		expect(healingKeys).toEqual([
 			'genesys.healing.wounds',
+			'genesys.healing.strain',
 			'genesys.healing.rest.wounds',
 			'genesys.healing.encounterEnd.strain',
 			'genesys.healing.encounterEnd.wounds',

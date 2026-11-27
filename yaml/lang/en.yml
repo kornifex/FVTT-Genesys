@@ -418,6 +418,7 @@ Genesys:
     Effects:
       GroupLabel: Modify Healing
       MedicineWounds: Wounds Healed by a Medicine Check
+      MedicineStrain: Strain Recovered by a Medicine Check
       RestWounds: Wounds Healed by a Night's Rest
       EncounterEndStrain: Strain Recovered at the End of an Encounter
       EncounterEndWounds: Wounds Healed at the End of an Encounter

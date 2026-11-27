@@ -1,7 +1,7 @@
 /**
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
  * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
- * (CRB p. 116), with the wounds its healer's effects add (CRB p. 74), and the Heal spell cast in its place (CRB p. 217);
+ * (CRB p. 116), with the wounds and strain its healer's effects add (CRB p. 74), and the Heal spell cast in its place (CRB p. 217);
  * the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117), with what the
  * effects of the character who recovers add to them.
  */
@@ -26,12 +26,14 @@ type RecoveryResults = { netSuccess: number; netAdvantage: number };
 
 /**
  * The keys of the effect changes that add to what a recovery heals, read from the effects of the actor named: the
- * wounds their Medicine checks heal, such as Surgeon's (CRB p. 74); the wounds a night's rest heals them on top of its
- * one, as Apothecary does when the table puts it on the patient (RoT p. 84); the strain the check they make at the end
- * of an encounter recovers on top of its Successes, and the wounds it heals. Their value is a whole number.
+ * wounds their Medicine checks heal, such as Surgeon's (CRB p. 74), and the strain they heal on top of their Advantages
+ * (#984); the wounds a night's rest heals them on top of its one, as Apothecary does when the table puts it on the
+ * patient (RoT p. 84); the strain the check they make at the end of an encounter recovers on top of its Successes, and
+ * the wounds it heals. Their value is a whole number.
  */
 export const HEALING_CHANGE_KEYS = {
 	medicineWounds: 'genesys.healing.wounds',
+	medicineStrain: 'genesys.healing.strain',
 	restWounds: 'genesys.healing.rest.wounds',
 	encounterEndStrain: 'genesys.healing.encounterEnd.strain',
 	encounterEndWounds: 'genesys.healing.encounterEnd.wounds',
@@ -90,14 +92,14 @@ function healingBonus(actor: RecoveryActor | undefined, healingKey: HealingChang
 
 /**
  * A Medicine check heals a wound per Success and a strain per Advantage, once it succeeds (CRB p. 116), and the wounds
- * its healer's bonus adds (CRB p. 74), never fewer than none.
+ * and the strain its healer's bonus adds (CRB p. 74, #984), never fewer than none.
  */
-function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults, woundsBonus: number): Healed {
+function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults, bonus: Healed): Healed {
 	if (netSuccess <= 0) {
 		return { wounds: 0, strain: 0 };
 	}
 
-	return { wounds: Math.max(netSuccess + woundsBonus, 0), strain: Math.max(netAdvantage, 0) };
+	return { wounds: Math.max(netSuccess + bonus.wounds, 0), strain: Math.max(Math.max(netAdvantage, 0) + bonus.strain, 0) };
 }
 
 /**
@@ -124,13 +126,21 @@ type RecoveryRuleDefinition = {
  */
 const RECOVERY_RULES = {
 	medicine: {
-		heal: (results, healer) => medicineHealing(results, healingBonus(healer, HEALING_CHANGE_KEYS.medicineWounds)),
+		heal: (results, healer) =>
+			medicineHealing(results, {
+				wounds: healingBonus(healer, HEALING_CHANGE_KEYS.medicineWounds),
+				strain: healingBonus(healer, HEALING_CHANGE_KEYS.medicineStrain),
+			}),
 		label: 'Genesys.Recovery.CardLabel',
 		healsWounds: () => true,
 	},
 	// A Heal spell is cast in place of a Medicine check, and heals as one does on success (CRB p. 217); it is no Medicine
 	// check, which a healer's bonus adds to (CRB p. 74).
-	healSpell: { heal: (results) => medicineHealing(results, 0), label: 'Genesys.Recovery.CardLabel', healsWounds: () => true },
+	healSpell: {
+		heal: (results) => medicineHealing(results, { wounds: 0, strain: 0 }),
+		label: 'Genesys.Recovery.CardLabel',
+		healsWounds: () => true,
+	},
 	// The character who makes it recovers themselves: the bonus is their own. Its wounds show only when their effects heal
 	// some, which they do whatever the results.
 	endOfEncounter: {

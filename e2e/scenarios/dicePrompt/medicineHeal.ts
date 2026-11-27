@@ -209,6 +209,42 @@ export async function medicineHealPart(ctx: DicePromptContext) {
 		{ results: 's s', summaries: ['s Successes 2', 'Wounds 3 Strain 0'], health: { wounds: 3, strain: 0 } },
 	);
 
+	// §#984: an effect of Cy's that adds two strain adds to the strain Cy's Medicine checks heal, on top of the Advantage.
+	await update({ actor: 'Bo' }, { system: { wounds: { value: 6, max: 12 }, strain: { value: 4, max: 10 } } });
+	await gm.evaluate(async () => {
+		await window.e2e.actor('Cy').createEmbeddedDocuments('Item', [
+			{
+				name: 'E2E Soothing Hands',
+				type: 'talent',
+				effects: [
+					{ name: 'E2E Soothing Hands', system: { changes: [{ key: 'genesys.healing.strain', value: '2', type: 'custom' }] } },
+				],
+			},
+		]);
+		await window.e2e.settle();
+	});
+	await opened(player, async () => {
+		await heal(player)();
+		await patientPrompt(player, 'Bo');
+	});
+	// Ability dice on a Success and an Advantage, then a blank face; the Difficulty die on a blank face.
+	await player.fixDice([
+		{ face: 7, faces: 8 },
+		{ face: 1, faces: 8 },
+		{ face: 1, faces: 8 },
+	]);
+	const soothed = await player.evaluate(() => window.dicePromptE2E.promptRoll());
+	await recoveryButton(player, soothed.id, true);
+	await gm.evaluate(async () => {
+		await window.e2e.actor('Cy').items.getName('E2E Soothing Hands').delete();
+		await window.e2e.settle();
+	});
+	e2e.expect(
+		'#984 H11 Cy, whose effect adds two strain to their Medicine checks, heals Bo: the card heals a strain per Advantage and two more, and Apply heals them',
+		{ results: soothed.results, summaries: soothed.summaries, health: await health('Bo') },
+		{ results: 's a', summaries: ['s Successes 1 a Advantage 1', 'Wounds 1 Strain 3'], health: { wounds: 5, strain: 1 } },
+	);
+
 	// A world whose Skills Compendium names the healing skill otherwise (§#756): the Heal button follows its « Heals wounds » box.
 	await gm.evaluate(async () => {
 		const pack = await window.e2e.createCompendium({ label: 'E2E Healing Skills', name: 'e2e-healing-skills', type: 'Item' });
