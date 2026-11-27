@@ -253,6 +253,9 @@ function changeTypeChoices(changes: EditedChange[]) {
 export class GenesysEffectSheetV2 extends foundry.applications.sheets.ActiveEffectConfig {
 	static override DEFAULT_OPTIONS = {
 		classes: ['effect-sheet-v2'],
+		// Wider than Foundry's 560 px, so that the longest keys' labels read whole in the Changes tab's key select, as
+		// « 👇 Strain Recovered at the End of an Encounter » or « 👇 Heridas curadas por una noche de descanso » (#974).
+		position: { width: 640 },
 	};
 
 	static override PARTS = {

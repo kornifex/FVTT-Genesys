@@ -229,6 +229,11 @@ export type SheetsHelpers = {
 		submit(owner: string): Promise<void>;
 		/** Each change's key, mode (v14: type) and value, as stored. */
 		changes(owner: string): ChangeRow[];
+		/**
+		 * The open sheet's width, in px; how many px each key's label needs beyond the first change's key select, 0 when it
+		 * reads whole there; and the width of that change's Value and Priority fields.
+		 */
+		keysFit(owner: string): { width: number; keys: { value: string; label: string; cut: number }[]; value: number; priority: number };
 	};
 	setLanguage(lang: string): Promise<void>;
 	effectRows(name: string): EffectRow[];
@@ -1152,6 +1157,42 @@ export function installSheetsHelpers() {
 					change.type,
 					change.value,
 				]);
+			},
+
+			keysFit(owner) {
+				const app = editedEffect(owner).sheet;
+				// The sheet opens on its Details tab: the Changes tab, hidden, would measure 0. The tab shown before is shown
+				// again after.
+				const shown = app.tabGroups.sheet;
+				app.changeTab('changes', 'sheet');
+				// The steps measure a sheet `open` rendered, whose first change has a key, a value and a priority.
+				const element = htmlOf(app)!;
+				const field = (name: string) => element.querySelector<HTMLElement>(`[name$="changes.0.${name}"]`)!;
+				const key = field('key') as HTMLSelectElement;
+				// A copy of the key's select, beside it and in its styles, holding one option and shrunk to what that option
+				// needs: the arrow and the padding a select draws around its text included.
+				const probe = key.cloneNode(false) as HTMLSelectElement;
+				probe.removeAttribute('name');
+				Object.assign(probe.style, { width: 'auto', position: 'absolute', visibility: 'hidden' });
+				key.after(probe);
+				const keys = [...key.querySelectorAll('optgroup option')].map((option) => {
+					probe.replaceChildren(new Option(option.textContent ?? ''));
+					return {
+						value: (option as HTMLOptionElement).value,
+						label: text(option),
+						cut: Math.max(0, Math.ceil(probe.offsetWidth - key.offsetWidth)),
+					};
+				});
+				probe.remove();
+				const fit = {
+					// The sheet opens at its default width, a number of px rather than `auto`.
+					width: app.position.width as number,
+					keys,
+					value: field('value').offsetWidth,
+					priority: field('priority').offsetWidth,
+				};
+				app.changeTab(shown, 'sheet');
+				return fit;
 			},
 		},
 

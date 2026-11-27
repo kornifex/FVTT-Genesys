@@ -40,6 +40,8 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		values: keyValues,
 	});
 	const state = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Hero'));
+	// §#974: what the keys' labels need of the key select, in each language, at the sheet's default width.
+	const english = await gm.evaluate(() => window.sheetsE2E.effectSheet.keysFit('Hero'));
 	e2e.expect(
 		'#85 A1 the effect sheet renders from its template',
 		state.template,
@@ -254,6 +256,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		}),
 	);
 	const french = await gm.evaluate(() => window.sheetsE2E.effectSheet.state('Bearer/Charm'));
+	const frenchFit = await gm.evaluate(() => window.sheetsE2E.effectSheet.keysFit('Bearer/Charm'));
 	e2e.expect(
 		"#140 A3 in French, the dice pool characteristic select shows the characteristics' French names sorted in French",
 		french.charSelect,
@@ -307,6 +310,31 @@ export async function effectSheetPart(ctx: SheetsContext) {
 		"#85 A3 the edited changes of an item's effect are saved",
 		await gm.evaluate(() => window.sheetsE2E.effectSheet.changes('Bearer/Charm')),
 		editedChanges,
+	);
+	await e2e.step('#974 GM opens the effect sheet in Spanish', () =>
+		gm.evaluate(async () => {
+			await window.sheetsE2E.closeAll();
+			await window.sheetsE2E.setLanguage('es');
+			await window.sheetsE2E.effectSheet.open('Bearer/Charm');
+		}),
+	);
+	const fits = {
+		en: english,
+		fr: frenchFit,
+		es: await gm.evaluate(() => window.sheetsE2E.effectSheet.keysFit('Bearer/Charm')),
+	};
+	const readsWhole = ({ width, keys, value, priority }: (typeof fits)['en']) => ({
+		width,
+		cut: keys.filter(({ cut }) => cut > 0),
+		// Room for a Pool Modification of a few glyphs, and for a priority of three digits.
+		valueUsable: value >= 64,
+		priorityUsable: priority >= 40,
+	});
+	const whole = { width: 640, cut: [], valueUsable: true, priorityUsable: true };
+	e2e.expect(
+		'#974 A1 at the default width, every key reads whole in its select, in English, French and Spanish, beside a usable Value and Priority',
+		{ en: readsWhole(fits.en), fr: readsWhole(fits.fr), es: readsWhole(fits.es) },
+		{ en: whole, fr: whole, es: whole },
 	);
 	await gm.evaluate(async () => {
 		await window.sheetsE2E.closeAll();

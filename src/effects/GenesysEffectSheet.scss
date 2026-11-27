@@ -156,4 +156,13 @@
 	.show-it {
 		display: inherit;
 	}
+
+	// Foundry lays the Changes tab out in fixed columns (12rem 7rem 7rem 4rem 1rem), where the key select cut the longer
+	// keys' labels, « 👇 Crítico: ataque cuerpo a cuerpo » by 52 px (#974). The key takes the room left by the others, whose
+	// values are short: a few glyphs or digits, and a priority of up to three digits. It keeps Foundry's 12rem at least,
+	// which a larger interface font would otherwise take from it, the window keeping its width.
+	.tab.changes header,
+	.tab.changes ol {
+		grid-template-columns: /* Key */ minmax(12rem, 1fr) /* Type */ 7rem /* Value */ 4rem /* Priority */ 3rem /* Controls */ 1rem;
+	}
 }
