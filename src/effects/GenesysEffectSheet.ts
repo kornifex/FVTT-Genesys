@@ -178,11 +178,13 @@ export const CHANGE_KEYS: { group: string; keys: ChangeKey[] }[] = [
 		],
 	},
 	{
-		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74), to the wounds
-		// their night's rest heals, and to the strain and wounds the check they make at the end of an encounter recovers.
+		// What the effect's actor adds to the wounds their Medicine checks heal, as Surgeon does (CRB p. 74), and to the
+		// strain they heal, to the wounds their night's rest heals, and to the strain and wounds the check they make at the
+		// end of an encounter recovers.
 		group: 'Genesys.Recovery.Effects.GroupLabel',
 		keys: [
 			{ key: HEALING_CHANGE_KEYS.medicineWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineWounds' },
+			{ key: HEALING_CHANGE_KEYS.medicineStrain, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.MedicineStrain' },
 			{ key: HEALING_CHANGE_KEYS.restWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.RestWounds' },
 			{ key: HEALING_CHANGE_KEYS.encounterEndStrain, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.EncounterEndStrain' },
 			{ key: HEALING_CHANGE_KEYS.encounterEndWounds, appliesTo: SELF_GLYPH, label: 'Genesys.Recovery.Effects.EncounterEndWounds' },
