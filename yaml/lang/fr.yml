@@ -540,23 +540,16 @@ Genesys:
       Bonjour, et merci de jouer avec le système Genesys ! Voici les principaux changements de cette version ; les liens
       plus bas mènent à sa documentation et à l'endroit où signaler un bug.
     Updates: Corrections et nouveautés
-    Feature: NOUVEAUTÉ
     Fix: CORRECTIF
-    AttachmentQualities: >-
-      Les attributs d'une amélioration, comme ceux d'une rune, passent à l'arme ou à l'armure où elle est installée, avec
-      leurs effets
-    WeaponAttacksOnly: >-
-      L'effet propre d'une arme peut ne compter que pour ses attaques : cochez « Attaques de cette arme seulement » sur la
-      fiche de l'effet
-    UpToRank: >-
-      Un talent comme Rapid Reaction peut compter ses effets jusqu'à son rang : avec « Jusqu'au rang », la réserve de dés
-      demande combien de fois
-    InitiativeAndRecovery: >-
-      Un effet peut modifier les tests d'initiative, les blessures soignées par une nuit de repos, et le stress et les
-      blessures récupérés en fin de rencontre
-    UnrankedTalentChanges: >-
-      Les modifications chiffrées et les modifications d'attaque d'un talent sans rang comptent une fois, quel que soit le
-      rang qu'il a gardé
+    Styling: STYLE
+    AttackPoolsAligned: >-
+      Dans l'onglet Combat, les réserves de dés des attaques s'alignent sur un même bord, et les lignes ne touchent plus
+      leurs filets
+    FrenchArchetypeRemoval: Retirer un archétype dit bien que les compétences ont été choisies pour lui
+    AttackChangesApart: >-
+      Dans la réserve de dés, les modifications d'attaque d'un même effet ne se lisent plus d'un bloc
+    CounterPlusClear: Dans la réserve de dés, le + d'un compteur ne masque plus le nom de sa ligne
+    EffectKeysWhole: Sur la fiche d'un effet, la clé de chaque modification se lit en entier, dans toutes les langues
     ReleaseNotes: Tous les changements de la {version}
     UsefulLinks: Liens utiles
     Documentation: Documentation du projet
