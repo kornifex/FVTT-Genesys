@@ -185,7 +185,7 @@ type EffectRow = {
 	choice: PoolModificationChoice;
 	count: number;
 	mods: string[];
-	attack: string[];
+	attack: ReturnType<typeof attackChangeParts>;
 };
 const effects = ref<EffectRow[]>([]);
 // The − of a row's count shows left of it, past the row's edge: the rows keep room for it, as the Additional Effects' do.
@@ -263,7 +263,7 @@ function resolve(request: CheckRequest<PromptSkill>) {
 		choice: modification.choice,
 		count: modification.count,
 		mods: modification.mods,
-		attack: attackChangeLabels(modification.attack),
+		attack: attackChangeParts(modification.attack),
 	}));
 
 	check.value = resolved;
@@ -304,13 +304,18 @@ const ATTACK_CHANGE_LABELS = {
 } as const satisfies Record<AttackChangeField, string>;
 
 /**
- * What an effect's Attack Changes add to the attack, in words: "+2 Damage".
+ * What an effect's Attack Changes add to the attack, in words, as the parts of a list in the user's language: the
+ * changes, "+2 Damage" and "-1 Critical", are its `element` parts, and the separators between them, ", ", its `literal`
+ * ones.
  */
-function attackChangeLabels(changes: AttackChanges = {}) {
-	return ATTACK_CHANGE_FIELDS.flatMap((field) => {
+function attackChangeParts(changes: AttackChanges = {}) {
+	const labels = ATTACK_CHANGE_FIELDS.flatMap((field) => {
 		const value = changes[field];
 		return value ? [game.i18n.format(ATTACK_CHANGE_LABELS[field], { value: signed(value) })] : [];
 	});
+	// The narrow list, as the Pool Modifications' card lists its effects: commas, without the closing "and" of English
+	// and French.
+	return game.i18n.getListFormatter({ style: 'narrow' }).formatToParts(labels);
 }
 
 /**
@@ -655,9 +660,10 @@ const spendId = useId();
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
-						<!-- A comma parts two changes of one effect, which would otherwise read as one: « +2 Damage-1 Critical ». -->
+						<!-- The language's list separator parts two changes of one effect, which would otherwise read as one:
+						« +2 Damage-1 Critical ». -->
 						<!-- prettier-ignore -->
-						<template v-for="(change, index) in effect.attack" :key="change"><template v-if="index > 0">, </template><span class="attack-change">{{ change }}</span></template>
+						<template v-for="(part, index) in effect.attack" :key="index"><span v-if="part.type === 'element'" class="attack-change">{{ part.value }}</span><template v-else>{{ part.value }}</template></template>
 					</div>
 				</div>
 				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
@@ -1092,6 +1098,12 @@ $target-size: 24px;
 		}
 
 		.pool-modifications-effects {
+			// A narrow column breaks between two Attack Changes, after their separator, never inside one: « -1 » on a line and
+			// « Critical » on the next would read apart.
+			.attack-change {
+				white-space: nowrap;
+			}
+
 			// The name of what a Pool Modification comes from, as plain text that opens it; not the glyph of a Pool
 			// Modification, which the rules above style.
 			.source-link {
