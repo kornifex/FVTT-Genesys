@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.0-rc.2](https://github.com/kornifex/FVTT-Genesys/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **dice:** keep a count's + off its row's label in the Dice Prompt ([#977](https://github.com/kornifex/FVTT-Genesys/issues/977)) ([96ec6a6](https://github.com/kornifex/FVTT-Genesys/commit/96ec6a69495dbe882a071565099491babb41c71e))
+* **dice:** part two Attack Changes of one effect in the Dice Prompt ([#976](https://github.com/kornifex/FVTT-Genesys/issues/976)) ([df78d83](https://github.com/kornifex/FVTT-Genesys/commit/df78d834538c2c6832fd1257e590001d696b8a2d))
+* **effects:** read every key whole in the effect sheet's Changes tab ([#978](https://github.com/kornifex/FVTT-Genesys/issues/978)) ([28c34b7](https://github.com/kornifex/FVTT-Genesys/commit/28c34b776cc21317af5f53f2cef4c7377d8c69ef))
+* **i18n:** say in French that the Archetype's skills were chosen for it ([#975](https://github.com/kornifex/FVTT-Genesys/issues/975)) ([b2075ef](https://github.com/kornifex/FVTT-Genesys/commit/b2075efb3e4e8c742d4caa143b95d91593a8b53e))
+* **i18n:** summarize 1.0.0-rc.2's changes since 1.0.0-rc.1 in the welcome message ([#981](https://github.com/kornifex/FVTT-Genesys/issues/981)) ([8fb1657](https://github.com/kornifex/FVTT-Genesys/commit/8fb1657f0b1013609056df600b3f0fc97279451f))
+* **ui:** line up the attacks' dice pools and space the Combat tab's rows ([#970](https://github.com/kornifex/FVTT-Genesys/issues/970)) ([6351adb](https://github.com/kornifex/FVTT-Genesys/commit/6351adb6f9f406f01bc58e2d6ee82ce00262a3cd))
+
+
+### Documentation
+
+* make the README easier to scan, with quick links, bold key points and an emoji per change ([#968](https://github.com/kornifex/FVTT-Genesys/issues/968)) ([5651ac3](https://github.com/kornifex/FVTT-Genesys/commit/5651ac32d0b667c250c02707327061d659db2983))
+
+
+### Continuous Integration
+
+* set the next release to 1.0.0-rc.2 ([#980](https://github.com/kornifex/FVTT-Genesys/issues/980)) ([9326a8b](https://github.com/kornifex/FVTT-Genesys/commit/9326a8bf981a6eaf9eaf9691f8659404cee466df))
+
 ## [1.0.0-rc.1](https://github.com/kornifex/FVTT-Genesys/compare/v0.8.2...v1.0.0-rc.1) (2026-11-26)
 
 
