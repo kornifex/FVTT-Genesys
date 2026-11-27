@@ -125,33 +125,33 @@ describe('scenarioSources', () => {
 
 	afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-	const baselineOf = (scenario: string) =>
+	const baselineOf = (scenarioFile: string) =>
 		baselineFile('/work', {
 			commit: 'dda7e26ab',
 			version: 14,
 			scenario: 'sheets',
-			sources: [...scenarioSources(scenario), 'harness source'],
+			sources: [...scenarioSources(scenarioFile), 'harness source'],
 		});
 
 	it('gives the source of a scenario without parts', () => {
-		const scenario = path.join(dir, 'combat.ts');
-		fs.writeFileSync(scenario, 'scenario source');
+		const scenarioFile = path.join(dir, 'combat.ts');
+		fs.writeFileSync(scenarioFile, 'scenario source');
 
-		expect(scenarioSources(scenario)).toEqual(['scenario source']);
+		expect(scenarioSources(scenarioFile)).toEqual(['scenario source']);
 	});
 
-	it('moves two runs whose part files differ to different baseline files', () => {
-		const scenario = path.join(dir, 'sheets.ts');
-		fs.writeFileSync(scenario, 'scenario source');
+	it('gives a run another baseline file once a part or the shared file of its scenario changes', () => {
+		const scenarioFile = path.join(dir, 'sheets.ts');
+		fs.writeFileSync(scenarioFile, 'scenario source');
 		fs.mkdirSync(path.join(dir, 'sheets'));
 		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source');
 		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source');
-		const before = baselineOf(scenario);
+		const before = baselineOf(scenarioFile);
 
 		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source, edited');
-		const partEdited = baselineOf(scenario);
+		const partEdited = baselineOf(scenarioFile);
 		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source, edited');
 
-		expect(new Set([before, partEdited, baselineOf(scenario)]).size).toBe(3);
+		expect(new Set([before, partEdited, baselineOf(scenarioFile)]).size).toBe(3);
 	});
 });
