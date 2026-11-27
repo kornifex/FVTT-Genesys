@@ -83,8 +83,26 @@ export async function upToRankPart(ctx: DicePromptContext) {
 		},
 	);
 
+	// Surge's count, at each value its + shows: 0, 1 and 2.
+	const surgeCount = async () => (await gm.evaluate(() => window.dicePromptE2E.countLayout())).find(({ label }) => label === surgeRow);
+	const surgeCounts = [await surgeCount()];
 	const pools = [];
-	for (let count = 1; count <= 3; count++) pools.push((await stepSurge(1)).pool);
+	for (let count = 1; count <= 3; count++) {
+		pools.push((await stepSurge(1)).pool);
+		if (count < 3) surgeCounts.push(await surgeCount());
+	}
+	e2e.expect(
+		"#971 C1 at 0, 1 and 2, Surge's + covers nothing of its label, and its count stays centred on the checkboxes of Steady and Focus",
+		surgeCounts.map((count) => ({
+			clear: (count?.plusToLabel ?? -1) >= 0,
+			inLine: Math.abs(count?.offCheckbox ?? 1) <= 0.5,
+		})),
+		[
+			{ clear: true, inLine: true },
+			{ clear: true, inLine: true },
+			{ clear: true, inLine: true },
+		],
+	);
 	e2e.expect(
 		'#928 U3 each step of the count upgrades the pool once more, an upgrade without an Ability die left adding one (CRB p. 22), and the count stops at the rank',
 		{ pools, buttons: (await surgeCounter())?.buttons },

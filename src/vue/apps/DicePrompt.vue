@@ -799,6 +799,8 @@ $row-line-height: 1.25rem;
 $row-padding: 0.15rem;
 $row-column-gap: 0.4em;
 $checkbox-size: 1.25rem;
+// The width of a count's − or +: Counter.vue draws it 1.25em wide at 0.6em of the count's font, the row's.
+$counter-step-size: 0.75em;
 
 // Genesys Symbols draws its dice and symbols with the middle of their ink 0.5em above the baseline, where Roboto has the
 // middle of its capitals 0.355em above (1456 of 2048 units): on the label's baseline, a glyph sits high, the more so the
@@ -1134,11 +1136,18 @@ $target-size: 24px;
 		line-height: 1;
 	}
 
-	// The − of a count shows left of it, past the row's edge: the rows keep room for it, every one of them, so that the
-	// effects' names stay in line.
+	// The − of a count shows left of it, past the row's edge, and its + right of it, where the column-gap alone would let
+	// it cover the label's first letter: the rows keep room for both, every one of them, so that the effects' names stay
+	// in line. The count keeps the checkbox's width, so that its value stays centred on the checkboxes of the other rows.
 	.spell-effects.has-counts .spell-effect,
 	.pool-modifications-container.has-counts > div {
 		padding-inline-start: 0.75rem;
+		grid-template-columns: calc(#{$checkbox-size} + #{$counter-step-size}) minmax(0, 2fr) minmax(0, 1.2fr);
+
+		& > .counter {
+			justify-self: start;
+			width: $checkbox-size;
+		}
 	}
 
 	.chance-to-succeed {

@@ -60,8 +60,26 @@ export async function repeatableEffectsPart(ctx: DicePromptContext) {
 		},
 	);
 
+	// Range's count, at each value its + shows.
+	const rangeCount = async () =>
+		(await gm.evaluate(() => window.dicePromptE2E.countLayout())).find(({ label }) => label.startsWith('Range'));
+	const rangeCounts = [await rangeCount()];
 	await step('Range', 1);
+	rangeCounts.push(await rangeCount());
 	await step('Range', 1);
+	rangeCounts.push(await rangeCount());
+	e2e.expect(
+		"#971 C2 at 1, 2 and 3, Range's + covers nothing of its label, and its count stays centred on Additional Target's checkbox",
+		rangeCounts.map((count) => ({
+			clear: (count?.plusToLabel ?? -1) >= 0,
+			inLine: Math.abs(count?.offCheckbox ?? 1) <= 0.5,
+		})),
+		[
+			{ clear: true, inLine: true },
+			{ clear: true, inLine: true },
+			{ clear: true, inLine: true },
+		],
+	);
 	const atFour = await step('Range', 1);
 	e2e.expect(
 		"#761 S2 Range raised to 4 takes the Easy spell to Formidable, and its count, like Additional Target, can't go further",

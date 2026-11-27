@@ -292,6 +292,12 @@ type DicePromptHelpers = {
 	settingText(key: string): Promise<{ language: string; name: string; hint: string }>;
 	/** The Pool Modifications' title and rows as laid out (§#513). */
 	poolModificationsLayout(): PoolModificationsLayout;
+	/**
+	 * The rows of the open prompt that hold a count, Pool Modifications' and Additional Effects' alike, in px a tenth
+	 * apart: how far the label starts right of the count's +, negative where the + covers it, null when no + shows; and how
+	 * far right of a checkbox of its section the count's value is centred, null in a section without one.
+	 */
+	countLayout(): { label: string; plusToLabel: number | null; offCheckbox: number | null }[];
 	/** Rolls a formula of Genesys dice to the chat, its dice tooltip expanded, and returns the message's id. */
 	rollToChat(formula: string): Promise<string>;
 	/**
@@ -1501,6 +1507,30 @@ export function installDicePromptHelpers() {
 			};
 			await app.close();
 			return shown;
+		},
+
+		countLayout() {
+			const root = htmlOf(thePrompt())!;
+			const px = (value: number) => Math.round(value * 10) / 10;
+			const centre = (element: Element) => {
+				const { left, right } = element.getBoundingClientRect();
+				return (left + right) / 2;
+			};
+			return [...root.querySelectorAll('.pool-modifications-container > div, .spell-effect')].flatMap((row) => {
+				const counter = row.querySelector(':scope > .counter');
+				if (!counter) return [];
+				// The counter is a span too.
+				const label = row.querySelector(':scope > span:not(.counter)')!;
+				const plus = counter.querySelector('.step.increase');
+				const checkbox = row.parentElement!.querySelector(':scope > * > input[type="checkbox"]');
+				return [
+					{
+						label: text(label),
+						plusToLabel: plus ? px(label.getBoundingClientRect().left - plus.getBoundingClientRect().right) : null,
+						offCheckbox: checkbox ? px(centre(counter.querySelector('.value')!) - centre(checkbox)) : null,
+					},
+				];
+			});
 		},
 
 		poolModificationsLayout() {
