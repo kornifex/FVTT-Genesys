@@ -292,6 +292,12 @@ type DicePromptHelpers = {
 	settingText(key: string): Promise<{ language: string; name: string; hint: string }>;
 	/** The Pool Modifications' title and rows as laid out (§#513). */
 	poolModificationsLayout(): PoolModificationsLayout;
+	/**
+	 * The rows of the open prompt that hold a count, Pool Modifications' and Additional Effects' alike, in px a tenth
+	 * apart: how far the label starts right of the count's +, negative where the + covers it, null when no + shows; and how
+	 * far right of a checkbox of its section the count's value is centred, null in a section without one.
+	 */
+	countLayout(): { label: string; plusToLabel: number | null; offCheckbox: number | null }[];
 	/** Rolls a formula of Genesys dice to the chat, its dice tooltip expanded, and returns the message's id. */
 	rollToChat(formula: string): Promise<string>;
 	/**
@@ -1501,6 +1507,35 @@ export function installDicePromptHelpers() {
 			};
 			await app.close();
 			return shown;
+		},
+
+		countLayout() {
+			const root = htmlOf(thePrompt())!;
+			const px = (value: number) => Math.round(value * 10) / 10;
+			const centre = (element: Element) => {
+				const { left, right } = element.getBoundingClientRect();
+				return (left + right) / 2;
+			};
+			return [...root.querySelectorAll('.pool-modifications-container > div, .spell-effect')].flatMap((row) => {
+				const counter = row.querySelector(':scope > .counter');
+				if (!counter) return [];
+				// Every row has a label, and the counter its value; the counter is a span too.
+				const label = row.querySelector(':scope > span:not(.counter)')!;
+				const value = counter.querySelector('.value')!;
+				const plus = counter.querySelector('.step.increase');
+				// A row sits in its section's container: the checkboxes of the section's other rows.
+				const checkboxes = [...row.parentElement!.querySelectorAll(':scope > * > input[type="checkbox"]')];
+				const offsets = checkboxes.map((checkbox) => px(centre(value) - centre(checkbox)));
+				return [
+					{
+						label: text(label),
+						plusToLabel: plus ? px(label.getBoundingClientRect().left - plus.getBoundingClientRect().right) : null,
+						// The offset farthest from 0.
+						offCheckbox:
+							offsets.length > 0 ? offsets.reduce((far, offset) => (Math.abs(offset) > Math.abs(far) ? offset : far)) : null,
+					},
+				];
+			});
 		},
 
 		poolModificationsLayout() {
