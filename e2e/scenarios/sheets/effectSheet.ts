@@ -325,14 +325,14 @@ export async function effectSheetPart(ctx: SheetsContext) {
 	};
 	const readsWhole = ({ width, keys, value, priority }: (typeof fits)['en']) => ({
 		width,
-		cut: keys.filter(({ value, cut }) => value.startsWith('genesys.attack.') && cut > 0),
+		cut: keys.filter(({ cut }) => cut > 0),
 		// Room for a Pool Modification of a few glyphs, and for a priority of three digits.
 		valueUsable: value >= 64,
 		priorityUsable: priority >= 40,
 	});
-	const whole = { width: 560, cut: [], valueUsable: true, priorityUsable: true };
+	const whole = { width: 640, cut: [], valueUsable: true, priorityUsable: true };
 	e2e.expect(
-		'#974 A1 at the default width, every Modify Attacks key reads whole in its select, in English, French and Spanish, beside a usable Value and Priority',
+		'#974 A1 at the default width, every key reads whole in its select, in English, French and Spanish, beside a usable Value and Priority',
 		{ en: readsWhole(fits.en), fr: readsWhole(fits.fr), es: readsWhole(fits.es) },
 		{ en: whole, fr: whole, es: whole },
 	);
