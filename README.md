@@ -20,11 +20,11 @@ Since release 0.2.19 of the original system, this fork has:
 - 🌗 **Light and dark themes**: the sheets, prompts and chat cards follow Foundry's light or dark theme, in both Styles.
 - 🔮 **Magic**: spells and their Additional Effects, cast from a Magic tab, with magic attacks and the Heal spell.
 - ⚔️ **Attachments and qualities**: complete qualities, whose effects can change their weapon or armor, attachments that give theirs to the item they are installed on, and effects that change the damage or the Critical rating of an actor's attacks.
-- ❤️‍🩹 **Healing and recovery**: Medicine checks with a healing card to apply and a healer's talent bonus such as Surgeon's, rest at the end of an encounter and overnight, and Critical Injuries rolled on the world's table.
+- ❤️‍🩹 **Healing and recovery**: Medicine checks with a healing card to apply, rest at the end of an encounter and overnight, effects that add to the wounds and strain each of them heals, such as Surgeon's, and Critical Injuries rolled on the world's table.
 - ⭐ **Story Points, maneuvers and states**: Story Point spends in the Dice Prompt, the GM's included, and maneuvers and states (Aim, Guarded Stance, cover, prone, incapacitated) that apply to checks.
-- 🏹 **Weapons**: Weapon Profiles, a choice of Attack Skill for each weapon, and Silhouettes that change a targeted attack's difficulty.
+- 🏹 **Weapons**: Weapon Profiles, a choice of Attack Skill for each weapon, effects that count for their weapon's attacks only, and Silhouettes that change a targeted attack's difficulty.
 - 🎲 **Dice Prompt**: the roller sets a check's Difficulty, rolls skills they lack as Unranked Skill Checks, counts a talent's effects up to its rank, and rolls check links from journals, chat messages and item sheets.
-- ⏱️ **Initiative**: Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots.
+- ⏱️ **Initiative**: Claims and the current turn stay on their Initiative Slot through rerolls and Extra Slots, and effects can change initiative checks.
 - 🧙 **Character Creation**: Character Creation, armor, Encumbrance and equipment effects follow the Core Rulebook, with career skills that talents grant, Archetypes that let the player choose non-career skills, and wearable gear such as a cloak or a ring.
 - 🏰 **Realms of Terrinoth**: a Skills Compendium, a Terrinoth Style, and optional rules: Ignore Talent Pyramid, Talent Tier Versions, Career-Only Magic Skills.
 
