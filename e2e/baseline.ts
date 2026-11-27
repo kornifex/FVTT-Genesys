@@ -1,5 +1,6 @@
 /** @file The cache of the step logs a `--compare` build left, per part, so that the next comparison runs only what it lacks. */
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { type Step, type StepLog, stopped } from './steps.ts';
@@ -62,8 +63,24 @@ export function baselineSteps(baseline: Baseline, only: readonly string[] | unde
 }
 
 /**
+ * The scenario's own sources, which its step log depends on: its file, then the `.ts` files of the folder named after
+ * it, where a scenario split into parts keeps them and what they share (`e2e/scenarios/<scenario>/`), in name order.
+ */
+export function scenarioSources(file: string): string[] {
+	const partsDir = file.replace(/\.ts$/, '');
+	const parts = fs.existsSync(partsDir)
+		? fs
+				.readdirSync(partsDir)
+				.filter((name) => name.endsWith('.ts'))
+				.sort()
+				.map((name) => path.join(partsDir, name))
+		: [];
+	return [file, ...parts].map((source) => fs.readFileSync(source, 'utf8'));
+}
+
+/**
  * Where the baseline of a scenario's run on a commit and a Foundry version is kept: under a hash of the scenario's
- * source and the harness's, which a step log depends on as much as on the build.
+ * sources and the harness's, which a step log depends on as much as on the build.
  */
 export function baselineFile(
 	workDir: string,

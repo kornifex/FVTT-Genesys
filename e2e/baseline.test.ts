@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { baselineFile, baselineSteps, cacheable, mergeBaseline, planBase } from './baseline.ts';
+import { baselineFile, baselineSteps, cacheable, mergeBaseline, planBase, scenarioSources } from './baseline.ts';
 import { fatalStep } from './steps.ts';
 
 const steps = [
@@ -111,5 +113,45 @@ describe('baselineFile', () => {
 
 	it('tells the sources apart where they meet', () => {
 		expect(baselineFile('/work', { ...key, sources: ['ab', 'c'] })).not.toBe(baselineFile('/work', { ...key, sources: ['a', 'bc'] }));
+	});
+});
+
+describe('scenarioSources', () => {
+	let dir: string;
+
+	beforeEach(() => {
+		dir = fs.mkdtempSync(path.join(os.tmpdir(), 'genesys-baseline-'));
+	});
+
+	afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+	const baselineOf = (scenarioFile: string) =>
+		baselineFile('/work', {
+			commit: 'dda7e26ab',
+			version: 14,
+			scenario: 'sheets',
+			sources: [...scenarioSources(scenarioFile), 'harness source'],
+		});
+
+	it('gives the source of a scenario without parts', () => {
+		const scenarioFile = path.join(dir, 'combat.ts');
+		fs.writeFileSync(scenarioFile, 'scenario source');
+
+		expect(scenarioSources(scenarioFile)).toEqual(['scenario source']);
+	});
+
+	it('gives a run another baseline file once a part or the shared file of its scenario changes', () => {
+		const scenarioFile = path.join(dir, 'sheets.ts');
+		fs.writeFileSync(scenarioFile, 'scenario source');
+		fs.mkdirSync(path.join(dir, 'sheets'));
+		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source');
+		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source');
+		const before = baselineOf(scenarioFile);
+
+		fs.writeFileSync(path.join(dir, 'sheets', 'headings.ts'), 'part source, edited');
+		const partEdited = baselineOf(scenarioFile);
+		fs.writeFileSync(path.join(dir, 'sheets', 'shared.ts'), 'shared source, edited');
+
+		expect(new Set([before, partEdited, baselineOf(scenarioFile)]).size).toBe(3);
 	});
 });

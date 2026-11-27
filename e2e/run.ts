@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright-core';
 
-import { type Baseline, baselineFile, baselineSteps, cacheable, mergeBaseline, planBase } from './baseline.ts';
+import { type Baseline, baselineFile, baselineSteps, cacheable, mergeBaseline, planBase, scenarioSources } from './baseline.ts';
 import { claim, claimPorts } from './claims.ts';
 import { envFile, type FoundryInstall, readConfig } from './config.ts';
 import { assembleLog, planSlices, type Slice } from './pool.ts';
@@ -348,7 +348,7 @@ function planOf(run: string, scenario: LoadedScenario): Plan {
  * Plans a scenario's run on the build compared against, from its baseline in the cache, unless `--fresh`.
  */
 function readBasePlan(install: FoundryInstall, commit: string, scenario: LoadedScenario): Plan {
-	const sources = [fs.readFileSync(scenario.file, 'utf8'), ...harnessSources];
+	const sources = [...scenarioSources(scenario.file), ...harnessSources];
 	const file = baselineFile(config.workDir, { commit, version: install.version, scenario: scenario.name, sources });
 	const baseline = options.fresh ? undefined : readBaseline(file);
 	return { ...planBase(baseline, parts), baselineFile: file, baseline };
