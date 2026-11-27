@@ -178,6 +178,36 @@ describe('recoveryOf', () => {
 		});
 	});
 
+	describe("the healer's bonus to the strain a Medicine check heals (#984)", () => {
+		const healer = (value: unknown, item?: RankedItem) => recoverer(bonusEffect([[HEALING_CHANGE_KEYS.medicineStrain, value]], item));
+
+		it('heals the Advantages and the bonus in strain once the Medicine check succeeds', () => {
+			expect(recoveryOf(request, { netSuccess: 2, netAdvantage: 1 }, healer('2'))).toEqual({ ...request, wounds: 2, strain: 3 });
+		});
+
+		it('heals the bonus alone when Threat cancels the Advantage', () => {
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: -2 }, healer('1')).strain).toBe(1);
+		});
+
+		it('adds nothing when the Medicine check fails, which heals nothing (CRB p. 116)', () => {
+			expect(recoveryOf(request, { netSuccess: 0, netAdvantage: 2 }, healer('2'))).toEqual({ ...request, wounds: 0, strain: 0 });
+		});
+
+		it('counts the bonus once per rank of a talent marked as scaling with its rank, once otherwise', () => {
+			const results = { netSuccess: 1, netAdvantage: 1 };
+			expect(recoveryOf(request, results, healer('1', talentOfRank(3))).strain).toBe(4);
+			expect(recoveryOf(request, results, healer('1', talentOfRank(3, 'no'))).strain).toBe(2);
+		});
+
+		it('heals no fewer than zero strain under a penalty', () => {
+			expect(recoveryOf(request, { netSuccess: 1, netAdvantage: 2 }, healer('-3')).strain).toBe(0);
+		});
+
+		it('adds nothing to a Heal spell, which is no Medicine check (CRB pp. 74, 217)', () => {
+			expect(recoveryOf(healSpell, { netSuccess: 2, netAdvantage: 1 }, healer('2', talentOfRank(1))).strain).toBe(1);
+		});
+	});
+
 	describe("the character's own bonus to the end of an encounter's recovery (#931)", () => {
 		const { encounterEndStrain, encounterEndWounds } = HEALING_CHANGE_KEYS;
 
@@ -319,7 +349,7 @@ describe('nightsRest', () => {
 });
 
 describe("the healing bonus of a weapon's or an armor's quality (CRB pp. 86–89)", () => {
-	const { medicineWounds, restWounds, encounterEndStrain, encounterEndWounds } = HEALING_CHANGE_KEYS;
+	const { medicineWounds, medicineStrain, restWounds, encounterEndStrain, encounterEndWounds } = HEALING_CHANGE_KEYS;
 	const restorative = (id: string, rating: number) => ({ id, name: 'Restorative', isRated: true, rating });
 
 	// An armor holding the quality at a rating, whose effect, tagged with its id, holds the changes given.
@@ -356,9 +386,15 @@ describe("the healing bonus of a weapon's or an armor's quality (CRB pp. 86–89
 		});
 	});
 
-	it("counts the healer's bonus once per rank of the quality's rating, for a Medicine check", () => {
-		const healer = armorWith(2, [[medicineWounds, 1]]);
-		expect(recoveryOf({ patient: 'Actor.bo', rule: 'medicine' }, { netSuccess: 1, netAdvantage: 0 }, healer).wounds).toBe(3);
+	it("counts the healer's bonuses once per rank of the quality's rating, for a Medicine check", () => {
+		const healer = armorWith(2, [
+			[medicineWounds, 1],
+			[medicineStrain, 1],
+		]);
+		expect(recoveryOf({ patient: 'Actor.bo', rule: 'medicine' }, { netSuccess: 1, netAdvantage: 0 }, healer)).toMatchObject({
+			wounds: 3,
+			strain: 2,
+		});
 	});
 
 	it('counts a quality held by two Weapon Profiles of a weapon once, at its highest rating', () => {

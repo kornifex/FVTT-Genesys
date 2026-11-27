@@ -130,6 +130,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			label: 'Modify Healing',
 			options: [
 				'genesys.healing.wounds=👇 Wounds Healed by a Medicine Check',
+				'genesys.healing.strain=👇 Strain Recovered by a Medicine Check',
 				"genesys.healing.rest.wounds=👇 Wounds Healed by a Night's Rest",
 				'genesys.healing.encounterEnd.strain=👇 Strain Recovered at the End of an Encounter',
 				'genesys.healing.encounterEnd.wounds=👇 Wounds Healed at the End of an Encounter',
@@ -293,6 +294,7 @@ export async function effectSheetPart(ctx: SheetsContext) {
 			initiative: ["genesys.pool.initiative.self=👇 Test d'initiative"],
 			healing: [
 				'genesys.healing.wounds=👇 Blessures soignées par un test de Médecine',
+				'genesys.healing.strain=👇 Stress récupéré par un test de Médecine',
 				'genesys.healing.rest.wounds=👇 Blessures soignées par une nuit de repos',
 				'genesys.healing.encounterEnd.strain=👇 Stress récupéré en fin de rencontre',
 				'genesys.healing.encounterEnd.wounds=👇 Blessures soignées en fin de rencontre',
