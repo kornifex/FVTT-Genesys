@@ -30,6 +30,17 @@ Since release 0.2.19 of the original system, this fork has:
 
 The wiki's [Changes since the fork](https://github.com/kornifex/FVTT-Genesys/wiki/Changes-since-the-fork) page groups these changes by theme for players and GMs. The [changelog](CHANGELOG.md) lists every change with its issue.
 
+## Under the hood
+Since release 0.2.19 (May 2026), the code itself has changed as much as the features:
+
+- 🧱 **Foundry's current APIs**: the sheets mount on ApplicationV2, with their Vue components kept ([ADR 0004](docs/adr/0004-vue-for-sheets.md)); item effects apply from their item rather than through copies on the actor ([ADR 0001](docs/adr/0001-non-legacy-effect-transferral.md)); and the code is typed against the community's `fvtt-types` for v14, in place of vendored v12 types ([ADR 0006](docs/adr/0006-type-against-fvtt-types-for-v14.md)).
+- 🗃️ **World migrations**: 11 migrations, each with its tests, carry existing worlds through the data changes, such as combat data moved from flags into `system` fields and Pool Modifications given a change type of their own.
+- 🧪 **Tests**: about 2,200 unit tests (Vitest), where 0.2.19 had none, and an end-to-end harness that runs about 1,300 assertions in real Foundry v14, with a GM and a player in headless Chromium, accessibility checks by axe-core included. It runs before every release.
+- 🛠️ **Toolchain**: pnpm and Vite alone, in place of yarn and Gulp. Every pull request goes through lint, unused-code detection (knip), localization keys, formatting, type checking, the tests and the build.
+- 🎲 **Chance to succeed**: its Web Worker runs the system's own TypeScript dice code, in place of a 546-line JavaScript copy that no lint, type check or test covered.
+- 🚀 **Releases**: release-please computes each version and its changelog from Conventional Commits, and a workflow builds and publishes it. A version that risks a world's data goes out as a release candidate first.
+- 📐 **Decisions**: recorded as [ADRs](docs/adr), with the domain's terms in [GLOSSARY.md](GLOSSARY.md).
+
 ## AI assistance
 Development on this fork, after release 0.2.19, is done with the assistance of Claude (Anthropic), through Claude Code. Every change is reviewed, tested in play and owned by the maintainer. Code inherited from the original project, up to and including release 0.2.19, predates the fork and is not covered by this note.
 
