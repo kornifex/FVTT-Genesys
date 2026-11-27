@@ -1,9 +1,9 @@
 /**
  * @file Recovery: the wounds and strain a check heals its patient of, from its results, which the check's chat message
  * carries until it is applied; the Medicine check that heals a patient, at the difficulty of their state of health
- * (CRB p. 116), with the wounds and strain its healer's effects add (CRB p. 74), and the Heal spell cast in its place (CRB p. 217);
- * the check that recovers strain at the end of an encounter, and a full night's rest (CRB pp. 116–117), with what the
- * effects of the character who recovers add to them.
+ * (CRB p. 116), with the wounds its healer's effects add (CRB p. 74) and the strain (#984), and the Heal spell cast in
+ * its place (CRB p. 217); the check that recovers strain at the end of an encounter, and a full night's rest (CRB
+ * pp. 116–117), with what the effects of the character who recovers add to them.
  */
 
 import type { CombatPool } from '@/data/schemaFields';
@@ -92,7 +92,7 @@ function healingBonus(actor: RecoveryActor | undefined, healingKey: HealingChang
 
 /**
  * A Medicine check heals a wound per Success and a strain per Advantage, once it succeeds (CRB p. 116), and the wounds
- * and the strain its healer's bonus adds (CRB p. 74, #984), never fewer than none.
+ * its healer's bonus adds (CRB p. 74), and the strain (#984), never fewer than none.
  */
 function medicineHealing({ netSuccess, netAdvantage }: RecoveryResults, bonus: Healed): Healed {
 	if (netSuccess <= 0) {
