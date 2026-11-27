@@ -548,14 +548,27 @@ Genesys:
       Hello, and thank you for playing with the Genesys system! Here are this version's main changes; the links below lead
       to its documentation and to where to report a bug.
     Updates: Bug Fixes & Updates
+    Feature: FEATURE
     Fix: FIX
     Styling: STYLING
-    AttackPoolsAligned: >-
-      On the Combat tab, the attacks' dice pools line up on one edge, and the rows no longer touch their rules
+    AttachmentQualities: >-
+      An attachment's qualities, such as a rune's, go to the weapon or armor it is installed on, with their effects
+    WeaponAttacksOnly: >-
+      A weapon's own effect can count for its attacks only: check "This weapon's attacks only" on the effect's sheet
+    UpToRank: >-
+      A talent such as Rapid Reaction can count its effects up to its rank: with "Up to rank", the Dice Prompt asks how
+      many times
+    InitiativeAndRecovery: >-
+      An effect can change initiative checks, the wounds a night's rest heals, and the strain and wounds recovered at the
+      end of an encounter
+    MedicineStrain: An effect can add to the strain a Medicine check heals, as it already can to the wounds
+    UnrankedTalentChanges: An unranked talent's numeric changes and Attack Changes count once, whatever rank it kept
     FrenchArchetypeRemoval: In French, removing an Archetype says that the skills were chosen for it
     AttackChangesApart: In the Dice Prompt, an effect's Attack Changes no longer run together
-    CounterPlusClear: In the Dice Prompt, a count's + no longer covers its row's label
     EffectKeysWhole: On an effect's sheet, every change's key reads whole, in every language
+    SpellEffectOutline: In the Dice Prompt, the dice a spell's Additional Effect adds keep their outline in the dark theme
+    AttackPoolsAligned: >-
+      On the Combat tab, the attacks' dice pools line up on one edge, and the rows no longer touch their rules
     ReleaseNotes: All the changes of {version}
     UsefulLinks: Useful Links
     Documentation: Project Documentation
