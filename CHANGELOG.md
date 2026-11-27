@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1](https://github.com/kornifex/FVTT-Genesys/compare/v1.0.0...v1.0.1) (2026-11-27)
+
+
+### Documentation
+
+* add 1.0.0's changes to the README's What's new since the fork ([#990](https://github.com/kornifex/FVTT-Genesys/issues/990)) ([414e2c7](https://github.com/kornifex/FVTT-Genesys/commit/414e2c7e1590c4effbedd2d4cb3e41a105a6f2bf))
+
+
+### Continuous Integration
+
+* remove release-as now that 1.0.0 is out ([#991](https://github.com/kornifex/FVTT-Genesys/issues/991)) ([f8f15d0](https://github.com/kornifex/FVTT-Genesys/commit/f8f15d0daf7e52076d6b260dd861584445cc9ed4))
+
 ## [1.0.0](https://github.com/kornifex/FVTT-Genesys/compare/v1.0.0-rc.2...v1.0.0) (2026-11-27)
 
 
