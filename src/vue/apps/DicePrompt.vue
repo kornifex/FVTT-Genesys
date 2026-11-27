@@ -188,8 +188,10 @@ type EffectRow = {
 	attack: string[];
 };
 const effects = ref<EffectRow[]>([]);
-// The − of a row's count shows left of it, past the row's edge: the rows keep room for it, as the Additional Effects' do.
 const hasModificationCounts = computed(() => effects.value.some((effect) => effect.choice.kind === 'count'));
+// The − and + of a count show past its sides: once a row of the prompt has one, every row keeps room for them (see the
+// styles).
+const counted = computed(() => hasCounts || hasModificationCounts.value);
 // The skills sit in shallow refs, so that Vue never wraps them in reactive proxies. The skills the attacking weapon
 // lists, offered first and only there.
 const weaponSkills = shallowRef<PromptSkill[]>([]);
@@ -521,7 +523,7 @@ const spendId = useId();
 </script>
 
 <template>
-	<div class="genesys dice-prompt">
+	<div :class="['genesys', 'dice-prompt', { 'has-counts': counted }]">
 		<header>
 			<span class="hint"><Localized label="Genesys.DicePrompt.Hint" /></span>
 			<ul v-if="stateReminderLabels.length > 0" class="state-reminders">
@@ -597,7 +599,7 @@ const spendId = useId();
 
 		<fieldset class="pool-modifications">
 			<legend><Localized label="Genesys.DicePrompt.PoolModifications.Title" /></legend>
-			<div :class="['pool-modifications-container', { 'has-counts': hasModificationCounts }]">
+			<div class="pool-modifications-container">
 				<div class="pool-modifications-difficulty">
 					<span>
 						<Localized label="Genesys.DicePrompt.PoolModifications.Difficulty" :format-args="{ level: difficultyName }" />
@@ -679,7 +681,7 @@ const spendId = useId();
 		label, then a column of what they add, with why a choice is closed under its label. -->
 		<div class="choices">
 			<!-- An effect that can be added more than once has a count in place of its checkbox, named after the effect. -->
-			<fieldset v-if="spellEffects.length > 0" :class="['spell-effects', { 'has-counts': hasCounts }]">
+			<fieldset v-if="spellEffects.length > 0" class="spell-effects">
 				<legend><Localized label="Genesys.Labels.AdditionalEffects" /></legend>
 				<div v-for="effect in spellEffects" :key="effect.id" class="spell-effect">
 					<Counter
@@ -1136,17 +1138,20 @@ $target-size: 24px;
 		line-height: 1;
 	}
 
-	// The − of a count shows left of it, past the row's edge, and its + right of it, where the column-gap alone would let
-	// it cover the label's first letter: the rows keep room for both, every one of them, so that the effects' names stay
-	// in line. The count keeps the checkbox's width, so that its value stays centred on the checkboxes of the other rows.
-	.spell-effects.has-counts .spell-effect,
-	.pool-modifications-container.has-counts > div {
-		padding-inline-start: 0.75rem;
-		grid-template-columns: calc(#{$checkbox-size} + #{$counter-step-size}) minmax(0, 2fr) minmax(0, 1.2fr);
+	// The − of a count shows left of it, past the row's edge, and its + right of it, where the column gap alone would let
+	// it cover the label's first letter. Once a row has a count, every row of every section keeps room for both, before
+	// the row and before its label, so that the labels and the columns of what they add stay on shared edges (§#513). The
+	// room before the label comes out of the label's column alone: the Difficulty's six dice keep all of theirs.
+	&.has-counts {
+		.pool-modifications-container > div,
+		.spell-effect,
+		.story-point-spend {
+			padding-inline-start: $counter-step-size;
 
-		& > .counter {
-			justify-self: start;
-			width: $checkbox-size;
+			// The count is a span too.
+			& > span:not(.counter) {
+				margin-inline-start: $counter-step-size;
+			}
 		}
 	}
 

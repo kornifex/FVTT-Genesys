@@ -1519,15 +1519,20 @@ export function installDicePromptHelpers() {
 			return [...root.querySelectorAll('.pool-modifications-container > div, .spell-effect')].flatMap((row) => {
 				const counter = row.querySelector(':scope > .counter');
 				if (!counter) return [];
-				// The counter is a span too.
+				// Every row has a label, and the counter its value; the counter is a span too.
 				const label = row.querySelector(':scope > span:not(.counter)')!;
+				const value = counter.querySelector('.value')!;
 				const plus = counter.querySelector('.step.increase');
-				const checkbox = row.parentElement!.querySelector(':scope > * > input[type="checkbox"]');
+				// A row sits in its section's container: the checkboxes of the section's other rows.
+				const checkboxes = [...row.parentElement!.querySelectorAll(':scope > * > input[type="checkbox"]')];
+				const offsets = checkboxes.map((checkbox) => px(centre(value) - centre(checkbox)));
 				return [
 					{
 						label: text(label),
 						plusToLabel: plus ? px(label.getBoundingClientRect().left - plus.getBoundingClientRect().right) : null,
-						offCheckbox: checkbox ? px(centre(counter.querySelector('.value')!) - centre(checkbox)) : null,
+						// The offset farthest from 0.
+						offCheckbox:
+							offsets.length > 0 ? offsets.reduce((far, offset) => (Math.abs(offset) > Math.abs(far) ? offset : far)) : null,
 					},
 				];
 			});

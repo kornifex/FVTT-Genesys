@@ -71,7 +71,7 @@ export async function repeatableEffectsPart(ctx: DicePromptContext) {
 	e2e.expect(
 		"#971 C2 at 1, 2 and 3, Range's + covers nothing of its label, and its count stays centred on Additional Target's checkbox",
 		rangeCounts.map((count) => ({
-			clear: (count?.plusToLabel ?? -1) >= 0,
+			clear: (count?.plusToLabel ?? -1) > 0,
 			inLine: Math.abs(count?.offCheckbox ?? 1) <= 0.5,
 		})),
 		[
@@ -79,6 +79,22 @@ export async function repeatableEffectsPart(ctx: DicePromptContext) {
 			{ clear: true, inLine: true },
 			{ clear: true, inLine: true },
 		],
+	);
+	e2e.expect(
+		"#971 C2 with Range's count, the rows of the Pool Modifications, the Additional Effects and the Story Points still have their labels, and the columns of what they add, on shared edges",
+		await gm.evaluate(() => {
+			const { apps, htmlOf } = window.e2e;
+			// The Veil's prompt shows, and every row has a label and a column; the count is a span too.
+			const rows = [
+				...htmlOf(apps('app-dice-prompt')[0])!.querySelectorAll(
+					'.pool-modifications-container > div, .spell-effect, .story-point-spend',
+				),
+			];
+			const edges = (selector: string) =>
+				new Set(rows.map((row) => Math.round(row.querySelector(selector)!.getBoundingClientRect().left))).size;
+			return { labels: edges(':scope > span:not(.counter)'), columns: edges(':scope > div') };
+		}),
+		{ labels: 1, columns: 1 },
 	);
 	const atFour = await step('Range', 1);
 	e2e.expect(

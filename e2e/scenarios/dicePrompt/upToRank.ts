@@ -94,7 +94,7 @@ export async function upToRankPart(ctx: DicePromptContext) {
 	e2e.expect(
 		"#971 C1 at 0, 1 and 2, Surge's + covers nothing of its label, and its count stays centred on the checkboxes of Steady and Focus",
 		surgeCounts.map((count) => ({
-			clear: (count?.plusToLabel ?? -1) >= 0,
+			clear: (count?.plusToLabel ?? -1) > 0,
 			inLine: Math.abs(count?.offCheckbox ?? 1) <= 0.5,
 		})),
 		[
@@ -102,6 +102,18 @@ export async function upToRankPart(ctx: DicePromptContext) {
 			{ clear: true, inLine: true },
 			{ clear: true, inLine: true },
 		],
+	);
+	e2e.expect(
+		"#971 C1 beside Surge's count, the Difficulty's five dice and its Impossible mark still hold on one line, within their column",
+		await gm.evaluate(() => {
+			const { apps, htmlOf } = window.e2e;
+			// The prompt intellectCheck opened shows, with its Difficulty row.
+			const dice = htmlOf(apps('app-dice-prompt')[0])!.querySelector<HTMLElement>('.pool-modifications-difficulty > div')!;
+			// The skull's box starts a few px above the dice's on their line: a second line would start a die's height lower.
+			const tops = [...dice.children].map((die) => die.getBoundingClientRect().top);
+			return { oneLine: Math.max(...tops) - Math.min(...tops) < 12, overflows: dice.scrollWidth > dice.clientWidth };
+		}),
+		{ oneLine: true, overflows: false },
 	);
 	e2e.expect(
 		'#928 U3 each step of the count upgrades the pool once more, an upgrade without an Ability die left adding one (CRB p. 22), and the count stops at the rank',
