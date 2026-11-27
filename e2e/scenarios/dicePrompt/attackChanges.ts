@@ -40,6 +40,16 @@ export async function attackChangesPart(ctx: DicePromptContext) {
 			changes: [{ name: 'From Self: E2E Battle Rage', changes: ['+2 Damage', '-1 Critical'] }],
 		},
 	);
+	e2e.expect(
+		'#972 A1 the row of Battle Rage reads its two Attack Changes apart, after its Setback',
+		await gm.evaluate(() => {
+			const { apps, htmlOf, text } = window.e2e;
+			const column = htmlOf(apps('app-dice-prompt')[0])!.querySelector('.pool-modifications-effects div:has(> .attack-change)');
+			return text(column);
+		}),
+		// The Setback's glyph is the letter S of the dice font, which its margin parts from the first change.
+		'S+2 Damage, -1 Critical',
+	);
 
 	// The Club deals 3 damage, to which it adds no characteristic, and has a Critical rating of 3.
 	// Proficiency faces: 4 two Successes; Difficulty and Setback: 1 blank.
