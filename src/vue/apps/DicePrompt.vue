@@ -655,7 +655,9 @@ const spendId = useId();
 					</span>
 					<div>
 						<PoolModificationIcon v-for="(modification, index) in effect.mods" :key="index" :glyph="modification" />
-						<span v-for="change in effect.attack" :key="change" class="attack-change">{{ change }}</span>
+						<!-- A comma parts two changes of one effect, which would otherwise read as one: « +2 Damage-1 Critical ». -->
+						<!-- prettier-ignore -->
+						<template v-for="(change, index) in effect.attack" :key="change"><template v-if="index > 0">, </template><span class="attack-change">{{ change }}</span></template>
 					</div>
 				</div>
 				<!-- Below the effects' rows, which its label, empty, would read as the heading of. -->
